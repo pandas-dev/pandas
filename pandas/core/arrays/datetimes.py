@@ -136,7 +136,7 @@ def _field_accessor(name: str, field: str, docstring=None):
                     values, field, self.freqstr, month_kw, reso=self._reso
                 )
             else:
-                result = fields.get_date_field(values, field)
+                result = fields.get_date_field(values, field, reso=self._reso)
 
             # these return a boolean by-definition
             return result
@@ -146,7 +146,7 @@ def _field_accessor(name: str, field: str, docstring=None):
             result = self._maybe_mask_results(result, fill_value=None)
 
         else:
-            result = fields.get_date_field(values, field)
+            result = fields.get_date_field(values, field, reso=self._reso)
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
             )
@@ -1403,7 +1403,7 @@ default 'raise'
         from pandas import DataFrame
 
         values = self._local_timestamps()
-        sarray = fields.build_isocalendar_sarray(values)
+        sarray = fields.build_isocalendar_sarray(values, reso=self._reso)
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )

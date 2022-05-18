@@ -329,7 +329,7 @@ def get_start_end_field(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_field(const int64_t[:] dtindex, str field):
+def get_date_field(const int64_t[:] dtindex, str field, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
@@ -348,7 +348,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.year
         return out
 
@@ -359,7 +359,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.month
         return out
 
@@ -370,7 +370,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.day
         return out
 
@@ -381,8 +381,9 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.hour
+                # TODO: can we de-dup with period.pyx <accessor>s?
         return out
 
     elif field == 'm':
@@ -392,7 +393,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.min
         return out
 
@@ -403,7 +404,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.sec
         return out
 
@@ -414,7 +415,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.us
         return out
 
@@ -425,7 +426,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.ps // 1000
         return out
     elif field == 'doy':
@@ -435,7 +436,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = get_day_of_year(dts.year, dts.month, dts.day)
         return out
 
@@ -446,7 +447,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dayofweek(dts.year, dts.month, dts.day)
         return out
 
@@ -457,7 +458,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = get_week_of_year(dts.year, dts.month, dts.day)
         return out
 
@@ -468,7 +469,7 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = dts.month
                 out[i] = ((out[i] - 1) // 3) + 1
         return out
@@ -480,11 +481,11 @@ def get_date_field(const int64_t[:] dtindex, str field):
                     out[i] = -1
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 out[i] = get_days_in_month(dts.year, dts.month)
         return out
     elif field == 'is_leap_year':
-        return isleapyear_arr(get_date_field(dtindex, 'Y'))
+        return isleapyear_arr(get_date_field(dtindex, 'Y', reso=reso))
 
     raise ValueError(f"Field {field} not supported")
 
@@ -564,7 +565,7 @@ cpdef isleapyear_arr(ndarray years):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def build_isocalendar_sarray(const int64_t[:] dtindex):
+def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Given a int64-based datetime array, return the ISO 8601 year, week, and day
     as a structured array.
@@ -592,7 +593,7 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
             if dtindex[i] == NPY_NAT:
                 ret_val = 0, 0, 0
             else:
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 ret_val = get_iso_calendar(dts.year, dts.month, dts.day)
 
             iso_years[i] = ret_val[0]
