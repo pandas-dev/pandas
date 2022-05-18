@@ -8,7 +8,7 @@ import warnings
 from pandas._libs import lib
 from pandas._libs.algos import is_monotonic
 
-from pandas._libs.interval import warning_interval
+from pandas._libs.interval import _warning_interval
 
 ctypedef fused int_scalar_t:
     int64_t
@@ -66,7 +66,7 @@ cdef class IntervalTree(IntervalMixin):
             to brute-force search. Tune this parameter to optimize query
             performance.
         """
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None:
             inclusive = "both"

@@ -24,8 +24,8 @@ from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
     IntervalMixin,
+    _warning_interval,
     intervals_to_interval_bounds,
-    warning_interval,
 )
 from pandas._libs.missing import NA
 from pandas._typing import (
@@ -225,7 +225,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ):
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
 
         data = extract_array(data, extract_numpy=True)
 
@@ -275,7 +275,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
 
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None and isinstance(dtype, IntervalDtype):
             inclusive = dtype.inclusive

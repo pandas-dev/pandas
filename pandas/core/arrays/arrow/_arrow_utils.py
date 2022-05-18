@@ -7,7 +7,7 @@ import numpy as np
 import pyarrow
 
 from pandas._libs import lib
-from pandas._libs.interval import warning_interval
+from pandas._libs.interval import _warning_interval
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -113,7 +113,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     ) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
         assert inclusive in VALID_CLOSED
         self._closed = inclusive
         if not isinstance(subtype, pyarrow.DataType):

@@ -213,9 +213,7 @@ cdef bint _interval_like(other):
             and hasattr(other, 'right')
             and hasattr(other, 'inclusive'))
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def warning_interval(inclusive: str | None = None, closed: lib.NoDefault = lib.no_default):
+def _warning_interval(inclusive: str | None = None, closed: lib.NoDefault = lib.no_default):
     """
     warning in interval class for variable inclusive and closed
     """
@@ -363,7 +361,7 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(left)
         self._validate_endpoint(right)
 
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None:
             inclusive = "both"

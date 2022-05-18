@@ -20,7 +20,7 @@ from pandas._libs import (
 )
 from pandas._libs.interval import (
     Interval,
-    warning_interval,
+    _warning_interval,
 )
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
@@ -1076,7 +1076,7 @@ class IntervalDtype(PandasExtensionDtype):
             pandas_dtype,
         )
 
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is not None and inclusive not in {
             "right",

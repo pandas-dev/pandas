@@ -19,7 +19,7 @@ from pandas._libs.interval import (
     Interval,
     IntervalMixin,
     IntervalTree,
-    warning_interval,
+    _warning_interval,
 )
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -220,7 +220,7 @@ class IntervalIndex(ExtensionIndex):
         verify_integrity: bool = True,
     ) -> IntervalIndex:
 
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
 
         name = maybe_extract_name(name, data, cls)
 
@@ -261,7 +261,7 @@ class IntervalIndex(ExtensionIndex):
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
 
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
             inclusive = "both"
 
@@ -298,7 +298,7 @@ class IntervalIndex(ExtensionIndex):
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
 
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
             inclusive = "both"
 
@@ -334,7 +334,7 @@ class IntervalIndex(ExtensionIndex):
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
 
-        inclusive, closed = warning_interval(inclusive, closed)
+        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
             inclusive = "both"
 
@@ -1077,7 +1077,7 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
-    inclusive, closed = warning_interval(inclusive, closed)
+    inclusive, closed = _warning_interval(inclusive, closed)
     if inclusive is None:
         inclusive = "both"
 
