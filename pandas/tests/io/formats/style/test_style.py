@@ -1559,7 +1559,7 @@ def test_no_empty_apply(mi_styler):
     mi_styler._compute()
 
 
-@pytest.mark.parametrize("format", ["html", "latex"])
+@pytest.mark.parametrize("format", ["html", "latex", "string"])
 def test_output_buffer(mi_styler, format):
     # gh 47053
     with open(f"delete_me.{format}", "w") as f:
