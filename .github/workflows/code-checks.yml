@@ -1,0 +1,172 @@
+name: Code Checks
+
+on:
+  push:
+    branches:
+      - main
+      - 1.4.x
+  pull_request:
+    branches:
+      - main
+      - 1.4.x
+
+env:
+  ENV_FILE: environment.yml
+  PANDAS_CI: 1
+
+jobs:
+  pre_commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
+      cancel-in-progress: true
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.9.7'
+
+    - name: Run pre-commit
+      uses: pre-commit/action@v2.0.3
+
+  typing_and_docstring_validation:
+    name: Docstring and typing validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-code-checks
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Cache conda
+      uses: actions/cache@v3
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2.1.1
+      with:
+        mamba-version: "*"
+        channels: conda-forge
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Install node.js (for pyright)
+      uses: actions/setup-node@v3
+      with:
+        node-version: "16"
+
+    - name: Install pyright
+      # note: keep version in sync with .pre-commit-config.yaml
+      run: npm install -g pyright@1.1.247
+
+    - name: Build Pandas
+      id: build
+      uses: ./.github/actions/build_pandas
+
+    - name: Check for no warnings when building single-page docs
+      run: ci/code_checks.sh single-docs
+      if: ${{ steps.build.outcome == 'success' }}
+
+    - name: Run checks on imported code
+      run: ci/code_checks.sh code
+      if: ${{ steps.build.outcome == 'success' }}
+
+    - name: Run doctests
+      run: ci/code_checks.sh doctests
+      if: ${{ steps.build.outcome == 'success' }}
+
+    - name: Run docstring validation
+      run: ci/code_checks.sh docstrings
+      if: ${{ steps.build.outcome == 'success' }}
+
+    - name: Run typing validation
+      run: ci/code_checks.sh typing
+      if: ${{ steps.build.outcome == 'success' }}
+
+    - name: Run docstring validation script tests
+      run: pytest scripts
+      if: ${{ steps.build.outcome == 'success' }}
+
+  asv-benchmarks:
+    name: ASV Benchmarks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-asv-benchmarks
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Cache conda
+      uses: actions/cache@v3
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2.1.1
+      with:
+        mamba-version: "*"
+        channels: conda-forge
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      id: build
+      uses: ./.github/actions/build_pandas
+
+    - name: Run ASV benchmarks
+      run: |
+        cd asv_bench
+        asv machine --yes
+        asv run --quick --dry-run --strict --durations=30 --python=same
+
+  build_docker_dev_environment:
+    name: Build Docker Dev Environment
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-build_docker_dev_environment
+      cancel-in-progress: true
+
+    steps:
+      - name: Clean up dangling images
+        run: docker image prune -f
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Build image
+        run: docker build --pull --no-cache --tag pandas-dev-env .
