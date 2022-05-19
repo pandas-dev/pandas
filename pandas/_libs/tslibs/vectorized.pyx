@@ -204,7 +204,9 @@ def ints_to_pydatetime(
 
 
 cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
-    if dts.us != 0:
+    if dts.ps != 0:
+        return c_Resolution.RESO_NS
+    elif dts.us != 0:
         if dts.us % 1000 == 0:
             return c_Resolution.RESO_MS
         return c_Resolution.RESO_US
