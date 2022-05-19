@@ -26,18 +26,6 @@ def rands_array(nchars, size, dtype="O", replace=True):
     return retval.astype(dtype)
 
 
-def randu_array(nchars, size, dtype="O"):
-    """
-    Generate an array of unicode strings.
-    """
-    retval = (
-        np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
-        .view((np.unicode_, nchars))
-        .reshape(size)
-    )
-    return retval.astype(dtype)
-
-
 def rands(nchars):
     """
     Generate one random byte string.

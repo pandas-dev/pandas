@@ -543,7 +543,6 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "unicode": tm.makeUnicodeIndex(100),
     "string": tm.makeStringIndex(100),
     "datetime": tm.makeDateIndex(100),
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),

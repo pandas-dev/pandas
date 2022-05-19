@@ -730,7 +730,7 @@ def should_warn(*args):
 
 class TestAlignment:
 
-    index_types = ["i", "u", "dt"]
+    index_types = ["i", "s", "dt"]
     lhs_index_types = index_types + ["s"]  # 'p'
 
     def test_align_nested_unary_op(self, engine, parser):
@@ -829,7 +829,7 @@ class TestAlignment:
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize(
         "r_idx_type, c_idx_type",
-        list(product(["i", "u", "s"], ["i", "u", "s"])) + [("dt", "dt")],
+        list(product(["i", "s"], ["i", "s"])) + [("dt", "dt")],
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(

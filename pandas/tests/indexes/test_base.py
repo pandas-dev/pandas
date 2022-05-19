@@ -318,7 +318,6 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "index",
         [
-            "unicode",
             "string",
             pytest.param("categorical", marks=pytest.mark.xfail(reason="gh-25464")),
             "bool-object",
@@ -927,7 +926,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize(
         "index",
-        ["unicode", "string", "datetime", "int", "uint", "float"],
+        ["string", "datetime", "int", "uint", "float"],
         indirect=True,
     )
     def test_join_self(self, index, join_type):
