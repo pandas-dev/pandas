@@ -150,24 +150,26 @@ class TestSelection:
 
 
 class TestGrouping:
-    def test_grouper_index_types(self):
-        # related GH5375
-        # groupby misbehaving when using a Floatlike index
-        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
-        for index in [
+    @pytest.mark.parametrize(
+        "index",
+        [
             tm.makeFloatIndex,
             tm.makeStringIndex,
-            tm.makeUnicodeIndex,
             tm.makeIntIndex,
             tm.makeDateIndex,
             tm.makePeriodIndex,
-        ]:
+        ],
+    )
+    def test_grouper_index_types(self, index):
+        # related GH5375
+        # groupby misbehaving when using a Floatlike index
+        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
 
-            df.index = index(len(df))
-            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
+        df.index = index(len(df))
+        df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
-            df.index = list(reversed(df.index.tolist()))
-            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
+        df.index = list(reversed(df.index.tolist()))
+        df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
 
