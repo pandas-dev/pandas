@@ -21,8 +21,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.io.excel import xlrd_version
-from pandas.util.version import Version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -69,12 +67,7 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
         return False
     if read_ext == ".xlsb" and engine != "pyxlsb":
         return False
-    if (
-        engine == "xlrd"
-        and xlrd_version is not None
-        and xlrd_version >= Version("2")
-        and read_ext != ".xls"
-    ):
+    if engine == "xlrd" and read_ext != ".xls":
         return False
     return True
 
@@ -1526,18 +1519,6 @@ class TestExcelFileRead:
             result = pd.read_excel(f)
         expected = pd.read_excel("test1" + read_ext, engine=engine)
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.skipif(
-        xlrd_version is not None and xlrd_version >= Version("2"),
-        reason="xlrd no longer supports xlsx",
-    )
-    def test_excel_high_surrogate(self):
-        # GH 23809
-        expected = DataFrame(["\udc88"], columns=["Column1"])
-
-        # should not produce a segmentation violation
-        actual = pd.read_excel("high_surrogate.xlsx", engine="xlrd")
-        tm.assert_frame_equal(expected, actual)
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, filename):
