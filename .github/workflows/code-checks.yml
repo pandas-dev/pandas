@@ -67,15 +67,6 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
-    - name: Install node.js (for pyright)
-      uses: actions/setup-node@v3
-      with:
-        node-version: "16"
-
-    - name: Install pyright
-      # note: keep version in sync with .pre-commit-config.yaml
-      run: npm install -g pyright@1.1.247
-
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
@@ -99,6 +90,12 @@ jobs:
     - name: Run typing validation
       run: ci/code_checks.sh typing
       if: ${{ steps.build.outcome == 'success' }}
+
+    - uses: jakebailey/pyright-action@v1
+      with:
+        # note: keep version in sync with .pre-commit-config.yaml
+        version: 1.1.247
+        extra-args: --skipunannotated
 
     - name: Run docstring validation script tests
       run: pytest scripts
