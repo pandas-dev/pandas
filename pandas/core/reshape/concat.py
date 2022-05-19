@@ -344,6 +344,20 @@ def concat(
     Traceback (most recent call last):
         ...
     ValueError: Indexes have overlapping values: ['a']
+
+    Append a single row to the end of a ``DataFrame`` object.
+
+    >>> df7 = pd.DataFrame({'a': 1, 'b': 2}, index=[0])
+    >>> df7
+        a   b
+    0   1   2
+    >>> new_row = pd.Series([3])
+    >>> new_row
+    0   3
+    >>>     pd.concat([df7, new_row.to_frame().T], ignore_index=True)
+         a    b    0
+    0  1.0  2.0  NaN
+    1  NaN  NaN  3.0
     """
     op = _Concatenator(
         objs,
