@@ -178,17 +178,18 @@ def test_center_reindex_frame(frame, roll_func):
 
 def test_rolling_skew_edge_cases(step):
 
-    all_nan = Series([np.NaN] * 5)[::step]
-
+    expected = Series([np.NaN] * 4 + [0.0])[::step]
     # yields all NaN (0 variance)
     d = Series([1] * 5)
     x = d.rolling(window=5, step=step).skew()
-    tm.assert_series_equal(all_nan, x)
+    # index 4 should be 0 as it contains 5 same obs
+    tm.assert_series_equal(expected, x)
 
+    expected = Series([np.NaN] * 5)[::step]
     # yields all NaN (window too small)
     d = Series(np.random.randn(5))
     x = d.rolling(window=2, step=step).skew()
-    tm.assert_series_equal(all_nan, x)
+    tm.assert_series_equal(expected, x)
 
     # yields [NaN, NaN, NaN, 0.177994, 1.548824]
     d = Series([-1.50837035, -0.1297039, 0.19501095, 1.73508164, 0.41941401])
@@ -199,17 +200,18 @@ def test_rolling_skew_edge_cases(step):
 
 def test_rolling_kurt_edge_cases(step):
 
-    all_nan = Series([np.NaN] * 5)[::step]
+    expected = Series([np.NaN] * 4 + [-3.0])[::step]
 
     # yields all NaN (0 variance)
     d = Series([1] * 5)
     x = d.rolling(window=5, step=step).kurt()
-    tm.assert_series_equal(all_nan, x)
+    tm.assert_series_equal(expected, x)
 
     # yields all NaN (window too small)
+    expected = Series([np.NaN] * 5)[::step]
     d = Series(np.random.randn(5))
     x = d.rolling(window=3, step=step).kurt()
-    tm.assert_series_equal(all_nan, x)
+    tm.assert_series_equal(expected, x)
 
     # yields [NaN, NaN, NaN, 1.224307, 2.671499]
     d = Series([-1.50837035, -0.1297039, 0.19501095, 1.73508164, 0.41941401])
@@ -220,11 +222,15 @@ def test_rolling_kurt_edge_cases(step):
 
 def test_rolling_skew_eq_value_fperr(step):
     # #18804 all rolling skew for all equal values should return Nan
+    # #46717 update: all equal values should return 0 instead of NaN
     a = Series([1.1] * 15).rolling(window=10, step=step).skew()
-    assert np.isnan(a).all()
+    assert (a[a.index >= 9] == 0).all()
+    assert a[a.index < 9].isna().all()
 
 
 def test_rolling_kurt_eq_value_fperr(step):
     # #18804 all rolling kurt for all equal values should return Nan
+    # #46717 update: all equal values should return -3 instead of NaN
     a = Series([1.1] * 15).rolling(window=10, step=step).kurt()
-    assert np.isnan(a).all()
+    assert (a[a.index >= 9] == -3).all()
+    assert a[a.index < 9].isna().all()

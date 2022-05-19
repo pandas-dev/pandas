@@ -45,7 +45,9 @@ def set_locale(
         locale.setlocale(lc_var, new_locale)
         normalized_locale = locale.getlocale()
         if all(x is not None for x in normalized_locale):
-            yield ".".join(normalized_locale)
+            # error: Argument 1 to "join" of "str" has incompatible type
+            # "Tuple[Optional[str], Optional[str]]"; expected "Iterable[str]"
+            yield ".".join(normalized_locale)  # type: ignore[arg-type]
         else:
             yield new_locale
     finally:
