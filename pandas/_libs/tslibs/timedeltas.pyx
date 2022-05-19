@@ -887,11 +887,26 @@ cdef object create_timedelta(object value, str in_unit, NPY_DATETIMEUNIT out_res
     """
     Timedelta factory.
 
-    Timedelta.__new__ just does arg validation (at least currently). Also, some internal
-    functions expect to be able to create non-nano reso Timedeltas, but Timedelta.__new__
-    doesn't yet expose that.
+    Overflow-safe, and allows for the creation of Timedeltas with non-nano resos while
+    the public API for that gets hashed out (ref: GH#46587). For now, Timedelta.__new__
+    just does arg validation and kwarg processing.
 
-    _timedelta_from_value_and_reso does, but only accepts limited args, and doesn't check for overflow.
+    _timedelta_from_value_and_reso faster if value already an int that can be safely
+    cast to an int64.
+
+    Parameters
+    ----------
+    value : Timedelta, timedelta, np.timedelta64, str, int, float
+        The same value types accepted by Timedelta.__new__
+    in_unit : str
+        Denote the (np) unit of the input, if it's numeric
+    out_reso: NPY_DATETIMEUNIT
+        Desired resolution of new Timedelta
+
+    Notes
+    -----
+    Pass in_unit="ignore" (or "ns") with a numeric value to just do overflow checking
+    (and bypass the prior behavior of converting value -> td64[ns] -> int)
     """
     cdef:
         int64_t out_value
@@ -903,12 +918,14 @@ cdef object create_timedelta(object value, str in_unit, NPY_DATETIMEUNIT out_res
         # if unit == "ns", no need to create an m8[ns] just to read the (same) value back
         # if unit == "ignore", assume caller wants to invoke an overflow-safe version of
         # _timedelta_from_value_and_reso, and that any float rounding is acceptable
-        if (is_integer_object(value) or is_float_object(value)) and (in_unit == "ns" or in_unit == "ignore"):
+        if (is_integer_object(value) or is_float_object(value)) and (
+            in_unit == "ns" or in_unit == "ignore"
+        ):
             if util.is_nan(value):
                 return NaT
             out_value = <int64_t>value
-        # is_timedelta_64_object may not give correct results w/ some versions?
-        # see e.g. https://github.com/pandas-dev/pandas/runs/6397652653?check_suite_focus=true#step:11:435
+        # is_timedelta_64_object may not give correct results w/ some versions? see e.g.
+        # github.com/pandas-dev/pandas/runs/6397652653?check_suite_focus=true#step:11:435
         elif isinstance(value, np.timedelta64):
             out_value = ensure_td64ns(value).view(np.int64)
         elif isinstance(value, str):
@@ -1474,7 +1491,8 @@ class Timedelta(_Timedelta):
     """
 
     _allowed_kwargs = (
-        "weeks", "days", "hours", "minutes", "seconds", "milliseconds", "microseconds", "nanoseconds"
+        "weeks", "days", "hours", "minutes", "seconds", "milliseconds", "microseconds",
+        "nanoseconds"
     )
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
@@ -1495,19 +1513,16 @@ class Timedelta(_Timedelta):
                 )
             # GH43764, convert any input to nanoseconds first, to ensure any potential
             # nanosecond contributions from kwargs parsed as floats are included
-            # kwargs = collections.defaultdict(int, {key: _to_py_int_float(val) for key, val in kwargs.items()})
-            ns = sum(
-                (
-                    _to_py_int_float(kwargs.get("weeks", 0)) * 7 * 24 * 3600 * 1_000_000_000,
-                    _to_py_int_float(kwargs.get("days", 0)) * 24 * 3600 * 1_000_000_000,
-                    _to_py_int_float(kwargs.get("hours", 0)) * 3600 * 1_000_000_000,
-                    _to_py_int_float(kwargs.get("minutes", 0)) * 60 * 1_000_000_000,
-                    _to_py_int_float(kwargs.get("seconds", 0)) * 1_000_000_000,
-                    _to_py_int_float(kwargs.get("milliseconds", 0)) * 1_000_000,
-                    _to_py_int_float(kwargs.get("microseconds", 0)) * 1_000,
-                    _to_py_int_float(kwargs.get("nanoseconds", 0)),
-                )
-            )
+            ns = sum((
+                _to_py_int_float(kwargs.get("weeks", 0)) * 7 * 24 * 3600 * 1_000_000_000,
+                _to_py_int_float(kwargs.get("days", 0)) * 24 * 3600 * 1_000_000_000,
+                _to_py_int_float(kwargs.get("hours", 0)) * 3600 * 1_000_000_000,
+                _to_py_int_float(kwargs.get("minutes", 0)) * 60 * 1_000_000_000,
+                _to_py_int_float(kwargs.get("seconds", 0)) * 1_000_000_000,
+                _to_py_int_float(kwargs.get("milliseconds", 0)) * 1_000_000,
+                _to_py_int_float(kwargs.get("microseconds", 0)) * 1_000,
+                _to_py_int_float(kwargs.get("nanoseconds", 0)),
+            ))
             return create_timedelta(ns, "ns", out_reso)
 
         if isinstance(value, str) and unit is not None:
