@@ -600,6 +600,8 @@ Other Deprecations
 - Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
 - Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
+- Deprecated indexing on a timezone-naive :class:`DatetimeIndex` using a string representing a timezone-aware datetime (:issue:`46903`, :issue:`36148`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -641,6 +643,7 @@ Datetimelike
 - Bug in :meth:`Index.astype` when casting from object dtype to ``timedelta64[ns]`` dtype incorrectly casting ``np.datetime64("NaT")`` values to ``np.timedelta64("NaT")`` instead of raising (:issue:`45722`)
 - Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
 - Bug in :meth:`DatetimeIndex.tz_localize` localizing to UTC failing to make a copy of the underlying data (:issue:`46460`)
+- Bug in :meth:`DatetimeIndex.resolution` incorrectly returning "day" instead of "nanosecond" for nanosecond-resolution indexes (:issue:`46903`)
 -
 
 Timedelta
