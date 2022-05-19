@@ -216,7 +216,7 @@ def __internal_pivot_table(
             )
             table = table.reindex(m, axis=1)
 
-    if isinstance(table, ABCDataFrame):
+    if sort is True and isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
