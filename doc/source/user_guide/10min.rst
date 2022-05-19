@@ -532,7 +532,7 @@ groups:
 
 .. ipython:: python
 
-   df.groupby("A").sum()
+   df.groupby("A")[["C", "D"]].sum()
 
 Grouping by multiple columns forms a hierarchical index, and again we can
 apply the :meth:`~pandas.core.groupby.GroupBy.sum` function:
