@@ -150,6 +150,7 @@ Other enhancements
 - Added ``validate`` argument to :meth:`DataFrame.join` (:issue:`46622`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
+- ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -493,7 +494,8 @@ retained by specifying ``group_keys=False``.
 ``numeric_only`` default value
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Across the DataFrame operations such as ``min``, ``sum``, and ``idxmax``, the default
+Across the DataFrame and DataFrameGroupBy operations such as
+``min``, ``sum``, and ``idxmax``, the default
 value of the ``numeric_only`` argument, if it exists at all, was inconsistent.
 Furthermore, operations with the default value ``None`` can lead to surprising
 results. (:issue:`46560`)
@@ -523,6 +525,8 @@ gained the ``numeric_only`` argument.
 - :meth:`DataFrame.cov`
 - :meth:`DataFrame.idxmin`
 - :meth:`DataFrame.idxmax`
+- :meth:`.DataFrameGroupBy.cummin`
+- :meth:`.DataFrameGroupBy.cummax`
 - :meth:`.DataFrameGroupBy.idxmin`
 - :meth:`.DataFrameGroupBy.idxmax`
 - :meth:`.GroupBy.var`
