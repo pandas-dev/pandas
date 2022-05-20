@@ -81,7 +81,7 @@ def test_apply_iteration():
     "name, func",
     [
         ("Int64Index", tm.makeIntIndex),
-        ("Index", tm.makeUnicodeIndex),
+        ("Index", tm.makeStringIndex),
         ("Float64Index", tm.makeFloatIndex),
         ("MultiIndex", lambda m: tm.makeCustomIndex(m, 2)),
     ],

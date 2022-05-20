@@ -363,7 +363,50 @@ If installed, we now require:
 +=================+=================+==========+=========+
 | mypy (dev)      | 0.950           |          |    X    |
 +-----------------+-----------------+----------+---------+
-
+| beautifulsoup4  | 4.9.3           |          |    X    |
++-----------------+-----------------+----------+---------+
+| blosc           | 1.21.0          |          |    X    |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.3.2           |          |    X    |
++-----------------+-----------------+----------+---------+
+| fsspec          | 2021.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| hypothesis      | 6.13.0          |          |    X    |
++-----------------+-----------------+----------+---------+
+| gcsfs           | 2021.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| jinja2          | 3.0.0           |          |    X    |
++-----------------+-----------------+----------+---------+
+| lxml            | 4.6.3           |          |    X    |
++-----------------+-----------------+----------+---------+
+| numba           | 0.53.1          |          |    X    |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.7.3           |          |    X    |
++-----------------+-----------------+----------+---------+
+| openpyxl        | 3.0.7           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pandas-gbq      | 0.15.0          |          |    X    |
++-----------------+-----------------+----------+---------+
+| psycopg2        | 2.8.6           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pymysql         | 1.0.2           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyreadstat      | 1.1.2           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyxlsb          | 1.0.8           |          |    X    |
++-----------------+-----------------+----------+---------+
+| s3fs            | 2021.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| scipy           | 1.7.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| sqlalchemy      | 1.4.16          |          |    X    |
++-----------------+-----------------+----------+---------+
+| tabulate        | 0.8.9           |          |    X    |
++-----------------+-----------------+----------+---------+
+| xarray          | 0.19.0          |          |    X    |
++-----------------+-----------------+----------+---------+
+| xlsxwriter      | 1.4.3           |          |    X    |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -557,6 +600,8 @@ Other Deprecations
 - Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
 - Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
+- Deprecated indexing on a timezone-naive :class:`DatetimeIndex` using a string representing a timezone-aware datetime (:issue:`46903`, :issue:`36148`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -598,6 +643,7 @@ Datetimelike
 - Bug in :meth:`Index.astype` when casting from object dtype to ``timedelta64[ns]`` dtype incorrectly casting ``np.datetime64("NaT")`` values to ``np.timedelta64("NaT")`` instead of raising (:issue:`45722`)
 - Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
 - Bug in :meth:`DatetimeIndex.tz_localize` localizing to UTC failing to make a copy of the underlying data (:issue:`46460`)
+- Bug in :meth:`DatetimeIndex.resolution` incorrectly returning "day" instead of "nanosecond" for nanosecond-resolution indexes (:issue:`46903`)
 -
 
 Timedelta
@@ -749,6 +795,7 @@ Reshaping
 - Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
 - Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
+- Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
 -
 
 Sparse
