@@ -354,7 +354,7 @@ def concat(
     >>> new_row = pd.Series([3])
     >>> new_row
     0   3
-    >>>     pd.concat([df7, new_row.to_frame().T], ignore_index=True)
+    >>> pd.concat([df7, new_row.to_frame().T], ignore_index=True)
          a    b    0
     0  1.0  2.0  NaN
     1  NaN  NaN  3.0
