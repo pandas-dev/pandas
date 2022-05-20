@@ -33,9 +33,11 @@ jobs:
 
     - name: Run pre-commit
       uses: pre-commit/action@v2.0.3
+      with:
+        extra_args: --hook-stage manual --all-files
 
-  typing_and_docstring_validation:
-    name: Docstring and typing validation
+  docstring_validation:
+    name: Docstring validation
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -85,18 +87,6 @@ jobs:
 
     - name: Run docstring validation
       run: ci/code_checks.sh docstrings
-      if: ${{ steps.build.outcome == 'success' }}
-
-    - name: Run typing validation (mypy)
-      uses: pre-commit/action@v2.0.3
-      with:
-        extra_args: --hook-stage manual --all-files mypy
-      if: ${{ steps.build.outcome == 'success' }}
-
-    - name: Run typing validation (pyright)
-      uses: pre-commit/action@v2.0.3
-      with:
-        extra_args: --hook-stage manual --all-files pyright
       if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run docstring validation script tests
