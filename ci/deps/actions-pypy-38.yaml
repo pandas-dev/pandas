@@ -11,6 +11,7 @@ dependencies:
   - cython>=0.29.24
   - pytest>=6.0
   - pytest-cov
+  - pytest-asyncio
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
 

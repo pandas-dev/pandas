@@ -62,7 +62,6 @@ from pandas._testing._random import (  # noqa:F401
     randbool,
     rands,
     rands_array,
-    randu_array,
 )
 from pandas._testing._warnings import (  # noqa:F401
     assert_produces_warning,
@@ -305,10 +304,6 @@ def makeStringIndex(k=10, name=None):
     return Index(rands_array(nchars=10, size=k), name=name)
 
 
-def makeUnicodeIndex(k=10, name=None):
-    return Index(randu_array(nchars=10, size=k), name=name)
-
-
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n, replace=False)
@@ -521,10 +516,10 @@ def makeCustomIndex(
        label will repeated at the corresponding level, you can specify just
        the first few, the rest will use the default ndupe_l of 1.
        len(ndupe_l) <= nlevels.
-    idx_type - "i"/"f"/"s"/"u"/"dt"/"p"/"td".
+    idx_type - "i"/"f"/"s"/"dt"/"p"/"td".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,
-       "s"/"u" creates a string/unicode index
+       "s" creates a string
        "dt" create a datetime index.
        "td" create a datetime index.
 
@@ -554,7 +549,6 @@ def makeCustomIndex(
         "i": makeIntIndex,
         "f": makeFloatIndex,
         "s": makeStringIndex,
-        "u": makeUnicodeIndex,
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
@@ -569,7 +563,7 @@ def makeCustomIndex(
     elif idx_type is not None:
         raise ValueError(
             f"{repr(idx_type)} is not a legal value for `idx_type`, "
-            "use  'i'/'f'/'s'/'u'/'dt'/'p'/'td'."
+            "use  'i'/'f'/'s'/'dt'/'p'/'td'."
         )
 
     if len(ndupe_l) < nlevels:
@@ -651,10 +645,10 @@ def makeCustomDataframe(
             nrows/ncol, the last label might have lower multiplicity.
     dtype - passed to the DataFrame constructor as is, in case you wish to
             have more control in conjunction with a custom `data_gen_f`
-    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
+    r_idx_type, c_idx_type -  "i"/"f"/"s"/"dt"/"td".
         If idx_type is not None, `idx_nlevels` must be 1.
         "i"/"f" creates an integer/float index,
-        "s"/"u" creates a string/unicode index
+        "s" creates a string index
         "dt" create a datetime index.
         "td" create a timedelta index.
 
@@ -689,10 +683,10 @@ def makeCustomDataframe(
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or (
-        r_idx_type in ("i", "f", "s", "u", "dt", "p", "td") and r_idx_nlevels == 1
+        r_idx_type in ("i", "f", "s", "dt", "p", "td") and r_idx_nlevels == 1
     )
     assert c_idx_type is None or (
-        c_idx_type in ("i", "f", "s", "u", "dt", "p", "td") and c_idx_nlevels == 1
+        c_idx_type in ("i", "f", "s", "dt", "p", "td") and c_idx_nlevels == 1
     )
 
     columns = makeCustomIndex(
