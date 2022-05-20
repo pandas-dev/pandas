@@ -1119,7 +1119,26 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             new_values.fill(iNaT)
             return type(self)(new_values, dtype=self.dtype)
 
+        # FIXME: this may overflow with non-nano
         inc = delta_to_nanoseconds(other)
+
+        if not is_period_dtype(self.dtype):
+            # FIXME: don't hardcode 7, 8, 9, 10 here
+            # TODO: maybe patch delta_to_nanoseconds to take reso?
+            if self._reso == 10:
+                pass
+            elif self._reso == 9:
+                # microsecond
+                inc = inc // 1000
+            elif self._reso == 8:
+                # millisecond
+                inc = inc // 1_000_000
+            elif self._reso == 7:
+                # second
+                inc = inc // 1_000_000_000
+            else:
+                raise NotImplementedError(self._reso)
+
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
         new_values = new_values.view("i8")
         new_values = self._maybe_mask_results(new_values)
