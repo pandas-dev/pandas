@@ -154,11 +154,11 @@ The apply and combine steps are typically done together in pandas.
 
 In the previous example, we explicitly selected the 2 columns first. If
 not, the ``mean`` method is applied to each column containing numerical
-columns by passing ``numeric_only=True``:
+columns:
 
 .. ipython:: python
 
-    titanic.groupby("Sex").mean(numeric_only=True)
+    titanic.groupby("Sex").mean()
 
 It does not make much sense to get the average value of the ``Pclass``.
 If we are only interested in the average age for each gender, the
