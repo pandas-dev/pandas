@@ -15,7 +15,7 @@ import pandas._testing as tm
 def test_set_column_with_array():
     # Case: setting an array as a new column (df[col] = arr) copies that data
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    arr = np.array([1, 2, 3])
+    arr = np.array([1, 2, 3], dtype="int64")
 
     df["c"] = arr
 
