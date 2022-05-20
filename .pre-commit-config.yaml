@@ -1,5 +1,7 @@
 minimum_pre_commit_version: 2.9.2
 exclude: ^LICENSES/|\.(html|csv|svg)$
+# reserve "manual" for mypy and pyright
+default_stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 ci:
     autofix_prs: false
 repos:
@@ -31,7 +33,9 @@ repos:
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
     -   id: trailing-whitespace
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.0
     hooks:
@@ -89,7 +93,7 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-        additional_dependencies: ['pyright@1.1.247']
+        additional_dependencies: ['pyright@1.1.248']
 -   repo: local
     hooks:
     -   id: mypy
