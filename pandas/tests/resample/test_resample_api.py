@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -88,9 +90,10 @@ def test_groupby_resample_on_api():
         }
     )
 
-    expected = df.set_index("dates").groupby("key").resample("D").mean()
-
-    result = df.groupby("key").resample("D", on="dates").mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.set_index("dates").groupby("key").resample("D").mean()
+        result = df.groupby("key").resample("D", on="dates").mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -194,7 +197,9 @@ def tests_skip_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
-    result = r.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -641,10 +646,15 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("2D", on="date").sum()
+    tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("2D", level="d").sum()
+    tm.assert_frame_equal(exp, result)
 
 
 @pytest.mark.parametrize(
@@ -771,3 +781,95 @@ def test_end_and_end_day_origin(
     )
 
     tm.assert_series_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "method, numeric_only, expected_data",
+    [
+        ("sum", True, {"num": [25]}),
+        ("sum", False, {"cat": ["cat_1cat_2"], "num": [25]}),
+        ("sum", lib.no_default, {"num": [25]}),
+        ("prod", True, {"num": [100]}),
+        ("prod", False, {"num": [100]}),
+        ("prod", lib.no_default, {"num": [100]}),
+        ("min", True, {"num": [5]}),
+        ("min", False, {"cat": ["cat_1"], "num": [5]}),
+        ("min", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
+        ("max", True, {"num": [20]}),
+        ("max", False, {"cat": ["cat_2"], "num": [20]}),
+        ("max", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
+        ("first", True, {"num": [5]}),
+        ("first", False, {"cat": ["cat_1"], "num": [5]}),
+        ("first", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
+        ("last", True, {"num": [20]}),
+        ("last", False, {"cat": ["cat_2"], "num": [20]}),
+        ("last", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
+    ],
+)
+def test_frame_downsample_method(method, numeric_only, expected_data):
+    # GH#46442 test if `numeric_only` behave as expected for DataFrameGroupBy
+
+    index = date_range("2018-01-01", periods=2, freq="D")
+    expected_index = date_range("2018-12-31", periods=1, freq="Y")
+    df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
+    resampled = df.resample("Y")
+
+    func = getattr(resampled, method)
+    if method == "prod" and numeric_only is not True:
+        warn = FutureWarning
+        msg = "Dropping invalid columns in DataFrameGroupBy.prod is deprecated"
+    elif method == "sum" and numeric_only is lib.no_default:
+        warn = FutureWarning
+        msg = "The default value of numeric_only in DataFrameGroupBy.sum is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        result = func(numeric_only=numeric_only)
+
+    expected = DataFrame(expected_data, index=expected_index)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, numeric_only, expected_data",
+    [
+        ("sum", True, ()),
+        ("sum", False, ["cat_1cat_2"]),
+        ("sum", lib.no_default, ["cat_1cat_2"]),
+        ("prod", True, ()),
+        ("prod", False, ()),
+        ("prod", lib.no_default, ()),
+        ("min", True, ()),
+        ("min", False, ["cat_1"]),
+        ("min", lib.no_default, ["cat_1"]),
+        ("max", True, ()),
+        ("max", False, ["cat_2"]),
+        ("max", lib.no_default, ["cat_2"]),
+        ("first", True, ()),
+        ("first", False, ["cat_1"]),
+        ("first", lib.no_default, ["cat_1"]),
+        ("last", True, ()),
+        ("last", False, ["cat_2"]),
+        ("last", lib.no_default, ["cat_2"]),
+    ],
+)
+def test_series_downsample_method(method, numeric_only, expected_data):
+    # GH#46442 test if `numeric_only` behave as expected for SeriesGroupBy
+
+    index = date_range("2018-01-01", periods=2, freq="D")
+    expected_index = date_range("2018-12-31", periods=1, freq="Y")
+    df = Series(["cat_1", "cat_2"], index=index)
+    resampled = df.resample("Y")
+
+    func = getattr(resampled, method)
+    if numeric_only and numeric_only is not lib.no_default:
+        with pytest.raises(NotImplementedError, match="not implement numeric_only"):
+            func(numeric_only=numeric_only)
+    elif method == "prod":
+        with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
+            func(numeric_only=numeric_only)
+    else:
+        result = func(numeric_only=numeric_only)
+        expected = Series(expected_data, index=expected_index)
+        tm.assert_series_equal(result, expected)

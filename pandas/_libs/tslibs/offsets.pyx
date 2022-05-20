@@ -3,8 +3,7 @@ import re
 import time
 import warnings
 
-import cython
-
+cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
@@ -55,10 +54,7 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_firstbday,
     get_lastbday,
 )
-from pandas._libs.tslibs.conversion cimport (
-    convert_datetime_to_tsobject,
-    localize_pydatetime,
-)
+from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -69,7 +65,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     pydate_to_dtstruct,
 )
-from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport (
@@ -271,10 +266,8 @@ cdef _to_dt64D(dt):
     if getattr(dt, 'tzinfo', None) is not None:
         # Get the nanosecond timestamp,
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
-        nanos = getattr(dt, "nanosecond", 0)
-        i8 = convert_datetime_to_tsobject(dt, tz=None, nanos=nanos).value
-        dt = tz_convert_from_utc_single(i8, dt.tzinfo)
-        dt = np.int64(dt).astype('datetime64[ns]')
+        naive = dt.astimezone(None)
+        dt = np.datetime64(naive, "D")
     else:
         dt = np.datetime64(dt)
     if dt.dtype.name != "datetime64[D]":
@@ -3292,7 +3285,7 @@ cdef class CustomBusinessDay(BusinessDay):
     holidays : list
         List/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``.
-    calendar : pd.HolidayCalendar or np.busdaycalendar
+    calendar : np.busdaycalendar
     offset : timedelta, default timedelta(0)
     """
 
@@ -3418,7 +3411,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
     holidays : list
         List/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``.
-    calendar : pd.HolidayCalendar or np.busdaycalendar
+    calendar : np.busdaycalendar
         Calendar to integrate.
     offset : timedelta, default timedelta(0)
         Time offset to apply.

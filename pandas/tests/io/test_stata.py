@@ -5,6 +5,7 @@ import gzip
 import io
 import os
 import struct
+import tarfile
 import warnings
 import zipfile
 
@@ -20,8 +21,8 @@ from pandas.core.frame import (
     Series,
 )
 from pandas.core.indexes.api import ensure_index
+from pandas.tests.io.test_compression import _compression_to_extension
 
-import pandas.io.common as icom
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
     CategoricalConversionWarning,
@@ -1849,7 +1850,7 @@ def test_compression(compression, version, use_dict, infer):
         if use_dict:
             file_ext = compression
         else:
-            file_ext = icom._compression_to_extension[compression]
+            file_ext = _compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -1867,6 +1868,9 @@ def test_compression(compression, version, use_dict, infer):
         elif compression == "zip":
             with zipfile.ZipFile(path, "r") as comp:
                 fp = io.BytesIO(comp.read(comp.filelist[0]))
+        elif compression == "tar":
+            with tarfile.open(path) as tar:
+                fp = io.BytesIO(tar.extractfile(tar.getnames()[0]).read())
         elif compression == "bz2":
             with bz2.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
@@ -2001,7 +2005,7 @@ def test_compression_roundtrip(compression):
 def test_stata_compression(compression_only, read_infer, to_infer):
     compression = compression_only
 
-    ext = icom._compression_to_extension[compression]
+    ext = _compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(

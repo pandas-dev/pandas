@@ -277,6 +277,16 @@ cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
         return "M"
     elif unit == NPY_DATETIMEUNIT.NPY_FR_Y:
         return "Y"
+
+    # Checks for not-really-supported units go at the end, as we don't expect
+    #  to see these often
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_ps:
+        return "ps"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_fs:
+        return "fs"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_as:
+        return "as"
+
     else:
         raise NotImplementedError(unit)
 
@@ -307,6 +317,7 @@ cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil:
         return NPY_DATETIMEUNIT.NPY_FR_D
 
 
+# TODO: use in _matplotlib.converter?
 cdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) except? -1:
     """
     How many of the given time units fit into a single day?
@@ -335,6 +346,19 @@ cdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) e
     else:
         raise NotImplementedError(reso)
     return day_units
+
+
+cdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
+    if reso == NPY_DATETIMEUNIT.NPY_FR_ns:
+        return 1_000_000_000
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
+        return 1_000_000
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+        return 1_000
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
+        return 1
+    else:
+        raise NotImplementedError(reso)
 
 
 cdef dict _reso_str_map = {

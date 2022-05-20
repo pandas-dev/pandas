@@ -17,7 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-# pyright: reportUntypedFunctionDecorator = false
 
 from collections import abc
 from datetime import (
@@ -74,6 +73,11 @@ except ImportError:
 else:
     del pa
     has_pyarrow = True
+
+zoneinfo = None
+if pd.compat.PY39:
+    # Import "zoneinfo" could not be resolved (reportMissingImports)
+    import zoneinfo  # type: ignore[no-redef]
 
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
@@ -290,6 +294,7 @@ def other_closed(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -306,6 +311,7 @@ def compression(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -537,7 +543,6 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "unicode": tm.makeUnicodeIndex(100),
     "string": tm.makeStringIndex(100),
     "datetime": tm.makeDateIndex(100),
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
@@ -652,7 +657,7 @@ def index_with_missing(request):
     """
 
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
-    # Azure pipeline that writes into indices_dict despite copy
+    # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
     vals = ind.values
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
@@ -1166,6 +1171,8 @@ TIMEZONES = [
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
+if zoneinfo is not None:
+    TIMEZONES.extend([zoneinfo.ZoneInfo("US/Pacific"), zoneinfo.ZoneInfo("UTC")])
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1191,7 +1198,12 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
+_UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
+if zoneinfo is not None:
+    _UTCS.append(zoneinfo.ZoneInfo("UTC"))
+
+
+@pytest.fixture(params=_UTCS)
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.

@@ -2599,21 +2599,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed".
-        errors : str, default 'strict'
-            Specifies how encoding and decoding errors are to be handled.
-            See the errors argument for :func:`open` for a full list
-            of options.
-        encoding : str, default "UTF-8"
+        index : bool, default True
+            Write DataFrame index as a column.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : Any, optional
             How to represent null values as str.
             Not allowed with append=True.
+        dropna : bool, default False, optional
+            Remove missing values.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
+            of the object are indexed. See
+            :ref:`Query via data columns<io.hdf5-query-data-columns>`. for
+            more information.
             Applicable only to format='table'.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+        encoding : str, default "UTF-8"
 
         See Also
         --------
@@ -3068,7 +3074,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df_multiindex.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (animal: 2, date: 2)
+        Dimensions:  (date: 2, animal: 2)
         Coordinates:
           * date     (date) datetime64[ns] 2018-01-01 2018-01-02
           * animal   (animal) object 'falcon' 'parrot'
@@ -3816,7 +3822,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 index=self.columns,
                 name=self.index[loc],
                 dtype=new_values.dtype,
-            )
+            ).__finalize__(self)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
@@ -11554,6 +11560,11 @@ level : int or level name, default None
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
+
 {min_count}\
 **kwargs
     Additional keyword arguments to be passed to the function.
@@ -11583,6 +11594,10 @@ ddof : int, default 1
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
 
 Returns
 -------
