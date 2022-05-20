@@ -22,6 +22,7 @@ def get_start_end_field(
 def get_date_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int32]: ...
 def get_timedelta_field(
     tdindex: npt.NDArray[np.int64],  # const int64_t[:]
@@ -32,6 +33,7 @@ def isleapyear_arr(
 ) -> npt.NDArray[np.bool_]: ...
 def build_isocalendar_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> np.ndarray: ...
 def _get_locale_names(name_type: str, locale: str | None = ...): ...
 

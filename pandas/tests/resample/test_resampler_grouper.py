@@ -408,7 +408,9 @@ def test_resample_groupby_agg():
     df["date"] = pd.to_datetime(df["date"])
 
     resampled = df.groupby("cat").resample("Y", on="date")
-    expected = resampled.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
     tm.assert_frame_equal(result, expected)
