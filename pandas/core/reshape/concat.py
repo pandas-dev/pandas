@@ -226,6 +226,10 @@ def concat(
     pandas objects can be found `here
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
 
+    
+    It is not recommended to build DataFrames by adding single rows in a
+not loop. Build a list of rows and make a DataFrame in a single concat.
+
     Examples
     --------
     Combine two ``Series``.
@@ -351,16 +355,13 @@ def concat(
     >>> df7
         a   b
     0   1   2
-    >>> new_rows = pd.Series({'a': 3, 'b': 4})
-    >>> new_rows
+    >>> new_row = pd.Series({'a': 3, 'b': 4})
+    >>> new_row
     0   3   4
-    >>> pd.concat([df7, new_rows.to_frame().T], ignore_index=True)
+    >>> pd.concat([df7, new_row.to_frame().T], ignore_index=True)
          a    b
     0    1    2
     1    3    4
-
-    (It is not recommended to build DataFrames by adding single rows in a
-not loop. Build a list of rows and make a DataFrame in a single concat.)
     """
     op = _Concatenator(
         objs,
