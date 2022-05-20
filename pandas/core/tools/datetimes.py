@@ -998,17 +998,6 @@ def to_datetime(
     DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'],
                   dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
 
-    - Finally, mixing timezone-aware strings and :class:`datetime.datetime` always
-      raises an error, even if the elements all have the same time offset.
-
-    >>> from datetime import datetime, timezone, timedelta
-    >>> d = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
-    >>> pd.to_datetime(["2020-01-01 17:00 -0100", d])
-    Traceback (most recent call last):
-        ...
-    ValueError: Tz-aware datetime.datetime cannot be converted to datetime64
-                unless utc=True
-
     |
 
     Setting ``utc=True`` solves most of the above issues:
