@@ -351,13 +351,16 @@ def concat(
     >>> df7
         a   b
     0   1   2
-    >>> new_row = pd.Series([3])
-    >>> new_row
-    0   3
-    >>> pd.concat([df7, new_row.to_frame().T], ignore_index=True)
-         a    b    0
-    0  1.0  2.0  NaN
-    1  NaN  NaN  3.0
+    >>> new_rows = pd.Series({'a': 3, 'b': 4})
+    >>> new_rows
+    0   3   4
+    >>> pd.concat([df7, new_rows.to_frame().T], ignore_index=True)
+         a    b
+    0    1    2
+    1    3    4
+
+    (It is not recomended to build DataFrames by adding single rows in a
+not loop. Build a list of rows and make a DataFrame in a single concat.)
     """
     op = _Concatenator(
         objs,
