@@ -3,7 +3,6 @@ from __future__ import annotations
 import collections
 from datetime import datetime
 from decimal import Decimal
-from functools import wraps
 import operator
 import os
 import re
@@ -747,55 +746,6 @@ def makeMissingDataframe(density=0.9, random_state=None):
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
     df.values[i, j] = np.nan
     return df
-
-
-def test_parallel(num_threads=2, kwargs_list=None):
-    """
-    Decorator to run the same function multiple times in parallel.
-
-    Parameters
-    ----------
-    num_threads : int, optional
-        The number of times the function is run in parallel.
-    kwargs_list : list of dicts, optional
-        The list of kwargs to update original
-        function kwargs on different threads.
-
-    Notes
-    -----
-    This decorator does not pass the return value of the decorated function.
-
-    Original from scikit-image:
-
-    https://github.com/scikit-image/scikit-image/pull/1519
-
-    """
-    assert num_threads > 0
-    has_kwargs_list = kwargs_list is not None
-    if has_kwargs_list:
-        assert len(kwargs_list) == num_threads
-    import threading
-
-    def wrapper(func):
-        @wraps(func)
-        def inner(*args, **kwargs):
-            if has_kwargs_list:
-                update_kwargs = lambda i: dict(kwargs, **kwargs_list[i])
-            else:
-                update_kwargs = lambda i: kwargs
-            threads = []
-            for i in range(num_threads):
-                updated_kwargs = update_kwargs(i)
-                thread = threading.Thread(target=func, args=args, kwargs=updated_kwargs)
-                threads.append(thread)
-            for thread in threads:
-                thread.start()
-            for thread in threads:
-                thread.join()
-
-        return inner
-
-    return wrapper
 
 
 class SubclassedSeries(Series):
