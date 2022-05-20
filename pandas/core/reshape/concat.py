@@ -359,7 +359,7 @@ def concat(
     0    1    2
     1    3    4
 
-    (It is not recomended to build DataFrames by adding single rows in a
+    (It is not recommended to build DataFrames by adding single rows in a
 not loop. Build a list of rows and make a DataFrame in a single concat.)
     """
     op = _Concatenator(
