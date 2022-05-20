@@ -151,6 +151,8 @@ Other enhancements
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
+- :func:`merge` and :meth:`DataFrame.merge` now allows passing ``None`` or ``(None, None)`` for ``suffixes`` argument, keeping column labels unchanged in the resulting :class:`DataFrame` potentially with duplicate column labels (:issue:`46885`)
+- :func:`DataFrame.join` now allows passing empty string for ``lsuffix`` and ``rsuffix`` arguments, keeping column labels unchanged in the resulting :class:`DataFrame` potentially with duplicate column labels (:issue:`46885`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -796,8 +798,6 @@ Reshaping
 - Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 - Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
-- Bug in :func:`merge` and :meth:`DataFrame.merge` now allows passing ``None`` or ``(None, None)`` for ``suffixes`` argument, keeping column labels unchanged in the resulting :class:`DataFrame` potentially with duplicate column labels (:issue:`46885`)
-- Bug in :func:`DataFrame.join` now allows passing empty string for ``lsuffix`` and ``rsuffix`` arguments, keeping column labels unchanged in the resulting :class:`DataFrame` potentially with duplicate column labels (:issue:`46885`)
 -
 
 Sparse
