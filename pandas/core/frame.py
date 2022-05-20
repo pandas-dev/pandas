@@ -3924,15 +3924,17 @@ class DataFrame(NDFrame, OpsMixin):
             Sets whether or not index/col interpreted as indexers
         """
         try:
-            # setitem_inplace will do validation that may raise TypeError,
+            # setitem will do validation that may raise TypeError,
             #  ValueError, or LossySetitemError
-            # breakpoint()
             if takeable:
-                self._mgr.column_setitem(col, index, value)
+                # error: Argument 2 to "column_setitem" of "BlockManager" has
+                # incompatible type "Union[Hashable, Sequence[Hashable]]";
+                # expected "Union[int, slice, ndarray[Any, Any]]"
+                self._mgr.column_setitem(col, index, value)  # type: ignore[arg-type]
             else:
                 icol = self.columns.get_loc(col)
                 index = self.index.get_loc(index)
-                self._mgr.column_setitem(icol, index, value)
+                self._mgr.column_setitem(icol, index, value)  # type: ignore[arg-type]
             self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
