@@ -228,7 +228,7 @@ def concat(
 
     
     It is not recommended to build DataFrames by adding single rows in a
-not loop. Build a list of rows and make a DataFrame in a single concat.
+for loop. Build a list of rows and make a DataFrame in a single concat.
 
     Examples
     --------
