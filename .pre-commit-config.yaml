@@ -81,45 +81,25 @@ repos:
         additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
-    -   id: mypy
-        name: mypy
-        entry: mypy
-        language: python
-        pass_filenames: false
-        types: [python]
-        additional_dependencies:
-        - mypy==0.950
-        - numpy>=1.18.5
-        - pytest>=6.0
-        - matplotlib>=3.3.2
-        - scipy>=1.4.1
-        - xlwt
-        - odfpy
-        - pyarrow>2.0.1
-        - botocore>=1.11
-        - numexpr>=2.7.1
-        - fsspec>=0.7.4
-        - hypothesis>=5.5.3
-        - xlrd
-        - ipython>=7.11.1
-        - lxml
-        - types-PyMySQL
-        - types-python-dateutil
-        - types-pytz
-        - types-setuptools
-        - tables>=3.6.1
-        - xlsxwriter
-        - jinja2
--   repo: local
-    hooks:
     -   id: pyright
         name: pyright
-        entry: ./run_pyright.sh
+        entry: pyright
+        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
         additional_dependencies: ['pyright@1.1.247']
+-   repo: local
+    hooks:
+    -   id: mypy
+        name: mypy
+        entry: mypy
+        # note: assumes python env is setup and activated
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
 -   repo: local
     hooks:
     -   id: flake8-rst
