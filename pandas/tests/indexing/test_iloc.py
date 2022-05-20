@@ -125,7 +125,7 @@ class TestiLocBaseIndependent:
         if frame_or_series is Series:
             values = obj.values
         else:
-            values = obj._mgr.blocks[0].values
+            values = obj._mgr.arrays[0]
 
         if frame_or_series is Series:
             obj.iloc[:2] = box(arr[2:])

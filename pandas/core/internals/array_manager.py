@@ -525,6 +525,11 @@ class BaseArrayManager(DataManager):
         -------
         BlockManager
         """
+        if deep is None:
+            # ArrayManager does not yet support CoW, so deep=None always means
+            # deep=True for now
+            deep = True
+
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
