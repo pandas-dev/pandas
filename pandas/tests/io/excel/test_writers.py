@@ -21,7 +21,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 from pandas.io.excel import (
     ExcelFile,
@@ -1091,8 +1090,7 @@ class TestExcelWriter:
         result = pd.read_excel(path, comment="#")
         tm.assert_frame_equal(result, expected)
 
-    def test_datetimes(self, path, request):
-        openpyxl = pytest.importorskip("openpyxl")
+    def test_datetimes(self, path):
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
@@ -1110,16 +1108,6 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if (path.endswith("xlsx") or path.endswith("xlsm")) and Version(
-            openpyxl.__version__
-        ) < Version("3.0.6"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="Defaults to openpyxl and fails with "
-                    "floating point error on datetimes; may be fixed on "
-                    "newer versions of openpyxl - GH #38644"
-                )
-            )
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
