@@ -660,7 +660,7 @@ class BaseBlockManager(DataManager):
         if self.is_consolidated():
             return self
 
-        bm = type(self)(self.blocks, self.axes, verify_integrity=False)
+        bm = type(self)(self.blocks, self.axes, self.refs, verify_integrity=False)
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
@@ -1808,7 +1808,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         #  the DataFrame's _item_cache. The exception is for newly-created
         #  BlockManager objects not yet attached to a DataFrame.
         if not self.is_consolidated():
-            self.blocks = tuple(_consolidate(self.blocks))
+            if self.refs is None:
+                self.blocks = _consolidate(self.blocks)
+            else:
+                self.blocks, self.refs = _consolidate_with_refs(self.blocks, self.refs)
             self._is_consolidated = True
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
@@ -2251,19 +2254,42 @@ def _consolidate(blocks: tuple[Block, ...]) -> list[Block]:
 
     new_blocks: list[Block] = []
     for (_can_consolidate, dtype), group_blocks in grouper:
-        merged_blocks = _merge_blocks(
+        merged_blocks, _ = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
         new_blocks = extend_blocks(merged_blocks, new_blocks)
-    return new_blocks
+    return tuple(new_blocks)
+
+
+def _consolidate_with_refs(blocks: tuple[Block, ...], refs) -> list[Block]:
+    """
+    Merge blocks having same dtype, exclude non-consolidating blocks, handling
+    refs
+    """
+    gkey = lambda x: x[0]._consolidate_key
+    grouper = itertools.groupby(sorted(zip(blocks, refs), key=gkey), gkey)
+
+    new_blocks: list[Block] = []
+    new_refs: list[weakref.ref | None] = []
+    for (_can_consolidate, dtype), group_blocks_refs in grouper:
+        group_blocks, group_refs = list(zip(*list(group_blocks_refs)))
+        merged_blocks, consolidated = _merge_blocks(
+            list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
+        )
+        new_blocks = extend_blocks(merged_blocks, new_blocks)
+        if consolidated:
+            new_refs.extend([None])
+        else:
+            new_refs.extend(group_refs)
+    return tuple(new_blocks), new_refs
 
 
 def _merge_blocks(
     blocks: list[Block], dtype: DtypeObj, can_consolidate: bool
-) -> list[Block]:
+) -> tuple[list[Block], bool]:
 
     if len(blocks) == 1:
-        return blocks
+        return blocks, False
 
     if can_consolidate:
 
@@ -2289,10 +2315,10 @@ def _merge_blocks(
         new_mgr_locs = new_mgr_locs[argsort]
 
         bp = BlockPlacement(new_mgr_locs)
-        return [new_block_2d(new_values, placement=bp)]
+        return [new_block_2d(new_values, placement=bp)], True
 
     # can't consolidate --> no merge
-    return blocks
+    return blocks, False
 
 
 def _fast_count_smallints(arr: npt.NDArray[np.intp]):
