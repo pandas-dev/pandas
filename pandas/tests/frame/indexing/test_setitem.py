@@ -1082,7 +1082,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_numpy_array_equal(zvals, expected.values)
         assert np.shares_memory(zvals, df["z"]._values)
         if not consolidate:
-            assert df["z"]._values is zvals
+            assert df["z"]._values.base is zvals.base
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510

@@ -52,7 +52,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import (
     check_array_indexer,
     is_empty_indexer,
-    is_exact_shape_match,
     is_list_like_indexer,
     is_scalar_indexer,
     length_of_indexer,
@@ -1936,42 +1935,31 @@ class _iLocIndexer(_LocationIndexer):
         """
         pi = plane_indexer
 
-        ser = self.obj._ixs(loc, axis=1)
-
         # perform the equivalent of a setitem on the info axis
         # as we have a null slice or a slice with full bounds
         # which means essentially reassign to the columns of a
         # multi-dim object
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
-            ser = value
+            self.obj._iset_item(loc, value)
         elif (
             is_array_like(value)
-            and is_exact_shape_match(ser, value)
+            and len(value.shape) > 0
+            and self.obj.shape[0] == value.shape[0]
             and not is_empty_indexer(pi)
         ):
             if is_list_like(pi):
-                ser = value[np.argsort(pi)]
+                value = value[np.argsort(pi)]
             else:
                 # in case of slice
-                ser = value[pi]
+                value = value[pi]
+            self.obj._iset_item(loc, value)
         else:
             # set the item, first attempting to operate inplace, then
             #  falling back to casting if necessary; see
             #  _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
-
-            orig_values = ser._values
-            ser._mgr = ser._mgr.setitem((pi,), value)
-
-            if ser._values is orig_values:
-                # The setitem happened inplace, so the DataFrame's values
-                #  were modified inplace.
-                return
-            self.obj._iset_item(loc, ser)
-            return
-
-        # reset the sliced object if unique
-        self.obj._iset_item(loc, ser)
+            self.obj._mgr.column_setitem(loc, plane_indexer, value)
+            self.obj._clear_item_cache()
 
     def _setitem_single_block(self, indexer, value, name: str):
         """

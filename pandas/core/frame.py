@@ -3924,16 +3924,16 @@ class DataFrame(NDFrame, OpsMixin):
             Sets whether or not index/col interpreted as indexers
         """
         try:
-            if takeable:
-                series = self._ixs(col, axis=1)
-                loc = index
-            else:
-                series = self._get_item_cache(col)
-                loc = self.index.get_loc(index)
-
             # setitem_inplace will do validation that may raise TypeError,
             #  ValueError, or LossySetitemError
-            series._mgr.setitem_inplace(loc, value)
+            # breakpoint()
+            if takeable:
+                self._mgr.column_setitem(col, index, value)
+            else:
+                icol = self.columns.get_loc(col)
+                index = self.index.get_loc(index)
+                self._mgr.column_setitem(icol, index, value)
+            self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # set using a non-recursive method & reset the cache
