@@ -84,12 +84,22 @@ repos:
     -   id: pyright
         name: pyright
         entry: pyright
+        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
-        # note: keep version in sync with .github/workflows/code-checks.yml
         additional_dependencies: ['pyright@1.1.247']
+-   repo: local
+    hooks:
+    -   id: mypy
+        name: mypy
+        entry: mypy
+        # note: assumes python env is setup and activated
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
 -   repo: local
     hooks:
     -   id: flake8-rst
