@@ -1,11 +1,11 @@
 import numpy as np
 
-import pandas as pd
+from pandas import DataFrame
 import pandas._testing as tm
 
 
 def test_copy(using_copy_on_write):
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy()
 
     # the deep copy doesn't share memory
@@ -19,7 +19,7 @@ def test_copy(using_copy_on_write):
 
 
 def test_copy_shallow(using_copy_on_write):
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy(deep=False)
 
     # the shallow copy still shares memory
@@ -50,7 +50,7 @@ def test_copy_shallow(using_copy_on_write):
 def test_reset_index(using_copy_on_write):
     # Case: resetting the index (i.e. adding a new column) + mutating the
     # resulting dataframe
-    df = pd.DataFrame(
+    df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=[10, 11, 12]
     )
     df_orig = df.copy()
@@ -72,7 +72,7 @@ def test_reset_index(using_copy_on_write):
 def test_rename_columns(using_copy_on_write):
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.rename(columns=str.upper)
 
@@ -82,7 +82,7 @@ def test_rename_columns(using_copy_on_write):
     assert not np.shares_memory(df2["A"].values, df["a"].values)
     if using_copy_on_write:
         assert np.shares_memory(df2["C"].values, df["c"].values)
-    expected = pd.DataFrame({"A": [0, 2, 3], "B": [4, 5, 6], "C": [0.1, 0.2, 0.3]})
+    expected = DataFrame({"A": [0, 2, 3], "B": [4, 5, 6], "C": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(df2, expected)
     tm.assert_frame_equal(df, df_orig)
 
@@ -90,7 +90,7 @@ def test_rename_columns(using_copy_on_write):
 def test_rename_columns_modify_parent(using_copy_on_write):
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the original (parent) dataframe
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df2 = df.rename(columns=str.upper)
     df2_orig = df2.copy()
 
@@ -102,7 +102,7 @@ def test_rename_columns_modify_parent(using_copy_on_write):
     assert not np.shares_memory(df2["A"].values, df["a"].values)
     if using_copy_on_write:
         assert np.shares_memory(df2["C"].values, df["c"].values)
-    expected = pd.DataFrame({"a": [0, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    expected = DataFrame({"a": [0, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(df, expected)
     tm.assert_frame_equal(df2, df2_orig)
 
@@ -110,7 +110,7 @@ def test_rename_columns_modify_parent(using_copy_on_write):
 def test_reindex_columns(using_copy_on_write):
     # Case: reindexing the column returns a new dataframe
     # + afterwards modifying the result
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.reindex(columns=["a", "c"])
 

@@ -2,6 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -12,7 +16,7 @@ import pandas.core.common as com
 def test_subset_column_selection(using_copy_on_write):
     # Case: taking a subset of the columns of a DataFrame
     # + afterwards modifying the subset
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     subset = df[["a", "c"]]
@@ -31,7 +35,7 @@ def test_subset_column_selection(using_copy_on_write):
 
     assert not np.shares_memory(subset["a"].values, df["a"].values)
 
-    expected = pd.DataFrame({"a": [0, 2, 3], "c": [0.1, 0.2, 0.3]})
+    expected = DataFrame({"a": [0, 2, 3], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(subset, expected)
     tm.assert_frame_equal(df, df_orig)
 
@@ -39,7 +43,7 @@ def test_subset_column_selection(using_copy_on_write):
 def test_subset_column_selection_modify_parent(using_copy_on_write):
     # Case: taking a subset of the columns of a DataFrame
     # + afterwards modifying the parent
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
 
     subset = df[["a", "c"]]
     if using_copy_on_write:
@@ -53,14 +57,14 @@ def test_subset_column_selection_modify_parent(using_copy_on_write):
         # different column/block still shares memory
         assert np.shares_memory(subset["c"].values, df["c"].values)
 
-    expected = pd.DataFrame({"a": [1, 2, 3], "c": [0.1, 0.2, 0.3]})
+    expected = DataFrame({"a": [1, 2, 3], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(subset, expected)
 
 
 def test_subset_row_slice(using_copy_on_write):
     # Case: taking a subset of the rows of a DataFrame using a slice
     # + afterwards modifying the subset
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     subset = df[1:3]
@@ -80,9 +84,7 @@ def test_subset_row_slice(using_copy_on_write):
 
     subset._mgr._verify_integrity()
 
-    expected = pd.DataFrame(
-        {"a": [0, 3], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3)
-    )
+    expected = DataFrame({"a": [0, 3], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
     if using_copy_on_write:
         # original parent dataframe is not modified (CoW)
@@ -100,7 +102,7 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
     # Case: taking a subset of the columns of a DataFrame using a slice
     # + afterwards modifying the subset
     single_block = (dtype == "int64") and not using_array_manager
-    df = pd.DataFrame(
+    df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
     df_orig = df.copy()
@@ -121,7 +123,7 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
             with tm.assert_produces_warning(warn):
                 subset.iloc[0, 0] = 0
 
-    expected = pd.DataFrame({"b": [0, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)})
+    expected = DataFrame({"b": [0, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)})
     tm.assert_frame_equal(subset, expected)
     # original parent dataframe is not modified (also not for BlockManager case,
     # except for single block)
@@ -140,7 +142,7 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
 def test_subset_set_with_row_indexer(indexer_si, indexer, using_copy_on_write):
     # Case: setting values with a row indexer on a viewing subset
     # subset[indexer] = value and subset.iloc[indexer] = value
-    df = pd.DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
+    df = DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
     df_orig = df.copy()
     subset = df[1:4]
 
@@ -160,7 +162,7 @@ def test_subset_set_with_row_indexer(indexer_si, indexer, using_copy_on_write):
             with tm.assert_produces_warning(warn):
                 indexer_si(subset)[indexer] = 0
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [0, 0, 4], "b": [0, 0, 7], "c": [0.0, 0.0, 0.4]}, index=range(1, 4)
     )
     tm.assert_frame_equal(subset, expected)
@@ -175,7 +177,7 @@ def test_subset_set_with_row_indexer(indexer_si, indexer, using_copy_on_write):
 
 def test_subset_set_with_mask(using_copy_on_write):
     # Case: setting values with a mask on a viewing subset: subset[mask] = value
-    df = pd.DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
+    df = DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
     df_orig = df.copy()
     subset = df[1:4]
 
@@ -188,7 +190,7 @@ def test_subset_set_with_mask(using_copy_on_write):
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 subset[mask] = 0
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [2, 3, 0], "b": [0, 0, 0], "c": [0.20, 0.3, 0.4]}, index=range(1, 4)
     )
     tm.assert_frame_equal(subset, expected)
@@ -204,7 +206,7 @@ def test_subset_set_with_mask(using_copy_on_write):
 
 def test_subset_set_column(using_copy_on_write):
     # Case: setting a single column on a viewing subset -> subset[col] = value
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     subset = df[1:3]
 
@@ -216,7 +218,7 @@ def test_subset_set_column(using_copy_on_write):
                 subset["a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [10, 11], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3)
     )
     tm.assert_frame_equal(subset, expected)
@@ -229,7 +231,7 @@ def test_subset_set_column(using_copy_on_write):
 def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dtype):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
-    df = pd.DataFrame(
+    df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
     df_orig = df.copy()
@@ -243,7 +245,7 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
                 subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [10, 11], "b": [5, 6], "c": np.array([8, 9], dtype=dtype)},
         index=range(1, 3),
     )
@@ -262,7 +264,7 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
     # -> subset.loc[:, col] = value
     # separate test for case of DataFrame of a single column -> takes a separate
     # code path
-    df = pd.DataFrame({"a": [1, 2, 3]})
+    df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
     subset = df[1:3]
 
@@ -274,7 +276,7 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
                 subset.loc[:, "a"] = 0
 
     subset._mgr._verify_integrity()
-    expected = pd.DataFrame({"a": [0, 0]}, index=range(1, 3))
+    expected = DataFrame({"a": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
     if using_copy_on_write or using_array_manager:
         # original parent dataframe is not modified (CoW)
@@ -291,7 +293,7 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
 def test_subset_set_columns(using_copy_on_write, dtype):
     # Case: setting multiple columns on a viewing subset
     # -> subset[[col1, col2]] = value
-    df = pd.DataFrame(
+    df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
     df_orig = df.copy()
@@ -308,7 +310,7 @@ def test_subset_set_columns(using_copy_on_write, dtype):
     if using_copy_on_write:
         # first and third column should certainly have no references anymore
         assert all(subset._mgr._has_no_reference(i) for i in [0, 2])
-    expected = pd.DataFrame({"a": [0, 0], "b": [5, 6], "c": [0, 0]}, index=range(1, 3))
+    expected = DataFrame({"a": [0, 0], "b": [5, 6], "c": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
     tm.assert_frame_equal(df, df_orig)
 
@@ -323,7 +325,7 @@ def test_subset_set_with_column_indexer(
 ):
     # Case: setting multiple columns with a column indexer on a viewing subset
     # -> subset.loc[:, [col1, col2]] = value
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": [4, 5, 6]})
+    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": [4, 5, 6]})
     df_orig = df.copy()
     subset = df[1:3]
 
@@ -335,9 +337,7 @@ def test_subset_set_with_column_indexer(
                 subset.loc[:, indexer] = 0
 
     subset._mgr._verify_integrity()
-    expected = pd.DataFrame(
-        {"a": [0, 0], "b": [0.0, 0.0], "c": [5, 6]}, index=range(1, 3)
-    )
+    expected = DataFrame({"a": [0, 0], "b": [0.0, 0.0], "c": [5, 6]}, index=range(1, 3))
     # TODO full row slice .loc[:, idx] update inplace instead of overwrite?
     expected["b"] = expected["b"].astype("int64")
     tm.assert_frame_equal(subset, expected)
@@ -359,7 +359,7 @@ def test_subset_set_with_column_indexer(
 
 def test_series_getitem_slice(using_copy_on_write):
     # Case: taking a slice of a Series + afterwards modifying the subset
-    s = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
 
     subset = s[:]
@@ -370,7 +370,7 @@ def test_series_getitem_slice(using_copy_on_write):
     if using_copy_on_write:
         assert not np.shares_memory(subset.values, s.values)
 
-    expected = pd.Series([0, 2, 3], index=["a", "b", "c"])
+    expected = Series([0, 2, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
 
     if using_copy_on_write:
@@ -388,12 +388,12 @@ def test_series_getitem_slice(using_copy_on_write):
 )
 def test_series_subset_set_with_indexer(indexer_si, indexer, using_copy_on_write):
     # Case: setting values in a viewing Series with an indexer
-    s = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
     subset = s[:]
 
     indexer_si(subset)[indexer] = 0
-    expected = pd.Series([0, 0, 3], index=["a", "b", "c"])
+    expected = Series([0, 0, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
 
     if using_copy_on_write:
@@ -409,7 +409,7 @@ def test_series_subset_set_with_indexer(indexer_si, indexer, using_copy_on_write
 def test_del_frame(using_copy_on_write):
     # Case: deleting a column with `del` on a viewing child dataframe should
     # not modify parent + update the references
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df[:]
 
@@ -434,7 +434,7 @@ def test_del_frame(using_copy_on_write):
 
 
 def test_del_series():
-    s = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    s = Series([1, 2, 3], index=["a", "b", "c"])
     s_orig = s.copy()
     s2 = s[:]
 
@@ -458,7 +458,7 @@ def test_del_series():
 
 def test_column_as_series(using_copy_on_write, using_array_manager):
     # Case: selecting a single column now also uses Copy-on-Write
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     s = df["a"]
@@ -472,7 +472,7 @@ def test_column_as_series(using_copy_on_write, using_array_manager):
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 s[0] = 0
 
-    expected = pd.Series([0, 2, 3], name="a")
+    expected = Series([0, 2, 3], name="a")
     tm.assert_series_equal(s, expected)
     if using_copy_on_write:
         # assert not np.shares_memory(s.values, df["a"].values)
@@ -488,7 +488,7 @@ def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manag
     # Case: selecting a single column now also uses Copy-on-Write -> when
     # setting a value causes an upcast, we don't need to update the parent
     # DataFrame through the cache mechanism
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     s = df["a"]
@@ -499,7 +499,7 @@ def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manag
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 s[0] = "foo"
 
-    expected = pd.Series(["foo", 2, 3], dtype=object, name="a")
+    expected = Series(["foo", 2, 3], dtype=object, name="a")
     tm.assert_series_equal(s, expected)
     if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
@@ -518,20 +518,20 @@ def test_dataframe_add_column_from_series():
     # -> always already takes a copy on assignment
     # (no change in behaviour here)
     # TODO can we achieve the same behaviour with Copy-on-Write?
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
 
-    s = pd.Series([10, 11, 12])
+    s = Series([10, 11, 12])
     df["new"] = s
     assert not np.shares_memory(df["new"].values, s.values)
 
     # editing series -> doesn't modify column in frame
     s[0] = 0
-    expected = pd.DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "new": [10, 11, 12]})
+    expected = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "new": [10, 11, 12]})
     tm.assert_frame_equal(df, expected)
 
     # editing column in frame -> doesn't modify series
     df.loc[2, "new"] = 100
-    expected_s = pd.Series([0, 11, 12])
+    expected_s = Series([0, 11, 12])
     tm.assert_series_equal(s, expected_s)
 
 
