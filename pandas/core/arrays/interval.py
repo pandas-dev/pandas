@@ -956,9 +956,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed_set: set[IntervalClosedType] = {
-            interval.closed for interval in to_concat
-        }
+        closed_set = {interval.closed for interval in to_concat}
         if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
@@ -1330,7 +1328,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalClosedType:
         """
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
