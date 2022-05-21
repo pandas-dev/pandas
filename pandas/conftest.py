@@ -153,7 +153,6 @@ def pytest_collection_modifyitems(items, config):
     ]
 
     for item in items:
-
         if config.getoption("--doctest-modules") or config.getoption(
             "--doctest-cython", default=False
         ):
