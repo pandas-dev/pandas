@@ -9,13 +9,13 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
 from datetime import datetime
 import importlib
 import inspect
 import logging
 import os
 import sys
+import warnings
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
@@ -640,7 +640,10 @@ def linkcode_resolve(domain, info):
     obj = submod
     for part in fullname.split("."):
         try:
-            obj = getattr(obj, part)
+            with warnings.catch_warnings():
+                # Accessing deprecated objects will generate noisy warnings
+                warnings.simplefilter("ignore", FutureWarning)
+                obj = getattr(obj, part)
         except AttributeError:
             return None
 
