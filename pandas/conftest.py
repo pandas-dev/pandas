@@ -105,7 +105,7 @@ def pytest_addoption(parser):
     )
 
 
-def ignore_doctest_warning(item, path, message):
+def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     """Ignore doctest warning.
 
     Parameters
