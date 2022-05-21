@@ -2181,6 +2181,28 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_sort_false_with_multiple_values(self):
+        df = DataFrame(
+            {
+                "firstname": ["John", "Michael"],
+                "lastname": ["Foo", "Bar"],
+                "height": [173, 182],
+                "age": [47, 33],
+            }
+        )
+        result = df.pivot_table(
+            index=["lastname", "firstname"], values=["height", "age"], sort=False
+        )
+        expected = DataFrame(
+            [[173, 47], [182, 33]],
+            columns=["height", "age"],
+            index=MultiIndex.from_tuples(
+                [("Foo", "John"), ("Bar", "Michael")],
+                names=["lastname", "firstname"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_with_margins_and_numeric_columns(self):
         # GH 26568
         df = DataFrame([["a", "x", 1], ["a", "y", 2], ["b", "y", 3], ["b", "z", 4]])

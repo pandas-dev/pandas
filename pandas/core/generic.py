@@ -8109,9 +8109,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Freq: 30S, dtype: float64
 
         Upsample the series into 30 second bins and fill the ``NaN``
-        values using the ``pad`` method.
+        values using the ``ffill`` method.
 
-        >>> series.resample('30S').pad()[0:5]
+        >>> series.resample('30S').ffill()[0:5]
         2000-01-01 00:00:00    0
         2000-01-01 00:00:30    0
         2000-01-01 00:01:00    1

@@ -127,6 +127,17 @@ def test_agg(step):
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
+@pytest.mark.parametrize(
+    "func", [["min"], ["mean", "max"], {"b": "sum"}, {"b": "prod", "c": "median"}]
+)
+def test_multi_axis_1_raises(func):
+    # GH#46904
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
+    r = df.rolling(window=3, axis=1)
+    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
+        r.agg(func)
+
+
 def test_agg_apply(raw):
 
     # passed lambda
