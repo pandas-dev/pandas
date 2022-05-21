@@ -45,7 +45,6 @@ class TestFloatIndexers:
         "index_func",
         [
             tm.makeStringIndex,
-            tm.makeUnicodeIndex,
             tm.makeCategoricalIndex,
             tm.makeDateIndex,
             tm.makeTimedeltaIndex,
@@ -83,7 +82,6 @@ class TestFloatIndexers:
         "index_func",
         [
             tm.makeStringIndex,
-            tm.makeUnicodeIndex,
             tm.makeCategoricalIndex,
             tm.makeDateIndex,
             tm.makeTimedeltaIndex,
@@ -220,7 +218,6 @@ class TestFloatIndexers:
         "index_func",
         [
             tm.makeStringIndex,
-            tm.makeUnicodeIndex,
             tm.makeDateIndex,
             tm.makeTimedeltaIndex,
             tm.makePeriodIndex,

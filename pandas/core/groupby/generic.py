@@ -28,6 +28,7 @@ import numpy as np
 
 from pandas._libs import (
     Interval,
+    lib,
     reduction as libreduction,
 )
 from pandas._typing import (
@@ -1128,10 +1129,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._reindex_output(result)
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self,
+        how: str,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        axis: int = 0,
+        **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller
         # TODO: no tests with self.ndim == 1 for DataFrameGroupBy
+        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis)
 
         # With self.axis == 0, we have multi-block tests
         #  e.g. test_rank_min_int, test_cython_transform_frame
@@ -1139,7 +1145,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # With self.axis == 1, _get_data_to_aggregate does a transpose
         #  so we always have a single block.
         mgr: Manager2D = self._get_data_to_aggregate()
-        if numeric_only:
+        orig_mgr_len = len(mgr)
+        if numeric_only_bool:
             mgr = mgr.get_numeric_data(copy=False)
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
@@ -1152,8 +1159,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
         res_mgr.set_axis(1, mgr.axes[1])
 
-        if len(res_mgr) < len(mgr):
-            warn_dropping_nuisance_columns_deprecated(type(self), how)
+        if len(res_mgr) < orig_mgr_len:
+            warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
 
         res_df = self.obj._constructor(res_mgr)
         if self.axis == 1:
@@ -1269,7 +1276,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
-                warn_dropping_nuisance_columns_deprecated(type(self), "transform")
+                warn_dropping_nuisance_columns_deprecated(
+                    type(self), "transform", numeric_only=False
+                )
             else:
                 inds.append(i)
 
@@ -1559,19 +1568,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         _shared_docs["idxmax"],
         numeric_only_default="True for axis=0, False for axis=1",
     )
-    def idxmax(self, axis=0, skipna: bool = True, numeric_only: bool | None = None):
+    def idxmax(
+        self,
+        axis=0,
+        skipna: bool = True,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+    ):
         axis = DataFrame._get_axis_number(axis)
-        if numeric_only is None:
-            numeric_only = None if axis == 0 else False
+        if numeric_only is lib.no_default:
+            # Cannot use self._resolve_numeric_only; we must pass None to
+            # DataFrame.idxmax for backwards compatibility
+            numeric_only_arg = None if axis == 0 else False
+        else:
+            numeric_only_arg = cast(bool, numeric_only)
 
         def func(df):
-            # NB: here we use numeric_only=None, in DataFrame it is False GH#38217
             res = df._reduce(
                 nanops.nanargmax,
                 "argmax",
                 axis=axis,
                 skipna=skipna,
-                numeric_only=numeric_only,
+                numeric_only=numeric_only_arg,
             )
             indices = res._values
             index = df._get_axis(axis)
@@ -1579,25 +1596,35 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmax"
-        return self._python_apply_general(func, self._obj_with_exclusions)
+        result = self._python_apply_general(func, self._obj_with_exclusions)
+        self._maybe_warn_numeric_only_depr("idxmax", result, numeric_only)
+        return result
 
     @doc(
         _shared_docs["idxmin"],
         numeric_only_default="True for axis=0, False for axis=1",
     )
-    def idxmin(self, axis=0, skipna: bool = True, numeric_only: bool | None = None):
+    def idxmin(
+        self,
+        axis=0,
+        skipna: bool = True,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+    ):
         axis = DataFrame._get_axis_number(axis)
-        if numeric_only is None:
-            numeric_only = None if axis == 0 else False
+        if numeric_only is lib.no_default:
+            # Cannot use self._resolve_numeric_only; we must pass None to
+            # DataFrame.idxmin for backwards compatibility
+            numeric_only_arg = None if axis == 0 else False
+        else:
+            numeric_only_arg = cast(bool, numeric_only)
 
         def func(df):
-            # NB: here we use numeric_only=None, in DataFrame it is False GH#46560
             res = df._reduce(
                 nanops.nanargmin,
                 "argmin",
                 axis=axis,
                 skipna=skipna,
-                numeric_only=numeric_only,
+                numeric_only=numeric_only_arg,
             )
             indices = res._values
             index = df._get_axis(axis)
@@ -1605,7 +1632,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmin"
-        return self._python_apply_general(func, self._obj_with_exclusions)
+        result = self._python_apply_general(func, self._obj_with_exclusions)
+        self._maybe_warn_numeric_only_depr("idxmin", result, numeric_only)
+        return result
 
     boxplot = boxplot_frame_groupby
 

@@ -4,6 +4,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -259,7 +260,9 @@ class TestNumericOnly:
             # these have numeric_only kwarg, but default to False
             warn = FutureWarning
 
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        with tm.assert_produces_warning(
+            warn, match="Dropping invalid columns", raise_on_extra_warnings=False
+        ):
             result = getattr(gb, method)()
 
         tm.assert_index_equal(result.columns, expected_columns_numeric)
@@ -297,24 +300,26 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
-    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmax(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
         # non-cython calls should not include the grouper
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        result = gb.idxmax()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = gb.idxmax()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmin(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
         # non-cython calls should not include the grouper
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        result = gb.idxmin()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = gb.idxmin()
         tm.assert_frame_equal(result, expected)
 
     def test_mad(self, gb, gni):
@@ -1238,3 +1243,114 @@ def test_groupby_sum_timedelta_with_nat():
     res = gb["b"].sum(min_count=2)
     expected = Series([td3, pd.NaT], dtype="m8[ns]", name="b", index=expected.index)
     tm.assert_series_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "kernel, numeric_only_default, drops_nuisance, has_arg",
+    [
+        ("all", False, False, False),
+        ("any", False, False, False),
+        ("bfill", False, False, False),
+        ("corr", True, False, True),
+        ("corrwith", True, False, True),
+        ("cov", True, False, True),
+        ("cummax", False, True, True),
+        ("cummin", False, True, True),
+        ("cumprod", True, True, True),
+        ("cumsum", True, True, True),
+        ("diff", False, False, False),
+        ("ffill", False, False, False),
+        ("fillna", False, False, False),
+        ("first", False, False, True),
+        ("idxmax", True, False, True),
+        ("idxmin", True, False, True),
+        ("last", False, False, True),
+        ("max", False, True, True),
+        ("mean", True, True, True),
+        ("median", True, True, True),
+        ("min", False, True, True),
+        ("nth", False, False, False),
+        ("nunique", False, False, False),
+        ("pct_change", False, False, False),
+        ("prod", True, True, True),
+        ("quantile", True, False, True),
+        ("sem", True, True, True),
+        ("skew", True, False, True),
+        ("std", True, True, True),
+        ("sum", True, True, True),
+        ("var", True, False, True),
+    ],
+)
+@pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+def test_deprecate_numeric_only(
+    kernel, numeric_only_default, drops_nuisance, has_arg, numeric_only, keys
+):
+    # GH#46072
+    # drops_nuisance: Whether the op drops nuisance columns even when numeric_only=False
+    # has_arg: Whether the op has a numeric_only arg
+    df = DataFrame({"a1": [1, 1], "a2": [2, 2], "a3": [5, 6], "b": 2 * [object]})
+
+    if kernel == "corrwith":
+        args = (df,)
+    elif kernel == "nth" or kernel == "fillna":
+        args = (0,)
+    else:
+        args = ()
+    kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
+
+    gb = df.groupby(keys)
+    method = getattr(gb, kernel)
+    if has_arg and (
+        # Cases where b does not appear in the result
+        numeric_only is True
+        or (numeric_only is lib.no_default and numeric_only_default)
+        or drops_nuisance
+    ):
+        if numeric_only is True or (not numeric_only_default and not drops_nuisance):
+            warn = None
+        else:
+            warn = FutureWarning
+        if numeric_only is lib.no_default and numeric_only_default:
+            msg = f"The default value of numeric_only in DataFrameGroupBy.{kernel}"
+        else:
+            msg = f"Dropping invalid columns in DataFrameGroupBy.{kernel}"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = method(*args, **kwargs)
+
+        assert "b" not in result.columns
+    elif (
+        # kernels that work on any dtype and have numeric_only arg
+        kernel in ("first", "last", "corrwith")
+        or (
+            # kernels that work on any dtype and don't have numeric_only arg
+            kernel in ("any", "all", "bfill", "ffill", "fillna", "nth", "nunique")
+            and numeric_only is lib.no_default
+        )
+    ):
+        result = method(*args, **kwargs)
+        assert "b" in result.columns
+    elif has_arg:
+        assert numeric_only is not True
+        assert numeric_only is not lib.no_default or numeric_only_default is False
+        assert not drops_nuisance
+        # kernels that are successful on any dtype were above; this will fail
+        msg = (
+            "(not allowed for this dtype"
+            "|must be a string or a number"
+            "|cannot be performed against 'object' dtypes"
+            "|must be a string or a real number)"
+        )
+        with pytest.raises(TypeError, match=msg):
+            method(*args, **kwargs)
+    elif not has_arg and numeric_only is not lib.no_default:
+        with pytest.raises(
+            TypeError, match="got an unexpected keyword argument 'numeric_only'"
+        ):
+            method(*args, **kwargs)
+    else:
+        assert kernel in ("diff", "pct_change")
+        assert numeric_only is lib.no_default
+        # Doesn't have numeric_only argument and fails on nuisance columns
+        with pytest.raises(TypeError, match=r"unsupported operand type"):
+            method(*args, **kwargs)
