@@ -1547,3 +1547,10 @@ def test_col_trimming_hide_columns():
         assert ctx["head"][0][c + 2]["is_visible"] == vals[1]
 
     assert len(ctx["body"][0]) == 6  # index + 2 hidden + 2 visible + trimming col
+
+
+@pytest.mark.parametrize("format", ["html", "latex"])
+def test_output_buffer(mi_styler, format):
+    # gh 47053
+    with open(f"delete_me.{format}", "w") as f:
+        getattr(mi_styler, f"to_{format}")(f)
