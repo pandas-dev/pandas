@@ -553,7 +553,9 @@ def test_agg_misc():
             t[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
 
-@pytest.mark.parametrize("func", [["min"], ["mean", "max"], {"A": "sum"}, {"A": "prod", "B": "median"}])
+@pytest.mark.parametrize(
+    "func", [["min"], ["mean", "max"], {"A": "sum"}, {"A": "prod", "B": "median"}]
+)
 def test_multi_agg_axis_1_raises(func):
     # GH#46904
     np.random.seed(1234)
