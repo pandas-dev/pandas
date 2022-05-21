@@ -285,11 +285,11 @@ def concat(
     >>> df2 = pd.DataFrame([['c', 3], ['d', 4]],
     ...                    columns=['letter', 'number'])
     >>> df2
-        letter  number
+      letter  number
     0      c       3
     1      d       4
     >>> pd.concat([df1, df2])
-        letter  number
+      letter  number
     0      a       1
     1      b       2
     0      c       3
