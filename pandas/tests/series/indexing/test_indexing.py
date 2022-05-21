@@ -6,7 +6,9 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
+    Float64Dtype,
     IndexSlice,
     MultiIndex,
     Series,
@@ -16,8 +18,6 @@ from pandas import (
     date_range,
     period_range,
     timedelta_range,
-    Float64Dtype,
-    NA,
 )
 import pandas._testing as tm
 
@@ -331,12 +331,14 @@ def test_loc_setitem_all_false_indexer():
     ser.loc[ser > 100] = rhs
     tm.assert_series_equal(ser, expected)
 
+
 def test_reindexing_values():
     # GH 47055
     s = Series([1.0, NA], dtype=Float64Dtype())
     s_reindex = s.reindex(range(3))
     expected = np.array([1, np.NaN, np.NaN])
-    assert np.array_equal(s_reindex.values._data, expected, equal_nan=True)
+    tm.assert_numpy_array_equal(s_reindex.values._data, expected)
+
 
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
