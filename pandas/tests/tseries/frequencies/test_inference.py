@@ -369,15 +369,14 @@ def test_invalid_index_types(idx):
 
 
 @pytest.mark.skipif(is_platform_windows(), reason="see gh-10822: Windows issue")
-@pytest.mark.parametrize("idx", [tm.makeStringIndex(10), tm.makeUnicodeIndex(10)])
-def test_invalid_index_types_unicode(idx):
+def test_invalid_index_types_unicode():
     # see gh-10822
     #
     # Odd error message on conversions to datetime for unicode.
     msg = "Unknown string format"
 
     with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(idx)
+        frequencies.infer_freq(tm.makeStringIndex(10))
 
 
 def test_string_datetime_like_compat():

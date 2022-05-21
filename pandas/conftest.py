@@ -17,7 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-# pyright: reportUntypedFunctionDecorator = false
 
 from collections import abc
 from datetime import (
@@ -295,6 +294,7 @@ def other_closed(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -311,6 +311,7 @@ def compression(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -542,7 +543,6 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "unicode": tm.makeUnicodeIndex(100),
     "string": tm.makeStringIndex(100),
     "datetime": tm.makeDateIndex(100),
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
@@ -657,7 +657,7 @@ def index_with_missing(request):
     """
 
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
-    # Azure pipeline that writes into indices_dict despite copy
+    # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
     vals = ind.values
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
