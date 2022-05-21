@@ -200,7 +200,7 @@ def concat(
 
         .. versionchanged:: 1.0.0
 
-            Changed to not sort by default.
+           Changed to not sort by default.
 
     copy : bool, default True
         If False, do not copy data unnecessarily.
@@ -269,9 +269,9 @@ def concat(
     ...           names=['Series name', 'Row ID'])
     Series name  Row ID
     s1           0         a
-                    1         b
+                 1         b
     s2           0         c
-                    1         d
+                 1         d
     dtype: object
 
     Combine two ``DataFrame`` objects with identical columns.
@@ -279,7 +279,7 @@ def concat(
     >>> df1 = pd.DataFrame([['a', 1], ['b', 2]],
     ...                    columns=['letter', 'number'])
     >>> df1
-        letter  number
+      letter  number
     0      a       1
     1      b       2
     >>> df2 = pd.DataFrame([['c', 3], ['d', 4]],
@@ -302,11 +302,11 @@ def concat(
     >>> df3 = pd.DataFrame([['c', 3, 'cat'], ['d', 4, 'dog']],
     ...                    columns=['letter', 'number', 'animal'])
     >>> df3
-        letter  number animal
+      letter  number animal
     0      c       3    cat
     1      d       4    dog
     >>> pd.concat([df1, df3], sort=False)
-        letter  number animal
+      letter  number animal
     0      a       1    NaN
     1      b       2    NaN
     0      c       3    cat
@@ -317,7 +317,7 @@ def concat(
     the ``join`` keyword argument.
 
     >>> pd.concat([df1, df3], join="inner")
-        letter  number
+      letter  number
     0      a       1
     1      b       2
     0      c       3
@@ -329,7 +329,7 @@ def concat(
     >>> df4 = pd.DataFrame([['bird', 'polly'], ['monkey', 'george']],
     ...                    columns=['animal', 'name'])
     >>> pd.concat([df1, df4], axis=1)
-        letter  number  animal    name
+      letter  number  animal    name
     0      a       1    bird   polly
     1      b       2  monkey  george
 
@@ -338,11 +338,11 @@ def concat(
 
     >>> df5 = pd.DataFrame([1], index=['a'])
     >>> df5
-        0
+       0
     a  1
     >>> df6 = pd.DataFrame([2], index=['a'])
     >>> df6
-        0
+       0
     a  2
     >>> pd.concat([df5, df6], verify_integrity=True)
     Traceback (most recent call last):
