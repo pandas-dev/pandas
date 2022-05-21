@@ -359,9 +359,9 @@ def concat(
     >>> new_row
     0   3   4
     >>> pd.concat([df7, new_row.to_frame().T], ignore_index=True)
-            a    b
-    0    1    2
-    1    3    4
+        a   b
+    0   1   2
+    1   3   4
     """
     op = _Concatenator(
         objs,
