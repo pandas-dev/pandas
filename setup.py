@@ -102,6 +102,7 @@ class build_ext(_build_ext):
         if _CYTHON_INSTALLED:
             self.render_templates(_pxifiles)
 
+        self.run_command("build_clib")
         super().build_extensions()
 
 
@@ -438,6 +439,33 @@ tseries_depends = [
     "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
 ]
 
+import sysconfig
+
+ext_libraries = [
+    [
+        "np_datetime",
+        {
+            "sources": [
+                "pandas/_libs/tslibs/src/datetime/np_datetime.c",
+                "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
+            ],
+            "include_dirs": [
+                "pandas/_libs/tslibs/src/datetime",
+                sysconfig.get_path("include"),
+                numpy.get_include(),
+            ],
+        },
+    ],
+    [
+        "tokenizer",
+        {
+            "sources": ["pandas/_libs/src/parser/tokenizer.c"],
+            "depends": ["pandas/_libs/src/parser/tokenizer.h"],
+            "include_dirs": [sysconfig.get_path("include")] + klib_include,
+        },
+    ],
+]
+
 ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
@@ -472,7 +500,6 @@ ext_data = {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
         "include": klib_include,  # due to tokenizer import
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
     "_libs.parsers": {
@@ -482,8 +509,8 @@ ext_data = {
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
         ],
+        "libraries": ["tokenizer"],
         "sources": [
-            "pandas/_libs/src/parser/tokenizer.c",
             "pandas/_libs/src/parser/io.c",
         ],
     },
@@ -501,21 +528,18 @@ ext_data = {
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "libraries": ["np_datetime"],
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "libraries": ["np_datetime"],
     },
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
         "depends": tseries_depends,
-        "sources": [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
-        ],
+        "libraries": ["np_datetime"],
     },
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
@@ -525,12 +549,12 @@ ext_data = {
         "pyxfile": "_libs/tslibs/parsing",
         "include": klib_include,
         "depends": ["pandas/_libs/src/parser/tokenizer.h"],
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
+        "libraries": ["tokenizer"],
     },
     "_libs.tslibs.period": {
         "pyxfile": "_libs/tslibs/period",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "libraries": ["np_datetime"],
     },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
@@ -539,12 +563,12 @@ ext_data = {
     "_libs.tslibs.timedeltas": {
         "pyxfile": "_libs/tslibs/timedeltas",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "libraries": ["np_datetime"],
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
         "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "libraries": ["np_datetime"],
     },
     "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
     "_libs.tslibs.tzconversion": {
@@ -593,6 +617,7 @@ for name, data in ext_data.items():
         depends=data.get("depends", []),
         include_dirs=include,
         language=data.get("language", "c"),
+        libraries=data.get("libraries", []),
         define_macros=data.get("macros", macros),
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
@@ -626,17 +651,18 @@ ujson_ext = Extension(
             "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",
         ]
-        + [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
-        ]
+        # + [
+        #    "pandas/_libs/tslibs/src/datetime/np_datetime.c",
+        #    "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
+        # ]
     ),
     include_dirs=[
         "pandas/_libs/src/ujson/python",
         "pandas/_libs/src/ujson/lib",
-        "pandas/_libs/src/datetime",
+        "pandas/_libs/tslibs/src/datetime",
         numpy.get_include(),
     ],
+    libraries=["np_datetime"],
     extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
@@ -654,5 +680,6 @@ if __name__ == "__main__":
     setup(
         version=versioneer.get_version(),
         ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
+        libraries=ext_libraries,
         cmdclass=cmdclass,
     )
