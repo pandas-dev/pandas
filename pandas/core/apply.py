@@ -325,6 +325,9 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
 
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
         if not isinstance(obj, SelectionMixin):
             # i.e. obj is Series or DataFrame
             selected_obj = obj
@@ -455,6 +458,9 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
+
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
 
         if not isinstance(obj, SelectionMixin):
             # i.e. obj is Series or DataFrame

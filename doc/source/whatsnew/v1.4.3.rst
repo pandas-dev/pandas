@@ -18,6 +18,8 @@ Fixed regressions
 - Fixed regression in :func:`read_fwf` raising ``ValueError`` when ``widths`` was specified with ``usecols`` (:issue:`46580`)
 - Fixed regression in :meth:`.Groupby.transform` and :meth:`.Groupby.agg` failing with ``engine="numba"`` when the index was a :class:`MultiIndex` (:issue:`46867`)
 - Fixed regression is :meth:`.Styler.to_latex` and :meth:`.Styler.to_html` where ``buf`` failed in combination with ``encoding`` (:issue:`47053`)
+- Fixed regression in :meth:`.DataFrameGroupBy.agg` when used with list-likes or dict-likes and ``axis=1`` that would give incorrect results; now raises ``NotImplementedError`` (:issue:`46995`)
+- Fixed regression in :meth:`DataFrame.resample` and :meth:`DataFrame.rolling` when used with list-likes or dict-likes and ``axis=1`` that would raise an unintuitive error message; now raises ``NotImplementedError`` (:issue:`46904`)
 
 .. ---------------------------------------------------------------------------
 
