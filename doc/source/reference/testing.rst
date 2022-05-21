@@ -26,6 +26,7 @@ Exceptions and warnings
 
    errors.AbstractMethodError
    errors.AccessorRegistrationWarning
+   errors.DataError
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError

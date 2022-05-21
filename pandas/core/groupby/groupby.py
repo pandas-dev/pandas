@@ -53,7 +53,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DataError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -89,7 +92,6 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.base import (
-    DataError,
     PandasObject,
     SelectionMixin,
 )

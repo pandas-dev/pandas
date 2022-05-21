@@ -176,10 +176,6 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class DataError(Exception):
-    pass
-
-
 class SpecificationError(Exception):
     pass
 
