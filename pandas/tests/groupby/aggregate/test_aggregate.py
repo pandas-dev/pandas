@@ -1401,3 +1401,14 @@ def test_groupby_complex_raises(func):
     msg = "No matching signature found"
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
+
+
+@pytest.mark.parametrize(
+    "func", [["min"], ["mean", "max"], {"b": "sum"}, {"b": "prod", "c": "median"}]
+)
+def test_multi_axis_1_raises(func):
+    # GH#46995
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
+    gb = df.groupby("a", axis=1)
+    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
+        gb.agg(func)

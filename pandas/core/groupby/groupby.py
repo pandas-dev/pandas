@@ -53,7 +53,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DataError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -89,7 +92,6 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.base import (
-    DataError,
     PandasObject,
     SelectionMixin,
 )
@@ -415,7 +417,7 @@ Examples
 ...                           'two', 'two'],
 ...                    'C' : [1, 5, 5, 2, 5, 5],
 ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
->>> grouped = df.groupby('A')
+>>> grouped = df.groupby('A')[['C', 'D']]
 >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
           C         D
 0 -1.154701 -0.577350
@@ -428,20 +430,20 @@ Examples
 Broadcast result of the transformation
 
 >>> grouped.transform(lambda x: x.max() - x.min())
-   C    D
-0  4  6.0
-1  3  8.0
-2  4  6.0
-3  3  8.0
-4  4  6.0
-5  3  8.0
+     C    D
+0  4.0  6.0
+1  3.0  8.0
+2  4.0  6.0
+3  3.0  8.0
+4  4.0  6.0
+5  3.0  8.0
 
 .. versionchanged:: 1.3.0
 
     The resulting dtype will reflect the return value of the passed ``func``,
     for example:
 
->>> grouped[['C', 'D']].transform(lambda x: x.astype(int).max())
+>>> grouped.transform(lambda x: x.astype(int).max())
    C  D
 0  5  8
 1  5  9
@@ -2542,6 +2544,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with self._group_selection_context():
+            if len(self._selected_obj) == 0:
+                described = self._selected_obj.describe(**kwargs)
+                if self._selected_obj.ndim == 1:
+                    result = described
+                else:
+                    result = described.unstack()
+                return result.to_frame().T.iloc[:0]
+
             result = self._python_apply_general(
                 lambda x: x.describe(**kwargs),
                 self._selected_obj,
