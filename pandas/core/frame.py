@@ -3924,14 +3924,15 @@ class DataFrame(NDFrame, OpsMixin):
             # setitem will do validation that may raise TypeError,
             #  ValueError, or LossySetitemError
             if takeable:
-                # error: Argument 2 to "column_setitem" of "BlockManager" has
-                # incompatible type "Union[Hashable, Sequence[Hashable]]";
-                # expected "Union[int, slice, ndarray[Any, Any]]"
-                self._mgr.column_setitem(col, index, value)  # type: ignore[arg-type]
+                icol = col
+                iindex = index
             else:
                 icol = self.columns.get_loc(col)
-                index = self.index.get_loc(index)
-                self._mgr.column_setitem(icol, index, value)  # type: ignore[arg-type]
+                iindex = self.index.get_loc(index)
+            # error: Argument 2 to "column_setitem" of "BlockManager" has
+            # incompatible type "Union[Hashable, Sequence[Hashable]]";
+            # expected "Union[int, slice, ndarray[Any, Any]]"
+            self._mgr.column_setitem(icol, iindex, value)  # type: ignore[arg-type]
             self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
