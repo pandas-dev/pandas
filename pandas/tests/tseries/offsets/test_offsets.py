@@ -12,6 +12,7 @@ from typing import (
     List,
     Tuple,
 )
+import warnings
 
 import numpy as np
 import pytest
@@ -30,7 +31,10 @@ from pandas._libs.tslibs.offsets import (
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import PerformanceWarning
 
-from pandas import DatetimeIndex
+from pandas import (
+    DatetimeIndex,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     Base,
@@ -546,6 +550,38 @@ class TestCommon(Base):
         # GH: 37267
         off = self._get_offset(offset_types)
         assert hash(off) is not None
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_add_dt64_ndarray_non_nano(self, offset_types, unit, request):
+        # check that the result with non-nano matches nano
+        off = self._get_offset(offset_types)
+
+        if type(off) is DateOffset:
+            mark = pytest.mark.xfail(reason="non-nano not implemented")
+            request.node.add_marker(mark)
+
+        dti = date_range("2016-01-01", periods=35, freq="D")
+
+        arr = dti._data._ndarray.astype(f"M8[{unit}]")
+        dta = type(dti._data)._simple_new(arr, dtype=arr.dtype)
+
+        with warnings.catch_warnings(record=True) as w:
+            expected = dti._data + off
+            result = dta + off
+
+        if len(w):
+            # PerformanceWarning was issued bc _apply_array raised, so we
+            #  fell back to object dtype, for which the code path does
+            #  not yet cast back to the original resolution
+            mark = pytest.mark.xfail(
+                reason="Goes through object dtype in DatetimeArray._add_offset, "
+                "doesn't restore reso in result"
+            )
+            request.node.add_marker(mark)
+
+        tm.assert_numpy_array_equal(
+            result._ndarray, expected._ndarray.astype(arr.dtype)
+        )
 
 
 class TestDateOffset(Base):
