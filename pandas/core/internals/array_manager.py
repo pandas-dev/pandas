@@ -749,7 +749,7 @@ class ArrayManager(BaseArrayManager):
     # --------------------------------------------------------------------
     # Indexing
 
-    def fast_xs(self, loc: int) -> ArrayLike:
+    def fast_xs(self, loc: int) -> SingleArrayManager:
         """
         Return the array corresponding to `frame.iloc[loc]`.
 
@@ -773,7 +773,7 @@ class ArrayManager(BaseArrayManager):
             result = TimedeltaArray._from_sequence(values, dtype=dtype)._data
         else:
             result = np.array(values, dtype=dtype)
-        return result
+        return SingleArrayManager([result], [self._axes[1]])
 
     def get_slice(self, slobj: slice, axis: int = 0) -> ArrayManager:
         axis = self._normalize_axis(axis)
@@ -1261,7 +1261,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def is_single_block(self) -> bool:
         return True
 
-    def fast_xs(self, loc: int) -> ArrayLike:
+    def fast_xs(self, loc: int) -> SingleArrayManager:
         raise NotImplementedError("Use series._values[loc] instead")
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleArrayManager:

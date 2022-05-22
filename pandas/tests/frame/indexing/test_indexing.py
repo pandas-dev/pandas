@@ -1355,7 +1355,7 @@ def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
 
     mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()
-    arr = mgr.fast_xs(0)
+    arr = mgr.fast_xs(0).array
     assert isinstance(arr[1], Timestamp)
     assert isinstance(arr[2], pd.Timedelta)
 
