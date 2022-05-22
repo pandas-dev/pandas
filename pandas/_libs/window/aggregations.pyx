@@ -14,6 +14,8 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    complex64_t,
+    complex128_t,
     float32_t,
     float64_t,
     int64_t,
@@ -26,6 +28,11 @@ from pandas._libs.algos import is_monotonic
 
 from pandas._libs.dtypes cimport numeric_t
 
+from pandas.core.dtypes.common import ensure_float64
+
+ctypedef fused float_complex_t:
+    float64_t
+    complex64_t
 
 cdef extern from "../src/skiplist.h":
     ctypedef struct node_t:
@@ -129,9 +136,10 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         sum_x[0] = t
 
 
-def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
+def roll_sum(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
+        float64_t[:] values = ensure_float64(float_complex_values)
         Py_ssize_t i, j
         float64_t sum_x, compensation_add, compensation_remove, prev_value
         int64_t s, e, num_consecutive_same_value
@@ -234,7 +242,6 @@ cdef inline void add_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
             num_consecutive_same_value[0] = 1
         prev_value[0] = val
 
-
 cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
                              Py_ssize_t *neg_ct, float64_t *compensation) nogil:
     """ remove a value from the mean calc using Kahan summation """
@@ -251,9 +258,10 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
             neg_ct[0] = neg_ct[0] - 1
 
 
-def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
+def roll_mean(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
+        float64_t[:] values = ensure_float64(float_complex_values)
         float64_t val, compensation_add, compensation_remove, sum_x, prev_value
         int64_t s, e, num_consecutive_same_value
         Py_ssize_t nobs, i, j, neg_ct, N = len(start)
@@ -387,12 +395,13 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
             ssqdm_x[0] = 0
 
 
-def roll_var(const float64_t[:] values, ndarray[int64_t] start,
+def roll_var(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp, int ddof=1) -> np.ndarray:
     """
     Numerically stable implementation using Welford's method.
     """
     cdef:
+        float64_t[:] values = ensure_float64(float_complex_values)
         float64_t mean_x, ssqdm_x, nobs, compensation_add,
         float64_t compensation_remove, prev_value
         int64_t s, e, num_consecutive_same_value
@@ -562,9 +571,10 @@ cdef inline void remove_skew(float64_t val, int64_t *nobs,
         xxx[0] = t
 
 
-def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_skew(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
+        float64_t[:] values = ensure_float64(float_complex_values)
         Py_ssize_t i, j
         float64_t val, prev, min_val, mean_val, sum_val = 0
         float64_t compensation_xxx_add, compensation_xxx_remove
@@ -775,9 +785,10 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
         xxxx[0] = t
 
 
-def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_kurt(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
+        float64_t[:] values = ensure_float64(float_complex_values)
         Py_ssize_t i, j
         float64_t val, prev, mean_val, min_val, sum_val = 0
         float64_t compensation_xxxx_add, compensation_xxxx_remove
@@ -869,9 +880,10 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 # Rolling median, min, max
 
 
-def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
+def roll_median_c(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
+        float64_t[:] values = ensure_float64(float_complex_values)
         Py_ssize_t i, j
         bint err = False, is_monotonic_increasing_bounds
         int midpoint, ret = 0
@@ -1010,7 +1022,7 @@ cdef inline numeric_t calc_mm(int64_t minp, Py_ssize_t nobs,
     return result
 
 
-def roll_max(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_max(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
@@ -1031,10 +1043,12 @@ def roll_max(ndarray[float64_t] values, ndarray[int64_t] start,
     -------
     np.ndarray[float]
     """
+    cdef:
+        ndarray[float64_t] values = ensure_float64(float_complex_values)
     return _roll_min_max(values, start, end, minp, is_max=1)
 
 
-def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_min(float_complex_t[:] float_complex_values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     """
     Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
@@ -1052,6 +1066,8 @@ def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
     -------
     np.ndarray[float]
     """
+    cdef:
+        ndarray[float64_t] values = ensure_float64(float_complex_values)
     return _roll_min_max(values, start, end, minp, is_max=0)
 
 
