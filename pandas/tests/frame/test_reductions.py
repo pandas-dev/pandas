@@ -777,14 +777,20 @@ class TestDataFrameAnalytics:
         result = df.sum(min_count=10)
         expected = Series([np.nan, np.nan], index=["x", "y"])
         tm.assert_series_equal(result, expected)
-    
-    @pytest.mark.parametrize("kwargs", [{"axis":1, "min_count":1}, {"axis":1, "min_count":2}, {"axis":1, "skipna":False}])
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"axis": 1, "min_count": 1},
+            {"axis": 1, "min_count": 2},
+            {"axis": 1, "skipna": False},
+        ],
+    )
     def test_sum_nanops_dtype_min_count(self, kwargs):
-        
         # GH#46947
-        df = pd.DataFrame({'a': [1., 2.3, 4.4], 'b': [2.2, 3, np.nan]}, dtype='float32')
+        df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype="float32")
         result = df.sum(**kwargs).dtype
-        assert result == 'float32'
+        assert result == "float32"
 
     def test_sum_object(self, float_frame):
         values = float_frame.values.astype(int)
