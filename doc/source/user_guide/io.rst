@@ -2575,23 +2575,37 @@ as a string:
 
 .. ipython:: python
 
-   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "html",
-                           "banklist.html")
-   file_path = os.path.abspath(rel_path)
+   html_str = """
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th colspan="1">B</th>
+                    <th rowspan="1">C</th>
+                </tr>
+                <tr>
+                    <td>a</td>
+                    <td>b</td>
+                    <td>c</td>
+                </tr>
+            </table>
+        """
 
-   with open(file_path, "r") as f:
-       dfs = pd.read_html(f.read())
-   dfs
+   with open("tmp.html", "w") as f:
+       f.write(html_str)
+   df = pd.read_html("tmp.html")
+   df[0]
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("tmp.html")
 
 You can even pass in an instance of ``StringIO`` if you so desire:
 
 .. ipython:: python
 
-   with open(file_path, "r") as f:
-       sio = StringIO(f.read())
-
-   dfs = pd.read_html(sio)
-   dfs
+   dfs = pd.read_html(StringIO(html_str))
+   dfs[0]
 
 .. note::
 
@@ -2726,23 +2740,11 @@ in the method ``to_string`` described above.
    full set of options.
 
 .. ipython:: python
-   :suppress:
-
-   def write_html(df, filename, *args, **kwargs):
-       static = os.path.abspath(os.path.join("source", "_static"))
-       with open(os.path.join(static, filename + ".html"), "w") as f:
-           df.to_html(f, *args, **kwargs)
-
-.. ipython:: python
 
    df = pd.DataFrame(np.random.randn(2, 2))
    df
-   print(df.to_html())  # raw html
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "basic")
+   html = df.to_html()
+   print(html)  # raw html
 
 HTML:
 
@@ -2753,12 +2755,8 @@ The ``columns`` argument will limit the columns shown:
 
 .. ipython:: python
 
-   print(df.to_html(columns=[0]))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "columns", columns=[0])
+   html = df.to_html(columns=[0])
+   print(html)
 
 HTML:
 
@@ -2770,12 +2768,9 @@ point values:
 
 .. ipython:: python
 
-   print(df.to_html(float_format="{0:.10f}".format))
+   html = df.to_html(float_format="{0:.10f}".format)
+   print(html)
 
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "float_format", float_format="{0:.10f}".format)
 
 HTML:
 
@@ -2787,12 +2782,10 @@ off:
 
 .. ipython:: python
 
-   print(df.to_html(bold_rows=False))
+   html = df.to_html(bold_rows=False)
+   print(html)
 
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "nobold", bold_rows=False)
+HTML:
 
 .. raw:: html
    :file: ../_static/nobold.html
@@ -2816,12 +2809,8 @@ that contain URLs.
            "url": ["https://www.python.org/", "https://pandas.pydata.org"],
        }
    )
-   print(url_df.to_html(render_links=True))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(url_df, "render_links", render_links=True)
+   html = url_df.to_html(render_links=True))
+   print(html)
 
 HTML:
 
@@ -2836,18 +2825,12 @@ Finally, the ``escape`` argument allows you to control whether the
 
    df = pd.DataFrame({"a": list("&<>"), "b": np.random.randn(3)})
 
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "escape")
-   write_html(df, "noescape", escape=False)
-
 Escaped:
 
 .. ipython:: python
 
-   print(df.to_html())
+   html = df.to_html()
+   print(html)
 
 .. raw:: html
    :file: ../_static/escape.html
@@ -2856,7 +2839,8 @@ Not escaped:
 
 .. ipython:: python
 
-   print(df.to_html(escape=False))
+   html = df.to_html(escape=False)
+   print(html)
 
 .. raw:: html
    :file: ../_static/noescape.html
