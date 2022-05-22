@@ -308,7 +308,7 @@ def test_data_frame_value_counts_dropna(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-def _test_categorical_single_grouper(
+def assert_categorical_single_grouper(
     education_df, as_index, observed, expected_index, normalize, expected_data
 ):
     # Test single categorical grouper when non-groupers are also categorical
@@ -375,7 +375,7 @@ def test_categorical_single_grouper_observed_true(
         ("US", "male", "medium"),
     ]
 
-    _test_categorical_single_grouper(
+    assert_categorical_single_grouper(
         education_df=education_df,
         as_index=as_index,
         observed=True,
@@ -448,7 +448,7 @@ def test_categorical_single_grouper_observed_false(
         ("ASIA", "male", "medium"),
     ]
 
-    _test_categorical_single_grouper(
+    assert_categorical_single_grouper(
         education_df=education_df,
         as_index=as_index,
         observed=False,
