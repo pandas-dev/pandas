@@ -1878,11 +1878,11 @@ def test_rolling_imaginary_part_of_complex(arithmetic_win_operators):
     func_name = arithmetic_win_operators
     df = DataFrame([1j, 1 + 2j])
     result = getattr(
-        df.rolling(2).apply(lambda x: print(x) is None),
+        df.rolling(2),
         func_name,
     )()
     expected = getattr(
-        DataFrame([np.nan, 1.0]),
+        DataFrame([0, 1]).rolling(2),
         func_name,
     )()
-    tm.assert_series_equal(result, expected)
+    tm.assert_frame_equal(result, expected)

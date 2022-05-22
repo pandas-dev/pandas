@@ -608,6 +608,9 @@ class BaseWindow(SelectionMixin):
                 )
                 self._check_window_bounds(start, end, len(x))
 
+                if is_complex_dtype(x):
+                    x = ensure_float64(x)
+
                 return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
