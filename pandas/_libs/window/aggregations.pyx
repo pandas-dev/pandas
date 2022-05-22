@@ -15,7 +15,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     complex64_t,
-    complex128_t,
     float32_t,
     float64_t,
     int64_t,
