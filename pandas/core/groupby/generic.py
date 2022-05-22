@@ -37,6 +37,7 @@ from pandas._typing import (
     Manager2D,
     SingleManager,
 )
+from pandas.errors import SpecificationError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -68,7 +69,6 @@ from pandas.core.apply import (
     reconstruct_func,
     validate_func_kwargs,
 )
-from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
