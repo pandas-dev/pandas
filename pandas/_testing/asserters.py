@@ -1253,7 +1253,7 @@ def assert_frame_equal(
     """
     __tracebackhide__ = True
 
-    if not isinstance(check_less_precise, NoDefault):
+    if check_less_precise is not no_default:
         warnings.warn(
             "The 'check_less_precise' keyword in testing.assert_*_equal "
             "is deprecated and will be removed in a future version. "
