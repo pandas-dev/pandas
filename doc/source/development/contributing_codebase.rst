@@ -23,9 +23,9 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script validates the doctests, formatting in docstrings, static typing, and
+The script validates the doctests, formatting in docstrings, and
 imported modules. It is possible to run the checks independently by using the
-parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+parameters ``docstring``, ``code``, and ``doctests``
 (e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
@@ -33,9 +33,9 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-In addition to ``./ci/code_checks.sh``, some extra checks are run by
-``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
-run them.
+In addition to ``./ci/code_checks.sh``, some extra checks (including static type
+checking) are run by ``pre-commit`` - see :ref:`here <contributing.pre-commit>`
+for how to run them.
 
 .. _contributing.pre-commit:
 
@@ -260,9 +260,9 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   ./ci/code_checks.sh typing
+   pre-commit run --hook-stage manual --all-files
 
-A recent version of ``numpy`` (>=1.21.0) is required for type validation.
+in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
 
 .. _contributing.ci:
 

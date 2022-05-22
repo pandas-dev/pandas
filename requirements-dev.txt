@@ -13,7 +13,7 @@ flake8-bugbear==21.3.2
 flake8-comprehensions==3.7.0
 isort>=5.2.1
 mypy==0.950
-pre-commit>=2.9.2
+pre-commit>=2.15.0
 pycodestyle
 pyupgrade
 gitpython
