@@ -2809,7 +2809,7 @@ that contain URLs.
            "url": ["https://www.python.org/", "https://pandas.pydata.org"],
        }
    )
-   html = url_df.to_html(render_links=True))
+   html = url_df.to_html(render_links=True)
    print(html)
 
 HTML:
@@ -3024,9 +3024,9 @@ as a string:
 
 .. ipython:: python
 
-   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "xml",
-                           "books.xml")
-   file_path = os.path.abspath(rel_path)
+   file_path = "books.xml"
+   with open(file_path, "w") as f:
+       f.write(xml)
 
    with open(file_path, "r") as f:
        df = pd.read_xml(f.read())
@@ -3085,6 +3085,11 @@ Specify only elements or only attributes to parse:
 
    df = pd.read_xml(file_path, attrs_only=True)
    df
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("books.xml")
 
 XML documents can have namespaces with prefixes and default namespaces without
 prefixes both of which are denoted with a special attribute ``xmlns``. In order
