@@ -151,6 +151,7 @@ Other enhancements
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
+- :class:`DataError` now exposed in ``pandas.errors`` (:issue:`27656`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -786,6 +787,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.var` would segfault calculating weighted variance when window size was larger than data size (:issue:`46760`)
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
 - Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
+- Bug in :meth:`.DataFrameGroupBy.describe` and :meth:`.SeriesGroupBy.describe` produces inconsistent results for empty datasets (:issue:`41575`)
+-
 
 Reshaping
 ^^^^^^^^^
