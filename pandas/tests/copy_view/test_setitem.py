@@ -29,19 +29,20 @@ def test_set_column_with_array():
 def test_set_column_with_series(using_copy_on_write):
     # Case: setting a series as a new column (df[col] = s) copies that data
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    s = Series([1, 2, 3])
+    ser = Series([1, 2, 3])
 
-    df["c"] = s
+    df["c"] = ser
 
     if using_copy_on_write:
         # with CoW we can delay the copy
-        assert np.shares_memory(df["c"].values, s.values)
+        assert np.shares_memory(df["c"].values, ser.values)
     else:
         # the series data is copied
-        assert not np.shares_memory(df["c"].values, s.values)
+        assert not np.shares_memory(df["c"].values, ser.values)
 
     # and modifying the series does not modify the DataFrame
-    s.iloc[0] = 0
+    ser.iloc[0] = 0
+    assert ser.iloc[0] == 0
     tm.assert_series_equal(df["c"], Series([1, 2, 3], name="c"))
 
 
