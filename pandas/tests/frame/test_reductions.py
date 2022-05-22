@@ -780,7 +780,7 @@ class TestDataFrameAnalytics:
     
     @pytest.mark.parametrize("kwargs", [{"axis":1, "min_count":1}, {"axis":1, "min_count":2}, {"axis":1, "skipna":False}])
     def test_sum_nanops_dtype_min_count(self, kwargs):
-        
+        # GH#46947
         df = pd.DataFrame({'a': [1., 2.3, 4.4], 'b': [2.2, 3, np.nan]}, dtype='float32')
         result = df.sum(**kwargs).dtype
         assert result == 'float32'
