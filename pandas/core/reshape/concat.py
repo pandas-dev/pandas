@@ -359,6 +359,7 @@ def concat(
     >>> new_row
     a    3
     b    4
+    dtype: int64
     >>> pd.concat([df7, new_row.to_frame().T], ignore_index=True)
         a   b
     0   1   2
