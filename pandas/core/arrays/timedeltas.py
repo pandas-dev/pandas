@@ -29,7 +29,6 @@ from pandas._libs.tslibs.conversion import (
     precision_from_unit,
 )
 from pandas._libs.tslibs.fields import get_timedelta_field
-from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     ints_to_pytimedelta,
@@ -41,7 +40,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.astype import astype_td64_unit_conversion
@@ -155,10 +153,6 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
     #  operates pointwise.
-
-    @cache_readonly
-    def _reso(self):
-        return py_get_unit_from_dtype(self.dtype)
 
     def _box_func(self, x: np.timedelta64) -> Timedelta | NaTType:
         y = x.view("i8")

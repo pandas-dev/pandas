@@ -38,13 +38,11 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
 from pandas._typing import npt
 from pandas.errors import (
     OutOfBoundsDatetime,
     PerformanceWarning,
 )
-from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
@@ -546,10 +544,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Descriptive Properties
 
-    @cache_readonly
-    def _reso(self):
-        return py_get_unit_from_dtype(self._ndarray.dtype)
-
     def _box_func(self, x: np.datetime64) -> Timestamp | NaTType:
         # GH#42228
         value = x.view("i8")
@@ -620,7 +614,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return is_date_array_normalized(self.asi8, self.tz)
+        return is_date_array_normalized(self.asi8, self.tz, reso=self._reso)
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution_obj(self) -> Resolution:
@@ -772,9 +766,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset._apply_array(values).view("M8[ns]")
+            result = offset._apply_array(values).view(values.dtype)
             result = DatetimeArray._simple_new(result, dtype=result.dtype)
-            result = result.tz_localize(self.tz)
+            if self.tz is not None:
+                # FIXME: tz_localize with non-nano
+                result = result.tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn(
@@ -782,11 +778,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
+            result = type(self)._from_sequence(result)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
-                return type(self)._from_sequence(result).tz_localize(self.tz)
+                return result.tz_localize(self.tz)
 
-        return type(self)._from_sequence(result)
+        return result
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -1131,8 +1128,14 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = normalize_i8_timestamps(self.asi8, self.tz)
-        return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
+        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._reso)
+        dt64_values = new_values.view(self._ndarray.dtype)
+
+        dta = type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
+        dta = dta._with_freq("infer")
+        if self.tz is not None:
+            dta = dta.tz_localize(self.tz)
+        return dta
 
     def to_period(self, freq=None) -> PeriodArray:
         """

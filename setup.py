@@ -520,6 +520,7 @@ ext_data = {
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",

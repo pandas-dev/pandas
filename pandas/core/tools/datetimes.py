@@ -1019,6 +1019,7 @@ def to_datetime(
     - Inputs can contain both naive and aware, string or datetime, the above
       rules still apply
 
+    >>> from datetime import timezone, timedelta
     >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 12:00 -0530',
     ...                datetime(2020, 1, 1, 18),
     ...                datetime(2020, 1, 1, 18,

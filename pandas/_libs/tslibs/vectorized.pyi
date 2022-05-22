@@ -17,11 +17,13 @@ def dt64arr_to_periodarr(
 ) -> npt.NDArray[np.int64]: ...
 def is_date_array_normalized(
     stamps: npt.NDArray[np.int64],
-    tz: tzinfo | None = ...,
+    tz: tzinfo | None,
+    reso: int,  # NPY_DATETIMEUNIT
 ) -> bool: ...
 def normalize_i8_timestamps(
     stamps: npt.NDArray[np.int64],
     tz: tzinfo | None,
+    reso: int,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int64]: ...
 def get_resolution(
     stamps: npt.NDArray[np.int64],
