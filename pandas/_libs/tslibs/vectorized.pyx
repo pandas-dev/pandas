@@ -20,12 +20,17 @@ cnp.import_array()
 from .dtypes import Resolution
 
 from .ccalendar cimport DAY_NANOS
-from .dtypes cimport c_Resolution
+from .dtypes cimport (
+    c_Resolution,
+    periods_per_day,
+)
 from .nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
 )
 from .np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    NPY_FR_ns,
     dt64_to_dtstruct,
     npy_datetimestruct,
 )
@@ -258,7 +263,7 @@ def get_resolution(ndarray stamps, tzinfo tz=None) -> Resolution:
 @cython.cdivision(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz):
+cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso):
     # stamps is int64_t, arbitrary ndim
     """
     Normalize each of the (nanosecond) timezone aware timestamps in the given
@@ -269,6 +274,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz):
     ----------
     stamps : int64 ndarray
     tz : tzinfo or None
+    reso : NPY_DATETIMEUNIT
 
     Returns
     -------
@@ -282,6 +288,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz):
 
         ndarray result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, stamps)
+        int64_t ppd = periods_per_day(reso)
 
     for i in range(n):
         # Analogous to: utc_val = stamps[i]
@@ -291,7 +298,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz):
             res_val = NPY_NAT
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
-            res_val = local_val - (local_val % DAY_NANOS)
+            res_val = local_val - (local_val % ppd)
 
         # Analogous to: result[i] = res_val
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
@@ -303,7 +310,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_date_array_normalized(ndarray stamps, tzinfo tz=None) -> bool:
+def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -> bool:
     # stamps is int64_t, arbitrary ndim
     """
     Check if all of the given (nanosecond) timestamps are normalized to
@@ -314,6 +321,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz=None) -> bool:
     ----------
     stamps : int64 ndarray
     tz : tzinfo or None
+    reso : NPY_DATETIMEUNIT
 
     Returns
     -------
@@ -325,6 +333,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz=None) -> bool:
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         cnp.flatiter it = cnp.PyArray_IterNew(stamps)
+        int64_t ppd = periods_per_day(reso)
 
     for i in range(n):
         # Analogous to: utc_val = stamps[i]
@@ -332,7 +341,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz=None) -> bool:
 
         local_val = info.utc_val_to_local_val(utc_val, &pos)
 
-        if local_val % DAY_NANOS != 0:
+        if local_val % ppd != 0:
             return False
 
         cnp.PyArray_ITER_NEXT(it)
