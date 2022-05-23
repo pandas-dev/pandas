@@ -606,6 +606,25 @@ class BaseWindow(SelectionMixin):
                 )
                 self._check_window_bounds(start, end, len(x))
 
+                arithmetic_win_operators = [
+                    "sum",
+                    "mean",
+                    "median",
+                    "max",
+                    "min",
+                    "var",
+                    "std",
+                    "kurt",
+                    "skew",
+                    "count",
+                    "sem",
+                ]
+
+                if is_complex_dtype(x) and any(
+                    ext in func.__name__ for ext in arithmetic_win_operators
+                ):
+                    x = ensure_float64(x)
+
                 return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
