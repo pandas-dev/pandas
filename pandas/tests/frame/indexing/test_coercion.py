@@ -36,7 +36,10 @@ class TestDataFrameSetitemCoercion:
         A.loc[2:3, (1, slice(2, 3))] = np.ones((2, 2), dtype=np.float32)
         assert (A.dtypes == np.float32).all()
 
-        A.loc[0:5, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            A.loc[0:5, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
+
         assert (A.dtypes == np.float32).all()
 
         A.loc[:, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
@@ -129,7 +132,10 @@ def test_iloc_setitem_unnecesssary_float_upcasting():
     orig = df.copy()
 
     values = df[0].values.reshape(2, 1)
-    df.iloc[:, 0:1] = values
+
+    msg = "will attempt to set the values inplace instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.iloc[:, 0:1] = values
 
     tm.assert_frame_equal(df, orig)
 

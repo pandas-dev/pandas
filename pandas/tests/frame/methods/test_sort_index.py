@@ -44,6 +44,9 @@ class TestDataFrameSortIndex:
         assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
+    # FIXME: the FutureWarning is issued on a setitem-with-expansion
+    #  which will *not* change behavior, so should not get a warning.
+    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_sort_index_non_existent_label_multiindex(self):
         # GH#12261
         df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))

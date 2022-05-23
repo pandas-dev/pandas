@@ -1,6 +1,13 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PandasDtype,
+    PeriodDtype,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -361,6 +368,11 @@ class BaseSetitemTests(BaseExtensionTests):
         # GH#44514
         df = pd.DataFrame({"A": data})
 
+        # These dtypes have non-broken implementations of _can_hold_element
+        has_can_hold_element = isinstance(
+            data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
+        )
+
         # Avoiding using_array_manager fixture
         #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
         using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
@@ -369,13 +381,24 @@ class BaseSetitemTests(BaseExtensionTests):
 
         orig = df.copy()
 
-        df.iloc[:] = df
+        msg = "will attempt to set the values inplace instead"
+        warn = None
+        if has_can_hold_element and not isinstance(data.dtype, PandasDtype):
+            # PandasDtype excluded because it isn't *really* supported.
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df
         self.assert_frame_equal(df, orig)
 
         df.iloc[:-1] = df.iloc[:-1]
         self.assert_frame_equal(df, orig)
 
-        df.iloc[:] = df.values
+        if isinstance(data.dtype, DatetimeTZDtype):
+            # no warning bc df.values casts to object dtype
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df.values
         self.assert_frame_equal(df, orig)
         if not using_array_manager:
             # GH#33457 Check that this setting occurred in-place

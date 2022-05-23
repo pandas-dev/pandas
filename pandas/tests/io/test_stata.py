@@ -1694,7 +1694,7 @@ The repeated labels are:\n-+\nwolof
             tm.assert_frame_equal(reread, expected)
 
             # Check strl supports all None (null)
-            output.loc[:, "mixed"] = None
+            output["mixed"] = None
             output.to_stata(
                 path, write_index=False, convert_strl=["mixed"], version=117
             )
@@ -1706,7 +1706,7 @@ The repeated labels are:\n-+\nwolof
     def test_all_none_exception(self, version):
         output = [{"none": "none", "number": 0}, {"none": None, "number": 1}]
         output = DataFrame(output)
-        output.loc[:, "none"] = None
+        output["none"] = None
         with tm.ensure_clean() as path:
             with pytest.raises(ValueError, match="Column `none` cannot be exported"):
                 output.to_stata(path, version=version)

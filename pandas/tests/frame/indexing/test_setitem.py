@@ -399,10 +399,14 @@ class TestDataFrameSetItem:
 
     def test_setitem_frame_duplicate_columns(self, using_array_manager):
         # GH#15695
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
         df.loc[0, "A"] = (0, 3)
-        df.loc[:, "B"] = (1, 4)
+        with tm.assert_produces_warning(warn, match=msg):
+            df.loc[:, "B"] = (1, 4)
         df["C"] = (2, 5)
         expected = DataFrame(
             [
@@ -769,7 +773,9 @@ class TestDataFrameSetItemWithExpansion:
     def test_setitem_empty_df_duplicate_columns(self):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
-        df.loc[:, "a"] = list(range(2))
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "a"] = list(range(2))
         expected = DataFrame(
             [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
         )
