@@ -32,6 +32,7 @@ from pandas._typing import (
     AggObjType,
     Axis,
     NDFrameT,
+    SeriesAggFuncType,
     npt,
 )
 from pandas.util._decorators import cache_readonly
@@ -1049,7 +1050,7 @@ class SeriesApply(NDFrameApply):
     def __init__(
         self,
         obj: Series,
-        func: AggFuncTypeBase | list[AggFuncTypeBase],
+        func: SeriesAggFuncType,
         convert_dtype: bool,
         args,
         kwargs,

@@ -32,7 +32,6 @@ from pandas._libs import (
 )
 from pandas._libs.lib import no_default
 from pandas._typing import (
-    AggFuncTypeBase,
     ArrayLike,
     Axis,
     Dtype,
@@ -43,6 +42,7 @@ from pandas._typing import (
     Level,
     NaPosition,
     Renamer,
+    SeriesAggFuncType,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -4440,7 +4440,7 @@ Keep all original rows and also all original values
     )
     def transform(
         self,
-        func: AggFuncTypeBase | list[AggFuncTypeBase],
+        func: SeriesAggFuncType,
         axis: Axis = 0,
         *args,
         **kwargs,
@@ -4454,7 +4454,7 @@ Keep all original rows and also all original values
 
     def apply(
         self,
-        func: AggFuncTypeBase | list[AggFuncTypeBase],
+        func: SeriesAggFuncType,
         convert_dtype: bool = True,
         args: tuple[Any, ...] = (),
         **kwargs,
