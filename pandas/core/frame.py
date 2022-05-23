@@ -4134,21 +4134,19 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
-
-        if res.ndim == 1:
+        is_res_unidimensional = res.ndim == 1
+        if is_res_unidimensional:
             is_bool_result = is_bool_dtype(res)
-        elif res.ndim > 1:
+            res_accesser = self.loc
+        else:
             is_bool_result = all(is_bool_dtype(x) for x in res.dtypes)
+            # when res is multi-dimensional loc raises, but this is sometimes a
+            # valid query
+            res_accesser = self
         if not is_bool_result:
             msg = f"expr must evaluate to boolean not {res.dtypes}"
             raise ValueError(msg)
-        try:
-            result = self.loc[res]
-        except ValueError:
-            # when res is multi-dimensional loc raises, but this is sometimes a
-            # valid query
-            result = self[res]
-
+        result = res_accesser[res]
         if inplace:
             self._update_inplace(result)
             return None
