@@ -3925,16 +3925,11 @@ class DataFrame(NDFrame, OpsMixin):
             #  ValueError, or LossySetitemError
             if takeable:
                 icol = col
-                iindex = index
+                iindex = cast(int, index)
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
-            # error: Argument 2 to "column_setitem" of "BlockManager" has
-            # incompatible type "Union[Hashable, Sequence[Hashable]]";
-            # expected "Union[int, slice, ndarray[Any, Any]]"
-            self._mgr.column_setitem(  # type: ignore[arg-type]
-                icol, iindex, value, inplace=True
-            )
+            self._mgr.column_setitem(icol, iindex, value, inplace=True)
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # set using a non-recursive method & reset the cache
