@@ -261,6 +261,7 @@ def future_version_msg(version: str | None) -> str:
 def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
+    stacklevel: int = None,
     name: str | None = None,
 ) -> Callable[[F], F]:
     """
