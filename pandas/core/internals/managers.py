@@ -1188,7 +1188,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self.blocks = new_blocks
         return
 
-    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+    def column_setitem(
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace: bool = False
+    ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
 
@@ -1196,8 +1198,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
         col_mgr = self.iget(loc)
-        new_mgr = col_mgr.setitem((idx,), value)
-        self.iset(loc, new_mgr._block.values, inplace=True)
+        if inplace:
+            col_mgr.setitem_inplace(idx, value)
+        else:
+            new_mgr = col_mgr.setitem((idx,), value)
+            self.iset(loc, new_mgr._block.values, inplace=True)
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """

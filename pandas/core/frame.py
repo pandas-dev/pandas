@@ -3932,8 +3932,9 @@ class DataFrame(NDFrame, OpsMixin):
             # error: Argument 2 to "column_setitem" of "BlockManager" has
             # incompatible type "Union[Hashable, Sequence[Hashable]]";
             # expected "Union[int, slice, ndarray[Any, Any]]"
-            self._mgr.column_setitem(icol, iindex, value)  # type: ignore[arg-type]
-            self._clear_item_cache()
+            self._mgr.column_setitem(  # type: ignore[arg-type]
+                icol, iindex, value, inplace=True
+            )
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # set using a non-recursive method & reset the cache
