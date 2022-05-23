@@ -583,7 +583,7 @@ without using a temporary variable.
 .. ipython:: python
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
-   (bb.groupby(['year', 'team']).sum()
+   (bb.groupby(['year', 'team']).sum(numeric_only=True)
       .loc[lambda df: df['r'] > 100])
 
 

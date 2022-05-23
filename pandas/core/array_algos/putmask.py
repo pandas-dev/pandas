@@ -1,5 +1,5 @@
 """
-EA-compatible analogue to to np.putmask
+EA-compatible analogue to np.putmask
 """
 from __future__ import annotations
 
