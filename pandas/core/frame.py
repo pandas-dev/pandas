@@ -30,7 +30,6 @@ from typing import (
     overload,
 )
 import warnings
-import weakref
 
 import numpy as np
 import numpy.ma as ma
@@ -3493,10 +3492,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self
             )
             result._set_is_copy(self, copy=copy)
-            # TODO(CoW) cleaner solution (eg let fast_xs return a SingleBM?)
-            if not copy and isinstance(self._mgr, BlockManager):
-                # assert len(self._mgr.blocks) == 1
-                result._mgr.refs = [weakref.ref(self._mgr.blocks[0])]
             return result
 
         # icol

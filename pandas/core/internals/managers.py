@@ -1065,7 +1065,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if len(self.blocks) == 1:
             result = self.blocks[0].iget((slice(None), loc))
             block = new_block(result, placement=slice(0, len(result)), ndim=1)
-            return SingleBlockManager(block, self.axes[0])
+            # in the case of a single block, the new block is a view
+            ref = weakref.ref(self.blocks[0])
+            return SingleBlockManager(block, self.axes[0], [ref])
 
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
