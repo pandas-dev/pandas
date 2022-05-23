@@ -606,7 +606,7 @@ class BaseWindow(SelectionMixin):
                 )
                 self._check_window_bounds(start, end, len(x))
 
-                arithmetic_win_operators = [
+                arithmetic_operators = [
                     "sum",
                     "mean",
                     "median",
@@ -621,7 +621,7 @@ class BaseWindow(SelectionMixin):
                 ]
 
                 if is_complex_dtype(x) and any(
-                    ext in func.__name__ for ext in arithmetic_win_operators
+                    operator in func.__name__ for operator in arithmetic_operators
                 ):
                     x = ensure_float64(x)
 
