@@ -533,6 +533,73 @@ As ``group_keys=True`` is the default value of :meth:`DataFrame.groupby` and
 raise a ``FutureWarning``. This can be silenced and the previous behavior
 retained by specifying ``group_keys=False``.
 
+.. _whatsnew_150.notable_bug_fixes.setitem_column_try_inplace:
+   _ see also _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
+
+Try operating inplace when setting values with ``loc`` and ``iloc``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Most of the time setting values with ``frame.iloc`` attempts to set values
+in-place, only falling back to inserting a new array if necessary. In the past,
+setting entire columns has been an exception to this rule:
+
+.. ipython:: python
+
+   values = np.arange(4).reshape(2, 2)
+   df = pd.DataFrame(values)
+   ser = df[0]
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.iloc[:, 0] = np.array([10, 11])
+    In [4]: ser
+    Out[4]:
+    0    0
+    1    2
+    Name: 0, dtype: int64
+
+This behavior is deprecated. In a future version, setting an entire column with
+iloc will attempt to operate inplace.
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.iloc[:, 0] = np.array([10, 11])
+    In [4]: ser
+    Out[4]:
+    0    10
+    1    11
+    Name: 0, dtype: int64
+
+To get the old behavior, use :meth:`DataFrame.__setitem__` directly:
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [5]: df[0] = np.array([21, 31])
+    In [4]: ser
+    Out[4]:
+    0    10
+    1    11
+    Name: 0, dtype: int64
+
+In the case where ``df.columns`` is not unique, use :meth:`DataFrame.isetitem`:
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [5]: df.columns = ["A", "A"]
+    In [5]: df.isetitem(0, np.array([21, 31]))
+    In [4]: ser
+    Out[4]:
+    0    10
+    1    11
+    Name: 0, dtype: int64
+
 .. _whatsnew_150.deprecations.numeric_only_default:
 
 ``numeric_only`` default value
