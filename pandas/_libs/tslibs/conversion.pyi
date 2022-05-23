@@ -23,7 +23,4 @@ def ensure_timedelta64ns(
     arr: np.ndarray,  # np.ndarray[timedelta64[ANY]]
     copy: bool = ...,
 ) -> np.ndarray: ...  # np.ndarray[timedelta64ns]
-def datetime_to_datetime64(
-    values: npt.NDArray[np.object_],
-) -> tuple[np.ndarray, tzinfo | None]: ...  # (np.ndarray[dt64ns], _)
 def localize_pydatetime(dt: datetime, tz: tzinfo | None) -> datetime: ...

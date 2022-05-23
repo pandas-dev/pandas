@@ -1047,7 +1047,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Indexing
 
-    def fast_xs(self, loc: int) -> ArrayLike:
+    def fast_xs(self, loc: int) -> SingleBlockManager:
         """
         Return the array corresponding to `frame.iloc[loc]`.
 
@@ -1063,7 +1063,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
-            return self.blocks[0].iget((slice(None), loc))
+            result = self.blocks[0].iget((slice(None), loc))
+            block = new_block(result, placement=slice(0, len(result)), ndim=1)
+            return SingleBlockManager(block, self.axes[0])
 
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
@@ -1081,7 +1083,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
 
-        return result
+        block = new_block(result, placement=slice(0, len(result)), ndim=1)
+        return SingleBlockManager(block, self.axes[0])
 
     def iget(self, i: int) -> SingleBlockManager:
         """
