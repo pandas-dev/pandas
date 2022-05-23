@@ -27,7 +27,7 @@ cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff)
         end_of_first_byte = <int>(inbuff[ipos] & 0x0F)
         ipos += 1
 
-        if control_byte == 0x00 and ipos < length:
+        if control_byte == 0x00:
             nbytes = <int>(inbuff[ipos] & 0xFF) + 64 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
