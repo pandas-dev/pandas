@@ -8,6 +8,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.tests.copy_view.util import get_array
 
 # -----------------------------------------------------------------------------
 # Indexing operations taking subset + modifying the subset/parent
@@ -23,17 +24,17 @@ def test_subset_column_selection(using_copy_on_write):
 
     if using_copy_on_write:
         # the subset shares memory ...
-        assert np.shares_memory(subset["a"].values, df["a"].values)
+        assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
         # ... but uses CoW when being modified
         subset.iloc[0, 0] = 0
     else:
-        assert not np.shares_memory(subset["a"].values, df["a"].values)
+        assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
         # INFO this no longer raise warning since pandas 1.4
         # with pd.option_context("chained_assignment", "warn"):
         #     with tm.assert_produces_warning(com.SettingWithCopyWarning):
         subset.iloc[0, 0] = 0
 
-    assert not np.shares_memory(subset["a"].values, df["a"].values)
+    assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     expected = DataFrame({"a": [0, 2, 3], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(subset, expected)
@@ -48,14 +49,14 @@ def test_subset_column_selection_modify_parent(using_copy_on_write):
     subset = df[["a", "c"]]
     if using_copy_on_write:
         # the subset shares memory ...
-        assert np.shares_memory(subset["a"].values, df["a"].values)
+        assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
         # ... but parent uses CoW parent when it is modified
     df.iloc[0, 0] = 0
 
-    assert not np.shares_memory(subset["a"].values, df["a"].values)
+    assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
     if using_copy_on_write:
         # different column/block still shares memory
-        assert np.shares_memory(subset["c"].values, df["c"].values)
+        assert np.shares_memory(get_array(subset, "c"), get_array(df, "c"))
 
     expected = DataFrame({"a": [1, 2, 3], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(subset, expected)
@@ -70,11 +71,11 @@ def test_subset_row_slice(using_copy_on_write):
     subset = df[1:3]
     subset._mgr._verify_integrity()
 
-    assert np.shares_memory(subset["a"].values, df["a"].values)
+    assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     if using_copy_on_write:
         subset.iloc[0, 0] = 0
-        assert not np.shares_memory(subset["a"].values, df["a"].values)
+        assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     else:
         # INFO this no longer raise warning since pandas 1.4
@@ -111,10 +112,10 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
     subset._mgr._verify_integrity()
 
     if using_copy_on_write:
-        assert np.shares_memory(subset["b"].values, df["b"].values)
+        assert np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
         subset.iloc[0, 0] = 0
-        assert not np.shares_memory(subset["b"].values, df["b"].values)
+        assert not np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
     else:
         # we only get a warning in case of a single block
@@ -507,11 +508,11 @@ def test_del_frame(using_copy_on_write):
     df_orig = df.copy()
     df2 = df[:]
 
-    assert np.shares_memory(df["a"].values, df2["a"].values)
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
 
     del df2["b"]
 
-    assert np.shares_memory(df["a"].values, df2["a"].values)
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
     tm.assert_frame_equal(df, df_orig)
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
@@ -557,7 +558,7 @@ def test_column_as_series(using_copy_on_write, using_array_manager):
 
     s = df["a"]
 
-    assert np.shares_memory(s.values, df["a"].values)
+    assert np.shares_memory(s.values, get_array(df, "a"))
 
     if using_copy_on_write or using_array_manager:
         s[0] = 0
@@ -569,7 +570,7 @@ def test_column_as_series(using_copy_on_write, using_array_manager):
     expected = Series([0, 2, 3], name="a")
     tm.assert_series_equal(s, expected)
     if using_copy_on_write:
-        # assert not np.shares_memory(s.values, df["a"].values)
+        # assert not np.shares_memory(s.values, get_array(df, "a"))
         tm.assert_frame_equal(df, df_orig)
         # ensure cached series on getitem is not the changed series
         tm.assert_series_equal(df["a"], df_orig["a"])
@@ -616,7 +617,7 @@ def test_dataframe_add_column_from_series():
 
     s = Series([10, 11, 12])
     df["new"] = s
-    assert not np.shares_memory(df["new"].values, s.values)
+    assert not np.shares_memory(get_array(df, "new"), s.values)
 
     # editing series -> doesn't modify column in frame
     s[0] = 0
