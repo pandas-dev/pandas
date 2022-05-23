@@ -183,7 +183,14 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                 {{if c_type_in == "uint8_t" and c_type_out == "object"}}
                 out[i, j] = True if values[i, idx] > 0 else False
                 {{else}}
+                {{if c_type_in == "object"}} # GH46848
+                if values[i][idx] is None:
+                    out[i, j] = None
+                else:
+                    out[i, j] = values[i, idx]
+                {{else}}
                 out[i, j] = values[i, idx]
+                {{endif}}
                 {{endif}}
 
 
