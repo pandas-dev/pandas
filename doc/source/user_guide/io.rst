@@ -2739,17 +2739,20 @@ in the method ``to_string`` described above.
    brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
    full set of options.
 
+.. note::
+
+   In an HTML-rendering supported environment like a Jupyter Notebook, ``display(HTML(...))```
+   will render the raw HTML into the environment.
+
 .. ipython:: python
+
+   from IPython.core.display import display, HTML
 
    df = pd.DataFrame(np.random.randn(2, 2))
    df
    html = df.to_html()
    print(html)  # raw html
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/basic.html
+   display(HTML(html))
 
 The ``columns`` argument will limit the columns shown:
 
@@ -2757,11 +2760,7 @@ The ``columns`` argument will limit the columns shown:
 
    html = df.to_html(columns=[0])
    print(html)
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/columns.html
+   display(HTML(html))
 
 ``float_format`` takes a Python callable to control the precision of floating
 point values:
@@ -2770,12 +2769,8 @@ point values:
 
    html = df.to_html(float_format="{0:.10f}".format)
    print(html)
+   display(HTML(html))
 
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/float_format.html
 
 ``bold_rows`` will make the row labels bold by default, but you can turn that
 off:
@@ -2784,11 +2779,8 @@ off:
 
    html = df.to_html(bold_rows=False)
    print(html)
+   display(HTML(html))
 
-HTML:
-
-.. raw:: html
-   :file: ../_static/nobold.html
 
 The ``classes`` argument provides the ability to give the resulting HTML
 table CSS classes. Note that these classes are *appended* to the existing
@@ -2811,11 +2803,7 @@ that contain URLs.
    )
    html = url_df.to_html(render_links=True)
    print(html)
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/render_links.html
+   display(HTML(html))
 
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is
@@ -2831,9 +2819,7 @@ Escaped:
 
    html = df.to_html()
    print(html)
-
-.. raw:: html
-   :file: ../_static/escape.html
+   display(HTML(html))
 
 Not escaped:
 
@@ -2841,9 +2827,7 @@ Not escaped:
 
    html = df.to_html(escape=False)
    print(html)
-
-.. raw:: html
-   :file: ../_static/noescape.html
+   display(HTML(html))
 
 .. note::
 
