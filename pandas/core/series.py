@@ -32,7 +32,7 @@ from pandas._libs import (
 )
 from pandas._libs.lib import no_default
 from pandas._typing import (
-    AggFuncType,
+    AggFuncTypeBase,
     ArrayLike,
     Axis,
     Dtype,
@@ -4439,7 +4439,11 @@ Keep all original rows and also all original values
         axis=_shared_doc_kwargs["axis"],
     )
     def transform(
-        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+        self,
+        func: AggFuncTypeBase | list[AggFuncTypeBase],
+        axis: Axis = 0,
+        *args,
+        **kwargs,
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
@@ -4450,7 +4454,7 @@ Keep all original rows and also all original values
 
     def apply(
         self,
-        func: AggFuncType,
+        func: AggFuncTypeBase | list[AggFuncTypeBase],
         convert_dtype: bool = True,
         args: tuple[Any, ...] = (),
         **kwargs,

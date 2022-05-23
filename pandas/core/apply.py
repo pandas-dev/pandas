@@ -1049,7 +1049,7 @@ class SeriesApply(NDFrameApply):
     def __init__(
         self,
         obj: Series,
-        func: AggFuncType,
+        func: AggFuncTypeBase | list[AggFuncTypeBase],
         convert_dtype: bool,
         args,
         kwargs,
