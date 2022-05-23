@@ -1889,7 +1889,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         bp = BlockPlacement(0)
         new_blk = type(blk)(arr, placement=bp, ndim=2)
         axes = [columns, self.axes[0]]
-        return BlockManager([new_blk], axes=axes, verify_integrity=False)
+        refs = [weakref.ref(blk)]
+        return BlockManager([new_blk], axes=axes, refs=refs, verify_integrity=False)
 
     def _has_no_reference(self, i: int = 0) -> bool:
         """

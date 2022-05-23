@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -136,14 +139,36 @@ def test_select_dtypes(using_copy_on_write):
     df2._mgr._verify_integrity()
 
     # currently this always returns a "view"
-    assert np.may_share_memory(df2["a"].values, df["a"].values)
+    assert np.shares_memory(df2["a"].values, df["a"].values)
 
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 0] = 0
     if using_copy_on_write:
-        assert not np.may_share_memory(df2["a"].values, df["a"].values)
+        assert not np.shares_memory(df2["a"].values, df["a"].values)
         tm.assert_frame_equal(df, df_orig)
     else:
         # but currently select_dtypes() actually returns a view -> mutates parent
         df_orig.iloc[0, 0] = 0
         tm.assert_frame_equal(df, df_orig)
+
+
+def test_to_frame(using_copy_on_write):
+    # Case: converting a Series to a DataFrame with to_frame
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+
+    df = ser.to_frame()
+
+    # currently this always returns a "view"
+    assert np.shares_memory(ser.values, df._get_column_array(0))
+
+    df.iloc[0, 0] = 0
+
+    if using_copy_on_write:
+        # mutating df triggers a copy-on-write for that column
+        assert not np.shares_memory(ser.values, df[0].values)
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        # but currently select_dtypes() actually returns a view -> mutates parent
+        ser_orig.iloc[0] = 0
+        tm.assert_series_equal(ser, ser_orig)
