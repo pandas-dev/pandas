@@ -2746,7 +2746,7 @@ in the method ``to_string`` described above.
 
 .. ipython:: python
 
-   from IPython.core.display import display, HTML
+   from IPython.display import display, HTML
 
    df = pd.DataFrame(np.random.randn(2, 2))
    df
