@@ -310,30 +310,31 @@ def test_overlap_public_nat_methods(klass, expected):
 
 
 @pytest.mark.parametrize(
-    "compare",
+    "klass",
     (
-        _get_overlap_public_nat_methods(Timestamp, True)
-        + _get_overlap_public_nat_methods(Timedelta, True)
+        Timestamp,
+        Timedelta
     ),
 )
-def test_nat_doc_strings(compare):
+def test_nat_doc_strings(klass):
     # see gh-17327
     #
     # The docstrings for overlapping methods should match.
-    klass, method = compare
-    klass_doc = getattr(klass, method).__doc__
+    methods = _get_overlap_public_nat_methods(klass)
+    for method in methods:
+        klass_doc = getattr(klass, method).__doc__
 
-    # Ignore differences with Timestamp.isoformat() as they're intentional
-    if klass == Timestamp and method == "isoformat":
-        return
+        # Ignore differences with Timestamp.isoformat() as they're intentional
+        if klass == Timestamp and method == "isoformat":
+            return
 
-    if method == "to_numpy":
-        # GH#44460 can return either dt64 or td64 depending on dtype,
-        #  different docstring is intentional
-        return
+        if method == "to_numpy":
+            # GH#44460 can return either dt64 or td64 depending on dtype,
+            #  different docstring is intentional
+            return
 
-    nat_doc = getattr(NaT, method).__doc__
-    assert klass_doc == nat_doc
+        nat_doc = getattr(NaT, method).__doc__
+        assert klass_doc == nat_doc
 
 
 _ops = {
