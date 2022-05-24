@@ -106,6 +106,48 @@ class TestPandasDtype:
         assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == dtype
 
+    @pytest.mark.parametrize(
+        "cls",
+        (
+            pd.BooleanDtype,
+            pd.Int8Dtype,
+            pd.Int16Dtype,
+            pd.Int32Dtype,
+            pd.Int64Dtype,
+            pd.UInt8Dtype,
+            pd.UInt16Dtype,
+            pd.UInt32Dtype,
+            pd.UInt64Dtype,
+            pd.Float32Dtype,
+            pd.Float64Dtype,
+            pd.SparseDtype,
+            pd.StringDtype,
+            IntervalDtype,
+            CategoricalDtype,
+            pytest.param(
+                DatetimeTZDtype,
+                marks=pytest.mark.xfail(reason="must specify TZ", raises=TypeError),
+            ),
+            pytest.param(
+                PeriodDtype,
+                marks=pytest.mark.xfail(
+                    reason="must specify frequency", raises=AttributeError
+                ),
+            ),
+        ),
+    )
+    def test_pd_extension_dtype(self, cls):
+        """
+        TODO: desired behavior?
+
+        For extension dtypes that admit no options OR can be initialized with no args
+        passed, convert the extension dtype class to an instance of that class.
+        """
+        expected = cls()
+        result = com.pandas_dtype(cls)
+
+        assert result == expected
+
 
 dtypes = {
     "datetime_tz": com.pandas_dtype("datetime64[ns, US/Eastern]"),
@@ -689,6 +731,8 @@ def test_is_complex_dtype():
         (PeriodDtype(freq="D"), PeriodDtype(freq="D")),
         ("period[D]", PeriodDtype(freq="D")),
         (IntervalDtype(), IntervalDtype()),
+        (pd.BooleanDtype, pd.BooleanDtype()),
+        (pd.BooleanDtype(), pd.BooleanDtype()),
     ],
 )
 def test_get_dtype(input_param, result):

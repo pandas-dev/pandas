@@ -2,6 +2,7 @@
 Common type operations.
 """
 from __future__ import annotations
+import inspect
 
 from typing import (
     Any,
@@ -30,6 +31,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasExtensionDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1765,6 +1767,8 @@ def pandas_dtype(dtype) -> DtypeObj:
         return dtype.dtype
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
+    elif inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+        return dtype()
 
     # registered extension types
     result = registry.find(dtype)
