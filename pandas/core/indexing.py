@@ -1937,6 +1937,7 @@ class _iLocIndexer(_LocationIndexer):
         pi = plane_indexer
 
         ser = self.obj._ixs(loc, axis=1)
+        orig_values = ser._values
 
         # perform the equivalent of a setitem on the info axis
         # as we have a null slice or a slice with full bounds
@@ -1944,17 +1945,17 @@ class _iLocIndexer(_LocationIndexer):
         # multi-dim object
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
-            ser = value
+            pass
         elif (
             is_array_like(value)
             and is_exact_shape_match(ser, value)
             and not is_empty_indexer(pi)
         ):
             if is_list_like(pi):
-                ser = value[np.argsort(pi)]
+                value = value[np.argsort(pi)]
             else:
                 # in case of slice
-                ser = value[pi]
+                value = value[pi]
         else:
             # set the item, first attempting to operate inplace, then
             #  falling back to casting if necessary; see
@@ -1970,8 +1971,40 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._iset_item(loc, ser)
             return
 
-        # reset the sliced object if unique
-        self.obj._iset_item(loc, ser)
+        # We will not operate in-place, but will attempt to in the future.
+        #  To determine whether we need to issue a FutureWarning, see if the
+        #  setting in-place would work, i.e. behavior will change.
+        warn = can_hold_element(ser._values, value)
+        # Don't issue the warning yet, as we can still trim a few cases where
+        #  behavior will not change.
+
+        self.obj._iset_item(loc, value)
+
+        if warn:
+            new_values = self.obj._ixs(loc, axis=1)._values
+
+            if (
+                isinstance(new_values, np.ndarray)
+                and isinstance(orig_values, np.ndarray)
+                and np.shares_memory(new_values, orig_values)
+            ):
+                # TODO: get something like tm.shares_memory working?
+                # The values were set inplace after all, no need to warn,
+                #  e.g. test_rename_nocopy
+                pass
+            else:
+                warnings.warn(
+                    "In a future version, `df.iloc[:, i] = newvals` will attempt "
+                    "to set the values inplace instead of always setting a new "
+                    "array. To retain the old behavior, use either "
+                    "`df[df.columns[i]] = newvals` or, if columns are non-unique, "
+                    "`df.isetitem(i, newvals)`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                # TODO: how to get future behavior?
+                # TODO: what if we got here indirectly via loc?
+        return
 
     def _setitem_single_block(self, indexer, value, name: str):
         """
@@ -1981,7 +2014,6 @@ class _iLocIndexer(_LocationIndexer):
 
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
-
         if isinstance(indexer, tuple):
 
             # if we are setting on the info axis ONLY
@@ -1996,7 +2028,9 @@ class _iLocIndexer(_LocationIndexer):
                 if len(item_labels.get_indexer_for([col])) == 1:
                     # e.g. test_loc_setitem_empty_append_expands_rows
                     loc = item_labels.get_loc(col)
-                    self.obj._iset_item(loc, value)
+                    # Go through _setitem_single_column to get
+                    #  FutureWarning if relevant.
+                    self._setitem_single_column(loc, value, indexer[0])
                     return
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align

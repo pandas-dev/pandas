@@ -236,3 +236,11 @@ class InvalidIndexError(Exception):
 
     .. versionadded:: 1.1.0
     """
+
+
+class DataError(Exception):
+    """
+    Exception raised when trying to perform a ohlc on a non-numnerical column.
+    Or, it can be raised when trying to apply a function to a non-numerical
+    column on a rolling window.
+    """
