@@ -819,6 +819,7 @@ I/O
 - Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
+- Bug in :func:`read_sas` with certain types of compressed SAS7BDAT files (:issue:`35545`)
 -
 
 Period
