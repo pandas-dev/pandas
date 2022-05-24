@@ -220,7 +220,7 @@ def test_missing_public_nat_methods(klass, expected):
     assert missing == expected
 
 
-def _get_overlap_public_nat_methods(klass, as_tuple=False):
+def _get_overlap_public_nat_methods(klass):
     """
     Get overlapping public methods between NaT and another class.
 
@@ -228,8 +228,6 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
     ----------
     klass : type
         The class to compare with NaT
-    as_tuple : bool, default False
-        Whether to return a list of tuples of the form (klass, method).
 
     Returns
     -------
@@ -248,9 +246,6 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
     if klass is Timedelta:
         ts_names = dir(Timestamp)
         overlap = [x for x in overlap if x not in ts_names]
-
-    if as_tuple:
-        overlap = [(klass, method) for method in overlap]
 
     overlap.sort()
     return overlap
