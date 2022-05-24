@@ -90,7 +90,9 @@ class ArrowExtensionArray(ExtensionArray):
                 data = data.cast(pa_dtype)
             return cls(data)
         else:
-            return cls(pa.chunked_array([scalars], type=pa_dtype))
+            # https://issues.apache.org/jira/browse/ARROW-16645
+            mask = [scalar is pa.NA or isna(scalar) for scalar in scalars]
+            return cls(pa.chunked_array(pa.array(scalars, mask=mask, type=pa_dtype)))
 
     @classmethod
     def _from_sequence_of_strings(

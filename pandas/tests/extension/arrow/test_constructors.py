@@ -33,14 +33,15 @@ def data(dtype):
     elif pa.types.is_unsigned_integer(pa_dtype):
         data = [1, None, 0, None, 2, None, 10]
     elif pa.types.is_date(pa_dtype):
-        data = [date(2022, 1, 1), None]
+        data = [date(2022, 1, 1), None, date(1999, 12, 31)]
     elif pa.types.is_timestamp(pa_dtype):
         data = [
             datetime(2020, 1, 1, 1, 1, 1, 1),
             None,
+            datetime(1999, 1, 1, 1, 1, 1, 1),
         ]
     elif pa.types.is_duration(pa_dtype):
-        data = [timedelta(1), None]
+        data = [timedelta(1), None, timedelta(1, 1)]
     elif pa.types.is_time(pa_dtype):
         data = [time(12, 0), None, time(0, 12)]
     else:
