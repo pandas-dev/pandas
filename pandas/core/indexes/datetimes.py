@@ -34,6 +34,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     IntervalClosedType,
+    IntervalLeftRight,
     npt,
 )
 from pandas.util._decorators import (
@@ -1087,7 +1088,7 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    closed: Literal["left", "right"] | lib.NoDefault | None = lib.no_default,
+    closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
     inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
