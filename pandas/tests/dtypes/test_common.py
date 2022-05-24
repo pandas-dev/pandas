@@ -558,29 +558,44 @@ def test_is_float_dtype():
     assert com.is_float_dtype(pd.Index([1, 2.0]))
 
 
-def test_is_bool_dtype():
-    assert not com.is_bool_dtype(int)
-    assert not com.is_bool_dtype(str)
-    assert not com.is_bool_dtype(pd.Series([1, 2]))
-    assert not com.is_bool_dtype(pd.Series(["a", "b"], dtype="category"))
-    assert not com.is_bool_dtype(np.array(["a", "b"]))
-    assert not com.is_bool_dtype(pd.Index(["a", "b"]))
-    assert not com.is_bool_dtype("Int64")
+@pytest.mark.parametrize(
+    "value",
+    (
+        True,
+        False,
+        int,
+        str,
+        "Int64",
+        "0 - Name",  # GH39010
+        pd.array(("a", "b")),
+        pd.Index(("a", "b")),
+        pd.Series(("a", "b"), dtype="category"),
+        pd.Series((1, 2)),
+    ),
+)
+def test_is_bool_dtype_returns_false(value):
+    assert com.is_bool_dtype(value) is False
 
-    assert com.is_bool_dtype(bool)
-    assert com.is_bool_dtype(np.bool_)
-    assert com.is_bool_dtype(pd.Series([True, False], dtype="category"))
-    assert com.is_bool_dtype(np.array([True, False]))
-    assert com.is_bool_dtype(pd.Index([True, False]))
 
-    assert com.is_bool_dtype(pd.BooleanDtype())
-    assert com.is_bool_dtype(pd.array([True, False, None], dtype="boolean"))
-    assert com.is_bool_dtype("boolean")
-
-
-def test_is_bool_dtype_numpy_error():
-    # GH39010
-    assert not com.is_bool_dtype("0 - Name")
+@pytest.mark.parametrize(
+    "value",
+    (
+        bool,
+        np.bool_,
+        np.dtype(np.bool_),
+        pd.BooleanDtype,
+        pd.BooleanDtype(),
+        "bool",
+        "boolean",
+        pd.array((True, False)),
+        pd.Index((True, False)),
+        pd.Series((True, False)),
+        pd.Series((True, False), dtype="category"),
+        pd.Series((True, False, None), dtype="boolean"),
+    ),
+)
+def test_is_bool_dtype_returns_true(value):
+    assert com.is_bool_dtype(value) is True
 
 
 @pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
