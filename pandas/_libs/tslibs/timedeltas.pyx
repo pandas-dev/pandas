@@ -1513,16 +1513,16 @@ class Timedelta(_Timedelta):
                 )
             # GH43764, convert any input to nanoseconds first, to ensure any potential
             # nanosecond contributions from kwargs parsed as floats are included
-            ns = sum((
-                _to_py_int_float(kwargs.get("weeks", 0)) * 7 * 24 * 3600 * 1_000_000_000,
-                _to_py_int_float(kwargs.get("days", 0)) * 24 * 3600 * 1_000_000_000,
-                _to_py_int_float(kwargs.get("hours", 0)) * 3600 * 1_000_000_000,
-                _to_py_int_float(kwargs.get("minutes", 0)) * 60 * 1_000_000_000,
-                _to_py_int_float(kwargs.get("seconds", 0)) * 1_000_000_000,
-                _to_py_int_float(kwargs.get("milliseconds", 0)) * 1_000_000,
-                _to_py_int_float(kwargs.get("microseconds", 0)) * 1_000,
-                _to_py_int_float(kwargs.get("nanoseconds", 0)),
-            ))
+            ns = (
+                _to_py_int_float(kwargs.get("weeks", 0)) * 7 * 24 * 3600 * 1_000_000_000
+                + _to_py_int_float(kwargs.get("days", 0)) * 24 * 3600 * 1_000_000_000
+                + _to_py_int_float(kwargs.get("hours", 0)) * 3600 * 1_000_000_000
+                + _to_py_int_float(kwargs.get("minutes", 0)) * 60 * 1_000_000_000
+                + _to_py_int_float(kwargs.get("seconds", 0)) * 1_000_000_000
+                + _to_py_int_float(kwargs.get("milliseconds", 0)) * 1_000_000
+                + _to_py_int_float(kwargs.get("microseconds", 0)) * 1_000
+                + _to_py_int_float(kwargs.get("nanoseconds", 0))
+            )
             return create_timedelta(ns, "ns", out_reso)
 
         if isinstance(value, str) and unit is not None:
