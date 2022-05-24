@@ -13,7 +13,10 @@ from os.path import join as pjoin
 import platform
 import shutil
 import sys
-from sysconfig import get_config_vars
+from sysconfig import (
+    get_config_vars,
+    get_path,
+)
 
 import numpy
 from pkg_resources import parse_version
@@ -439,9 +442,7 @@ tseries_depends = [
     "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
 ]
 
-import sysconfig
-
-ext_libraries = [
+internal_libraries = [
     [
         "np_datetime",
         {
@@ -451,7 +452,7 @@ ext_libraries = [
             ],
             "include_dirs": [
                 "pandas/_libs/tslibs/src/datetime",
-                sysconfig.get_path("include"),
+                get_path("include"),
                 numpy.get_include(),
             ],
         },
@@ -461,7 +462,7 @@ ext_libraries = [
         {
             "sources": ["pandas/_libs/src/parser/tokenizer.c"],
             "depends": ["pandas/_libs/src/parser/tokenizer.h"],
-            "include_dirs": [sysconfig.get_path("include")] + klib_include,
+            "include_dirs": [get_path("include")] + klib_include,
         },
     ],
 ]
@@ -651,10 +652,6 @@ ujson_ext = Extension(
             "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",
         ]
-        # + [
-        #    "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-        #    "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
-        # ]
     ),
     include_dirs=[
         "pandas/_libs/src/ujson/python",
@@ -680,6 +677,6 @@ if __name__ == "__main__":
     setup(
         version=versioneer.get_version(),
         ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
-        libraries=ext_libraries,
+        libraries=internal_libraries,
         cmdclass=cmdclass,
     )
