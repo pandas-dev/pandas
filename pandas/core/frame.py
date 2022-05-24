@@ -3484,16 +3484,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         # irow
         if axis == 0:
-            new_values = self._mgr.fast_xs(i)
+            new_mgr = self._mgr.fast_xs(i)
 
             # if we are a copy, mark as such
-            copy = isinstance(new_values, np.ndarray) and new_values.base is None
-            result = self._constructor_sliced(
-                new_values,
-                index=self.columns,
-                name=self.index[i],
-                dtype=new_values.dtype,
-            ).__finalize__(self)
+            copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
+            result = self._constructor_sliced(new_mgr, name=self.index[i]).__finalize__(
+                self
+            )
             result._set_is_copy(self, copy=copy)
             return result
 
@@ -3689,6 +3686,29 @@ class DataFrame(NDFrame, OpsMixin):
         #  same-length tuples; see test_get_set_value_no_partial_indexing
         loc = engine.get_loc(index)
         return series._values[loc]
+
+    def isetitem(self, loc, value) -> None:
+        """
+        Set the given value in the column with position 'loc'.
+
+        This is a positional analogue to __setitem__.
+
+        Parameters
+        ----------
+        loc : int or sequence of ints
+        value : scalar or arraylike
+
+        Notes
+        -----
+        Unlike `frame.iloc[:, i] = value`, `frame.isetitem(loc, value)` will
+        _never_ try to set the values in place, but will always insert a new
+        array.
+
+        In cases where `frame.columns` is unique, this is equivalent to
+        `frame[frame.columns[i]] = value`.
+        """
+        arraylike = self._sanitize_column(value)
+        self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
@@ -5470,7 +5490,7 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax[i]]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res.iloc[:, i] = newobj
+                res._iset_item(i, newobj)
 
         if inplace:
             return
@@ -10420,12 +10440,14 @@ Parrot 2  Parrot       24.0
         else:
             mask = index_mask.reshape(-1, 1) & values_mask
 
-        if isinstance(level, str):
-            level = count_axis._get_level_number(level)
+        if isinstance(level, int):
+            level_number = level
+        else:
+            level_number = count_axis._get_level_number(level)
 
-        level_name = count_axis._names[level]
-        level_index = count_axis.levels[level]._rename(name=level_name)
-        level_codes = ensure_platform_int(count_axis.codes[level])
+        level_name = count_axis._names[level_number]
+        level_index = count_axis.levels[level_number]._rename(name=level_name)
+        level_codes = ensure_platform_int(count_axis.codes[level_number])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
