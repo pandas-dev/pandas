@@ -148,7 +148,12 @@ class ArrowExtensionArray(ExtensionArray):
 
         if isinstance(item, np.ndarray):
             if not len(item):
-                return type(self)(pa.chunked_array([], type=self._dtype.pa_dtype))
+                # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
+                if self._dtype.name == "string" and self._dtype.storage == "pyarrow":
+                    pa_dtype = pa.string()
+                else:
+                    pa_dtype = self._dtype.pa_dtype
+                return type(self)(pa.chunked_array([], type=pa_dtype))
             elif is_integer_dtype(item.dtype):
                 return self.take(item)
             elif is_bool_dtype(item.dtype):
