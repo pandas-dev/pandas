@@ -3929,7 +3929,8 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)
-            self._mgr.column_setitem(icol, iindex, value, inplace=True)
+            self._mgr.column_setitem(icol, iindex, value)
+            self._clear_item_cache()
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # set using a non-recursive method & reset the cache
