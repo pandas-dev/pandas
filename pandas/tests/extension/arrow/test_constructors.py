@@ -7,19 +7,11 @@ from datetime import (
 
 import pytest
 
-from pandas.compat import pa_version_under1p01
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
 
-pytestmark = [
-    pytest.mark.skipif(
-        pa_version_under1p01, reason="Minimum required pyarrow version not available"
-    )
-]
-
-import pyarrow as pa  # isort:skip
+pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
