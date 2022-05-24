@@ -59,6 +59,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 from pandas._libs.tslibs import (
     Resolution,
@@ -447,6 +448,7 @@ cpdef array_to_datetime(
         bint string_to_dts_failed
         datetime py_dt
         tzinfo tz_out = None
+        bint found_tz = False, found_naive = False
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -465,18 +467,34 @@ cpdef array_to_datetime(
                 elif PyDateTime_Check(val):
                     seen_datetime = True
                     if val.tzinfo is not None:
+                        found_tz = True
                         if utc_convert:
                             _ts = convert_datetime_to_tsobject(val, None)
                             iresult[i] = _ts.value
-                        else:
+                        elif found_naive:
                             raise ValueError('Tz-aware datetime.datetime '
                                              'cannot be converted to '
                                              'datetime64 unless utc=True')
-                    elif isinstance(val, _Timestamp):
-                        iresult[i] = val.value
+                        elif tz_out is not None and not tz_compare(tz_out, val.tzinfo):
+                            raise ValueError('Tz-aware datetime.datetime '
+                                             'cannot be converted to '
+                                             'datetime64 unless utc=True')
+                        else:
+                            found_tz = True
+                            tz_out = val.tzinfo
+                            _ts = convert_datetime_to_tsobject(val, None)
+                            iresult[i] = _ts.value
+
                     else:
-                        iresult[i] = pydatetime_to_dt64(val, &dts)
-                        check_dts_bounds(&dts)
+                        found_naive = True
+                        if found_tz:
+                            raise ValueError('Cannot mix tz-aware with '
+                                             'tz-naive values')
+                        if isinstance(val, _Timestamp):
+                            iresult[i] = val.value
+                        else:
+                            iresult[i] = pydatetime_to_dt64(val, &dts)
+                            check_dts_bounds(&dts)
 
                 elif PyDate_Check(val):
                     seen_datetime = True

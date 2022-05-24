@@ -5514,10 +5514,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         The dtype is *not* compared
 
-        >>> int64_idx = pd.Int64Index([1, 2, 3])
+        >>> int64_idx = pd.Index([1, 2, 3], dtype='int64')
         >>> int64_idx
         Int64Index([1, 2, 3], dtype='int64')
-        >>> uint64_idx = pd.UInt64Index([1, 2, 3])
+        >>> uint64_idx = pd.Index([1, 2, 3], dtype='uint64')
         >>> uint64_idx
         UInt64Index([1, 2, 3], dtype='uint64')
         >>> int64_idx.equals(uint64_idx)
