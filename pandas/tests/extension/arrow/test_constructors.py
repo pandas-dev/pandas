@@ -13,9 +13,11 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
 
-pytestmark = pytest.mark.skipif(
-    pa_version_under1p01, reason="Minimum required pyarrow version not available"
-)
+pytestmark = [
+    pytest.mark.skipif(
+        pa_version_under1p01, reason="Minimum required pyarrow version not available"
+    )
+]
 
 import pyarrow as pa  # isort:skip
 
@@ -39,17 +41,14 @@ def data(dtype):
     elif pa.types.is_unsigned_integer(pa_dtype):
         data = [1, None, 0, None, 2, None, 10]
     elif pa.types.is_date(pa_dtype):
-        data = [date(2022, 1, 1), None, date.min, None, date.max]
+        data = [date(2022, 1, 1), None]
     elif pa.types.is_timestamp(pa_dtype):
         data = [
             datetime(2020, 1, 1, 1, 1, 1, 1),
             None,
-            datetime.min,
-            None,
-            datetime.max,
         ]
     elif pa.types.is_duration(pa_dtype):
-        data = [timedelta(1, 1, 1), None, timedelta.min, None, timedelta.max]
+        data = [timedelta(1), None]
     elif pa.types.is_time(pa_dtype):
         data = [time(12, 0), None, time(0, 12)]
     else:

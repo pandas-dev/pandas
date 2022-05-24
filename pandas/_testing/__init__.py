@@ -201,7 +201,7 @@ if not pa_version_under1p01:
     SIGNED_INT_NUMPY_DTYPES = [pa.uint8(), pa.int16(), pa.int32(), pa.uint64()]
     ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_NUMPY_DTYPES
 
-    FLOAT_PYARROW_DTYPES = [pa.float16(), pa.float32(), pa.float64()]
+    FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
     STRING_PYARROW_DTYPES = [pa.string(), pa.utf8()]
 
     TIME_PYARROW_DTYPES = [

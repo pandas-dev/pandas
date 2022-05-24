@@ -78,15 +78,19 @@ class ArrowExtensionArray(ExtensionArray):
         Construct a new ExtensionArray from a sequence of scalars.
         """
         if isinstance(dtype, ArrowDtype):
-            pa_type = dtype.pa_dtype
-        elif not dtype:
-            pa_type = None
+            pa_dtype = dtype.pa_dtype
+        elif dtype:
+            pa_dtype = pa.from_numpy_dtype(dtype)
         else:
-            try:
-                pa_type = pa.from_numpy_dtype(dtype)
-            except TypeError:
-                pa_type = None
-        return cls(pa.chunked_array([scalars], type=pa_type))
+            pa_dtype = None
+
+        if isinstance(scalars, cls):
+            data = scalars._data
+            if pa_dtype:
+                data = data.cast(pa_dtype)
+            return cls(data)
+        else:
+            return cls(pa.chunked_array([scalars], type=pa_dtype))
 
     @classmethod
     def _from_sequence_of_strings(

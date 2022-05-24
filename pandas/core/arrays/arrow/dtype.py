@@ -31,7 +31,7 @@ class ArrowDtype(StorageExtensionDtype):
         """
         The scalar type for the array, e.g. ``int``
         """
-        return self.pa_dtype
+        return type(self.pa_dtype)
 
     @property
     def name(self) -> str:  # type: ignore[override]
@@ -43,7 +43,7 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
-        return self.type.to_pandas_dtype()
+        return self.pa_dtype.to_pandas_dtype()
 
     @cache_readonly
     def kind(self) -> str:
