@@ -17,6 +17,10 @@ from pandas._libs.tslibs import (
 
 import pandas._testing as tm
 
+TD_OVERFLOW_MSG = (
+    r"outside allowed range \[-9223372036854775807ns, 9223372036854775807ns\]"
+)
+
 
 class TestTimestampArithmetic:
     def test_overflow_offset(self):
@@ -33,7 +37,7 @@ class TestTimestampArithmetic:
         expected = Timestamp("1999/09/23")
         assert stamp - offset_no_overflow == expected
 
-    def test_overflow_offset_raises(self, td_overflow_msg: str):
+    def test_overflow_offset_raises(self):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
@@ -46,7 +50,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
-        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=TD_OVERFLOW_MSG):
             offset_overflow + stamp
 
         with pytest.raises(OverflowError, match=lmsg):
@@ -61,7 +65,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
-        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=TD_OVERFLOW_MSG):
             offset_overflow + stamp
 
         with pytest.raises(OverflowError, match=lmsg):

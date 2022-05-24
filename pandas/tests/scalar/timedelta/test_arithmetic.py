@@ -22,6 +22,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core import ops
 
+TD_OVERFLOW_MSG = (
+    r"outside allowed range \[-9223372036854775807ns, 9223372036854775807ns\]"
+)
+
 
 class TestTimedeltaAdditionSubtraction:
     """
@@ -98,11 +102,11 @@ class TestTimedeltaAdditionSubtraction:
         result = op(td, NaT)
         assert result is NaT
 
-    def test_td_add_timestamp_overflow(self, td_overflow_msg: str):
-        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
+    def test_td_add_timestamp_overflow(self):
+        with pytest.raises(OutOfBoundsTimedelta, match=TD_OVERFLOW_MSG):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
-        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=TD_OVERFLOW_MSG):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
