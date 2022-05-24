@@ -2,8 +2,8 @@
 Common type operations.
 """
 from __future__ import annotations
-import inspect
 
+import inspect
 from typing import (
     Any,
     Callable,
@@ -31,7 +31,6 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
-    PandasExtensionDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1576,9 +1575,8 @@ def get_dtype(arr_or_dtype) -> DtypeObj:
     # fastpath
     elif isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype
-    elif isinstance(arr_or_dtype, type):
+    elif inspect.isclass(arr_or_dtype) and issubclass(arr_or_dtype, np.generic):
         return np.dtype(arr_or_dtype)
-
     # if we have an array-like
     elif hasattr(arr_or_dtype, "dtype"):
         arr_or_dtype = arr_or_dtype.dtype
