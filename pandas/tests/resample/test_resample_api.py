@@ -281,6 +281,7 @@ def test_transform_series():
 
 @pytest.mark.parametrize("on", [None, "date"])
 def test_transform_frame(on):
+    # GH#47079
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
