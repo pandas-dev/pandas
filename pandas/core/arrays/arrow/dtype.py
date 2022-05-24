@@ -20,7 +20,10 @@ class ArrowDtype(StorageExtensionDtype):
     def __init__(self, pa_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
         if not isinstance(pa_dtype, pa.DataType):
-            raise ValueError("pa_dtype must be an instance of a pyarrow.DataType")
+            raise ValueError(
+                f"pa_dtype ({pa_dtype}) must be an instance "
+                f"of a pyarrow.DataType. Got {type(pa_dtype)} instead."
+            )
         self.pa_dtype = pa_dtype
 
     @property
