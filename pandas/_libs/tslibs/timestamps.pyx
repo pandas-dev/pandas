@@ -148,7 +148,7 @@ cdef inline _Timestamp create_timestamp_from_ts(
     return ts_base
 
 
-def _unpickle_timestamp(value, freq, tz, reso=NPY_FR_ns):
+def _unpickle_timestamp(value, freq, tz, reso):
     # GH#41949 dont warn on unpickle if we have a freq
     if reso == NPY_FR_ns:
         ts = Timestamp(value, tz=tz)
