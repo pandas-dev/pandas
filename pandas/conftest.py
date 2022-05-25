@@ -1836,3 +1836,11 @@ def using_array_manager():
     Fixture to check if the array manager is being used.
     """
     return pd.options.mode.data_manager == "array"
+
+
+@pytest.fixture
+def using_copy_on_write():
+    """
+    Fixture to check if Copy-on-Write is enabled.
+    """
+    return False
