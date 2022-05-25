@@ -8,6 +8,10 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+    _registry,
+)
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -23,6 +27,8 @@ import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
 
+ALL_EA_DTYPES = _registry.dtypes
+
 
 # EA & Actual Dtypes
 def to_ea_dtypes(dtypes):
@@ -36,25 +42,36 @@ def to_numpy_dtypes(dtypes):
 
 
 class TestPandasDtype:
-
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
     @pytest.mark.parametrize("box", [pd.Timestamp, "pd.Timestamp", list])
     def test_invalid_dtype_error(self, box):
-        with pytest.raises(TypeError, match="not understood"):
+        msg = "|".join(
+            (
+                "Must pass dtype instance, not dtype class",
+                "not understood",
+            )
+        )
+        with pytest.raises(TypeError, match=msg):
             com.pandas_dtype(box)
+
+    @pytest.mark.parametrize("cls", ALL_EA_DTYPES)
+    def test_raises_for_dtype_class(self, cls: type[ExtensionDtype]):
+        msg = "Must pass dtype instance, not dtype class"
+        with pytest.raises(TypeError, match=msg):
+            com.pandas_dtype(cls)
 
     @pytest.mark.parametrize(
         "dtype",
         [
             object,
-            "float64",
             np.object_,
             np.dtype("object"),
             "O",
-            np.float64,
             float,
+            np.float64,
             np.dtype("float64"),
+            "float64",
         ],
     )
     def test_pandas_dtype_valid(self, dtype):
@@ -105,48 +122,6 @@ class TestPandasDtype:
         assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == dtype
-
-    @pytest.mark.parametrize(
-        "cls",
-        (
-            pd.BooleanDtype,
-            pd.Int8Dtype,
-            pd.Int16Dtype,
-            pd.Int32Dtype,
-            pd.Int64Dtype,
-            pd.UInt8Dtype,
-            pd.UInt16Dtype,
-            pd.UInt32Dtype,
-            pd.UInt64Dtype,
-            pd.Float32Dtype,
-            pd.Float64Dtype,
-            pd.SparseDtype,
-            pd.StringDtype,
-            IntervalDtype,
-            CategoricalDtype,
-            pytest.param(
-                DatetimeTZDtype,
-                marks=pytest.mark.xfail(reason="must specify TZ", raises=TypeError),
-            ),
-            pytest.param(
-                PeriodDtype,
-                marks=pytest.mark.xfail(
-                    reason="must specify frequency", raises=AttributeError
-                ),
-            ),
-        ),
-    )
-    def test_pd_extension_dtype(self, cls):
-        """
-        TODO: desired behavior?
-
-        For extension dtypes that admit no options OR can be initialized with no args
-        passed, convert the extension dtype class to an instance of that class.
-        """
-        expected = cls()
-        result = com.pandas_dtype(cls)
-
-        assert result == expected
 
 
 dtypes = {
@@ -625,7 +600,6 @@ def test_is_bool_dtype_returns_false(value):
         bool,
         np.bool_,
         np.dtype(np.bool_),
-        pd.BooleanDtype,
         pd.BooleanDtype(),
         "bool",
         "boolean",
@@ -731,7 +705,6 @@ def test_is_complex_dtype():
         (PeriodDtype(freq="D"), PeriodDtype(freq="D")),
         ("period[D]", PeriodDtype(freq="D")),
         (IntervalDtype(), IntervalDtype()),
-        (pd.BooleanDtype, pd.BooleanDtype()),
         (pd.BooleanDtype(), pd.BooleanDtype()),
     ],
 )

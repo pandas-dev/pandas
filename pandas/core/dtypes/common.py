@@ -1760,13 +1760,15 @@ def pandas_dtype(dtype) -> DtypeObj:
     ------
     TypeError if not a dtype
     """
+    if inspect.isclass(dtype) and issubclass(dtype, (np.dtype, ExtensionDtype)):
+        msg = "Must pass dtype instance, not dtype class"
+        raise TypeError(msg)
+
     # short-circuit
     if isinstance(dtype, np.ndarray):
         return dtype.dtype
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         return dtype
-    elif inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
-        return dtype()
 
     # registered extension types
     result = registry.find(dtype)

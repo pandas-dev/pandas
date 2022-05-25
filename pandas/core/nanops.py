@@ -648,7 +648,7 @@ def _mask_datetimelike_result(
     return result
 
 
-@disallow(PeriodDtype)
+@disallow(PeriodDtype())
 @bottleneck_switch()
 @_datetimelike_compat
 def nanmean(
