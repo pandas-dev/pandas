@@ -54,11 +54,10 @@ jobs:
       with:
         python-version: '3.11-dev'
 
-    # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
     - name: Install dependencies
       shell: bash -el {0}
       run: |
-        python -m pip install --upgrade pip "setuptools<60.0.0" wheel
+        python -m pip install --upgrade pip setuptools wheel
         pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/nedbat/coveragepy.git
         pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
