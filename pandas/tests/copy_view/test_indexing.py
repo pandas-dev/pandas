@@ -428,7 +428,11 @@ def test_subset_set_with_column_indexer(
         subset.loc[:, indexer] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
+            # warnings and only assert the SettingWithCopyWarning
+            with tm.assert_produces_warning(
+                com.SettingWithCopyWarning, raise_on_extra_warnings=False
+            ):
                 subset.loc[:, indexer] = 0
 
     subset._mgr._verify_integrity()
