@@ -358,7 +358,10 @@ cpdef ndarray astype_overflowsafe(
             except OutOfBoundsDatetime as err:
                 if is_td:
                     tdval = np.timedelta64(value).view(values.dtype)
-                    msg = f"Cannot convert {tdval} to {dtype} without overflow"
+                    msg = (
+                        "Cannot convert {tdval} to {dtype} without overflow"
+                        .format(tdval=tdval, dtype=dtype)
+                    )
                     raise OutOfBoundsTimedelta(msg) from err
                 else:
                     raise
