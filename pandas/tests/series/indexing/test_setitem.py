@@ -1124,7 +1124,7 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, val):
         if val[0] == 2:
-            # NB: this condition is based on currently-harcoded "val" cases
+            # NB: this condition is based on currently-hardcoded "val" cases
             dtype = np.int64
         else:
             dtype = np.float64
