@@ -3300,7 +3300,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool_t | list[str] = True,
         index: bool_t = True,
         index_label: IndexLabel | None = None,
-        mode: str = "a",
+        mode: str = "w",
         encoding: str | None = None,
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
@@ -3350,10 +3350,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
         mode : str, default 'w'
-            String character(s) to indicate the mode in which the file is opened for writing. Valid
-            values include: 'w' for "write" access, 'w+' or 'r+' for read and write access, 'x' or 'x+' for
-            exclusive creation access, and 'a' or 'a+' for append access. All strings have an implied 't'
-            for text access; binary access is not permitted.
+            String character(s) to indicate the mode in which the file is opened for 
+            writing. Valid values include: 'w' for "write" access, 'w+' or 'r+' for 
+            read and write access, 'x' or 'x+' for exclusive creation access, and 'a' or 'a+' 
+            for append access. All strings have an implied 't' for text access; 
+            binary access is not permitted.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
