@@ -367,7 +367,9 @@ class TestLocBaseIndependent:
         # GH31340
         df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
         cols = ["a", "b", "c"]
-        df.loc[:, cols] = df.loc[:, cols].astype("float32")
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
         expected = DataFrame(
             {
@@ -598,7 +600,9 @@ class TestLocBaseIndependent:
         expected = DataFrame(columns=["x", "y"])
         expected["x"] = expected["x"].astype(np.int64)
         df = DataFrame(columns=["x", "y"])
-        df.loc[:, "x"] = 1
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "x"] = 1
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["x", "y"])
@@ -629,20 +633,29 @@ class TestLocBaseIndependent:
         ]
         df = DataFrame(values, index=mi, columns=cols)
 
-        df.loc[:, ("Respondent", "StartDate")] = to_datetime(
-            df.loc[:, ("Respondent", "StartDate")]
-        )
-        df.loc[:, ("Respondent", "EndDate")] = to_datetime(
-            df.loc[:, ("Respondent", "EndDate")]
-        )
-        df.loc[:, ("Respondent", "Duration")] = (
-            df.loc[:, ("Respondent", "EndDate")]
-            - df.loc[:, ("Respondent", "StartDate")]
-        )
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, ("Respondent", "StartDate")] = to_datetime(
+                df.loc[:, ("Respondent", "StartDate")]
+            )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, ("Respondent", "EndDate")] = to_datetime(
+                df.loc[:, ("Respondent", "EndDate")]
+            )
+        with tm.assert_produces_warning(None, match=msg):
+            # Adding a new key -> no warning
+            df.loc[:, ("Respondent", "Duration")] = (
+                df.loc[:, ("Respondent", "EndDate")]
+                - df.loc[:, ("Respondent", "StartDate")]
+            )
 
-        df.loc[:, ("Respondent", "Duration")] = df.loc[
-            :, ("Respondent", "Duration")
-        ].astype("timedelta64[s]")
+        with tm.assert_produces_warning(None, match=msg):
+            # timedelta64[s] -> float64, so this cannot be done inplace, so
+            #  no warning
+            df.loc[:, ("Respondent", "Duration")] = df.loc[
+                :, ("Respondent", "Duration")
+            ].astype("timedelta64[s]")
+
         expected = Series(
             [1380, 720, 840, 2160.0], index=df.index, name=("Respondent", "Duration")
         )
@@ -707,7 +720,9 @@ class TestLocBaseIndependent:
         # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
-        df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         expected["B"] = "string"
@@ -717,7 +732,9 @@ class TestLocBaseIndependent:
         # GH#40480
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
-        df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
         expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
@@ -890,7 +907,14 @@ class TestLocBaseIndependent:
     def test_loc_setitem_missing_columns(self, index, box, expected):
         # GH 29334
         df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
-        df.loc[index] = box
+
+        warn = None
+        if isinstance(index[0], slice) and index[0] == slice(None):
+            warn = FutureWarning
+
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(warn, match=msg):
+            df.loc[index] = box
         tm.assert_frame_equal(df, expected)
 
     def test_loc_coercion(self):
@@ -1123,6 +1147,8 @@ class TestLocBaseIndependent:
             # don't wrap around
             ser.loc[[-1]]
 
+    # FIXME: warning issued here is false-positive
+    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_loc_setitem_empty_append_expands_rows(self):
         # GH6173, various appends to an empty dataframe
 
@@ -1134,6 +1160,8 @@ class TestLocBaseIndependent:
         df.loc[:, "x"] = data
         tm.assert_frame_equal(df, expected)
 
+    # FIXME: warning issued here is false-positive
+    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_loc_setitem_empty_append_expands_rows_mixed_dtype(self):
         # GH#37932 same as test_loc_setitem_empty_append_expands_rows
         #  but with mixed dtype so we go through take_split_path
@@ -1379,7 +1407,10 @@ class TestLocBaseIndependent:
         # GH#25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
         categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
-        df.loc[:, "Alpha"] = categories
+
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
         expected = Series(categories, index=df.index, name="Alpha")

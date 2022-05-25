@@ -3074,7 +3074,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df_multiindex.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (animal: 2, date: 2)
+        Dimensions:  (date: 2, animal: 2)
         Coordinates:
           * date     (date) datetime64[ns] 2018-01-01 2018-01-02
           * animal   (animal) object 'falcon' 'parrot'
@@ -3349,8 +3349,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : str
-            Python write mode, default 'w'.
+        mode : str, default 'w'
+            Python write mode. The available write modes are the same as
+            :py:func:`open`.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
@@ -3815,13 +3816,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # so just return them (GH 6394)
                 return self._values[loc]
 
-            new_values = self._mgr.fast_xs(loc)
+            new_mgr = self._mgr.fast_xs(loc)
 
             result = self._constructor_sliced(
-                new_values,
-                index=self.columns,
-                name=self.index[loc],
-                dtype=new_values.dtype,
+                new_mgr, name=self.index[loc]
             ).__finalize__(self)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
@@ -7901,8 +7899,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            left = True if isinstance(include_start, lib.NoDefault) else include_start
-            right = True if isinstance(include_end, lib.NoDefault) else include_end
+            left = True if include_start is lib.no_default else include_start
+            right = True if include_end is lib.no_default else include_end
 
             inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
@@ -8109,9 +8107,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Freq: 30S, dtype: float64
 
         Upsample the series into 30 second bins and fill the ``NaN``
-        values using the ``pad`` method.
+        values using the ``ffill`` method.
 
-        >>> series.resample('30S').pad()[0:5]
+        >>> series.resample('30S').ffill()[0:5]
         2000-01-01 00:00:00    0
         2000-01-01 00:00:30    0
         2000-01-01 00:01:00    1
@@ -10692,7 +10690,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis is None:
             axis = self._stat_axis_number
-        axis = cast(Axis, axis)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "

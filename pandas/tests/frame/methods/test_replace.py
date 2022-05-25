@@ -675,6 +675,25 @@ class TestDataFrameReplace:
         expected = DataFrame([None, None])
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_with_None_keeps_categorical(self):
+        # gh-46634
+        cat_series = Series(["b", "b", "b", "d"], dtype="category")
+        df = DataFrame(
+            {
+                "id": Series([5, 4, 3, 2], dtype="float64"),
+                "col": cat_series,
+            }
+        )
+        result = df.replace({3: None})
+
+        expected = DataFrame(
+            {
+                "id": Series([5.0, 4.0, None, 2.0], dtype="object"),
+                "col": cat_series,
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]

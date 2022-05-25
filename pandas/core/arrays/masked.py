@@ -957,7 +957,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return array_equivalent(left, right, dtype_equal=True)
 
     def _quantile(
-        self: BaseMaskedArrayT, qs: npt.NDArray[np.float64], interpolation: str
+        self, qs: npt.NDArray[np.float64], interpolation: str
     ) -> BaseMaskedArray:
         """
         Dispatch to quantile_with_mask, needed because we do not have
