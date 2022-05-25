@@ -781,12 +781,14 @@ class Block(PandasObject):
             )
         else:
             if value is None:
-                # gh-45601, gh-45836
-                nb = self.astype(np.dtype(object), copy=False)
-                if nb is self and not inplace:
-                    nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
-                return [nb]
+                # gh-45601, gh-45836, gh-46634
+                if mask.any():
+                    nb = self.astype(np.dtype(object), copy=False)
+                    if nb is self and not inplace:
+                        nb = nb.copy()
+                    putmask_inplace(nb.values, mask, value)
+                    return [nb]
+                return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace, value=value, inplace=inplace, mask=mask
             )
