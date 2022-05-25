@@ -120,7 +120,7 @@ class ParserBase:
 
         # validate header options for mi
         self.header = kwds.get("header")
-        if is_list_like(self.header):
+        if is_list_like(self.header, allow_sets=False):
             if kwds.get("usecols"):
                 raise ValueError(
                     "cannot specify usecols when specifying a multi-index header"
@@ -133,7 +133,7 @@ class ParserBase:
             # validate index_col that only contains integers
             if self.index_col is not None:
                 if not (
-                    is_list_like(self.index_col)
+                    is_list_like(self.index_col, allow_sets=False)
                     and all(map(is_integer, self.index_col))
                     or is_integer(self.index_col)
                 ):
