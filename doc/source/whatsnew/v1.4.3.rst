@@ -20,6 +20,7 @@ Fixed regressions
 - Fixed regression is :meth:`.Styler.to_latex` and :meth:`.Styler.to_html` where ``buf`` failed in combination with ``encoding`` (:issue:`47053`)
 - Fixed regression in :meth:`.DataFrameGroupBy.agg` when used with list-likes or dict-likes and ``axis=1`` that would give incorrect results; now raises ``NotImplementedError`` (:issue:`46995`)
 - Fixed regression in :meth:`DataFrame.resample` and :meth:`DataFrame.rolling` when used with list-likes or dict-likes and ``axis=1`` that would raise an unintuitive error message; now raises ``NotImplementedError`` (:issue:`46904`)
+- Fixed regression in :func:`read_excel` returning ints as floats on certain input sheets (:issue:`46988`)
 
 .. ---------------------------------------------------------------------------
 
