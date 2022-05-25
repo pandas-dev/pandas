@@ -6831,7 +6831,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               scipy 0.18.
 
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
-            Axis to interpolate along. For `Series` this parameter is unused 
+            Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
@@ -9261,7 +9261,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
-            Alignment axis if needed. For `Series` this parameter is 
+            Alignment axis if needed. For `Series` this parameter is
             unused and defaults to 0.
         level : int, default None
             Alignment level if needed.
@@ -9673,7 +9673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         after : date, str, int
             Truncate all rows after this index value.
         axis : {0 or 'index', 1 or 'columns'}, optional
-            Axis to truncate. Truncates the index (rows) by default. 
+            Axis to truncate. Truncates the index (rows) by default.
             For `Series` this parameter is unused and defaults to 0.
         copy : bool, default is True,
             Return a copy of the truncated section.
