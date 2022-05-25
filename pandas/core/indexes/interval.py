@@ -251,7 +251,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        closed: str = "right",
+        closed: IntervalClosedType | None = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -282,7 +282,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        closed: str = "right",
+        closed: IntervalClosedType = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -957,7 +957,7 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: lib.NoDefault = lib.no_default,
+    closed: IntervalClosedType | lib.NoDefault = lib.no_default,
     inclusive: IntervalClosedType | None = None,
 ) -> IntervalIndex:
     """
@@ -1054,12 +1054,12 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
-    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+    if inclusive is not None and closed is not lib.no_default:
         raise ValueError(
             "Deprecated argument `closed` cannot be passed "
             "if argument `inclusive` is not None"
         )
-    elif not isinstance(closed, lib.NoDefault):
+    elif closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,

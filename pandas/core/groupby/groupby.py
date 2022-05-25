@@ -1277,9 +1277,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 numeric_only = False
 
-        # error: Incompatible return value type (got "Union[bool, NoDefault]",
-        # expected "bool")
-        return numeric_only  # type: ignore[return-value]
+        return numeric_only
 
     def _maybe_warn_numeric_only_depr(
         self, how: str, result: DataFrame | Series, numeric_only: bool | lib.NoDefault

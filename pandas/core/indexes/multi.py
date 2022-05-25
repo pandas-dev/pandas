@@ -10,6 +10,7 @@ from typing import (
     Hashable,
     Iterable,
     List,
+    Literal,
     Sequence,
     Tuple,
     cast,
@@ -1397,7 +1398,7 @@ class MultiIndex(Index):
             sparsify = get_option("display.multi_sparse")
 
         if sparsify:
-            sentinel = ""
+            sentinel: Literal[""] | bool | lib.NoDefault = ""
             # GH3547 use value of sparsify as sentinel if it's "Falsey"
             assert isinstance(sparsify, bool) or sparsify is lib.no_default
             if sparsify in [False, lib.no_default]:

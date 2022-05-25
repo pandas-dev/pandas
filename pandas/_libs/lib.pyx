@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+from typing import Literal
 import warnings
 
 cimport cython
@@ -2791,7 +2792,7 @@ cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
     return result
 
 
-class NoDefault(Enum):
+class _NoDefault(Enum):
     # We make this an Enum
     # 1) because it round-trips through pickle correctly (see GH#40397)
     # 2) because mypy does not understand singletons
@@ -2802,7 +2803,8 @@ class NoDefault(Enum):
 
 
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = NoDefault.no_default  # Sentinel indicating the default value.
+no_default = _NoDefault.no_default  # Sentinel indicating the default value.
+NoDefault = Literal[_NoDefault.no_default]
 
 
 @cython.boundscheck(False)

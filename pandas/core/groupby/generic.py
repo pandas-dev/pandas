@@ -1580,7 +1580,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # DataFrame.idxmax for backwards compatibility
             numeric_only_arg = None if axis == 0 else False
         else:
-            numeric_only_arg = cast(bool, numeric_only)
+            numeric_only_arg = numeric_only
 
         def func(df):
             res = df._reduce(
@@ -1616,7 +1616,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # DataFrame.idxmin for backwards compatibility
             numeric_only_arg = None if axis == 0 else False
         else:
-            numeric_only_arg = cast(bool, numeric_only)
+            numeric_only_arg = numeric_only
 
         def func(df):
             res = df._reduce(

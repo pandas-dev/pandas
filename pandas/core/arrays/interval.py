@@ -263,7 +263,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        closed=None,
+        closed: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
@@ -416,7 +416,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        closed="right",
+        closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -492,7 +492,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        closed="right",
+        closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -956,10 +956,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed = {interval.closed for interval in to_concat}
-        if len(closed) != 1:
+        closed_set = {interval.closed for interval in to_concat}
+        if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
-        closed = closed.pop()
+        closed = closed_set.pop()
 
         left = np.concatenate([interval.left for interval in to_concat])
         right = np.concatenate([interval.right for interval in to_concat])
@@ -1328,7 +1328,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalClosedType:
         """
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
