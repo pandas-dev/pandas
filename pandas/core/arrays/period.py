@@ -860,7 +860,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # numpy timedelta64 array; all entries must be compatible
             assert other.dtype.kind == "m"
             other = astype_overflowsafe(other, TD64NS_DTYPE, copy=False)
-            nanos = other.view("i8")
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[Any]]", variable has type "int")
+            nanos = other.view("i8")  # type: ignore[assignment]
         else:
             # TimedeltaArray/Index
             nanos = other.asi8
