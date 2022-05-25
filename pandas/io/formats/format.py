@@ -1058,7 +1058,7 @@ class DataFrameRenderer:
         encoding: str | None = None,
         classes: str | list | tuple | None = None,
         notebook: bool = False,
-        border: int | None = None,
+        border: int | bool | None = None,
         table_id: str | None = None,
         render_links: bool = False,
     ) -> str | None:
@@ -1667,7 +1667,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | list[int | float] | list[float] | list[str | float]),
+    percentiles: (np.ndarray | Sequence[float]),
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.

@@ -1,5 +1,7 @@
-minimum_pre_commit_version: 2.9.2
+minimum_pre_commit_version: 2.15.0
 exclude: ^LICENSES/|\.(html|csv|svg)$
+# reserve "manual" for mypy and pyright
+default_stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 ci:
     autofix_prs: false
 repos:
@@ -26,12 +28,14 @@ repos:
         types_or: [python, rst, markdown]
         files: ^(pandas|doc)/
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.2.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
     -   id: trailing-whitespace
+        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.0
     hooks:
@@ -56,7 +60,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.1
+    rev: v2.32.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -71,7 +75,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.2
+    rev: v0.4.1
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
@@ -84,12 +88,22 @@ repos:
     -   id: pyright
         name: pyright
         entry: pyright
+        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
-        # note: keep version in sync with .github/workflows/code-checks.yml
-        additional_dependencies: ['pyright@1.1.230']
+        additional_dependencies: ['pyright@1.1.248']
+-   repo: local
+    hooks:
+    -   id: mypy
+        name: mypy
+        entry: mypy
+        # note: assumes python env is setup and activated
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
 -   repo: local
     hooks:
     -   id: flake8-rst

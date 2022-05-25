@@ -287,7 +287,7 @@ class MultiIndex(Index):
 
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
-    _names = FrozenList()
+    _names: list[Hashable | None] = []
     _levels = FrozenList()
     _codes = FrozenList()
     _comparables = ["names"]
@@ -326,9 +326,7 @@ class MultiIndex(Index):
         result._set_levels(levels, copy=copy, validate=False)
         result._set_codes(codes, copy=copy, validate=False)
 
-        # Incompatible types in assignment (expression has type "List[None]",
-        # variable has type "FrozenList")  [assignment]
-        result._names = [None] * len(levels)  # type: ignore[assignment]
+        result._names = [None] * len(levels)
         if names is not None:
             # handles name validation
             result._set_names(names)
@@ -720,7 +718,7 @@ class MultiIndex(Index):
             if isinstance(vals, ABCDatetimeIndex):
                 # TODO: this can be removed after Timestamp.freq is removed
                 # The astype(object) below does not remove the freq from
-                # the underlying Timestamps so we remove it here to to match
+                # the underlying Timestamps so we remove it here to match
                 # the behavior of self._get_level_values
                 vals = vals.copy()
                 vals.freq = None
@@ -1476,8 +1474,7 @@ class MultiIndex(Index):
                     raise TypeError(
                         f"{type(self).__name__}.name must be a hashable type"
                     )
-            # error: Cannot determine type of '__setitem__'
-            self._names[lev] = name  # type: ignore[has-type]
+            self._names[lev] = name
 
         # If .levels has been accessed, the names in our cache will be stale.
         self._reset_cache()

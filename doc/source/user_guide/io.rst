@@ -3529,7 +3529,7 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
    **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
    This is no longer supported, switch to using ``openpyxl`` instead.
 
-   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   Attempting to use the ``xlwt`` engine will raise a ``FutureWarning``
    unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
    While this option is now deprecated and will also raise a ``FutureWarning``,
    it can be globally set and the warning suppressed. Users are recommended to
@@ -5470,7 +5470,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 .. note::
 
    These engines are very similar and should read/write nearly identical parquet format files.
-   Currently ``pyarrow`` does not support timedelta data, ``fastparquet>=0.1.4`` supports timezone aware datetimes.
+   ``pyarrow>=8.0.0`` supports timedelta data, ``fastparquet>=0.1.4`` supports timezone aware datetimes.
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python
