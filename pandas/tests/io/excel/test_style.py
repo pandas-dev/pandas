@@ -4,7 +4,10 @@ import time
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    read_excel,
+)
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
@@ -224,3 +227,7 @@ def test_styler_to_s3(self, s3_resource, s3so):
         time.sleep(0.1)
         timeout -= 0.1
         assert timeout > 0, "Timed out waiting for file to appear on moto"
+        result = read_excel(
+            f"s3://{mock_bucket_name}/{target_file}", index_col=0, storage_options=s3so
+        )
+        tm.assert_frame_equal(result, df)
