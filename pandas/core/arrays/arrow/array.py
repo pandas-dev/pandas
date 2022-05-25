@@ -522,7 +522,8 @@ class ArrowExtensionArray(ExtensionArray):
 
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
-        raise NotImplementedError()
+        # TODO: Make more robust like ArrowStringArray._maybe_convert_setitem_value
+        return value
 
     def _set_via_chunk_iteration(
         self, indices: npt.NDArray[np.intp], value: npt.NDArray[Any]
