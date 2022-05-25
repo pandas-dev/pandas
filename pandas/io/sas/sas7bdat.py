@@ -737,7 +737,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             self.close()
             raise EmptyDataError("No columns to parse from file")
 
-        if self._current_row_in_file_index >= self.row_count:
+        if nrows > 0 and self._current_row_in_file_index >= self.row_count:
             return None
 
         m = self.row_count - self._current_row_in_file_index
