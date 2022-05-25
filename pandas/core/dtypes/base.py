@@ -405,7 +405,7 @@ class StorageExtensionDtype(ExtensionDtype):
         return f"{self.name}[{self.storage}]"
 
     def __str__(self):
-        return f"{self.name}[{self.storage}]"
+        return self.name
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str) and other == self.name:

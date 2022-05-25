@@ -50,4 +50,12 @@ def data(dtype):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    pass
+    @pytest.mark.xfail(
+        reason=(
+            "str(dtype) constructs "
+            "e.g. in64[pyarrow] like int64 (numpy) "
+            "due to StorageExtensionDtype.__str__"
+        )
+    )
+    def test_from_dtype(self, data):
+        super().test_from_dtype(data)
