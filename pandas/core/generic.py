@@ -3350,7 +3350,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
         mode : str, default 'w'
-        Python write mode. The available write modes are the same as :py:func:`open`
+            Python write mode. The available write modes are the same as :py:func:`open`
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
