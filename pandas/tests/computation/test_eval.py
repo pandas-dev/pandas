@@ -1661,12 +1661,14 @@ class TestScope:
         assert gbls == gbls2
 
     def test_empty_locals(self, engine, parser):
+        # GH 47084
         x = 1
         msg = "name 'x' is not defined"
         with pytest.raises(UndefinedVariableError, match=msg):
             pd.eval("x + 1", engine=engine, parser=parser, local_dict={})
 
     def test_empty_globals(self, engine, parser):
+        # GH 47084
         msg = "name '_var_s' is not defined"
         e = "_var_s * 2"
         with pytest.raises(UndefinedVariableError, match=msg):

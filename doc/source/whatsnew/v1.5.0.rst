@@ -675,6 +675,7 @@ Conversion
 - Bug when comparing string and datetime64ns objects causing ``OverflowError`` exception. (:issue:`45506`)
 - Bug in metaclass of generic abstract dtypes causing :meth:`DataFrame.apply` and :meth:`Series.apply` to raise for the built-in function ``type`` (:issue:`46684`)
 - Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
+- Bug in :meth:`pd.eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where passing empty ``local_dict`` or ``global_dict`` was treated as passing ``None`` (:issue:`47084`)
 
 Strings
 ^^^^^^^
@@ -827,7 +828,7 @@ Other
 
 .. ***DO NOT USE THIS SECTION***
 
-- Bug in :meth:`pd.eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where passing empty ``local_dict`` or ``global_dict`` was treated as passing ``None`` (:issue:`47084`)
+-
 -
 
 .. ---------------------------------------------------------------------------
