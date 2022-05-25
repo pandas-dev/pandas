@@ -1,0 +1,41 @@
+name: Run tests and report results
+description: >-
+  Runs the test suite and publishes the results and coverage.
+
+  Pandas is expected to be installed with pip or Conda in a way that a Python
+  interpreter run from a login bash will be able to import it, eg.
+  `bash -lc 'python -c "import pandas"'`.
+inputs:
+  check-pyarrow-version:
+    description: >-
+      If set, double-check that the PyArrow version used by the Pandas installation
+      if identical to this string.
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Check PyArrow version
+      run: |
+        # Double check that we have the expected PyArrow
+        mamba list -f pyarrow | grep ${{ inputs.check-pyarrow-version }}
+      shell: bash -el {0}
+      if: ${{ inputs.check-pyarrow-version }}
+
+    - name: Test
+      run: ci/run_tests.sh
+      shell: bash -el {0}
+
+    - name: Publish test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: false
+      if: failure()

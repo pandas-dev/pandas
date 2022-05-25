@@ -43,42 +43,16 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Install Dependencies
-      uses: conda-incubator/setup-miniconda@v2.1.1
+    - name: Set up Conda (${{ matrix.env_file }}, Arrow ${{ matrix.pyarrow_version}})
+      uses: ./.github/actions/setup-pandas
       with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: ${{ matrix.os == 'macos-latest' && 'flexible' || 'strict' }}
         environment-file: ci/deps/${{ matrix.env_file }}
-        use-only-tar-bz2: true
+        pyarrow-version: ${{ matrix.os == 'macos-latest' && '6' || '' }}
 
-    # ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
-    # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
-    # Reason: image not found
-    - name: Upgrade pyarrow on MacOS
-      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=6
-      if: ${{ matrix.os == 'macos-latest' }}
-
-    - name: Build Pandas
+    - name: Build pandas
       uses: ./.github/actions/build_pandas
 
-    - name: Test
-      run: ci/run_tests.sh
-
-    - name: Build Version
-      run: conda list
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
+    - name: Run tests
+      uses: ./.github/actions/run-tests
       with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: false
+        check-pyarrow-version: ${{ matrix.pyarrow_version }}
