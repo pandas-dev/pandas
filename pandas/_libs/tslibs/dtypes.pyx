@@ -255,6 +255,26 @@ class Resolution(Enum):
         return cls.from_attrname(attr_name)
 
 
+class NpyDatetimeUnit(Enum):
+    """
+    Python-space analogue to NPY_DATETIMEUNIT.
+    """
+    NPY_FR_Y = NPY_DATETIMEUNIT.NPY_FR_Y
+    NPY_FR_M = NPY_DATETIMEUNIT.NPY_FR_M
+    NPY_FR_W = NPY_DATETIMEUNIT.NPY_FR_W
+    NPY_FR_D = NPY_DATETIMEUNIT.NPY_FR_D
+    NPY_FR_h = NPY_DATETIMEUNIT.NPY_FR_h
+    NPY_FR_m = NPY_DATETIMEUNIT.NPY_FR_m
+    NPY_FR_s = NPY_DATETIMEUNIT.NPY_FR_s
+    NPY_FR_ms = NPY_DATETIMEUNIT.NPY_FR_ms
+    NPY_FR_us = NPY_DATETIMEUNIT.NPY_FR_us
+    NPY_FR_ns = NPY_DATETIMEUNIT.NPY_FR_ns
+    NPY_FR_ps = NPY_DATETIMEUNIT.NPY_FR_ps
+    NPY_FR_fs = NPY_DATETIMEUNIT.NPY_FR_fs
+    NPY_FR_as = NPY_DATETIMEUNIT.NPY_FR_as
+    NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
+
+
 cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # generic -> default to nanoseconds
