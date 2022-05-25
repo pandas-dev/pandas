@@ -169,6 +169,7 @@ __all__ = ["Series"]
 _shared_doc_kwargs = {
     "axes": "index",
     "klass": "Series",
+    "axes_single_arg": "{0 or 'index'}",
     "axis": """axis : {0 or 'index'}
         Unused. Parameter needed for compatibility with DataFrame.""",
     "inplace": """inplace : bool, default False
@@ -4621,6 +4622,7 @@ Keep all original rows and also all original values
     @doc(
         NDFrame.align,  # type: ignore[has-type]
         klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
     )
     def align(
         self,
