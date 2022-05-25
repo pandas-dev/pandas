@@ -3647,7 +3647,7 @@ Keep all original rows and also all original values
         Parameters
         ----------
         axis : {0 or 'index'}
-            Parameter needed for compatibility with DataFrame.
+            Unused. Parameter needed for compatibility with DataFrame.
         level : int, optional
             If not None, sort on values in specified index level(s).
         ascending : bool or list-like of bools, default True
