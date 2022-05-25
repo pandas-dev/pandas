@@ -17,33 +17,33 @@ class ArrowDtype(StorageExtensionDtype):
 
     na_value = pa.NA
 
-    def __init__(self, pa_dtype: pa.DataType) -> None:
+    def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
-        if not isinstance(pa_dtype, pa.DataType):
+        if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
-                f"pa_dtype ({pa_dtype}) must be an instance "
-                f"of a pyarrow.DataType. Got {type(pa_dtype)} instead."
+                f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
+                f"of a pyarrow.DataType. Got {type(pyarrow_dtype)} instead."
             )
-        self.pa_dtype = pa_dtype
+        self.pyarrow_dtype = pyarrow_dtype
 
     @property
     def type(self):
         """
         The scalar type for the array, e.g. ``int``
         """
-        return type(self.pa_dtype)
+        return type(self.pyarrow_dtype)
 
     @property
     def name(self) -> str:  # type: ignore[override]
         """
         A string identifying the data type.
         """
-        return str(self.pa_dtype)
+        return str(self.pyarrow_dtype)
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
-        return self.pa_dtype.to_pandas_dtype()
+        return self.pyarrow_dtype.to_pandas_dtype()
 
     @cache_readonly
     def kind(self) -> str:
@@ -97,9 +97,9 @@ class ArrowDtype(StorageExtensionDtype):
         """
         # TODO: pa.types.is_boolean?
         return (
-            pa.types.is_integer(self.pa_dtype)
-            or pa.types.is_floating(self.pa_dtype)
-            or pa.types.is_decimal(self.pa_dtype)
+            pa.types.is_integer(self.pyarrow_dtype)
+            or pa.types.is_floating(self.pyarrow_dtype)
+            or pa.types.is_decimal(self.pyarrow_dtype)
         )
 
     @property
@@ -107,7 +107,7 @@ class ArrowDtype(StorageExtensionDtype):
         """
         Whether this dtype should be considered boolean.
         """
-        return pa.types.is_boolean(self.pa_dtype)
+        return pa.types.is_boolean(self.pyarrow_dtype)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # We unwrap any masked dtypes, find the common dtype we would use
