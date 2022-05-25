@@ -90,9 +90,10 @@ def test_groupby_resample_on_api():
         }
     )
 
-    expected = df.set_index("dates").groupby("key").resample("D").mean()
-
-    result = df.groupby("key").resample("D", on="dates").mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.set_index("dates").groupby("key").resample("D").mean()
+        result = df.groupby("key").resample("D", on="dates").mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -196,7 +197,9 @@ def tests_skip_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
-    result = r.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -550,6 +553,20 @@ def test_agg_misc():
             t[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
 
+@pytest.mark.parametrize(
+    "func", [["min"], ["mean", "max"], {"A": "sum"}, {"A": "prod", "B": "median"}]
+)
+def test_multi_agg_axis_1_raises(func):
+    # GH#46904
+    np.random.seed(1234)
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+    index.name = "date"
+    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    res = df.resample("M", axis=1)
+    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
+        res.agg(func)
+
+
 def test_agg_nested_dicts():
 
     np.random.seed(1234)
@@ -643,10 +660,15 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("2D", on="date").sum()
+    tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("2D", level="d").sum()
+    tm.assert_frame_equal(exp, result)
 
 
 @pytest.mark.parametrize(
@@ -809,9 +831,13 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
     func = getattr(resampled, method)
     if method == "prod" and numeric_only is not True:
         warn = FutureWarning
+        msg = "Dropping invalid columns in DataFrameGroupBy.prod is deprecated"
+    elif method == "sum" and numeric_only is lib.no_default:
+        warn = FutureWarning
+        msg = "The default value of numeric_only in DataFrameGroupBy.sum is deprecated"
     else:
         warn = None
-    msg = "Dropping invalid columns in DataFrameGroupBy.prod is deprecated"
+        msg = ""
     with tm.assert_produces_warning(warn, match=msg):
         result = func(numeric_only=numeric_only)
 

@@ -477,7 +477,7 @@ An obvious one is aggregation via the
 .. ipython:: python
 
    grouped = df.groupby("A")
-   grouped.aggregate(np.sum)
+   grouped[["C", "D"]].aggregate(np.sum)
 
    grouped = df.groupby(["A", "B"])
    grouped.aggregate(np.sum)
@@ -492,7 +492,7 @@ changed by using the ``as_index`` option:
    grouped = df.groupby(["A", "B"], as_index=False)
    grouped.aggregate(np.sum)
 
-   df.groupby("A", as_index=False).sum()
+   df.groupby("A", as_index=False)[["C", "D"]].sum()
 
 Note that you could use the ``reset_index`` DataFrame function to achieve the
 same result as the column names are stored in the resulting ``MultiIndex``:
@@ -730,7 +730,7 @@ optimized Cython implementations:
 
 .. ipython:: python
 
-   df.groupby("A").sum()
+   df.groupby("A")[["C", "D"]].sum()
    df.groupby(["A", "B"]).mean()
 
 Of course ``sum`` and ``mean`` are implemented on pandas objects, so the above
@@ -1159,13 +1159,12 @@ Again consider the example DataFrame we've been looking at:
 
 Suppose we wish to compute the standard deviation grouped by the ``A``
 column. There is a slight problem, namely that we don't care about the data in
-column ``B``. We refer to this as a "nuisance" column. If the passed
-aggregation function can't be applied to some columns, the troublesome columns
-will be (silently) dropped. Thus, this does not pose any problems:
+column ``B``. We refer to this as a "nuisance" column. You can avoid nuisance
+columns by specifying ``numeric_only=True``:
 
 .. ipython:: python
 
-   df.groupby("A").std()
+   df.groupby("A").std(numeric_only=True)
 
 Note that ``df.groupby('A').colname.std().`` is more efficient than
 ``df.groupby('A').std().colname``, so if the result of an aggregation function
@@ -1180,7 +1179,14 @@ is only interesting over one column (here ``colname``), it may be filtered
    If you do wish to include decimal or object columns in an aggregation with
    other non-nuisance data types, you must do so explicitly.
 
+.. warning::
+   The automatic dropping of nuisance columns has been deprecated and will be removed
+   in a future version of pandas. If columns are included that cannot be operated
+   on, pandas will instead raise an error. In order to avoid this, either select
+   the columns you wish to operate on or specify ``numeric_only=True``.
+
 .. ipython:: python
+    :okwarning:
 
     from decimal import Decimal
 
@@ -1304,7 +1310,7 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
-   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"]).sum()
+   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
 
 You have an ambiguous specification in that you have a named index and a column
 that could be potential groupers.
@@ -1313,9 +1319,9 @@ that could be potential groupers.
 
    df = df.set_index("Date")
    df["Date"] = df.index + pd.offsets.MonthEnd(2)
-   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"]).sum()
+   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"]).sum()
+   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"])[["Quantity"]].sum()
 
 
 Taking the first rows of each group
