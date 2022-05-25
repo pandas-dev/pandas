@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Timedelta,
+    astype_overflowsafe,
     delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
@@ -858,10 +859,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         elif isinstance(other, np.ndarray):
             # numpy timedelta64 array; all entries must be compatible
             assert other.dtype.kind == "m"
-            if other.dtype != TD64NS_DTYPE:
-                # i.e. non-nano unit
-                # TODO: disallow unit-less timedelta64
-                other = other.astype(TD64NS_DTYPE)
+            other = astype_overflowsafe(other, TD64NS_DTYPE, copy=False)
             nanos = other.view("i8")
         else:
             # TimedeltaArray/Index

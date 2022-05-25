@@ -26,6 +26,7 @@ __all__ = [
     "BaseOffset",
     "tz_compare",
     "is_unitless",
+    "astype_overflowsafe",
 ]
 
 from pandas._libs.tslibs import dtypes
@@ -40,6 +41,7 @@ from pandas._libs.tslibs.nattype import (
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    astype_overflowsafe,
     is_unitless,
 )
 from pandas._libs.tslibs.offsets import (
