@@ -8,6 +8,11 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    pa_version_under2p0,
+    pa_version_under3p0,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
@@ -117,3 +122,59 @@ class TestGetitemTests(base.BaseGetitemTests):
 
     def test_reindex_non_na_fill_value(self, data_missing):
         super().test_reindex_non_na_fill_value(data_missing)
+
+    def test_take_series(self, request, data):
+        tz = getattr(data._dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data._dtype.pyarrow_dtype, "unit", None)
+        bad_units = ["ns"]
+        if pa_version_under2p0:
+            bad_units.extend(["s", "ms", "us"])
+        if pa_version_under3p0 and tz not in (None, "UTC") and unit in bad_units:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"Not supported by pyarrow < 3.0 "
+                        f"with timestamp type {tz} and {unit}"
+                    )
+                )
+            )
+        super().test_take_series(data)
+
+    def test_reindex(self, request, data, na_value):
+        tz = getattr(data._dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data._dtype.pyarrow_dtype, "unit", None)
+        bad_units = ["ns"]
+        if pa_version_under2p0:
+            bad_units.extend(["s", "ms", "us"])
+        if pa_version_under3p0 and tz not in (None, "UTC") and unit in bad_units:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"Not supported by pyarrow < 3.0 "
+                        f"with timestamp type {tz} and {unit}"
+                    )
+                )
+            )
+        super().test_reindex(data, na_value)
+
+    def test_loc_iloc_frame_single_dtype(self, request, using_array_manager, data):
+        tz = getattr(data._dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data._dtype.pyarrow_dtype, "unit", None)
+        bad_units = ["ns"]
+        if pa_version_under2p0:
+            bad_units.extend(["s", "ms", "us"])
+        if (
+            pa_version_under3p0
+            and not using_array_manager
+            and tz not in (None, "UTC")
+            and unit in bad_units
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"Not supported by pyarrow < 3.0 "
+                        f"with timestamp type {tz} and {unit}"
+                    )
+                )
+            )
+        super().test_loc_iloc_frame_single_dtype(data)
