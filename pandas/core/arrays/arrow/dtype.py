@@ -7,9 +7,13 @@ from pandas._libs import missing as libmissing
 from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import StorageExtensionDtype
+from pandas.core.dtypes.base import (
+    StorageExtensionDtype,
+    register_extension_dtype,
+)
 
 
+@register_extension_dtype
 class ArrowDtype(StorageExtensionDtype):
     """
     Base class for dtypes for ArrowExtensionArray.
