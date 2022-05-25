@@ -78,7 +78,7 @@ class ArrowExtensionArray(ExtensionArray):
         Construct a new ExtensionArray from a sequence of scalars.
         """
         if isinstance(dtype, ArrowDtype):
-            pa_dtype = dtype.pa_dtype
+            pa_dtype = dtype.pyarrow_dtype
         elif dtype:
             pa_dtype = pa.from_numpy_dtype(dtype)
         else:
@@ -154,7 +154,7 @@ class ArrowExtensionArray(ExtensionArray):
                 if self._dtype.name == "string" and self._dtype.storage == "pyarrow":
                     pa_dtype = pa.string()
                 else:
-                    pa_dtype = self._dtype.pa_dtype
+                    pa_dtype = self._dtype.pyarrow_dtype
                 return type(self)(pa.chunked_array([], type=pa_dtype))
             elif is_integer_dtype(item.dtype):
                 return self.take(item)

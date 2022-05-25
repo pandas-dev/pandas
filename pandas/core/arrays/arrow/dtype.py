@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pyarrow as pa
 
+from pandas._libs import missing as libmissing
 from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
@@ -15,7 +16,7 @@ class ArrowDtype(StorageExtensionDtype):
     Modeled after BaseMaskedDtype
     """
 
-    na_value = pa.NA
+    na_value = libmissing.NA
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
@@ -29,7 +30,7 @@ class ArrowDtype(StorageExtensionDtype):
     @property
     def type(self):
         """
-        The scalar type for the array, e.g. ``int``
+        Returns pyarrow.DataType.
         """
         return type(self.pyarrow_dtype)
 
@@ -43,7 +44,10 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
-        return self.pyarrow_dtype.to_pandas_dtype()
+        try:
+            return np.dtype(self.pyarrow_dtype.to_pandas_dtype())
+        except (NotImplementedError, TypeError):
+            return np.dtype(object)
 
     @cache_readonly
     def kind(self) -> str:

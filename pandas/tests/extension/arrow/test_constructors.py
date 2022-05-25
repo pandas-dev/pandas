@@ -18,12 +18,12 @@ from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES)
 def dtype(request):
-    return ArrowDtype(pa_dtype=request.param)
+    return ArrowDtype(pyarrow_dtype=request.param)
 
 
 @pytest.fixture
 def data(dtype):
-    pa_dtype = dtype.pa_dtype
+    pa_dtype = dtype.pyarrow_dtype
     if pa.types.is_boolean(pa_dtype):
         data = [True, None, False, None]
     elif pa.types.is_floating(pa_dtype):
