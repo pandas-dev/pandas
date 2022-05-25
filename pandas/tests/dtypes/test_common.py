@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
@@ -27,7 +28,27 @@ import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
 
-ALL_EA_DTYPES = _registry.dtypes
+
+@pytest.fixture(name="ea_dtype", params=_registry.dtypes, scope="module")
+def fixture_ea_dtype(request) -> type[ExtensionDtype]:
+    """
+    All registered ExtensionDtype subclasses.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    name="is_dtype_func",
+    params=(f for f in dir(com) if re.fullmatch(r"^is_\w+_dtype$", f)),
+    scope="module",
+)
+def fixture_is_dtype_func(request):
+    """
+    All functions of the form 'is_*_dtype' in pandas.core.dtypes.common, e.g.
+    'is_interval_dtype'.
+    """
+    fname = request.param
+    return getattr(com, fname)
 
 
 # EA & Actual Dtypes
@@ -55,11 +76,13 @@ class TestPandasDtype:
         with pytest.raises(TypeError, match=msg):
             com.pandas_dtype(box)
 
-    @pytest.mark.parametrize("cls", ALL_EA_DTYPES)
-    def test_raises_for_dtype_class(self, cls: type[ExtensionDtype]):
+    def test_raises_if_passed_dtype_class(self, ea_dtype: type[ExtensionDtype]):
+        """
+        GH 47108
+        """
         msg = "Must pass dtype instance, not dtype class"
         with pytest.raises(TypeError, match=msg):
-            com.pandas_dtype(cls)
+            com.pandas_dtype(ea_dtype)
 
     @pytest.mark.parametrize(
         "dtype",
@@ -124,6 +147,36 @@ class TestPandasDtype:
         assert com.pandas_dtype(dtype) == dtype
 
 
+def test_is_dtype_func_raises_if_passed_dtype_class(
+    is_dtype_func,
+    ea_dtype: type[ExtensionDtype],
+):
+    """
+    GH 47108
+
+    These should raise, like com.pandas_dtype, if passed an ExtensionDtype subclass.
+    """
+    msg = "Must pass dtype instance, not dtype class"
+    with pytest.raises(TypeError, match=msg):
+        is_dtype_func(ea_dtype)
+
+
+def test_is_dtype_func_returns_false_if_passed_none(is_dtype_func, request):
+    """
+    GH 15941
+
+    is_*_dtype functions all return False if passed None (and don't raise).
+    """
+    if is_dtype_func is com.is_string_or_object_np_dtype:
+        xfail = pytest.mark.xfail(
+            reason="fastpath requires np.dtype obj",
+            raises=AttributeError,
+        )
+        request.node.add_marker(xfail)
+
+    assert is_dtype_func(None) is False
+
+
 dtypes = {
     "datetime_tz": com.pandas_dtype("datetime64[ns, US/Eastern]"),
     "datetime": com.pandas_dtype("datetime64[ns]"),
@@ -170,26 +223,6 @@ def test_pyarrow_string_import_error(name, dtype):
 )
 def test_dtype_equal_strict(dtype1, dtype2):
     assert not com.is_dtype_equal(dtype1, dtype2)
-
-
-def get_is_dtype_funcs():
-    """
-    Get all functions in pandas.core.dtypes.common that
-    begin with 'is_' and end with 'dtype'
-
-    """
-    fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
-    fnames.remove("is_string_or_object_np_dtype")  # fastpath requires np.dtype obj
-    return [getattr(com, fname) for fname in fnames]
-
-
-@pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
-def test_get_dtype_error_catch(func):
-    # see gh-15941
-    #
-    # No exception should be raised.
-
-    assert not func(None)
 
 
 def test_is_object():
