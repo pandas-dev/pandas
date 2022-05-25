@@ -855,7 +855,7 @@ class TestExcelWriter:
             frame3 = pd.read_excel(reader, sheet_name="test1")
 
         # Test that it is the same as the initial frame
-        # (without index due to empty frame).
+        # (do not check index due to empty frame).
         tm.assert_frame_equal(frame1, frame3, check_index_type=False)
 
     def test_to_excel_float_format(self, path):
