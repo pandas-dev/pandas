@@ -225,14 +225,27 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
+@overload
+def asarray_tuplesafe(
+    values: ArrayLike | list | tuple | zip, dtype: NpDtype | None = ...
+) -> np.ndarray:
+    # ExtensionArray can only be returned when values is an Index, all other iterables
+    # will return np.ndarray. Unfortunately "all other" cannot be encoded in a type
+    # signature, so instead we special-case some common types.
+    ...
+
+
+@overload
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
+    ...
+
+
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return values._values  # type: ignore[return-value]
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
@@ -612,7 +625,7 @@ def get_cython_func(arg: Callable) -> str | None:
 
 def is_builtin_func(arg):
     """
-    if we define an builtin function for this argument, return it,
+    if we define a builtin function for this argument, return it,
     otherwise return the arg
     """
     return _builtin_table.get(arg, arg)
@@ -635,3 +648,63 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+def resolve_numeric_only(numeric_only: bool | None | lib.NoDefault) -> bool:
+    """Determine the Boolean value of numeric_only.
+
+    See GH#46560 for details on the deprecation.
+
+    Parameters
+    ----------
+    numeric_only : bool, None, or lib.no_default
+        Value passed to the method.
+
+    Returns
+    -------
+    Resolved value of numeric_only.
+    """
+    if numeric_only is lib.no_default:
+        # Methods that behave like numeric_only=True and only got the numeric_only
+        # arg in 1.5.0 default to lib.no_default
+        result = True
+    elif numeric_only is None:
+        # Methods that had the numeric_only arg prior to 1.5.0 and try all columns
+        # first default to None
+        result = False
+    else:
+        result = cast(bool, numeric_only)
+    return result
+
+
+def deprecate_numeric_only_default(cls: type, name: str, deprecate_none: bool = False):
+    """Emit FutureWarning message for deprecation of numeric_only.
+
+    See GH#46560 for details on the deprecation.
+
+    Parameters
+    ----------
+    cls : type
+        pandas type that is generating the warning.
+    name : str
+        Name of the method that is generating the warning.
+    deprecate_none : bool, default False
+        Whether to also warn about the deprecation of specifying ``numeric_only=None``.
+    """
+    if name in ["all", "any"]:
+        arg_name = "bool_only"
+    else:
+        arg_name = "numeric_only"
+
+    msg = (
+        f"The default value of {arg_name} in {cls.__name__}.{name} is "
+        "deprecated. In a future version, it will default to False. "
+    )
+    if deprecate_none:
+        msg += f"In addition, specifying '{arg_name}=None' is deprecated. "
+    msg += (
+        f"Select only valid columns or specify the value of {arg_name} to silence "
+        "this warning."
+    )
+
+    warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())

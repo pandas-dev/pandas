@@ -9,9 +9,7 @@ from typing import (
     Any,
     Collection,
     Literal,
-    Tuple,
     TypeVar,
-    Union,
     overload,
 )
 
@@ -101,7 +99,7 @@ def _get_offset(name: str) -> BaseOffset: ...
 
 class SingleConstructorOffset(BaseOffset):
     @classmethod
-    def _from_name(cls, suffix=...): ...
+    def _from_name(cls, suffix: None = ...): ...
     def __reduce__(self): ...
 
 @overload
@@ -132,7 +130,7 @@ class RelativeDeltaOffset(BaseOffset):
 class BusinessMixin(SingleConstructorOffset):
     def __init__(
         self, n: int = ..., normalize: bool = ..., offset: timedelta = ...
-    ): ...
+    ) -> None: ...
 
 class BusinessDay(BusinessMixin): ...
 
@@ -144,14 +142,17 @@ class BusinessHour(BusinessMixin):
         start: str | Collection[str] = ...,
         end: str | Collection[str] = ...,
         offset: timedelta = ...,
-    ): ...
+    ) -> None: ...
 
-class WeekOfMonthMixin(SingleConstructorOffset): ...
+class WeekOfMonthMixin(SingleConstructorOffset):
+    def __init__(
+        self, n: int = ..., normalize: bool = ..., weekday: int = ...
+    ) -> None: ...
 
 class YearOffset(SingleConstructorOffset):
     def __init__(
         self, n: int = ..., normalize: bool = ..., month: int | None = ...
-    ): ...
+    ) -> None: ...
 
 class BYearEnd(YearOffset): ...
 class BYearBegin(YearOffset): ...
@@ -186,7 +187,11 @@ class Week(SingleConstructorOffset):
         self, n: int = ..., normalize: bool = ..., weekday: int | None = ...
     ) -> None: ...
 
-class WeekOfMonth(WeekOfMonthMixin): ...
+class WeekOfMonth(WeekOfMonthMixin):
+    def __init__(
+        self, n: int = ..., normalize: bool = ..., week: int = ..., weekday: int = ...
+    ) -> None: ...
+
 class LastWeekOfMonth(WeekOfMonthMixin): ...
 
 class FY5253Mixin(SingleConstructorOffset):
@@ -196,11 +201,22 @@ class FY5253Mixin(SingleConstructorOffset):
         normalize: bool = ...,
         weekday: int = ...,
         startingMonth: int = ...,
-        variation: str = ...,
+        variation: Literal["nearest", "last"] = ...,
     ) -> None: ...
 
 class FY5253(FY5253Mixin): ...
-class FY5253Quarter(FY5253Mixin): ...
+
+class FY5253Quarter(FY5253Mixin):
+    def __init__(
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        weekday: int = ...,
+        startingMonth: int = ...,
+        qtr_with_extra_week: int = ...,
+        variation: Literal["nearest", "last"] = ...,
+    ) -> None: ...
+
 class Easter(SingleConstructorOffset): ...
 
 class _CustomBusinessMonth(BusinessMixin):
@@ -208,29 +224,35 @@ class _CustomBusinessMonth(BusinessMixin):
         self,
         n: int = ...,
         normalize: bool = ...,
+        weekmask: str = ...,
+        holidays: list | None = ...,
+        calendar: np.busdaycalendar | None = ...,
         offset: timedelta = ...,
-        holidays: None | list = ...,
-    ): ...
+    ) -> None: ...
 
 class CustomBusinessDay(BusinessDay):
     def __init__(
         self,
         n: int = ...,
         normalize: bool = ...,
-        offset: timedelta = ...,
         weekmask: str = ...,
-    ): ...
+        holidays: list | None = ...,
+        calendar: np.busdaycalendar | None = ...,
+        offset: timedelta = ...,
+    ) -> None: ...
 
 class CustomBusinessHour(BusinessHour):
     def __init__(
         self,
         n: int = ...,
         normalize: bool = ...,
+        weekmask: str = ...,
+        holidays: list | None = ...,
+        calendar: np.busdaycalendar | None = ...,
         start: str = ...,
         end: str = ...,
         offset: timedelta = ...,
-        holidays: None | list = ...,
-    ): ...
+    ) -> None: ...
 
 class CustomBusinessMonthEnd(_CustomBusinessMonth): ...
 class CustomBusinessMonthBegin(_CustomBusinessMonth): ...
