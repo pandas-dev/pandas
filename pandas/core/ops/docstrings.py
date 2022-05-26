@@ -428,8 +428,6 @@ missing data in either one of the inputs.
 Parameters
 ----------
 other : Series or scalar value
-axis : {{0 or 'index'}}
-    Unused. Parameter needed for compatibility with DataFrame.
 fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
     successful Series alignment, with this value before computation.
@@ -438,6 +436,8 @@ fill_value : None or float value, default None (NaN)
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.
+axis : {{0 or 'index'}}
+    Unused. Parameter needed for compatibility with DataFrame.
 
 Returns
 -------
