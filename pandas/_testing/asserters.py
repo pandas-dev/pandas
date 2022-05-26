@@ -112,12 +112,7 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
-        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
-        rtol = atol = _get_tol_from_less_precise(
-            check_less_precise  # type: ignore[arg-type]
-        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     if isinstance(left, Index):
         assert_index_equal(
@@ -345,12 +340,7 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
-        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
-        rtol = atol = _get_tol_from_less_precise(
-            check_less_precise  # type: ignore[arg-type]
-        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, Index)

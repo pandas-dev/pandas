@@ -41,10 +41,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip "setuptools<60.0.0" wheel
+        python -m pip install --upgrade pip setuptools wheel
 
         # GH 39416
         pip install numpy
@@ -66,10 +65,8 @@ jobs:
         channels: conda-forge
         python-version: '${{ matrix.python-version }}'
 
-    # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
     - name: Install pandas from sdist
       run: |
-        python -m pip install --upgrade "setuptools<60.0.0"
         pip list
         python -m pip install dist/*.gz
 
