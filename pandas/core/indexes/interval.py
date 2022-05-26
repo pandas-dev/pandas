@@ -980,7 +980,7 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: lib.NoDefault = lib.no_default,
+    closed: IntervalClosedType | lib.NoDefault = lib.no_default,
     inclusive: IntervalClosedType | None = None,
 ) -> IntervalIndex:
     """

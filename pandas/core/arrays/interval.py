@@ -972,10 +972,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        inclusive = {interval.inclusive for interval in to_concat}
-        if len(inclusive) != 1:
+        inclusive_set = {interval.inclusive for interval in to_concat}
+        if len(inclusive_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
-        inclusive = inclusive.pop()
+        inclusive = inclusive_set.pop()
 
         left = np.concatenate([interval.left for interval in to_concat])
         right = np.concatenate([interval.right for interval in to_concat])
@@ -1344,7 +1344,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     @property
-    def inclusive(self):
+    def inclusive(self) -> IntervalClosedType:
         """
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
