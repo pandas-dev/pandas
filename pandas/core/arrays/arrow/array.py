@@ -101,7 +101,7 @@ class ArrowExtensionArray(ExtensionArray):
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
-        return cls._from_sequence(strings, dtype, copy)
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):

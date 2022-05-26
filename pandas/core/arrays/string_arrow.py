@@ -159,7 +159,7 @@ class ArrowStringArray(
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
-    def dtype(self) -> StringDtype:
+    def dtype(self) -> StringDtype:  # type: ignore[override]
         """
         An instance of 'string[pyarrow]'.
         """
