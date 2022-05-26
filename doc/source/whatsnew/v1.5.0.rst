@@ -814,7 +814,7 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 - Bug in :func:`read_sas` that caused an "Unexpected non-zero end_of_first_byte" error when reading certain SAS7BDAT files.
-- 
+-
 
 Period
 ^^^^^^
