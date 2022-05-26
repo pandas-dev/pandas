@@ -9810,6 +9810,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def tz_convert(
         self: NDFrameT, tz, axis=0, level=None, copy: bool_t = True
     ) -> NDFrameT:
@@ -9868,6 +9869,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result.__finalize__(self, method="tz_convert")
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def tz_localize(
         self: NDFrameT,
         tz,
@@ -9923,7 +9925,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame
+        {klass}
             Same type as the input.
 
         Raises
