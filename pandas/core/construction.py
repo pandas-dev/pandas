@@ -9,8 +9,11 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Optional,
     Sequence,
+    Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -18,11 +21,13 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
+from pandas._libs.tslibs.period import Period
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     Dtype,
     DtypeObj,
+    T,
 )
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
@@ -329,7 +334,8 @@ def array(
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
-            return PeriodArray._from_sequence(data, copy=copy)
+            period_data = cast(Union[Sequence[Optional[Period]], AnyArrayLike], data)
+            return PeriodArray._from_sequence(period_data, copy=copy)
 
         elif inferred_dtype == "interval":
             return IntervalArray(data, copy=copy)
@@ -376,9 +382,23 @@ def array(
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
 
+@overload
 def extract_array(
-    obj: object, extract_numpy: bool = False, extract_range: bool = False
-) -> Any | ArrayLike:
+    obj: Series | Index, extract_numpy: bool = ..., extract_range: bool = ...
+) -> ArrayLike:
+    ...
+
+
+@overload
+def extract_array(
+    obj: T, extract_numpy: bool = ..., extract_range: bool = ...
+) -> T | ArrayLike:
+    ...
+
+
+def extract_array(
+    obj: T, extract_numpy: bool = False, extract_range: bool = False
+) -> T | ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -425,12 +445,15 @@ def extract_array(
         if isinstance(obj, ABCRangeIndex):
             if extract_range:
                 return obj._values
-            return obj
+            # https://github.com/python/mypy/issues/1081
+            # error: Incompatible return value type (got "RangeIndex", expected
+            # "Union[T, Union[ExtensionArray, ndarray[Any, Any]]]")
+            return obj  # type: ignore[return-value]
 
-        obj = obj._values
+        return obj._values
 
     elif extract_numpy and isinstance(obj, ABCPandasArray):
-        obj = obj.to_numpy()
+        return obj.to_numpy()
 
     return obj
 
