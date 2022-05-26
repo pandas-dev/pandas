@@ -20,6 +20,7 @@ import pandas as pd
         "OptionError",
         "NumbaUtilError",
         "DataError",
+        "SpecificationError",
     ],
 )
 def test_exception_importable(exc):

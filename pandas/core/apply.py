@@ -33,7 +33,10 @@ from pandas._typing import (
     Axis,
     NDFrameT,
 )
-from pandas.errors import DataError
+from pandas.errors import (
+    DataError,
+    SpecificationError,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -51,10 +54,7 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas.core.algorithms import safe_sort
-from pandas.core.base import (
-    SelectionMixin,
-    SpecificationError,
-)
+from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,

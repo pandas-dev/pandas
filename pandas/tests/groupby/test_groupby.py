@@ -6,7 +6,10 @@ import pytest
 
 from pandas._libs import lib
 from pandas.compat import IS64
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+    SpecificationError,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,7 +27,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
-from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
