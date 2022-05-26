@@ -176,10 +176,6 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class SpecificationError(Exception):
-    pass
-
-
 class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
