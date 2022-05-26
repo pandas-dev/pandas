@@ -24,7 +24,6 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
-    ArrayLike,
     CompressionOptions,
     CSVEngine,
     DtypeArg,
