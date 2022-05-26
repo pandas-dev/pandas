@@ -22,6 +22,10 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.tseries.frequencies as frequencies
@@ -506,3 +510,15 @@ def test_ms_vs_capital_ms():
 def test_infer_freq_warn_deprecated():
     with tm.assert_produces_warning(FutureWarning):
         frequencies.infer_freq(date_range(2022, periods=3), warn=False)
+
+
+def test_infer_freq_non_nano():
+    arr = np.arange(10).astype(np.int64).view("M8[s]")
+    dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+    res = frequencies.infer_freq(dta)
+    assert res == "S"
+
+    arr2 = arr.view("m8[ms]")
+    tda = TimedeltaArray._simple_new(arr2, dtype=arr2.dtype)
+    res2 = frequencies.infer_freq(tda)
+    assert res2 == "L"

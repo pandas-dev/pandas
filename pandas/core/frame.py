@@ -6279,8 +6279,7 @@ class DataFrame(NDFrame, OpsMixin):
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
             mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
         else:
-            if how is not no_default:
-                raise ValueError(f"invalid how option: {how}")
+            raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
             result = self.copy()
@@ -8050,9 +8049,6 @@ Parrot 2  Parrot       24.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
             obj=self,
             keys=by,
@@ -8061,7 +8057,7 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )

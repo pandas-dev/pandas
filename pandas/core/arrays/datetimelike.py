@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timestamp,
     delta_to_nanoseconds,
+    get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
@@ -44,7 +45,6 @@ from pandas._libs.tslibs.fields import (
     RoundTo,
     round_nsint64,
 )
-from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
     ArrayLike,
@@ -1258,13 +1258,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             res_values = op(self.astype("O"), np.asarray(other))
 
         result = pd_array(res_values.ravel())
-        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
-        # "reshape"
-        result = extract_array(
-            result, extract_numpy=True
-        ).reshape(  # type: ignore[union-attr]
-            self.shape
-        )
+        result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
     def _time_shift(
@@ -1813,7 +1807,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @cache_readonly
     def _reso(self) -> int:
-        return py_get_unit_from_dtype(self._ndarray.dtype)
+        return get_unit_from_dtype(self._ndarray.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (
