@@ -45,7 +45,6 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    dt64_to_dtstruct,
     get_unit_from_dtype,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
