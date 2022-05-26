@@ -2283,7 +2283,7 @@ class Styler(StylerRenderer):
         obj = self.data.index if axis == 0 else self.data.columns
         pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
-        props = "position:sticky; background-color:white;"
+        props = "position:sticky; background-color:inherit;"
         if not isinstance(obj, pd.MultiIndex):
             # handling MultiIndexes requires different CSS
 

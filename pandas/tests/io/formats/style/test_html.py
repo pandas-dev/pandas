@@ -302,11 +302,11 @@ def test_sticky_basic(styler, index, columns, index_name):
         styler.set_sticky(axis=1)
 
     left_css = (
-        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "#T_ {0} {{\n  position: sticky;\n  background-color: inherit;\n"
         "  left: 0px;\n  z-index: {1};\n}}"
     )
     top_css = (
-        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "#T_ {0} {{\n  position: sticky;\n  background-color: inherit;\n"
         "  top: {1}px;\n  z-index: {2};\n{3}}}"
     )
 
@@ -338,11 +338,11 @@ def test_sticky_mi(styler_mi, index, columns):
         styler_mi.set_sticky(axis=1)
 
     left_css = (
-        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "#T_ {0} {{\n  position: sticky;\n  background-color: inherit;\n"
         "  left: {1}px;\n  min-width: 75px;\n  max-width: 75px;\n  z-index: {2};\n}}"
     )
     top_css = (
-        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "#T_ {0} {{\n  position: sticky;\n  background-color: inherit;\n"
         "  top: {1}px;\n  height: 25px;\n  z-index: {2};\n}}"
     )
 
@@ -374,11 +374,11 @@ def test_sticky_levels(styler_mi, index, columns, levels):
         styler_mi.set_sticky(axis=1, levels=levels)
 
     left_css = (
-        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "#T_ {0} {{\n  position: sticky;\n  background-color: inherit;\n"
         "  left: {1}px;\n  min-width: 75px;\n  max-width: 75px;\n  z-index: {2};\n}}"
     )
     top_css = (
-        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "#T_ {0} {{\n  position: sticky;\n  background-color: inherit;\n"
         "  top: {1}px;\n  height: 25px;\n  z-index: {2};\n}}"
     )
 
