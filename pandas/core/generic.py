@@ -3544,7 +3544,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
-            For `Series` this parameter is unused and defaults to None.
+            For `Series` this parameter is unused and defaults to 0.
         is_copy : bool
             Before pandas 1.0, ``is_copy=False`` can be specified to ensure
             that the return value is an actual copy. Starting with pandas 1.0,
@@ -7484,7 +7484,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             threshold (e.g `NA`) will not clip the value.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Align object with lower and upper along the given axis.
-            For `Series` this parameter is unused and defaults to 0.
+            For `Series` this parameter is unused and defaults to None.
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         *args, **kwargs
