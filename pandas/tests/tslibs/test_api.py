@@ -52,6 +52,8 @@ def test_namespace():
         "tz_compare",
         "is_unitless",
         "astype_overflowsafe",
+        "get_unit_from_dtype",
+        "periods_per_day",
     ]
 
     expected = set(submodules + api)
