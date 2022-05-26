@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timestamp,
     delta_to_nanoseconds,
+    get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
@@ -44,7 +45,6 @@ from pandas._libs.tslibs.fields import (
     RoundTo,
     round_nsint64,
 )
-from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
     ArrayLike,
@@ -1807,7 +1807,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @cache_readonly
     def _reso(self) -> int:
-        return py_get_unit_from_dtype(self._ndarray.dtype)
+        return get_unit_from_dtype(self._ndarray.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (

@@ -26,11 +26,16 @@ __all__ = [
     "BaseOffset",
     "tz_compare",
     "is_unitless",
+    "get_unit_from_dtype",
+    "periods_per_day",
 ]
 
 from pandas._libs.tslibs import dtypes
 from pandas._libs.tslibs.conversion import localize_pydatetime
-from pandas._libs.tslibs.dtypes import Resolution
+from pandas._libs.tslibs.dtypes import (
+    Resolution,
+    periods_per_day,
+)
 from pandas._libs.tslibs.nattype import (
     NaT,
     NaTType,
@@ -41,6 +46,7 @@ from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
     is_unitless,
+    py_get_unit_from_dtype as get_unit_from_dtype,
 )
 from pandas._libs.tslibs.offsets import (
     BaseOffset,
