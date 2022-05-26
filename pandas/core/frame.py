@@ -3687,6 +3687,29 @@ class DataFrame(NDFrame, OpsMixin):
         loc = engine.get_loc(index)
         return series._values[loc]
 
+    def isetitem(self, loc, value) -> None:
+        """
+        Set the given value in the column with position 'loc'.
+
+        This is a positional analogue to __setitem__.
+
+        Parameters
+        ----------
+        loc : int or sequence of ints
+        value : scalar or arraylike
+
+        Notes
+        -----
+        Unlike `frame.iloc[:, i] = value`, `frame.isetitem(loc, value)` will
+        _never_ try to set the values in place, but will always insert a new
+        array.
+
+        In cases where `frame.columns` is unique, this is equivalent to
+        `frame[frame.columns[i]] = value`.
+        """
+        arraylike = self._sanitize_column(value)
+        self._iset_item_mgr(loc, arraylike, inplace=False)
+
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
 
@@ -5467,7 +5490,7 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax[i]]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res.iloc[:, i] = newobj
+                res._iset_item(i, newobj)
 
         if inplace:
             return
@@ -6256,8 +6279,7 @@ class DataFrame(NDFrame, OpsMixin):
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
             mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
         else:
-            if how is not no_default:
-                raise ValueError(f"invalid how option: {how}")
+            raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
             result = self.copy()
@@ -8027,9 +8049,6 @@ Parrot 2  Parrot       24.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
             obj=self,
             keys=by,
@@ -8038,7 +8057,7 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )

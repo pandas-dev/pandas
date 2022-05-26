@@ -1277,9 +1277,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 numeric_only = False
 
-        # error: Incompatible return value type (got "Union[bool, NoDefault]",
-        # expected "bool")
-        return numeric_only  # type: ignore[return-value]
+        return numeric_only
 
     def _maybe_warn_numeric_only_depr(
         self, how: str, result: DataFrame | Series, numeric_only: bool | lib.NoDefault
@@ -2257,7 +2255,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             counts = self.count()
             result_ilocs = result.columns.get_indexer_for(cols)
             count_ilocs = counts.columns.get_indexer_for(cols)
-            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
+            with warnings.catch_warnings():
+                # TODO(2.0): once iloc[:, foo] = bar depecation is enforced,
+                #  this catching will be unnecessary
+                warnings.filterwarnings(
+                    "ignore", ".*will attempt to set the values inplace.*"
+                )
+                result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final

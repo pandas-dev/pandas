@@ -1258,13 +1258,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             res_values = op(self.astype("O"), np.asarray(other))
 
         result = pd_array(res_values.ravel())
-        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
-        # "reshape"
-        result = extract_array(
-            result, extract_numpy=True
-        ).reshape(  # type: ignore[union-attr]
-            self.shape
-        )
+        result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
     def _time_shift(

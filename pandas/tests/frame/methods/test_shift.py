@@ -354,17 +354,23 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(df, rs)
 
-    def test_shift_duplicate_columns(self):
+    def test_shift_duplicate_columns(self, using_array_manager):
         # GH#9092; verify that position-based shifting works
         # in the presence of duplicate columns
         column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
         data = np.random.randn(20, 5)
 
+        warn = None
+        if using_array_manager:
+            warn = FutureWarning
+
         shifted = []
         for columns in column_lists:
             df = DataFrame(data.copy(), columns=columns)
             for s in range(5):
-                df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
+                msg = "will attempt to set the values inplace"
+                with tm.assert_produces_warning(warn, match=msg):
+                    df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
             df.columns = range(5)
             shifted.append(df)
 
