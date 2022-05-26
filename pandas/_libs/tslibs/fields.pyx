@@ -56,7 +56,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def build_field_sarray(const int64_t[:] dtindex):
+def build_field_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     """
     Datetime as int64 representation to a structured array of fields
     """
@@ -86,7 +86,7 @@ def build_field_sarray(const int64_t[:] dtindex):
     mus = out['u']
 
     for i in range(count):
-        dt64_to_dtstruct(dtindex[i], &dts)
+        pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
         years[i] = dts.year
         months[i] = dts.month
         days[i] = dts.day
@@ -565,7 +565,7 @@ cpdef isleapyear_arr(ndarray years):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso=NPY_FR_ns):
+def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     """
     Given a int64-based datetime array, return the ISO 8601 year, week, and day
     as a structured array.
