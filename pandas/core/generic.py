@@ -808,6 +808,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 0 or 'index': remove level(s) in column.
             * 1 or 'columns': remove level(s) in row.
 
+            For `Series` this parameter is unused and defaults to 0.
+
         Returns
         -------
         {klass}
@@ -876,7 +878,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         axis : {0 or 'index', 1 or 'columns', None}, default None
             A specific axis to squeeze. By default, all length-1 axes are
-            squeezed.
+            squeezed. For `Series` this parameter is unused and defaults to None.
 
         Returns
         -------
@@ -1064,7 +1066,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to rename.
+            The axis to rename. For `Series` this parameter is unused and defaults to 0.
         copy : bool, default True
             Also copy underlying data.
         inplace : bool, default False
@@ -3542,6 +3544,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
+            For `Series` this parameter is unused and defaults to None.
         is_copy : bool
             Before pandas 1.0, ``is_copy=False`` can be specified to ensure
             that the return value is an actual copy. Starting with pandas 1.0,
@@ -5087,8 +5090,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Keep labels from axis for which re.search(regex, label) == True.
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             The axis to filter on, expressed either as an index (int)
-            or axis name (str). By default this is the info axis,
-            'index' for Series, 'columns' for DataFrame.
+            or axis name (str). By default this is the info axis, 'columns' for DataFrame.
+            For `Series` this parameter is unused and defaults to None.
 
         Returns
         -------
@@ -5372,7 +5375,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
-            for given data type (0 for Series and DataFrames).
+            for given data type. For `Series` this parameter is unused and defaults to None.
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
@@ -7747,6 +7750,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         time : datetime.time or str
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            For `Series` this parameter is unused and defaults to 0.
 
         Returns
         -------
@@ -7833,6 +7837,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Include boundaries; whether to set each bound as closed or open.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine range time on index or columns value.
+            For `Series` this parameter is unused and defaults to 0.
 
         Returns
         -------
@@ -8524,6 +8529,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Index to direct ranking.
+            For `Series` this parameter is unused and defaults to 0.
         method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
             How to rank the group of records that have the same value (i.e. ties):
 
@@ -9581,6 +9587,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         periods : int
             Number of periods to move, can be positive or negative.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            For `Series` this parameter is unused and defaults to 0.
 
         Returns
         -------
@@ -9632,6 +9640,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             or time rule expressed as a string (e.g. 'EOM').
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default 0
             Corresponds to the axis that contains the Index.
+            For `Series` this parameter is unused and defaults to 0.
 
         Returns
         -------
@@ -10897,6 +10906,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         axis : {axis_descr}
             Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to 0.
         skipna : bool, default True
             Exclude NA/null values when computing the result.
         level : int or level name, default None
@@ -11555,6 +11565,7 @@ Parameters
 ----------
 axis : {axis_descr}
     Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
@@ -11779,6 +11790,7 @@ Parameters
 ----------
 axis : {{0 or 'index', 1 or 'columns'}}, default 0
     The index or the name of the axis. 0 is equivalent to None or 'index'.
+    For `Series` this parameter is unused and defaults to 0.
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
