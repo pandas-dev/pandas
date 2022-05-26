@@ -257,7 +257,7 @@ class SpecificationError(Exception):
     --------
     >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
     ...                    'B': range(5),
-    ...                    'C':range(5)})
+    ...                    'C': range(5)})
     >>> df.groupby('A').B.agg({'foo': 'count'}) # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
