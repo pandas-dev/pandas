@@ -64,7 +64,6 @@ class StringDtype(StorageExtensionDtype):
        StringDtype is considered experimental. The implementation and
        parts of the API may change without warning.
 
-
     Parameters
     ----------
     storage : {"python", "pyarrow"}, optional
