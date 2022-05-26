@@ -5090,8 +5090,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Keep labels from axis for which re.search(regex, label) == True.
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             The axis to filter on, expressed either as an index (int)
-            or axis name (str). By default this is the info axis, 'columns' for DataFrame.
-            For `Series` this parameter is unused and defaults to None.
+            or axis name (str). By default this is the info axis, 'columns' for
+            DataFrame.For `Series` this parameter is unused and defaults to None.
 
         Returns
         -------
