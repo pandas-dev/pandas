@@ -264,13 +264,6 @@ We can use Dask's ``read_parquet`` function, but provide a globstring of files t
    ddf = dd.read_parquet("data/timeseries/ts*.parquet", engine="pyarrow")
    ddf
 
-.. ipython:: python
-   :suppress:
-
-   import shutil
-
-   shutil.rmtree("data/timeseries")
-
 Inspecting the ``ddf`` object, we see a few things
 
 * There are familiar attributes like ``.columns`` and ``.dtypes``
@@ -384,6 +377,13 @@ out of memory. At that point it's just a regular pandas object.
 
    @savefig dask_resample.png
    ddf[["x", "y"]].resample("1D").mean().cumsum().compute().plot()
+
+.. ipython:: python
+   :suppress:
+
+   import shutil
+
+   shutil.rmtree("data/timeseries")
 
 These Dask examples have all be done using multiple processes on a single
 machine. Dask can be `deployed on a cluster
