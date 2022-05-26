@@ -1,4 +1,3 @@
-import pickle
 import re
 
 import numpy as np
@@ -836,15 +835,6 @@ class TestIntervalDtype(Base):
             FutureWarning, match=msg, check_stacklevel=False
         ):
             IntervalDtype("int64", closed="right")
-
-    def test_interval_dtype_with_pickle(self):
-        i = IntervalDtype(subtype="int64", inclusive="right")
-        dumps_i = pickle.dumps(i)
-        loads_i = pickle.loads(dumps_i)
-
-        assert loads_i.subtype == np.dtype("int64")
-        assert loads_i.inclusive == "right"
-        assert is_interval_dtype(loads_i)
 
 
 class TestCategoricalDtypeParametrized:

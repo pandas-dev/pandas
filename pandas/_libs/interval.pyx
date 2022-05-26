@@ -217,12 +217,12 @@ def _warning_interval(inclusive: str | None = None, closed: lib.NoDefault = lib.
     """
     warning in interval class for variable inclusive and closed
     """
-    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+    if inclusive is not None and closed != lib.no_default:
         raise ValueError(
             "Deprecated argument `closed` cannot be passed "
             "if argument `inclusive` is not None"
         )
-    elif not isinstance(closed, lib.NoDefault):
+    elif closed != lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
