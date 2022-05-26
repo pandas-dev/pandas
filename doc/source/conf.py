@@ -61,6 +61,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "sphinx.ext.intersphinx",
     "sphinx.ext.coverage",
+    "sphinx_copybutton",  # helps add a little “copy” button to the right of your code blocks
     "sphinx.ext.mathjax",
     "sphinx.ext.ifconfig",
     "sphinx.ext.linkcode",
