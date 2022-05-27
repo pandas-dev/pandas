@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SpecificationError
+
 from pandas import (
     DataFrame,
     Index,
@@ -13,7 +15,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 
 
 def test_getitem(step):
