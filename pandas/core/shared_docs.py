@@ -101,7 +101,8 @@ by : mapping, function, label, or list of labels
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
-    Split along rows (0) or columns (1).
+    Split along rows (0) or columns (1). For `Series` this parameter
+    is unused and defaults to 0.
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels.

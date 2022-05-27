@@ -922,6 +922,8 @@ class Window(BaseWindow):
 
         If ``1`` or ``'columns'``, roll across the columns.
 
+        For `Series` this parameter is unused and defaults to 0.
+
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
 
