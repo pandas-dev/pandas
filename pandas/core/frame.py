@@ -9583,7 +9583,7 @@ Parrot 2  Parrot       24.0
                     "Suffixes not supported when joining multiple DataFrames"
                 )
 
-            frames = [self] + list(other)
+            frames: list[Series | DataFrame] = [self] + list(other)
 
             can_concat = all(df.index.is_unique for df in frames)
 
