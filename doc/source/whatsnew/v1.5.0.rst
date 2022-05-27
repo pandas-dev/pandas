@@ -809,6 +809,7 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 - Bug in :func:`read_html` where elements surrounding ``<br>`` were joined without a space between them (:issue:`29528`)
+- Bug in :func:`read_csv` when data is longer than header leading to issues with callables in ``usecols`` expecting strings (:issue:`46997`)
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
 - Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
@@ -855,7 +856,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
 - Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 - Bug in :meth:`.DataFrameGroupBy.describe` and :meth:`.SeriesGroupBy.describe` produces inconsistent results for empty datasets (:issue:`41575`)
--
+- Bug in :meth:`DataFrame.resample` reduction methods when used with ``on`` would attempt to aggregate the provided column (:issue:`47079`)
 
 Reshaping
 ^^^^^^^^^
