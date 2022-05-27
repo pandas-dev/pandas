@@ -10,7 +10,6 @@ import gzip
 from io import (
     BufferedIOBase,
     BytesIO,
-    FileIO,
     RawIOBase,
     StringIO,
     TextIOBase,
@@ -114,11 +113,8 @@ class IOHandles(Generic[AnyStr]):
             self.handle.flush()
             self.handle.detach()
             self.created_handles.remove(self.handle)
-        try:
-            for handle in self.created_handles:
-                handle.close()
-        except (OSError, ValueError):
-            pass
+        for handle in self.created_handles:
+            handle.close()
         self.created_handles = []
         self.is_wrapped = False
 
@@ -763,21 +759,20 @@ def get_handle(
 
         # TAR Encoding
         elif compression == "tar":
-            if "mode" not in compression_args:
-                compression_args["mode"] = ioargs.mode
-            if is_path:
-                handle = _BytesTarFile.open(name=handle, **compression_args)
+            compression_args.setdefault("mode", ioargs.mode)
+            if isinstance(handle, str):
+                handle = _BytesTarFile(name=handle, **compression_args)
             else:
-                handle = _BytesTarFile.open(fileobj=handle, **compression_args)
+                handle = _BytesTarFile(fileobj=handle, **compression_args)
             assert isinstance(handle, _BytesTarFile)
-            if handle.mode == "r":
+            if "r" in handle.tar_buffer.mode:
                 handles.append(handle)
-                files = handle.getnames()
+                files = handle.tar_buffer.getnames()
                 if len(files) == 1:
-                    file = handle.extractfile(files[0])
+                    file = handle.tar_buffer.extractfile(files[0])
                     assert file is not None
                     handle = file
-                elif len(files) == 0:
+                elif not files:
                     raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
                 else:
                     raise ValueError(
@@ -876,114 +871,72 @@ def get_handle(
     )
 
 
-# error: Definition of "__exit__" in base class "TarFile" is incompatible with
-# definition in base class "BytesIO"  [misc]
-# error: Definition of "__enter__" in base class "TarFile" is incompatible with
-# definition in base class "BytesIO"  [misc]
-# error: Definition of "__enter__" in base class "TarFile" is incompatible with
-# definition in base class "BinaryIO"  [misc]
-# error: Definition of "__enter__" in base class "TarFile" is incompatible with
-# definition in base class "IO"  [misc]
-# error: Definition of "read" in base class "TarFile" is incompatible with
-# definition in base class "BytesIO"  [misc]
-# error: Definition of "read" in base class "TarFile" is incompatible with
-# definition in base class "IO"  [misc]
-class _BytesTarFile(tarfile.TarFile, BytesIO):  # type: ignore[misc]
+class _BytesTarFile(BytesIO):
     """
     Wrapper for standard library class TarFile and allow the returned file-like
     handle to accept byte strings via `write` method.
 
-    BytesIO provides attributes of file-like object and TarFile.addfile writes
-    bytes strings into a member of the archive.
+    Note: technically only needed when writing to a tar file.
     """
 
     # GH 17778
     def __init__(
         self,
-        name: str | bytes | os.PathLike[str] | os.PathLike[bytes],
-        mode: Literal["r", "a", "w", "x"],
-        fileobj: FileIO,
+        name: str | None = None,
+        mode: Literal["r", "a", "w", "x"] = "r",
+        fileobj: BaseBuffer | None = None,
         archive_name: str | None = None,
         **kwargs,
-    ):
+    ) -> None:
+        super().__init__()
         self.archive_name = archive_name
-        self.multiple_write_buffer: BytesIO | None = None
-        self._closing = False
+        self.name = name
+        self.tar_buffer = tarfile.TarFile.open(
+            name=name, mode=self.extend_mode(mode), fileobj=fileobj, **kwargs
+        )
 
-        super().__init__(name=name, mode=mode, fileobj=fileobj, **kwargs)
-
-    @classmethod
-    def open(cls, name=None, mode="r", **kwargs):
+    def extend_mode(self, mode: str) -> str:
         mode = mode.replace("b", "")
-        return super().open(name=name, mode=cls.extend_mode(name, mode), **kwargs)
-
-    @classmethod
-    def extend_mode(
-        cls, name: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], mode: str
-    ) -> str:
         if mode != "w":
             return mode
-        if isinstance(name, (os.PathLike, str)):
-            filename = Path(name)
-            if filename.suffix == ".gz":
-                return mode + ":gz"
-            elif filename.suffix == ".xz":
-                return mode + ":xz"
-            elif filename.suffix == ".bz2":
-                return mode + ":bz2"
+        if self.name is not None:
+            suffix = Path(self.name).suffix
+            if suffix in (".gz", ".xz", ".bz2"):
+                mode = f"{mode}:{suffix[1:]}"
         return mode
 
-    def infer_filename(self):
+    def infer_filename(self) -> str | None:
         """
         If an explicit archive_name is not given, we still want the file inside the zip
         file not to be named something.tar, because that causes confusion (GH39465).
         """
-        if isinstance(self.name, (os.PathLike, str)):
-            # error: Argument 1 to "Path" has
-            # incompatible type "Union[str, PathLike[str], PathLike[bytes]]";
-            # expected "Union[str, PathLike[str]]"  [arg-type]
-            filename = Path(self.name)  # type: ignore[arg-type]
-            if filename.suffix == ".tar":
-                return filename.with_suffix("").name
-            if filename.suffix in [".tar.gz", ".tar.bz2", ".tar.xz"]:
-                return filename.with_suffix("").with_suffix("").name
-            return filename.name
-        return None
+        if self.name is None:
+            return None
 
-    def write(self, data):
-        # buffer multiple write calls, write on flush
-        if self.multiple_write_buffer is None:
-            self.multiple_write_buffer = BytesIO()
-        self.multiple_write_buffer.write(data)
+        filename = Path(self.name)
+        if filename.suffix == ".tar":
+            return filename.with_suffix("").name
+        elif filename.suffix in (".tar.gz", ".tar.bz2", ".tar.xz"):
+            return filename.with_suffix("").with_suffix("").name
+        return filename.name
 
-    def flush(self) -> None:
-        # write to actual handle and close write buffer
-        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
+    def close(self) -> None:
+        if self.closed:
+            # already closed
             return
-
-        # TarFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "tar"
-        with self.multiple_write_buffer:
-            value = self.multiple_write_buffer.getvalue()
+        if self.getvalue():
+            # need to write data to tar file
+            # TarFile needs a non-empty string
+            archive_name = self.archive_name or self.infer_filename() or "tar"
             tarinfo = tarfile.TarInfo(name=archive_name)
-            tarinfo.size = len(value)
-            self.addfile(tarinfo, BytesIO(value))
-
-    def close(self):
-        self.flush()
+            tarinfo.size = len(self.getvalue())
+            self.seek(0)
+            with self.tar_buffer:
+                self.tar_buffer.addfile(tarinfo, self)
+        else:
+            # were reading from tar file
+            self.tar_buffer.close()
         super().close()
-
-    @property
-    def closed(self):
-        if self.multiple_write_buffer is None:
-            return False
-        return self.multiple_write_buffer.closed and super().closed
-
-    @closed.setter
-    def closed(self, value):
-        if not self._closing and value:
-            self._closing = True
-            self.close()
 
 
 # error: Definition of "__exit__" in base class "ZipFile" is incompatible with
