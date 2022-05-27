@@ -80,6 +80,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
+from pandas.core import common as com
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
     array as pd_array,
@@ -580,7 +581,8 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int | None = -1,
+    na_sentinel: int | None | lib.NoDefault = lib.no_default,
+    use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     size_hint: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray | Index]:
     """
@@ -595,10 +597,22 @@ def factorize(
     ----------
     {values}{sort}
     na_sentinel : int or None, default -1
-        Value to mark "not found". If None, will not drop the NaN
-        from the uniques of the values.
+        Value to mark "not found". If None, NaN values will be encoded as positive
+        integers and will not drop the NaN from the uniques of the values.
+
+        .. deprecated:: 1.5.0
+            Specifying the specific value to use for na_sentinel is deprecated and
+            will be removed in a future version of pandas. Specify use_na_sentinel as
+            either True or False.
 
         .. versionchanged:: 1.1.2
+
+    use_na_sentinel : bool, default True
+        If True, the sentinel -1 will be used for NaN values. If False,
+        NaN values will be encoded as non-negative integers and will not drop the
+        NaN from the uniques of the values.
+
+        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -706,7 +720,13 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
+    # Can't always warn here because EA's factorize will warn too; warn for each
+    # path below.
+    passed_na_sentinel = na_sentinel
+    na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel, warn=False)
     if isinstance(values, ABCRangeIndex):
+        # Emit warning if appropriate
+        _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
         return values.factorize(sort=sort)
 
     values = _ensure_arraylike(values)
@@ -725,15 +745,30 @@ def factorize(
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
         and values.freq is not None
     ):
+        # Emit warning if appropriate
+        _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
         # The presence of 'freq' means we can fast-path sorting and know there
         #  aren't NAs
         codes, uniques = values.factorize(sort=sort)
         return _re_wrap_factorize(original, uniques, codes)
 
-    if not isinstance(values.dtype, np.dtype):
+    elif not isinstance(values.dtype, np.dtype):
         # i.e. ExtensionDtype
-        codes, uniques = values.factorize(na_sentinel=na_sentinel)
+        if passed_na_sentinel is lib.no_default:
+            # User didn't specify na_sentinel; avoid warning. Note EA path always
+            # uses a na_sentinel value.
+            codes, uniques = values.factorize(use_na_sentinel=True)
+        elif passed_na_sentinel is None:
+            # Emit the appropriate warning message for None
+            _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
+            codes, uniques = values.factorize(use_na_sentinel=True)
+        else:
+            # EA.factorize will warn
+            codes, uniques = values.factorize(na_sentinel=na_sentinel)
+
     else:
+        # Generate warning for na_sentile if appropriate
+        _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
         codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint
