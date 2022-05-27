@@ -59,6 +59,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms as algos,
     arraylike,
+    common as com,
     missing,
     nanops,
     ops,
@@ -869,7 +870,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        resolved_na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        if resolved_na_sentinel is None:
+            raise NotImplementedError("Encoding NaN values is not yet implemented")
+        else:
+            na_sentinel = resolved_na_sentinel
         arr = self._data
         mask = self._mask
 

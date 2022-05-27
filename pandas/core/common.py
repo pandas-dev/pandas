@@ -708,3 +708,52 @@ def deprecate_numeric_only_default(cls: type, name: str, deprecate_none: bool = 
     )
 
     warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
+
+def resolve_na_sentinel(
+    na_sentinel: int | None | lib.NoDefault,
+    use_na_sentinel: bool | lib.NoDefault,
+    warn: bool = True,
+) -> int | None:
+    """Determine value of na_sentinel for factorize methods.
+
+    See GH#46910 for details on the deprecation.
+
+    Parameters
+    ----------
+    na_sentinel : bool, int, None, or lib.no_default
+        Value passed to the method.
+
+    Returns
+    -------
+    Resolved value of na_sentinel.
+    """
+    if na_sentinel is not lib.no_default and use_na_sentinel is not lib.no_default:
+        raise ValueError(
+            "Cannot specify both na_sentinel and use_na_sentile; "
+            f"got na_sentinel={na_sentinel} and use_na_sentinel={use_na_sentinel}"
+        )
+    if na_sentinel is lib.no_default:
+        result = -1 if use_na_sentinel is lib.no_default or use_na_sentinel else None
+    else:
+        if warn:
+            if na_sentinel is None:
+                msg = (
+                    "Specifying na_sentinel=None is deprecated, specify "
+                    "use_na_sentinel=False instead."
+                )
+            elif na_sentinel == -1:
+                msg = (
+                    "Specifying na_sentinel=-1 is deprecated, specify "
+                    "use_na_sentinel=True instead."
+                )
+            else:
+                msg = (
+                    "Specifying the specific value to use for na_sentinel is "
+                    "deprecated and will be removed in a future version of pandas. "
+                    "Specify na_sentinel=True to use the sentinel value -1, and "
+                    "na_sentinel=False to encode NaN values."
+                )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        result = na_sentinel
+    return result

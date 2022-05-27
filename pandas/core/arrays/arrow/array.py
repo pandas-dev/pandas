@@ -8,6 +8,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import (
     TakeIndexer,
     npt,
@@ -28,6 +29,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import common as com
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
@@ -122,7 +124,16 @@ class ArrowExtensionArray(ExtensionArray):
             return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        resolved_na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        if resolved_na_sentinel is None:
+            raise NotImplementedError("Encoding NaN values is not yet implemented")
+        else:
+            na_sentinel = resolved_na_sentinel
         encoded = self._data.dictionary_encode()
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type

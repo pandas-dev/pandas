@@ -681,13 +681,9 @@ class Grouping:
             codes = self.grouping_vector.codes_info
             uniques = self.grouping_vector.result_index._values
         else:
-            # GH35667, replace dropna=False with na_sentinel=None
-            if not self._dropna:
-                na_sentinel = None
-            else:
-                na_sentinel = -1
+            # GH35667, replace dropna=False with use_na_sentinel=False
             codes, uniques = algorithms.factorize(
-                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
+                self.grouping_vector, sort=self._sort, use_na_sentinel=self._dropna
             )
         return codes, uniques
 
