@@ -95,11 +95,12 @@ New features
 
   - Enable referencing of Excel columns by their column names (:issue:`1936`)
 
-    .. ipython:: python
+    .. code-block:: ipython
 
-        xl = pd.ExcelFile('data/test.xls')
-        xl.parse('Sheet1', index_col=0, parse_dates=True,
-                 parse_cols='A:D')
+       In [1]: xl = pd.ExcelFile('data/test.xls')
+
+       In [2]: xl.parse('Sheet1', index_col=0, parse_dates=True,
+                        parse_cols='A:D')
 
 
   - Added option to disable pandas-style tick locators and formatters

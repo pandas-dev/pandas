@@ -842,12 +842,9 @@ input text data into ``datetime`` objects.
 The simplest case is to just pass in ``parse_dates=True``:
 
 .. ipython:: python
-   :suppress:
 
    with open("foo.csv", mode="w") as f:
        f.write("date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5")
-
-.. ipython:: python
 
    # Use a column as an index, and parse it as dates.
    df = pd.read_csv("foo.csv", index_col=0, parse_dates=True)
@@ -866,7 +863,6 @@ order) and the new column names will be the concatenation of the component
 column names:
 
 .. ipython:: python
-   :suppress:
 
    data = (
        "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -880,9 +876,6 @@ column names:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-.. ipython:: python
-
-    print(open("tmp.csv").read())
     df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
     df
 
@@ -1062,18 +1055,19 @@ While US date formats tend to be MM/DD/YYYY, many international formats use
 DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 
 .. ipython:: python
-   :suppress:
 
    data = "date,value,cat\n1/6/2000,5,a\n2/6/2000,10,b\n3/6/2000,15,c"
+   print(data)
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-.. ipython:: python
-
-   print(open("tmp.csv").read())
-
    pd.read_csv("tmp.csv", parse_dates=[0])
    pd.read_csv("tmp.csv", dayfirst=True, parse_dates=[0])
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("tmp.csv")
 
 Writing CSVs to binary file objects
 +++++++++++++++++++++++++++++++++++
@@ -1137,8 +1131,9 @@ For large numbers that have been written with a thousands separator, you can
 set the ``thousands`` keyword to a string of length 1 so that integers will be parsed
 correctly:
 
+By default, numbers with a thousands separator will be parsed as strings:
+
 .. ipython:: python
-   :suppress:
 
    data = (
        "ID|level|category\n"
@@ -1150,11 +1145,6 @@ correctly:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-By default, numbers with a thousands separator will be parsed as strings:
-
-.. ipython:: python
-
-    print(open("tmp.csv").read())
     df = pd.read_csv("tmp.csv", sep="|")
     df
 
@@ -1164,7 +1154,6 @@ The ``thousands`` keyword allows integers to be parsed correctly:
 
 .. ipython:: python
 
-    print(open("tmp.csv").read())
     df = pd.read_csv("tmp.csv", sep="|", thousands=",")
     df
 
@@ -1243,15 +1232,12 @@ as a ``Series``:
    ``read_csv`` instead.
 
 .. ipython:: python
-   :suppress:
+   :okwarning:
 
    data = "level\nPatient1,123000\nPatient2,23000\nPatient3,1234018"
 
    with open("tmp.csv", "w") as fh:
        fh.write(data)
-
-.. ipython:: python
-   :okwarning:
 
    print(open("tmp.csv").read())
 
@@ -1369,15 +1355,11 @@ The ``dialect`` keyword gives greater flexibility in specifying the file format.
 By default it uses the Excel dialect but you can specify either the dialect name
 or a :class:`python:csv.Dialect` instance.
 
-.. ipython:: python
-   :suppress:
-
-   data = "label1,label2,label3\n" 'index1,"a,c,e\n' "index2,b,d,f"
-
 Suppose you had data with unenclosed quotes:
 
 .. ipython:: python
 
+   data = "label1,label2,label3\n" 'index1,"a,c,e\n' "index2,b,d,f"
    print(data)
 
 By default, ``read_csv`` uses the Excel dialect and treats the double quote as
@@ -1453,8 +1435,9 @@ a different usage of the ``delimiter`` parameter:
   Can be used to specify the filler character of the fields
   if it is not spaces (e.g., '~').
 
+Consider a typical fixed-width data file:
+
 .. ipython:: python
-   :suppress:
 
    data1 = (
        "id8141    360.242940   149.910199   11950.7\n"
@@ -1465,12 +1448,6 @@ a different usage of the ``delimiter`` parameter:
    )
    with open("bar.csv", "w") as f:
        f.write(data1)
-
-Consider a typical fixed-width data file:
-
-.. ipython:: python
-
-   print(open("bar.csv").read())
 
 In order to parse this file into a ``DataFrame``, we simply need to supply the
 column specifications to the ``read_fwf`` function along with the file name:
@@ -1526,19 +1503,15 @@ Indexes
 Files with an "implicit" index column
 +++++++++++++++++++++++++++++++++++++
 
-.. ipython:: python
-   :suppress:
-
-   f = open("foo.csv", "w")
-   f.write("A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5")
-   f.close()
-
 Consider a file with one less entry in the header than the number of data
 column:
 
 .. ipython:: python
 
-   print(open("foo.csv").read())
+   data = "A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5"
+   print(data)
+   with open("foo.csv", "w") as f:
+       f.write(data)
 
 In this special case, ``read_csv`` assumes that the first column is to be used
 as the index of the ``DataFrame``:
@@ -1570,7 +1543,10 @@ Suppose you have data indexed by two columns:
 
 .. ipython:: python
 
-   print(open("data/mindex_ex.csv").read())
+   data = 'year,indiv,zit,xit\n1977,"A",1.2,.6\n1977,"B",1.5,.5'
+   print(data)
+   with open("mindex_ex.csv", mode="w") as f:
+       f.write(data)
 
 The ``index_col`` argument to ``read_csv`` can take a list of
 column numbers to turn multiple columns into a ``MultiIndex`` for the index of the
@@ -1578,9 +1554,14 @@ returned object:
 
 .. ipython:: python
 
-   df = pd.read_csv("data/mindex_ex.csv", index_col=[0, 1])
+   df = pd.read_csv("mindex_ex.csv", index_col=[0, 1])
    df
-   df.loc[1978]
+   df.loc[1977]
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("mindex_ex.csv")
 
 .. _io.multi_index_columns:
 
@@ -1604,15 +1585,12 @@ rows will skip the intervening rows.
 of multi-columns indices.
 
 .. ipython:: python
-   :suppress:
 
    data = ",a,a,a,b,c,c\n,q,r,s,t,u,v\none,1,2,3,4,5,6\ntwo,7,8,9,10,11,12"
+   print(data)
    with open("mi2.csv", "w") as fh:
        fh.write(data)
 
-.. ipython:: python
-
-   print(open("mi2.csv").read())
    pd.read_csv("mi2.csv", header=[0, 1], index_col=0)
 
 Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
@@ -1634,16 +1612,16 @@ comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
 class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
-   :suppress:
 
    df = pd.DataFrame(np.random.randn(10, 4))
-   df.to_csv("tmp.sv", sep="|")
-   df.to_csv("tmp2.sv", sep=":")
+   df.to_csv("tmp.csv", sep="|")
+   df.to_csv("tmp2.csv", sep=":")
+   pd.read_csv("tmp2.csv", sep=None, engine="python")
 
 .. ipython:: python
+   :suppress:
 
-   print(open("tmp2.sv").read())
-   pd.read_csv("tmp2.sv", sep=None, engine="python")
+   os.remove("tmp2.csv")
 
 .. _io.multiple_files:
 
@@ -1664,8 +1642,9 @@ rather than reading the entire file into memory, such as the following:
 
 .. ipython:: python
 
-   print(open("tmp.sv").read())
-   table = pd.read_csv("tmp.sv", sep="|")
+   df = pd.DataFrame(np.random.randn(10, 4))
+   df.to_csv("tmp.csv", sep="|")
+   table = pd.read_csv("tmp.csv", sep="|")
    table
 
 
@@ -1674,7 +1653,7 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.sv", sep="|", chunksize=4) as reader:
+   with pd.read_csv("tmp.csv", sep="|", chunksize=4) as reader:
        reader
        for chunk in reader:
            print(chunk)
@@ -1687,14 +1666,13 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.sv", sep="|", iterator=True) as reader:
+   with pd.read_csv("tmp.csv", sep="|", iterator=True) as reader:
        reader.get_chunk(5)
 
 .. ipython:: python
    :suppress:
 
-   os.remove("tmp.sv")
-   os.remove("tmp2.sv")
+   os.remove("tmp.csv")
 
 Specifying the parser engine
 ''''''''''''''''''''''''''''
@@ -2596,27 +2574,38 @@ Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
 
 .. ipython:: python
-   :suppress:
 
-   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "html",
-                           "banklist.html")
-   file_path = os.path.abspath(rel_path)
+   html_str = """
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th colspan="1">B</th>
+                    <th rowspan="1">C</th>
+                </tr>
+                <tr>
+                    <td>a</td>
+                    <td>b</td>
+                    <td>c</td>
+                </tr>
+            </table>
+        """
+
+   with open("tmp.html", "w") as f:
+       f.write(html_str)
+   df = pd.read_html("tmp.html")
+   df[0]
 
 .. ipython:: python
+   :suppress:
 
-   with open(file_path, "r") as f:
-       dfs = pd.read_html(f.read())
-   dfs
+   os.remove("tmp.html")
 
 You can even pass in an instance of ``StringIO`` if you so desire:
 
 .. ipython:: python
 
-   with open(file_path, "r") as f:
-       sio = StringIO(f.read())
-
-   dfs = pd.read_html(sio)
-   dfs
+   dfs = pd.read_html(StringIO(html_str))
+   dfs[0]
 
 .. note::
 
@@ -2750,77 +2739,48 @@ in the method ``to_string`` described above.
    brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
    full set of options.
 
-.. ipython:: python
-   :suppress:
+.. note::
 
-   def write_html(df, filename, *args, **kwargs):
-       static = os.path.abspath(os.path.join("source", "_static"))
-       with open(os.path.join(static, filename + ".html"), "w") as f:
-           df.to_html(f, *args, **kwargs)
+   In an HTML-rendering supported environment like a Jupyter Notebook, ``display(HTML(...))```
+   will render the raw HTML into the environment.
 
 .. ipython:: python
+
+   from IPython.display import display, HTML
 
    df = pd.DataFrame(np.random.randn(2, 2))
    df
-   print(df.to_html())  # raw html
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "basic")
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/basic.html
+   html = df.to_html()
+   print(html)  # raw html
+   display(HTML(html))
 
 The ``columns`` argument will limit the columns shown:
 
 .. ipython:: python
 
-   print(df.to_html(columns=[0]))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "columns", columns=[0])
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/columns.html
+   html = df.to_html(columns=[0])
+   print(html)
+   display(HTML(html))
 
 ``float_format`` takes a Python callable to control the precision of floating
 point values:
 
 .. ipython:: python
 
-   print(df.to_html(float_format="{0:.10f}".format))
+   html = df.to_html(float_format="{0:.10f}".format)
+   print(html)
+   display(HTML(html))
 
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "float_format", float_format="{0:.10f}".format)
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/float_format.html
 
 ``bold_rows`` will make the row labels bold by default, but you can turn that
 off:
 
 .. ipython:: python
 
-   print(df.to_html(bold_rows=False))
+   html = df.to_html(bold_rows=False)
+   print(html)
+   display(HTML(html))
 
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "nobold", bold_rows=False)
-
-.. raw:: html
-   :file: ../_static/nobold.html
 
 The ``classes`` argument provides the ability to give the resulting HTML
 table CSS classes. Note that these classes are *appended* to the existing
@@ -2841,17 +2801,9 @@ that contain URLs.
            "url": ["https://www.python.org/", "https://pandas.pydata.org"],
        }
    )
-   print(url_df.to_html(render_links=True))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(url_df, "render_links", render_links=True)
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/render_links.html
+   html = url_df.to_html(render_links=True)
+   print(html)
+   display(HTML(html))
 
 Finally, the ``escape`` argument allows you to control whether the
 "<", ">" and "&" characters escaped in the resulting HTML (by default it is
@@ -2861,30 +2813,21 @@ Finally, the ``escape`` argument allows you to control whether the
 
    df = pd.DataFrame({"a": list("&<>"), "b": np.random.randn(3)})
 
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "escape")
-   write_html(df, "noescape", escape=False)
-
 Escaped:
 
 .. ipython:: python
 
-   print(df.to_html())
-
-.. raw:: html
-   :file: ../_static/escape.html
+   html = df.to_html()
+   print(html)
+   display(HTML(html))
 
 Not escaped:
 
 .. ipython:: python
 
-   print(df.to_html(escape=False))
-
-.. raw:: html
-   :file: ../_static/noescape.html
+   html = df.to_html(escape=False)
+   print(html)
+   display(HTML(html))
 
 .. note::
 
@@ -3064,13 +3007,10 @@ Read in the content of the "books.xml" file and pass it to ``read_xml``
 as a string:
 
 .. ipython:: python
-   :suppress:
 
-   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "xml",
-                           "books.xml")
-   file_path = os.path.abspath(rel_path)
-
-.. ipython:: python
+   file_path = "books.xml"
+   with open(file_path, "w") as f:
+       f.write(xml)
 
    with open(file_path, "r") as f:
        df = pd.read_xml(f.read())
@@ -3129,6 +3069,11 @@ Specify only elements or only attributes to parse:
 
    df = pd.read_xml(file_path, attrs_only=True)
    df
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("books.xml")
 
 XML documents can have namespaces with prefixes and default namespaces without
 prefixes both of which are denoted with a special attribute ``xmlns``. In order
@@ -5717,7 +5662,6 @@ the database using :func:`~pandas.DataFrame.to_sql`.
 
 
 .. ipython:: python
-   :suppress:
 
    import datetime
 
@@ -5730,10 +5674,8 @@ the database using :func:`~pandas.DataFrame.to_sql`.
 
    data = pd.DataFrame(d, columns=c)
 
-.. ipython:: python
-
-    data
-    data.to_sql("data", engine)
+   data
+   data.to_sql("data", engine)
 
 With some databases, writing large DataFrames can result in errors due to
 packet size limitations being exceeded. This can be avoided by setting the
