@@ -272,12 +272,28 @@ def test_combined_up_downsampling_of_irregular():
     tm.assert_series_equal(result, expected)
 
 
-def test_transform():
-
+def test_transform_series():
     r = test_series.resample("20min")
     expected = test_series.groupby(pd.Grouper(freq="20min")).transform("mean")
     result = r.transform("mean")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("on", [None, "date"])
+def test_transform_frame(on):
+    # GH#47079
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+    index.name = "date"
+    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    expected = df.groupby(pd.Grouper(freq="20min")).transform("mean")
+    if on == "date":
+        # Move date to being a column; result will then have a RangeIndex
+        expected = expected.reset_index(drop=True)
+        df = df.reset_index()
+
+    r = df.resample("20min", on=on)
+    result = r.transform("mean")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_fillna():
@@ -390,7 +406,8 @@ def test_agg():
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        warn = FutureWarning if t in cases[1:3] else None
+        # In case 2, "date" is an index and a column, so agg still tries to agg
+        warn = FutureWarning if t == cases[2] else None
         with tm.assert_produces_warning(
             warn,
             match=r"\['date'\] did not aggregate successfully",
@@ -660,12 +677,11 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    msg = "The default value of numeric_only"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.resample("2D", on="date").sum()
+    result = df.resample("2D", on="date").sum()
     tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
+    msg = "The default value of numeric_only"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.resample("2D", level="d").sum()
     tm.assert_frame_equal(exp, result)
