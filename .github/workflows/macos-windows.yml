@@ -49,10 +49,22 @@ jobs:
         environment-file: ci/deps/${{ matrix.env_file }}
         pyarrow-version: ${{ matrix.os == 'macos-latest' && '6' || '' }}
 
-    - name: Build pandas
+    - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
-    - name: Run tests
-      uses: ./.github/actions/run-tests
+    - name: Test
+      run: ci/run_tests.sh
+
+    - name: Publish test results
+      uses: actions/upload-artifact@v3
       with:
-        check-pyarrow-version: ${{ matrix.pyarrow_version }}
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: false
