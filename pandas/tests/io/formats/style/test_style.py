@@ -1552,5 +1552,5 @@ def test_col_trimming_hide_columns():
 @pytest.mark.parametrize("format", ["html", "latex"])
 def test_output_buffer(mi_styler, format):
     # gh 47053
-    with open(f"delete_me.{format}", "w") as f:
+    with tm.ensure_clean(f"delete_me.{format}") as f:
         getattr(mi_styler, f"to_{format}")(f)
