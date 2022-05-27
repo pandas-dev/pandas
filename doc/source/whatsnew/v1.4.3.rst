@@ -38,7 +38,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- The minimum version of Cython needed to compile pandas is now ``0.29.30`` (:issue:`41935`)
 -
 
 .. ---------------------------------------------------------------------------
