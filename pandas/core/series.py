@@ -2615,6 +2615,8 @@ Name: Max Speed, dtype: float64
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.
+        The two `Series` objects are not required to be the same length and
+        will be aligned internally before the covariaance is calculated.
 
         Parameters
         ----------
