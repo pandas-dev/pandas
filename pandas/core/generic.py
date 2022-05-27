@@ -69,6 +69,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     InvalidIndexError,
+    SettingWithCopyError,
 )
 from pandas.util._decorators import (
     deprecate_kwarg,
@@ -3949,7 +3950,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         if value == "raise":
-            raise com.SettingWithCopyError(t)
+            raise SettingWithCopyError(t)
         elif value == "warn":
             warnings.warn(t, com.SettingWithCopyWarning, stacklevel=find_stack_level())
 

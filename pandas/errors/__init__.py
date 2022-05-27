@@ -267,3 +267,24 @@ class SpecificationError(Exception):
     >>> df.groupby('A').agg(['min', 'min']) # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
     """
+
+
+class SettingWithCopyError(ValueError):
+    """
+    Exception is raised when trying to set on a copied slice from a dataframe and
+    the mode.chained_assignment is set to 'raise.' This can happen unintentionally
+    when chained indexing.
+
+    For more information, see 'Evaluation order matters' on
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+
+    For more information, see 'Indexing view versus copy' on
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+
+    Examples
+    --------
+    >>> pd.options.mode.chained_assignment = 'raise'
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    ... # SettingWithCopyError: A value is trying to be set on a copy of a...
+    """
