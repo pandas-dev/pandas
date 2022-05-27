@@ -31,7 +31,7 @@ jobs:
         fetch-depth: 0
 
     - name: Set up pandas
-      uses: ./.github/actions/setup
+      uses: ./.github/actions/setup-pandas
 
     - name: Build website
       run: |
