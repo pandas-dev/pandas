@@ -226,6 +226,9 @@ def concat(
     pandas objects can be found `here
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
 
+    It is not recommended to build DataFrames by adding single rows in a
+    for loop. Build a list of rows and make a DataFrame in a single concat.
+
     Examples
     --------
     Combine two ``Series``.
@@ -344,6 +347,22 @@ def concat(
     Traceback (most recent call last):
         ...
     ValueError: Indexes have overlapping values: ['a']
+
+    Append a single row to the end of a ``DataFrame`` object.
+
+    >>> df7 = pd.DataFrame({'a': 1, 'b': 2}, index=[0])
+    >>> df7
+        a   b
+    0   1   2
+    >>> new_row = pd.Series({'a': 3, 'b': 4})
+    >>> new_row
+    a    3
+    b    4
+    dtype: int64
+    >>> pd.concat([df7, new_row.to_frame().T], ignore_index=True)
+        a   b
+    0   1   2
+    1   3   4
     """
     op = _Concatenator(
         objs,
