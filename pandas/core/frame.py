@@ -9379,7 +9379,7 @@ Parrot 2  Parrot       24.0
 
     def join(
         self,
-        other: DataFrame | Series | list[DataFrame | Series],
+        other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: str = "left",
         lsuffix: str = "",
@@ -9537,7 +9537,7 @@ Parrot 2  Parrot       24.0
 
     def _join_compat(
         self,
-        other: DataFrame | Series | list[DataFrame | Series],
+        other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: str = "left",
         lsuffix: str = "",

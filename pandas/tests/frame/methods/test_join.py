@@ -225,6 +225,13 @@ def test_join_left_sequence_non_unique_index():
     tm.assert_frame_equal(joined, expected)
 
 
+def test_join_list_series(float_frame):
+    left = float_frame.A.to_frame()
+    right = [float_frame.B, float_frame[["C", "D"]]]
+    result = left.join(right)
+    assert result.equals(float_frame)
+
+
 @pytest.mark.parametrize("sort_kw", [True, False])
 def test_suppress_future_warning_with_sort_kw(sort_kw):
     a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
