@@ -314,7 +314,6 @@ def test_frame_setitem_dask_array_into_new_col():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        toolz = import_module("toolz")  # noqa:F841
         dask = import_module("dask")  # noqa:F841
 
         import dask.array as da
