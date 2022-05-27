@@ -360,7 +360,7 @@ cpdef ndarray astype_overflowsafe(
                     tdval = np.timedelta64(value).view(values.dtype)
                     msg = (
                         "Cannot convert {tdval} to {dtype} without overflow"
-                        .format(tdval=tdval, dtype=dtype)
+                        .format(tdval=str(tdval), dtype=str(dtype))
                     )
                     raise OutOfBoundsTimedelta(msg) from err
                 else:
