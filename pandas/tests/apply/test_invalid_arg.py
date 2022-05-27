@@ -12,6 +12,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import SpecificationError
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -20,7 +22,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 
 
 @pytest.mark.parametrize("result_type", ["foo", 1])

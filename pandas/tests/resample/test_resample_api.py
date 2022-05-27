@@ -427,7 +427,7 @@ def test_agg():
 
     msg = "nested renamer is not supported"
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.aggregate({"A": {"mean": "mean", "sum": "sum"}})
 
     expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
@@ -435,7 +435,7 @@ def test_agg():
         [("A", "mean"), ("A", "sum"), ("B", "mean2"), ("B", "sum2")]
     )
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.aggregate(
                 {
                     "A": {"mean": "mean", "sum": "sum"},
@@ -539,10 +539,10 @@ def test_agg_misc():
 
     # series like aggs
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t["A"].agg({"A": ["sum", "std"]})
 
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
     # errors
@@ -588,17 +588,17 @@ def test_agg_nested_dicts():
 
     msg = "nested renamer is not supported"
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.aggregate({"r1": {"A": ["mean", "sum"]}, "r2": {"B": ["mean", "sum"]}})
 
     for t in cases:
 
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t[["A", "B"]].agg(
                 {"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}}
             )
 
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
 
 

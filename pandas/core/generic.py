@@ -3349,8 +3349,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : str
-            Python write mode, default 'w'.
+        mode : str, default 'w'
+            Python write mode. The available write modes are the same as
+            :py:func:`open`.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
@@ -7898,8 +7899,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            left = True if isinstance(include_start, lib.NoDefault) else include_start
-            right = True if isinstance(include_end, lib.NoDefault) else include_end
+            left = True if include_start is lib.no_default else include_start
+            right = True if include_end is lib.no_default else include_end
 
             inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
@@ -9809,6 +9810,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def tz_convert(
         self: NDFrameT, tz, axis=0, level=None, copy: bool_t = True
     ) -> NDFrameT:
@@ -9867,6 +9869,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result.__finalize__(self, method="tz_convert")
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def tz_localize(
         self: NDFrameT,
         tz,
@@ -9922,7 +9925,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame
+        {klass}
             Same type as the input.
 
         Raises
@@ -10689,7 +10692,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis is None:
             axis = self._stat_axis_number
-        axis = cast(Axis, axis)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "

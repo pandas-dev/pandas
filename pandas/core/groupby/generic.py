@@ -37,6 +37,7 @@ from pandas._typing import (
     Manager2D,
     SingleManager,
 )
+from pandas.errors import SpecificationError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -68,7 +69,6 @@ from pandas.core.apply import (
     reconstruct_func,
     validate_func_kwargs,
 )
-from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -1580,7 +1580,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # DataFrame.idxmax for backwards compatibility
             numeric_only_arg = None if axis == 0 else False
         else:
-            numeric_only_arg = cast(bool, numeric_only)
+            numeric_only_arg = numeric_only
 
         def func(df):
             res = df._reduce(
@@ -1616,7 +1616,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # DataFrame.idxmin for backwards compatibility
             numeric_only_arg = None if axis == 0 else False
         else:
-            numeric_only_arg = cast(bool, numeric_only)
+            numeric_only_arg = numeric_only
 
         def func(df):
             res = df._reduce(
