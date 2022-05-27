@@ -11596,6 +11596,7 @@ _num_ddof_doc = """
 Parameters
 ----------
 axis : {axis_descr}
+    For `Series` this parameter is unused and defaults to 0.
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
