@@ -933,7 +933,7 @@ class PythonParser(ParserBase):
                 implicit_first_cols = len(line) - self.num_original_columns
 
             # Case 0
-            if next_line is not None:
+            if next_line is not None and self.header is not None:
                 if len(next_line) == len(line) + self.num_original_columns:
                     # column and index names on diff rows
                     self.index_col = list(range(len(line)))
