@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._typing import (
+    CompressionOptions,
     DatetimeNaTType,
     FilePath,
     ReadBuffer,
@@ -256,6 +257,7 @@ class XportReader(ReaderBase, abc.Iterator):
         index=None,
         encoding: str | None = "ISO-8859-1",
         chunksize=None,
+        compression: CompressionOptions = "infer",
     ) -> None:
 
         self._encoding = encoding
@@ -264,7 +266,11 @@ class XportReader(ReaderBase, abc.Iterator):
         self._chunksize = chunksize
 
         self.handles = get_handle(
-            filepath_or_buffer, "rb", encoding=encoding, is_text=False
+            filepath_or_buffer,
+            "rb",
+            encoding=encoding,
+            is_text=False,
+            compression=compression,
         )
         self.filepath_or_buffer = self.handles.handle
 
