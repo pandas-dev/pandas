@@ -58,10 +58,6 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-class SettingWithCopyError(ValueError):
-    pass
-
-
 class SettingWithCopyWarning(Warning):
     pass
 

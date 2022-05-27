@@ -8,7 +8,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    SettingWithCopyError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -27,7 +30,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 # We pass through a TypeError raised by numpy
 _slice_msg = "slice indices must be integers or None or have an __index__ method"
@@ -303,7 +305,7 @@ class TestDataFrameIndexing:
         smaller = float_frame[:2]
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        with pytest.raises(SettingWithCopyError, match=msg):
             smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
@@ -546,7 +548,7 @@ class TestDataFrameIndexing:
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        with pytest.raises(SettingWithCopyError, match=msg):
             sliced.loc[:, "C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
@@ -1003,7 +1005,7 @@ class TestDataFrameIndexing:
         assert np.shares_memory(df[2], subset[2])
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        with pytest.raises(SettingWithCopyError, match=msg):
             subset.loc[:, 2] = 0.0
 
         exp_col = original[2].copy()
@@ -1046,7 +1048,7 @@ class TestDataFrameIndexing:
 
             # and that we are setting a copy
             msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
