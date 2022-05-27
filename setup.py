@@ -210,7 +210,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/parsers.pyx",
         "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
-        "pandas/_libs/tslibs/ctime.pyx",
         "pandas/_libs/tslibs/dtypes.pyx",
         "pandas/_libs/tslibs/period.pyx",
         "pandas/_libs/tslibs/strptime.pyx",
@@ -496,7 +495,6 @@ ext_data = {
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
-    "_libs.tslibs.ctime": {"pyxfile": "_libs/tslibs/ctime"},
     "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
