@@ -878,7 +878,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         axis : {0 or 'index', 1 or 'columns', None}, default None
             A specific axis to squeeze. By default, all length-1 axes are
-            squeezed. For `Series` this parameter is unused and defaults to None.
+            squeezed. For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -5091,7 +5091,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             The axis to filter on, expressed either as an index (int)
             or axis name (str). By default this is the info axis, 'columns' for
-            DataFrame.For `Series` this parameter is unused and defaults to None.
+            DataFrame. For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -5375,7 +5375,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
-            for given data type. For `Series` this parameter is unused and defaults to None.
+            for given data type. For `Series` this parameter is unused and defaults to `None`.
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
@@ -7484,7 +7484,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             threshold (e.g `NA`) will not clip the value.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Align object with lower and upper along the given axis.
-            For `Series` this parameter is unused and defaults to None.
+            For `Series` this parameter is unused and defaults to `None`.
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         *args, **kwargs
