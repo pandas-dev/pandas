@@ -744,7 +744,7 @@ def resolve_na_sentinel(
                 )
             elif na_sentinel == -1:
                 msg = (
-                    "Specifying na_sentinel=-1 is` deprecated, specify "
+                    "Specifying na_sentinel=-1 is deprecated, specify "
                     "use_na_sentinel=True instead."
                 )
             else:
