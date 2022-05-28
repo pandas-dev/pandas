@@ -255,6 +255,16 @@ class TestDataFrameShift:
         result = df.shift(1, axis="columns")
         tm.assert_frame_equal(result, expected)
 
+    def test_shift_other_axis_with_freq(self, datetime_frame):
+        obj = datetime_frame.T
+        offset = offsets.BDay()
+
+        # GH#47039
+        shifted = obj.shift(5, freq=offset, axis=1)
+        assert len(shifted) == len(obj)
+        unshifted = shifted.shift(-5, freq=offset, axis=1)
+        tm.assert_equal(unshifted, obj)
+
     def test_shift_bool(self):
         df = DataFrame({"high": [True, False], "low": [False, False]})
         rs = df.shift(1)
