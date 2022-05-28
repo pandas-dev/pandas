@@ -597,8 +597,8 @@ def factorize(
     ----------
     {values}{sort}
     na_sentinel : int or None, default -1
-        Value to mark "not found". If None, NaN values will be encoded as positive
-        integers and will not drop the NaN from the uniques of the values.
+        Value to mark "not found". If None, will not drop the NaN
+        from the uniques of the values.
 
         .. deprecated:: 1.5.0
             Specifying the specific value to use for na_sentinel is deprecated and

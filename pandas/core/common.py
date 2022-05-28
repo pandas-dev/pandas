@@ -717,8 +717,12 @@ def resolve_na_sentinel(
 
     Parameters
     ----------
-    na_sentinel : bool, int, None, or lib.no_default
+    na_sentinel : int, None, or lib.no_default
         Value passed to the method.
+    use_na_sentinel : bool or lib.no_default
+        Value passed to the method.
+    warn : bool, default True
+        Whether to emit a warning if a deprecated use is detected.
 
     Returns
     -------
