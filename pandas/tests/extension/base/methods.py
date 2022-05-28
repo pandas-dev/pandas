@@ -234,7 +234,9 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             msg = "Specifying the specific value to use for na_sentinel is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            codes_1, uniques_1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+            codes_1, uniques_1 = pd.factorize(
+                data_for_grouping, na_sentinel=na_sentinel
+            )
             codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
