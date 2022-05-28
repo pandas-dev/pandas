@@ -601,7 +601,7 @@ def factorize(
         from the uniques of the values.
 
         .. deprecated:: 1.5.0
-            Specifying the specific value to use for na_sentinel is deprecated and
+            The na_sentinel argument is deprecated and
             will be removed in a future version of pandas. Specify use_na_sentinel as
             either True or False.
 
