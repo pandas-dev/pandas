@@ -1016,10 +1016,10 @@ class ExtensionArray:
         na_sentinel : int, default -1
             Value to use in the `codes` array to indicate missing values.
 
-        .. deprecated:: 1.5.0
-            The na_sentinel argument is deprecated and
-            will be removed in a future version of pandas. Specify use_na_sentinel
-            as either True or False.
+            .. deprecated:: 1.5.0
+                The na_sentinel argument is deprecated and
+                will be removed in a future version of pandas. Specify use_na_sentinel
+                as either True or False.
 
         use_na_sentinel : bool, default True
             If True, the sentinel -1 will be used for NaN values. If False,
