@@ -42,7 +42,7 @@ cdef class IntervalTree(IntervalMixin):
         object _is_overlapping, _left_sorter, _right_sorter
         Py_ssize_t _na_count
 
-    def __init__(self, left, right, inclusive: str | None = None, closed: lib.NoDefault = lib.no_default, leaf_size=100):
+    def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default, leaf_size=100):
         """
         Parameters
         ----------

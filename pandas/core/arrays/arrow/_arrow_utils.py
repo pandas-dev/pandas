@@ -109,7 +109,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         self,
         subtype,
         inclusive: str | None = None,
-        closed: lib.NoDefault = lib.no_default,
+        closed: None | lib.NoDefault = lib.no_default,
     ) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)

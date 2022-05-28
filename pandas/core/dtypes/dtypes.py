@@ -1069,7 +1069,7 @@ class IntervalDtype(PandasExtensionDtype):
         cls,
         subtype=None,
         inclusive: str_type | None = None,
-        closed: lib.NoDefault = lib.no_default,
+        closed: None | lib.NoDefault = lib.no_default,
     ):
         from pandas.core.dtypes.common import (
             is_string_dtype,

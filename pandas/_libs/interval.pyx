@@ -213,7 +213,7 @@ cdef bint _interval_like(other):
             and hasattr(other, 'right')
             and hasattr(other, 'inclusive'))
 
-def _warning_interval(inclusive: str | None = None, closed: lib.NoDefault = lib.no_default):
+def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
     """
     warning in interval class for variable inclusive and closed
     """
@@ -354,7 +354,7 @@ cdef class Interval(IntervalMixin):
     neither.
     """
 
-    def __init__(self, left, right, inclusive: str | None = None, closed: lib.NoDefault = lib.no_default):
+    def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
 
