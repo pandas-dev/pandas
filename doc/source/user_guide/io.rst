@@ -5569,6 +5569,7 @@ ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This 
 
    * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
    * :func:`~pandas.read_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
+   * Categorical columns are not supported yet.
 
 .. ipython:: python
 
@@ -5581,8 +5582,6 @@ ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This 
            "e": [True, False, True],
            "f": pd.date_range("20130101", periods=3),
            "g": pd.date_range("20130101", periods=3, tz="US/Eastern"),
-           "h": pd.Categorical(list("abc")),
-           "i": pd.Categorical(list("abc"), ordered=True),
        }
    )
 
