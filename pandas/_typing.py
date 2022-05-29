@@ -159,10 +159,10 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-SeriesAggFuncType = Union[AggFuncTypeBase, List[AggFuncTypeBase]]
-AggFuncTypeDict = Dict[Hashable, SeriesAggFuncType]
+AggFuncTypeDict = Dict[Hashable, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
 AggFuncType = Union[
-    SeriesAggFuncType,
+    AggFuncTypeBase,
+    List[AggFuncTypeBase],
     AggFuncTypeDict,
 ]
 AggObjType = Union[
