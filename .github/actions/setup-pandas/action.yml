@@ -1,5 +1,4 @@
-name: Set up pandas
-description: Runs all the setup steps required to have a built pandas ready to use
+name: Set up Conda environment
 inputs:
   environment-file:
     description: Conda environment file to use.
@@ -17,11 +16,6 @@ runs:
         cat ${{ inputs.environment-file }}
       shell: bash
       if: ${{ inputs.pyarrow-version }}
-
-    - name: Pin setuptools (GH#44980)
-      run: |
-        echo '  - setuptools <60' >> ${{ inputs.environment-file }}
-      shell: bash
 
     - name: Install ${{ inputs.environment-file }}
       uses: conda-incubator/setup-miniconda@v2
