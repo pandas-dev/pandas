@@ -117,8 +117,11 @@ class IOHandles(Generic[AnyStr]):
             self.handle.flush()
             self.handle.detach()
             self.created_handles.remove(self.handle)
-        for handle in self.created_handles:
-            handle.close()
+        try:
+            for handle in self.created_handles:
+                handle.close()
+        except (OSError, ValueError):
+            pass
         self.created_handles = []
         self.is_wrapped = False
 

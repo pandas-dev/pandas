@@ -29,7 +29,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Most I/O methods do no longer suppress ``OSError`` and ``ValueError`` when closing file handles (:issue:`47136`)
+-
 -
 
 .. ---------------------------------------------------------------------------
