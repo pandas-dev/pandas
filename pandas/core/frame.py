@@ -2924,7 +2924,7 @@ class DataFrame(NDFrame, OpsMixin):
             a bytes object is returned.
         engine : {{'pyarrow'}}, default 'pyarrow'
             ORC library to use, or library itself, checked with 'pyarrow' name
-            and version >= 7.0.0
+            and version >= 7.0.0.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output. If
             ``False``, they will not be written to the file.
@@ -2933,8 +2933,8 @@ class DataFrame(NDFrame, OpsMixin):
             the RangeIndex will be stored as a range in the metadata so it
             doesn't require much space and is faster. Other indexes will
             be included as columns in the file output.
-        kwargs
-            Additional keyword arguments passed to the engine
+        **kwargs
+            Additional keyword arguments passed to the engine.
 
         Returns
         -------
