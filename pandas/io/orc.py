@@ -108,11 +108,13 @@ def to_orc(
     was_none = path is None
     if was_none:
         path = io.BytesIO()
+    assert path is not None  # For mypy
     with get_handle(path, "wb", is_text=False) as handles:
         orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index), handles.handle, **kwargs
         )
 
     if was_none:
+        assert isinstance(path, io.BytesIO)  # For mypy
         return path.getvalue()
     return None
