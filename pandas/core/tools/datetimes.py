@@ -773,8 +773,14 @@ def to_datetime(
 
     format : str, default None
         The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. Note that
-        :const:`"%f"` will parse all the way up to nanoseconds. See
-        `strftime documentation
+        :const:`"%S"` without :const:`"%f"` will capture fractional 
+        seconds up to nanoseconds, Note that :const:`"%f"` will parse
+        up to nanoseconds. 
+        :const:`"%S"` without :const:`"%f"` will capture up to
+        nanoseconds if present as decimal places, but 
+        will also handle the case where the number of seconds is an
+        integer.
+        See `strftime documentation
         <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`_ for more information on choices.
     exact : bool, default True
