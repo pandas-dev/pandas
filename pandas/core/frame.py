@@ -2963,9 +2963,9 @@ class DataFrame(NDFrame, OpsMixin):
         If you want to get a buffer to the orc content you can write it to io.BytesIO
         >>> import io
         >>> b = io.BytesIO(df.to_orc())  # doctest: +SKIP
-        >>> b.seek(0)
+        >>> b.seek(0)  # doctest: +SKIP
         0
-        >>> content = b.read()
+        >>> content = b.read()  # doctest: +SKIP
         """
         from pandas.io.orc import to_orc
 
