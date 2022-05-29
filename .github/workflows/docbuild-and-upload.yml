@@ -23,7 +23,7 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
       cancel-in-progress: true
-    
+
     defaults:
       run:
         shell: bash -el {0}
@@ -34,8 +34,11 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up pandas
-      uses: ./.github/actions/setup-pandas
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
 
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
