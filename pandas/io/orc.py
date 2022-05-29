@@ -69,6 +69,7 @@ def to_orc(
 ) -> bytes | None:
     """
     Write a DataFrame to the ORC format.
+
     Parameters
     ----------
     df : DataFrame
@@ -89,8 +90,9 @@ def to_orc(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-    kwargs
+    **kwargs
         Additional keyword arguments passed to the engine
+
     Returns
     -------
     bytes if no path argument is provided else None
@@ -101,12 +103,13 @@ def to_orc(
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
     engine = import_optional_dependency(engine, min_version="7.0.0")
+    orc = import_optional_dependency("pyarrow.orc")
 
     was_none = path is None
     if was_none:
         path = io.BytesIO()
     with get_handle(path, "wb", is_text=False) as handles:
-        engine.orc.write_table(
+        orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index), handles.handle, **kwargs
         )
 

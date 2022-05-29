@@ -1,5 +1,6 @@
 """ test orc compat """
 import datetime
+from io import BytesIO
 import os
 
 import numpy as np
@@ -267,7 +268,7 @@ def test_orc_roundtrip_bytesio():
     }
     expected = pd.DataFrame.from_dict(data)
 
-    bytesio = expected.to_orc()
-    got = read_orc(bytesio)
+    bytes = expected.to_orc()
+    got = read_orc(BytesIO(bytes))
 
     tm.assert_equal(expected, got)
