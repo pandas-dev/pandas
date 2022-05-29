@@ -2969,7 +2969,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.orc import to_orc
 
-        return to_orc(self, path, engine, index=index, **kwargs)
+        return to_orc(self, path, engine=engine, index=index, **kwargs)
 
     @Substitution(
         header_type="bool",
