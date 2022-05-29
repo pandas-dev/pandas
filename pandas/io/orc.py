@@ -105,7 +105,7 @@ def to_orc(
     was_none = path is None
     if was_none:
         path = io.BytesIO()
-    with get_handle(path, "wb") as handles:
+    with get_handle(path, "wb", is_text=False) as handles:
         engine.orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index), handles.handle, **kwargs
         )
