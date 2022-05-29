@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -110,6 +111,7 @@ def to_orc(
         path = io.BytesIO()
     assert path is not None  # For mypy
     with get_handle(path, "wb", is_text=False) as handles:
+        assert isinstance(engine, ModuleType)  # For mypy
         orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index), handles.handle, **kwargs
         )
