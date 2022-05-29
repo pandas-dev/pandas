@@ -222,7 +222,6 @@ Look,a snake,🐍"""
             (pd.DataFrame.to_html, "os", OSError, "html"),
             (pd.DataFrame.to_excel, "xlrd", OSError, "xlsx"),
             (pd.DataFrame.to_feather, "pyarrow", OSError, "feather"),
-            (pd.DataFrame.to_orc, "pyarrow", OSError, "orc"),
             (pd.DataFrame.to_parquet, "pyarrow", OSError, "parquet"),
             (pd.DataFrame.to_stata, "os", OSError, "dta"),
             (pd.DataFrame.to_json, "os", OSError, "json"),

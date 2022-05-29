@@ -2912,6 +2912,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> bytes | None:
         """
         Write a DataFrame to the ORC format.
+
         Parameters
         ----------
         df : DataFrame
@@ -2934,6 +2935,7 @@ class DataFrame(NDFrame, OpsMixin):
             be included as columns in the file output.
         kwargs
             Additional keyword arguments passed to the engine
+
         Returns
         -------
         bytes if no path argument is provided else None
