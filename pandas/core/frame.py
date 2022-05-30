@@ -2936,7 +2936,7 @@ class DataFrame(NDFrame, OpsMixin):
             doesn't require much space and is faster. Other indexes will
             be included as columns in the file output.
         **kwargs
-            Additional keyword arguments passed to the engine
+            Additional keyword arguments passed to the engine.
 
         Returns
         -------
