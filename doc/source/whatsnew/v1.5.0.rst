@@ -814,7 +814,7 @@ I/O
 - Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
--
+- Bug in :meth:`TextReader.read` with specified (non-extension) integer ``dtype`` can cause silent overflow or unexpected return dtype (:issue:`47167`)
 
 Period
 ^^^^^^
