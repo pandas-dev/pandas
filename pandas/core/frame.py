@@ -2945,10 +2945,10 @@ class DataFrame(NDFrame, OpsMixin):
         Raises
         ------
         NotImplementedError
-            * Dtype of one or more columns is unsigned integers, intervals,
-                periods, sparse or categorical.
+            Dtype of one or more columns is category, unsigned integers, interval,
+            period or sparse.
         ValueError
-            * engine is not pyarrow.
+            engine is not pyarrow.
 
         See Also
         --------
@@ -2961,13 +2961,13 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         * Before using this function you should read the :ref:`user guide about
-        ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
-        * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`
-        _ library.
+          ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
+        * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
+          library.
         * Unsigned integers, intervals, periods, sparse and categorical Dtypes
-        are not supported yet.
+          are not supported yet.
         * Currently timezones in datetime columns are not preserved when a
-        dataframe is converted into ORC files.
+          dataframe is converted into ORC files.
 
         Examples
         --------
