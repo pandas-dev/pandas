@@ -288,7 +288,7 @@ testdata = [
             ]
         }
     ),
-    pd.DataFrame({"unimpl": [np.nan] * 100}).astype(pd.SparseDtype("float", np.nan)),
+    pd.DataFrame({"unimpl": [np.nan] * 50}).astype(pd.SparseDtype("float", np.nan)),
 ]
 
 
