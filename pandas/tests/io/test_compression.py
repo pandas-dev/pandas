@@ -334,3 +334,9 @@ def test_tar_gz_to_different_filename():
                     expected = "foo,bar\n1,2\n"
 
                 assert content == expected
+
+
+def test_tar_no_error_on_close():
+    with io.BytesIO() as buffer:
+        with icom._BytesTarFile(fileobj=buffer, mode="w"):
+            pass
