@@ -371,24 +371,6 @@ def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
         )
 
 
-RESAMPLER_NUMPY_OPS = ("min", "max", "sum", "prod", "mean", "std", "var")
-
-
-def validate_resampler_func(method: str, args, kwargs) -> None:
-    """
-    'args' and 'kwargs' should be empty because all of their necessary
-    parameters are explicitly listed in the function signature
-    """
-    if len(args) + len(kwargs) > 0:
-        if method in RESAMPLER_NUMPY_OPS:
-            raise UnsupportedFunctionCall(
-                "numpy operations are not valid with resample. "
-                f"Use .resample(...).{method}() instead"
-            )
-        else:
-            raise TypeError("too many arguments passed in")
-
-
 def validate_minmax_axis(axis: int | None, ndim: int = 1) -> None:
     """
     Ensure that the axis argument passed to min, max, argmin, or argmax is zero
