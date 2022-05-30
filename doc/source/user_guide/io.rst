@@ -5599,7 +5599,7 @@ Read from an orc file.
 .. ipython:: python
    :okwarning:
 
-   result = pd.read_orc("example_pa.orc", engine="pyarrow")
+   result = pd.read_orc("example_pa.orc")
 
    result.dtypes
 
@@ -5609,7 +5609,6 @@ Read only certain columns of an orc file.
 
    result = pd.read_orc(
        "example_pa.orc",
-       engine="pyarrow",
        columns=["a", "b"],
    )
    result.dtypes
