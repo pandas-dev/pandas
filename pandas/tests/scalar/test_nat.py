@@ -311,10 +311,7 @@ def test_overlap_public_nat_methods(klass, expected):
 
 @pytest.mark.parametrize(
     "klass",
-    (
-        Timestamp,
-        Timedelta
-    ),
+    (Timestamp, Timedelta),
 )
 def test_nat_doc_strings(klass):
     # see gh-17327
