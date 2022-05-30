@@ -1081,7 +1081,6 @@ def _maybe_memory_map(
         for handle in reversed(handles):
             # error: "BaseBuffer" has no attribute "close"
             handle.close()  # type: ignore[attr-defined]
-        handles = []
 
     return wrapped, memory_map, [wrapped]
 
