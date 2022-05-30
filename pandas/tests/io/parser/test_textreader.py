@@ -11,9 +11,15 @@ import numpy as np
 import pytest
 
 import pandas._libs.parsers as parser
-from pandas._libs.parsers import TextReader, is_extension_array_dtype
+from pandas._libs.parsers import (
+    TextReader,
+    is_extension_array_dtype,
+)
 
-from pandas import DataFrame, array
+from pandas import (
+    DataFrame,
+    array,
+)
 import pandas._testing as tm
 
 from pandas.io.parsers import (
@@ -126,10 +132,25 @@ class TestTextReader:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "dtype", [
-            "uint64", "int64", "uint32", "int32", "uint16", "int16", "uint8", "int8",
-            "UInt64", "Int64", "UInt32", "Int32", "UInt16", "Int16", "UInt8", "Int8"
-        ]
+        "dtype",
+        [
+            "uint64",
+            "int64",
+            "uint32",
+            "int32",
+            "uint16",
+            "int16",
+            "uint8",
+            "int8",
+            "UInt64",
+            "Int64",
+            "UInt32",
+            "Int32",
+            "UInt16",
+            "Int16",
+            "UInt8",
+            "Int8",
+        ],
     )
     def test_integer_overflow_with_user_dtype(self, dtype):
         dtype = ensure_dtype_objs(dtype)
