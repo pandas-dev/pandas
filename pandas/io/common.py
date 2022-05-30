@@ -7,7 +7,6 @@ from abc import (
 )
 import bz2
 import codecs
-from collections import abc
 import dataclasses
 import functools
 import gzip
@@ -103,7 +102,6 @@ class IOHandles(Generic[AnyStr]):
     compression: CompressionDict
     created_handles: list[IO[bytes] | IO[str]] = dataclasses.field(default_factory=list)
     is_wrapped: bool = False
-    is_mmap: bool = False
 
     def close(self) -> None:
         """
@@ -687,14 +685,7 @@ def get_handle(
 
     # memory mapping needs to be the first step
     # only used for read_csv
-    handle, memory_map, handles = _maybe_memory_map(
-        handle,
-        memory_map,
-        ioargs.encoding,
-        ioargs.mode,
-        errors,
-        ioargs.compression["method"] not in _supported_compressions,
-    )
+    handle, memory_map, handles = _maybe_memory_map(handle, memory_map)
 
     is_path = isinstance(handle, str)
     compression_args = dict(ioargs.compression)
@@ -841,12 +832,19 @@ def get_handle(
             handle,
             encoding=ioargs.encoding,
         )
-    elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
+    elif is_text and (
+        compression or memory_map or _is_binary_mode(handle, ioargs.mode)
+    ):
+        if (
+            not hasattr(handle, "readable")
+            or not hasattr(handle, "writable")
+            or not hasattr(handle, "seekable")
+        ):
+            handle = _IOWrapper(handle)
+        # error: Argument 1 to "TextIOWrapper" has incompatible type
+        # "_IOWrapper"; expected "IO[bytes]"
         handle = TextIOWrapper(
-            # error: Argument 1 to "TextIOWrapper" has incompatible type
-            # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
-            # expected "IO[bytes]"
-            _IOWrapper(handle),  # type: ignore[arg-type]
+            handle,  # type: ignore[arg-type]
             encoding=ioargs.encoding,
             errors=errors,
             newline="",
@@ -877,7 +875,6 @@ def get_handle(
         # "List[BaseBuffer]"; expected "List[Union[IO[bytes], IO[str]]]"
         created_handles=handles,  # type: ignore[arg-type]
         is_wrapped=is_wrapped,
-        is_mmap=memory_map,
         compression=ioargs.compression,
     )
 
@@ -1001,75 +998,6 @@ class _BytesZipFile(_BufferedWriter):
         self.buffer.writestr(archive_name, self.getvalue())
 
 
-class _CSVMMapWrapper(abc.Iterator):
-    """
-    Wrapper for the Python's mmap class so that it can be properly read in
-    by Python's csv.reader class.
-
-    Parameters
-    ----------
-    f : file object
-        File object to be mapped onto memory. Must support the 'fileno'
-        method or have an equivalent attribute
-
-    """
-
-    def __init__(
-        self,
-        f: ReadBuffer[bytes],
-        encoding: str = "utf-8",
-        errors: str = "strict",
-        decode: bool = True,
-    ) -> None:
-        self.encoding = encoding
-        self.errors = errors
-        self.decoder = codecs.getincrementaldecoder(encoding)(errors=errors)
-        self.decode = decode
-
-        # needed for compression libraries and TextIOWrapper
-        self.attributes = {}
-        for attribute in ("seekable", "readable"):
-            if not hasattr(f, attribute):
-                continue
-            self.attributes[attribute] = getattr(f, attribute)()
-
-        self.mmap = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-
-    def __getattr__(self, name: str):
-        if name in self.attributes:
-            return lambda: self.attributes[name]
-        return getattr(self.mmap, name)
-
-    def __iter__(self) -> _CSVMMapWrapper:
-        return self
-
-    def read(self, size: int = -1) -> str | bytes:
-        # CSV c-engine uses read instead of iterating
-        content: bytes = self.mmap.read(size)
-        if self.decode and self.encoding != "utf-8":
-            # memory mapping is applied before compression. Encoding should
-            # be applied to the de-compressed data.
-            final = size == -1 or len(content) < size
-            return self.decoder.decode(content, final=final)
-        return content
-
-    def __next__(self) -> str:
-        newbytes = self.mmap.readline()
-
-        # readline returns bytes, not str, but Python's CSV reader
-        # expects str, so convert the output to str before continuing
-        newline = self.decoder.decode(newbytes)
-
-        # mmap doesn't raise if reading past the allocated
-        # data but instead returns an empty string, so raise
-        # if that is returned
-        if newline == "":
-            raise StopIteration
-
-        # IncrementalDecoder seems to push newline to the next line
-        return newline.lstrip("\n")
-
-
 class _IOWrapper:
     # TextIOWrapper is overly strict: it request that the buffer has seekable, readable,
     # and writable. If we have a read-only buffer, we shouldn't need writable and vice
@@ -1131,12 +1059,7 @@ class _BytesIOWrapper:
 
 
 def _maybe_memory_map(
-    handle: str | BaseBuffer,
-    memory_map: bool,
-    encoding: str,
-    mode: str,
-    errors: str,
-    decode: bool,
+    handle: str | BaseBuffer, memory_map: bool
 ) -> tuple[str | BaseBuffer, bool, list[BaseBuffer]]:
     """Try to memory map file/buffer."""
     handles: list[BaseBuffer] = []
@@ -1149,22 +1072,21 @@ def _maybe_memory_map(
         handle = open(handle, "rb")
         handles.append(handle)
 
-    # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
-    # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
     try:
-        # open mmap, adds *-able, and convert to string
-        wrapped = cast(
-            BaseBuffer,
-            _CSVMMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
+        # open mmap and adds *-able
+        # error: Argument 1 to "_IOWrapper" has incompatible type "mmap";
+        # expected "BaseBuffer"
+        wrapped = _IOWrapper(
+            mmap.mmap(
+                handle.fileno(), 0, access=mmap.ACCESS_READ  # type: ignore[arg-type]
+            )
         )
     finally:
         for handle in reversed(handles):
             # error: "BaseBuffer" has no attribute "close"
             handle.close()  # type: ignore[attr-defined]
-        handles = []
-    handles.append(wrapped)
 
-    return wrapped, memory_map, handles
+    return wrapped, memory_map, [wrapped]
 
 
 def file_exists(filepath_or_buffer: FilePath | BaseBuffer) -> bool:
