@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY311
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -230,7 +231,7 @@ def test_null_byte_char(all_parsers):
     names = ["a", "b"]
     parser = all_parsers
 
-    if parser.engine == "c":
+    if parser.engine == "c" or PY311:
         expected = DataFrame([[np.nan, "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
