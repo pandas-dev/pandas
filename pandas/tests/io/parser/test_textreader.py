@@ -167,7 +167,7 @@ class TestTextReader:
             tm.assert_numpy_array_equal(result[0], expected)
 
         reader = TextReader(StringIO(f"{maxint + 1}"), header=None, dtype=dtype)
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match=""):
             reader.read()
 
     def test_skip_bad_lines(self, capsys):
