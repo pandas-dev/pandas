@@ -275,24 +275,20 @@ def test_orc_roundtrip_bytesio():
 
 
 testdata = [
-    (pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")})),
-    (pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")})),
-    (
-        pd.DataFrame(
-            {"unimpl": [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)]}
-        ),
+    pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")}),
+    pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")}),
+    pd.DataFrame(
+        {"unimpl": [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)]}
     ),
-    (
-        pd.DataFrame(
-            {
-                "unimpl": [
-                    pd.Period("2022-01-03", freq="D"),
-                    pd.Period("2022-01-04", freq="D"),
-                ]
-            }
-        ),
+    pd.DataFrame(
+        {
+            "unimpl": [
+                pd.Period("2022-01-03", freq="D"),
+                pd.Period("2022-01-04", freq="D"),
+            ]
+        }
     ),
-    (pd.DataFrame({"unimpl": [np.nan] * 100}).astype(pd.SparseDtype("float", np.nan)),),
+    pd.DataFrame({"unimpl": [np.nan] * 100}).astype(pd.SparseDtype("float", np.nan)),
 ]
 
 
