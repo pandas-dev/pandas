@@ -778,6 +778,40 @@ class TestDataFrameAnalytics:
         expected = Series([np.nan, np.nan], index=["x", "y"])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "kwargs, expected_result",
+        [
+            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.NaN]),
+            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
+            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.NaN]),
+        ],
+    )
+    def test_sum_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
+        # GH#46947
+        df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype=float_type)
+        result = df.sum(**kwargs)
+        expected = Series(expected_result).astype(float_type)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "kwargs, expected_result",
+        [
+            ({"axis": 1, "min_count": 2}, [2.0, 4.0, np.NaN]),
+            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
+            ({"axis": 1, "skipna": False}, [2.0, 4.0, np.NaN]),
+        ],
+    )
+    def test_prod_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
+        # GH#46947
+        df = DataFrame(
+            {"a": [1.0, 2.0, 4.4], "b": [2.0, 2.0, np.nan]}, dtype=float_type
+        )
+        result = df.prod(**kwargs)
+        expected = Series(expected_result).astype(float_type)
+        tm.assert_series_equal(result, expected)
+
     def test_sum_object(self, float_frame):
         values = float_frame.values.astype(int)
         frame = DataFrame(values, index=float_frame.index, columns=float_frame.columns)
