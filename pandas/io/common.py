@@ -835,7 +835,11 @@ def get_handle(
     elif is_text and (
         compression or memory_map or _is_binary_mode(handle, ioargs.mode)
     ):
-        if not isinstance(handle, _IOWrapper):
+        if (
+            not hasattr(handle, "readable")
+            or not hasattr(handle, "writable")
+            or not hasattr(handle, "seekable")
+        ):
             handle = _IOWrapper(handle)
         # error: Argument 1 to "TextIOWrapper" has incompatible type
         # "_IOWrapper"; expected "IO[bytes]"
