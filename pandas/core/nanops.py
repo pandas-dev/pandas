@@ -1471,8 +1471,8 @@ def _maybe_null_out(
             if is_numeric_dtype(result):
                 if np.iscomplexobj(result):
                     result = result.astype("c16")
-                else:
-                    result = result.astype("f8")
+                elif not is_float_dtype(result):
+                    result = result.astype("f8", copy=False)
                 result[null_mask] = np.nan
             else:
                 # GH12941, use None to auto cast null

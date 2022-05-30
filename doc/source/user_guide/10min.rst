@@ -328,6 +328,7 @@ Setting values by position:
 Setting by assigning with a NumPy array:
 
 .. ipython:: python
+   :okwarning:
 
    df.loc[:, "D"] = np.array([5] * len(df))
 

@@ -58,10 +58,6 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-class SettingWithCopyError(ValueError):
-    pass
-
-
 class SettingWithCopyWarning(Warning):
     pass
 
@@ -673,7 +669,7 @@ def resolve_numeric_only(numeric_only: bool | None | lib.NoDefault) -> bool:
         # first default to None
         result = False
     else:
-        result = cast(bool, numeric_only)
+        result = numeric_only
     return result
 
 
