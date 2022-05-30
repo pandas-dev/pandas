@@ -80,8 +80,10 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
 
     if quoting != csv.QUOTE_NONE:
         # Sanity checking.
-        msg = r'(quotechar must be set if quoting enabled|'
-              r'"quotechar" must be a 1-character string)'
+        msg = (
+            r"(quotechar must be set if quoting enabled|"
+            r'"quotechar" must be a 1-character string)'
+        )
 
         with pytest.raises(TypeError, match=msg):
             parser.read_csv(StringIO(data), **kwargs)
