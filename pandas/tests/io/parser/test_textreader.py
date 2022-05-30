@@ -11,16 +11,14 @@ import numpy as np
 import pytest
 
 import pandas._libs.parsers as parser
-from pandas._libs.parsers import (
-    TextReader,
-    is_extension_array_dtype,
-)
+from pandas._libs.parsers import TextReader
 
 from pandas import (
     DataFrame,
     array,
 )
 import pandas._testing as tm
+from pandas.api.types import is_extension_array_dtype
 
 from pandas.io.parsers import (
     TextFileReader,
