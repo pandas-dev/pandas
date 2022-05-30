@@ -2776,3 +2776,51 @@ def test_by_column_values_with_same_starting_value():
     ).set_index("Name")
 
     tm.assert_frame_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "numeric_only",
+    [False, None, True],
+)
+def test_empty_frame_groupby_numeric_only(numeric_only):
+    # GH 46375
+    df = DataFrame(columns=["a", "b"])
+    expected = DataFrame(columns=["a", "b"]).set_index(["a"])
+    result = df.groupby(["a"]).first(numeric_only=numeric_only)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "numeric_only, expected_data",
+    [
+        (
+            False,
+            {
+                "a": [0, 1],
+                "b": [1, 2],
+                "c": [1, 2],
+            },
+        ),
+        (
+            None,
+            {
+                "a": [0, 1],
+                "b": [1, 2],
+                "c": [1, 2],
+            },
+        ),
+        (
+            True,
+            {
+                "a": [0, 1],
+                "c": [1, 2],
+            },
+        ),
+    ],
+)
+def test_frame_groupby_numeric_only(numeric_only, expected_data):
+    # GH 46375
+    df = DataFrame({"a": [0, 0, 1, 1], "b": [1, "x", 2, "y"], "c": [1, 1, 2, 2]})
+    result = df.groupby(["a"]).first(numeric_only=numeric_only)
+    expected = DataFrame(expected_data).set_index(["a"])
+    tm.assert_frame_equal(result, expected)
