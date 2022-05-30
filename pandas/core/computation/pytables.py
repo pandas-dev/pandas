@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any, Optional
+from typing import (
+    Any,
+    Optional,
+)
 
 import numpy as np
 
@@ -563,7 +566,7 @@ class PyTablesExpr(expr.Expr):
         self._visitor = None
 
         # capture the environment if needed
-        local_dict: Optional[DeepChainMap[Any, Any]] = None
+        local_dict: DeepChainMap[Any, Any] | None = None
 
         if isinstance(where, PyTablesExpr):
             local_dict = where.env.scope
