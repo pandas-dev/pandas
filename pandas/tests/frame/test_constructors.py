@@ -884,7 +884,10 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+            (
+                Interval(left=0, right=5, inclusive="right"),
+                IntervalDtype("int64", "right"),
+            ),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -2410,16 +2413,16 @@ class TestDataFrameConstructors:
         result = DataFrame({"1": ser1, "2": ser2})
         index = CategoricalIndex(
             [
-                Interval(-0.099, 9.9, closed="right"),
-                Interval(9.9, 19.8, closed="right"),
-                Interval(19.8, 29.7, closed="right"),
-                Interval(29.7, 39.6, closed="right"),
-                Interval(39.6, 49.5, closed="right"),
-                Interval(49.5, 59.4, closed="right"),
-                Interval(59.4, 69.3, closed="right"),
-                Interval(69.3, 79.2, closed="right"),
-                Interval(79.2, 89.1, closed="right"),
-                Interval(89.1, 99, closed="right"),
+                Interval(-0.099, 9.9, inclusive="right"),
+                Interval(9.9, 19.8, inclusive="right"),
+                Interval(19.8, 29.7, inclusive="right"),
+                Interval(29.7, 39.6, inclusive="right"),
+                Interval(39.6, 49.5, inclusive="right"),
+                Interval(49.5, 59.4, inclusive="right"),
+                Interval(59.4, 69.3, inclusive="right"),
+                Interval(69.3, 79.2, inclusive="right"),
+                Interval(79.2, 89.1, inclusive="right"),
+                Interval(89.1, 99, inclusive="right"),
             ],
             ordered=True,
         )
