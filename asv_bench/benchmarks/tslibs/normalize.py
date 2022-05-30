@@ -36,8 +36,10 @@ class Normalize:
             raise NotImplementedError
 
     def time_normalize_i8_timestamps(self, size, tz):
-        normalize_i8_timestamps(self.i8data, tz)
+        # 10 i.e. NPY_FR_ns
+        normalize_i8_timestamps(self.i8data, tz, 10)
 
     def time_is_date_array_normalized(self, size, tz):
         # TODO: cases with different levels of short-circuiting
-        is_date_array_normalized(self.i8data, tz)
+        # 10 i.e. NPY_FR_ns
+        is_date_array_normalized(self.i8data, tz, 10)

@@ -5,15 +5,15 @@ numpy>=1.18.5
 python-dateutil>=2.8.1
 pytz
 asv
-cython>=0.29.24
+cython>=0.29.30
 black==22.3.0
 cpplint
 flake8==4.0.1
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.950
-pre-commit>=2.9.2
+mypy==0.960
+pre-commit>=2.15.0
 pycodestyle
 pyupgrade
 gitpython
@@ -80,7 +80,7 @@ aiobotocore<2.0.0
 fsspec>=0.7.4
 gcsfs>=0.6.0
 sqlalchemy
-xarray<0.19
+xarray
 cftime
 pyreadstat
 tabulate>=0.8.3

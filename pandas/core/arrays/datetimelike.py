@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timestamp,
     delta_to_nanoseconds,
+    get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
@@ -1119,7 +1120,29 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             new_values.fill(iNaT)
             return type(self)(new_values, dtype=self.dtype)
 
+        # FIXME: this may overflow with non-nano
         inc = delta_to_nanoseconds(other)
+
+        if not is_period_dtype(self.dtype):
+            # FIXME: don't hardcode 7, 8, 9, 10 here
+            # TODO: maybe patch delta_to_nanoseconds to take reso?
+
+            # error: "DatetimeLikeArrayMixin" has no attribute "_reso"
+            reso = self._reso  # type: ignore[attr-defined]
+            if reso == 10:
+                pass
+            elif reso == 9:
+                # microsecond
+                inc = inc // 1000
+            elif reso == 8:
+                # millisecond
+                inc = inc // 1_000_000
+            elif reso == 7:
+                # second
+                inc = inc // 1_000_000_000
+            else:
+                raise NotImplementedError(reso)
+
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
         new_values = new_values.view("i8")
         new_values = self._maybe_mask_results(new_values)
@@ -1235,13 +1258,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             res_values = op(self.astype("O"), np.asarray(other))
 
         result = pd_array(res_values.ravel())
-        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
-        # "reshape"
-        result = extract_array(
-            result, extract_numpy=True
-        ).reshape(  # type: ignore[union-attr]
-            self.shape
-        )
+        result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
     def _time_shift(
@@ -1787,6 +1804,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
+
+    @cache_readonly
+    def _reso(self) -> int:
+        return get_unit_from_dtype(self._ndarray.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (

@@ -778,6 +778,23 @@ class TestDataFrameAnalytics:
         expected = Series([np.nan, np.nan], index=["x", "y"])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "kwargs, expected_result",
+        [
+            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.NaN]),
+            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
+            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.NaN]),
+        ],
+    )
+    def test_sum_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
+        # GH#46947
+        # pass
+        df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype=float_type)
+        result = df.sum(**kwargs)
+        expected = Series(expected_result).astype(float_type)
+        tm.assert_series_equal(result, expected)
+
     def test_sum_object(self, float_frame):
         values = float_frame.values.astype(int)
         frame = DataFrame(values, index=float_frame.index, columns=float_frame.columns)
@@ -1722,13 +1739,17 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
-    df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
-    df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
+    msg = "will attempt to set the values inplace instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
+        df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
+
     with tm.assert_produces_warning(
         FutureWarning, match="The 'mad' method is deprecated"
     ):
         result = df2.mad()
         expected = df.mad()
+
     expected[1] = pd.NA
     expected = expected.astype("Float64")
     tm.assert_series_equal(result, expected)

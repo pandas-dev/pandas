@@ -7,7 +7,6 @@ import pytest
 from pandas.compat import (
     IS64,
     is_ci_environment,
-    is_numpy_dev,
 )
 from pandas.util._print_versions import (
     _get_dependency_info,
@@ -15,14 +14,6 @@ from pandas.util._print_versions import (
 )
 
 import pandas as pd
-
-# This is failing on the Numpy Dev build,
-# but the error may just be from distutils?
-pytestmark = pytest.mark.xfail(
-    is_numpy_dev,
-    reason="_distutils not in python3.10/distutils/core.py",
-    raises=AssertionError,
-)
 
 
 @pytest.mark.filterwarnings(
@@ -99,7 +90,9 @@ def test_show_versions_console(capsys):
 
     # check required dependency
     # 2020-12-09 npdev has "dirty" in the tag
-    assert re.search(r"numpy\s*:\s([0-9\.\+a-g\_]|dev)+(dirty)?\n", result)
+    # 2022-05-25 npdev released with RC wo/ "dirty".
+    # Just ensure we match [0-9]+\..* since npdev version is variable
+    assert re.search(r"numpy\s*:\s[0-9]+\..*\n", result)
 
     # check optional dependency
     assert re.search(r"pyarrow\s*:\s([0-9\.]+|None)\n", result)

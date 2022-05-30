@@ -19,6 +19,9 @@ import pandas as pd
         "MergeError",
         "OptionError",
         "NumbaUtilError",
+        "DataError",
+        "SpecificationError",
+        "SettingWithCopyError",
     ],
 )
 def test_exception_importable(exc):

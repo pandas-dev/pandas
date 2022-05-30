@@ -186,7 +186,13 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     @pytest.mark.xfail(reason="collection as scalar, GH-33901")
     def test_series_constructor_scalar_with_index(self, data, dtype):
         # TypeError: All values must be of type <class 'collections.abc.Mapping'>
-        super().test_series_constructor_scalar_with_index(data, dtype)
+        rec_limit = sys.getrecursionlimit()
+        try:
+            # Limit to avoid stack overflow on Windows CI
+            sys.setrecursionlimit(100)
+            super().test_series_constructor_scalar_with_index(data, dtype)
+        finally:
+            sys.setrecursionlimit(rec_limit)
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
