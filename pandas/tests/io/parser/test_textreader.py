@@ -11,9 +11,9 @@ import numpy as np
 import pytest
 
 import pandas._libs.parsers as parser
-from pandas._libs.parsers import TextReader
+from pandas._libs.parsers import TextReader, is_extension_array_dtype
 
-from pandas import DataFrame
+from pandas import DataFrame, array
 import pandas._testing as tm
 
 from pandas.io.parsers import (
@@ -124,6 +124,30 @@ class TestTextReader:
 
         expected = DataFrame([123456, 12500])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype", [
+            "uint64", "int64", "uint32", "int32", "uint16", "int16", "uint8", "int8",
+            "UInt64", "Int64", "UInt32", "Int32", "UInt16", "Int16", "UInt8", "Int8"
+        ]
+    )
+    def test_integer_overflow_with_user_dtype(self, dtype):
+        dtype = ensure_dtype_objs(dtype)
+        is_ext_dtype = is_extension_array_dtype(dtype)
+        maxint = np.iinfo(dtype.type if is_ext_dtype else dtype).max
+
+        reader = TextReader(StringIO(f"{maxint}"), header=None, dtype=dtype)
+        result = reader.read()
+        if is_ext_dtype:
+            expected = array([maxint], dtype=dtype)
+            tm.assert_extension_array_equal(result[0], expected)
+        else:
+            expected = np.array([maxint], dtype=dtype)
+            tm.assert_numpy_array_equal(result[0], expected)
+
+        reader = TextReader(StringIO(f"{maxint + 1}"), header=None, dtype=dtype)
+        with pytest.raises(Exception):
+            reader.read()
 
     def test_skip_bad_lines(self, capsys):
         # too many lines, see #2430 for why
