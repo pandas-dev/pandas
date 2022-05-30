@@ -272,3 +272,44 @@ def test_orc_roundtrip_bytesio():
     got = read_orc(BytesIO(bytes))
 
     tm.assert_equal(expected, got)
+
+
+testdata = [
+    (pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")}), dirpath),
+    (pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")}), dirpath),
+    (
+        pd.DataFrame(
+            {"unimpl": [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)]}
+        ),
+        dirpath,
+    ),
+    (
+        pd.DataFrame(
+            {
+                "unimpl": [
+                    pd.Period("2022-01-03", freq="D"),
+                    pd.Period("2022-01-04", freq="D"),
+                ]
+            }
+        ),
+        dirpath,
+    ),
+    (
+        pd.DataFrame({"unimpl": [np.nan] * 100}).astype(
+            pd.SparseDtype("float", np.nan)
+        ),
+        dirpath,
+    ),
+]
+
+
+@pytest.mark.parametrize("unimplemented, dirpath", testdata)
+def test_orc_writer_unimplemented_dtypes(unimplemented, dirpath):
+    # GH44554
+    # PyArrow gained ORC write support with the current argument order
+    pytest.importorskip("pyarrow", minversion="7.0.0")
+    outputfile = os.path.join(dirpath, "TestOrcFile.testReadWrite.orc")
+    msg = """The dtype of one or more columns is unsigned integers,
+intervals, periods, sparse or categorical which is not supported yet."""
+    with pytest.raises(NotImplementedError, match=msg):
+        unimplemented.to_orc(outputfile)

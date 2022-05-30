@@ -71,9 +71,14 @@ def to_orc(
     """
     Write a DataFrame to the ORC format.
 
+    .. versionadded:: 1.5.0
+
     Parameters
     ----------
     df : DataFrame
+        The dataframe to be written to ORC. Raises NotImplementedError
+        if dtype of one or more columns is category, unsigned integers,
+        intervals, periods or sparse.
     path : str, file-like object or None, default None
         If a string, it will be used as Root Directory path
         when writing a partitioned dataset. By file-like object,
@@ -81,8 +86,9 @@ def to_orc(
         (e.g. via builtin open function). If path is None,
         a bytes object is returned.
     engine : {{'pyarrow'}}, default 'pyarrow'
-        Parquet library to use, or library it self, checked with 'pyarrow' name
-        and version >= 7.0.0
+        ORC library to use, or library it self, checked with 'pyarrow' name
+        and version >= 7.0.0. Raises ValueError if it is anything but
+        'pyarrow'.
     index : bool, optional
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -97,9 +103,44 @@ def to_orc(
     Returns
     -------
     bytes if no path argument is provided else None
+
+    Raises
+    ------
+    NotImplementedError
+        * Dtype of one or more columns is unsigned integers, intervals,
+            periods, sparse or categorical.
+    ValueError
+        * engine is not pyarrow.
+
+    Notes
+    -----
+    * Before using this function you should read the
+    :ref:`user guide about ORC <io.orc>` and
+    :ref:`install optional dependencies <install.warn_orc>`.
+    * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`
+    _ library.
+    * Unsigned integers, intervals, periods, sparse and categorical Dtypes
+    are not supported yet.
+    * Currently timezones in datetime columns are not preserved when a
+    dataframe is converted into ORC files.
     """
     if index is None:
         index = df.index.names[0] is not None
+
+    # If unsupported dtypes are found raise NotImplementedError
+    for dtype in df.dtypes:
+        dtype_str = dtype.__str__().lower()
+        if (
+            "category" in dtype_str
+            or "interval" in dtype_str
+            or "sparse" in dtype_str
+            or "period" in dtype_str
+            or "uint" in dtype_str
+        ):
+            raise NotImplementedError(
+                """The dtype of one or more columns is unsigned integers,
+intervals, periods, sparse or categorical which is not supported yet."""
+            )
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")

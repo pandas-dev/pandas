@@ -5569,7 +5569,8 @@ ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This 
 
    * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
    * :func:`~pandas.read_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
-   * Categorical columns are not supported yet.
+   * Unsigned integers, intervals, periods, sparse and categorical Dtypes are not supported yet.
+   * Currently timezones in datetime columns are not preserved when a dataframe is converted into ORC files.
 
 .. ipython:: python
 
@@ -5577,11 +5578,9 @@ ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This 
        {
            "a": list("abc"),
            "b": list(range(1, 4)),
-           "c": np.arange(3, 6).astype("u1"),
-           "d": np.arange(4.0, 7.0, dtype="float64"),
-           "e": [True, False, True],
-           "f": pd.date_range("20130101", periods=3),
-           "g": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+           "c": np.arange(4.0, 7.0, dtype="float64"),
+           "d": [True, False, True],
+           "e": pd.date_range("20130101", periods=3),
        }
    )
 
