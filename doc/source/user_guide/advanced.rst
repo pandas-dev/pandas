@@ -1020,7 +1020,7 @@ Trying to select an ``Interval`` that is not exactly contained in the ``Interval
 
    In [7]: df.loc[pd.Interval(0.5, 2.5)]
    ---------------------------------------------------------------------------
-   KeyError: Interval(0.5, 2.5, closed='right')
+   KeyError: Interval(0.5, 2.5, inclusive='right')
 
 Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed using the
 :meth:`~IntervalIndex.overlaps` method to create a boolean indexer.

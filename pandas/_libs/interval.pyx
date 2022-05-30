@@ -40,7 +40,9 @@ from numpy cimport (
 
 cnp.import_array()
 
+import warnings
 
+from pandas._libs import lib
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
@@ -52,7 +54,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
+VALID_CLOSED = frozenset(['both', 'neither', 'left', 'right'])
 
 
 cdef class IntervalMixin:
@@ -69,7 +71,7 @@ cdef class IntervalMixin:
         bool
             True if the Interval is closed on the left-side.
         """
-        return self.closed in ('left', 'both')
+        return self.inclusive in ('left', 'both')
 
     @property
     def closed_right(self):
@@ -83,7 +85,7 @@ cdef class IntervalMixin:
         bool
             True if the Interval is closed on the left-side.
         """
-        return self.closed in ('right', 'both')
+        return self.inclusive in ('right', 'both')
 
     @property
     def open_left(self):
@@ -150,43 +152,43 @@ cdef class IntervalMixin:
         --------
         An :class:`Interval` that contains points is not empty:
 
-        >>> pd.Interval(0, 1, closed='right').is_empty
+        >>> pd.Interval(0, 1, inclusive='right').is_empty
         False
 
         An ``Interval`` that does not contain any points is empty:
 
-        >>> pd.Interval(0, 0, closed='right').is_empty
+        >>> pd.Interval(0, 0, inclusive='right').is_empty
         True
-        >>> pd.Interval(0, 0, closed='left').is_empty
+        >>> pd.Interval(0, 0, inclusive='left').is_empty
         True
-        >>> pd.Interval(0, 0, closed='neither').is_empty
+        >>> pd.Interval(0, 0, inclusive='neither').is_empty
         True
 
         An ``Interval`` that contains a single point is not empty:
 
-        >>> pd.Interval(0, 0, closed='both').is_empty
+        >>> pd.Interval(0, 0, inclusive='both').is_empty
         False
 
         An :class:`~arrays.IntervalArray` or :class:`IntervalIndex` returns a
         boolean ``ndarray`` positionally indicating if an ``Interval`` is
         empty:
 
-        >>> ivs = [pd.Interval(0, 0, closed='neither'),
-        ...        pd.Interval(1, 2, closed='neither')]
+        >>> ivs = [pd.Interval(0, 0, inclusive='neither'),
+        ...        pd.Interval(1, 2, inclusive='neither')]
         >>> pd.arrays.IntervalArray(ivs).is_empty
         array([ True, False])
 
         Missing values are not considered empty:
 
-        >>> ivs = [pd.Interval(0, 0, closed='neither'), np.nan]
+        >>> ivs = [pd.Interval(0, 0, inclusive='neither'), np.nan]
         >>> pd.IntervalIndex(ivs).is_empty
         array([ True, False])
         """
-        return (self.right == self.left) & (self.closed != 'both')
+        return (self.right == self.left) & (self.inclusive != 'both')
 
     def _check_closed_matches(self, other, name='other'):
         """
-        Check if the closed attribute of `other` matches.
+        Check if the inclusive attribute of `other` matches.
 
         Note that 'left' and 'right' are considered different from 'both'.
 
@@ -201,16 +203,42 @@ cdef class IntervalMixin:
         ValueError
             When `other` is not closed exactly the same as self.
         """
-        if self.closed != other.closed:
-            raise ValueError(f"'{name}.closed' is {repr(other.closed)}, "
-                             f"expected {repr(self.closed)}.")
+        if self.inclusive != other.inclusive:
+            raise ValueError(f"'{name}.inclusive' is {repr(other.inclusive)}, "
+                             f"expected {repr(self.inclusive)}.")
 
 
 cdef bint _interval_like(other):
     return (hasattr(other, 'left')
             and hasattr(other, 'right')
-            and hasattr(other, 'closed'))
+            and hasattr(other, 'inclusive'))
 
+def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
+    """
+    warning in interval class for variable inclusive and closed
+    """
+    if inclusive is not None and closed != lib.no_default:
+        raise ValueError(
+            "Deprecated argument `closed` cannot be passed "
+            "if argument `inclusive` is not None"
+        )
+    elif closed != lib.no_default:
+        warnings.warn(
+            "Argument `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("both", "neither", "left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError(
+                "Argument `closed` has to be either"
+                "'both', 'neither', 'left' or 'right'"
+            )
+
+    return inclusive, closed
 
 cdef class Interval(IntervalMixin):
     """
@@ -225,6 +253,14 @@ cdef class Interval(IntervalMixin):
     closed : {'right', 'left', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
+
+        .. deprecated:: 1.5.0
+
+    inclusive : {'both', 'neither', 'left', 'right'}, default 'both'
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. See the Notes for more detailed explanation.
+
+        .. versionadded:: 1.5.0
 
     See Also
     --------
@@ -243,28 +279,28 @@ cdef class Interval(IntervalMixin):
 
     A closed interval (in mathematics denoted by square brackets) contains
     its endpoints, i.e. the closed interval ``[0, 5]`` is characterized by the
-    conditions ``0 <= x <= 5``. This is what ``closed='both'`` stands for.
+    conditions ``0 <= x <= 5``. This is what ``inclusive='both'`` stands for.
     An open interval (in mathematics denoted by parentheses) does not contain
     its endpoints, i.e. the open interval ``(0, 5)`` is characterized by the
-    conditions ``0 < x < 5``. This is what ``closed='neither'`` stands for.
+    conditions ``0 < x < 5``. This is what ``inclusive='neither'`` stands for.
     Intervals can also be half-open or half-closed, i.e. ``[0, 5)`` is
-    described by ``0 <= x < 5`` (``closed='left'``) and ``(0, 5]`` is
-    described by ``0 < x <= 5`` (``closed='right'``).
+    described by ``0 <= x < 5`` (``inclusive='left'``) and ``(0, 5]`` is
+    described by ``0 < x <= 5`` (``inclusive='right'``).
 
     Examples
     --------
     It is possible to build Intervals of different types, like numeric ones:
 
-    >>> iv = pd.Interval(left=0, right=5)
+    >>> iv = pd.Interval(left=0, right=5, inclusive='right')
     >>> iv
-    Interval(0, 5, closed='right')
+    Interval(0, 5, inclusive='right')
 
     You can check if an element belongs to it
 
     >>> 2.5 in iv
     True
 
-    You can test the bounds (``closed='right'``, so ``0 < x <= 5``):
+    You can test the bounds (``inclusive='right'``, so ``0 < x <= 5``):
 
     >>> 0 in iv
     False
@@ -284,16 +320,16 @@ cdef class Interval(IntervalMixin):
 
     >>> shifted_iv = iv + 3
     >>> shifted_iv
-    Interval(3, 8, closed='right')
+    Interval(3, 8, inclusive='right')
     >>> extended_iv = iv * 10.0
     >>> extended_iv
-    Interval(0.0, 50.0, closed='right')
+    Interval(0.0, 50.0, inclusive='right')
 
     To create a time interval you can use Timestamps as the bounds
 
     >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01 00:00:00'),
     ...                         pd.Timestamp('2018-01-01 00:00:00'),
-    ...                         closed='left')
+    ...                         inclusive='left')
     >>> pd.Timestamp('2017-01-01 00:00') in year_2017
     True
     >>> year_2017.length
@@ -312,21 +348,26 @@ cdef class Interval(IntervalMixin):
     Right bound for the interval.
     """
 
-    cdef readonly str closed
+    cdef readonly str inclusive
     """
     Whether the interval is closed on the left-side, right-side, both or
     neither.
     """
 
-    def __init__(self, left, right, str closed='right'):
+    def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
 
         self._validate_endpoint(left)
         self._validate_endpoint(right)
 
-        if closed not in VALID_CLOSED:
-            raise ValueError(f"invalid option for 'closed': {closed}")
+        inclusive, closed = _warning_interval(inclusive, closed)
+
+        if inclusive is None:
+            inclusive = "both"
+
+        if inclusive not in VALID_CLOSED:
+            raise ValueError(f"invalid option for 'inclusive': {inclusive}")
         if not left <= right:
             raise ValueError("left side of interval must be <= right side")
         if (isinstance(left, _Timestamp) and
@@ -336,7 +377,7 @@ cdef class Interval(IntervalMixin):
                              f"{repr(left.tzinfo)}' and {repr(right.tzinfo)}")
         self.left = left
         self.right = right
-        self.closed = closed
+        self.inclusive = inclusive
 
     def _validate_endpoint(self, endpoint):
         # GH 23013
@@ -346,7 +387,7 @@ cdef class Interval(IntervalMixin):
                              "are allowed when constructing an Interval.")
 
     def __hash__(self):
-        return hash((self.left, self.right, self.closed))
+        return hash((self.left, self.right, self.inclusive))
 
     def __contains__(self, key) -> bool:
         if _interval_like(key):
@@ -356,8 +397,8 @@ cdef class Interval(IntervalMixin):
 
     def __richcmp__(self, other, op: int):
         if isinstance(other, Interval):
-            self_tuple = (self.left, self.right, self.closed)
-            other_tuple = (other.left, other.right, other.closed)
+            self_tuple = (self.left, self.right, self.inclusive)
+            other_tuple = (other.left, other.right, other.inclusive)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
         elif util.is_array(other):
             return np.array(
@@ -368,7 +409,7 @@ cdef class Interval(IntervalMixin):
         return NotImplemented
 
     def __reduce__(self):
-        args = (self.left, self.right, self.closed)
+        args = (self.left, self.right, self.inclusive)
         return (type(self), args)
 
     def _repr_base(self):
@@ -386,7 +427,7 @@ cdef class Interval(IntervalMixin):
 
         left, right = self._repr_base()
         name = type(self).__name__
-        repr_str = f'{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})'
+        repr_str = f'{name}({repr(left)}, {repr(right)}, inclusive={repr(self.inclusive)})'
         return repr_str
 
     def __str__(self) -> str:
@@ -402,7 +443,7 @@ cdef class Interval(IntervalMixin):
             or PyDelta_Check(y)
             or is_timedelta64_object(y)
         ):
-            return Interval(self.left + y, self.right + y, closed=self.closed)
+            return Interval(self.left + y, self.right + y, inclusive=self.inclusive)
         elif (
             # __radd__ pattern
             # TODO(cython3): remove this
@@ -413,7 +454,7 @@ cdef class Interval(IntervalMixin):
                 or is_timedelta64_object(self)
             )
         ):
-            return Interval(y.left + self, y.right + self, closed=y.closed)
+            return Interval(y.left + self, y.right + self, inclusive=y.inclusive)
         return NotImplemented
 
     def __radd__(self, other):
@@ -422,7 +463,7 @@ cdef class Interval(IntervalMixin):
                 or PyDelta_Check(other)
                 or is_timedelta64_object(other)
         ):
-            return Interval(self.left + other, self.right + other, closed=self.closed)
+            return Interval(self.left + other, self.right + other, inclusive=self.inclusive)
         return NotImplemented
 
     def __sub__(self, y):
@@ -431,32 +472,33 @@ cdef class Interval(IntervalMixin):
             or PyDelta_Check(y)
             or is_timedelta64_object(y)
         ):
-            return Interval(self.left - y, self.right - y, closed=self.closed)
+            return Interval(self.left - y, self.right - y, inclusive=self.inclusive)
         return NotImplemented
 
     def __mul__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left * y, self.right * y, closed=self.closed)
+            return Interval(self.left * y, self.right * y, inclusive=self.inclusive)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             # __radd__ semantics
             # TODO(cython3): remove this
-            return Interval(y.left * self, y.right * self, closed=y.closed)
+            return Interval(y.left * self, y.right * self, inclusive=y.inclusive)
+
         return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
-            return Interval(self.left * other, self.right * other, closed=self.closed)
+            return Interval(self.left * other, self.right * other, inclusive=self.inclusive)
         return NotImplemented
 
     def __truediv__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y, closed=self.closed)
+            return Interval(self.left / y, self.right / y, inclusive=self.inclusive)
         return NotImplemented
 
     def __floordiv__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(
-                self.left // y, self.right // y, closed=self.closed)
+                self.left // y, self.right // y, inclusive=self.inclusive)
         return NotImplemented
 
     def overlaps(self, other):
@@ -494,14 +536,14 @@ cdef class Interval(IntervalMixin):
 
         Intervals that share closed endpoints overlap:
 
-        >>> i4 = pd.Interval(0, 1, closed='both')
-        >>> i5 = pd.Interval(1, 2, closed='both')
+        >>> i4 = pd.Interval(0, 1, inclusive='both')
+        >>> i5 = pd.Interval(1, 2, inclusive='both')
         >>> i4.overlaps(i5)
         True
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> i6 = pd.Interval(1, 2, closed='neither')
+        >>> i6 = pd.Interval(1, 2, inclusive='neither')
         >>> i4.overlaps(i6)
         False
         """
@@ -537,10 +579,10 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     tuple of
         left : ndarray
         right : ndarray
-        closed: str
+        inclusive: str
     """
     cdef:
-        object closed = None, interval
+        object inclusive = None, interval
         Py_ssize_t i, n = len(intervals)
         ndarray left, right
         bint seen_closed = False
@@ -563,13 +605,13 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
         right[i] = interval.right
         if not seen_closed:
             seen_closed = True
-            closed = interval.closed
-        elif closed != interval.closed:
-            closed = None
+            inclusive = interval.inclusive
+        elif inclusive != interval.inclusive:
+            inclusive = None
             if validate_closed:
                 raise ValueError("intervals must all be closed on the same side")
 
-    return left, right, closed
+    return left, right, inclusive
 
 
 include "intervaltree.pxi"

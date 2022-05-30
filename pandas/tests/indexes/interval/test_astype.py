@@ -82,7 +82,7 @@ class TestIntSubtype(AstypeTests):
 
     indexes = [
         IntervalIndex.from_breaks(np.arange(-10, 11, dtype="int64")),
-        IntervalIndex.from_breaks(np.arange(100, dtype="uint64"), closed="left"),
+        IntervalIndex.from_breaks(np.arange(100, dtype="uint64"), inclusive="left"),
     ]
 
     @pytest.fixture(params=indexes)
@@ -93,10 +93,12 @@ class TestIntSubtype(AstypeTests):
         "subtype", ["float64", "datetime64[ns]", "timedelta64[ns]"]
     )
     def test_subtype_conversion(self, index, subtype):
-        dtype = IntervalDtype(subtype, index.closed)
+        dtype = IntervalDtype(subtype, index.inclusive)
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
-            index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
+            index.left.astype(subtype),
+            index.right.astype(subtype),
+            inclusive=index.inclusive,
         )
         tm.assert_index_equal(result, expected)
 
@@ -105,12 +107,12 @@ class TestIntSubtype(AstypeTests):
     )
     def test_subtype_integer(self, subtype_start, subtype_end):
         index = IntervalIndex.from_breaks(np.arange(100, dtype=subtype_start))
-        dtype = IntervalDtype(subtype_end, index.closed)
+        dtype = IntervalDtype(subtype_end, index.inclusive)
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
             index.left.astype(subtype_end),
             index.right.astype(subtype_end),
-            closed=index.closed,
+            inclusive=index.inclusive,
         )
         tm.assert_index_equal(result, expected)
 
@@ -135,7 +137,9 @@ class TestFloatSubtype(AstypeTests):
     indexes = [
         interval_range(-10.0, 10.0, inclusive="neither"),
         IntervalIndex.from_arrays(
-            [-1.5, np.nan, 0.0, 0.0, 1.5], [-0.5, np.nan, 1.0, 1.0, 3.0], closed="both"
+            [-1.5, np.nan, 0.0, 0.0, 1.5],
+            [-0.5, np.nan, 1.0, 1.0, 3.0],
+            inclusive="both",
         ),
     ]
 
@@ -149,7 +153,9 @@ class TestFloatSubtype(AstypeTests):
         dtype = IntervalDtype(subtype, "right")
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
-            index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
+            index.left.astype(subtype),
+            index.right.astype(subtype),
+            inclusive=index.inclusive,
         )
         tm.assert_index_equal(result, expected)
 
@@ -164,7 +170,9 @@ class TestFloatSubtype(AstypeTests):
         dtype = IntervalDtype(subtype, "right")
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
-            index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
+            index.left.astype(subtype),
+            index.right.astype(subtype),
+            inclusive=index.inclusive,
         )
         tm.assert_index_equal(result, expected)
 
@@ -216,7 +224,9 @@ class TestDatetimelikeSubtype(AstypeTests):
             new_left = index.left.astype(subtype)
             new_right = index.right.astype(subtype)
 
-        expected = IntervalIndex.from_arrays(new_left, new_right, closed=index.closed)
+        expected = IntervalIndex.from_arrays(
+            new_left, new_right, inclusive=index.inclusive
+        )
         tm.assert_index_equal(result, expected)
 
     def test_subtype_float(self, index):

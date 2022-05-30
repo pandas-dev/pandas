@@ -25,7 +25,7 @@ def test_interval_array_equal_closed_mismatch():
     msg = """\
 IntervalArray are different
 
-Attribute "closed" are different
+Attribute "inclusive" are different
 \\[left\\]:  left
 \\[right\\]: right"""
 

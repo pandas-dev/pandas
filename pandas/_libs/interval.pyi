@@ -11,6 +11,7 @@ from typing import (
 import numpy as np
 import numpy.typing as npt
 
+from pandas._libs import lib
 from pandas._typing import (
     IntervalClosedType,
     Timedelta,
@@ -54,19 +55,24 @@ class IntervalMixin:
     def is_empty(self) -> bool: ...
     def _check_closed_matches(self, other: IntervalMixin, name: str = ...) -> None: ...
 
+def _warning_interval(
+    inclusive, closed
+) -> tuple[IntervalClosedType, lib.NoDefault]: ...
+
 class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
     def left(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def closed(self) -> IntervalClosedType: ...
+    def inclusive(self) -> IntervalClosedType: ...
     mid: _MidDescriptor
     length: _LengthDescriptor
     def __init__(
         self,
         left: _OrderableT,
         right: _OrderableT,
+        inclusive: IntervalClosedType = ...,
         closed: IntervalClosedType = ...,
     ) -> None: ...
     def __hash__(self) -> int: ...
@@ -157,7 +163,7 @@ class IntervalTree(IntervalMixin):
         self,
         left: np.ndarray,
         right: np.ndarray,
-        closed: IntervalClosedType = ...,
+        inclusive: IntervalClosedType = ...,
         leaf_size: int = ...,
     ) -> None: ...
     @property

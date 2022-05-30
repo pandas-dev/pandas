@@ -8,7 +8,7 @@ from pandas import (
 
 class TestEquals:
     def test_equals(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(5), closed=closed)
+        expected = IntervalIndex.from_breaks(np.arange(5), inclusive=closed)
         assert expected.equals(expected)
         assert expected.equals(expected.copy())
 
@@ -21,16 +21,16 @@ class TestEquals:
         assert not expected.equals(date_range("20130101", periods=2))
 
         expected_name1 = IntervalIndex.from_breaks(
-            np.arange(5), closed=closed, name="foo"
+            np.arange(5), inclusive=closed, name="foo"
         )
         expected_name2 = IntervalIndex.from_breaks(
-            np.arange(5), closed=closed, name="bar"
+            np.arange(5), inclusive=closed, name="bar"
         )
         assert expected.equals(expected_name1)
         assert expected_name1.equals(expected_name2)
 
-        for other_closed in {"left", "right", "both", "neither"} - {closed}:
-            expected_other_closed = IntervalIndex.from_breaks(
-                np.arange(5), closed=other_closed
+        for other_inclusive in {"left", "right", "both", "neither"} - {closed}:
+            expected_other_inclusive = IntervalIndex.from_breaks(
+                np.arange(5), inclusive=other_inclusive
             )
-            assert not expected.equals(expected_other_closed)
+            assert not expected.equals(expected_other_inclusive)

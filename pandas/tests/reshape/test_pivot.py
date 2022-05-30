@@ -301,7 +301,7 @@ class TestPivotTable:
 
     def test_pivot_with_interval_index_margins(self):
         # GH 25815
-        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2])
+        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2], "right")
         df = DataFrame(
             {
                 "A": np.arange(4, 0, -1, dtype=np.intp),
@@ -319,7 +319,10 @@ class TestPivotTable:
         result = pivot_tab["All"]
         expected = Series(
             [3, 7, 10],
-            index=Index([pd.Interval(0, 1), pd.Interval(1, 2), "All"], name="C"),
+            index=Index(
+                [pd.Interval(0, 1, "right"), pd.Interval(1, 2, "right"), "All"],
+                name="C",
+            ),
             name="All",
             dtype=np.intp,
         )

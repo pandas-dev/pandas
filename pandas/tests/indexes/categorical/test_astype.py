@@ -26,7 +26,9 @@ class TestAstype:
         assert not isinstance(result, CategoricalIndex)
 
         # interval
-        ii = IntervalIndex.from_arrays(left=[-0.001, 2.0], right=[2, 4], closed="right")
+        ii = IntervalIndex.from_arrays(
+            left=[-0.001, 2.0], right=[2, 4], inclusive="right"
+        )
 
         ci = CategoricalIndex(
             Categorical.from_codes([0, 1, -1], categories=ii, ordered=True)

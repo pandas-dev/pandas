@@ -69,15 +69,15 @@ class TestReindex:
     def test_reindex_categorical_added_category(self):
         # GH 42424
         ci = CategoricalIndex(
-            [Interval(0, 1, closed="right"), Interval(1, 2, closed="right")],
+            [Interval(0, 1, inclusive="right"), Interval(1, 2, inclusive="right")],
             ordered=True,
         )
         ci_add = CategoricalIndex(
             [
-                Interval(0, 1, closed="right"),
-                Interval(1, 2, closed="right"),
-                Interval(2, 3, closed="right"),
-                Interval(3, 4, closed="right"),
+                Interval(0, 1, inclusive="right"),
+                Interval(1, 2, inclusive="right"),
+                Interval(2, 3, inclusive="right"),
+                Interval(3, 4, inclusive="right"),
             ],
             ordered=True,
         )

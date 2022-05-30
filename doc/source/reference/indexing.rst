@@ -242,7 +242,7 @@ IntervalIndex components
    IntervalIndex.left
    IntervalIndex.right
    IntervalIndex.mid
-   IntervalIndex.closed
+   IntervalIndex.inclusive
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_empty

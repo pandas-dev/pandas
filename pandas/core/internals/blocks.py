@@ -1961,8 +1961,8 @@ def _catch_deprecated_value_error(err: Exception) -> None:
         #  is enforced, stop catching ValueError here altogether
         if isinstance(err, IncompatibleFrequency):
             pass
-        elif "'value.closed' is" in str(err):
-            # IntervalDtype mismatched 'closed'
+        elif "'value.inclusive' is" in str(err):
+            # IntervalDtype mismatched 'inclusive'
             pass
         elif "Timezones don't match" not in str(err):
             raise

@@ -799,13 +799,13 @@ class TestGetGroup:
 
         # TODO: should prob allow a str of Interval work as well
         # IOW '(0, 5]'
-        result = g.get_group(pd.Interval(0, 5))
+        result = g.get_group(pd.Interval(0, 5, "right"))
         expected = DataFrame([3, 1], index=[0, 1])
         tm.assert_frame_equal(result, expected)
 
-        msg = r"Interval\(10, 15, closed='right'\)"
+        msg = r"Interval\(10, 15, inclusive='right'\)"
         with pytest.raises(KeyError, match=msg):
-            g.get_group(pd.Interval(10, 15))
+            g.get_group(pd.Interval(10, 15, "right"))
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121

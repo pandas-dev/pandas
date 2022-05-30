@@ -17,7 +17,8 @@ class TestIntervalIndexRendering:
     def test_frame_repr(self):
         # https://github.com/pandas-dev/pandas/pull/24134/files
         df = DataFrame(
-            {"A": [1, 2, 3, 4]}, index=IntervalIndex.from_breaks([0, 1, 2, 3, 4])
+            {"A": [1, 2, 3, 4]},
+            index=IntervalIndex.from_breaks([0, 1, 2, 3, 4], "right"),
         )
         result = repr(df)
         expected = "        A\n(0, 1]  1\n(1, 2]  2\n(2, 3]  3\n(3, 4]  4"
@@ -40,7 +41,7 @@ class TestIntervalIndexRendering:
     )
     def test_repr_missing(self, constructor, expected):
         # GH 25984
-        index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
+        index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)], "right")
         obj = constructor(list("abc"), index=index)
         result = repr(obj)
         assert result == expected
@@ -57,7 +58,8 @@ class TestIntervalIndexRendering:
                         Float64Index([329.973, 345.137], dtype="float64"),
                         Float64Index([345.137, 360.191], dtype="float64"),
                     )
-                ]
+                ],
+                "right",
             ),
         )
         result = str(markers)
@@ -65,7 +67,7 @@ class TestIntervalIndexRendering:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "tuples, closed, expected_data",
+        "tuples, inclusive, expected_data",
         [
             ([(0, 1), (1, 2), (2, 3)], "left", ["[0, 1)", "[1, 2)", "[2, 3)"]),
             (
@@ -97,9 +99,9 @@ class TestIntervalIndexRendering:
             ),
         ],
     )
-    def test_to_native_types(self, tuples, closed, expected_data):
+    def test_to_native_types(self, tuples, inclusive, expected_data):
         # GH 28210
-        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        index = IntervalIndex.from_tuples(tuples, inclusive=inclusive)
         result = index._format_native_types()
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)

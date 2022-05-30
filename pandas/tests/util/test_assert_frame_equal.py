@@ -247,7 +247,7 @@ def test_assert_frame_equal_extension_dtype_mismatch():
 
 def test_assert_frame_equal_interval_dtype_mismatch():
     # https://github.com/pandas-dev/pandas/issues/32747
-    left = DataFrame({"a": [pd.Interval(0, 1)]}, dtype="interval")
+    left = DataFrame({"a": [pd.Interval(0, 1, "right")]}, dtype="interval")
     right = left.astype(object)
 
     msg = (
