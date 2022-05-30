@@ -2964,7 +2964,7 @@ class DataFrame(NDFrame, OpsMixin):
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
           library.
-        * Unsigned integers, intervals, periods, sparse and categorical Dtypes
+        * Category, unsigned integers, interval, period and sparse Dtypes
           are not supported yet.
         * Currently timezones in datetime columns are not preserved when a
           dataframe is converted into ORC files.
