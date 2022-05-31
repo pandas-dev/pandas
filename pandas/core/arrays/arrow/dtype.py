@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import numpy as np
 import pyarrow as pa
 
@@ -95,6 +97,14 @@ class ArrowDtype(StorageExtensionDtype):
         base_type = string.split("[pyarrow]")[0]
         pa_dtype = getattr(pa, base_type, None)
         if pa_dtype is None:
+            has_parameters = re.search(r"\[.*\]", base_type)
+            if has_parameters:
+                raise NotImplementedError(
+                    "Passing pyarrow type specific parameters "
+                    f"({has_parameters.group()}) in the string is not supported. "
+                    "Please construct an ArrowDtype object with a pyarrow_dtype "
+                    "instance with specific parameters."
+                )
             raise TypeError(f"'{base_type}' is not a valid pyarrow data type.")
         return cls(pa_dtype())
 
