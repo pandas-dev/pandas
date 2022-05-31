@@ -216,6 +216,14 @@ def test_zero_variables(datapath):
         pd.read_sas(fname)
 
 
+def test_zero_rows(datapath):
+    # GH 18198
+    fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
+    result = pd.read_sas(fname)
+    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_corrupt_read(datapath):
     # We don't really care about the exact failure, the important thing is
     # that the resource should be cleaned up afterwards (BUG #35566)
