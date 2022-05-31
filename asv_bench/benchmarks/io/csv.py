@@ -285,6 +285,15 @@ class ReadUint64Integers(StringIORewind):
         )
 
 
+class ReadUint8Integers(StringIORewind):
+    def setup(self):
+        arr = np.arange(10000).astype("uint8")
+        self.data1 = StringIO("\n".join(arr.astype(str).tolist()))
+
+    def time_read_uint8(self):
+        read_csv(self.data(self.data1), header=None, names=["foo"], dtype="uint8")
+
+
 class ReadCSVThousands(BaseIO):
 
     fname = "__test__.csv"
