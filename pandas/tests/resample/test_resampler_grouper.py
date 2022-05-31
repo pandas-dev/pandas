@@ -464,7 +464,6 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     expected = DataFrame(
         {
             "key": ["A"] * 3 + ["B"] * 3,
-            "date": pd.to_datetime(["2020-01-01", "2020-01-06", "2020-01-13"] * 2),
             "col1": [0, 5, 12] * 2,
             "col_object": ["val"] * 3 + [np.nan] * 3,
         },

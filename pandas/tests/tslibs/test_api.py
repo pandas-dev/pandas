@@ -56,6 +56,5 @@ def test_namespace():
     ]
 
     expected = set(submodules + api)
-    # exclude "ctime" bc it is not (yet) imported outside of tests
-    names = [x for x in dir(tslibs) if not x.startswith("__") and x != "ctime"]
+    names = [x for x in dir(tslibs) if not x.startswith("__")]
     assert set(names) == expected
