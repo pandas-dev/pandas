@@ -3952,7 +3952,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._mgr.column_setitem(icol, iindex, value)
             self._clear_item_cache()
 
-        except KeyError:
+        except (KeyError, TypeError, ValueError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
