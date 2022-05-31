@@ -98,7 +98,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
@@ -3944,8 +3943,6 @@ class DataFrame(NDFrame, OpsMixin):
             Sets whether or not index/col interpreted as indexers
         """
         try:
-            # setitem will do validation that may raise TypeError,
-            #  ValueError, or LossySetitemError
             if takeable:
                 icol = col
                 iindex = cast(int, index)
@@ -3955,7 +3952,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._mgr.column_setitem(icol, iindex, value)
             self._clear_item_cache()
 
-        except (KeyError, TypeError, ValueError, LossySetitemError):
+        except KeyError:
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
