@@ -219,10 +219,9 @@ def test_zero_variables(datapath):
 def test_zero_rows(datapath):
     # GH 18198
     fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
-    df = pd.read_sas(fname)
-    tm.assert_frame_equal(
-        df, pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
-    )
+    result = pd.read_sas(fname)
+    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_corrupt_read(datapath):
