@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_integer,
     is_numeric_dtype,
     is_object_dtype,
     is_timedelta64_ns_dtype,
@@ -876,6 +877,8 @@ class ArrayManager(BaseArrayManager):
         This is a method on the ArrayManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
+        if not is_integer(loc):
+            raise TypeError("The column index should be an integer")
         arr = self.arrays[loc]
         mgr = SingleArrayManager([arr], [self._axes[0]])
         new_mgr = mgr.setitem((idx,), value)
