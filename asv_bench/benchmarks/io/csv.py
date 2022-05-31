@@ -576,7 +576,7 @@ class ReadCSVIndexCol(StringIORewind):
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_index_col(self):
-        read_csv(self.StringIO_input, index_col="a")
+        read_csv(self.data(self.StringIO_input), index_col="a")
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
