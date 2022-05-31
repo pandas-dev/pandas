@@ -22,6 +22,7 @@ Fixed regressions
 - Fixed regression in :func:`read_csv` with ``index_col=False`` identifying first row as index names when ``header=None`` (:issue:`46955`)
 - Fixed regression in :meth:`.DataFrameGroupBy.agg` when used with list-likes or dict-likes and ``axis=1`` that would give incorrect results; now raises ``NotImplementedError`` (:issue:`46995`)
 - Fixed regression in :meth:`DataFrame.resample` and :meth:`DataFrame.rolling` when used with list-likes or dict-likes and ``axis=1`` that would raise an unintuitive error message; now raises ``NotImplementedError`` (:issue:`46904`)
+- Fixed regression in :meth:`DataFrame.shift` when ``axis`` is ``columns`` and ``fill_value`` is absent, ``freq`` is ignored (:issue:`47039`)
 
 .. ---------------------------------------------------------------------------
 
@@ -29,7 +30,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Most I/O methods do no longer suppress ``OSError`` and ``ValueError`` when closing file handles (:issue:`47136`)
 -
 
 .. ---------------------------------------------------------------------------
