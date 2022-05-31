@@ -858,12 +858,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # ExtensionArray.factorize -> Tuple[EA, EA]
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
-        resolved_na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
-        if resolved_na_sentinel is None:
-            raise NotImplementedError("Encoding NaN values is not yet implemented")
-        else:
-            na_sentinel = resolved_na_sentinel
-        codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
+        codes, uniques = algos.factorize(
+            np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+        )
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 

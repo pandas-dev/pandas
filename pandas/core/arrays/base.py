@@ -1009,15 +1009,15 @@ class ExtensionArray:
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[np.ndarray, ExtensionArray]:
         """
-            Encode the extension array as an enumerated type.
+        Encode the extension array as an enumerated type.
 
-            Parameters
-            ----------
-            na_sentinel : int, default -1
-                Value to use in the `codes` array to indicate missing values.
+        Parameters
+        ----------
+        na_sentinel : int, default -1
+            Value to use in the `codes` array to indicate missing values.
 
             .. deprecated:: 1.5.0
-                Specifying the specific value to use for na_sentinel is deprecated and
+                The na_sentinel argument is deprecated and
                 will be removed in a future version of pandas. Specify use_na_sentinel
                 as either True or False.
 
@@ -1026,27 +1026,29 @@ class ExtensionArray:
             NaN values will be encoded as non-negative integers and will not drop the
             NaN from the uniques of the values.
 
-            Returns
-            -------
-            codes : ndarray
-                An integer NumPy array that's an indexer into the original
-                ExtensionArray.
-            uniques : ExtensionArray
-                An ExtensionArray containing the unique values of `self`.
+            .. versionadded:: 1.5.0
 
-                .. note::
+        Returns
+        -------
+        codes : ndarray
+            An integer NumPy array that's an indexer into the original
+            ExtensionArray.
+        uniques : ExtensionArray
+            An ExtensionArray containing the unique values of `self`.
 
-                   uniques will *not* contain an entry for the NA value of
-                   the ExtensionArray if there are any missing values present
-                   in `self`.
+            .. note::
 
-            See Also
-            --------
-            factorize : Top-level factorize method that dispatches here.
+               uniques will *not* contain an entry for the NA value of
+               the ExtensionArray if there are any missing values present
+               in `self`.
 
-            Notes
-            -----
-            :meth:`pandas.factorize` offers a `sort` keyword as well.
+        See Also
+        --------
+        factorize : Top-level factorize method that dispatches here.
+
+        Notes
+        -----
+        :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
         # Implementer note: There are two ways to override the behavior of
         # pandas.factorize

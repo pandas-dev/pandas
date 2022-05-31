@@ -597,11 +597,11 @@ def factorize(
     ----------
     {values}{sort}
     na_sentinel : int or None, default -1
-        Value to mark "not found". If None, NaN values will be encoded as positive
-        integers and will not drop the NaN from the uniques of the values.
+        Value to mark "not found". If None, will not drop the NaN
+        from the uniques of the values.
 
         .. deprecated:: 1.5.0
-            Specifying the specific value to use for na_sentinel is deprecated and
+            The na_sentinel argument is deprecated and
             will be removed in a future version of pandas. Specify use_na_sentinel as
             either True or False.
 
@@ -612,6 +612,7 @@ def factorize(
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
 
+        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -659,8 +660,8 @@ def factorize(
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
-    Missing values are indicated in `codes` with `na_sentinel`
-    (``-1`` by default). Note that missing values are never
+    When ``use_na_sentinel=True`` (the default), missing values are indicated in
+    the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
@@ -695,16 +696,16 @@ def factorize(
     Index(['a', 'c'], dtype='object')
 
     If NaN is in the values, and we want to include NaN in the uniques of the
-    values, it can be achieved by setting ``na_sentinel=None``.
+    values, it can be achieved by setting ``use_na_sentinel=False``.
 
     >>> values = np.array([1, 2, 1, np.nan])
-    >>> codes, uniques = pd.factorize(values)  # default: na_sentinel=-1
+    >>> codes, uniques = pd.factorize(values)  # default: use_na_sentinel=True
     >>> codes
     array([ 0,  1,  0, -1])
     >>> uniques
     array([1., 2.])
 
-    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
+    >>> codes, uniques = pd.factorize(values, use_na_sentinel=False)
     >>> codes
     array([0, 1, 0, 2])
     >>> uniques
