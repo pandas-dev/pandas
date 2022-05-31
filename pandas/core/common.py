@@ -711,7 +711,8 @@ def resolve_na_sentinel(
     use_na_sentinel: bool | lib.NoDefault,
     warn: bool = True,
 ) -> int | None:
-    """Determine value of na_sentinel for factorize methods.
+    """
+    Determine value of na_sentinel for factorize methods.
 
     See GH#46910 for details on the deprecation.
 
