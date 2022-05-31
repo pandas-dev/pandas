@@ -26,7 +26,7 @@ jobs:
           # Without this (line 34), versioneer will not be able to determine the pandas version.
           # This is because of a security update to git that blocks it from reading the config folder if
           # it is not owned by the current user. We hit this since the "mounted" folder is not hit by the
-          # Docker container. 
+          # Docker container.
           # xref https://github.com/pypa/manylinux/issues/1309
           docker pull quay.io/pypa/manylinux2014_i686
           docker run --platform linux/386 -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
