@@ -1955,9 +1955,8 @@ class _iLocIndexer(_LocationIndexer):
                 # in case of slice
                 value = value[pi]
         else:
-            # set the item, first attempting to operate inplace, then
-            #  falling back to casting if necessary; see
-            #  _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
+            # set value into the column (first attempting to operate inplace, then
+            #  falling back to casting if necessary)
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
             self.obj._clear_item_cache()
             return

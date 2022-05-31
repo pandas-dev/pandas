@@ -877,7 +877,6 @@ class ArrayManager(BaseArrayManager):
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
         arr = self.arrays[loc]
-        # create temporary SingleArrayManager without ref to use setitem implementation
         mgr = SingleArrayManager([arr], [self._axes[0]])
         new_mgr = mgr.setitem((idx,), value)
         # update existing ArrayManager in-place
