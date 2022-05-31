@@ -954,7 +954,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         case NPY_FR_s:
         // special case where we can simplify many expressions bc per_sec=1
 
-        per_day = 86400000LL;
+        per_day = 86400LL;
         per_sec = 1L;
 
         // put frac in seconds
@@ -1021,6 +1021,52 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
             out->us = 0;
             out->ns = 0;
         }
+        break;
+
+        case NPY_FR_m:
+
+        out->days = td / 1440LL;
+        td -= out->days * 1440LL;
+        out->hrs = td / 60LL;
+        td -= out->hrs * 60LL;
+        out->min = td;
+
+        out->sec = 0;
+        out->ms = 0;
+        out->us = 0;
+        out->ns = 0;
+        break;
+
+        case NPY_FR_h:
+        out->days = td / 24LL;
+        td -= out->days * 24LL;
+        out->hrs = td;
+
+        out->min = 0;
+        out->sec = 0;
+        out->ms = 0;
+        out->us = 0;
+        out->ns = 0;
+        break;
+
+        case NPY_FR_D:
+        out->days = td;
+        out->hrs = 0;
+        out->min = 0;
+        out->sec = 0;
+        out->ms = 0;
+        out->us = 0;
+        out->ns = 0;
+        break;
+
+        case NPY_FR_W:
+        out->days = 7 * td;
+        out->hrs = 0;
+        out->min = 0;
+        out->sec = 0;
+        out->ms = 0;
+        out->us = 0;
+        out->ns = 0;
         break;
 
         default:

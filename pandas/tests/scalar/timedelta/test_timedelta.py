@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
+from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
 from pandas import (
@@ -22,6 +23,80 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
+
+
+class TestAsUnit:
+    def test_as_unit(self):
+        td = Timedelta(days=1)
+
+        assert td._as_unit("ns") is td
+
+        res = td._as_unit("us")
+        assert res.value == td.value // 1000
+        assert res._reso == td._reso - 1
+
+        rt = res._as_unit("ns")
+        assert rt.value == td.value
+        assert rt._reso == td._reso
+
+        res = td._as_unit("ms")
+        assert res.value == td.value // 1_000_000
+        assert res._reso == td._reso - 2
+
+        rt = res._as_unit("ns")
+        assert rt.value == td.value
+        assert rt._reso == td._reso
+
+        res = td._as_unit("s")
+        assert res.value == td.value // 1_000_000_000
+        assert res._reso == td._reso - 3
+
+        rt = res._as_unit("ns")
+        assert rt.value == td.value
+        assert rt._reso == td._reso
+
+    def test_as_unit_overflows(self):
+        # microsecond that would be just out of bounds for nano
+        us = 9223372800000000
+        td = Timedelta._from_value_and_reso(us, 9)
+
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            td._as_unit("ns")
+
+        res = td._as_unit("ms")
+        assert res.value == us // 1000
+        assert res._reso == 8
+
+    def test_as_unit_rounding(self):
+        td = Timedelta(microseconds=1500)
+        res = td._as_unit("ms")
+
+        expected = Timedelta(milliseconds=1)
+        assert res == expected
+
+        assert res._reso == 8
+        assert res.value == 1
+
+        with pytest.raises(ValueError, match="Cannot losslessly convert units"):
+            td._as_unit("ms", round_ok=False)
+
+    def test_as_unit_non_nano(self):
+        # case where we are going neither to nor from nano
+        td = Timedelta(days=1)._as_unit("D")
+        assert td.days == 1
+        assert td.value == 1
+        assert td.components.days == 1
+        assert td._d == 1
+        assert td.total_seconds() == 86400
+
+        res = td._as_unit("h")
+        assert res.value == 24
+        assert res.components.days == 1
+        assert res.components.hours == 0
+        assert res._d == 1
+        assert res._h == 0
+        assert res.total_seconds() == 86400
 
 
 class TestNonNano:
