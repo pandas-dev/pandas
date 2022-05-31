@@ -21,3 +21,4 @@ cdef class _Timedelta(timedelta):
     cdef bint _has_ns(self)
     cdef _ensure_components(_Timedelta self)
     cdef inline bint _compare_mismatched_resos(self, _Timedelta other, op)
+    cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=*)
