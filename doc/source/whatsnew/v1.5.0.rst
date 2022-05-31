@@ -151,7 +151,7 @@ Other enhancements
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
-- :class:`DataError` and :class:`SpecificationError` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- :class:`DataError`, :class:`SpecificationError`, and :class:`SettingWithCopyError` are now exposed in ``pandas.errors`` (:issue:`27656`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -362,7 +362,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| mypy (dev)      | 0.950           |          |    X    |
+| mypy (dev)      | 0.960           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.9.3           |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -669,7 +669,12 @@ Other Deprecations
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
 - Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
 - Deprecated indexing on a timezone-naive :class:`DatetimeIndex` using a string representing a timezone-aware datetime (:issue:`46903`, :issue:`36148`)
--
+- Deprecated the ``closed`` argument in :class:`Interval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalIndex` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalDtype` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalArray` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`intervaltree` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`ArrowInterval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -780,7 +785,7 @@ Indexing
 - Bug in setting large integer values into :class:`Series` with ``float32`` or ``float16`` dtype incorrectly altering these values instead of coercing to ``float64`` dtype (:issue:`45844`)
 - Bug in :meth:`Series.asof` and :meth:`DataFrame.asof` incorrectly casting bool-dtype results to ``float64`` dtype (:issue:`16063`)
 - Bug in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` not always propagating metadata (:issue:`28283`)
--
+- Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
 
 Missing
 ^^^^^^^

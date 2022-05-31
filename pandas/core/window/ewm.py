@@ -211,6 +211,8 @@ class ExponentialMovingWindow(BaseWindow):
 
         If ``1`` or ``'columns'``, calculate across the columns.
 
+        For `Series` this parameter is unused and defaults to 0.
+
     times : str, np.ndarray, Series, default None
 
         .. versionadded:: 1.1.0
