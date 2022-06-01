@@ -345,8 +345,8 @@ def ndarray_to_mgr(
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
-
-    _check_values_indices_shape_match(values, index, columns)
+    if len(values) != 0:
+        _check_values_indices_shape_match(values, index, columns)
 
     if typ == "array":
 
