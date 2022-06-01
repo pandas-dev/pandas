@@ -14,7 +14,7 @@ from typing import (
     cast,
     final,
 )
-from warnings import warn
+import warnings
 
 import numpy as np
 
@@ -722,11 +722,8 @@ def factorize(
 
     # Can't always warn here because EA's factorize will warn too; warn for each
     # path below.
-    passed_na_sentinel = na_sentinel
-    na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel, warn=False)
+    na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
     if isinstance(values, ABCRangeIndex):
-        # Emit warning if appropriate
-        _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
         return values.factorize(sort=sort)
 
     values = _ensure_arraylike(values)
@@ -745,30 +742,18 @@ def factorize(
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
         and values.freq is not None
     ):
-        # Emit warning if appropriate
-        _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
         # The presence of 'freq' means we can fast-path sorting and know there
         #  aren't NAs
         codes, uniques = values.factorize(sort=sort)
         return _re_wrap_factorize(original, uniques, codes)
 
     elif not isinstance(values.dtype, np.dtype):
-        # i.e. ExtensionDtype
-        if passed_na_sentinel is lib.no_default:
-            # User didn't specify na_sentinel; avoid warning. Note EA path always
-            # uses a na_sentinel value.
-            codes, uniques = values.factorize(use_na_sentinel=True)
-        elif passed_na_sentinel is None:
-            # Emit the appropriate warning message for None
-            _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
-            codes, uniques = values.factorize(use_na_sentinel=True)
-        else:
-            # EA.factorize will warn
+        with warnings.catch_warnings():
+            # We've already warned above
+            warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
             codes, uniques = values.factorize(na_sentinel=na_sentinel)
 
     else:
-        # Generate warning for na_sentile if appropriate
-        _ = com.resolve_na_sentinel(passed_na_sentinel, use_na_sentinel)
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
         codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint
@@ -985,7 +970,7 @@ def mode(
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
-        warn(f"Unable to sort modes: {err}")
+        warnings.warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(npresult, original.dtype, original)
     return result
@@ -1599,7 +1584,7 @@ def diff(arr, n: int, axis: int = 0):
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
-            warn(
+            warnings.warn(
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,

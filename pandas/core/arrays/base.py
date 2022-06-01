@@ -8,6 +8,7 @@ An interface for extending pandas with custom arrays.
 """
 from __future__ import annotations
 
+import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -20,6 +21,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -45,6 +47,7 @@ from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -456,6 +459,20 @@ class ExtensionArray:
         Return for `self != other` (element-wise in-equality).
         """
         return ~(self == other)
+
+    def __init_subclass__(cls, **kwargs):
+        factorize = getattr(cls, "factorize")
+        if "use_na_sentinel" not in inspect.signature(factorize).parameters:
+            # See GH#46910 for details on the deprecation
+            name = cls.__name__
+            warnings.warn(
+                f"The na_sentinel argument of {name}.factorize is deprecated. "
+                f"In the future, pandas will use the use_na_sentinel argument instead. "
+                f"Add this argument to {name}.factorize to be compatible with future"
+                f"versions of pandas and silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
     def to_numpy(
         self,
