@@ -720,8 +720,6 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
-    # Can't always warn here because EA's factorize will warn too; warn for each
-    # path below.
     na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
     if isinstance(values, ABCRangeIndex):
         return values.factorize(sort=sort)
