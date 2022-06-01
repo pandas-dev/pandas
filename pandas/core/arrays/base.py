@@ -470,7 +470,7 @@ class ExtensionArray:
                 f"In the future, pandas will use the use_na_sentinel argument instead. "
                 f"Add this argument to {name}.factorize to be compatible with future"
                 f"versions of pandas and silence this warning.",
-                FutureWarning,
+                DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
 
