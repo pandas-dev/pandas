@@ -23,6 +23,7 @@ class ArrowDtype(StorageExtensionDtype):
     """
 
     na_value = libmissing.NA
+    _metadata = ("storage", "pyarrow_dtype")
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
