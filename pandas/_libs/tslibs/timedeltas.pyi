@@ -72,7 +72,12 @@ def array_to_timedelta64(
     errors: str = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
-def delta_to_nanoseconds(delta: np.timedelta64 | timedelta | Tick) -> int: ...
+def delta_to_nanoseconds(
+    delta: np.timedelta64 | timedelta | Tick,
+    reso: int = ...,  # NPY_DATETIMEUNIT
+    round_ok: bool = ...,
+    allow_year_month: bool = ...,
+) -> int: ...
 
 class Timedelta(timedelta):
     min: ClassVar[Timedelta]

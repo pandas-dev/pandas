@@ -9,6 +9,7 @@ import pytest
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
     offsets,
@@ -45,16 +46,20 @@ class TestTimestampArithmetic:
             "will overflow"
         )
         lmsg = "|".join(
-            ["Python int too large to convert to C long", "int too big to convert"]
+            [
+                "Python int too large to convert to C (long|int)",
+                "int too big to convert",
+            ]
         )
+        lmsg2 = r"Cannot cast <-?20169940 \* Days> to unit=ns without overflow"
 
-        with pytest.raises(OverflowError, match=lmsg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             stamp + offset_overflow
 
         with pytest.raises(OverflowError, match=msg):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=lmsg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             stamp - offset_overflow
 
         # xref https://github.com/pandas-dev/pandas/issues/14080

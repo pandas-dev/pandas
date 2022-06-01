@@ -968,42 +968,49 @@ cdef class Day(Tick):
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
     _period_dtype_code = PeriodDtypeCode.D
+    _reso = NPY_DATETIMEUNIT.NPY_FR_D
 
 
 cdef class Hour(Tick):
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
     _period_dtype_code = PeriodDtypeCode.H
+    _reso = NPY_DATETIMEUNIT.NPY_FR_h
 
 
 cdef class Minute(Tick):
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
     _period_dtype_code = PeriodDtypeCode.T
+    _reso = NPY_DATETIMEUNIT.NPY_FR_m
 
 
 cdef class Second(Tick):
     _nanos_inc = 1_000_000_000
     _prefix = "S"
     _period_dtype_code = PeriodDtypeCode.S
+    _reso = NPY_DATETIMEUNIT.NPY_FR_s
 
 
 cdef class Milli(Tick):
     _nanos_inc = 1_000_000
     _prefix = "L"
     _period_dtype_code = PeriodDtypeCode.L
+    _reso = NPY_DATETIMEUNIT.NPY_FR_ms
 
 
 cdef class Micro(Tick):
     _nanos_inc = 1000
     _prefix = "U"
     _period_dtype_code = PeriodDtypeCode.U
+    _reso = NPY_DATETIMEUNIT.NPY_FR_us
 
 
 cdef class Nano(Tick):
     _nanos_inc = 1
     _prefix = "N"
     _period_dtype_code = PeriodDtypeCode.N
+    _reso = NPY_DATETIMEUNIT.NPY_FR_ns
 
 
 def delta_to_tick(delta: timedelta) -> Tick:

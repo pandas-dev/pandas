@@ -215,6 +215,7 @@ def test_overflow_on_construction():
     with pytest.raises(OverflowError, match=msg):
         Timedelta(7 * 19999, unit="D")
 
+    msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(timedelta(days=13 * 19999))
 

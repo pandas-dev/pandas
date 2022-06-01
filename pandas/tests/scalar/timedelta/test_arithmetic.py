@@ -103,6 +103,7 @@ class TestTimedeltaAdditionSubtraction:
         with pytest.raises(OverflowError, match=msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
+        msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
