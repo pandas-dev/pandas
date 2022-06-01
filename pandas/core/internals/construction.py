@@ -326,7 +326,8 @@ def ndarray_to_mgr(
     else:
         # by definition an array here
         # the dtypes will be coerced to a single dtype
-        values = _prep_ndarray(values, copy=copy_on_sanitize)
+        values = _prep_ndarray(values, columns, copy=copy_on_sanitize)
+    # values = values
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         # GH#40110 see similar check inside sanitize_array
@@ -345,8 +346,8 @@ def ndarray_to_mgr(
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
-    if len(values) != 0:
-        _check_values_indices_shape_match(values, index, columns)
+
+    _check_values_indices_shape_match(values, index, columns)
 
     if typ == "array":
 
@@ -537,7 +538,7 @@ def treat_as_nested(data) -> bool:
 # ---------------------------------------------------------------------
 
 
-def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
+def _prep_ndarray(values, columns, copy: bool = True) -> np.ndarray:
     if isinstance(values, TimedeltaArray) or (
         isinstance(values, DatetimeArray) and values.tz is None
     ):
@@ -577,7 +578,10 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
         values = np.array(values, copy=copy)
 
     if values.ndim == 1:
-        values = values.reshape((values.shape[0], 1))
+        if len(values) == 0:
+            values = values.reshape((0, len(columns)))
+        else:
+            values = values.reshape((values.shape[0], 1))
     elif values.ndim != 2:
         raise ValueError(f"Must pass 2-d input. shape={values.shape}")
 

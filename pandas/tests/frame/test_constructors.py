@@ -621,11 +621,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_error_msgs(self):
-        msg = "Empty data passed with indices specified."
-        # passing an empty array with columns specified.
-        with pytest.raises(ValueError, match=msg):
-            DataFrame(np.empty(0), columns=list("abc"))
-
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
         # mix dict and array, wrong size
         with pytest.raises(ValueError, match=msg):
