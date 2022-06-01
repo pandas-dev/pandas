@@ -9,6 +9,7 @@ from functools import (
 )
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Sequence,
 )
 import warnings
@@ -28,6 +29,8 @@ import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
 if TYPE_CHECKING:
+    from pandas._typing import F
+
     from pandas.core.generic import NDFrame
     from pandas.core.indexes.api import Index
 
@@ -62,7 +65,7 @@ def _any_pandas_objects(terms) -> bool:
     return any(isinstance(term.value, PandasObject) for term in terms)
 
 
-def _filter_special_cases(f):
+def _filter_special_cases(f) -> Callable[[F], F]:
     @wraps(f)
     def wrapper(terms):
         # single unary operand

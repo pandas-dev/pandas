@@ -323,7 +323,7 @@ def deprecate_nonkeyword_arguments(
 
 def rewrite_axis_style_signature(
     name: str, extra_params: list[tuple[str, Any]]
-) -> Callable[..., Any]:
+) -> Callable[[F], F]:
     def decorate(func: F) -> F:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Callable[..., Any]:
