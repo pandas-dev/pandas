@@ -782,6 +782,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
+    # TODO: can we de-duplicate with Period._add_timedeltalike_scalar?
     def _add_timedeltalike_scalar(self, other):
         """
         Parameters
@@ -797,10 +798,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             raise raise_on_incompatible(self, other)
 
         if notna(other):
-            # special handling for np.timedelta64("NaT"), avoid calling
-            #  _check_timedeltalike_freq_compat as that would raise TypeError
-            other = self._check_timedeltalike_freq_compat(other)
-            other = np.timedelta64(other, "ns")
+            # Convert to an integer increment of our own freq, disallowing
+            #  e.g. 30seconds if our freq is minutes.
+            try:
+                inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            except ValueError as err:
+                # "Cannot losslessly convert units"
+                raise raise_on_incompatible(self, other) from err
+
+            return self._addsub_int_array_or_scalar(inc, operator.add)
 
         return super()._add_timedeltalike_scalar(other)
 
