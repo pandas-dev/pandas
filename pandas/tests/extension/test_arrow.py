@@ -1,3 +1,16 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+"""
+
 from datetime import (
     date,
     datetime,
@@ -124,8 +137,8 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_reindex_non_na_fill_value(data_missing)
 
     def test_take_series(self, request, data):
-        tz = getattr(data._dtype.pyarrow_dtype, "tz", None)
-        unit = getattr(data._dtype.pyarrow_dtype, "unit", None)
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
         bad_units = ["ns"]
         if pa_version_under2p0:
             bad_units.extend(["s", "ms", "us"])
@@ -141,8 +154,8 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_take_series(data)
 
     def test_reindex(self, request, data, na_value):
-        tz = getattr(data._dtype.pyarrow_dtype, "tz", None)
-        unit = getattr(data._dtype.pyarrow_dtype, "unit", None)
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
         bad_units = ["ns"]
         if pa_version_under2p0:
             bad_units.extend(["s", "ms", "us"])
@@ -158,8 +171,8 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_reindex(data, na_value)
 
     def test_loc_iloc_frame_single_dtype(self, request, using_array_manager, data):
-        tz = getattr(data._dtype.pyarrow_dtype, "tz", None)
-        unit = getattr(data._dtype.pyarrow_dtype, "unit", None)
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
         bad_units = ["ns"]
         if pa_version_under2p0:
             bad_units.extend(["s", "ms", "us"])

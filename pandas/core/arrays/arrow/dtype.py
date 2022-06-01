@@ -141,8 +141,11 @@ class ArrowDtype(StorageExtensionDtype):
         )
         if not isinstance(new_dtype, np.dtype):
             return None
-        pa_dtype = pa.from_numpy_dtype(new_dtype)
-        return type(self)(pa_dtype)
+        try:
+            pa_dtype = pa.from_numpy_dtype(new_dtype)
+            return type(self)(pa_dtype)
+        except NotImplementedError:
+            return None
 
     def __from_arrow__(self, array: pa.Array | pa.ChunkedArray):
         """
