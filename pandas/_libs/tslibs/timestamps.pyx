@@ -353,7 +353,17 @@ cdef class _Timestamp(ABCTimestamp):
             raise NotImplementedError(self._reso)
 
         if is_any_td_scalar(other):
-            nanos = delta_to_nanoseconds(other)
+            if (
+                is_timedelta64_object(other)
+                and get_datetime64_unit(other) == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+            ):
+                # TODO: deprecate allowing this?  We only get here
+                #  with test_timedelta_add_timestamp_interval
+                other = np.timedelta64(other.view("i8"), "ns")
+            # TODO: disallow round_ok, allow_year_month?
+            nanos = delta_to_nanoseconds(
+                other, reso=self._reso, round_ok=True, allow_year_month=True
+            )
             try:
                 result = type(self)(self.value + nanos, tz=self.tzinfo)
             except OverflowError:
