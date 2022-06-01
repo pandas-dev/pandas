@@ -272,6 +272,11 @@ class TestDatetimeTZDtype(Base):
         assert res.str == "|M8[ms]"
         assert str(res) == "datetime64[ms, US/Eastern]"
 
+    def test_day_not_supported(self):
+        msg = "DatetimeTZDtype only supports s, ms, us, ns units"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeTZDtype("D", "US/Eastern")
+
     def test_subclass(self):
         a = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         b = DatetimeTZDtype.construct_from_string("datetime64[ns, CET]")
