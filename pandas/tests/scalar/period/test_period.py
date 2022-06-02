@@ -1188,6 +1188,7 @@ class TestPeriodComparisons:
 
 class TestArithmetic:
     def test_add_sub_td64_nat(self):
+        # GH#47196
         per = Period("2022-06-01", "D")
         nat = np.timedelta64("NaT", "ns")
 
