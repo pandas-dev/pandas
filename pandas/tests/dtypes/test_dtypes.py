@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -263,10 +265,17 @@ class TestDatetimeTZDtype(Base):
         assert dtype2 != dtype4
         assert hash(dtype2) != hash(dtype4)
 
-    def test_construction(self):
-        msg = "DatetimeTZDtype only supports ns units"
+    def test_construction_non_nanosecond(self):
+        res = DatetimeTZDtype("ms", "US/Eastern")
+        assert res.unit == "ms"
+        assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.str == "|M8[ms]"
+        assert str(res) == "datetime64[ms, US/Eastern]"
+
+    def test_day_not_supported(self):
+        msg = "DatetimeTZDtype only supports s, ms, us, ns units"
         with pytest.raises(ValueError, match=msg):
-            DatetimeTZDtype("ms", "US/Eastern")
+            DatetimeTZDtype("D", "US/Eastern")
 
     def test_subclass(self):
         a = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
