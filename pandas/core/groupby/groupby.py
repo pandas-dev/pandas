@@ -188,20 +188,32 @@ _apply_docs = {
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
     ...                    'B': [1,2,3],
     ...                    'C': [4,6,5]})
-    >>> g = df.groupby('A')
+    >>> g1 = df.groupby('A', group_keys=False)
+    >>> g2 = df.groupby('A', group_keys=True)
 
-    Notice that ``g`` has two groups, ``a`` and ``b``.
-    Calling `apply` in various ways, we can get different grouping results:
+    Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
+    differ in their ``group_keys`` argument. Calling `apply` in various ways,
+    we can get different grouping results:
 
     Example 1: below the function passed to `apply` takes a DataFrame as
     its argument and returns a DataFrame. `apply` combines the result for
     each group together into a new DataFrame:
 
-    >>> g[['B', 'C']].apply(lambda x: x / x.sum())
+    >>> g1[['B', 'C']].apply(lambda x: x / x.sum())
               B    C
     0  0.333333  0.4
     1  0.666667  0.6
     2  1.000000  1.0
+
+    In the above, the groups are not part of the index. We can have them included
+    by using ``g2`` where ``group_keys=True``:
+
+    >>> g2[['B', 'C']].apply(lambda x: x / x.sum())
+                B    C
+    A
+    a 0  0.333333  0.4
+      1  0.666667  0.6
+    b 2  1.000000  1.0
 
     Example 2: The function passed to `apply` takes a DataFrame as
     its argument and returns a Series.  `apply` combines the result for
@@ -211,28 +223,41 @@ _apply_docs = {
 
         The resulting dtype will reflect the return value of the passed ``func``.
 
-    >>> g[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
+    >>> g1[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
          B    C
     A
     a  1.0  2.0
     b  0.0  0.0
+
+    >>> g2[['B', 'C']].apply(lambda x: x.astype(float).max() - x.min())
+         B    C
+    A
+    a  1.0  2.0
+    b  0.0  0.0
+
+    The ``group_keys`` argument has no effect here because the result is not
+    like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
+    to the input.
 
     Example 3: The function passed to `apply` takes a DataFrame as
     its argument and returns a scalar. `apply` combines the result for
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g.apply(lambda x: x.C.max() - x.B.min())
+    >>> g1.apply(lambda x: x.C.max() - x.B.min())
     A
     a    5
     b    2
     dtype: int64""",
     "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
-    >>> g = s.groupby(s.index)
+    >>> g1 = s.groupby(s.index, group_keys=False)
+    >>> g2 = s.groupby(s.index, group_keys=True)
 
     From ``s`` above we can see that ``g`` has two groups, ``a`` and ``b``.
-    Calling `apply` in various ways, we can get different grouping results:
+    Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
+    differ in their ``group_keys`` argument. Calling `apply` in various ways,
+    we can get different grouping results:
 
     Example 1: The function passed to `apply` takes a Series as
     its argument and returns a Series.  `apply` combines the result for
@@ -242,10 +267,19 @@ _apply_docs = {
 
         The resulting dtype will reflect the return value of the passed ``func``.
 
-    >>> g.apply(lambda x: x*2 if x.name == 'a' else x/2)
+    >>> g1.apply(lambda x: x*2 if x.name == 'a' else x/2)
     a    0.0
     a    2.0
     b    1.0
+    dtype: float64
+
+    In the above, the groups are not part of the index. We can have them included
+    by using ``g2`` where ``group_keys=True``:
+
+    >>> g2.apply(lambda x: x*2 if x.name == 'a' else x/2)
+    a  a    0.0
+       a    2.0
+    b  b    1.0
     dtype: float64
 
     Example 2: The function passed to `apply` takes a Series as
@@ -253,7 +287,16 @@ _apply_docs = {
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g.apply(lambda x: x.max() - x.min())
+    >>> g1.apply(lambda x: x.max() - x.min())
+    a    1
+    b    0
+    dtype: int64
+
+    The ``group_keys`` argument has no effect here because the result is not
+    like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
+    to the input.
+
+    >>> g2.apply(lambda x: x.max() - x.min())
     a    1
     b    0
     dtype: int64""",
