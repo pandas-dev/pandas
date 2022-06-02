@@ -578,7 +578,7 @@ def _prep_ndarray(values, columns, copy: bool = True) -> np.ndarray:
         values = np.array(values, copy=copy)
 
     if values.ndim == 1:
-        if len(values) == 0:
+        if len(values) == 0 and columns is not None:
             values = values.reshape((0, len(columns)))
         else:
             values = values.reshape((values.shape[0], 1))
