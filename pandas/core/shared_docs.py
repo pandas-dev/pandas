@@ -115,9 +115,12 @@ sort : bool, default True
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
 group_keys : bool, optional
-    When calling apply, add group keys to index to identify pieces.
-    By default group keys are not included when the result's index
-    (and column) labels match the inputs, and are included otherwise.
+    When calling apply and the ``by`` argument produces a like-indexed
+    (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
+    index to identify pieces. By default group keys are not included
+    when the result's index (and column) labels match the inputs, and
+    are included otherwise. This argument has no effect if the result produced
+    is not like-indexed with respect to the input.
 
     .. versionchanged:: 1.5.0
 
