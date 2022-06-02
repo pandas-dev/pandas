@@ -751,6 +751,45 @@ def test_reset_index_interval_columns_object_cast():
     result = df.reset_index()
     expected = DataFrame(
         [[1, 1.0, 0.0], [2, 0.0, 1.0]],
-        columns=Index(["Year", Interval(0, 1), Interval(1, 2)]),
+        columns=Index(["Year", Interval(0, 1, "right"), Interval(1, 2, "right")]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_rename(float_frame):
+    # GH 6878
+    result = float_frame.reset_index(names="new_name")
+    expected = Series(float_frame.index.values, name="new_name")
+    tm.assert_series_equal(result["new_name"], expected)
+
+    result = float_frame.reset_index(names=123)
+    expected = Series(float_frame.index.values, name=123)
+    tm.assert_series_equal(result[123], expected)
+
+
+def test_reset_index_rename_multiindex(float_frame):
+    # GH 6878
+    stacked_df = float_frame.stack()[::2]
+    stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
+
+    names = ["first", "second"]
+    stacked_df.index.names = names
+
+    result = stacked_df.reset_index()
+    expected = stacked_df.reset_index(names=["new_first", "new_second"])
+    tm.assert_series_equal(result["first"], expected["new_first"], check_names=False)
+    tm.assert_series_equal(result["second"], expected["new_second"], check_names=False)
+
+
+def test_errorreset_index_rename(float_frame):
+    # GH 6878
+    stacked_df = float_frame.stack()[::2]
+    stacked_df = DataFrame({"first": stacked_df, "second": stacked_df})
+
+    with pytest.raises(
+        ValueError, match="Index names must be str or 1-dimensional list"
+    ):
+        stacked_df.reset_index(names={"first": "new_first", "second": "new_second"})
+
+    with pytest.raises(IndexError, match="list index out of range"):
+        stacked_df.reset_index(names=["new_first"])

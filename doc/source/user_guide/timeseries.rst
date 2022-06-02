@@ -1821,7 +1821,7 @@ to resample based on datetimelike column in the frame, it can passed to the
        ),
    )
    df
-   df.resample("M", on="date").sum()
+   df.resample("M", on="date")[["a"]].sum()
 
 Similarly, if you instead want to resample by a datetimelike
 level of ``MultiIndex``, its name or location can be passed to the
@@ -1829,7 +1829,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample("M", level="d").sum()
+   df.resample("M", level="d")[["a"]].sum()
 
 .. _timeseries.iterating-label:
 
@@ -2405,9 +2405,9 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
-	Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
-	definitions of the zone. This is more of a problem for unusual time zones than for
-	'standard' zones like ``US/Eastern``.
+        Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
+        definitions of the zone. This is more of a problem for unusual time zones than for
+        'standard' zones like ``US/Eastern``.
 
 .. warning::
 

@@ -1020,7 +1020,7 @@ Trying to select an ``Interval`` that is not exactly contained in the ``Interval
 
    In [7]: df.loc[pd.Interval(0.5, 2.5)]
    ---------------------------------------------------------------------------
-   KeyError: Interval(0.5, 2.5, closed='right')
+   KeyError: Interval(0.5, 2.5, inclusive='right')
 
 Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed using the
 :meth:`~IntervalIndex.overlaps` method to create a boolean indexer.
@@ -1082,14 +1082,14 @@ of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like inter
 
    pd.interval_range(start=pd.Timedelta("0 days"), periods=3, freq="9H")
 
-Additionally, the ``closed`` parameter can be used to specify which side(s) the intervals
-are closed on.  Intervals are closed on the right side by default.
+Additionally, the ``inclusive`` parameter can be used to specify which side(s) the intervals
+are closed on.  Intervals are closed on the both side by default.
 
 .. ipython:: python
 
-   pd.interval_range(start=0, end=4, closed="both")
+   pd.interval_range(start=0, end=4, inclusive="both")
 
-   pd.interval_range(start=0, end=4, closed="neither")
+   pd.interval_range(start=0, end=4, inclusive="neither")
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements

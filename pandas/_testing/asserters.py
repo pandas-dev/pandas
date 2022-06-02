@@ -112,12 +112,7 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
-        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
-        rtol = atol = _get_tol_from_less_precise(
-            check_less_precise  # type: ignore[arg-type]
-        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     if isinstance(left, Index):
         assert_index_equal(
@@ -345,12 +340,7 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
-        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
-        rtol = atol = _get_tol_from_less_precise(
-            check_less_precise  # type: ignore[arg-type]
-        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, Index)
@@ -616,7 +606,7 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
     assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
-    assert_attr_equal("closed", left, right, obj=obj)
+    assert_attr_equal("inclusive", left, right, obj=obj)
 
 
 def assert_period_array_equal(left, right, obj="PeriodArray"):
@@ -1146,7 +1136,7 @@ def assert_frame_equal(
     Check that left and right DataFrame are equal.
 
     This function is intended to compare two DataFrames and output any
-    differences. Is is mostly intended for use in unit tests.
+    differences. It is mostly intended for use in unit tests.
     Additional parameters allow varying the strictness of the
     equality checks performed.
 

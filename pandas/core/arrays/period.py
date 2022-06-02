@@ -366,7 +366,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import ArrowPeriodType
+        from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
         if type is not None:
             if pyarrow.types.is_integer(type):
@@ -698,11 +698,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
 
-    # TODO: alternately could override _quantile like searchsorted
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        # quantile_with_mask may return float64 instead of int64, in which
-        #  case we need to cast back
-        return res_values.astype(np.int64, copy=False)
+    def _quantile(
+        self: PeriodArray,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+    ) -> PeriodArray:
+        # dispatch to DatetimeArray implementation
+        dtres = self.view("M8[ns]")._quantile(qs, interpolation)
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray[Any, Any]]", expected "PeriodArray")
+        return dtres.view(self.dtype)  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -777,6 +782,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
+    # TODO: can we de-duplicate with Period._add_timedeltalike_scalar?
     def _add_timedeltalike_scalar(self, other):
         """
         Parameters
@@ -792,10 +798,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             raise raise_on_incompatible(self, other)
 
         if notna(other):
-            # special handling for np.timedelta64("NaT"), avoid calling
-            #  _check_timedeltalike_freq_compat as that would raise TypeError
-            other = self._check_timedeltalike_freq_compat(other)
-            other = np.timedelta64(other, "ns")
+            # Convert to an integer increment of our own freq, disallowing
+            #  e.g. 30seconds if our freq is minutes.
+            try:
+                inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            except ValueError as err:
+                # "Cannot losslessly convert units"
+                raise raise_on_incompatible(self, other) from err
+
+            return self._addsub_int_array_or_scalar(inc, operator.add)
 
         return super()._add_timedeltalike_scalar(other)
 

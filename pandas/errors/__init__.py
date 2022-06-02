@@ -236,3 +236,55 @@ class InvalidIndexError(Exception):
 
     .. versionadded:: 1.1.0
     """
+
+
+class DataError(Exception):
+    """
+    Exception raised when trying to perform a ohlc on a non-numnerical column.
+    Or, it can be raised when trying to apply a function to a non-numerical
+    column on a rolling window.
+    """
+
+
+class SpecificationError(Exception):
+    """
+    Exception raised in two scenarios. The first way is calling agg on a
+    Dataframe or Series using a nested renamer (dict-of-dict).
+    The second way is calling agg on a Dataframe with duplicated functions
+    names without assigning column name.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+    ...                    'B': range(5),
+    ...                    'C': range(5)})
+    >>> df.groupby('A').B.agg({'foo': 'count'}) # doctest: +SKIP
+    ... # SpecificationError: nested renamer is not supported
+
+    >>> df.groupby('A').agg({'B': {'foo': ['sum', 'max']}}) # doctest: +SKIP
+    ... # SpecificationError: nested renamer is not supported
+
+    >>> df.groupby('A').agg(['min', 'min']) # doctest: +SKIP
+    ... # SpecificationError: nested renamer is not supported
+    """
+
+
+class SettingWithCopyError(ValueError):
+    """
+    Exception is raised when trying to set on a copied slice from a dataframe and
+    the mode.chained_assignment is set to 'raise.' This can happen unintentionally
+    when chained indexing.
+
+    For more information, see 'Evaluation order matters' on
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+
+    For more information, see 'Indexing view versus copy' on
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+
+    Examples
+    --------
+    >>> pd.options.mode.chained_assignment = 'raise'
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    ... # SettingWithCopyError: A value is trying to be set on a copy of a...
+    """

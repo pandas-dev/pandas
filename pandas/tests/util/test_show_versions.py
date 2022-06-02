@@ -83,7 +83,9 @@ def test_show_versions_console(capsys):
 
     # check required dependency
     # 2020-12-09 npdev has "dirty" in the tag
-    assert re.search(r"numpy\s*:\s([0-9\.\+a-g\_]|dev)+(dirty)?\n", result)
+    # 2022-05-25 npdev released with RC wo/ "dirty".
+    # Just ensure we match [0-9]+\..* since npdev version is variable
+    assert re.search(r"numpy\s*:\s[0-9]+\..*\n", result)
 
     # check optional dependency
     assert re.search(r"pyarrow\s*:\s([0-9\.]+|None)\n", result)

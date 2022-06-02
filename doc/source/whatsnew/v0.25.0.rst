@@ -342,10 +342,15 @@ Now every group is evaluated only a single time.
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: python
 
-    df.groupby("a").apply(func)
-
+   In [3]: df.groupby('a').apply(func)
+   x
+   y
+   Out[3]:
+      a  b
+   0  x  1
+   1  y  2
 
 Concatenating sparse values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -579,18 +584,18 @@ this would previously return ``True`` for any ``Interval`` overlapping an ``Inte
 
 .. code-block:: python
 
-   In [4]: pd.Interval(1, 2, closed='neither') in ii
+   In [4]: pd.Interval(1, 2, inclusive='neither') in ii
    Out[4]: True
 
-   In [5]: pd.Interval(-10, 10, closed='both') in ii
+   In [5]: pd.Interval(-10, 10, inclusive='both') in ii
    Out[5]: True
 
 *New behavior*:
 
 .. ipython:: python
 
-   pd.Interval(1, 2, closed='neither') in ii
-   pd.Interval(-10, 10, closed='both') in ii
+   pd.Interval(1, 2, inclusive='neither') in ii
+   pd.Interval(-10, 10, inclusive='both') in ii
 
 The :meth:`~IntervalIndex.get_loc` method now only returns locations for exact matches to ``Interval`` queries, as opposed to the previous behavior of
 returning locations for overlapping matches.  A ``KeyError`` will be raised if an exact match is not found.
@@ -614,7 +619,7 @@ returning locations for overlapping matches.  A ``KeyError`` will be raised if a
 
    In [7]: ii.get_loc(pd.Interval(2, 6))
    ---------------------------------------------------------------------------
-   KeyError: Interval(2, 6, closed='right')
+   KeyError: Interval(2, 6, inclusive='right')
 
 Likewise, :meth:`~IntervalIndex.get_indexer` and :meth:`~IntervalIndex.get_indexer_non_unique` will also only return locations for exact matches
 to ``Interval`` queries, with ``-1`` denoting that an exact match was not found.
@@ -675,11 +680,11 @@ Similarly, a ``KeyError`` will be raised for non-exact matches instead of return
 
    In [6]: s[pd.Interval(2, 3)]
    ---------------------------------------------------------------------------
-   KeyError: Interval(2, 3, closed='right')
+   KeyError: Interval(2, 3, inclusive='right')
 
    In [7]: s.loc[pd.Interval(2, 3)]
    ---------------------------------------------------------------------------
-   KeyError: Interval(2, 3, closed='right')
+   KeyError: Interval(2, 3, inclusive='right')
 
 The :meth:`~IntervalIndex.overlaps` method can be used to create a boolean indexer that replicates the
 previous behavior of returning overlapping matches.
@@ -1116,7 +1121,7 @@ Indexing
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
 - Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
 - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
-- Fixed a ``KeyError`` when indexing a :class:`MultiIndex`` level with a list containing exactly one label, which is missing (:issue:`27148`)
+- Fixed a ``KeyError`` when indexing a :class:`MultiIndex` level with a list containing exactly one label, which is missing (:issue:`27148`)
 - Bug which produced ``AttributeError`` on partial matching :class:`Timestamp` in a :class:`MultiIndex`  (:issue:`26944`)
 - Bug in :class:`Categorical` and  :class:`CategoricalIndex` with :class:`Interval` values when using the ``in`` operator (``__contains``) with objects that are not comparable to the values in the ``Interval`` (:issue:`23705`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` on a :class:`DataFrame` with a single timezone-aware datetime64[ns] column incorrectly returning a scalar instead of a :class:`Series` (:issue:`27110`)

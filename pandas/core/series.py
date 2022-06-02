@@ -42,6 +42,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    Renamer,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -170,7 +171,7 @@ _shared_doc_kwargs = {
     "klass": "Series",
     "axes_single_arg": "{0 or 'index'}",
     "axis": """axis : {0 or 'index'}
-        Parameter needed for compatibility with DataFrame.""",
+        Unused. Parameter needed for compatibility with DataFrame.""",
     "inplace": """inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "unique": "np.ndarray",
@@ -1321,8 +1322,7 @@ class Series(base.IndexOpsMixin, NDFrame):
             non-negative integer. Repeating 0 times will return an empty
             Series.
         axis : None
-            Must be ``None``. Has no effect but is accepted for compatibility
-            with numpy.
+            Unused. Parameter needed for compatibility with DataFrame.
 
         Returns
         -------
@@ -1928,7 +1928,7 @@ Name: Max Speed, dtype: float64
         level=None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool = True,
+        group_keys: bool | lib.NoDefault = no_default,
         squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
@@ -1951,8 +1951,6 @@ Name: Max Speed, dtype: float64
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # error: Argument "squeeze" to "SeriesGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return SeriesGroupBy(
             obj=self,
             keys=by,
@@ -1961,7 +1959,7 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -2310,9 +2308,8 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int, default 0
-            For compatibility with DataFrame.idxmin. Redundant for application
-            on Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
@@ -2379,9 +2376,8 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int, default 0
-            For compatibility with DataFrame.idxmax. Redundant for application
-            on Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
@@ -2542,6 +2538,8 @@ Name: Max Speed, dtype: float64
     def corr(self, other, method="pearson", min_periods=None) -> float:
         """
         Compute correlation with `other` Series, excluding missing values.
+        The two `Series` objects are not required to be the same length and will be
+        aligned internally before the correlation function is applied.
 
         Parameters
         ----------
@@ -2614,6 +2612,8 @@ Name: Max Speed, dtype: float64
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.
+        The two `Series` objects are not required to be the same length and
+        will be aligned internally before the covariance is calculated.
 
         Parameters
         ----------
@@ -3388,9 +3388,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or 'index'}, default 0
-            Axis to direct sorting. The value 'index' is accepted for
-            compatibility with DataFrame.sort_values.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         ascending : bool or list of bools, default True
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
@@ -3649,8 +3648,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : int, default 0
-            Axis to direct sorting. This can only be 0 for Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         level : int, optional
             If not None, sort on values in specified index level(s).
         ascending : bool or list-like of bools, default True
@@ -3797,8 +3796,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or "index"}
-            Has no effect but is accepted for compatibility with numpy.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
@@ -4396,6 +4395,42 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
+    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
+    @overload  # type: ignore[override]
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: None = ...,
+        **kwargs,
+    ) -> bool:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: Level,
+        **kwargs,
+    ) -> Series | bool:
+        ...
+
+    @doc(NDFrame.any, **_shared_doc_kwargs)
+    def any(
+        self,
+        axis: Axis = 0,
+        bool_only: bool | None = None,
+        skipna: bool = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> Series | bool:
+        ...
+
     @doc(
         _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
@@ -4617,15 +4652,54 @@ Keep all original rows and also all original values
             broadcast_axis=broadcast_axis,
         )
 
+    @overload
     def rename(
         self,
-        index=None,
+        index: Renamer | Hashable | None = ...,
         *,
-        axis=None,
-        copy=True,
-        inplace=False,
-        level=None,
-        errors="ignore",
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def rename(
+        self,
+        index: Renamer | Hashable | None = ...,
+        *,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def rename(
+        self,
+        index: Renamer | Hashable | None = ...,
+        *,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> Series | None:
+        ...
+
+    def rename(
+        self,
+        index: Renamer | Hashable | None = None,
+        *,
+        axis: Axis | None = None,
+        copy: bool = True,
+        inplace: bool = False,
+        level: Level | None = None,
+        errors: IgnoreRaise = "ignore",
     ) -> Series | None:
         """
         Alter Series index labels or name.
@@ -4640,8 +4714,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or "index"}
-            Unused. Accepted for compatibility with DataFrame method only.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
@@ -4691,8 +4765,16 @@ Keep all original rows and also all original values
             axis = self._get_axis_number(axis)
 
         if callable(index) or is_dict_like(index):
+            # error: Argument 1 to "_rename" of "NDFrame" has incompatible
+            # type "Union[Union[Mapping[Any, Hashable], Callable[[Any],
+            # Hashable]], Hashable, None]"; expected "Union[Mapping[Any,
+            # Hashable], Callable[[Any], Hashable], None]"
             return super()._rename(
-                index, copy=copy, inplace=inplace, level=level, errors=errors
+                index,  # type: ignore[arg-type]
+                copy=copy,
+                inplace=inplace,
+                level=level,
+                errors=errors,
             )
         else:
             return self._set_name(index, inplace=inplace)
@@ -4830,8 +4912,8 @@ Keep all original rows and also all original values
         ----------
         labels : single label or list-like
             Index labels to drop.
-        axis : 0, default 0
-            Redundant for application on Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         index : single label or list-like
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
@@ -5445,8 +5527,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or 'index'}, default 0
-            There is only one axis to drop values from.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         inplace : bool, default False
             If True, do operation inplace and return None.
         how : str, optional
@@ -5561,6 +5643,7 @@ Keep all original rows and also all original values
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool | lib.NoDefault = no_default,
     ) -> Resampler:
         return super().resample(
             rule=rule,
@@ -5575,6 +5658,7 @@ Keep all original rows and also all original values
             level=level,
             origin=origin,
             offset=offset,
+            group_keys=group_keys,
         )
 
     def to_timestamp(self, freq=None, how="start", copy=True) -> Series:

@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timestamp,
     delta_to_nanoseconds,
+    get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
@@ -432,7 +433,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
             elif self.dtype.kind == "m":
                 i8data = self.asi8.ravel()
-                converted = ints_to_pytimedelta(i8data, box=True)
+                converted = ints_to_pytimedelta(self._ndarray.ravel(), box=True)
                 return converted.reshape(self.shape)
 
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
@@ -1119,7 +1120,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             new_values.fill(iNaT)
             return type(self)(new_values, dtype=self.dtype)
 
-        inc = delta_to_nanoseconds(other)
+        # PeriodArray overrides, so we only get here with DTA/TDA
+        # error: "DatetimeLikeArrayMixin" has no attribute "_reso"
+        inc = delta_to_nanoseconds(other, reso=self._reso)  # type: ignore[attr-defined]
+
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
         new_values = new_values.view("i8")
         new_values = self._maybe_mask_results(new_values)
@@ -1235,13 +1239,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             res_values = op(self.astype("O"), np.asarray(other))
 
         result = pd_array(res_values.ravel())
-        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
-        # "reshape"
-        result = extract_array(
-            result, extract_numpy=True
-        ).reshape(  # type: ignore[union-attr]
-            self.shape
-        )
+        result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
     def _time_shift(
@@ -1787,6 +1785,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
+
+    @cache_readonly
+    def _reso(self) -> int:
+        return get_unit_from_dtype(self._ndarray.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (
