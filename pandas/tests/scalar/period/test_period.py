@@ -1187,6 +1187,14 @@ class TestPeriodComparisons:
 
 
 class TestArithmetic:
+    def test_add_sub_td64_nat(self):
+        per = Period("2022-06-01", "D")
+        nat = np.timedelta64("NaT", "ns")
+
+        assert per + nat is NaT
+        assert nat + per is NaT
+        assert per - nat is NaT
+
     def test_sub_delta(self):
         left, right = Period("2011", freq="A"), Period("2007", freq="A")
         result = left - right
