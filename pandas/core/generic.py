@@ -5182,7 +5182,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         has the right type of data in it.
 
         For negative values of `n`, this function returns all rows except
-        the last `n` rows, equivalent to ``df[:-n]``.
+        the last `|n|` rows, equivalent to ``df[:n]``.
 
         If n is larger than the number of rows, this function returns all rows.
 
@@ -5257,7 +5257,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         after sorting or appending rows.
 
         For negative values of `n`, this function returns all rows except
-        the first `n` rows, equivalent to ``df[n:]``.
+        the first `|n|` rows, equivalent to ``df[|n|:]``.
 
         If n is larger than the number of rows, this function returns all rows.
 
@@ -11287,8 +11287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         setattr(cls, "median", median)
 
-        # error: Untyped decorator makes function "max" untyped
-        @doc(  # type: ignore[misc]
+        @doc(
             _num_doc,
             desc="Return the maximum of the values over the requested axis.\n\n"
             "If you want the *index* of the maximum, use ``idxmax``. This is "
@@ -11312,8 +11311,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         setattr(cls, "max", max)
 
-        # error: Untyped decorator makes function "max" untyped
-        @doc(  # type: ignore[misc]
+        @doc(
             _num_doc,
             desc="Return the minimum of the values over the requested axis.\n\n"
             "If you want the *index* of the minimum, use ``idxmin``. This is "
@@ -12215,11 +12213,11 @@ empty series identically.
 >>> pd.Series([np.nan]).sum(min_count=1)
 nan"""
 
-_max_examples = _shared_docs["stat_func_example"].format(
+_max_examples: str = _shared_docs["stat_func_example"].format(
     stat_func="max", verb="Max", default_output=8, level_output_0=4, level_output_1=8
 )
 
-_min_examples = _shared_docs["stat_func_example"].format(
+_min_examples: str = _shared_docs["stat_func_example"].format(
     stat_func="min", verb="Min", default_output=0, level_output_0=2, level_output_1=0
 )
 
