@@ -35,7 +35,10 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     precision_from_unit,
 )
-from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.dtypes cimport (
+    get_conversion_factor,
+    npy_unit_to_abbrev,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -198,28 +201,76 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
 
 # ----------------------------------------------------------------------
 
-cpdef int64_t delta_to_nanoseconds(delta) except? -1:
+
+cpdef int64_t delta_to_nanoseconds(
+    delta,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+    bint round_ok=True,
+    bint allow_year_month=False,
+) except? -1:
+    cdef:
+        _Timedelta td
+        NPY_DATETIMEUNIT in_reso
+        int64_t n
+
     if is_tick_object(delta):
-        return delta.nanos
-    if isinstance(delta, _Timedelta):
-        if delta._reso == NPY_FR_ns:
-            return delta.value
-        raise NotImplementedError(delta._reso)
+        n = delta.n
+        in_reso = delta._reso
+        if in_reso == reso:
+            return n
+        else:
+            td = Timedelta._from_value_and_reso(delta.n, reso=in_reso)
 
-    if is_timedelta64_object(delta):
-        return get_timedelta64_value(ensure_td64ns(delta))
+    elif isinstance(delta, _Timedelta):
+        td = delta
+        n = delta.value
+        in_reso = delta._reso
+        if in_reso == reso:
+            return n
 
-    if PyDelta_Check(delta):
+    elif is_timedelta64_object(delta):
+        in_reso = get_datetime64_unit(delta)
+        n = get_timedelta64_value(delta)
+        if in_reso == reso:
+            return n
+        else:
+            # _from_value_and_reso does not support Year, Month, or unit-less,
+            #  so we have special handling if speciifed
+            try:
+                td = Timedelta._from_value_and_reso(n, reso=in_reso)
+            except NotImplementedError:
+                if allow_year_month:
+                    td64 = ensure_td64ns(delta)
+                    return delta_to_nanoseconds(td64, reso=reso)
+                else:
+                    raise
+
+    elif PyDelta_Check(delta):
+        in_reso = NPY_DATETIMEUNIT.NPY_FR_us
         try:
-            return (
+            n = (
                 delta.days * 24 * 3600 * 1_000_000
                 + delta.seconds * 1_000_000
                 + delta.microseconds
-            ) * 1000
+                )
         except OverflowError as err:
             raise OutOfBoundsTimedelta(*err.args) from err
 
-    raise TypeError(type(delta))
+        if in_reso == reso:
+            return n
+        else:
+            td = Timedelta._from_value_and_reso(n, reso=in_reso)
+
+    else:
+        raise TypeError(type(delta))
+
+    try:
+        return td._as_reso(reso, round_ok=round_ok).value
+    except OverflowError as err:
+        unit_str = npy_unit_to_abbrev(reso)
+        raise OutOfBoundsTimedelta(
+            f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
+        ) from err
 
 
 @cython.overflowcheck(True)
@@ -1376,6 +1427,41 @@ cdef class _Timedelta(timedelta):
     def _from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         # exposing as classmethod for testing
         return _timedelta_from_value_and_reso(value, reso)
+
+    def _as_unit(self, str unit, bint round_ok=True):
+        dtype = np.dtype(f"m8[{unit}]")
+        reso = get_unit_from_dtype(dtype)
+        try:
+            return self._as_reso(reso, round_ok=round_ok)
+        except OverflowError as err:
+            raise OutOfBoundsTimedelta(
+                f"Cannot cast {self} to unit='{unit}' without overflow."
+            ) from err
+
+    @cython.cdivision(False)
+    cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
+        cdef:
+            int64_t value, mult, div, mod
+
+        if reso == self._reso:
+            return self
+
+        if reso < self._reso:
+            # e.g. ns -> us
+            mult = get_conversion_factor(reso, self._reso)
+            div, mod = divmod(self.value, mult)
+            if mod > 0 and not round_ok:
+                raise ValueError("Cannot losslessly convert units")
+
+            # Note that when mod > 0, we follow np.timedelta64 in always
+            #  rounding down.
+            value = div
+        else:
+            mult = get_conversion_factor(self._reso, reso)
+            with cython.overflowcheck(True):
+                # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
+                value = self.value * mult
+        return type(self)._from_value_and_reso(value, reso=reso)
 
 
 # Python front end to C extension type _Timedelta
