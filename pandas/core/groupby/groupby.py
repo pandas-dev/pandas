@@ -236,7 +236,8 @@ _apply_docs = {
     b  0.0  0.0
 
     The ``group_keys`` argument has no effect here because the result is not
-    like-indexed when compared to the input.
+    like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
+    to the input.
 
     Example 3: The function passed to `apply` takes a DataFrame as
     its argument and returns a scalar. `apply` combines the result for
@@ -292,7 +293,8 @@ _apply_docs = {
     dtype: int64
 
     The ``group_keys`` argument has no effect here because the result is not
-    like-indexed when compared to the input.
+    like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared
+    to the input.
 
     >>> g2.apply(lambda x: x.max() - x.min())
     a    1
