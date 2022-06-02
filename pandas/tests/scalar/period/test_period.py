@@ -1196,6 +1196,9 @@ class TestArithmetic:
         assert nat + per is NaT
         assert per - nat is NaT
 
+        with pytest.raises(TypeError, match="unsupported operand"):
+            nat - per
+
     def test_sub_delta(self):
         left, right = Period("2011", freq="A"), Period("2007", freq="A")
         result = left - right
