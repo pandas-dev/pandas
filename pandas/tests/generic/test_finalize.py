@@ -262,6 +262,13 @@ _all_methods = [
             operator.methodcaller("quantile", numeric_only=False),
         ),
     ),
+    pytest.param(
+        (
+            pd.DataFrame,
+            ({"A": [np.datetime64("2022-01-01"), np.datetime64("2022-01-02")]},),
+            operator.methodcaller("quantile", numeric_only=True),
+        ),
+    ),
     (
         pd.DataFrame,
         ({"A": [1]}, [pd.Period("2000", "D")]),
