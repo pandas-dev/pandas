@@ -757,8 +757,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset) -> DatetimeArray:
-        if self.ndim == 2:
-            return self.ravel()._add_offset(offset).reshape(self.shape)
 
         assert not isinstance(offset, Tick)
         try:
