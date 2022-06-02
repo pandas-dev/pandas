@@ -70,6 +70,7 @@ from pandas.errors import (
     AbstractMethodError,
     InvalidIndexError,
     SettingWithCopyError,
+    SettingWithCopyWarning,
 )
 from pandas.util._decorators import (
     deprecate_kwarg,
@@ -3952,7 +3953,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if value == "raise":
             raise SettingWithCopyError(t)
         elif value == "warn":
-            warnings.warn(t, com.SettingWithCopyWarning, stacklevel=find_stack_level())
+            warnings.warn(t, SettingWithCopyWarning, stacklevel=find_stack_level())
 
     def __delitem__(self, key) -> None:
         """

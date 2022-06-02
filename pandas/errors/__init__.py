@@ -288,3 +288,23 @@ class SettingWithCopyError(ValueError):
     >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
     ... # SettingWithCopyError: A value is trying to be set on a copy of a...
     """
+
+
+class SettingWithCopyWarning(Warning):
+    """
+    Warning is raised when trying to set on a copied slice from a dataframe and
+    the mode.chained_assignment is set to 'warn.' 'Warn' is the default option.
+    This can happen unintentionally when chained indexing.
+
+    For more information, see 'Evaluation order matters' on
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+
+    For more information, see 'Indexing view versus copy' on
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
+    """
