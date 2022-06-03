@@ -330,7 +330,7 @@ class MPLPlot:
         # TODO: also accept indices instead of just names?
 
         out = []
-        seen_columns = set()
+        seen_columns: set[Hashable] = set()
         for group in subplots:
             if not is_list_like(group):
                 raise ValueError(
