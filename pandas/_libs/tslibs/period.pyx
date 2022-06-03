@@ -1722,6 +1722,16 @@ cdef class _Period(PeriodMixin):
             ordinal = self.ordinal + other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
 
+        elif is_period_object(other):
+            # can't add datetime-like
+            # GH#17983; can't just return NotImplemented bc we get a RecursionError
+            #  when called via np.add.reduce see TestNumpyReductions.test_add
+            #  in npdev build
+            sname = type(self).__name__
+            oname = type(other).__name__
+            raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
+                            f"and '{oname}'")
+
         return NotImplemented
 
     def __radd__(self, other):
