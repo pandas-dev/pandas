@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import Counter
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -299,31 +298,22 @@ class MPLPlot:
                 f"one of {', '.join(supported_kinds)}. Got {self._kind}."
             )
 
-        if any(
-            not isinstance(group, Iterable) or isinstance(group, str)
-            for group in subplots
-        ):
-            raise ValueError(
-                "When subplots is an iterable, each entry "
-                "should be a list/tuple of column names."
+        if isinstance(self.data, ABCSeries):
+            raise NotImplementedError(
+                "An iterable subplots for a Series is not supported."
             )
 
-        cols_in_groups = [col for group in subplots for col in group]
-        duplicates = {col for (col, cnt) in Counter(cols_in_groups).items() if cnt > 1}
-        if duplicates:
-            raise ValueError(
-                f"Each column should be in only one subplot. Columns {duplicates} "
-                "were found in multiple sublots."
+        columns = self.data.columns
+        if isinstance(columns, ABCMultiIndex):
+            raise NotImplementedError(
+                "An iterable subplots for a DataFrame with a MultiIndex column "
+                "is not supported."
             )
 
-        cols_in_groups_set = set(cols_in_groups)
-        cols_remaining = set(self.data.columns) - cols_in_groups_set
-        bad_columns = cols_in_groups_set - set(self.data.columns)
-
-        if bad_columns:
-            raise ValueError(
-                "Subplots contains the following column(s) "
-                f"which are invalid names: {bad_columns}"
+        if columns.nunique() != len(columns):
+            raise NotImplementedError(
+                "An iterable subplots for a DataFrame with non-unique column "
+                "labels is not supported."
             )
 
         # subplots is a list of tuples where each tuple is a group of
@@ -340,11 +330,34 @@ class MPLPlot:
         # TODO: also accept indices instead of just names?
 
         out = []
-        index = list(self.data.columns).index
+        seen_columns = set()
         for group in subplots:
-            out.append(tuple(index(col) for col in group))
-        for col in cols_remaining:
-            out.append((index(col),))
+            if not is_list_like(group):
+                raise ValueError(
+                    "When subplots is an iterable, each entry "
+                    "should be a list/tuple of column names."
+                )
+            idx_locs = columns.get_indexer_for(group)
+            if (idx_locs == -1).any():
+                bad_labels = np.extract(idx_locs == -1, group)
+                raise ValueError(
+                    f"Column label(s) {list(bad_labels)} not found in the DataFrame."
+                )
+            else:
+                unique_columns = set(group)
+                duplicates = seen_columns.intersection(unique_columns)
+                if duplicates:
+                    raise ValueError(
+                        "Each column should be in only one subplot. "
+                        f"Columns {duplicates} were found in multiple subplots."
+                    )
+                seen_columns = seen_columns.union(unique_columns)
+                out.append(tuple(idx_locs))
+
+        unseen_columns = columns.difference(seen_columns)
+        for column in unseen_columns:
+            idx_loc = columns.get_loc(column)
+            out.append((idx_loc,))
         return out
 
     def _validate_color_args(self):

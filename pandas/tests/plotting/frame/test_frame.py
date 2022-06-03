@@ -2095,6 +2095,24 @@ class TestDataFramePlots(TestPlotBase):
             if kind == "line":
                 assert len(ax.lines) == len(labels)
 
+    def test_group_subplot_series_notimplemented(self):
+        ser = Series(range(1))
+        msg = "An iterable subplots for a Series"
+        with pytest.raises(NotImplementedError, match=msg):
+            ser.plot(subplots=[("a",)])
+
+    def test_group_subplot_multiindex_notimplemented(self):
+        df = DataFrame(np.eye(2), columns=MultiIndex.from_tuples([(0, 1), (1, 2)]))
+        msg = "An iterable subplots for a DataFrame with a MultiIndex"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.plot(subplots=[(0, 1)])
+
+    def test_group_subplot_nonunique_cols_notimplemented(self):
+        df = DataFrame(np.eye(2), columns=["a", "a"])
+        msg = "An iterable subplots for a DataFrame with non-unique"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.plot(subplots=[("a",)])
+
     @pytest.mark.parametrize(
         "subplots, expected_msg",
         [
@@ -2118,7 +2136,7 @@ class TestDataFramePlots(TestPlotBase):
         d = {"a": np.arange(10), "b": np.arange(10)}
         df = DataFrame(d)
 
-        with pytest.raises(ValueError, match="invalid names: {'bad_name'}"):
+        with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
             df.plot(subplots=[("a", "bad_name")])
 
     def test_group_subplot_duplicated_column(self):
