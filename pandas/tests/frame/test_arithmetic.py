@@ -2007,6 +2007,15 @@ def test_bool_frame_mult_float():
     tm.assert_frame_equal(result, expected)
 
 
+def test_frame_sub_nullable_int(any_int_dtype):
+    # GH 32822
+    series1 = Series([1, 2, np.nan], dtype=any_int_dtype)
+    series2 = Series([1, 2, 3], dtype=any_int_dtype)
+    expected = DataFrame([0, 0, np.nan], dtype=any_int_dtype)
+    result = series1.to_frame() - series2.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 
