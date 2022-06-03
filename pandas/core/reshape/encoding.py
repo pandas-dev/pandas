@@ -436,11 +436,9 @@ def from_dummies(
             f"Received 'data' of type: {type(data).__name__}"
         )
 
-    # error: Item "bool" of "Union[Series, bool]" has no attribute "any"
-    if data.isna().any().any():  # type: ignore[union-attr]
-        # error: Item "bool" of "Union[Series, bool]" has no attribute "idxmax"
+    if data.isna().any().any():
         raise ValueError(
-            "Dummy DataFrame contains NA value in column: "  # type: ignore[union-attr]
+            "Dummy DataFrame contains NA value in column: "
             f"'{data.isna().any().idxmax()}'"
         )
 
