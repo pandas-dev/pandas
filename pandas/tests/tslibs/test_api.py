@@ -51,6 +51,7 @@ def test_namespace():
         "to_offset",
         "tz_compare",
         "is_unitless",
+        "astype_overflowsafe",
         "get_unit_from_dtype",
         "periods_per_day",
     ]

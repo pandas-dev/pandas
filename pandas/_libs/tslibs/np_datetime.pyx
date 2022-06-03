@@ -19,6 +19,7 @@ from cpython.object cimport (
 
 import_datetime()
 
+import numpy as np
 cimport numpy as cnp
 
 cnp.import_array()
@@ -288,13 +289,21 @@ cpdef ndarray astype_overflowsafe(
     bint copy=True,
 ):
     """
-    Convert an ndarray with datetime64[X] to datetime64[Y], raising on overflow.
+    Convert an ndarray with datetime64[X] to datetime64[Y]
+    or timedelta64[X] to timedelta64[Y],
+    raising on overflow.
     """
-    if values.descr.type_num != cnp.NPY_DATETIME:
-        # aka values.dtype.kind != "M"
-        raise TypeError("astype_overflowsafe values must have datetime64 dtype")
-    if dtype.type_num != cnp.NPY_DATETIME:
-        raise TypeError("astype_overflowsafe dtype must be datetime64")
+    if values.descr.type_num == dtype.type_num == cnp.NPY_DATETIME:
+        # i.e. dtype.kind == "M"
+        pass
+    elif values.descr.type_num == dtype.type_num == cnp.NPY_TIMEDELTA:
+        # i.e. dtype.kind == "m"
+        pass
+    else:
+        raise TypeError(
+            "astype_overflowsafe values.dtype and dtype must be either "
+            "both-datetime64 or both-timedelta64."
+        )
 
     cdef:
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)
@@ -306,13 +315,20 @@ cpdef ndarray astype_overflowsafe(
     ):
         # without raising explicitly here, we end up with a SystemError
         # built-in function [...] returned a result with an error
-        raise ValueError("datetime64 values and dtype must have a unit specified")
+        raise ValueError(
+            "datetime64/timedelta64 values and dtype must have a unit specified"
+        )
 
     if from_unit == to_unit:
         # Check this before allocating result for perf, might save some memory
         if copy:
             return values.copy()
         return values
+
+    elif from_unit > to_unit:
+        # e.g. ns -> us, so there is no risk of overflow, so we can use
+        #  numpy's astype safely. Note there _is_ risk of truncation.
+        return values.astype(dtype)
 
     cdef:
         ndarray i8values = values.view("i8")
@@ -326,6 +342,7 @@ cpdef ndarray astype_overflowsafe(
         Py_ssize_t i, N = values.size
         int64_t value, new_value
         npy_datetimestruct dts
+        bint is_td = dtype.type_num == cnp.NPY_TIMEDELTA
 
     for i in range(N):
         # Analogous to: item = values[i]
@@ -335,7 +352,20 @@ cpdef ndarray astype_overflowsafe(
             new_value = NPY_DATETIME_NAT
         else:
             pandas_datetime_to_datetimestruct(value, from_unit, &dts)
-            check_dts_bounds(&dts, to_unit)
+
+            try:
+                check_dts_bounds(&dts, to_unit)
+            except OutOfBoundsDatetime as err:
+                if is_td:
+                    tdval = np.timedelta64(value).view(values.dtype)
+                    msg = (
+                        "Cannot convert {tdval} to {dtype} without overflow"
+                        .format(tdval=str(tdval), dtype=str(dtype))
+                    )
+                    raise OutOfBoundsTimedelta(msg) from err
+                else:
+                    raise
+
             new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
 
         # Analogous to: iresult[i] = new_value

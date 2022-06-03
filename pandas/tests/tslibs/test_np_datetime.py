@@ -3,6 +3,7 @@ import pytest
 
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     astype_overflowsafe,
     is_unitless,
     py_get_unit_from_dtype,
@@ -139,7 +140,10 @@ class TestAstypeOverflowSafe:
         arr = np.arange(5)
         dtype = np.dtype("M8[ns]")
 
-        msg = "astype_overflowsafe values must have datetime64 dtype"
+        msg = (
+            "astype_overflowsafe values.dtype and dtype must be either "
+            "both-datetime64 or both-timedelta64"
+        )
         with pytest.raises(TypeError, match=msg):
             astype_overflowsafe(arr, dtype, copy=True)
 
@@ -151,14 +155,17 @@ class TestAstypeOverflowSafe:
         arr = np.arange(5, dtype="i8").view("M8[D]")
         dtype = np.dtype("m8[ns]")
 
-        msg = "astype_overflowsafe dtype must be datetime64"
+        msg = (
+            "astype_overflowsafe values.dtype and dtype must be either "
+            "both-datetime64 or both-timedelta64"
+        )
         with pytest.raises(TypeError, match=msg):
             astype_overflowsafe(arr, dtype, copy=True)
 
         with pytest.raises(TypeError, match=msg):
             astype_overflowsafe(arr, dtype, copy=False)
 
-    def test_astype_overflowsafe(self):
+    def test_astype_overflowsafe_dt64(self):
         dtype = np.dtype("M8[ns]")
 
         dt = np.datetime64("2262-04-05", "D")
@@ -175,6 +182,28 @@ class TestAstypeOverflowSafe:
 
         # But converting to microseconds is fine, and we match numpy's results.
         dtype2 = np.dtype("M8[us]")
+        result = astype_overflowsafe(arr, dtype2)
+        expected = arr.astype(dtype2)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_astype_overflowsafe_td64(self):
+        dtype = np.dtype("m8[ns]")
+
+        dt = np.datetime64("2262-04-05", "D")
+        arr = dt + np.arange(10, dtype="m8[D]")
+        arr = arr.view("m8[D]")
+
+        # arr.astype silently overflows, so this
+        wrong = arr.astype(dtype)
+        roundtrip = wrong.astype(arr.dtype)
+        assert not (wrong == roundtrip).all()
+
+        msg = r"Cannot convert 106752 days to timedelta64\[ns\] without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            astype_overflowsafe(arr, dtype)
+
+        # But converting to microseconds is fine, and we match numpy's results.
+        dtype2 = np.dtype("m8[us]")
         result = astype_overflowsafe(arr, dtype2)
         expected = arr.astype(dtype2)
         tm.assert_numpy_array_equal(result, expected)

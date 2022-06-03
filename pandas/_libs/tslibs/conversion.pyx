@@ -193,8 +193,6 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def ensure_datetime64ns(arr: ndarray, copy: bool = True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
@@ -212,14 +210,6 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
         # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
-
-    if arr.size == 0:
-        # Fastpath; doesn't matter but we have old tests for result.base
-        #  being arr.
-        result = arr.view(DT64NS_DTYPE)
-        if copy:
-            result = result.copy()
-        return result
 
     return astype_overflowsafe(arr, DT64NS_DTYPE, copy=copy)
 
@@ -239,29 +229,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
     """
     assert arr.dtype.kind == "m", arr.dtype
 
-    if arr.dtype == TD64NS_DTYPE:
-        return arr.copy() if copy else arr
-
-    # Re-use the datetime64 machinery to do an overflow-safe `astype`
-    dtype = arr.dtype.str.replace("m8", "M8")
-    dummy = arr.view(dtype)
-    try:
-        dt64_result = ensure_datetime64ns(dummy, copy)
-    except OutOfBoundsDatetime as err:
-        # Re-write the exception in terms of timedelta64 instead of dt64
-
-        # Find the value that we are going to report as causing an overflow
-        tdmin = arr.min()
-        tdmax = arr.max()
-        if np.abs(tdmin) >= np.abs(tdmax):
-            bad_val = tdmin
-        else:
-            bad_val = tdmax
-
-        msg = f"Out of bounds for nanosecond {arr.dtype.name} {str(bad_val)}"
-        raise OutOfBoundsTimedelta(msg)
-
-    return dt64_result.view(TD64NS_DTYPE)
+    return astype_overflowsafe(arr, dtype=TD64NS_DTYPE, copy=copy)
 
 
 # ----------------------------------------------------------------------
