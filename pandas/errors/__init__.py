@@ -275,11 +275,11 @@ class SettingWithCopyError(ValueError):
     the mode.chained_assignment is set to 'raise.' This can happen unintentionally
     when chained indexing.
 
-    For more information, see 'Evaluation order matters' on
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+    For more information on eveluation order,
+    see :ref:`the user guide<indexing.evaluation_order>`.
 
-    For more information, see 'Indexing view versus copy' on
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+    For more information on view vs. copy,
+    see :ref:`the user guide<indexing.view_versus_copy>`.
 
     Examples
     --------
@@ -296,11 +296,11 @@ class SettingWithCopyWarning(Warning):
     the mode.chained_assignment is set to 'warn.' 'Warn' is the default option.
     This can happen unintentionally when chained indexing.
 
-    For more information, see 'Evaluation order matters' on
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+    For more information on eveluation order,
+    see :ref:`the user guide<indexing.evaluation_order>`.
 
-    For more information, see 'Indexing view versus copy' on
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html
+    For more information on view vs. copy,
+    see :ref:`the user guide<indexing.view_versus_copy>`.
 
     Examples
     --------
