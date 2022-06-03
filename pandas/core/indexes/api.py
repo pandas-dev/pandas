@@ -10,6 +10,7 @@ from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_dtype_equal
 
+from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.base import (
     Index,
     _new_Index,
@@ -154,7 +155,11 @@ def _get_combined_index(
 
     if sort:
         try:
-            index = index.sort_values()
+            index_sorted = safe_sort(index)
+            if isinstance(index, MultiIndex):
+                index = MultiIndex.from_tuples(index_sorted, names=index.names)
+            else:
+                index = Index(index_sorted, name=index.name)
         except TypeError:
             pass
 
