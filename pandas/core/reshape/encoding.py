@@ -333,17 +333,18 @@ def from_dummies(
     Parameters
     ----------
     data : DataFrame
-        Data which contains dummy-coded variables.
+        Data which contains dummy-coded variables in form of integer columns of
+        1's and 0's.
     sep : str, default None
         Separator used in the column names of the dummy categories they are
         character indicating the separation of the categorical names from the prefixes.
         For example, if your column names are 'prefix_A' and 'prefix_B',
         you can strip the underscore by specifying sep='_'.
     default_category : None, Hashable or dict of Hashables, default None
-        The base category is the implied category when a value has non none of the
+        The default category is the implied category when a value has none of the
         listed categories specified with a one, i.e. if all dummies in a row are
-        zero. Can be a a single value for all variables or a dict directly mapping
-        the base categories to a prefix of a variable.
+        zero. Can be a single value for all variables or a dict directly mapping
+        the default categories to a prefix of a variable.
 
     Returns
     -------
@@ -383,7 +384,7 @@ def from_dummies(
     ...                    "c": [0, 0, 1, 0]})
 
     >>> df
-    a  b  c
+       a  b  c
     0  1  0  0
     1  0  1  0
     2  0  0  1
@@ -400,7 +401,7 @@ def from_dummies(
     ...                    "col2_c": [0, 0, 1]})
 
     >>> df
-    col1_a  col1_b  col2_a  col2_b  col2_c
+          col1_a  col1_b  col2_a  col2_b  col2_c
     0       1       0       0       1       0
     1       0       1       1       0       0
     2       1       0       0       0       1
@@ -416,7 +417,7 @@ def from_dummies(
     ...                    "col2_c": [0, 0, 0]})
 
     >>> df
-    col1_a  col1_b  col2_a  col2_b  col2_c
+          col1_a  col1_b  col2_a  col2_b  col2_c
     0       1       0       0       1       0
     1       0       1       1       0       0
     2       0       0       0       0       0

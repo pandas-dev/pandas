@@ -721,7 +721,7 @@ for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
    pd.from_dummies(df, sep="_")
 
 Dummy coded data only requires ``k - 1`` categories to be included, in this case
-the ``k`` th category is the base category, implied by not being assigned any of
+the ``k`` th category is the default category, implied by not being assigned any of
 the other ``k - 1`` categories, can be passed via ``default_category``.
 
 .. ipython:: python
