@@ -915,7 +915,8 @@ class TestPeriodIndexArithmetic:
         tm.assert_index_equal(result, exp)
 
     def test_pi_add_sub_int_array_freqn_gt1(self):
-        # test adding array of ints when freq.n > 1 matches scalar behavior
+        # GH#47209 test adding array of ints when freq.n > 1 matches
+        #  scalar behavior
         pi = period_range("2016-01-01", periods=10, freq="2D")
         arr = np.arange(10)
         result = pi + arr
