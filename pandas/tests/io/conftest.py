@@ -71,7 +71,7 @@ def s3_base(worker_id):
             if is_platform_arm() or is_platform_mac() or is_platform_windows():
                 # NOT RUN on Windows/MacOS/ARM, only Ubuntu
                 # - subprocess in CI can cause timeouts
-                # - Azure pipelines/Github Actions do not support
+                # - Github Actions do not support
                 #   container services for the above OSs
                 # - CircleCI will probably hit the Docker rate pull limit
                 pytest.skip(

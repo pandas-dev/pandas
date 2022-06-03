@@ -23,9 +23,9 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script validates the doctests, formatting in docstrings, static typing, and
+The script validates the doctests, formatting in docstrings, and
 imported modules. It is possible to run the checks independently by using the
-parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+parameters ``docstring``, ``code``, and ``doctests``
 (e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
@@ -33,11 +33,9 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-In addition to ``./ci/code_checks.sh``, some extra checks are run by
-``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
-run them.
-
-Additional standards are outlined on the :ref:`pandas code style guide <code_style>`.
+In addition to ``./ci/code_checks.sh``, some extra checks (including static type
+checking) are run by ``pre-commit`` - see :ref:`here <contributing.pre-commit>`
+for how to run them.
 
 .. _contributing.pre-commit:
 
@@ -45,7 +43,8 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``flake8``, ``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
+like ``black``, ``flake8`` (including a `pandas-dev-flaker <https://github.com/pandas-dev/pandas-dev-flaker>`_ plugin),
+``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
 can be done by installing ``pre-commit``::
@@ -261,9 +260,9 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   ./ci/code_checks.sh typing
+   pre-commit run --hook-stage manual --all-files
 
-A recent version of ``numpy`` (>=1.21.0) is required for type validation.
+in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
 
 .. _contributing.ci:
 
@@ -290,13 +289,11 @@ library. This makes type checkers aware of the type annotations shipped with pan
 Testing with continuous integration
 -----------------------------------
 
-The pandas test suite will run automatically on `GitHub Actions <https://github.com/features/actions/>`__ and
-`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__
+The pandas test suite will run automatically on `GitHub Actions <https://github.com/features/actions/>`__
 continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
-for `GitHub Actions <https://docs.github.com/en/actions/>`__ and
-`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/?view=azure-devops>`__.
+for `GitHub Actions <https://docs.github.com/en/actions/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.

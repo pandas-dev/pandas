@@ -14,8 +14,14 @@ from typing import (
 import numpy as np
 import pytz
 
-from pandas._libs import missing as libmissing
-from pandas._libs.interval import Interval
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._libs.interval import (
+    Interval,
+    _warning_interval,
+)
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -664,13 +670,16 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     type: type[Timestamp] = Timestamp
     kind: str_type = "M"
-    str = "|M8[ns]"
     num = 101
-    base = np.dtype("M8[ns]")
+    base = np.dtype("M8[ns]")  # TODO: depend on reso?
     na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+
+    @cache_readonly
+    def str(self):
+        return f"|M8[{self._unit}]"
 
     def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
@@ -690,8 +699,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
                 raise ValueError(msg)
-            else:
-                raise ValueError("DatetimeTZDtype only supports ns units")
+            if unit not in ["s", "ms", "us", "ns"]:
+                raise ValueError("DatetimeTZDtype only supports s, ms, us, ns units")
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
@@ -703,6 +712,19 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         self._unit = unit
         self._tz = tz
+
+    @cache_readonly
+    def _reso(self) -> int:
+        """
+        The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
+        """
+        reso = {
+            "s": dtypes.NpyDatetimeUnit.NPY_FR_s,
+            "ms": dtypes.NpyDatetimeUnit.NPY_FR_ms,
+            "us": dtypes.NpyDatetimeUnit.NPY_FR_us,
+            "ns": dtypes.NpyDatetimeUnit.NPY_FR_ns,
+        }[self._unit]
+        return reso.value
 
     @property
     def unit(self) -> str_type:
@@ -1040,7 +1062,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     Examples
     --------
-    >>> pd.IntervalDtype(subtype='int64', closed='both')
+    >>> pd.IntervalDtype(subtype='int64', inclusive='both')
     interval[int64, both]
     """
 
@@ -1051,27 +1073,42 @@ class IntervalDtype(PandasExtensionDtype):
     num = 103
     _metadata = (
         "subtype",
-        "closed",
+        "inclusive",
     )
     _match = re.compile(
-        r"(I|i)nterval\[(?P<subtype>[^,]+)(, (?P<closed>(right|left|both|neither)))?\]"
+        r"(I|i)nterval\[(?P<subtype>[^,]+)(, ("
+        r"?P<inclusive>(right|left|both|neither)))?\]"
     )
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, closed: str_type | None = None):
+    def __new__(
+        cls,
+        subtype=None,
+        inclusive: str_type | None = None,
+        closed: None | lib.NoDefault = lib.no_default,
+    ):
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
         )
 
-        if closed is not None and closed not in {"right", "left", "both", "neither"}:
-            raise ValueError("closed must be one of 'right', 'left', 'both', 'neither'")
+        inclusive, closed = _warning_interval(inclusive, closed)
+
+        if inclusive is not None and inclusive not in {
+            "right",
+            "left",
+            "both",
+            "neither",
+        }:
+            raise ValueError(
+                "inclusive must be one of 'right', 'left', 'both', 'neither'"
+            )
 
         if isinstance(subtype, IntervalDtype):
-            if closed is not None and closed != subtype.closed:
+            if inclusive is not None and inclusive != subtype.inclusive:
                 raise ValueError(
-                    "dtype.closed and 'closed' do not match. "
-                    "Try IntervalDtype(dtype.subtype, closed) instead."
+                    "dtype.inclusive and 'inclusive' do not match. "
+                    "Try IntervalDtype(dtype.subtype, inclusive) instead."
                 )
             return subtype
         elif subtype is None:
@@ -1079,7 +1116,7 @@ class IntervalDtype(PandasExtensionDtype):
             # generally for pickle compat
             u = object.__new__(cls)
             u._subtype = None
-            u._closed = closed
+            u._closed = inclusive
             return u
         elif isinstance(subtype, str) and subtype.lower() == "interval":
             subtype = None
@@ -1089,14 +1126,14 @@ class IntervalDtype(PandasExtensionDtype):
                 if m is not None:
                     gd = m.groupdict()
                     subtype = gd["subtype"]
-                    if gd.get("closed", None) is not None:
-                        if closed is not None:
-                            if closed != gd["closed"]:
+                    if gd.get("inclusive", None) is not None:
+                        if inclusive is not None:
+                            if inclusive != gd["inclusive"]:
                                 raise ValueError(
-                                    "'closed' keyword does not match value "
+                                    "'inclusive' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        closed = gd["closed"]
+                        inclusive = gd["inclusive"]
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1111,13 +1148,13 @@ class IntervalDtype(PandasExtensionDtype):
             )
             raise TypeError(msg)
 
-        key = str(subtype) + str(closed)
+        key = str(subtype) + str(inclusive)
         try:
             return cls._cache_dtypes[key]
         except KeyError:
             u = object.__new__(cls)
             u._subtype = subtype
-            u._closed = closed
+            u._closed = inclusive
             cls._cache_dtypes[key] = u
             return u
 
@@ -1134,7 +1171,7 @@ class IntervalDtype(PandasExtensionDtype):
         return True
 
     @property
-    def closed(self):
+    def inclusive(self):
         return self._closed
 
     @property
@@ -1186,10 +1223,10 @@ class IntervalDtype(PandasExtensionDtype):
     def __str__(self) -> str_type:
         if self.subtype is None:
             return "interval"
-        if self.closed is None:
+        if self.inclusive is None:
             # Only partially initialized GH#38394
             return f"interval[{self.subtype}]"
-        return f"interval[{self.subtype}, {self.closed}]"
+        return f"interval[{self.subtype}, {self.inclusive}]"
 
     def __hash__(self) -> int:
         # make myself hashable
@@ -1203,7 +1240,7 @@ class IntervalDtype(PandasExtensionDtype):
         elif self.subtype is None or other.subtype is None:
             # None should match any subtype
             return True
-        elif self.closed != other.closed:
+        elif self.inclusive != other.inclusive:
             return False
         else:
             from pandas.core.dtypes.common import is_dtype_equal
@@ -1215,9 +1252,8 @@ class IntervalDtype(PandasExtensionDtype):
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
         self._subtype = state["subtype"]
-
-        # backward-compat older pickles won't have "closed" key
-        self._closed = state.pop("closed", None)
+        # backward-compat older pickles won't have "inclusive" key
+        self._closed = state.pop("inclusive", None)
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
@@ -1259,14 +1295,14 @@ class IntervalDtype(PandasExtensionDtype):
                 arr = arr.storage
             left = np.asarray(arr.field("left"), dtype=self.subtype)
             right = np.asarray(arr.field("right"), dtype=self.subtype)
-            iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
+            iarr = IntervalArray.from_arrays(left, right, inclusive=self.inclusive)
             results.append(iarr)
 
         if not results:
             return IntervalArray.from_arrays(
                 np.array([], dtype=self.subtype),
                 np.array([], dtype=self.subtype),
-                closed=self.closed,
+                inclusive=self.inclusive,
             )
         return IntervalArray._concat_same_type(results)
 
@@ -1274,8 +1310,8 @@ class IntervalDtype(PandasExtensionDtype):
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
             return None
 
-        closed = cast("IntervalDtype", dtypes[0]).closed
-        if not all(cast("IntervalDtype", x).closed == closed for x in dtypes):
+        inclusive = cast("IntervalDtype", dtypes[0]).inclusive
+        if not all(cast("IntervalDtype", x).inclusive == inclusive for x in dtypes):
             return np.dtype(object)
 
         from pandas.core.dtypes.cast import find_common_type
@@ -1283,7 +1319,7 @@ class IntervalDtype(PandasExtensionDtype):
         common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
         if common == object:
             return np.dtype(object)
-        return IntervalDtype(common, closed=closed)
+        return IntervalDtype(common, inclusive=inclusive)
 
 
 class PandasDtype(ExtensionDtype):

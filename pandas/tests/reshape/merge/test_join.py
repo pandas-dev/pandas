@@ -19,8 +19,6 @@ from pandas.tests.reshape.merge.test_merge import (
     get_test_data,
 )
 
-a_ = np.array
-
 
 class TestJoin:
     def setup_method(self):
@@ -555,7 +553,9 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        mn = grouped.mean()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            mn = grouped.mean()
         cn = grouped.count()
 
         # it works!

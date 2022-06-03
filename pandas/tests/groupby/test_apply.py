@@ -1047,6 +1047,8 @@ def test_apply_with_timezones_aware():
 def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     # GH #34656
     # GH #34271
+    warn = FutureWarning if reduction_func == "mad" else None
+
     df = DataFrame(
         {
             "a": [99, 99, 99, 88, 88, 88],
@@ -1068,7 +1070,8 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
-    _ = getattr(grp, reduction_func)(*args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        _ = getattr(grp, reduction_func)(*args)
     result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
@@ -1317,3 +1320,13 @@ def test_apply_str_with_args(df, args, kwargs):
     result = gb.apply("sum", *args, **kwargs)
     expected = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("name", ["some_name", None])
+def test_result_name_when_one_group(name):
+    # GH 46369
+    ser = Series([1, 2], name=name)
+    result = ser.groupby(["a", "a"], group_keys=False).apply(lambda x: x)
+    expected = Series([1, 2], name=name)
+
+    tm.assert_series_equal(result, expected)

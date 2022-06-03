@@ -113,6 +113,21 @@ class TestPeriodConstruction:
         with pytest.raises(TypeError, match="pass as a string instead"):
             Period("1982", freq=("Min", 1))
 
+    def test_construction_from_timestamp_nanos(self):
+        # GH#46811 don't drop nanos from Timestamp
+        ts = Timestamp("2022-04-20 09:23:24.123456789")
+        per = Period(ts, freq="ns")
+
+        # should losslessly round-trip, not lose the 789
+        rt = per.to_timestamp()
+        assert rt == ts
+
+        # same thing but from a datetime64 object
+        dt64 = ts.asm8
+        per2 = Period(dt64, freq="ns")
+        rt2 = per2.to_timestamp()
+        assert rt2.asm8 == dt64
+
     def test_construction_bday(self):
 
         # Biz day construction, roll forward if non-weekday
@@ -324,8 +339,10 @@ class TestPeriodConstruction:
         p = Period("2007-01-01 07:10:15.123")
         assert p.freq == "L"
 
+        # We see that there are 6 digits after the decimal, so get microsecond
+        #  even though they are all zeros.
         p = Period("2007-01-01 07:10:15.123000")
-        assert p.freq == "L"
+        assert p.freq == "U"
 
         p = Period("2007-01-01 07:10:15.123400")
         assert p.freq == "U"
@@ -1170,6 +1187,19 @@ class TestPeriodComparisons:
 
 
 class TestArithmetic:
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "m"])
+    def test_add_sub_td64_nat(self, unit):
+        # GH#47196
+        per = Period("2022-06-01", "D")
+        nat = np.timedelta64("NaT", unit)
+
+        assert per + nat is NaT
+        assert nat + per is NaT
+        assert per - nat is NaT
+
+        with pytest.raises(TypeError, match="unsupported operand"):
+            nat - per
+
     def test_sub_delta(self):
         left, right = Period("2011", freq="A"), Period("2007", freq="A")
         result = left - right

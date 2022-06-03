@@ -1,11 +1,10 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+from typing import Literal
 import warnings
 
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
@@ -25,7 +24,10 @@ from cpython.tuple cimport (
     PyTuple_New,
     PyTuple_SET_ITEM,
 )
-from cython cimport floating
+from cython cimport (
+    Py_ssize_t,
+    floating,
+)
 
 import_datetime()
 
@@ -872,7 +874,7 @@ def get_level_sorter(
     """
     cdef:
         Py_ssize_t i, l, r
-        ndarray[intp_t, ndim=1] out = np.empty(len(codes), dtype=np.intp)
+        ndarray[intp_t, ndim=1] out = cnp.PyArray_EMPTY(1, codes.shape, cnp.NPY_INTP, 0)
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
@@ -2140,7 +2142,7 @@ cpdef bint is_interval_array(ndarray values):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        str closed = None
+        str inclusive = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
@@ -2153,15 +2155,15 @@ cpdef bint is_interval_array(ndarray values):
         val = values[i]
 
         if is_interval(val):
-            if closed is None:
-                closed = val.closed
+            if inclusive is None:
+                inclusive = val.inclusive
                 numeric = (
                     util.is_float_object(val.left)
                     or util.is_integer_object(val.left)
                 )
                 td64 = is_timedelta(val.left)
                 dt64 = PyDateTime_Check(val.left)
-            elif val.closed != closed:
+            elif val.inclusive != inclusive:
                 # mismatched closedness
                 return False
             elif numeric:
@@ -2184,7 +2186,7 @@ cpdef bint is_interval_array(ndarray values):
         else:
             return False
 
-    if closed is None:
+    if inclusive is None:
         # we saw all-NAs, no actual Intervals
         return False
     return True
@@ -2254,11 +2256,11 @@ def maybe_convert_numeric(
         int status, maybe_int
         Py_ssize_t i, n = values.size
         Seen seen = Seen(coerce_numeric)
-        ndarray[float64_t, ndim=1] floats = np.empty(n, dtype='f8')
-        ndarray[complex128_t, ndim=1] complexes = np.empty(n, dtype='c16')
-        ndarray[int64_t, ndim=1] ints = np.empty(n, dtype='i8')
-        ndarray[uint64_t, ndim=1] uints = np.empty(n, dtype='u8')
-        ndarray[uint8_t, ndim=1] bools = np.empty(n, dtype='u1')
+        ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_FLOAT64, 0)
+        ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_COMPLEX128, 0)
+        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_INT64, 0)
+        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT64, 0)
+        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT8, 0)
         ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
@@ -2478,11 +2480,11 @@ def maybe_convert_objects(ndarray[object] objects,
 
     n = len(objects)
 
-    floats = np.empty(n, dtype='f8')
-    complexes = np.empty(n, dtype='c16')
-    ints = np.empty(n, dtype='i8')
-    uints = np.empty(n, dtype='u8')
-    bools = np.empty(n, dtype=np.uint8)
+    floats = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_FLOAT64, 0)
+    complexes = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_COMPLEX128, 0)
+    ints = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_INT64, 0)
+    uints = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT64, 0)
+    bools = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_UINT8, 0)
     mask = np.full(n, False)
 
     if convert_datetime:
@@ -2784,13 +2786,13 @@ cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
     else:
         # ExtensionDtype
         cls = dtype.construct_array_type()
-        i8vals = np.empty(len(datetimes), dtype="i8")
+        i8vals = cnp.PyArray_EMPTY(1, datetimes.shape, cnp.NPY_INT64, 0)
         i8vals.fill(NPY_NAT)
         result = cls(i8vals, dtype=dtype)
     return result
 
 
-class NoDefault(Enum):
+class _NoDefault(Enum):
     # We make this an Enum
     # 1) because it round-trips through pickle correctly (see GH#40397)
     # 2) because mypy does not understand singletons
@@ -2801,7 +2803,8 @@ class NoDefault(Enum):
 
 
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = NoDefault.no_default  # Sentinel indicating the default value.
+no_default = _NoDefault.no_default  # Sentinel indicating the default value.
+NoDefault = Literal[_NoDefault.no_default]
 
 
 @cython.boundscheck(False)
@@ -2887,7 +2890,7 @@ def map_infer(
         object val
 
     n = len(arr)
-    result = np.empty(n, dtype=object)
+    result = cnp.PyArray_EMPTY(1, arr.shape, cnp.NPY_OBJECT, 0)
     for i in range(n):
         if ignore_na and checknull(arr[i]):
             result[i] = arr[i]
@@ -3082,7 +3085,7 @@ cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
     key is assumed to have `not isna(key)`
     """
     cdef:
-        ndarray[uint8_t, cast=True] result = np.empty(len(arr), dtype=bool)
+        ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_BOOL, 0)
         Py_ssize_t i
         object item
 
