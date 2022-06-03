@@ -43,7 +43,7 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Conda (${{ matrix.env_file }}, Arrow ${{ matrix.pyarrow_version}})
+    - name: Set up Conda
       uses: ./.github/actions/setup-conda
       with:
         environment-file: ci/deps/${{ matrix.env_file }}
