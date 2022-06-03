@@ -326,9 +326,9 @@ def from_dummies(
     default_category: None | Hashable | dict[str, Hashable] = None,
 ) -> DataFrame:
     """
-    Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
+    Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables.
 
-    Inverts the operation performed by :func:`~pandas.get_dummies`.
+    Inverts the operation performed by :func:``~pandas.get_dummies``.
 
     Parameters
     ----------
@@ -353,23 +353,24 @@ def from_dummies(
     Raises
     ------
     ValueError
-        * When the input `DataFrame` `data` contains NA values.
-        * When the input `DataFrame` `data` contains column names with separators
-          that do not match the separator specified with `sep`.
-        * When a `dict` passed to `default_category` does not include an implied
+        * When the input ``DataFrame`` ``data`` contains NA values.
+        * When the input ``DataFrame`` ``data`` contains column names with separators
+          that do not match the separator specified with ``sep``.
+        * When a ``dict`` passed to ``default_category`` does not include an implied
           category for each prefix.
-        * When a value in `data` has more than one category assigned to it.
-        * When `default_category=None` and a value in `data` has no category assigned
-          to it.
+        * When a value in ``data`` has more than one category assigned to it.
+        * When ``default_category=None`` and a value in ``data`` has no category
+          assigned to it.
     TypeError
-        * When the input `data` is not of type `DataFrame`.
-        * When the input `DataFrame` `data` contains non-dummy data.
-        * When the passed `sep` is of a wrong data type.
-        * When the passed `default_category` is of a wrong data type.
+        * When the input ``data`` is not of type ``DataFrame``.
+        * When the input ``DataFrame`` ``data`` contains non-dummy data.
+        * When the passed ``sep`` is of a wrong data type.
+        * When the passed ``default_category`` is of a wrong data type.
 
     See Also
     --------
-    :func:`~pandas.get_dummies` : Convert `Series` or `DataFrame` to dummy codes.
+    :func:``~pandas.get_dummies`` : Convert ``Series`` or ``DataFrame`` to dummy
+    codes.
 
     Notes
     -----
