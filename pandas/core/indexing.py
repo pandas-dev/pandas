@@ -540,14 +540,30 @@ class IndexingMixin:
         Raises
         ------
         KeyError
-            If 'label' does not exist in DataFrame.
+            * If getting a value and 'label' does not exist in a DataFrame or
+                Series.
+        ValueError
+            * If row/column label pair is not a tuple or if any label from
+                the pair is not a scalar for DataFrame.
+            * If label is list-like (*excluding* NamedTuple) for Series.
 
         See Also
         --------
+        DataFrame.at : Access a single value for a row/column pair by label.
         DataFrame.iat : Access a single value for a row/column pair by integer
             position.
         DataFrame.loc : Access a group of rows and columns by label(s).
-        Series.at : Access a single value using a label.
+        DataFrame.iloc : Access a group of rows and columns by integer
+            position(s).
+        Series.at : Access a single value by label.
+        Series.iat : Access a single value by integer position.
+        Series.loc : Access a group of rows by label(s).
+        Series.iloc : Access a group of rows by integer position(s).
+
+        Notes
+        -----
+        See :ref:`Fast scalar value getting and setting <indexing.basics.get_value>`
+        for more details.
 
         Examples
         --------
