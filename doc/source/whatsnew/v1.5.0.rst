@@ -802,7 +802,7 @@ MultiIndex
 - Bug in :meth:`Series.to_numpy` where multiindexed Series could not be converted to numpy arrays when an ``na_value`` was supplied (:issue:`45774`)
 - Bug in :class:`MultiIndex.equals` not commutative when only one side has extension array dtype (:issue:`46026`)
 - Bug in :meth:`MultiIndex.from_tuples` cannot construct Index of empty tuples (:issue:`45608`)
-- Bug in :meth:`Index.map` cannot map an existing :class:`MultiIndex` to more levels (:issue:`47209`)
+- Bug in :meth:`Index.map` cannot map an existing :class:`MultiIndex` to more levels (:issue:`47173`)
 
 I/O
 ^^^
