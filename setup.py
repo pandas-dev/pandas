@@ -38,7 +38,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "0.29.24"
+min_cython_ver = "0.29.30"
 
 try:
     from Cython import (
@@ -210,7 +210,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/parsers.pyx",
         "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
-        "pandas/_libs/tslibs/ctime.pyx",
         "pandas/_libs/tslibs/dtypes.pyx",
         "pandas/_libs/tslibs/period.pyx",
         "pandas/_libs/tslibs/strptime.pyx",
@@ -496,7 +495,6 @@ ext_data = {
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
-    "_libs.tslibs.ctime": {"pyxfile": "_libs/tslibs/ctime"},
     "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
@@ -506,6 +504,7 @@ ext_data = {
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
@@ -519,6 +518,7 @@ ext_data = {
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",

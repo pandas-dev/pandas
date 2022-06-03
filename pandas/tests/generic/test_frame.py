@@ -71,7 +71,9 @@ class TestDataFrame:
                 "D": np.random.randn(8),
             }
         )
-        result = df.groupby("A").sum()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby("A").sum()
         tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv_resample(self):

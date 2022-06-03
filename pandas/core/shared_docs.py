@@ -101,7 +101,8 @@ by : mapping, function, label, or list of labels
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
-    Split along rows (0) or columns (1).
+    Split along rows (0) or columns (1). For `Series` this parameter
+    is unused and defaults to 0.
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels.
@@ -114,9 +115,12 @@ sort : bool, default True
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
 group_keys : bool, optional
-    When calling apply, add group keys to index to identify pieces.
-    By default group keys are not included when the result's index
-    (and column) labels match the inputs, and are included otherwise.
+    When calling apply and the ``by`` argument produces a like-indexed
+    (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
+    index to identify pieces. By default group keys are not included
+    when the result's index (and column) labels match the inputs, and
+    are included otherwise. This argument has no effect if the result produced
+    is not like-indexed with respect to the input.
 
     .. versionchanged:: 1.5.0
 
@@ -421,29 +425,43 @@ _shared_docs[
 ] = """compression : str or dict, default 'infer'
     For on-the-fly compression of the output data. If 'infer' and '%s'
     path-like, then detect compression from the following extensions: '.gz',
-    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). Set to
-    ``None`` for no compression. Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
-    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
-    example, the following could be passed for faster compression and to create
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    Set to ``None`` for no compression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
+    key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
-    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``."""
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files."""
 
 _shared_docs[
     "decompression_options"
 ] = """compression : str or dict, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
-    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). If using
-    'zip', the ZIP file must contain only one data file to be read in. Set to
-    ``None`` for no decompression. Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
-    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
-    example, the following could be passed for Zstandard decompression using a
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
+    Set to ``None`` for no decompression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
+    key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
-    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``."""
+    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files."""
 
 _shared_docs[
     "replace"
@@ -482,8 +500,8 @@ _shared_docs[
             - Dicts can be used to specify different replacement values
               for different existing values. For example,
               ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
-              'y' with 'z'. To use a dict in this way the `value`
-              parameter should be `None`.
+              'y' with 'z'. To use a dict in this way, the optional `value`
+              parameter should not be given.
             - For a DataFrame a dict can specify that different values
               should be replaced in different columns. For example,
               ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
@@ -494,8 +512,8 @@ _shared_docs[
               specifying the column to search in.
             - For a DataFrame nested dictionaries, e.g.,
               ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
-              'a' for the value 'b' and replace it with NaN. The `value`
-              parameter should be ``None`` to use a nested dict in this
+              'a' for the value 'b' and replace it with NaN. The optional `value`
+              parameter should not be specified to use a nested dict in this
               way. You can nest regular expressions as well. Note that
               column names (the top-level dictionary keys in a nested
               dictionary) **cannot** be regular expressions.

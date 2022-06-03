@@ -7,6 +7,7 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
+    Any,
     Callable,
     DefaultDict,
     Hashable,
@@ -1027,26 +1028,14 @@ class ParserBase:
         # Convert `dtype` to a defaultdict of some kind.
         # This will enable us to write `dtype[col_name]`
         # without worrying about KeyError issues later on.
+        dtype_dict: defaultdict[Hashable, Any]
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
             default_dtype = dtype or object
-            # error: Argument 1 to "defaultdict" has incompatible type "Callable[[],
-            # Union[ExtensionDtype, str, dtype[Any], Type[object], Dict[Hashable,
-            # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-            # Type[int], Type[complex], Type[bool], Type[object]]]]]"; expected
-            # "Optional[Callable[[], Union[ExtensionDtype, str, dtype[Any],
-            # Type[object]]]]"
-            # error: Incompatible return value type (got "Union[ExtensionDtype, str,
-            # dtype[Any], Type[object], Dict[Hashable, Union[ExtensionDtype, Union[str,
-            # dtype[Any]], Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]]]", expected "Union[ExtensionDtype, str, dtype[Any],
-            # Type[object]]")
-            dtype = defaultdict(
-                lambda: default_dtype  # type: ignore[arg-type, return-value]
-            )
+            dtype_dict = defaultdict(lambda: default_dtype)
         else:
             dtype = cast(dict, dtype)
-            dtype = defaultdict(
+            dtype_dict = defaultdict(
                 lambda: object,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
             )
@@ -1063,14 +1052,16 @@ class ParserBase:
         if (index_col is None or index_col is False) or index_names is None:
             index = Index([])
         else:
-            data = [Series([], dtype=dtype[name]) for name in index_names]
+            data = [Series([], dtype=dtype_dict[name]) for name in index_names]
             index = ensure_index_from_sequences(data, names=index_names)
             index_col.sort()
 
             for i, n in enumerate(index_col):
                 columns.pop(n - i)
 
-        col_dict = {col_name: Series([], dtype=dtype[col_name]) for col_name in columns}
+        col_dict = {
+            col_name: Series([], dtype=dtype_dict[col_name]) for col_name in columns
+        }
 
         return index, columns, col_dict
 

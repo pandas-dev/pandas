@@ -16,7 +16,6 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
-    NaTType,
     Period,
     Tick,
     Timedelta,
@@ -114,7 +113,7 @@ class Timestamp(datetime):
     def time(self) -> _time: ...
     def timetz(self) -> _time: ...
     def replace(
-        self,
+        self: _DatetimeT,
         year: int = ...,
         month: int = ...,
         day: int = ...,
@@ -124,7 +123,7 @@ class Timestamp(datetime):
         microsecond: int = ...,
         tzinfo: _tzinfo | None = ...,
         fold: int = ...,
-    ) -> datetime: ...
+    ) -> _DatetimeT: ...
     def astimezone(self: _DatetimeT, tz: _tzinfo | None = ...) -> _DatetimeT: ...
     def ctime(self) -> str: ...
     def isoformat(self, sep: str = ..., timespec: str = ...) -> str: ...

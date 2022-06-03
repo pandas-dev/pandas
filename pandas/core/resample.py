@@ -34,7 +34,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DataError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -50,10 +53,7 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import (
-    DataError,
-    PandasObject,
-)
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
@@ -165,6 +165,10 @@ class Resampler(BaseGroupBy, PandasObject):
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
+        if self.groupby.key is not None:
+            self.exclusions = frozenset([self.groupby.key])
+        else:
+            self.exclusions = frozenset()
 
     @final
     def _shallow_copy(self, obj, **kwargs):
@@ -426,7 +430,11 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         grouper = self.grouper
 
-        obj = self._selected_obj
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
         grouped = get_groupby(
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
@@ -1180,7 +1188,11 @@ class DatetimeIndexResampler(Resampler):
         """
         how = com.get_cython_func(how) or how
         ax = self.ax
-        obj = self._selected_obj
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
 
         if not len(ax):
             # reset to the new freq

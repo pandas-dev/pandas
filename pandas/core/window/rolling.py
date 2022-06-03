@@ -33,6 +33,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+from pandas.errors import DataError
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -54,10 +55,7 @@ from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import (
-    DataError,
-    SelectionMixin,
-)
+from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -924,6 +922,8 @@ class Window(BaseWindow):
 
         If ``1`` or ``'columns'``, roll across the columns.
 
+        For `Series` this parameter is unused and defaults to 0.
+
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
 
@@ -1129,12 +1129,8 @@ class Window(BaseWindow):
         """
         Center the result in the window for weighted rolling aggregations.
         """
-        if self.axis > result.ndim - 1:
-            raise ValueError("Requested axis is larger then no. of argument dimensions")
-
         if offset > 0:
-            lead_indexer = [slice(None)] * result.ndim
-            lead_indexer[self.axis] = slice(offset, None)
+            lead_indexer = [slice(offset, None)]
             result = np.copy(result[tuple(lead_indexer)])
         return result
 

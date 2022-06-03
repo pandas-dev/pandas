@@ -72,7 +72,12 @@ def array_to_timedelta64(
     errors: str = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
-def delta_to_nanoseconds(delta: np.timedelta64 | timedelta | Tick) -> int: ...
+def delta_to_nanoseconds(
+    delta: np.timedelta64 | timedelta | Tick,
+    reso: int = ...,  # NPY_DATETIMEUNIT
+    round_ok: bool = ...,
+    allow_year_month: bool = ...,
+) -> int: ...
 
 class Timedelta(timedelta):
     min: ClassVar[Timedelta]
@@ -88,6 +93,8 @@ class Timedelta(timedelta):
     # GH 46171
     # While Timedelta can return pd.NaT, having the constructor return
     # a Union with NaTType makes things awkward for users of pandas
+    @classmethod
+    def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property
     def days(self) -> int: ...
     @property
@@ -150,3 +157,4 @@ class Timedelta(timedelta):
     def freq(self) -> None: ...
     @property
     def is_populated(self) -> bool: ...
+    def _as_unit(self, unit: str, round_ok: bool = ...) -> Timedelta: ...

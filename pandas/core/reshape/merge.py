@@ -162,7 +162,9 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
                 lcols = lhs.columns.tolist()
                 cols = lcols + [r for r in right.columns if r not in set(lcols)]
                 merged = lhs.reindex(columns=cols)
-                merged.index = range(len(merged))
+                # error: Incompatible types in assignment (expression has type
+                # "range", variable has type "Index")
+                merged.index = range(len(merged))  # type: ignore[assignment]
                 pieces.append(merged)
                 continue
 
@@ -1691,11 +1693,6 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _asof_function(direction: str):
-    name = f"asof_join_{direction}"
-    return getattr(libjoin, name, None)
-
-
 def _asof_by_function(direction: str):
     name = f"asof_join_{direction}_on_X_by_Y"
     return getattr(libjoin, name, None)
@@ -2017,8 +2014,16 @@ class _AsOfMerge(_OrderedMerge):
             )
         else:
             # choose appropriate function by type
-            func = _asof_function(self.direction)
-            return func(left_values, right_values, self.allow_exact_matches, tolerance)
+            func = _asof_by_function(self.direction)
+            return func(
+                left_values,
+                right_values,
+                None,
+                None,
+                self.allow_exact_matches,
+                tolerance,
+                False,
+            )
 
 
 def _get_multiindex_indexer(
