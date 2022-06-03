@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import textwrap
+from typing import cast
+
+import numpy as np
 
 from pandas._libs import (
     NaT,
@@ -156,6 +159,7 @@ def _get_combined_index(
     if sort:
         try:
             index_sorted = safe_sort(index)
+            index_sorted = cast(np.ndarray, index_sorted)
             if isinstance(index, MultiIndex):
                 index = MultiIndex.from_tuples(index_sorted, names=index.names)
             else:
