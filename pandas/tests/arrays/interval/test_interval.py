@@ -443,3 +443,15 @@ def test_arrow_interval_type_error_and_warning():
     msg = "Argument `closed` is deprecated in favor of `inclusive`"
     with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
         ArrowIntervalType(pa.int64(), closed="both")
+
+
+def test_interval_index_subtype():
+    # GH 46999
+    dates = date_range("2022", periods=3, tz="UTC")
+    result = IntervalIndex.from_arrays(
+        ["2022-01-01", "2022-01-02"],
+        ["2022-01-02", "2022-01-03"],
+        dtype="interval[datetime64[ns, UTC], both]",
+    )
+    expected = IntervalIndex.from_arrays(dates[:-1], dates[1:])
+    tm.assert_index_equal(result, expected)
