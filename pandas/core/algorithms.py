@@ -1771,9 +1771,12 @@ def safe_sort(
 def _sort_mixed(values) -> np.ndarray:
     """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos])
+    none_pos = np.array([x is None for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos & ~none_pos])
     strs = np.sort(values[str_pos])
-    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+    return np.concatenate(
+        [nums, np.asarray(strs, dtype=object), np.array(values[none_pos])]
+    )
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:
