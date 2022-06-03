@@ -333,7 +333,7 @@ if is_platform_windows():
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # PANDAS_CI=1 is set by ci/setup_env.sh
+    # PANDAS_CI=1 is set in CI
     if os.environ.get("PANDAS_CI", "0") == "1":
         extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
