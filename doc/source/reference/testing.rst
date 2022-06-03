@@ -42,6 +42,7 @@ Exceptions and warnings
    errors.ParserWarning
    errors.PerformanceWarning
    errors.SettingWithCopyError
+   errors.SettingWithCopyWarning
    errors.SpecificationError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
