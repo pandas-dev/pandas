@@ -80,9 +80,14 @@ class TestiLocBaseIndependent:
 
         df = frame.copy()
         orig_vals = df.values
-        indexer(df)[key, 0] = cat
 
         overwrite = isinstance(key, slice) and key == slice(None)
+        warn = None
+        if overwrite:
+            warn = FutureWarning
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(warn, match=msg):
+            indexer(df)[key, 0] = cat
 
         if overwrite:
             # TODO: GH#39986 this probably shouldn't behave differently
@@ -103,7 +108,8 @@ class TestiLocBaseIndependent:
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
         orig_vals = df.values
-        indexer(df)[key, 0] = cat
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            indexer(df)[key, 0] = cat
         expected = DataFrame({0: cat, 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
@@ -886,7 +892,9 @@ class TestiLocBaseIndependent:
         assert tm.shares_memory(df[1], cat)
 
         # This should modify our original values in-place
-        df.iloc[:, 0] = cat[::-1]
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0] = cat[::-1]
         assert tm.shares_memory(df[1], cat)
 
         expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
@@ -1182,7 +1190,7 @@ class TestiLocBaseIndependent:
         arr = interval_range(1, 10.0)._values
         df = DataFrame(arr)
 
-        # ser should be a *view* on the the DataFrame data
+        # ser should be a *view* on the DataFrame data
         ser = df.iloc[2]
 
         # if we have a view, then changing arr[2] should also change ser[0]
@@ -1290,7 +1298,10 @@ class TestILocSetItemDuplicateColumns:
     ):
         # GH#22035
         df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
-        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+
         expected_df = DataFrame(
             [[expected_value, "str", "str2"]], columns=["a", "b", "b"]
         )

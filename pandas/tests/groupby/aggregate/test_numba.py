@@ -211,3 +211,30 @@ def test_engine_kwargs_not_cached():
     )
     expected = DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_multiindex_one_key(nogil, parallel, nopython):
+    def numba_func(values, index):
+        return 1
+
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    result = df.groupby("A").agg(
+        numba_func, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame([1.0], index=Index([1], name="A"), columns=["C"])
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
+    def numba_func(values, index):
+        return 1
+
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    with pytest.raises(NotImplementedError, match="More than 1 grouping labels"):
+        df.groupby(["A", "B"]).agg(
+            numba_func, engine="numba", engine_kwargs=engine_kwargs
+        )
