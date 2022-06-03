@@ -1528,14 +1528,3 @@ class TestRowStringConverter:
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df.to_latex()
-
-
-@pytest.mark.parametrize(
-    "df",
-    [
-        DataFrame(),
-        DataFrame(columns=["a", "b", "c"]),
-    ],
-)
-def test_empty_clines(df: DataFrame):
-    df.style.to_latex(clines="all;data")

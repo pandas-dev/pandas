@@ -1032,3 +1032,15 @@ def test_concat_recursion():
     """
     )
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "df",
+    [
+        DataFrame(),
+        DataFrame(columns=["a", "b", "c"]),
+    ],
+)
+def test_empty_clines(df: DataFrame):
+    # GH 47203
+    df.style.to_latex(clines="all;data")
