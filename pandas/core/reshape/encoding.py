@@ -466,19 +466,15 @@ def from_dummies(
             f"Received 'sep' of type: {type(sep).__name__}"
         )
 
-    # validate length of default_category
-    def check_len(item, name) -> None:
-        if not len(item) == len(variables_slice):
-            len_msg = (
-                f"Length of '{name}' ({len(item)}) did not match the "
-                "length of the columns being encoded "
-                f"({len(variables_slice)})"
-            )
-            raise ValueError(len_msg)
-
     if default_category:
         if isinstance(default_category, dict):
-            check_len(default_category, "default_category")
+            if not len(default_category) == len(variables_slice):
+                len_msg = (
+                    f"Length of 'default_category' ({len(default_category)}) "
+                    f"did not match the length of the columns being encoded "
+                    f"({len(variables_slice)})"
+                )
+                raise ValueError(len_msg)
         elif isinstance(default_category, Hashable):
             default_category = dict(
                 zip(variables_slice, [default_category] * len(variables_slice))
