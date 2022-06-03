@@ -33,6 +33,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+from pandas.errors import DataError
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -54,10 +55,7 @@ from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import (
-    DataError,
-    SelectionMixin,
-)
+from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -924,6 +922,8 @@ class Window(BaseWindow):
 
         If ``1`` or ``'columns'``, roll across the columns.
 
+        For `Series` this parameter is unused and defaults to 0.
+
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
 
@@ -1129,12 +1129,8 @@ class Window(BaseWindow):
         """
         Center the result in the window for weighted rolling aggregations.
         """
-        if self.axis > result.ndim - 1:
-            raise ValueError("Requested axis is larger then no. of argument dimensions")
-
         if offset > 0:
-            lead_indexer = [slice(None)] * result.ndim
-            lead_indexer[self.axis] = slice(offset, None)
+            lead_indexer = [slice(offset, None)]
             result = np.copy(result[tuple(lead_indexer)])
         return result
 
@@ -2150,10 +2146,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.
-
-        The implementation is susceptible to floating point imprecision as
-        shown in the example below.\n
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -2161,13 +2154,13 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
         >>> s.rolling(3).std()
-        0             NaN
-        1             NaN
-        2    5.773503e-01
-        3    1.000000e+00
-        4    1.000000e+00
-        5    1.154701e+00
-        6    2.580957e-08
+        0         NaN
+        1         NaN
+        2    0.577350
+        3    1.000000
+        4    1.000000
+        5    1.154701
+        6    0.000000
         dtype: float64
         """
         ).replace("\n", "", 1),
@@ -2212,10 +2205,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.
-
-        The implementation is susceptible to floating point imprecision as
-        shown in the example below.\n
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -2223,13 +2213,13 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
         >>> s.rolling(3).var()
-        0             NaN
-        1             NaN
-        2    3.333333e-01
-        3    1.000000e+00
-        4    1.000000e+00
-        5    1.333333e+00
-        6    6.661338e-16
+        0         NaN
+        1         NaN
+        2    0.333333
+        3    1.000000
+        4    1.000000
+        5    1.333333
+        6    0.000000
         dtype: float64
         """
         ).replace("\n", "", 1),
@@ -2680,3 +2670,21 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
+
+    def _validate_datetimelike_monotonic(self):
+        """
+        Validate that each group in self._on is monotonic
+        """
+        # GH 46061
+        if self._on.hasnans:
+            self._raise_monotonic_error("values must not have NaT")
+        for group_indices in self._grouper.indices.values():
+            group_on = self._on.take(group_indices)
+            if not (
+                group_on.is_monotonic_increasing or group_on.is_monotonic_decreasing
+            ):
+                on = "index" if self.on is None else self.on
+                raise ValueError(
+                    f"Each group within {on} must be monotonic. "
+                    f"Sort the values in {on} first."
+                )

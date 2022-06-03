@@ -434,3 +434,11 @@ def test_1level_multiindex():
     assert ctx["body"][0][0]["is_visible"] is True
     assert ctx["body"][1][0]["display_value"] == "2"
     assert ctx["body"][1][0]["is_visible"] is True
+
+
+def test_boolean_format():
+    # gh 46384: booleans do not collapse to integer representation on display
+    df = DataFrame([[True, False]])
+    ctx = df.style._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] is True
+    assert ctx["body"][0][2]["display_value"] is False

@@ -48,6 +48,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     IgnoreRaise,
+    Level,
     Shape,
     npt,
 )
@@ -554,10 +555,7 @@ class Index(IndexOpsMixin, PandasObject):
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
             if dtype is None:
                 # with e.g. a list [1, 2, 3] casting to numeric is _not_ deprecated
-                # error: Incompatible types in assignment (expression has type
-                # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
-                # "ndarray[Any, Any]")
-                subarr = _maybe_cast_data_without_dtype(  # type: ignore[assignment]
+                subarr = _maybe_cast_data_without_dtype(
                     subarr, cast_numeric_deprecated=False
                 )
                 dtype = subarr.dtype
@@ -1511,7 +1509,9 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
-    def _format_native_types(self, *, na_rep="", quoting=None, **kwargs):
+    def _format_native_types(
+        self, *, na_rep="", quoting=None, **kwargs
+    ) -> npt.NDArray[np.object_]:
         """
         Actually format specific types of the index.
         """
@@ -1768,6 +1768,41 @@ class Index(IndexOpsMixin, PandasObject):
         validate_all_hashable(*new_names, error_name=f"{type(self).__name__}.name")
 
         return new_names
+
+    def _get_default_index_names(
+        self, names: Hashable | Sequence[Hashable] | None = None, default=None
+    ) -> list[Hashable]:
+        """
+        Get names of index.
+
+        Parameters
+        ----------
+        names : int, str or 1-dimensional list, default None
+            Index names to set.
+        default : str
+            Default name of index.
+
+        Raises
+        ------
+        TypeError
+            if names not str or list-like
+        """
+        from pandas.core.indexes.multi import MultiIndex
+
+        if names is not None:
+            if isinstance(names, str) or isinstance(names, int):
+                names = [names]
+
+        if not isinstance(names, list) and names is not None:
+            raise ValueError("Index names must be str or 1-dimensional list")
+
+        if not names:
+            if isinstance(self, MultiIndex):
+                names = com.fill_missing_names(self.names)
+            else:
+                names = [default] if self.name is None else [self.name]
+
+        return names
 
     def _get_names(self) -> FrozenList:
         return FrozenList((self.name,))
@@ -4170,9 +4205,14 @@ class Index(IndexOpsMixin, PandasObject):
             return v is None or is_integer(v)
 
         is_index_slice = is_int(start) and is_int(stop) and is_int(step)
-        is_positional = is_index_slice and not (
-            self.is_integer() or self.is_categorical()
+
+        # special case for interval_dtype bc we do not do partial-indexing
+        #  on integer Intervals when slicing
+        # TODO: write this in terms of e.g. should_partial_index?
+        ints_are_positional = self._should_fallback_to_positional or is_interval_dtype(
+            self.dtype
         )
+        is_positional = is_index_slice and ints_are_positional
 
         if kind == "getitem":
             """
@@ -4334,8 +4374,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.reindex
-        DataFrame.reindex
+        Series.reindex : Conform Series to new index with optional filling logic.
+        DataFrame.reindex : Conform DataFrame to new index with optional filling logic.
 
         Examples
         --------
@@ -4492,16 +4532,53 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
+    @overload
+    def join(
+        self,
+        other: Index,
+        *,
+        how: str_t = ...,
+        level: Level = ...,
+        return_indexers: Literal[True],
+        sort: bool = ...,
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        ...
+
+    @overload
+    def join(
+        self,
+        other: Index,
+        *,
+        how: str_t = ...,
+        level: Level = ...,
+        return_indexers: Literal[False] = ...,
+        sort: bool = ...,
+    ) -> Index:
+        ...
+
+    @overload
+    def join(
+        self,
+        other: Index,
+        *,
+        how: str_t = ...,
+        level: Level = ...,
+        return_indexers: bool = ...,
+        sort: bool = ...,
+    ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        ...
+
     @final
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "other"])
     @_maybe_return_indexers
     def join(
         self,
-        other,
+        other: Index,
         how: str_t = "left",
-        level=None,
+        level: Level = None,
         return_indexers: bool = False,
         sort: bool = False,
-    ):
+    ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         """
         Compute join_index and indexers to conform data
         structures to the new index.
@@ -4686,7 +4763,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Join left and right
             # Join on same leveled multi-index frames is supported
             join_idx, lidx, ridx = self_jnlevels.join(
-                other_jnlevels, how, return_indexers=True
+                other_jnlevels, how=how, return_indexers=True
             )
 
             # Restore the dropped levels
@@ -4694,8 +4771,16 @@ class Index(IndexOpsMixin, PandasObject):
             # common levels, ldrop_names, rdrop_names
             dropped_names = ldrop_names + rdrop_names
 
+            # error: Argument 5/6 to "restore_dropped_levels_multijoin" has
+            # incompatible type "Optional[ndarray[Any, dtype[signedinteger[Any
+            # ]]]]"; expected "ndarray[Any, dtype[signedinteger[Any]]]"
             levels, codes, names = restore_dropped_levels_multijoin(
-                self, other, dropped_names, join_idx, lidx, ridx
+                self,
+                other,
+                dropped_names,
+                join_idx,
+                lidx,  # type: ignore[arg-type]
+                ridx,  # type: ignore[arg-type]
             )
 
             # Re-create the multi-index
@@ -5429,10 +5514,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         The dtype is *not* compared
 
-        >>> int64_idx = pd.Int64Index([1, 2, 3])
+        >>> int64_idx = pd.Index([1, 2, 3], dtype='int64')
         >>> int64_idx
         Int64Index([1, 2, 3], dtype='int64')
-        >>> uint64_idx = pd.UInt64Index([1, 2, 3])
+        >>> uint64_idx = pd.Index([1, 2, 3], dtype='uint64')
         >>> uint64_idx
         UInt64Index([1, 2, 3], dtype='uint64')
         >>> int64_idx.equals(uint64_idx)

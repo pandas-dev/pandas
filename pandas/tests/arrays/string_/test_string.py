@@ -5,6 +5,8 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under2p0
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -557,18 +559,30 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
 def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
-    result = s.isin(["a", "c"])
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
+        result = s.isin(["a", "c"])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", pd.NA])
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
+        result = s.isin(["a", pd.NA])
     expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin([])
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
+        result = s.isin([])
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", fixed_now_ts])
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
+        result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)

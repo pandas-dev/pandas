@@ -26,7 +26,6 @@ from pandas._config import get_option
 from pandas._libs import (
     NaT,
     algos as libalgos,
-    hashtable as htable,
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
@@ -352,7 +351,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
-    _internal_fill_value = -1
     # tolist is not actually deprecated, just suppressed in the __dir__
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
@@ -448,9 +446,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "_codes"
-            old_codes = extract_array(values)._codes  # type: ignore[union-attr]
+            old_codes = extract_array(values)._codes
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories, copy=copy
             )
@@ -476,6 +472,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
         """
         return self._dtype
+
+    @property
+    def _internal_fill_value(self) -> int:
+        # using the specific numpy integer instead of python int to get
+        #  the correct dtype back from _quantile in the all-NA case
+        dtype = self._ndarray.dtype
+        return dtype.type(-1)
 
     @property
     def _constructor(self) -> type[Categorical]:
@@ -2255,14 +2258,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _mode(self, dropna: bool = True) -> Categorical:
         codes = self._codes
+        mask = None
         if dropna:
-            good = self._codes != -1
-            codes = self._codes[good]
+            mask = self.isna()
 
-        codes = htable.mode(codes, dropna)
-        codes.sort()
-        codes = coerce_indexer_dtype(codes, self.dtype.categories)
-        return self._from_backing_data(codes)
+        res_codes = algorithms.mode(codes, mask=mask)
+        res_codes = cast(np.ndarray, res_codes)
+        assert res_codes.dtype == codes.dtype
+        res = self._from_backing_data(res_codes)
+        return res
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
@@ -2300,7 +2304,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes
-        res_values = coerce_indexer_dtype(res_values, self.dtype.categories)
+        assert res_values.dtype == self._ndarray.dtype
         return res_values
 
     def equals(self, other: object) -> bool:

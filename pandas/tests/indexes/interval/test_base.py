@@ -16,14 +16,14 @@ class TestBase(Base):
 
     @pytest.fixture
     def simple_index(self) -> IntervalIndex:
-        return self._index_cls.from_breaks(range(11), closed="right")
+        return self._index_cls.from_breaks(range(11), inclusive="right")
 
     @pytest.fixture
     def index(self):
         return tm.makeIntervalIndex(10)
 
-    def create_index(self, *, closed="right"):
-        return IntervalIndex.from_breaks(range(11), closed=closed)
+    def create_index(self, *, inclusive="right"):
+        return IntervalIndex.from_breaks(range(11), inclusive=inclusive)
 
     def test_repr_max_seq_item_setting(self):
         # override base test: not a valid repr as we use interval notation
@@ -34,13 +34,13 @@ class TestBase(Base):
         pass
 
     def test_take(self, closed):
-        index = self.create_index(closed=closed)
+        index = self.create_index(inclusive=closed)
 
         result = index.take(range(10))
         tm.assert_index_equal(result, index)
 
         result = index.take([0, 0, 1])
-        expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
+        expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], inclusive=closed)
         tm.assert_index_equal(result, expected)
 
     def test_where(self, simple_index, listlike_box):

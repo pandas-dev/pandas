@@ -246,6 +246,16 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
         raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
+@overload
+def maybe_downcast_to_dtype(result: np.ndarray, dtype: str | np.dtype) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_to_dtype(result: ExtensionArray, dtype: str | np.dtype) -> ArrayLike:
+    ...
+
+
 def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
@@ -299,6 +309,20 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
         return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
+
+
+@overload
+def maybe_downcast_numeric(
+    result: np.ndarray, dtype: np.dtype, do_round: bool = False
+) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_numeric(
+    result: ExtensionArray, dtype: DtypeObj, do_round: bool = False
+) -> ArrayLike:
+    ...
 
 
 def maybe_downcast_numeric(
@@ -491,7 +515,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
         elif isinstance(dtype, IntervalDtype):
             # TODO(GH#45349): don't special-case IntervalDtype, allow
             #  overriding instead of returning object below.
-            return IntervalDtype(np.float64, closed=dtype.closed)
+            return IntervalDtype(np.float64, inclusive=dtype.inclusive)
         return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
@@ -810,7 +834,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = PeriodDtype(freq=val.freq)
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
+            dtype = IntervalDtype(subtype=subtype, inclusive=val.inclusive)
 
     return dtype, val
 

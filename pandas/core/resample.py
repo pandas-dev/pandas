@@ -34,7 +34,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DataError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -50,10 +53,7 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import (
-    DataError,
-    PandasObject,
-)
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
@@ -149,6 +149,7 @@ class Resampler(BaseGroupBy, PandasObject):
         axis: int = 0,
         kind=None,
         *,
+        group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
         **kwargs,
     ) -> None:
@@ -158,12 +159,16 @@ class Resampler(BaseGroupBy, PandasObject):
         self.axis = axis
         self.kind = kind
         self.squeeze = False
-        self.group_keys = True
+        self.group_keys = group_keys
         self.as_index = True
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
+        if self.groupby.key is not None:
+            self.exclusions = frozenset([self.groupby.key])
+        else:
+            self.exclusions = frozenset()
 
     @final
     def _shallow_copy(self, obj, **kwargs):
@@ -409,7 +414,9 @@ class Resampler(BaseGroupBy, PandasObject):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
-        grouped = get_groupby(subset, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(
+            subset, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         # try the key selection
         try:
@@ -423,9 +430,14 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         grouper = self.grouper
 
-        obj = self._selected_obj
-
-        grouped = get_groupby(obj, by=None, grouper=grouper, axis=self.axis)
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
+        grouped = get_groupby(
+            obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):
@@ -1023,9 +1035,21 @@ class Resampler(BaseGroupBy, PandasObject):
 # downsample methods
 for method in ["sum", "prod", "min", "max", "first", "last"]:
 
-    def f(self, _method=method, min_count=0, *args, **kwargs):
+    def f(
+        self,
+        _method: str = method,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        if numeric_only is lib.no_default:
+            if _method != "sum":
+                # For DataFrameGroupBy, set it to be False for methods other than `sum`.
+                numeric_only = False
+
         nv.validate_resampler_func(_method, args, kwargs)
-        return self._downsample(_method, min_count=min_count)
+        return self._downsample(_method, numeric_only=numeric_only, min_count=min_count)
 
     f.__doc__ = getattr(GroupBy, method).__doc__
     setattr(Resampler, method, f)
@@ -1164,7 +1188,11 @@ class DatetimeIndexResampler(Resampler):
         """
         how = com.get_cython_func(how) or how
         ax = self.ax
-        obj = self._selected_obj
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
 
         if not len(ax):
             # reset to the new freq
@@ -1466,17 +1494,18 @@ class TimeGrouper(Grouper):
         self,
         freq="Min",
         closed: Literal["left", "right"] | None = None,
-        label: str | None = None,
+        label: Literal["left", "right"] | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
         kind: str | None = None,
-        convention: str | None = None,
+        convention: Literal["start", "end", "e", "s"] | None = None,
         base: int | None = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool | lib.NoDefault = True,
         **kwargs,
     ) -> None:
         # Check for correctness of the keyword arguments which would
@@ -1518,13 +1547,11 @@ class TimeGrouper(Grouper):
         self.closed = closed
         self.label = label
         self.kind = kind
-
-        self.convention = convention or "E"
-        self.convention = self.convention.lower()
-
+        self.convention = convention if convention is not None else "e"
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
+        self.group_keys = group_keys
 
         if origin in ("epoch", "start", "start_day", "end", "end_day"):
             self.origin = origin
@@ -1590,11 +1617,17 @@ class TimeGrouper(Grouper):
 
         ax = self.ax
         if isinstance(ax, DatetimeIndex):
-            return DatetimeIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return DatetimeIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, PeriodIndex) or kind == "period":
-            return PeriodIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return PeriodIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, TimedeltaIndex):
-            return TimedeltaIndexResampler(obj, groupby=self, axis=self.axis)
+            return TimedeltaIndexResampler(
+                obj, groupby=self, axis=self.axis, group_keys=self.group_keys
+            )
 
         raise TypeError(
             "Only valid with DatetimeIndex, "

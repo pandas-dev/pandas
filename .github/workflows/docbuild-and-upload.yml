@@ -26,7 +26,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -37,6 +37,7 @@ jobs:
       run: |
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
+
     - name: Build documentation
       run: |
         source activate pandas-dev
@@ -65,7 +66,7 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: website
         path: web/build

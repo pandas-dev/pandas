@@ -1058,7 +1058,7 @@ class DataFrameRenderer:
         encoding: str | None = None,
         classes: str | list | tuple | None = None,
         notebook: bool = False,
-        border: int | None = None,
+        border: int | bool | None = None,
         table_id: str | None = None,
         render_links: bool = False,
     ) -> str | None:
@@ -1641,9 +1641,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
         formatter = self.formatter
         if formatter is None:
-            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
-            # no attribute "_formatter"
-            formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
+            formatter = values._formatter(boxed=True)
 
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1667,7 +1665,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | list[int | float] | list[float] | list[str | float]),
+    percentiles: (np.ndarray | Sequence[float]),
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.

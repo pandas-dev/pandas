@@ -28,11 +28,27 @@ typedef struct {
         npy_int32 hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds;
 } pandas_timedeltastruct;
 
+extern const npy_datetimestruct _AS_MIN_DTS;
+extern const npy_datetimestruct _AS_MAX_DTS;
+extern const npy_datetimestruct _FS_MIN_DTS;
+extern const npy_datetimestruct _FS_MAX_DTS;
+extern const npy_datetimestruct _PS_MIN_DTS;
+extern const npy_datetimestruct _PS_MAX_DTS;
 extern const npy_datetimestruct _NS_MIN_DTS;
 extern const npy_datetimestruct _NS_MAX_DTS;
+extern const npy_datetimestruct _US_MIN_DTS;
+extern const npy_datetimestruct _US_MAX_DTS;
+extern const npy_datetimestruct _MS_MIN_DTS;
+extern const npy_datetimestruct _MS_MAX_DTS;
+extern const npy_datetimestruct _S_MIN_DTS;
+extern const npy_datetimestruct _S_MAX_DTS;
+extern const npy_datetimestruct _M_MIN_DTS;
+extern const npy_datetimestruct _M_MAX_DTS;
 
 // stuff pandas needs
 // ----------------------------------------------------------------------------
+
+PyObject *extract_utc_offset(PyObject *obj);
 
 int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                          npy_datetimestruct *out);

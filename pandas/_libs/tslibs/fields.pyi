@@ -4,22 +4,26 @@ from pandas._typing import npt
 
 def build_field_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
+    reso: int,  # NPY_DATETIMEUNIT
 ) -> np.ndarray: ...
 def month_position_check(fields, weekdays) -> str | None: ...
 def get_date_name_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
     locale: str | None = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...
 def get_start_end_field(
-    dtindex: npt.NDArray[np.int64],  # const int64_t[:]
+    dtindex: npt.NDArray[np.int64],
     field: str,
     freqstr: str | None = ...,
     month_kw: int = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.bool_]: ...
 def get_date_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int32]: ...
 def get_timedelta_field(
     tdindex: npt.NDArray[np.int64],  # const int64_t[:]
@@ -30,6 +34,7 @@ def isleapyear_arr(
 ) -> npt.NDArray[np.bool_]: ...
 def build_isocalendar_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
+    reso: int,  # NPY_DATETIMEUNIT
 ) -> np.ndarray: ...
 def _get_locale_names(name_type: str, locale: str | None = ...): ...
 

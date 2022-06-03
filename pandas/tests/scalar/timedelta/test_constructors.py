@@ -13,6 +13,21 @@ from pandas import (
 )
 
 
+def test_construct_from_td64_with_unit():
+    # ignore the unit, as it may cause silently overflows leading to incorrect
+    #  results, and in non-overflow cases is irrelevant GH#46827
+    obj = np.timedelta64(123456789, "h")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+        Timedelta(obj, unit="ps")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+        Timedelta(obj, unit="ns")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+        Timedelta(obj)
+
+
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
     assert Timedelta(10, unit="d").value == expected
@@ -200,6 +215,7 @@ def test_overflow_on_construction():
     with pytest.raises(OverflowError, match=msg):
         Timedelta(7 * 19999, unit="D")
 
+    msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(timedelta(days=13 * 19999))
 
