@@ -6364,7 +6364,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
-            if isinstance(self, MultiIndex):
+            if isinstance(self, MultiIndex) and len(new_values[0]) == self.nlevels:
                 names = self.names
             elif self.name:
                 names = [self.name] * len(new_values[0])
