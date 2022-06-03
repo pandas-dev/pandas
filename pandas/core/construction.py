@@ -610,9 +610,7 @@ def sanitize_array(
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
         if hasattr(data, "__array__"):
             # e.g. dask array GH#38645
-            data = np.asarray(data)
-            if copy:
-                data = np.copy(data)
+            data = np.array(data, copy=copy)
         else:
             data = list(data)
 
