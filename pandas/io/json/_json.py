@@ -52,7 +52,7 @@ from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,
-    _compression_to_extension,
+    _extension_to_compression,
     file_exists,
     get_handle,
     is_fsspec_url,
@@ -723,7 +723,7 @@ class JsonReader(abc.Iterator):
         elif (
             isinstance(filepath_or_buffer, str)
             and filepath_or_buffer.lower().endswith(
-                tuple([".json"] + [f".json.{c}" for c in _compression_to_extension])
+                tuple([".json"] + [f".json.{c}" for c in _extension_to_compression])
             )
             and not file_exists(filepath_or_buffer)
         ):
