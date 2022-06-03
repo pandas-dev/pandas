@@ -158,12 +158,12 @@ def _get_combined_index(
 
     if sort:
         try:
-            index_sorted = safe_sort(index)
-            index_sorted = cast(np.ndarray, index_sorted)
+            array_sorted = safe_sort(index)
+            array_sorted = cast(np.ndarray, array_sorted)
             if isinstance(index, MultiIndex):
-                index = MultiIndex.from_tuples(index_sorted, names=index.names)
+                index = MultiIndex.from_tuples(array_sorted, names=index.names)
             else:
-                index = Index(index_sorted, name=index.name)
+                index = Index(array_sorted, name=index.name)
         except TypeError:
             pass
 
