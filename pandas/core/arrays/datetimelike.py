@@ -1317,7 +1317,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other, operator.add
+                other * self.freq.n, operator.add
             )
         else:
             # Includes Categorical, other ExtensionArrays
@@ -1379,7 +1379,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other, operator.sub
+                other * self.freq.n, operator.sub
             )
         else:
             # Includes ExtensionArrays, float_dtype
