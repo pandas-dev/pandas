@@ -323,7 +323,7 @@ def _get_dummies_1d(
 def from_dummies(
     data: DataFrame,
     sep: None | str = None,
-    base_category: None | Hashable | dict[str, Hashable] = None,
+    default_category: None | Hashable | dict[str, Hashable] = None,
 ) -> DataFrame:
     """
     Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
@@ -339,7 +339,7 @@ def from_dummies(
         character indicating the separation of the categorical names from the prefixes.
         For example, if your column names are 'prefix_A' and 'prefix_B',
         you can strip the underscore by specifying sep='_'.
-    base_category : None, Hashable or dict of Hashables, default None
+    default_category : None, Hashable or dict of Hashables, default None
         The base category is the implied category when a value has non none of the
         listed categories specified with a one, i.e. if all dummies in a row are
         zero. Can be a a single value for all variables or a dict directly mapping
@@ -356,16 +356,16 @@ def from_dummies(
         * When the input `DataFrame` `data` contains NA values.
         * When the input `DataFrame` `data` contains column names with separators
           that do not match the separator specified with `sep`.
-        * When a `dict` passed to `base_category` does not include an implied
+        * When a `dict` passed to `default_category` does not include an implied
           category for each prefix.
         * When a value in `data` has more than one category assigned to it.
-        * When `base_category=None` and a value in `data` has no category assigned
+        * When `default_category=None` and a value in `data` has no category assigned
           to it.
     TypeError
         * When the input `data` is not of type `DataFrame`.
         * When the input `DataFrame` `data` contains non-dummy data.
         * When the passed `sep` is of a wrong data type.
-        * When the passed `base_category` is of a wrong data type.
+        * When the passed `default_category` is of a wrong data type.
 
     See Also
     --------
@@ -420,7 +420,7 @@ def from_dummies(
     1       0       1       1       0       0
     2       0       0       0       0       0
 
-    >>> pd.from_dummies(df, sep="_", base_category={"col1": "d", "col2": "e"})
+    >>> pd.from_dummies(df, sep="_", default_category={"col1": "d", "col2": "e"})
         col1    col2
     0    a       b
     1    b       a
@@ -464,7 +464,7 @@ def from_dummies(
             f"Received 'sep' of type: {type(sep).__name__}"
         )
 
-    # validate length of base_category
+    # validate length of default_category
     def check_len(item, name) -> None:
         if not len(item) == len(variables_slice):
             len_msg = (
@@ -474,19 +474,19 @@ def from_dummies(
             )
             raise ValueError(len_msg)
 
-    if base_category:
-        if isinstance(base_category, dict):
-            check_len(base_category, "base_category")
-        elif isinstance(base_category, Hashable):
-            base_category = dict(
-                zip(variables_slice, [base_category] * len(variables_slice))
+    if default_category:
+        if isinstance(default_category, dict):
+            check_len(default_category, "default_category")
+        elif isinstance(default_category, Hashable):
+            default_category = dict(
+                zip(variables_slice, [default_category] * len(variables_slice))
             )
         else:
             raise TypeError(
-                "Expected 'base_category' to be of type "
+                "Expected 'default_category' to be of type "
                 "'None', 'Hashable', or 'dict'; "
-                "Received 'base_category' of type: "
-                f"{type(base_category).__name__}"
+                "Received 'default_category' of type: "
+                f"{type(default_category).__name__}"
             )
 
     cat_data = {}
@@ -502,8 +502,8 @@ def from_dummies(
                 f"First instance in row: {assigned.idxmax()}"
             )
         elif any(assigned == 0):
-            if isinstance(base_category, dict):
-                cats.append(base_category[prefix])
+            if isinstance(default_category, dict):
+                cats.append(default_category[prefix])
             else:
                 raise ValueError(
                     "Dummy DataFrame contains unassigned value(s); "

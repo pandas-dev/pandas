@@ -717,14 +717,14 @@ for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
 
 Dummy coded data only requires ``k - 1`` categories to be included, in this case
 the ``k`` th category is the base category, implied by not being assigned any of
-the other ``k - 1`` categories, can be passed via ``base_category``.
+the other ``k - 1`` categories, can be passed via ``default_category``.
 
 .. ipython:: python
 
    df = pd.DataFrame({"prefix_a": [0, 1, 0]})
    df
 
-   pd.from_dummies(df, sep="_", base_category="b")
+   pd.from_dummies(df, sep="_", default_category="b")
 
 .. _reshaping.factorize:
 
