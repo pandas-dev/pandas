@@ -58,10 +58,6 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-class SettingWithCopyWarning(Warning):
-    pass
-
-
 def flatten(line):
     """
     Flatten an arbitrarily nested sequence.

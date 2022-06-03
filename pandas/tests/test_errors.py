@@ -22,6 +22,7 @@ import pandas as pd
         "DataError",
         "SpecificationError",
         "SettingWithCopyError",
+        "SettingWithCopyWarning",
     ],
 )
 def test_exception_importable(exc):

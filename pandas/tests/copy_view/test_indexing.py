@@ -1,13 +1,14 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
     Series,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 from pandas.tests.copy_view.util import get_array
 
 # -----------------------------------------------------------------------------
@@ -31,7 +32,7 @@ def test_subset_column_selection(using_copy_on_write):
         assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
         # INFO this no longer raise warning since pandas 1.4
         # with pd.option_context("chained_assignment", "warn"):
-        #     with tm.assert_produces_warning(com.SettingWithCopyWarning):
+        #     with tm.assert_produces_warning(SettingWithCopyWarning):
         subset.iloc[0, 0] = 0
 
     assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
@@ -80,7 +81,7 @@ def test_subset_row_slice(using_copy_on_write):
     else:
         # INFO this no longer raise warning since pandas 1.4
         # with pd.option_context("chained_assignment", "warn"):
-        #     with tm.assert_produces_warning(com.SettingWithCopyWarning):
+        #     with tm.assert_produces_warning(SettingWithCopyWarning):
         subset.iloc[0, 0] = 0
 
     subset._mgr._verify_integrity()
@@ -119,7 +120,7 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
 
     else:
         # we only get a warning in case of a single block
-        warn = com.SettingWithCopyWarning if single_block else None
+        warn = SettingWithCopyWarning if single_block else None
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 subset.iloc[0, 0] = 0
@@ -252,7 +253,7 @@ def test_subset_set_with_row_indexer(indexer_si, indexer, using_copy_on_write):
         indexer_si(subset)[indexer] = 0
     else:
         # INFO iloc no longer raises warning since pandas 1.4
-        warn = com.SettingWithCopyWarning if indexer_si is tm.setitem else None
+        warn = SettingWithCopyWarning if indexer_si is tm.setitem else None
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 indexer_si(subset)[indexer] = 0
@@ -282,7 +283,7 @@ def test_subset_set_with_mask(using_copy_on_write):
         subset[mask] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 subset[mask] = 0
 
     expected = DataFrame(
@@ -309,7 +310,7 @@ def test_subset_set_column(using_copy_on_write):
         subset["a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 subset["a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
@@ -340,7 +341,7 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
             # warnings and only assert the SettingWithCopyWarning
             raise_on_extra_warnings = False if using_array_manager else True
             with tm.assert_produces_warning(
-                com.SettingWithCopyWarning,
+                SettingWithCopyWarning,
                 raise_on_extra_warnings=raise_on_extra_warnings,
             ):
                 subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
@@ -377,7 +378,7 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
             # warnings and only assert the SettingWithCopyWarning
             raise_on_extra_warnings = False if using_array_manager else True
             with tm.assert_produces_warning(
-                com.SettingWithCopyWarning,
+                SettingWithCopyWarning,
                 raise_on_extra_warnings=raise_on_extra_warnings,
             ):
                 subset.loc[:, "a"] = 0
@@ -410,7 +411,7 @@ def test_subset_set_columns(using_copy_on_write, dtype):
         subset[["a", "c"]] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 subset[["a", "c"]] = 0
 
     subset._mgr._verify_integrity()
@@ -443,7 +444,7 @@ def test_subset_set_with_column_indexer(
             # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
             # warnings and only assert the SettingWithCopyWarning
             with tm.assert_produces_warning(
-                com.SettingWithCopyWarning, raise_on_extra_warnings=False
+                SettingWithCopyWarning, raise_on_extra_warnings=False
             ):
                 subset.loc[:, indexer] = 0
 
@@ -580,7 +581,7 @@ def test_column_as_series(using_copy_on_write, using_array_manager):
         s[0] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
@@ -607,7 +608,7 @@ def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manag
         s[0] = "foo"
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 s[0] = "foo"
 
     expected = Series(["foo", 2, 3], dtype=object, name="a")
