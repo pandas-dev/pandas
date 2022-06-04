@@ -782,7 +782,7 @@ class FrameApply(NDFrameApply):
 
         if not should_reduce:
             try:
-                r = self.f(Series([], dtype=np.float64))
+                r = self.f(Series(index=self.columns, dtype=np.float64))
             except Exception:
                 pass
             else:

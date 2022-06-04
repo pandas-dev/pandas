@@ -747,6 +747,7 @@ Conversion
 - Bug when comparing string and datetime64ns objects causing ``OverflowError`` exception. (:issue:`45506`)
 - Bug in metaclass of generic abstract dtypes causing :meth:`DataFrame.apply` and :meth:`Series.apply` to raise for the built-in function ``type`` (:issue:`46684`)
 - Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
+- Bug in :meth:`DataFrame.apply` returns a dataframe when empty dataframe instead of a series (:issue:`39111`)
 
 Strings
 ^^^^^^^
