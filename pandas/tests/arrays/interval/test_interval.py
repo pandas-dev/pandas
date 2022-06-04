@@ -445,7 +445,7 @@ def test_arrow_interval_type_error_and_warning():
         ArrowIntervalType(pa.int64(), closed="both")
 
 
-@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific"])
+@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific", "GMT"])
 @pytest.mark.parametrize("inclusive", ["both", "neither", "left", "right"])
 def test_interval_index_subtype(timezone, inclusive):
     # GH 46999
