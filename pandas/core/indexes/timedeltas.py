@@ -132,6 +132,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 "represent unambiguous timedelta values durations."
             )
 
+        # FIXME: need to check for dtype/data match
         if isinstance(data, TimedeltaArray) and freq is lib.no_default:
             if copy:
                 data = data.copy()

@@ -326,6 +326,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         name = maybe_extract_name(name, data, cls)
 
+        if (
+            isinstance(data, DatetimeArray)
+            and freq is lib.no_default
+            and tz is None
+            and dtype is None
+        ):
+            # fastpath, similar logic in TimedeltaIndex.__new__;
+            # Note in this particular case we retain non-nano.
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name)
+
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
             dtype=dtype,
