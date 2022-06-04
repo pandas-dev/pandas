@@ -33,6 +33,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     npt,
 )
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
@@ -936,7 +937,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
-    def std(self, ddof=1, numeric_only: bool = False):
+    def std(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -954,9 +955,10 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame or Series
             Standard deviation of values within each group.
         """
+        nv.validate_resampler_func("std", args, kwargs)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
-    def var(self, ddof=1, numeric_only: bool = False):
+    def var(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values.
 
@@ -975,6 +977,7 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame or Series
             Variance of values within each group.
         """
+        nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @doc(GroupBy.size)
@@ -1063,7 +1066,10 @@ def _add_downsample_kernel(
             self,
             numeric_only: bool | lib.NoDefault = lib.no_default,
             min_count: int = 0,
+            *args,
+            **kwargs,
         ):
+            nv.validate_resampler_func(name, args, kwargs)
             if numeric_only is lib.no_default and name != "sum":
                 # For DataFrameGroupBy, set it to be False for methods other than `sum`.
                 numeric_only = False
@@ -1075,8 +1081,9 @@ def _add_downsample_kernel(
     elif args == ("numeric_only",):
         # error: All conditional function variants must have identical signatures
         def f(  # type: ignore[misc]
-            self, numeric_only: bool | lib.NoDefault = lib.no_default
+            self, numeric_only: bool | lib.NoDefault = lib.no_default, *args, **kwargs
         ):
+            nv.validate_resampler_func(name, args, kwargs)
             return self._downsample(name, numeric_only=numeric_only)
 
     elif args == ("ddof", "numeric_only"):
@@ -1085,14 +1092,20 @@ def _add_downsample_kernel(
             self,
             ddof: int = 1,
             numeric_only: bool | lib.NoDefault = lib.no_default,
+            *args,
+            **kwargs,
         ):
+            nv.validate_resampler_func(name, args, kwargs)
             return self._downsample(name, ddof=ddof, numeric_only=numeric_only)
 
     else:
         # error: All conditional function variants must have identical signatures
         def f(  # type: ignore[misc]
             self,
+            *args,
+            **kwargs,
         ):
+            nv.validate_resampler_func(name, args, kwargs)
             return self._downsample(name)
 
     f.__doc__ = getattr(docs_class, name).__doc__
