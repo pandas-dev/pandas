@@ -692,6 +692,12 @@ class TestEval:
         with pytest.raises(SyntaxError, match=msg):
             df.query("lambda == 0")
 
+    def test_true_false_logic(self):
+        # GH 25823
+        assert pd.eval("not True") == -2
+        assert pd.eval("not False") == -1
+        assert pd.eval("True and not True") == 0
+
 
 f = lambda *args, **kwargs: np.random.randn()
 
