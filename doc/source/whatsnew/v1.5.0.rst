@@ -756,7 +756,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalArray.__setitem__` when setting ``np.nan`` into an integer-backed array raising ``ValueError`` instead of ``TypeError`` (:issue:`45484`)
--
+- Bug in :class:`IntervalDtype` Allow using datetime64[ns, UTC] in IntervalDtype (:issue:`46999`)
 
 Indexing
 ^^^^^^^^
