@@ -651,6 +651,9 @@ gained the ``numeric_only`` argument.
 - :meth:`.Resampler.sem`
 - :meth:`.Resampler.std`
 - :meth:`.Resampler.var`
+- :meth:`DataFrame.rolling` operations
+- :meth:`DataFrame.expanding` operations
+- :meth:`DataFrame.ewm` operations
 
 .. _whatsnew_150.deprecations.other:
 

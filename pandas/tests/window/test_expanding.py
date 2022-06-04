@@ -651,3 +651,37 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 
     result = df.expanding().apply(mean_w_arg, raw=raw, kwargs={"const": 20})
     tm.assert_frame_equal(result, expected)
+
+
+def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    df = DataFrame({"a": [1], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    expanding = df.expanding()
+    op = getattr(expanding, kernel, None)
+    if op is not None:
+        result = op(numeric_only=numeric_only)
+
+        columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+        expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
+        assert list(expected.columns) == columns
+
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    ser = Series([1], dtype=dtype)
+    expanding = ser.expanding()
+    op = getattr(expanding, kernel)
+    if numeric_only and dtype is object:
+        msg = f"Expanding.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(numeric_only=numeric_only)
+    else:
+        result = op(numeric_only=numeric_only)
+        expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
+        tm.assert_series_equal(result, expected)
