@@ -815,9 +815,7 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    def test_constructor_invalid_coerce_ints_with_float_nan(
-        self, any_int_numpy_dtype
-    ):
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
         # GH 22585
         # Updated: make sure we treat this list the same as we would treat the
         # equivalent ndarray
