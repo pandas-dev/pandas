@@ -370,7 +370,7 @@ def from_dummies(
 
     See Also
     --------
-    :func:`~pandas.get_dummies`: Convert ``Series`` or ``DataFrame`` to dummy
+    :func:`~pandas.get_dummies` : Convert ``Series`` or ``DataFrame`` to dummy
     codes.
 
     Notes
