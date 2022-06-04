@@ -47,6 +47,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     NPY_FR_us,
+    astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -71,7 +72,7 @@ from pandas._libs.tslibs.timedeltas cimport (
     is_any_td_scalar,
 )
 
-from pandas._libs.tslibs.conversion import ensure_datetime64ns
+from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
@@ -981,7 +982,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
             dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
             dta = periodarr.base.view("M8[D]")
-        return ensure_datetime64ns(dta)
+        return astype_overflowsafe(dta, dtype=DT64NS_DTYPE)
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
