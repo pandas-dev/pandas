@@ -328,7 +328,7 @@ def from_dummies(
     """
     Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables.
 
-    Inverts the operation performed by :func:``~pandas.get_dummies``.
+    Inverts the operation performed by :func:`~pandas.get_dummies`.
 
     Parameters
     ----------
@@ -370,7 +370,7 @@ def from_dummies(
 
     See Also
     --------
-    :func:``~pandas.get_dummies`` to convert ``Series`` or ``DataFrame`` to dummy
+    :func:`~pandas.get_dummies`: Convert ``Series`` or ``DataFrame`` to dummy
     codes.
 
     Notes
