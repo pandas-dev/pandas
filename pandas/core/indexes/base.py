@@ -42,8 +42,8 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._typing import (
-    AnyArrayLike,
     ArrayLike,
+    Axes,
     Dtype,
     DtypeObj,
     F,
@@ -7273,7 +7273,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Index:
+def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     """
     Ensure that we have an index from some index-like object.
 

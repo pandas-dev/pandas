@@ -2976,6 +2976,14 @@ class TestDataFrameConstructorWithDatetimeTZ:
         with pytest.raises(ValueError, match=msg):
             DataFrame(arr2, columns=["foo", "bar"])
 
+    def test_columns_indexes_raise_on_sets(self):
+        # GH 47215
+        data = [[1, 2, 3], [4, 5, 6]]
+        with pytest.raises(ValueError, match="index cannot be a set"):
+            DataFrame(data, index={"a", "b"})
+        with pytest.raises(ValueError, match="columns cannot be a set"):
+            DataFrame(data, columns={"a", "b", "c"})
+
 
 def get1(obj):  # TODO: make a helper in tm?
     if isinstance(obj, Series):
