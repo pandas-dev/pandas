@@ -445,13 +445,17 @@ def test_arrow_interval_type_error_and_warning():
         ArrowIntervalType(pa.int64(), closed="both")
 
 
-def test_interval_index_subtype():
+@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific"])
+@pytest.mark.parametrize("inclusive", ["both", "neither", "left", "right"])
+def test_interval_index_subtype(timezone, inclusive):
     # GH 46999
-    dates = date_range("2022", periods=3, tz="UTC")
+    dates = date_range("2022", periods=3, tz=timezone)
+    dtype = f"interval[datetime64[ns, {timezone}], {inclusive}]"
     result = IntervalIndex.from_arrays(
         ["2022-01-01", "2022-01-02"],
         ["2022-01-02", "2022-01-03"],
-        dtype="interval[datetime64[ns, UTC], both]",
+        inclusive=inclusive,
+        dtype=dtype,
     )
-    expected = IntervalIndex.from_arrays(dates[:-1], dates[1:])
+    expected = IntervalIndex.from_arrays(dates[:-1], dates[1:], inclusive=inclusive)
     tm.assert_index_equal(result, expected)
