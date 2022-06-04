@@ -4,8 +4,6 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p19
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -918,13 +916,6 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
             r"Cannot setitem on a Categorical with a new category \(NaT\), "
             "set the categories first"
         )
-        if np_version_under1p19:
-            mark = pytest.mark.xfail(
-                reason="When evaluating the f-string to generate the exception "
-                "message, numpy somehow ends up trying to cast None to int, so "
-                "ends up raising TypeError but with an unrelated message."
-            )
-            request.node.add_marker(mark)
     else:
         msg = "value should be a 'Period'"
 
