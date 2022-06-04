@@ -4,10 +4,6 @@ import re
 
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_ci_environment,
-)
 from pandas.util._print_versions import (
     _get_dependency_info,
     _get_sys_info,
@@ -73,9 +69,6 @@ def test_show_versions_console_json(capsys):
     assert result == expected
 
 
-@pytest.mark.xfail(
-    is_ci_environment() and not IS64, reason="Failing on 32 bit Python CI job"
-)
 def test_show_versions_console(capsys):
     # gh-32041
     # gh-32041
