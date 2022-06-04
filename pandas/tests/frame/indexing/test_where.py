@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import np_version_under1p20
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
