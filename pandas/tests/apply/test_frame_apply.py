@@ -1577,3 +1577,11 @@ def test_apply_type():
     result = df.apply(type, axis=1)
     expected = Series({"a": Series, "b": Series, "c": Series})
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_on_empty_dataframe():
+    # GH 39111
+    df = DataFrame({"a": [1, 2], "b": [3, 0]})
+    result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1)
+    expected = Series([])
+    tm.assert_series_equal(result, expected)
