@@ -47,6 +47,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    Axes,
     ColspaceArgType,
     ColspaceType,
     CompressionOptions,
@@ -119,7 +120,7 @@ common_docstring = """
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
-        columns : sequence, optional, default None
+        columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
@@ -561,9 +562,9 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[str] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool | list = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -683,7 +684,7 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[str] | None) -> Index:
+    def _initialize_columns(self, columns: Axes | None) -> Index:
         if columns is not None:
             cols = ensure_index(columns)
             self.frame = self.frame[cols]
