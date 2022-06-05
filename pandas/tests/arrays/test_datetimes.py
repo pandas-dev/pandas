@@ -11,6 +11,56 @@ import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
 
+class TestNonNano:
+    @pytest.fixture(params=["s", "ms", "us"])
+    def unit(self, request):
+        return request.param
+
+    @pytest.fixture
+    def reso(self, unit):
+        # TODO: avoid hard-coding
+        return {"s": 7, "ms": 8, "us": 9}[unit]
+
+    @pytest.mark.xfail(reason="_box_func is not yet patched to get reso right")
+    def test_non_nano(self, unit, reso):
+        arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        assert dta.dtype == arr.dtype
+        assert dta[0]._reso == reso
+
+    @pytest.mark.filterwarnings(
+        "ignore:weekofyear and week have been deprecated:FutureWarning"
+    )
+    @pytest.mark.parametrize(
+        "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
+    )
+    def test_fields(self, unit, reso, field):
+        dti = pd.date_range("2016-01-01", periods=55, freq="D")
+        arr = np.asarray(dti).astype(f"M8[{unit}]")
+
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        res = getattr(dta, field)
+        expected = getattr(dti._data, field)
+        tm.assert_numpy_array_equal(res, expected)
+
+    def test_normalize(self, unit):
+        dti = pd.date_range("2016-01-01 06:00:00", periods=55, freq="D")
+        arr = np.asarray(dti).astype(f"M8[{unit}]")
+
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        assert not dta.is_normalized
+
+        # TODO: simplify once we can just .astype to other unit
+        exp = np.asarray(dti.normalize()).astype(f"M8[{unit}]")
+        expected = DatetimeArray._simple_new(exp, dtype=exp.dtype)
+
+        res = dta.normalize()
+        tm.assert_extension_array_equal(res, expected)
+
+
 class TestDatetimeArrayComparisons:
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust

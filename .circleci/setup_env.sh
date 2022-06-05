@@ -51,8 +51,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip
+conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip setuptools
 
 echo "conda info -a"
 conda info -a
@@ -67,20 +66,9 @@ echo "mamba env update --file=${ENV_FILE}"
 # See https://github.com/mamba-org/mamba/issues/633
 mamba create -q -n pandas-dev
 time mamba env update -n pandas-dev --file="${ENV_FILE}"
-# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-mamba install -n pandas-dev 'setuptools<60'
 
 echo "conda list -n pandas-dev"
 conda list -n pandas-dev
-
-# From pyarrow on MacOS
-# ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
-# Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
-# Reason: image not found
-if [[ "$(uname)" == 'Darwin' ]]; then
-    echo "Update pyarrow for pyarrow on MacOS"
-    conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=6
-fi
 
 if [[ "$BITS32" == "yes" ]]; then
     # activate 32-bit compiler
@@ -113,6 +101,6 @@ echo "Build extensions"
 python setup.py build_ext -q -j3
 
 echo "Install pandas"
-python -m pip install --no-build-isolation -e .
+python -m pip install --no-build-isolation --no-use-pep517 -e .
 
 echo "done"

@@ -59,7 +59,12 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
+from pandas._libs.tslibs import (
+    Resolution,
+    get_resolution,
+)
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
@@ -122,11 +127,11 @@ def format_array_from_datetime(
     """
     cdef:
         int64_t val, ns, N = len(values)
-        ndarray[int64_t] consider_values
         bint show_ms = False, show_us = False, show_ns = False
         bint basic_format = False
         ndarray[object] result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
-        object ts, res
+        _Timestamp ts
+        str res
         npy_datetimestruct dts
 
     if na_rep is None:
@@ -136,16 +141,10 @@ def format_array_from_datetime(
     # a format based on precision
     basic_format = format is None and tz is None
     if basic_format:
-        consider_values = values[values != NPY_NAT]
-        show_ns = (consider_values % 1000).any()
-
-        if not show_ns:
-            consider_values //= 1000
-            show_us = (consider_values % 1000).any()
-
-            if not show_ms:
-                consider_values //= 1000
-                show_ms = (consider_values % 1000).any()
+        reso_obj = get_resolution(values)
+        show_ns = reso_obj == Resolution.RESO_NS
+        show_us = reso_obj == Resolution.RESO_US
+        show_ms = reso_obj == Resolution.RESO_MS
 
     for i in range(N):
         val = values[i]
@@ -178,6 +177,7 @@ def format_array_from_datetime(
                 # invalid format string
                 # requires dates > 1900
                 try:
+                    # Note: dispatches to pydatetime
                     result[i] = ts.strftime(format)
                 except ValueError:
                     result[i] = str(ts)
@@ -448,6 +448,7 @@ cpdef array_to_datetime(
         bint string_to_dts_failed
         datetime py_dt
         tzinfo tz_out = None
+        bint found_tz = False, found_naive = False
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -466,18 +467,34 @@ cpdef array_to_datetime(
                 elif PyDateTime_Check(val):
                     seen_datetime = True
                     if val.tzinfo is not None:
+                        found_tz = True
                         if utc_convert:
                             _ts = convert_datetime_to_tsobject(val, None)
                             iresult[i] = _ts.value
-                        else:
+                        elif found_naive:
                             raise ValueError('Tz-aware datetime.datetime '
                                              'cannot be converted to '
                                              'datetime64 unless utc=True')
-                    elif isinstance(val, _Timestamp):
-                        iresult[i] = val.value
+                        elif tz_out is not None and not tz_compare(tz_out, val.tzinfo):
+                            raise ValueError('Tz-aware datetime.datetime '
+                                             'cannot be converted to '
+                                             'datetime64 unless utc=True')
+                        else:
+                            found_tz = True
+                            tz_out = val.tzinfo
+                            _ts = convert_datetime_to_tsobject(val, None)
+                            iresult[i] = _ts.value
+
                     else:
-                        iresult[i] = pydatetime_to_dt64(val, &dts)
-                        check_dts_bounds(&dts)
+                        found_naive = True
+                        if found_tz:
+                            raise ValueError('Cannot mix tz-aware with '
+                                             'tz-naive values')
+                        if isinstance(val, _Timestamp):
+                            iresult[i] = val.value
+                        else:
+                            iresult[i] = pydatetime_to_dt64(val, &dts)
+                            check_dts_bounds(&dts)
 
                 elif PyDate_Check(val):
                     seen_datetime = True

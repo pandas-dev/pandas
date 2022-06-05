@@ -781,12 +781,14 @@ class Block(PandasObject):
             )
         else:
             if value is None:
-                # gh-45601, gh-45836
-                nb = self.astype(np.dtype(object), copy=False)
-                if nb is self and not inplace:
-                    nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
-                return [nb]
+                # gh-45601, gh-45836, gh-46634
+                if mask.any():
+                    nb = self.astype(np.dtype(object), copy=False)
+                    if nb is self and not inplace:
+                        nb = nb.copy()
+                    putmask_inplace(nb.values, mask, value)
+                    return [nb]
+                return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace, value=value, inplace=inplace, mask=mask
             )
@@ -1959,8 +1961,8 @@ def _catch_deprecated_value_error(err: Exception) -> None:
         #  is enforced, stop catching ValueError here altogether
         if isinstance(err, IncompatibleFrequency):
             pass
-        elif "'value.closed' is" in str(err):
-            # IntervalDtype mismatched 'closed'
+        elif "'value.inclusive' is" in str(err):
+            # IntervalDtype mismatched 'inclusive'
             pass
         elif "Timezones don't match" not in str(err):
             raise
@@ -1974,8 +1976,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     values: DatetimeArray | TimedeltaArray
 
     def values_for_json(self) -> np.ndarray:
-        # special casing datetimetz to avoid conversion through
-        #  object dtype
         return self.values._ndarray
 
 
@@ -1988,6 +1988,12 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     is_extension = True
     _validate_ndim = True
     _can_consolidate = False
+
+    def values_for_json(self) -> np.ndarray:
+        # force dt64tz to go through object dtype
+        # tz info will be lost when converting to
+        # dt64 which is naive
+        return self.values.astype(object)
 
 
 class ObjectBlock(NumpyBlock):

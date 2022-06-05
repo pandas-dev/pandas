@@ -583,7 +583,7 @@ without using a temporary variable.
 .. ipython:: python
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
-   (bb.groupby(['year', 'team']).sum()
+   (bb.groupby(['year', 'team']).sum(numeric_only=True)
       .loc[lambda df: df['r'] > 100])
 
 
@@ -1885,7 +1885,7 @@ chained indexing expression, you can set the :ref:`option <options>`
 ``mode.chained_assignment`` to one of these values:
 
 * ``'warn'``, the default, means a ``SettingWithCopyWarning`` is printed.
-* ``'raise'`` means pandas will raise a ``SettingWithCopyException``
+* ``'raise'`` means pandas will raise a ``SettingWithCopyError``
   you have to deal with.
 * ``None`` will suppress the warnings entirely.
 
@@ -1953,7 +1953,7 @@ Last, the subsequent example will **not** work at all, and so should be avoided:
    >>> dfd.loc[0]['a'] = 1111
    Traceback (most recent call last)
         ...
-   SettingWithCopyException:
+   SettingWithCopyError:
         A value is trying to be set on a copy of a slice from a DataFrame.
         Try using .loc[row_index,col_indexer] = value instead
 

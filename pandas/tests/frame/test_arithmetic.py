@@ -1333,7 +1333,8 @@ class TestFrameArithmeticUnsorted:
         frame_copy = float_frame.reindex(float_frame.index[::2])
 
         del frame_copy["D"]
-        frame_copy["C"][:5] = np.nan
+        # adding NAs to first 5 values of column "C"
+        frame_copy.loc[: frame_copy.index[4], "C"] = np.nan
 
         added = float_frame + frame_copy
 
@@ -2003,6 +2004,15 @@ def test_bool_frame_mult_float():
     df = DataFrame(True, list("ab"), list("cd"))
     result = df * 1.0
     expected = DataFrame(np.ones((2, 2)), list("ab"), list("cd"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_sub_nullable_int(any_int_dtype):
+    # GH 32822
+    series1 = Series([1, 2, np.nan], dtype=any_int_dtype)
+    series2 = Series([1, 2, 3], dtype=any_int_dtype)
+    expected = DataFrame([0, 0, np.nan], dtype=any_int_dtype)
+    result = series1.to_frame() - series2.to_frame()
     tm.assert_frame_equal(result, expected)
 
 
