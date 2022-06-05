@@ -60,6 +60,28 @@ class TestNonNano:
         res = dta.normalize()
         tm.assert_extension_array_equal(res, expected)
 
+    def test_simple_new_requires_match(self, unit):
+        arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
+        dtype = DatetimeTZDtype(unit, "UTC")
+
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        assert dta.dtype == dtype
+
+        wrong = DatetimeTZDtype("ns", "UTC")
+        with pytest.raises(AssertionError, match=""):
+            DatetimeArray._simple_new(arr, dtype=wrong)
+
+    def test_std_non_nano(self, unit):
+        dti = pd.date_range("2016-01-01", periods=55, freq="D")
+        arr = np.asarray(dti).astype(f"M8[{unit}]")
+
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        # we should match the nano-reso std, but floored to our reso.
+        res = dta.std()
+        assert res._reso == dta._reso
+        assert res == dti.std().floor(unit)
+
 
 class TestDatetimeArrayComparisons:
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
