@@ -814,6 +814,7 @@ def test_end_and_end_day_origin(
 
 
 @pytest.mark.parametrize(
+    # expected_data is a string when op raises a ValueError
     "method, numeric_only, expected_data",
     [
         ("sum", True, {"num": [25]}),
@@ -834,6 +835,21 @@ def test_end_and_end_day_origin(
         ("last", True, {"num": [20]}),
         ("last", False, {"cat": ["cat_2"], "num": [20]}),
         ("last", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
+        ("mean", True, {"num": [12.5]}),
+        ("mean", False, {"num": [12.5]}),
+        ("mean", lib.no_default, {"num": [12.5]}),
+        ("median", True, {"num": [12.5]}),
+        ("median", False, {"num": [12.5]}),
+        ("median", lib.no_default, {"num": [12.5]}),
+        ("std", True, {"num": [10.606601717798213]}),
+        ("std", False, "could not convert string to float"),
+        ("std", lib.no_default, {"num": [10.606601717798213]}),
+        ("var", True, {"num": [112.5]}),
+        ("var", False, "could not convert string to float"),
+        ("var", lib.no_default, {"num": [112.5]}),
+        ("sem", True, {"num": [7.5]}),
+        ("sem", False, "could not convert string to float"),
+        ("sem", lib.no_default, {"num": [7.5]}),
     ],
 )
 def test_frame_downsample_method(method, numeric_only, expected_data):
@@ -845,20 +861,32 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
     resampled = df.resample("Y")
 
     func = getattr(resampled, method)
-    if method == "prod" and numeric_only is not True:
+    if numeric_only is lib.no_default and method not in (
+        "min",
+        "max",
+        "first",
+        "last",
+        "prod",
+    ):
         warn = FutureWarning
-        msg = "Dropping invalid columns in DataFrameGroupBy.prod is deprecated"
-    elif method == "sum" and numeric_only is lib.no_default:
+        msg = (
+            f"default value of numeric_only in DataFrameGroupBy.{method} is deprecated"
+        )
+    elif method in ("prod", "mean", "median") and numeric_only is not True:
         warn = FutureWarning
-        msg = "The default value of numeric_only in DataFrameGroupBy.sum is deprecated"
+        msg = f"Dropping invalid columns in DataFrameGroupBy.{method} is deprecated"
     else:
         warn = None
         msg = ""
     with tm.assert_produces_warning(warn, match=msg):
-        result = func(numeric_only=numeric_only)
-
-    expected = DataFrame(expected_data, index=expected_index)
-    tm.assert_frame_equal(result, expected)
+        if isinstance(expected_data, str):
+            klass = TypeError if method == "var" else ValueError
+            with pytest.raises(klass, match=expected_data):
+                _ = func(numeric_only=numeric_only)
+        else:
+            result = func(numeric_only=numeric_only)
+            expected = DataFrame(expected_data, index=expected_index)
+            tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
