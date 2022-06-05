@@ -79,6 +79,13 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
+# list-like
+
+# Cannot use `Sequence` because a string is a sequence, and we don't want to
+# accept that.  Could refine if https://github.com/python/typing/issues/256 is
+# resolved to differentiate between Sequence[str] and str
+ListLike = Union[AnyArrayLike, List, range]
+
 # scalars
 
 PythonScalar = Union[str, int, float, bool]
@@ -114,7 +121,7 @@ Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
-Axes = Union[AnyArrayLike, List, Dict, range]
+Axes = ListLike
 
 RandomState = Union[
     int,

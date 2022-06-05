@@ -564,7 +564,7 @@ class DataFrameFormatter:
         frame: DataFrame,
         columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | list = True,
+        header: bool | list[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,

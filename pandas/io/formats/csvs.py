@@ -102,7 +102,7 @@ class CSVFormatter:
         return self.fmt.decimal
 
     @property
-    def header(self) -> bool | list:
+    def header(self) -> bool | list[str]:
         return self.fmt.header
 
     @property
