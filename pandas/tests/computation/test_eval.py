@@ -701,8 +701,8 @@ class TestEval:
     def test_and_logic_string_match(self):
         # GH 25823
         event = Series({"a": "hello"})
-        assert pd.eval(f"{event}.str.match('hello').a")
-        assert pd.eval("event.str.match('hello').a and event.str.match('hello').a")
+        assert pd.eval(f"{event.str.match('hello').a}")
+        assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
 
 
 f = lambda *args, **kwargs: np.random.randn()
