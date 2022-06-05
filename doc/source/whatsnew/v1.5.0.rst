@@ -675,6 +675,7 @@ Other Deprecations
 - Deprecated the ``closed`` argument in :class:`IntervalArray` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the ``closed`` argument in :class:`intervaltree` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the ``closed`` argument in :class:`ArrowInterval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated :meth:`DataFrameGroupBy.transform` not aligning the result when the UDF returned DataFrame (:issue:`45648`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -865,7 +866,6 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 - Bug in :meth:`.DataFrameGroupBy.describe` and :meth:`.SeriesGroupBy.describe` produces inconsistent results for empty datasets (:issue:`41575`)
 - Bug in :meth:`DataFrame.resample` reduction methods when used with ``on`` would attempt to aggregate the provided column (:issue:`47079`)
-- Bug in :meth:`DataFrameGroupBy.transform` not aligning the result when the user returned a Series or DataFrame (:issue:`45648`)
 
 Reshaping
 ^^^^^^^^^

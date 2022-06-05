@@ -766,8 +766,7 @@ as the one being grouped. The transform function must:
 
 * Return a result that is either the same size as the group chunk or
   broadcastable to the size of the group chunk (e.g., a scalar,
-  ``grouped.transform(lambda x: x.iloc[-1])``). When the result is a Series
-  or DataFrame, alignment with the group chunk's index will be performed.
+  ``grouped.transform(lambda x: x.iloc[-1])``).
 * Operate column-by-column on the group chunk.  The transform is applied to
   the first group chunk using chunk.apply.
 * Not perform in-place operations on the group chunk. Group chunks should
@@ -776,6 +775,13 @@ as the one being grouped. The transform function must:
   (``grouped.transform(lambda x: x.fillna(inplace=False))``).
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
+
+.. deprecated:: 1.5.0
+    When using ``.transform`` on a grouped DataFrame and the transformation function
+    returns a DataFrame, currently pandas does not align the result's index
+    with the input's index. This behavior is deprecated and alignment will
+    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    result of the transformation function to avoid alignment.
 
 Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
 transformation function. If the results from different groups have different dtypes, then

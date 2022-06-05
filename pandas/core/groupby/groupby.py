@@ -435,12 +435,11 @@ The current implementation imposes three requirements on f:
 * f must return a value that either has the same shape as the input
   subframe or can be broadcast to the shape of the input subframe.
   For example, if `f` returns a scalar it will be broadcast to have the
-  same shape as the input subframe. When the result is a Series or DataFrame,
-  alignment with the group chunk's index will be performed.
+  same shape as the input subframe.
 * if this is a DataFrame, f must support application column-by-column
   in the subframe. If f also supports application to the entire subframe,
   then a fast path is used starting from the second chunk.
-* f must not mutate group chunks. Mutation is not supported and may
+* f must not mutate groups. Mutation is not supported and may
   produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
 
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
@@ -451,6 +450,13 @@ user defined function, and no alternative execution attempts will be tried.
 
     The resulting dtype will reflect the return value of the passed ``func``,
     see the examples below.
+
+.. deprecated:: 1.5.0
+    When using ``.transform`` on a grouped DataFrame and the transformation function
+    returns a DataFrame, currently pandas does not align the result's index
+    with the input's index. This behavior is deprecated and alignment will
+    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    result of the transformation function to avoid alignment.
 
 Examples
 --------
