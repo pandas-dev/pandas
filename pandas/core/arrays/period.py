@@ -549,10 +549,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 "`freq` argument is not supported for "
                 f"{type(self).__name__}._time_shift"
             )
-        values = self.asi8 + periods * self.freq.n
-        if self._hasna:
-            values[self._isnan] = iNaT
-        return type(self)(values, freq=self.freq)
+        return self + periods
 
     def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
