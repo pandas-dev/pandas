@@ -471,7 +471,7 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
         result = mframe.groupby(level=[-2, -1]).sum()
-        expected = mframe
+        expected = mframe.sort_index()
         tm.assert_frame_equal(result, expected)
 
         result = mframe.groupby(level=[-1, "first"]).sum()
