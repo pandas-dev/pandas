@@ -5506,7 +5506,13 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         ncols = len(self.columns)
-        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
+        if (
+            axis == 1
+            and periods != 0
+            and freq is None
+            and fill_value is lib.no_default
+            and ncols > 0
+        ):
             # We will infer fill_value to match the closest column
 
             # Use a column that we know is valid for our column's dtype GH#38434
@@ -10930,10 +10936,8 @@ Parrot 2  Parrot       24.0
                 if needs_i8_conversion(cdtype):
                     dtype = cdtype
 
-            if is_list_like(q):
-                res = self._constructor([], index=q, columns=cols, dtype=dtype)
-                return res.__finalize__(self, method="quantile")
-            return self._constructor_sliced([], index=cols, name=q, dtype=dtype)
+            res = self._constructor([], index=q, columns=cols, dtype=dtype)
+            return res.__finalize__(self, method="quantile")
 
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 

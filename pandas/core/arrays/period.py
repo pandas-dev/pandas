@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Timedelta,
+    astype_overflowsafe,
     delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
@@ -548,10 +549,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 "`freq` argument is not supported for "
                 f"{type(self).__name__}._time_shift"
             )
-        values = self.asi8 + periods * self.freq.n
-        if self._hasna:
-            values[self._isnan] = iNaT
-        return type(self)(values, freq=self.freq)
+        return self + periods
 
     def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
@@ -782,6 +780,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
+    # TODO: can we de-duplicate with Period._add_timedeltalike_scalar?
     def _add_timedeltalike_scalar(self, other):
         """
         Parameters
@@ -797,10 +796,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             raise raise_on_incompatible(self, other)
 
         if notna(other):
-            # special handling for np.timedelta64("NaT"), avoid calling
-            #  _check_timedeltalike_freq_compat as that would raise TypeError
-            other = self._check_timedeltalike_freq_compat(other)
-            other = np.timedelta64(other, "ns")
+            # Convert to an integer increment of our own freq, disallowing
+            #  e.g. 30seconds if our freq is minutes.
+            try:
+                inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+            except ValueError as err:
+                # "Cannot losslessly convert units"
+                raise raise_on_incompatible(self, other) from err
+
+            return self._addsub_int_array_or_scalar(inc, operator.add)
 
         return super()._add_timedeltalike_scalar(other)
 
@@ -858,11 +862,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         elif isinstance(other, np.ndarray):
             # numpy timedelta64 array; all entries must be compatible
             assert other.dtype.kind == "m"
-            if other.dtype != TD64NS_DTYPE:
-                # i.e. non-nano unit
-                # TODO: disallow unit-less timedelta64
-                other = other.astype(TD64NS_DTYPE)
-            nanos = other.view("i8")
+            other = astype_overflowsafe(other, TD64NS_DTYPE, copy=False)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[Any]]", variable has type "int")
+            nanos = other.view("i8")  # type: ignore[assignment]
         else:
             # TimedeltaArray/Index
             nanos = other.asi8

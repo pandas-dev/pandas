@@ -133,10 +133,10 @@ def test_value_counts_bins(index_or_series):
 
     s1 = Series([1, 1, 2, 3])
     res1 = s1.value_counts(bins=1)
-    exp1 = Series({Interval(0.997, 3.0): 4})
+    exp1 = Series({Interval(0.997, 3.0, "right"): 4})
     tm.assert_series_equal(res1, exp1)
     res1n = s1.value_counts(bins=1, normalize=True)
-    exp1n = Series({Interval(0.997, 3.0): 1.0})
+    exp1n = Series({Interval(0.997, 3.0, "right"): 1.0})
     tm.assert_series_equal(res1n, exp1n)
 
     if isinstance(s1, Index):
@@ -149,12 +149,12 @@ def test_value_counts_bins(index_or_series):
 
     # these return the same
     res4 = s1.value_counts(bins=4, dropna=True)
-    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0], "right")
     exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
     res4 = s1.value_counts(bins=4, dropna=False)
-    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0], "right")
     exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
