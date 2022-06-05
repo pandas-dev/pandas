@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timestamp,
     delta_to_nanoseconds,
+    get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
@@ -44,7 +45,6 @@ from pandas._libs.tslibs.fields import (
     RoundTo,
     round_nsint64,
 )
-from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
     ArrayLike,
@@ -1120,28 +1120,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             new_values.fill(iNaT)
             return type(self)(new_values, dtype=self.dtype)
 
-        # FIXME: this may overflow with non-nano
-        inc = delta_to_nanoseconds(other)
-
-        if not is_period_dtype(self.dtype):
-            # FIXME: don't hardcode 7, 8, 9, 10 here
-            # TODO: maybe patch delta_to_nanoseconds to take reso?
-
-            # error: "DatetimeLikeArrayMixin" has no attribute "_reso"
-            reso = self._reso  # type: ignore[attr-defined]
-            if reso == 10:
-                pass
-            elif reso == 9:
-                # microsecond
-                inc = inc // 1000
-            elif reso == 8:
-                # millisecond
-                inc = inc // 1_000_000
-            elif reso == 7:
-                # second
-                inc = inc // 1_000_000_000
-            else:
-                raise NotImplementedError(reso)
+        # PeriodArray overrides, so we only get here with DTA/TDA
+        # error: "DatetimeLikeArrayMixin" has no attribute "_reso"
+        inc = delta_to_nanoseconds(other, reso=self._reso)  # type: ignore[attr-defined]
 
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
         new_values = new_values.view("i8")
@@ -1258,13 +1239,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             res_values = op(self.astype("O"), np.asarray(other))
 
         result = pd_array(res_values.ravel())
-        # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
-        # "reshape"
-        result = extract_array(
-            result, extract_numpy=True
-        ).reshape(  # type: ignore[union-attr]
-            self.shape
-        )
+        result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
 
     def _time_shift(
@@ -1326,7 +1301,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # as is_integer returns True for these
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = self._time_shift(other)
+            result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
+                other * self.freq.n, operator.add
+            )
 
         # array-like others
         elif is_timedelta64_dtype(other_dtype):
@@ -1342,7 +1319,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other, operator.add
+                other * self.freq.n, operator.add
             )
         else:
             # Includes Categorical, other ExtensionArrays
@@ -1382,7 +1359,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # as is_integer returns True for these
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = self._time_shift(-other)
+            result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
+                other * self.freq.n, operator.sub
+            )
 
         elif isinstance(other, Period):
             result = self._sub_period(other)
@@ -1404,7 +1383,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other, operator.sub
+                other * self.freq.n, operator.sub
             )
         else:
             # Includes ExtensionArrays, float_dtype
@@ -1813,7 +1792,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @cache_readonly
     def _reso(self) -> int:
-        return py_get_unit_from_dtype(self._ndarray.dtype)
+        return get_unit_from_dtype(self._ndarray.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (

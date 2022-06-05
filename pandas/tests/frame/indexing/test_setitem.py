@@ -227,7 +227,10 @@ class TestDataFrameSetItem:
         "obj,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+            (
+                Interval(left=0, right=5, inclusive="right"),
+                IntervalDtype("int64", "right"),
+            ),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -853,6 +856,15 @@ class TestDataFrameSetItemWithExpansion:
         ts = Timestamp(t)
         data[ts] = np.nan  # works, mostly a smoke-test
         assert np.isnan(data[ts]).all()
+
+    def test_frame_setitem_rangeindex_into_new_col(self):
+        # GH#47128
+        df = DataFrame({"a": ["a", "b"]})
+        df["b"] = df.index
+        df.loc[[False, True], "b"] = 100
+        result = df.loc[[1], :]
+        expected = DataFrame({"a": ["b"], "b": [100]}, index=[1])
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSetItemSlicing:

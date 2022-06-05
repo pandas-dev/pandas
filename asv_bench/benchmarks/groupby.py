@@ -7,6 +7,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -109,6 +110,18 @@ class Apply:
 
     def time_copy_overhead_single_col(self, factor):
         self.df.groupby("key").apply(self.df_copy_function)
+
+
+class ApplyNonUniqueUnsortedIndex:
+    def setup(self):
+        # GH 46527
+        # unsorted and non-unique index
+        idx = np.arange(100)[::-1]
+        idx = Index(np.repeat(idx, 200), name="key")
+        self.df = DataFrame(np.random.randn(len(idx), 10), index=idx)
+
+    def time_groupby_apply_non_unique_unsorted_index(self):
+        self.df.groupby("key", group_keys=False).apply(lambda x: x)
 
 
 class Groups:
