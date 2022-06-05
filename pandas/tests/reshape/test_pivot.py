@@ -146,8 +146,10 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        rs = df.pivot_table(columns="cols", aggfunc=np.sum)
-        xp = df.pivot_table(index="cols", aggfunc=np.sum).T
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = df.pivot_table(columns="cols", aggfunc=np.sum)
+            xp = df.pivot_table(index="cols", aggfunc=np.sum).T
         tm.assert_frame_equal(rs, xp)
 
         rs = df.pivot_table(columns="cols", aggfunc={"values": "mean"})
@@ -299,7 +301,7 @@ class TestPivotTable:
 
     def test_pivot_with_interval_index_margins(self):
         # GH 25815
-        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2])
+        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2], "right")
         df = DataFrame(
             {
                 "A": np.arange(4, 0, -1, dtype=np.intp),
@@ -317,7 +319,10 @@ class TestPivotTable:
         result = pivot_tab["All"]
         expected = Series(
             [3, 7, 10],
-            index=Index([pd.Interval(0, 1), pd.Interval(1, 2), "All"], name="C"),
+            index=Index(
+                [pd.Interval(0, 1, "right"), pd.Interval(1, 2, "right"), "All"],
+                name="C",
+            ),
             name="All",
             dtype=np.intp,
         )
@@ -903,12 +908,19 @@ class TestPivotTable:
 
         # to help with a buglet
         self.data.columns = [k * 2 for k in self.data.columns]
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc=np.mean
+            )
         for value_col in table.columns:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc="mean"
+            )
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
             assert totals == self.data[item].mean()
@@ -964,7 +976,9 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 
         tm.assert_frame_equal(result, expected)
@@ -1990,8 +2004,11 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
         # for consistency purposes
-        result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
-        expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
+
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
+            expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
@@ -2163,6 +2180,28 @@ class TestPivotTable:
             columns=Index(["2018", "2019"], name="year"),
             index=MultiIndex.from_arrays(
                 [["d1", "d4", "d3"], ["a", "b", "c"]], names=["a", "col"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_sort_false_with_multiple_values(self):
+        df = DataFrame(
+            {
+                "firstname": ["John", "Michael"],
+                "lastname": ["Foo", "Bar"],
+                "height": [173, 182],
+                "age": [47, 33],
+            }
+        )
+        result = df.pivot_table(
+            index=["lastname", "firstname"], values=["height", "age"], sort=False
+        )
+        expected = DataFrame(
+            [[173, 47], [182, 33]],
+            columns=["height", "age"],
+            index=MultiIndex.from_tuples(
+                [("Foo", "John"), ("Bar", "Michael")],
+                names=["lastname", "firstname"],
             ),
         )
         tm.assert_frame_equal(result, expected)

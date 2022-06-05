@@ -538,8 +538,11 @@ def test_loc_setitem_single_column_slice():
         columns=MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")]),
     )
     expected = df.copy()
-    df.loc[:, "B"] = np.arange(4)
-    expected.iloc[:, 2] = np.arange(4)
+    msg = "will attempt to set the values inplace instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.loc[:, "B"] = np.arange(4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected.iloc[:, 2] = np.arange(4)
     tm.assert_frame_equal(df, expected)
 
 

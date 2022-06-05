@@ -13,22 +13,22 @@ import pandas.core.common as com
 
 @pytest.fixture
 def interval():
-    return Interval(0, 1)
+    return Interval(0, 1, "right")
 
 
 class TestInterval:
     def test_properties(self, interval):
-        assert interval.closed == "right"
+        assert interval.inclusive == "right"
         assert interval.left == 0
         assert interval.right == 1
         assert interval.mid == 0.5
 
     def test_repr(self, interval):
-        assert repr(interval) == "Interval(0, 1, closed='right')"
+        assert repr(interval) == "Interval(0, 1, inclusive='right')"
         assert str(interval) == "(0, 1]"
 
-        interval_left = Interval(0, 1, closed="left")
-        assert repr(interval_left) == "Interval(0, 1, closed='left')"
+        interval_left = Interval(0, 1, "left")
+        assert repr(interval_left) == "Interval(0, 1, inclusive='left')"
         assert str(interval_left) == "[0, 1)"
 
     def test_contains(self, interval):
@@ -40,18 +40,18 @@ class TestInterval:
         with pytest.raises(TypeError, match=msg):
             interval in interval
 
-        interval_both = Interval(0, 1, closed="both")
+        interval_both = Interval(0, 1, "both")
         assert 0 in interval_both
         assert 1 in interval_both
 
-        interval_neither = Interval(0, 1, closed="neither")
+        interval_neither = Interval(0, 1, "neither")
         assert 0 not in interval_neither
         assert 0.5 in interval_neither
         assert 1 not in interval_neither
 
     def test_equal(self):
-        assert Interval(0, 1) == Interval(0, 1, closed="right")
-        assert Interval(0, 1) != Interval(0, 1, closed="left")
+        assert Interval(0, 1, "right") == Interval(0, 1, "right")
+        assert Interval(0, 1, "right") != Interval(0, 1, "left")
         assert Interval(0, 1) != 0
 
     def test_comparison(self):
@@ -129,7 +129,7 @@ class TestInterval:
         iv = Interval(left, right, closed)
         assert iv.is_empty is False
 
-        # same endpoint is empty except when closed='both' (contains one point)
+        # same endpoint is empty except when inclusive='both' (contains one point)
         iv = Interval(left, left, closed)
         result = iv.is_empty
         expected = closed != "both"
@@ -152,8 +152,8 @@ class TestInterval:
             Interval(left, right)
 
     def test_math_add(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(1, 2, closed=closed)
+        interval = Interval(0, 1, closed)
+        expected = Interval(1, 2, closed)
 
         result = interval + 1
         assert result == expected
@@ -173,8 +173,8 @@ class TestInterval:
             interval + "foo"
 
     def test_math_sub(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(-1, 0, closed=closed)
+        interval = Interval(0, 1, closed)
+        expected = Interval(-1, 0, closed)
 
         result = interval - 1
         assert result == expected
@@ -191,8 +191,8 @@ class TestInterval:
             interval - "foo"
 
     def test_math_mult(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(0, 2, closed=closed)
+        interval = Interval(0, 1, closed)
+        expected = Interval(0, 2, closed)
 
         result = interval * 2
         assert result == expected
@@ -213,8 +213,8 @@ class TestInterval:
             interval * "foo"
 
     def test_math_div(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(0, 0.5, closed=closed)
+        interval = Interval(0, 1, closed)
+        expected = Interval(0, 0.5, closed)
 
         result = interval / 2.0
         assert result == expected
@@ -231,8 +231,8 @@ class TestInterval:
             interval / "foo"
 
     def test_math_floordiv(self, closed):
-        interval = Interval(1, 2, closed=closed)
-        expected = Interval(0, 1, closed=closed)
+        interval = Interval(1, 2, closed)
+        expected = Interval(0, 1, closed)
 
         result = interval // 2
         assert result == expected
@@ -249,9 +249,9 @@ class TestInterval:
             interval // "foo"
 
     def test_constructor_errors(self):
-        msg = "invalid option for 'closed': foo"
+        msg = "invalid option for 'inclusive': foo"
         with pytest.raises(ValueError, match=msg):
-            Interval(0, 1, closed="foo")
+            Interval(0, 1, "foo")
 
         msg = "left side of interval must be <= right side"
         with pytest.raises(ValueError, match=msg):
