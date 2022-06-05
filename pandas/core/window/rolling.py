@@ -659,23 +659,27 @@ class BaseWindow(SelectionMixin):
 
     def aggregate(self, func, *args, **kwargs):
         # GH46132
-        _axis_modifed_flag = False
         # modifying axis and transposing dataframe should not be needed
         # once ReamplerWindow supports axis = 1
-        if self.axis == 1:
-            self.obj = self.obj.T
-            _axis_modifed_flag = True
-            self.axis = 0
+
+        obj = self.obj
+        axis = self.axis
+
+        self.obj = self.obj.T if self.axis == 1 else self.obj
+        self.axis = 0
+
         try:
             result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         finally:
-            if _axis_modifed_flag:
-                self.axis = 1
-                self.obj = self.obj.T
+            self.obj = obj
+            self.axis = axis
+
+        if axis == 1:
+            result = result.T if result is not None else result
+
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
-        if _axis_modifed_flag:
-            result = result.T
+
         return result
 
     agg = aggregate
