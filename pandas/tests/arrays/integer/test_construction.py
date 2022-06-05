@@ -14,6 +14,10 @@ from pandas.core.arrays.integer import (
 
 @pytest.fixture(params=[pd.array, IntegerArray._from_sequence])
 def constructor(request):
+    """Fixture returning parametrized IntegerArray from given sequence.
+
+    Used to test dtype conversions.
+    """
     return request.param
 
 

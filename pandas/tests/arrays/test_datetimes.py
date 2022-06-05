@@ -14,10 +14,12 @@ from pandas.core.arrays import DatetimeArray
 class TestNonNano:
     @pytest.fixture(params=["s", "ms", "us"])
     def unit(self, request):
+        """Fixture returning parametrized time units"""
         return request.param
 
     @pytest.fixture
     def reso(self, unit):
+        """Fixture returning datetime resolution for a given time unit"""
         # TODO: avoid hard-coding
         return {"s": 7, "ms": 8, "us": 9}[unit]
 

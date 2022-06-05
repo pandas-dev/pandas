@@ -14,11 +14,18 @@ arrays += [
 
 @pytest.fixture(params=arrays, ids=[a.dtype.name for a in arrays])
 def data(request):
+    """
+    Fixture returning parametrized 'data' array with different integer and
+    floating point types
+    """
     return request.param
 
 
 @pytest.fixture()
 def numpy_dtype(data):
+    """
+    Fixture returning numpy dtype from 'data' input array.
+    """
     # For integer dtype, the numpy conversion must be done to float
     if is_integer_dtype(data):
         numpy_dtype = float
