@@ -668,7 +668,9 @@ class StataValueLabel:
         Encoding to use for value labels.
     """
 
-    def __init__(self, catarray: Series, encoding: str = "latin-1") -> None:
+    def __init__(
+        self, catarray: Series, encoding: Literal["latin-1", "utf-8"] = "latin-1"
+    ) -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
@@ -2250,7 +2252,7 @@ class StataWriter(StataParser):
     """
 
     _max_string_length = 244
-    _encoding = "latin-1"
+    _encoding: Literal["latin-1", "utf-8"] = "latin-1"
 
     def __init__(
         self,
@@ -2331,7 +2333,7 @@ class StataWriter(StataParser):
                     f"Can't create value labels for {labname}, value labels "
                     "can only be applied to numeric columns."
                 )
-            svl = StataNonCatValueLabel(colname, labels)
+            svl = StataNonCatValueLabel(colname, labels, self._encoding)
             non_cat_value_labels.append(svl)
         return non_cat_value_labels
 
@@ -3575,7 +3577,7 @@ class StataWriterUTF8(StataWriter117):
     >>> writer.write_file()
     """
 
-    _encoding = "utf-8"
+    _encoding: Literal["utf-8"] = "utf-8"
 
     def __init__(
         self,

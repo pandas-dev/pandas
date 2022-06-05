@@ -1797,6 +1797,7 @@ the string values returned are correct."""
             "ᴐᴬᵀ": "",
         }
         data_label = "ᴅaᵀa-label"
+        value_labels = {"β": {1: "label", 2: "æøå", 3: "ŋot valid latin-1"}}
         data["β"] = data["β"].astype(np.int32)
         with tm.ensure_clean() as path:
             writer = StataWriterUTF8(
@@ -1807,11 +1808,16 @@ the string values returned are correct."""
                 variable_labels=variable_labels,
                 write_index=False,
                 version=version,
+                value_labels=value_labels,
             )
             writer.write_file()
             reread_encoded = read_stata(path)
             # Missing is intentionally converted to empty strl
             data["strls"] = data["strls"].fillna("")
+            # Variable with value labels is reread as categorical
+            data["β"] = (
+                data["β"].replace(value_labels["β"]).astype("category").cat.as_ordered()
+            )
             tm.assert_frame_equal(data, reread_encoded)
             reader = StataReader(path)
             assert reader.data_label == data_label
