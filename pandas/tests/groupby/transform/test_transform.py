@@ -1531,3 +1531,40 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, expected_values",
+    [
+        (Series.sort_values, [5, 4, 3, 2, 1]),
+        (lambda x: x.head(1), [5.0, np.nan, 3.0, 2.0, np.nan]),
+    ],
+)
+@pytest.mark.parametrize("series", [True, False])
+@pytest.mark.parametrize(
+    "index",
+    [
+        [1, 2, 3, 4, 5],
+        [5, 4, 3, 2, 1],
+    ],
+)
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+@pytest.mark.parametrize("keys_in_index", [True, False])
+def test_transform_aligns(func, expected_values, series, index, keys, keys_in_index):
+    # GH#45648 - transform should align with the input's index
+    df = DataFrame({"a1": [1, 1, 3, 2, 2], "b": [5, 4, 3, 2, 1]}, index=index)
+    if "a2" in keys:
+        df["a2"] = df["a1"]
+    if keys_in_index:
+        df = df.set_index(keys, append=True)
+
+    gb = df.groupby(keys)
+    if series:
+        gb = gb["b"]
+
+    result = gb.transform(func)
+
+    expected = DataFrame({"b": expected_values}, index=df.index)
+    if series:
+        expected = expected["b"]
+    tm.assert_equal(result, expected)

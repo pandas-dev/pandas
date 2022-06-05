@@ -1863,5 +1863,7 @@ def _wrap_transform_general_frame(
             )
         assert isinstance(res_frame, DataFrame)
         return res_frame
+    elif isinstance(res, DataFrame):
+        return obj._constructor(res, index=group.index)
     else:
         return res

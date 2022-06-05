@@ -761,12 +761,13 @@ different dtypes, then a common dtype will be determined in the same way as ``Da
 Transformation
 --------------
 
-The ``transform`` method returns an object that is indexed the same (same size)
+The ``transform`` method returns an object that is indexed the same
 as the one being grouped. The transform function must:
 
 * Return a result that is either the same size as the group chunk or
   broadcastable to the size of the group chunk (e.g., a scalar,
-  ``grouped.transform(lambda x: x.iloc[-1])``).
+  ``grouped.transform(lambda x: x.iloc[-1])``). When the result is a Series
+  or DataFrame, alignment with the group chunk's index will be performed.
 * Operate column-by-column on the group chunk.  The transform is applied to
   the first group chunk using chunk.apply.
 * Not perform in-place operations on the group chunk. Group chunks should
