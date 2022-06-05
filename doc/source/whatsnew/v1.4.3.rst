@@ -30,6 +30,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :meth:`pd.eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where passing empty ``local_dict`` or ``global_dict`` was treated as passing ``None`` (:issue:`47084`)
 - Most I/O methods do no longer suppress ``OSError`` and ``ValueError`` when closing file handles (:issue:`47136`)
 -
 
