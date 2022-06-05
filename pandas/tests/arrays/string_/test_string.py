@@ -18,11 +18,13 @@ from pandas.core.arrays.string_arrow import ArrowStringArray
 
 @pytest.fixture
 def dtype(string_storage):
+    """Fixture giving StringDtype from parametrized 'string_storage'"""
     return pd.StringDtype(storage=string_storage)
 
 
 @pytest.fixture
 def cls(dtype):
+    """Fixture giving array type from parametrized 'dtype'"""
     return dtype.construct_array_type()
 
 
