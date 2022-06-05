@@ -43,6 +43,7 @@ from pandas.core.computation.expressions import (
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
     SPECIAL_CASE_ARITH_OPS_SYMS,
+    UndefinedVariableError,
     _binary_math_ops,
     _binary_ops_dict,
     _unary_math_ops,
@@ -1746,6 +1747,20 @@ class TestScope:
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
         assert gbls == gbls2
+
+    def test_empty_locals(self, engine, parser):
+        # GH 47084
+        x = 1  # noqa: F841
+        msg = "name 'x' is not defined"
+        with pytest.raises(UndefinedVariableError, match=msg):
+            pd.eval("x + 1", engine=engine, parser=parser, local_dict={})
+
+    def test_empty_globals(self, engine, parser):
+        # GH 47084
+        msg = "name '_var_s' is not defined"
+        e = "_var_s * 2"
+        with pytest.raises(UndefinedVariableError, match=msg):
+            pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
 @td.skip_if_no_ne
