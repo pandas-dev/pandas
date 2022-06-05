@@ -13,10 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat.numpy import (
-    np_version_under1p19,
-    np_version_under1p20,
-)
+from pandas.compat.numpy import np_version_under1p20
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -818,18 +815,11 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    def test_constructor_invalid_coerce_ints_with_float_nan(
-        self, any_int_numpy_dtype, request
-    ):
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
         # GH 22585
         # Updated: make sure we treat this list the same as we would treat the
-        #  equivalent ndarray
-        if np_version_under1p19 and np.dtype(any_int_numpy_dtype).kind == "u":
-            mark = pytest.mark.xfail(reason="Produces an extra RuntimeWarning")
-            request.node.add_marker(mark)
-
+        # equivalent ndarray
         vals = [1, 2, np.nan]
-
         msg = "In a future version, passing float-dtype values containing NaN"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = Series(vals, dtype=any_int_numpy_dtype)
@@ -1958,13 +1948,6 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
         ({1: 1}, np.array([[1]], dtype=np.int64)),
     ],
 )
-@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
-
-
-@pytest.mark.xfail(not np_version_under1p19, reason="check failure on numpy below 1.19")
-def test_numpy_array_np_v1p19():
-    with pytest.raises(KeyError, match="0"):
-        np.array([Series({1: 1})])
