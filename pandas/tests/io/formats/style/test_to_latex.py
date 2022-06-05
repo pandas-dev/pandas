@@ -1032,3 +1032,36 @@ def test_concat_recursion():
     """
     )
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            DataFrame(),
+            dedent(
+                """\
+            \\begin{tabular}{l}
+            \\end{tabular}
+            """
+            ),
+        ),
+        (
+            DataFrame(columns=["a", "b", "c"]),
+            dedent(
+                """\
+            \\begin{tabular}{llll}
+             & a & b & c \\\\
+            \\end{tabular}
+            """
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "clines", [None, "all;data", "all;index", "skip-last;data", "skip-last;index"]
+)
+def test_empty_clines(df: DataFrame, expected: str, clines: str):
+    # GH 47203
+    result = df.style.to_latex(clines=clines)
+    assert result == expected
