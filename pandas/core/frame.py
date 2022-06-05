@@ -10159,8 +10159,8 @@ Parrot 2  Parrot       24.0
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
-            row-wise.
+            The axis to use. 0 or 'index' to compute row-wise, 1 or 'columns' for
+            column-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
@@ -10836,7 +10836,7 @@ Parrot 2  Parrot       24.0
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             Value between 0 <= q <= 1, the quantile(s) to compute.
-        axis : {0, 1, 'index', 'columns'}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
             If False, the quantile of datetime and timedelta data will be
