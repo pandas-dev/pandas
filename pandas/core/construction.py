@@ -508,7 +508,7 @@ def sanitize_array(
         dtype = dtype.numpy_dtype
 
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
-    data = extract_array(data, extract_numpy=True)
+    data = extract_array(data, extract_numpy=True, extract_range=True)
 
     if isinstance(data, np.ndarray) and data.ndim == 0:
         if dtype is None:
@@ -583,7 +583,7 @@ def sanitize_array(
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
         if hasattr(data, "__array__"):
             # e.g. dask array GH#38645
-            data = np.asarray(data)
+            data = np.array(data, copy=copy)
         else:
             data = list(data)
 
