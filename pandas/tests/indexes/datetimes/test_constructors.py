@@ -13,7 +13,7 @@ import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
-    conversion,
+    astype_overflowsafe,
 )
 from pandas.compat import PY39
 
@@ -975,7 +975,7 @@ class TestTimeSeries:
         arr = np.arange(0, 100, 10, dtype=np.int64).view("M8[D]")
         idx = Index(arr)
 
-        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
+        assert (idx.values == astype_overflowsafe(arr, dtype=np.dtype("M8[ns]"))).all()
 
     def test_constructor_int64_nocopy(self):
         # GH#1624

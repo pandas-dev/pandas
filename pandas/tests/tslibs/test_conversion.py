@@ -6,6 +6,7 @@ from pytz import UTC
 
 from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
+    astype_overflowsafe,
     conversion,
     iNaT,
     timezones,
@@ -106,7 +107,7 @@ def test_tz_convert_readonly():
 @pytest.mark.parametrize("dtype", ["M8[ns]", "M8[s]"])
 def test_length_zero_copy(dtype, copy):
     arr = np.array([], dtype=dtype)
-    result = conversion.ensure_datetime64ns(arr, copy=copy)
+    result = astype_overflowsafe(arr, copy=copy, dtype=np.dtype("M8[ns]"))
     if copy:
         assert not np.shares_memory(result, arr)
     else:
@@ -119,7 +120,7 @@ def test_length_zero_copy(dtype, copy):
 def test_ensure_datetime64ns_bigendian():
     # GH#29684
     arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
-    result = conversion.ensure_datetime64ns(arr)
+    result = astype_overflowsafe(arr, dtype=np.dtype("M8[ns]"))
 
     expected = np.array([np.datetime64(1, "ms")], dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
@@ -129,7 +130,7 @@ def test_ensure_timedelta64ns_overflows():
     arr = np.arange(10).astype("m8[Y]") * 100
     msg = r"Cannot convert 300 years to timedelta64\[ns\] without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        conversion.ensure_timedelta64ns(arr)
+        astype_overflowsafe(arr, dtype=np.dtype("m8[ns]"))
 
 
 class SubDatetime(datetime):
