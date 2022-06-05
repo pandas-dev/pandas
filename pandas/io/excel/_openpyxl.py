@@ -588,7 +588,9 @@ class OpenpyxlReader(BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
+    def get_sheet_data(
+        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+    ) -> list[list[Scalar]]:
 
         if self.book.read_only:
             sheet.reset_dimensions()
@@ -603,6 +605,8 @@ class OpenpyxlReader(BaseExcelReader):
             if converted_row:
                 last_row_with_data = row_number
             data.append(converted_row)
+            if file_rows_needed is not None and len(data) >= file_rows_needed:
+                break
 
         # Trim trailing empty rows
         data = data[: last_row_with_data + 1]
