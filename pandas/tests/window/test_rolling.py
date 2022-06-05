@@ -1894,6 +1894,8 @@ def test_rolling_agg_when_agg_fail():
     win.aggregate([np.mean, np.sum])
     tm.assert_frame_equal(win.obj, df)
     assert win.axis == 1
+
+
 def test_rolling_skew_kurt_floating_artifacts():
     # GH 42064 46431
 

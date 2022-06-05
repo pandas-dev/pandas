@@ -862,13 +862,10 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.skew` and :meth:`Rolling.kurt` would give NaN with window of same values (:issue:`30993`)
 - Bug in :meth:`.Rolling.var` would segfault calculating weighted variance when window size was larger than data size (:issue:`46760`)
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
-<<<<<<< HEAD
 - Bug in :meth:`Rolling.aggregate` raise ValueError when ``func`` was a list of functions and ``axis=1`` (:issue:`46132`)
-=======
 - Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 - Bug in :meth:`.DataFrameGroupBy.describe` and :meth:`.SeriesGroupBy.describe` produces inconsistent results for empty datasets (:issue:`41575`)
 - Bug in :meth:`DataFrame.resample` reduction methods when used with ``on`` would attempt to aggregate the provided column (:issue:`47079`)
->>>>>>> upstream/main
 
 Reshaping
 ^^^^^^^^^
