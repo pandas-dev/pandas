@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import (
+    Literal,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -10,6 +13,7 @@ from pandas._libs.lib import (
     no_default,
 )
 from pandas._libs.missing import is_matching_na
+from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
 from pandas.util._exceptions import find_stack_level
 
@@ -61,7 +65,7 @@ from pandas.io.formats.printing import pprint_thing
 def assert_almost_equal(
     left,
     right,
-    check_dtype: bool | str = "equiv",
+    check_dtype: bool | Literal["equiv"] = "equiv",
     check_less_precise: bool | int | NoDefault = no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
@@ -164,9 +168,8 @@ def assert_almost_equal(
                 assert_class_equal(left, right, obj=obj)
 
         # if we have "equiv", this becomes True
-        check_dtype = bool(check_dtype)
         _testing.assert_almost_equal(
-            left, right, check_dtype=check_dtype, rtol=rtol, atol=atol, **kwargs
+            left, right, check_dtype=bool(check_dtype), rtol=rtol, atol=atol, **kwargs
         )
 
 
@@ -676,7 +679,7 @@ def assert_numpy_array_equal(
     left,
     right,
     strict_nan=False,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     err_msg=None,
     check_same=None,
     obj="numpy array",
@@ -755,7 +758,7 @@ def assert_numpy_array_equal(
 def assert_extension_array_equal(
     left,
     right,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     index_values=None,
     check_less_precise=no_default,
     check_exact=False,
@@ -848,7 +851,7 @@ def assert_extension_array_equal(
         _testing.assert_almost_equal(
             left_valid,
             right_valid,
-            check_dtype=check_dtype,
+            check_dtype=bool(check_dtype),
             rtol=rtol,
             atol=atol,
             obj="ExtensionArray",
@@ -860,7 +863,7 @@ def assert_extension_array_equal(
 def assert_series_equal(
     left,
     right,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     check_index_type="equiv",
     check_series_type=True,
     check_less_precise=no_default,
@@ -1054,7 +1057,7 @@ def assert_series_equal(
             right._values,
             rtol=rtol,
             atol=atol,
-            check_dtype=check_dtype,
+            check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
         )
@@ -1090,7 +1093,7 @@ def assert_series_equal(
             right._values,
             rtol=rtol,
             atol=atol,
-            check_dtype=check_dtype,
+            check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
         )
@@ -1115,7 +1118,7 @@ def assert_series_equal(
 def assert_frame_equal(
     left,
     right,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     check_index_type="equiv",
     check_column_type="equiv",
     check_frame_type=True,
@@ -1393,8 +1396,8 @@ def assert_sp_array_equal(left, right):
     assert_numpy_array_equal(left.sp_values, right.sp_values)
 
     # SparseIndex comparison
-    assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
-    assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
+    assert isinstance(left.sp_index, SparseIndex)
+    assert isinstance(right.sp_index, SparseIndex)
 
     left_index = left.sp_index
     right_index = right.sp_index
