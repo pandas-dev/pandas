@@ -605,7 +605,7 @@ In the case where ``df.columns`` is not unique, use :meth:`DataFrame.isetitem`:
 ``numeric_only`` default value
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Across the DataFrame and DataFrameGroupBy operations such as
+Across the :class:`DataFrame`, :class:`.DataFrameGroupBy`, and :class:`.Resampler` operations such as
 ``min``, ``sum``, and ``idxmax``, the default
 value of the ``numeric_only`` argument, if it exists at all, was inconsistent.
 Furthermore, operations with the default value ``None`` can lead to surprising
@@ -644,6 +644,11 @@ gained the ``numeric_only`` argument.
 - :meth:`.GroupBy.std`
 - :meth:`.GroupBy.sem`
 - :meth:`.DataFrameGroupBy.quantile`
+- :meth:`.Resampler.mean`
+- :meth:`.Resampler.median`
+- :meth:`.Resampler.sem`
+- :meth:`.Resampler.std`
+- :meth:`.Resampler.var`
 
 .. _whatsnew_150.deprecations.other:
 
