@@ -60,21 +60,14 @@ def test_set_column_with_index(using_copy_on_write):
     idx.values[0] = 0
     tm.assert_series_equal(df["c"], Series([1, 2, 3], name="c"))
 
-    # however, in case of a RangeIndex, we currently don't copy the cached
-    # "materialized" values
     idx = RangeIndex(1, 4)
     arr = idx.values
 
     df["d"] = idx
 
-    if using_copy_on_write:
-        assert not np.shares_memory(df["d"].values, arr)
-        arr[0] = 0
-        tm.assert_series_equal(df["d"], Series([1, 2, 3], name="d"))
-    else:
-        assert np.shares_memory(df["d"].values, arr)
-        arr[0] = 0
-        tm.assert_series_equal(df["d"], Series([0, 2, 3], name="d"))
+    assert not np.shares_memory(df["d"].values, arr)
+    arr[0] = 0
+    tm.assert_series_equal(df["d"], Series([1, 2, 3], name="d"))
 
 
 def test_set_columns_with_dataframe(using_copy_on_write):
