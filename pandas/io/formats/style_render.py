@@ -908,7 +908,7 @@ class StylerRenderer:
                 f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
             )
         elif clines is not None:
-            data_len = len(row_body_cells) if "data" in clines else 0
+            data_len = len(row_body_cells) if "data" in clines and d["body"] else 0
 
             d["clines"] = defaultdict(list)
             visible_row_indexes: list[int] = [
