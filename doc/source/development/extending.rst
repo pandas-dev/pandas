@@ -77,7 +77,7 @@ Extension types
 .. note::
 
    The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs were
-   experimental prior to pandas 1.4. Starting with version 1.4, future changes will follow
+   experimental prior to pandas 1.5. Starting with version 1.5, future changes will follow
    the :ref:`pandas deprecation policy <policies.version>`.
 
 pandas defines an interface for implementing data types and arrays that *extend*
