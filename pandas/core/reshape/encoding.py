@@ -330,6 +330,8 @@ def from_dummies(
 
     Inverts the operation performed by :func:`~pandas.get_dummies`.
 
+    .. versionadded:: 1.5.0
+
     Parameters
     ----------
     data : DataFrame
