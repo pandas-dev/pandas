@@ -1176,9 +1176,10 @@ cdef class TextReader:
             return result, na_count
 
         elif is_integer_dtype(dtype):
-            do_try_uint64 = False
             if user_dtype and dtype == 'uint64':
-                do_try_uint64 = True
+                result = _try_uint64(self.parser, i, start,
+                                     end, na_filter, na_hashset)
+                na_count = 0
             else:
                 try:
                     result, na_count = _try_int64(self.parser, i, start,
@@ -1189,12 +1190,9 @@ cdef class TextReader:
                 except OverflowError as err:
                     if user_dtype and dtype == 'int64':
                         raise err
-                    do_try_uint64 = True
-
-            if do_try_uint64:
-                result = _try_uint64(self.parser, i, start, end,
-                                     na_filter, na_hashset)
-                na_count = 0
+                    result = _try_uint64(self.parser, i, start,
+                                         end, na_filter, na_hashset)
+                    na_count = 0
 
             if result is not None and dtype not in ('int64', 'uint64'):
                 casted = result.astype(dtype)
