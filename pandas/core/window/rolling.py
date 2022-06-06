@@ -33,6 +33,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+from pandas.errors import DataError
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -54,10 +55,7 @@ from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
-from pandas.core.base import (
-    DataError,
-    SelectionMixin,
-)
+from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -923,6 +921,8 @@ class Window(BaseWindow):
         If ``0`` or ``'index'``, roll across the rows.
 
         If ``1`` or ``'columns'``, roll across the columns.
+
+        For `Series` this parameter is unused and defaults to 0.
 
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.

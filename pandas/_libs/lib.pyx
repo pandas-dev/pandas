@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+from typing import Literal
 import warnings
 
 cimport cython
@@ -2141,7 +2142,7 @@ cpdef bint is_interval_array(ndarray values):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        str closed = None
+        str inclusive = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
@@ -2154,15 +2155,15 @@ cpdef bint is_interval_array(ndarray values):
         val = values[i]
 
         if is_interval(val):
-            if closed is None:
-                closed = val.closed
+            if inclusive is None:
+                inclusive = val.inclusive
                 numeric = (
                     util.is_float_object(val.left)
                     or util.is_integer_object(val.left)
                 )
                 td64 = is_timedelta(val.left)
                 dt64 = PyDateTime_Check(val.left)
-            elif val.closed != closed:
+            elif val.inclusive != inclusive:
                 # mismatched closedness
                 return False
             elif numeric:
@@ -2185,7 +2186,7 @@ cpdef bint is_interval_array(ndarray values):
         else:
             return False
 
-    if closed is None:
+    if inclusive is None:
         # we saw all-NAs, no actual Intervals
         return False
     return True
@@ -2791,7 +2792,7 @@ cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
     return result
 
 
-class NoDefault(Enum):
+class _NoDefault(Enum):
     # We make this an Enum
     # 1) because it round-trips through pickle correctly (see GH#40397)
     # 2) because mypy does not understand singletons
@@ -2802,7 +2803,8 @@ class NoDefault(Enum):
 
 
 # Note: no_default is exported to the public API in pandas.api.extensions
-no_default = NoDefault.no_default  # Sentinel indicating the default value.
+no_default = _NoDefault.no_default  # Sentinel indicating the default value.
+NoDefault = Literal[_NoDefault.no_default]
 
 
 @cython.boundscheck(False)

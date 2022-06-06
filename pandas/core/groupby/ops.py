@@ -416,16 +416,14 @@ class WrappedCythonOp:
 
         if isinstance(values.dtype, StringDtype):
             dtype = values.dtype
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(res_values, dtype=dtype)
+            string_array_cls = dtype.construct_array_type()
+            return string_array_cls._from_sequence(res_values, dtype=dtype)
 
         elif isinstance(values.dtype, BaseMaskedDtype):
             new_dtype = self._get_result_dtype(values.dtype.numpy_dtype)
             dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
-            # error: Incompatible types in assignment (expression has type
-            # "Type[BaseMaskedArray]", variable has type "Type[BaseStringArray]")
-            cls = dtype.construct_array_type()  # type: ignore[assignment]
-            return cls._from_sequence(res_values, dtype=dtype)
+            masked_array_cls = dtype.construct_array_type()
+            return masked_array_cls._from_sequence(res_values, dtype=dtype)
 
         elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
             # In to_cython_values we took a view as M8[ns]

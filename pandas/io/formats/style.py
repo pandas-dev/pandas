@@ -1153,10 +1153,12 @@ class Styler(StylerRenderer):
             clines=clines,
         )
 
-        encoding = encoding or get_option("styler.render.encoding")
-        return save_to_buffer(
-            latex, buf=buf, encoding=None if buf is None else encoding
+        encoding = (
+            (encoding or get_option("styler.render.encoding"))
+            if isinstance(buf, str)  # i.e. a filepath
+            else encoding
         )
+        return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @Substitution(buf=buf, encoding=encoding)
     def to_html(
@@ -1273,7 +1275,6 @@ class Styler(StylerRenderer):
         if caption is not None:
             obj.set_caption(caption)
 
-        encoding = encoding or get_option("styler.render.encoding")
         # Build HTML string..
         html = obj._render_html(
             sparse_index=sparse_index,
@@ -1281,7 +1282,7 @@ class Styler(StylerRenderer):
             max_rows=max_rows,
             max_cols=max_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding,
+            encoding=encoding or get_option("styler.render.encoding"),
             doctype_html=doctype_html,
             **kwargs,
         )
@@ -2282,7 +2283,7 @@ class Styler(StylerRenderer):
         obj = self.data.index if axis == 0 else self.data.columns
         pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
-        props = "position:sticky; background-color:white;"
+        props = "position:sticky; background-color:inherit;"
         if not isinstance(obj, pd.MultiIndex):
             # handling MultiIndexes requires different CSS
 

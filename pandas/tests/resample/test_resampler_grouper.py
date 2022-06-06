@@ -408,7 +408,9 @@ def test_resample_groupby_agg():
     df["date"] = pd.to_datetime(df["date"])
 
     resampled = df.groupby("cat").resample("Y", on="date")
-    expected = resampled.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
     tm.assert_frame_equal(result, expected)
@@ -462,7 +464,6 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     expected = DataFrame(
         {
             "key": ["A"] * 3 + ["B"] * 3,
-            "date": pd.to_datetime(["2020-01-01", "2020-01-06", "2020-01-13"] * 2),
             "col1": [0, 5, 12] * 2,
             "col_object": ["val"] * 3 + [np.nan] * 3,
         },

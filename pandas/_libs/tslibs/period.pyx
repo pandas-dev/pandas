@@ -47,9 +47,11 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     NPY_FR_us,
+    astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
+    get_timedelta64_value,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
@@ -70,7 +72,7 @@ from pandas._libs.tslibs.timedeltas cimport (
     is_any_td_scalar,
 )
 
-from pandas._libs.tslibs.conversion import ensure_datetime64ns
+from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
@@ -980,7 +982,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
             dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
             dta = periodarr.base.view("M8[D]")
-        return ensure_datetime64ns(dta)
+        return astype_overflowsafe(dta, dtype=DT64NS_DTYPE)
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
@@ -1680,16 +1682,24 @@ cdef class _Period(PeriodMixin):
 
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
-            int64_t nanos, base_nanos
+            int64_t inc
 
-        if is_tick_object(self.freq):
-            nanos = delta_to_nanoseconds(other)
-            base_nanos = self.freq.base.nanos
-            if nanos % base_nanos == 0:
-                ordinal = self.ordinal + (nanos // base_nanos)
-                return Period(ordinal=ordinal, freq=self.freq)
-        raise IncompatibleFrequency("Input cannot be converted to "
-                                    f"Period(freq={self.freqstr})")
+        if not is_tick_object(self.freq):
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})")
+
+        if util.is_timedelta64_object(other) and get_timedelta64_value(other) == NPY_NAT:
+            # i.e. np.timedelta64("nat")
+            return NaT
+
+        try:
+            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+        except ValueError as err:
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})") from err
+        # TODO: overflow-check here
+        ordinal = self.ordinal + inc
+        return Period(ordinal=ordinal, freq=self.freq)
 
     def _add_offset(self, other) -> "Period":
         # Non-Tick DateOffset other
@@ -1718,10 +1728,12 @@ cdef class _Period(PeriodMixin):
         elif util.is_integer_object(other):
             ordinal = self.ordinal + other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
-        elif (PyDateTime_Check(other) or
-              is_period_object(other) or util.is_datetime64_object(other)):
+
+        elif is_period_object(other):
             # can't add datetime-like
-            # GH#17983
+            # GH#17983; can't just return NotImplemented bc we get a RecursionError
+            #  when called via np.add.reduce see TestNumpyReductions.test_add
+            #  in npdev build
             sname = type(self).__name__
             oname = type(other).__name__
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
@@ -1740,16 +1752,12 @@ cdef class _Period(PeriodMixin):
                 return NaT
             return NotImplemented
 
-        elif is_any_td_scalar(other):
-            neg_other = -other
-            return self + neg_other
-        elif is_offset_object(other):
-            # Non-Tick DateOffset
-            neg_other = -other
-            return self + neg_other
-        elif util.is_integer_object(other):
-            ordinal = self.ordinal - other * self.freq.n
-            return Period(ordinal=ordinal, freq=self.freq)
+        elif (
+            is_any_td_scalar(other)
+            or is_offset_object(other)
+            or util.is_integer_object(other)
+        ):
+            return self + (-other)
         elif is_period_object(other):
             self._require_matching_freq(other)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
@@ -2202,7 +2210,7 @@ cdef class _Period(PeriodMixin):
         2018
 
         If the fiscal year starts in April (`Q-MAR`), the first quarter of
-        2018 will start in April 2017. `year` will then be 2018, but `qyear`
+        2018 will start in April 2017. `year` will then be 2017, but `qyear`
         will be the fiscal year, 2018.
 
         >>> per = pd.Period('2018Q1', freq='Q-MAR')
@@ -2253,7 +2261,7 @@ cdef class _Period(PeriodMixin):
     @property
     def daysinmonth(self) -> int:
         """
-        Get the total number of days of the month that the Period falls in.
+        Get the total number of days of the month that this period falls on.
 
         Returns
         -------

@@ -55,7 +55,7 @@ class TestAttributes:
         # GH27219
         tuples = [(left, left), (left, right), np.nan]
         expected = np.array([closed != "both", False, False])
-        result = constructor.from_tuples(tuples, closed=closed).is_empty
+        result = constructor.from_tuples(tuples, inclusive=closed).is_empty
         tm.assert_numpy_array_equal(result, expected)
 
 
@@ -63,23 +63,23 @@ class TestMethods:
     @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
     def test_set_closed(self, closed, new_closed):
         # GH 21670
-        array = IntervalArray.from_breaks(range(10), closed=closed)
+        array = IntervalArray.from_breaks(range(10), inclusive=closed)
         result = array.set_closed(new_closed)
-        expected = IntervalArray.from_breaks(range(10), closed=new_closed)
+        expected = IntervalArray.from_breaks(range(10), inclusive=new_closed)
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "other",
         [
-            Interval(0, 1, closed="right"),
-            IntervalArray.from_breaks([1, 2, 3, 4], closed="right"),
+            Interval(0, 1, inclusive="right"),
+            IntervalArray.from_breaks([1, 2, 3, 4], inclusive="right"),
         ],
     )
     def test_where_raises(self, other):
         # GH#45768 The IntervalArray methods raises; the Series method coerces
-        ser = pd.Series(IntervalArray.from_breaks([1, 2, 3, 4], closed="left"))
+        ser = pd.Series(IntervalArray.from_breaks([1, 2, 3, 4], inclusive="left"))
         mask = np.array([True, False, True])
-        match = "'value.closed' is 'right', expected 'left'."
+        match = "'value.inclusive' is 'right', expected 'left'."
         with pytest.raises(ValueError, match=match):
             ser.array._where(mask, other)
 
@@ -89,15 +89,15 @@ class TestMethods:
 
     def test_shift(self):
         # https://github.com/pandas-dev/pandas/issues/31495, GH#22428, GH#31502
-        a = IntervalArray.from_breaks([1, 2, 3])
+        a = IntervalArray.from_breaks([1, 2, 3], "right")
         result = a.shift()
         # int -> float
-        expected = IntervalArray.from_tuples([(np.nan, np.nan), (1.0, 2.0)])
+        expected = IntervalArray.from_tuples([(np.nan, np.nan), (1.0, 2.0)], "right")
         tm.assert_interval_array_equal(result, expected)
 
     def test_shift_datetime(self):
         # GH#31502, GH#31504
-        a = IntervalArray.from_breaks(date_range("2000", periods=4))
+        a = IntervalArray.from_breaks(date_range("2000", periods=4), "right")
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
@@ -135,11 +135,11 @@ class TestSetitem:
         tm.assert_extension_array_equal(result, expected)
 
     def test_setitem_mismatched_closed(self):
-        arr = IntervalArray.from_breaks(range(4))
+        arr = IntervalArray.from_breaks(range(4), "right")
         orig = arr.copy()
         other = arr.set_closed("both")
 
-        msg = "'value.closed' is 'both', expected 'right'"
+        msg = "'value.inclusive' is 'both', expected 'right'"
         with pytest.raises(ValueError, match=msg):
             arr[0] = other[0]
         with pytest.raises(ValueError, match=msg):
@@ -156,13 +156,13 @@ class TestSetitem:
             arr[:] = other[::-1].astype("category")
 
         # empty list should be no-op
-        arr[:0] = []
+        arr[:0] = IntervalArray.from_breaks([], "right")
         tm.assert_interval_array_equal(arr, orig)
 
 
 def test_repr():
     # GH 25022
-    arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
+    arr = IntervalArray.from_tuples([(0, 1), (1, 2)], "right")
     result = repr(arr)
     expected = (
         "<IntervalArray>\n"
@@ -254,7 +254,7 @@ def test_arrow_extension_type():
     p2 = ArrowIntervalType(pa.int64(), "left")
     p3 = ArrowIntervalType(pa.int64(), "right")
 
-    assert p1.closed == "left"
+    assert p1.inclusive == "left"
     assert p1 == p2
     assert not p1 == p3
     assert hash(p1) == hash(p2)
@@ -271,7 +271,7 @@ def test_arrow_array():
 
     result = pa.array(intervals)
     assert isinstance(result.type, ArrowIntervalType)
-    assert result.type.closed == intervals.closed
+    assert result.type.inclusive == intervals.inclusive
     assert result.type.subtype == pa.int64()
     assert result.storage.field("left").equals(pa.array([1, 2, 3, 4], type="int64"))
     assert result.storage.field("right").equals(pa.array([2, 3, 4, 5], type="int64"))
@@ -302,7 +302,7 @@ def test_arrow_array_missing():
 
     result = pa.array(arr)
     assert isinstance(result.type, ArrowIntervalType)
-    assert result.type.closed == arr.closed
+    assert result.type.inclusive == arr.inclusive
     assert result.type.subtype == pa.float64()
 
     # fields have missing values (not NaN)
@@ -386,13 +386,60 @@ def test_from_arrow_from_raw_struct_array():
     import pyarrow as pa
 
     arr = pa.array([{"left": 0, "right": 1}, {"left": 1, "right": 2}])
-    dtype = pd.IntervalDtype(np.dtype("int64"), closed="neither")
+    dtype = pd.IntervalDtype(np.dtype("int64"), inclusive="neither")
 
     result = dtype.__from_arrow__(arr)
     expected = IntervalArray.from_breaks(
-        np.array([0, 1, 2], dtype="int64"), closed="neither"
+        np.array([0, 1, 2], dtype="int64"), inclusive="neither"
     )
     tm.assert_extension_array_equal(result, expected)
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_interval_error_and_warning():
+    # GH 40245
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        Interval(0, 1, closed="both", inclusive="both")
+
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        Interval(0, 1, closed="both")
+
+
+def test_interval_array_error_and_warning():
+    # GH 40245
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        IntervalArray([Interval(0, 1), Interval(1, 5)], closed="both", inclusive="both")
+
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        IntervalArray([Interval(0, 1), Interval(1, 5)], closed="both")
+
+
+@pyarrow_skip
+def test_arrow_interval_type_error_and_warning():
+    # GH 40245
+    import pyarrow as pa
+
+    from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
+
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        ArrowIntervalType(pa.int64(), closed="both", inclusive="both")
+
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        ArrowIntervalType(pa.int64(), closed="both")
