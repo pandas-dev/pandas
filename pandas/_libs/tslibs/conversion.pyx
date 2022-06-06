@@ -193,45 +193,6 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-def ensure_datetime64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray with dtype datetime64[ns]
-    """
-    if (<object>arr).dtype.byteorder == ">":
-        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
-        dtype = arr.dtype
-        arr = arr.astype(dtype.newbyteorder("<"))
-
-    return astype_overflowsafe(arr, DT64NS_DTYPE, copy=copy)
-
-
-def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray[timedelta64[ns]]
-    """
-    assert arr.dtype.kind == "m", arr.dtype
-
-    return astype_overflowsafe(arr, dtype=TD64NS_DTYPE, copy=copy)
-
-
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 

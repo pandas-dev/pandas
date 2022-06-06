@@ -319,6 +319,10 @@ cpdef ndarray astype_overflowsafe(
             "datetime64/timedelta64 values and dtype must have a unit specified"
         )
 
+    if (<object>values).dtype.byteorder == ">":
+        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
+        values = values.astype(values.dtype.newbyteorder("<"))
+
     if from_unit == to_unit:
         # Check this before allocating result for perf, might save some memory
         if copy:
