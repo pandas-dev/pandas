@@ -21,13 +21,11 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
     Timestamp,
+    astype_overflowsafe,
     iNaT,
     to_offset,
 )
-from pandas._libs.tslibs.conversion import (
-    ensure_timedelta64ns,
-    precision_from_unit,
-)
+from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
@@ -1044,7 +1042,7 @@ def sequence_to_td64ns(
     elif is_timedelta64_dtype(data.dtype):
         if data.dtype != TD64NS_DTYPE:
             # non-nano unit
-            data = ensure_timedelta64ns(data)
+            data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
             copy = False
 
     else:
@@ -1086,7 +1084,7 @@ def ints_to_td64ns(data, unit="ns"):
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        data = ensure_timedelta64ns(data)
+        data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
 
         # the astype conversion makes a copy, so we can avoid re-copying later
         copy_made = True

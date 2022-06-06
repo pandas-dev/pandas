@@ -7,6 +7,7 @@ from contextlib import (
 import re
 import sys
 from typing import (
+    Literal,
     Sequence,
     Type,
     cast,
@@ -17,7 +18,9 @@ import warnings
 @contextmanager
 def assert_produces_warning(
     expected_warning: type[Warning] | bool | None = Warning,
-    filter_level="always",
+    filter_level: Literal[
+        "error", "ignore", "always", "default", "module", "once"
+    ] = "always",
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
     match: str | None = None,
