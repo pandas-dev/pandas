@@ -50,6 +50,7 @@ def arithmetic_numba_supported_operators(request):
 
 
 @td.skip_if_no("numba")
+@pytest.mark.filterwarnings("ignore::numba.NumbaPerformanceWarning")
 class TestEngine:
     @pytest.mark.parametrize("jit", [True, False])
     def test_numba_vs_cython_apply(self, jit, nogil, parallel, nopython, center, step):
@@ -329,6 +330,7 @@ def test_invalid_kwargs_nopython():
 
 @td.skip_if_no("numba")
 @pytest.mark.slow
+@pytest.mark.filterwarnings("ignore::numba.NumbaPerformanceWarning")
 class TestTableMethod:
     def test_table_series_valueerror(self):
         def f(x):

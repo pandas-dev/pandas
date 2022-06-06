@@ -24,6 +24,7 @@ pytestmark = pytest.mark.skipif(
 
 
 @td.skip_if_no("numba")
+@pytest.mark.filterwarnings("ignore::numba.NumbaPerformanceWarning")
 class TestEWM:
     def test_invalid_update(self):
         df = DataFrame({"a": range(5), "b": range(5)})
