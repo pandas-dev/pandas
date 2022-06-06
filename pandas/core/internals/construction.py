@@ -326,7 +326,7 @@ def ndarray_to_mgr(
     else:
         # by definition an array here
         # the dtypes will be coerced to a single dtype
-        values = _prep_ndarray(values, copy=copy_on_sanitize)
+        values = _prep_ndarraylike(values, copy=copy_on_sanitize)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         # GH#40110 see similar check inside sanitize_array
@@ -341,7 +341,7 @@ def ndarray_to_mgr(
             allow_2d=True,
         )
 
-    # _prep_ndarray ensures that values.ndim == 2 at this point
+    # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
@@ -537,7 +537,7 @@ def treat_as_nested(data) -> bool:
 # ---------------------------------------------------------------------
 
 
-def _prep_ndarray(
+def _prep_ndarraylike(
     values, copy: bool = True
 ) -> np.ndarray | DatetimeArray | TimedeltaArray:
     if isinstance(values, TimedeltaArray) or (
