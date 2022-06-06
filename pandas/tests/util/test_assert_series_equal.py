@@ -163,7 +163,7 @@ def test_series_equal_order_mismatch(check_like):
     s1 = Series([1, 2, 3], index=["a", "b", "c"])
     s2 = Series([3, 2, 1], index=["c", "b", "a"])
 
-    if not check_like:  # Do not ignore row-column orderings.
+    if not check_like:  # Do not ignore index ordering.
         with pytest.raises(AssertionError, match="Series.index are different"):
             tm.assert_series_equal(s1, s2, check_like=check_like)
     else:
@@ -175,7 +175,7 @@ def test_series_equal_index_mismatch(check_index):
     s1 = Series([1, 2, 3], index=["a", "b", "c"])
     s2 = Series([1, 2, 3], index=["c", "b", "a"])
 
-    if check_index:  # Do not ignore row-column orderings.
+    if check_index:  # Do not ignore index.
         with pytest.raises(AssertionError, match="Series.index are different"):
             tm.assert_series_equal(s1, s2, check_index=check_index)
     else:
