@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Iterable
 
 import numpy as np
 
@@ -43,7 +43,7 @@ class TablePlotter:
             hcells = sum([self._shape(df)[1] for df in left] + [self._shape(right)[1]])
         return hcells, vcells
 
-    def plot(self, left, right, labels: Sequence[str] = (), vertical: bool = True):
+    def plot(self, left, right, labels: Iterable[str] = (), vertical: bool = True):
         """
         Plot left / right DataFrames in specified layout.
 
