@@ -99,6 +99,7 @@ from pandas._libs.tslibs.offsets cimport (
 )
 from pandas._libs.tslibs.timedeltas cimport (
     delta_to_nanoseconds,
+    ensure_td64ns,
     is_any_td_scalar,
 )
 
@@ -353,16 +354,25 @@ cdef class _Timestamp(ABCTimestamp):
             raise NotImplementedError(self._reso)
 
         if is_any_td_scalar(other):
-            if (
-                is_timedelta64_object(other)
-                and get_datetime64_unit(other) == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-            ):
-                # TODO: deprecate allowing this?  We only get here
-                #  with test_timedelta_add_timestamp_interval
-                other = np.timedelta64(other.view("i8"), "ns")
-            # TODO: disallow round_ok, allow_year_month?
+            if is_timedelta64_object(other):
+                other_reso = get_datetime64_unit(other)
+                if (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+                ):
+                    # TODO: deprecate allowing this?  We only get here
+                    #  with test_timedelta_add_timestamp_interval
+                    other = np.timedelta64(other.view("i8"), "ns")
+                elif (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
+                ):
+                    # TODO: deprecate allowing these?  or handle more like the
+                    #  corresponding DateOffsets?
+                    # TODO: no tests get here
+                    other = ensure_td64ns(other)
+
+            # TODO: disallow round_ok
             nanos = delta_to_nanoseconds(
-                other, reso=self._reso, round_ok=True, allow_year_month=True
+                other, reso=self._reso, round_ok=True
             )
             try:
                 result = type(self)(self.value + nanos, tz=self.tzinfo)
