@@ -313,7 +313,8 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
-IntervalClosedType = Literal["left", "right", "both", "neither"]
+IntervalLeftRight = Literal["left", "right"]
+IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]

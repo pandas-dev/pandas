@@ -105,6 +105,24 @@ def pytest_addoption(parser):
     )
 
 
+def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
+    """Ignore doctest warning.
+
+    Parameters
+    ----------
+    item : pytest.Item
+        pytest test item.
+    path : str
+        Module path to Python object, e.g. "pandas.core.frame.DataFrame.append". A
+        warning will be filtered when item.name ends with in given path. So it is
+        sufficient to specify e.g. "DataFrame.append".
+    message : str
+        Message to be filtered.
+    """
+    if item.name.endswith(path):
+        item.add_marker(pytest.mark.filterwarnings(f"ignore:{message}"))
+
+
 def pytest_collection_modifyitems(items, config):
     skip_slow = config.getoption("--skip-slow")
     only_slow = config.getoption("--only-slow")
@@ -117,6 +135,23 @@ def pytest_collection_modifyitems(items, config):
         (pytest.mark.db, "db", skip_db, "--skip-db"),
     ]
 
+    # Warnings from doctests that can be ignored; place reason in comment above.
+    # Each entry specifies (path, message) - see the ignore_doctest_warning function
+    ignored_doctest_warnings = [
+        # Deprecations where the docstring will emit a warning
+        ("DataFrame.append", "The frame.append method is deprecated"),
+        ("Series.append", "The series.append method is deprecated"),
+        ("dtypes.common.is_categorical", "is_categorical is deprecated"),
+        ("Categorical.replace", "Categorical.replace is deprecated"),
+        ("dtypes.common.is_extension_type", "'is_extension_type' is deprecated"),
+        ("Index.is_mixed", "Index.is_mixed is deprecated"),
+        ("MultiIndex._is_lexsorted", "MultiIndex.is_lexsorted is deprecated"),
+        # Docstring divides by zero to show behavior difference
+        ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        # Docstring demonstrates the call raises a warning
+        ("_validators.validate_axis_style_args", "Use named arguments"),
+    ]
+
     for item in items:
         if config.getoption("--doctest-modules") or config.getoption(
             "--doctest-cython", default=False
@@ -124,6 +159,10 @@ def pytest_collection_modifyitems(items, config):
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
+
+            for path, message in ignored_doctest_warnings:
+                ignore_doctest_warning(item, path, message)
+
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
@@ -567,7 +606,7 @@ indices_dict = {
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100),
+    "interval": tm.makeIntervalIndex(100, inclusive="right"),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -895,8 +934,14 @@ def rand_series_with_duplicate_datetimeindex():
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
-        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
+        (
+            Interval(left=0, right=5, inclusive="right"),
+            IntervalDtype("int64", inclusive="right"),
+        ),
+        (
+            Interval(left=0.1, right=0.5, inclusive="right"),
+            IntervalDtype("float64", inclusive="right"),
+        ),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
@@ -1797,3 +1842,11 @@ def using_array_manager():
     Fixture to check if the array manager is being used.
     """
     return pd.options.mode.data_manager == "array"
+
+
+@pytest.fixture
+def using_copy_on_write():
+    """
+    Fixture to check if Copy-on-Write is enabled.
+    """
+    return False

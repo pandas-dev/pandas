@@ -1354,3 +1354,28 @@ def test_deprecate_numeric_only(
         # Doesn't have numeric_only argument and fails on nuisance columns
         with pytest.raises(TypeError, match=r"unsupported operand type"):
             method(*args, **kwargs)
+
+
+@pytest.mark.parametrize("dtype", [int, float, object])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"percentiles": [0.10, 0.20, 0.30], "include": "all", "exclude": None},
+        {"percentiles": [0.10, 0.20, 0.30], "include": None, "exclude": ["int"]},
+        {"percentiles": [0.10, 0.20, 0.30], "include": ["int"], "exclude": None},
+    ],
+)
+def test_groupby_empty_dataset(dtype, kwargs):
+    # GH#41575
+    df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
+    df["B"] = df["B"].astype(int)
+    df["C"] = df["C"].astype(float)
+
+    result = df.iloc[:0].groupby("A").describe(**kwargs)
+    expected = df.groupby("A").describe(**kwargs).reset_index(drop=True).iloc[:0]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.iloc[:0].groupby("A").B.describe(**kwargs)
+    expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
+    expected.index = Index([])
+    tm.assert_frame_equal(result, expected)
