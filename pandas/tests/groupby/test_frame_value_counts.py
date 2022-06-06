@@ -308,6 +308,66 @@ def test_data_frame_value_counts_dropna(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
+@pytest.mark.parametrize("as_index", [False, True])
+@pytest.mark.parametrize("observed", [False, True])
+@pytest.mark.parametrize(
+    "normalize, expected_data",
+    [
+        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (
+            True,
+            np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
+        ),
+    ],
+)
+def test_categorical_single_grouper_with_only_observed_categories(
+    education_df, as_index, observed, normalize, expected_data
+):
+
+    # Test single categorical grouper with only observed grouping categories
+    # when non-groupers are also categorical
+
+    gp = education_df.astype("category").groupby(
+        "country", as_index=as_index, observed=observed
+    )
+    result = gp.value_counts(normalize=normalize)
+
+    expected_index = MultiIndex.from_tuples(
+        [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("FR", "female", "low"),
+            ("FR", "female", "medium"),
+            ("FR", "male", "high"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "female", "low"),
+            ("US", "female", "medium"),
+            ("US", "male", "high"),
+            ("US", "male", "medium"),
+        ],
+        names=["country", "gender", "education"],
+    )
+
+    expected_series = Series(
+        data=expected_data,
+        index=expected_index,
+    )
+    for i in range(3):
+        expected_series.index = expected_series.index.set_levels(
+            CategoricalIndex(expected_series.index.levels[i]), level=i
+        )
+
+    if as_index:
+        tm.assert_series_equal(result, expected_series)
+    else:
+        expected = expected_series.reset_index(
+            name="proportion" if normalize else "count"
+        )
+        tm.assert_frame_equal(result, expected)
+
+
 def assert_categorical_single_grouper(
     education_df, as_index, observed, expected_index, normalize, expected_data
 ):
