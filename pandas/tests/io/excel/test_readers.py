@@ -1212,6 +1212,42 @@ class TestReaders:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("test1" + read_ext, nrows="5")
 
+    @pytest.mark.parametrize(
+        "filename,sheet_name,header,index_col,skiprows",
+        [
+            ("testmultiindex", "mi_column", [0, 1], 0, None),
+            ("testmultiindex", "mi_index", None, [0, 1], None),
+            ("testmultiindex", "both", [0, 1], [0, 1], None),
+            ("testmultiindex", "mi_column_name", [0, 1], 0, None),
+            ("testskiprows", "skiprows_list", None, None, [0, 2]),
+            ("testskiprows", "skiprows_list", None, None, lambda x: x == 0 or x == 2),
+        ],
+    )
+    def test_read_excel_nrows_params(
+        self, read_ext, filename, sheet_name, header, index_col, skiprows
+    ):
+        """
+        For various parameters, we should get the same result whether we
+        limit the rows during load (nrows=3) or after (df.iloc[:3]).
+        """
+        # GH 46894
+        expected = pd.read_excel(
+            filename + read_ext,
+            sheet_name=sheet_name,
+            header=header,
+            index_col=index_col,
+            skiprows=skiprows,
+        ).iloc[:3]
+        actual = pd.read_excel(
+            filename + read_ext,
+            sheet_name=sheet_name,
+            header=header,
+            index_col=index_col,
+            skiprows=skiprows,
+            nrows=3,
+        )
+        tm.assert_frame_equal(actual, expected)
+
     def test_read_excel_squeeze(self, read_ext):
         # GH 12157
         f = "test_squeeze" + read_ext

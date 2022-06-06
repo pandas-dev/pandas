@@ -17,17 +17,13 @@ from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
     NaTType,
-    Period,
     Tick,
     Timedelta,
-    Timestamp,
+    astype_overflowsafe,
     iNaT,
     to_offset,
 )
-from pandas._libs.tslibs.conversion import (
-    ensure_timedelta64ns,
-    precision_from_unit,
-)
+from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
@@ -44,7 +40,6 @@ from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     TD64NS_DTYPE,
     is_dtype_equal,
     is_float_dtype,
@@ -55,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCMultiIndex,
@@ -63,7 +57,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
-from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import (
     ExtensionArray,
     IntegerArray,
@@ -76,10 +69,6 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
     from pandas import DataFrame
-    from pandas.core.arrays import (
-        DatetimeArray,
-        PeriodArray,
-    )
 
 
 def _field_accessor(name: str, alias: str, docstring: str):
@@ -454,60 +443,6 @@ class TimedeltaArray(dtl.TimelikeOps):
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
 
-    def _add_period(self, other: Period) -> PeriodArray:
-        """
-        Add a Period object.
-        """
-        # We will wrap in a PeriodArray and defer to the reversed operation
-        from pandas.core.arrays.period import PeriodArray
-
-        i8vals = np.broadcast_to(other.ordinal, self.shape)
-        oth = PeriodArray(i8vals, freq=other.freq)
-        return oth + self
-
-    def _add_datetime_arraylike(self, other):
-        """
-        Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.
-        """
-        if isinstance(other, np.ndarray):
-            # At this point we have already checked that dtype is datetime64
-            from pandas.core.arrays import DatetimeArray
-
-            other = DatetimeArray(other)
-
-        # defer to implementation in DatetimeArray
-        return other + self
-
-    def _add_datetimelike_scalar(self, other) -> DatetimeArray:
-        # adding a timedeltaindex to a datetimelike
-        from pandas.core.arrays import DatetimeArray
-
-        assert other is not NaT
-        other = Timestamp(other)
-        if other is NaT:
-            # In this case we specifically interpret NaT as a datetime, not
-            # the timedelta interpretation we would get by returning self + NaT
-            result = self.asi8.view("m8[ms]") + NaT.to_datetime64()
-            return DatetimeArray(result)
-
-        i8 = self.asi8
-        result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
-        result = self._maybe_mask_results(result)
-        dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
-        return DatetimeArray(result, dtype=dtype, freq=self.freq)
-
-    def _addsub_object_array(self, other, op):
-        # Add or subtract Array-like of objects
-        try:
-            # TimedeltaIndex can only operate with a subset of DateOffset
-            # subclasses.  Incompatible classes will raise AttributeError,
-            # which we re-raise as TypeError
-            return super()._addsub_object_array(other, op)
-        except AttributeError as err:
-            raise TypeError(
-                f"Cannot add/subtract non-tick DateOffset to {type(self).__name__}"
-            ) from err
-
     @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other) -> TimedeltaArray:
         if is_scalar(other):
@@ -826,7 +761,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
 
-    def total_seconds(self) -> np.ndarray:
+    def total_seconds(self) -> npt.NDArray[np.float64]:
         """
         Return total duration of each element expressed in seconds.
 
@@ -883,7 +818,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         return self._maybe_mask_results(1e-9 * self.asi8, fill_value=None)
 
-    def to_pytimedelta(self) -> np.ndarray:
+    def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
         Return Timedelta Array/Index as object ndarray of datetime.timedelta
         objects.
@@ -1000,7 +935,7 @@ def sequence_to_td64ns(
             data = list(data)
         data = np.array(data, copy=False)
     elif isinstance(data, ABCMultiIndex):
-        raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
+        raise TypeError("Cannot create a TimedeltaArray from a MultiIndex.")
     else:
         data = extract_array(data, extract_numpy=True)
 
@@ -1044,7 +979,7 @@ def sequence_to_td64ns(
     elif is_timedelta64_dtype(data.dtype):
         if data.dtype != TD64NS_DTYPE:
             # non-nano unit
-            data = ensure_timedelta64ns(data)
+            data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
             copy = False
 
     else:
@@ -1086,7 +1021,7 @@ def ints_to_td64ns(data, unit="ns"):
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        data = ensure_timedelta64ns(data)
+        data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
 
         # the astype conversion makes a copy, so we can avoid re-copying later
         copy_made = True

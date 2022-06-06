@@ -206,44 +206,24 @@ cpdef int64_t delta_to_nanoseconds(
     delta,
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
     bint round_ok=True,
-    bint allow_year_month=False,
 ) except? -1:
+    # Note: this will raise on timedelta64 with Y or M unit
+
     cdef:
-        _Timedelta td
         NPY_DATETIMEUNIT in_reso
-        int64_t n
+        int64_t n, value, factor
 
     if is_tick_object(delta):
         n = delta.n
         in_reso = delta._reso
-        if in_reso == reso:
-            return n
-        else:
-            td = Timedelta._from_value_and_reso(delta.n, reso=in_reso)
 
     elif isinstance(delta, _Timedelta):
-        td = delta
         n = delta.value
         in_reso = delta._reso
-        if in_reso == reso:
-            return n
 
     elif is_timedelta64_object(delta):
         in_reso = get_datetime64_unit(delta)
         n = get_timedelta64_value(delta)
-        if in_reso == reso:
-            return n
-        else:
-            # _from_value_and_reso does not support Year, Month, or unit-less,
-            #  so we have special handling if speciifed
-            try:
-                td = Timedelta._from_value_and_reso(n, reso=in_reso)
-            except NotImplementedError:
-                if allow_year_month:
-                    td64 = ensure_td64ns(delta)
-                    return delta_to_nanoseconds(td64, reso=reso)
-                else:
-                    raise
 
     elif PyDelta_Check(delta):
         in_reso = NPY_DATETIMEUNIT.NPY_FR_us
@@ -256,21 +236,31 @@ cpdef int64_t delta_to_nanoseconds(
         except OverflowError as err:
             raise OutOfBoundsTimedelta(*err.args) from err
 
-        if in_reso == reso:
-            return n
-        else:
-            td = Timedelta._from_value_and_reso(n, reso=in_reso)
-
     else:
         raise TypeError(type(delta))
 
-    try:
-        return td._as_reso(reso, round_ok=round_ok).value
-    except OverflowError as err:
-        unit_str = npy_unit_to_abbrev(reso)
-        raise OutOfBoundsTimedelta(
-            f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
-        ) from err
+    if reso < in_reso:
+        # e.g. ns -> us
+        factor = get_conversion_factor(reso, in_reso)
+        div, mod = divmod(n, factor)
+        if mod > 0 and not round_ok:
+            raise ValueError("Cannot losslessly convert units")
+
+        # Note that when mod > 0, we follow np.timedelta64 in always
+        #  rounding down.
+        value = div
+    else:
+        factor = get_conversion_factor(in_reso, reso)
+        try:
+            with cython.overflowcheck(True):
+                value = n * factor
+        except OverflowError as err:
+            unit_str = npy_unit_to_abbrev(reso)
+            raise OutOfBoundsTimedelta(
+                f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
+            ) from err
+
+    return value
 
 
 @cython.overflowcheck(True)
