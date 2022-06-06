@@ -605,26 +605,7 @@ class BaseWindow(SelectionMixin):
                     step=self.step,
                 )
                 self._check_window_bounds(start, end, len(x))
-
-                arithmetic_operators = [
-                    "sum",
-                    "mean",
-                    "median",
-                    "max",
-                    "min",
-                    "var",
-                    "std",
-                    "kurt",
-                    "skew",
-                    "count",
-                    "sem",
-                ]
-
-                if is_complex_dtype(x) and any(
-                    operator in func.__name__ for operator in arithmetic_operators
-                ):
-                    x = ensure_float64(x)
-
+                # x = ensure_float64(x)
                 return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
