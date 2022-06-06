@@ -55,6 +55,18 @@ def test_delta_to_nanoseconds_error():
         delta_to_nanoseconds(np.int32(3))
 
 
+def test_delta_to_nanoseconds_td64_MY_raises():
+    td = np.timedelta64(1234, "Y")
+
+    with pytest.raises(ValueError, match="0, 10"):
+        delta_to_nanoseconds(td)
+
+    td = np.timedelta64(1234, "M")
+
+    with pytest.raises(ValueError, match="1, 10"):
+        delta_to_nanoseconds(td)
+
+
 def test_huge_nanoseconds_overflow():
     # GH 32402
     assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
