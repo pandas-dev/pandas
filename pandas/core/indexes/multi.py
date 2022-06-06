@@ -1503,42 +1503,30 @@ class MultiIndex(Index):
 
     @doc(Index._get_grouper_for_level)
     def _get_grouper_for_level(
-        self, mapper, *, level=None
+        self,
+        mapper,
+        *,
+        level=None,
+        dropna: bool = True,
     ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
-        indexer = self.codes[level]
-        level_index = self.levels[level]
-
         if mapper is not None:
+            indexer = self.codes[level]
             # Handle group mapping function and return
             level_values = self.levels[level].take(indexer)
             grouper = level_values.map(mapper)
             return grouper, None, None
 
-        codes, uniques = algos.factorize(indexer, sort=True)
+        values = self.get_level_values(level)
+        na_sentinel = -1 if dropna else None
+        codes, uniques = algos.factorize(values, sort=True, na_sentinel=na_sentinel)
+        assert isinstance(uniques, Index)
 
-        if len(uniques) > 0 and uniques[0] == -1:
-            # Handle NAs
-            mask = indexer != -1
-            ok_codes, uniques = algos.factorize(indexer[mask], sort=True)
-
-            codes = np.empty(len(indexer), dtype=indexer.dtype)
-            codes[mask] = ok_codes
-            codes[~mask] = -1
-
-        if len(uniques) < len(level_index):
-            # Remove unobserved levels from level_index
-            level_index = level_index.take(uniques)
+        if self.levels[level]._can_hold_na:
+            grouper = uniques.take(codes, fill_value=True)
         else:
-            # break references back to us so that setting the name
-            # on the output of a groupby doesn't reflect back here.
-            level_index = level_index.copy()
+            grouper = uniques.take(codes)
 
-        if level_index._can_hold_na:
-            grouper = level_index.take(codes, fill_value=True)
-        else:
-            grouper = level_index.take(codes)
-
-        return grouper, codes, level_index
+        return grouper, codes, uniques
 
     @cache_readonly
     def inferred_type(self) -> str:
