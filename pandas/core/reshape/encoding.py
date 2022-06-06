@@ -372,6 +372,8 @@ def from_dummies(
     --------
     :func:`~pandas.get_dummies` : Convert ``Series`` or ``DataFrame`` to dummy
     codes.
+    :class:`~pandas.Categorical` : Represent a categorical variable in classic
+    R / S-plus fashion.
 
     Notes
     -----
