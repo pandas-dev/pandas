@@ -777,6 +777,7 @@ as the one being grouped. The transform function must:
   fast path is used starting from the *second* chunk.
 
 .. deprecated:: 1.5.0
+
     When using ``.transform`` on a grouped DataFrame and the transformation function
     returns a DataFrame, currently pandas does not align the result's index
     with the input's index. This behavior is deprecated and alignment will

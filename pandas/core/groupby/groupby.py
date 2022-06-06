@@ -452,6 +452,7 @@ user defined function, and no alternative execution attempts will be tried.
     see the examples below.
 
 .. deprecated:: 1.5.0
+
     When using ``.transform`` on a grouped DataFrame and the transformation function
     returns a DataFrame, currently pandas does not align the result's index
     with the input's index. This behavior is deprecated and alignment will

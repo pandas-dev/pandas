@@ -1213,6 +1213,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied.append(res)
 
         if emit_alignment_warning:
+            # GH#45648
             warnings.warn(
                 "In a future version of pandas, returning a DataFrame in "
                 "groupby.transform will align with the input's index. Apply "
