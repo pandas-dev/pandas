@@ -3087,9 +3087,8 @@ class TestFromScalar:
         assert np.all(result.dtypes == "M8[ns]")
         assert np.all(result == ts_naive)
 
-    @pytest.mark.parametrize("data", [[], np.array([])])
     def test_construction_empty_dataframe(self, data):
         # GH#46822
-        result = DataFrame(data=data, columns=["a", "b"])
-        assert list(result.values) == []
-        tm.assert_index_equal(result.columns, Index(["a", "b"]))
+        msg = "Empty data passed with indices specified."
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(data=np.array([]), columns=["a", "b"])
