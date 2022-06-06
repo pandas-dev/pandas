@@ -946,7 +946,7 @@ def assert_series_equal(
         If True, ignore the order of the index. Must be False if check_index is False.
         Note: same labels must be with the same data.
 
-        .. versionadded:: 1.4.3
+        .. versionadded:: 1.5.0
 
     Examples
     --------
