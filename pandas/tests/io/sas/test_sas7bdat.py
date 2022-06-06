@@ -173,7 +173,7 @@ def test_date_time(datapath):
         fname, parse_dates=["Date1", "Date2", "DateTime", "DateTimeHi", "Taiw"]
     )
     # GH 19732: Timestamps imported from sas will incur floating point errors
-    df.iloc[:, 3] = df.iloc[:, 3].dt.round("us")
+    df[df.columns[3]] = df.iloc[:, 3].dt.round("us")
     tm.assert_frame_equal(df, df0)
 
 
@@ -214,6 +214,14 @@ def test_zero_variables(datapath):
     fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")
     with pytest.raises(EmptyDataError, match="No columns to parse from file"):
         pd.read_sas(fname)
+
+
+def test_zero_rows(datapath):
+    # GH 18198
+    fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
+    result = pd.read_sas(fname)
+    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_corrupt_read(datapath):

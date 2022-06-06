@@ -757,8 +757,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset) -> DatetimeArray:
-        if self.ndim == 2:
-            return self.ravel()._add_offset(offset).reshape(self.shape)
 
         assert not isinstance(offset, Tick)
         try:
@@ -2004,6 +2002,7 @@ default 'raise'
         ----------
         axis : int optional, default None
             Axis for the function to be applied on.
+            For `Series` this parameter is unused and defaults to `None`.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is N - ddof,
             where N represents the number of elements.

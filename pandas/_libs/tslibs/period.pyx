@@ -50,6 +50,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
+    get_timedelta64_value,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
@@ -1680,16 +1681,24 @@ cdef class _Period(PeriodMixin):
 
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
-            int64_t nanos, base_nanos
+            int64_t inc
 
-        if is_tick_object(self.freq):
-            nanos = delta_to_nanoseconds(other)
-            base_nanos = self.freq.base.nanos
-            if nanos % base_nanos == 0:
-                ordinal = self.ordinal + (nanos // base_nanos)
-                return Period(ordinal=ordinal, freq=self.freq)
-        raise IncompatibleFrequency("Input cannot be converted to "
-                                    f"Period(freq={self.freqstr})")
+        if not is_tick_object(self.freq):
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})")
+
+        if util.is_timedelta64_object(other) and get_timedelta64_value(other) == NPY_NAT:
+            # i.e. np.timedelta64("nat")
+            return NaT
+
+        try:
+            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+        except ValueError as err:
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})") from err
+        # TODO: overflow-check here
+        ordinal = self.ordinal + inc
+        return Period(ordinal=ordinal, freq=self.freq)
 
     def _add_offset(self, other) -> "Period":
         # Non-Tick DateOffset other
@@ -2253,7 +2262,7 @@ cdef class _Period(PeriodMixin):
     @property
     def daysinmonth(self) -> int:
         """
-        Get the total number of days of the month that the Period falls in.
+        Get the total number of days of the month that this period falls on.
 
         Returns
         -------
