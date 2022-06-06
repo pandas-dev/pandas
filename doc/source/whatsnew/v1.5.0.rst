@@ -151,7 +151,7 @@ Other enhancements
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
-- :class:`DataError`, :class:`SpecificationError`, and :class:`SettingWithCopyError` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, and :class:`SettingWithCopyWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -362,6 +362,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
+| numpy           | 1.19.5          |    X     |    X    |
++-----------------+-----------------+----------+---------+
 | mypy (dev)      | 0.960           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.9.3           |          |    X    |
@@ -605,7 +607,7 @@ In the case where ``df.columns`` is not unique, use :meth:`DataFrame.isetitem`:
 ``numeric_only`` default value
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Across the DataFrame and DataFrameGroupBy operations such as
+Across the :class:`DataFrame`, :class:`.DataFrameGroupBy`, and :class:`.Resampler` operations such as
 ``min``, ``sum``, and ``idxmax``, the default
 value of the ``numeric_only`` argument, if it exists at all, was inconsistent.
 Furthermore, operations with the default value ``None`` can lead to surprising
@@ -644,6 +646,11 @@ gained the ``numeric_only`` argument.
 - :meth:`.GroupBy.std`
 - :meth:`.GroupBy.sem`
 - :meth:`.DataFrameGroupBy.quantile`
+- :meth:`.Resampler.mean`
+- :meth:`.Resampler.median`
+- :meth:`.Resampler.sem`
+- :meth:`.Resampler.std`
+- :meth:`.Resampler.var`
 
 .. _whatsnew_150.deprecations.other:
 
@@ -687,6 +694,7 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.diff` (:issue:`16706`)
 - Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
+- Performance improvement in :meth:`.GroupBy.apply` when grouping on a non-unique unsorted index (:issue:`46527`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`45681`, :issue:`46040`, :issue:`46330`)
 - Performance improvement in :attr:`MultiIndex.values` when the MultiIndex contains levels of type DatetimeIndex, TimedeltaIndex or ExtensionDtypes (:issue:`46288`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
@@ -695,6 +703,7 @@ Performance improvements
 - Performance improvement when setting values in a pyarrow backed string array (:issue:`46400`)
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
+- Performance improvement in :func:`read_excel` when ``nrows`` argument provided (:issue:`32727`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
@@ -820,7 +829,7 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
--
+- Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 
 Period
 ^^^^^^
@@ -828,6 +837,8 @@ Period
 - Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, directives ``%l`` and ``%u`` were giving wrong results (:issue:`46252`)
 - Bug in inferring an incorrect ``freq`` when passing a string to :class:`Period` microseconds that are a multiple of 1000 (:issue:`46811`)
 - Bug in constructing a :class:`Period` from a :class:`Timestamp` or ``np.datetime64`` object with non-zero nanoseconds and ``freq="ns"`` incorrectly truncating the nanoseconds (:issue:`46811`)
+- Bug in adding ``np.timedelta64("NaT", "ns")`` to a :class:`Period` with a timedelta-like freq incorrectly raising ``IncompatibleFrequency`` instead of returning ``NaT`` (:issue:`47196`)
+- Bug in adding an array of integers to an array with :class:`PeriodDtype` giving incorrect results when ``dtype.freq.n > 1`` (:issue:`47209`)
 -
 
 Plotting
@@ -863,6 +874,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 - Bug in :meth:`.DataFrameGroupBy.describe` and :meth:`.SeriesGroupBy.describe` produces inconsistent results for empty datasets (:issue:`41575`)
 - Bug in :meth:`DataFrame.resample` reduction methods when used with ``on`` would attempt to aggregate the provided column (:issue:`47079`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would not respect ``dropna=False`` when the input DataFrame/Series had a NaN values in a :class:`MultiIndex` (:issue:`46783`)
 
 Reshaping
 ^^^^^^^^^
@@ -890,6 +902,7 @@ Styler
 - Bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
 - Bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 - Bug in :meth:`Styler.set_sticky` leading to white text on white background in dark mode (:issue:`46984`)
+- Bug in :meth:`Styler.to_latex` causing ``UnboundLocalError`` when ``clines="all;data"`` and the ``DataFrame`` has no rows. (:issue:`47203`)
 
 Metadata
 ^^^^^^^^

@@ -25,7 +25,7 @@ from pandas._libs.tslibs import (
     NaTType,
     Resolution,
     Timestamp,
-    conversion,
+    astype_overflowsafe,
     fields,
     get_resolution,
     iNaT,
@@ -757,8 +757,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset) -> DatetimeArray:
-        if self.ndim == 2:
-            return self.ravel()._add_offset(offset).reshape(self.shape)
 
         assert not isinstance(offset, Tick)
         try:
@@ -2171,7 +2169,7 @@ def _sequence_to_dt64ns(
         # tz-naive DatetimeArray or ndarray[datetime64]
         data = getattr(data, "_ndarray", data)
         if data.dtype != DT64NS_DTYPE:
-            data = conversion.ensure_datetime64ns(data)
+            data = astype_overflowsafe(data, dtype=DT64NS_DTYPE)
             copy = False
 
         if tz is not None:
