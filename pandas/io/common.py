@@ -260,8 +260,8 @@ def urlopen(*args, **kwargs):
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
     the stdlib.
     """
-    import urllib.request
     from urllib.error import HTTPError
+    import urllib.request
 
     try:
         return urllib.request.urlopen(*args, **kwargs)
