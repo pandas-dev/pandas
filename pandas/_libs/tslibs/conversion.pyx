@@ -1,5 +1,7 @@
 cimport cython
 
+import warnings
+
 import numpy as np
 
 cimport numpy as cnp
@@ -193,151 +195,6 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray with dtype datetime64[ns]
-    """
-    if (<object>arr).dtype.byteorder == ">":
-        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
-        dtype = arr.dtype
-        arr = arr.astype(dtype.newbyteorder("<"))
-
-    if arr.size == 0:
-        # Fastpath; doesn't matter but we have old tests for result.base
-        #  being arr.
-        result = arr.view(DT64NS_DTYPE)
-        if copy:
-            result = result.copy()
-        return result
-
-    return astype_overflowsafe(arr, DT64NS_DTYPE, copy=copy)
-
-
-def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray[timedelta64[ns]]
-    """
-    assert arr.dtype.kind == "m", arr.dtype
-
-    if arr.dtype == TD64NS_DTYPE:
-        return arr.copy() if copy else arr
-
-    # Re-use the datetime64 machinery to do an overflow-safe `astype`
-    dtype = arr.dtype.str.replace("m8", "M8")
-    dummy = arr.view(dtype)
-    try:
-        dt64_result = ensure_datetime64ns(dummy, copy)
-    except OutOfBoundsDatetime as err:
-        # Re-write the exception in terms of timedelta64 instead of dt64
-
-        # Find the value that we are going to report as causing an overflow
-        tdmin = arr.min()
-        tdmax = arr.max()
-        if np.abs(tdmin) >= np.abs(tdmax):
-            bad_val = tdmin
-        else:
-            bad_val = tdmax
-
-        msg = f"Out of bounds for nanosecond {arr.dtype.name} {str(bad_val)}"
-        raise OutOfBoundsTimedelta(msg)
-
-    return dt64_result.view(TD64NS_DTYPE)
-
-
-# ----------------------------------------------------------------------
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def datetime_to_datetime64(ndarray values):
-    # ndarray[object], but can't declare object without ndim
-    """
-    Convert ndarray of datetime-like objects to int64 array representing
-    nanosecond timestamps.
-
-    Parameters
-    ----------
-    values : ndarray[object]
-
-    Returns
-    -------
-    result : ndarray[datetime64ns]
-    inferred_tz : tzinfo or None
-    """
-    cdef:
-        Py_ssize_t i, n = values.size
-        object val
-        int64_t ival
-        ndarray iresult  # int64_t, but can't declare that without specifying ndim
-        npy_datetimestruct dts
-        _TSObject _ts
-        bint found_naive = False
-        tzinfo inferred_tz = None
-
-        cnp.broadcast mi
-
-    result = np.empty((<object>values).shape, dtype='M8[ns]')
-    iresult = result.view('i8')
-
-    mi = cnp.PyArray_MultiIterNew2(iresult, values)
-    for i in range(n):
-        # Analogous to: val = values[i]
-        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
-
-        if checknull_with_nat(val):
-            ival = NPY_NAT
-        elif PyDateTime_Check(val):
-            if val.tzinfo is not None:
-                if found_naive:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                if inferred_tz is not None:
-                    if not tz_compare(val.tzinfo, inferred_tz):
-                        raise ValueError('Array must be all same time zone')
-                else:
-                    inferred_tz = val.tzinfo
-
-                _ts = convert_datetime_to_tsobject(val, None)
-                ival = _ts.value
-                check_dts_bounds(&_ts.dts)
-            else:
-                found_naive = True
-                if inferred_tz is not None:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                ival = pydatetime_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
-        else:
-            raise TypeError(f'Unrecognized value type: {type(val)}')
-
-        # Analogous to: iresult[i] = ival
-        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
-
-        cnp.PyArray_MultiIter_NEXT(mi)
-
-    return result, inferred_tz
-
-
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 
@@ -400,6 +257,18 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
+            if unit in ["Y", "M"]:
+                if ts != int(ts):
+                    # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
+                    #  but not clear what 2.5 "M" corresponds to, so we will
+                    #  disallow that case.
+                    warnings.warn(
+                        "Conversion of non-round float with unit={unit} is ambiguous "
+                        "and will raise in a future version.",
+                        FutureWarning,
+                        stacklevel=1,
+                    )
+
             ts = cast_from_unit(ts, unit)
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)

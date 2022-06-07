@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -14,7 +15,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 
 def assert_equal(a, b):
@@ -491,7 +491,7 @@ def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
     msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
+    with pytest.raises(SettingWithCopyError, match=msg):
         df["foo"]["one"] = 2
 
 
@@ -500,7 +500,7 @@ def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
     expected = frame
     df = frame.copy()
     msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
+    with pytest.raises(SettingWithCopyError, match=msg):
         df["foo"]["one"] = 2
 
     result = df

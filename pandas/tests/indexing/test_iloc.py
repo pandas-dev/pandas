@@ -10,6 +10,7 @@ from warnings import (
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_min
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -21,11 +22,13 @@ from pandas import (
     Interval,
     NaT,
     Series,
+    Timestamp,
     array,
     concat,
     date_range,
     interval_range,
     isna,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
@@ -78,9 +81,14 @@ class TestiLocBaseIndependent:
 
         df = frame.copy()
         orig_vals = df.values
-        indexer(df)[key, 0] = cat
 
         overwrite = isinstance(key, slice) and key == slice(None)
+        warn = None
+        if overwrite:
+            warn = FutureWarning
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(warn, match=msg):
+            indexer(df)[key, 0] = cat
 
         if overwrite:
             # TODO: GH#39986 this probably shouldn't behave differently
@@ -101,7 +109,8 @@ class TestiLocBaseIndependent:
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
         orig_vals = df.values
-        indexer(df)[key, 0] = cat
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            indexer(df)[key, 0] = cat
         expected = DataFrame({0: cat, 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
@@ -884,7 +893,9 @@ class TestiLocBaseIndependent:
         assert tm.shares_memory(df[1], cat)
 
         # This should modify our original values in-place
-        df.iloc[:, 0] = cat[::-1]
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0] = cat[::-1]
         assert tm.shares_memory(df[1], cat)
 
         expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
@@ -1188,6 +1199,24 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
+    @pytest.mark.xfail(is_numpy_min, reason="Column A gets coerced to integer type")
+    def test_iloc_setitem_multicolumn_to_datetime(self, using_array_manager):
+
+        # GH#20511
+        df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
+
+        df.iloc[:, [0]] = DataFrame({"A": to_datetime(["2021", "2022"])})
+        expected = DataFrame(
+            {
+                "A": [
+                    Timestamp("2021-01-01 00:00:00"),
+                    Timestamp("2022-01-01 00:00:00"),
+                ],
+                "B": ["2021", "2022"],
+            }
+        )
+        tm.assert_frame_equal(df, expected, check_dtype=using_array_manager)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
@@ -1271,7 +1300,10 @@ class TestILocSetItemDuplicateColumns:
     ):
         # GH#22035
         df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
-        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+
         expected_df = DataFrame(
             [[expected_value, "str", "str2"]], columns=["a", "b", "b"]
         )

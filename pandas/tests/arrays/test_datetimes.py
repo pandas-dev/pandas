@@ -14,10 +14,12 @@ from pandas.core.arrays import DatetimeArray
 class TestNonNano:
     @pytest.fixture(params=["s", "ms", "us"])
     def unit(self, request):
+        """Fixture returning parametrized time units"""
         return request.param
 
     @pytest.fixture
     def reso(self, unit):
+        """Fixture returning datetime resolution for a given time unit"""
         # TODO: avoid hard-coding
         return {"s": 7, "ms": 8, "us": 9}[unit]
 
@@ -44,6 +46,21 @@ class TestNonNano:
         res = getattr(dta, field)
         expected = getattr(dti._data, field)
         tm.assert_numpy_array_equal(res, expected)
+
+    def test_normalize(self, unit):
+        dti = pd.date_range("2016-01-01 06:00:00", periods=55, freq="D")
+        arr = np.asarray(dti).astype(f"M8[{unit}]")
+
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        assert not dta.is_normalized
+
+        # TODO: simplify once we can just .astype to other unit
+        exp = np.asarray(dti.normalize()).astype(f"M8[{unit}]")
+        expected = DatetimeArray._simple_new(exp, dtype=exp.dtype)
+
+        res = dta.normalize()
+        tm.assert_extension_array_equal(res, expected)
 
 
 class TestDatetimeArrayComparisons:
