@@ -5,7 +5,6 @@ from pandas import offsets
 
 
 class DatetimeStrftime:
-    fname = "__test__.csv"
     timeout = 1500
     params = [1000, 10000]
     param_names = ["obs"]
@@ -47,7 +46,6 @@ class DatetimeStrftime:
 
 
 class BusinessHourStrftime:
-    fname = "__test__.csv"
     timeout = 1500
     params = [1000, 10000]
     param_names = ["obs"]

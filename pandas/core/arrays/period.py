@@ -646,7 +646,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         if date_format:
             formatter = lambda per: per.strftime(date_format)
         else:
-            # Uses `_Period.str>format_period`
+            # Uses `_Period.str` which in turn uses `format_period`
             formatter = lambda per: str(per)
 
         # Apply the formatter to all values in the array, possibly with a mask
