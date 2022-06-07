@@ -308,3 +308,21 @@ class SettingWithCopyWarning(Warning):
     >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
     ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
     """
+
+
+class NumExprClobberingError(NameError):
+    """
+    Exception is raised when trying to use a built-in numexpr name as a variable name
+    in a method like query or eval. Eval will throw the error if the engine is set
+    to 'numexpr'. 'numexpr' is the default engine value for eval if the numexpr package
+    is installed.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'abs': [1, 1, 1]})
+    >>> df.query("abs > 2") # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
+    >>> sin, a = 1, 2
+    >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
+    """
