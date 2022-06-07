@@ -6,7 +6,10 @@ import pytest
 
 from pandas._libs import lib
 from pandas.compat import IS64
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+    SpecificationError,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,7 +27,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
-from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
@@ -474,13 +476,17 @@ def test_frame_groupby_columns(tsframe):
 def test_frame_set_name_single(df):
     grouped = df.groupby("A")
 
-    result = grouped.mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.mean()
     assert result.index.name == "A"
 
-    result = df.groupby("A", as_index=False).mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A", as_index=False).mean()
     assert result.index.name != "A"
 
-    result = grouped.agg(np.mean)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.agg(np.mean)
     assert result.index.name == "A"
 
     result = grouped.agg({"C": np.mean, "D": np.std})
@@ -503,8 +509,10 @@ def test_multi_func(df):
     col2 = df["B"]
 
     grouped = df.groupby([col1.get, col2.get])
-    agged = grouped.mean()
-    expected = df.groupby(["A", "B"]).mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.mean()
+        expected = df.groupby(["A", "B"]).mean()
 
     # TODO groupby get drops names
     tm.assert_frame_equal(
@@ -661,13 +669,16 @@ def test_groupby_as_index_agg(df):
 
     # single-key
 
-    result = grouped.agg(np.mean)
-    expected = grouped.mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
     result2 = grouped.agg({"C": np.mean, "D": np.sum})
-    expected2 = grouped.mean()
-    expected2["D"] = grouped.sum()["D"]
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected2 = grouped.mean()
+        expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
 
     grouped = df.groupby("A", as_index=True)
@@ -754,8 +765,10 @@ def test_as_index_series_return_frame(df):
     grouped = df.groupby("A", as_index=False)
     grouped2 = df.groupby(["A", "B"], as_index=False)
 
-    result = grouped["C"].agg(np.sum)
-    expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped["C"].agg(np.sum)
+        expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
 
@@ -765,7 +778,8 @@ def test_as_index_series_return_frame(df):
     tm.assert_frame_equal(result2, expected2)
 
     result = grouped["C"].sum()
-    expected = grouped.sum().loc[:, ["A", "C"]]
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = grouped.sum().loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
 
@@ -789,8 +803,10 @@ def test_groupby_as_index_cython(df):
 
     # single-key
     grouped = data.groupby("A", as_index=False)
-    result = grouped.mean()
-    expected = data.groupby(["A"]).mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.mean()
+        expected = data.groupby(["A"]).mean()
     expected.insert(0, "A", expected.index)
     expected.index = np.arange(len(expected))
     tm.assert_frame_equal(result, expected)
@@ -859,15 +875,18 @@ def test_groupby_multi_corner(df):
 
 def test_omit_nuisance(df):
     grouped = df.groupby("A")
-    agged = grouped.agg(np.mean)
-    exp = grouped.mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.agg(np.mean)
+        exp = grouped.mean()
     tm.assert_frame_equal(agged, exp)
 
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    result = grouped.agg(np.sum)
-    expected = grouped.sum()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.agg(np.sum)
+        expected = grouped.sum()
     tm.assert_frame_equal(result, expected)
 
     # won't work with axis = 1
@@ -898,7 +917,7 @@ def test_keep_nuisance_agg(df, agg_function):
 @pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
 def test_omit_nuisance_agg(df, agg_function, numeric_only):
     # GH 38774, GH 38815
-    if not numeric_only and agg_function != "sum":
+    if numeric_only is lib.no_default or (not numeric_only and agg_function != "sum"):
         # sum doesn't drop strings
         warn = FutureWarning
     else:
@@ -913,7 +932,13 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
         with pytest.raises(klass, match="could not convert string to float"):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        if numeric_only is lib.no_default:
+            msg = (
+                f"The default value of numeric_only in DataFrameGroupBy.{agg_function}"
+            )
+        else:
+            msg = "Dropping invalid columns"
+        with tm.assert_produces_warning(warn, match=msg):
             result = getattr(grouped, agg_function)(numeric_only=numeric_only)
         if (
             (numeric_only is lib.no_default or not numeric_only)
@@ -923,9 +948,18 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
             columns = ["A", "B", "C", "D"]
         else:
             columns = ["A", "C", "D"]
-        expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
-            numeric_only=numeric_only
-        )
+        if agg_function == "sum" and numeric_only is False:
+            # sum doesn't drop nuisance string columns
+            warn = None
+        elif agg_function in ("sum", "std", "var", "sem") and numeric_only is not True:
+            warn = FutureWarning
+        else:
+            warn = None
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
+                numeric_only=numeric_only
+            )
         tm.assert_frame_equal(result, expected)
 
 
@@ -941,8 +975,10 @@ def test_omit_nuisance_warnings(df):
 def test_omit_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
 
-    agged = grouped.agg(np.mean)
-    exp = grouped.mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.agg(np.mean)
+        exp = grouped.mean()
     tm.assert_frame_equal(agged, exp)
 
 
@@ -959,8 +995,10 @@ def test_empty_groups_corner(mframe):
     )
 
     grouped = df.groupby(["k1", "k2"])
-    result = grouped.agg(np.mean)
-    expected = grouped.mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
     grouped = mframe[3:5].groupby(level=0)
@@ -982,7 +1020,9 @@ def test_wrap_aggregated_output_multindex(mframe):
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    agged = df.groupby(keys).agg(np.mean)
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = df.groupby(keys).agg(np.mean)
     assert isinstance(agged.columns, MultiIndex)
 
     def aggfun(ser):
@@ -1143,15 +1183,19 @@ def test_groupby_with_hier_columns():
     # add a nuisance column
     sorted_columns, _ = columns.sortlevel(0)
     df["A", "foo"] = "bar"
-    result = df.groupby(level=0).mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(level=0).mean()
     tm.assert_index_equal(result.columns, df.columns[:-1])
 
 
 def test_grouping_ndarray(df):
     grouped = df.groupby(df["A"].values)
 
-    result = grouped.sum()
-    expected = df.groupby("A").sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.sum()
+        expected = df.groupby("A").sum()
     tm.assert_frame_equal(
         result, expected, check_names=False
     )  # Note: no names when grouping by value
@@ -1179,8 +1223,10 @@ def test_groupby_wrong_multi_labels():
 
 
 def test_groupby_series_with_name(df):
-    result = df.groupby(df["A"]).mean()
-    result2 = df.groupby(df["A"], as_index=False).mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(df["A"]).mean()
+        result2 = df.groupby(df["A"], as_index=False).mean()
     assert result.index.name == "A"
     assert "A" in result2
 
@@ -1331,8 +1377,10 @@ def test_groupby_unit64_float_conversion():
 
 
 def test_groupby_list_infer_array_like(df):
-    result = df.groupby(list(df["A"])).mean()
-    expected = df.groupby(df["A"]).mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(list(df["A"])).mean()
+        expected = df.groupby(df["A"]).mean()
     tm.assert_frame_equal(result, expected, check_names=False)
 
     with pytest.raises(KeyError, match=r"^'foo'$"):
@@ -1445,7 +1493,9 @@ def test_groupby_2d_malformed():
     d["zeros"] = [0, 0]
     d["ones"] = [1, 1]
     d["label"] = ["l1", "l2"]
-    tmp = d.groupby(["group"]).mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        tmp = d.groupby(["group"]).mean()
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
     tm.assert_numpy_array_equal(tmp.values, res_values)
@@ -1611,10 +1661,13 @@ def test_group_name_available_in_inference_pass():
 
 def test_no_dummy_key_names(df):
     # see gh-1291
-    result = df.groupby(df["A"].values).sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(df["A"].values).sum()
     assert result.index.name is None
 
-    result = df.groupby([df["A"].values, df["B"].values]).sum()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby([df["A"].values, df["B"].values]).sum()
     assert result.index.names == (None, None)
 
 
@@ -2634,7 +2687,9 @@ def test_groupby_aggregation_numeric_with_non_numeric_dtype():
     )
 
     gb = df.groupby(by=["x"])
-    result = gb.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
 

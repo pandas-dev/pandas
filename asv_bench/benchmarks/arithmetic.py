@@ -420,7 +420,7 @@ class AddOverflowArray:
 
 
 hcal = pd.tseries.holiday.USFederalHolidayCalendar()
-# These offsets currently raise a NotImplimentedError with .apply_index()
+# These offsets currently raise a NotImplementedError with .apply_index()
 non_apply = [
     pd.offsets.Day(),
     pd.offsets.BYearEnd(),

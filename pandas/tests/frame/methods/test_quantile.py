@@ -704,7 +704,7 @@ class TestQuantileExtensionDtype:
         obj.iloc[:] = index._na_value
 
         # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
-        obj[:] = obj.astype(index.dtype)
+        obj = obj.astype(index.dtype)
         assert np.all(obj.dtypes == index.dtype)
 
         # result should be invariant to shuffling

@@ -44,6 +44,9 @@ class TestDataFrameSortIndex:
         assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
+    # FIXME: the FutureWarning is issued on a setitem-with-expansion
+    #  which will *not* change behavior, so should not get a warning.
+    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_sort_index_non_existent_label_multiindex(self):
         # GH#12261
         df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))
@@ -381,7 +384,7 @@ class TestDataFrameSortIndex:
 
         result = model.groupby(["X1", "X2"], observed=True).mean().unstack()
         expected = IntervalIndex.from_tuples(
-            [(-3.0, -0.5), (-0.5, 0.0), (0.0, 0.5), (0.5, 3.0)], closed="right"
+            [(-3.0, -0.5), (-0.5, 0.0), (0.0, 0.5), (0.5, 3.0)], inclusive="right"
         )
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
@@ -726,7 +729,11 @@ class TestDataFrameSortIndex:
         [
             pytest.param(["a", "b", "c"], id="str"),
             pytest.param(
-                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
+                [
+                    pd.Interval(0, 1, "right"),
+                    pd.Interval(1, 2, "right"),
+                    pd.Interval(2, 3, "right"),
+                ],
                 id="pd.Interval",
             ),
         ],
