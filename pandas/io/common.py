@@ -266,7 +266,8 @@ def urlopen(*args, **kwargs):
     try:
         return urllib.request.urlopen(*args, **kwargs)
     except HTTPError as e:
-        raise Exception(f"{str(e)}, message from server: {e.read().decode()}")
+        e.msg += f", message from the server: {e.read().decode()}"
+        raise e
 
 
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
