@@ -152,6 +152,7 @@ Other enhancements
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
 - :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, and :class:`SettingWithCopyWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
