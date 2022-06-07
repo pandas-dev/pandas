@@ -436,6 +436,7 @@ Other API changes
   The ``auth_local_webserver = False`` option is planned to stop working in
   October 2022. (:issue:`46312`)
 - :func:`read_json` now raises ``FileNotFoundError`` (previously ``ValueError``) when input is a string ending in ``.json``, ``.json.gz``, ``.json.bz2``, etc. but no such file exists. (:issue:`29102`)
+- Operations with :class:`Timestamp` or :class:`Timedelta` that would previously raise ``OverflowError`` instead raise ``OutOfBoundsDatetime`` or ``OutOfBoundsTimedelta`` where appropriate (:issue:`47268`)
 -
 
 .. ---------------------------------------------------------------------------
