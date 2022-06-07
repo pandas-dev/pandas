@@ -170,7 +170,7 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
         #  `it` iterates C-order as well, so the iteration matches
         #  See discussion at
         #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
-        ndarray result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_OBJECT, 0)
+        ndarray result = cnp.PyArray_EMPTY(m8values.ndim, m8values.shape, cnp.NPY_OBJECT, 0)
         object[::1] res_flat = result.ravel()     # should NOT be a copy
 
         ndarray arr = m8values.view("i8")
