@@ -25,8 +25,9 @@ def dirpath(datapath):
 
 
 # Examples of dataframes with dtypes for which conversion to ORC
-# hasn't been implemented yet.
-orc_writer_not_implemented = [
+# hasn't been implemented yet, that is, Category, unsigned integers,
+# interval, period and sparse.
+orc_writer_dtypes_not_supported = [
     pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")}),
     pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")}),
     pd.DataFrame(
@@ -297,11 +298,11 @@ def test_orc_roundtrip_bytesio():
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
-@pytest.mark.parametrize("unimplemented", orc_writer_not_implemented)
-def test_orc_writer_unimplemented_dtypes(unimplemented):
+@pytest.mark.parametrize("df_not_supported", orc_writer_dtypes_not_supported)
+def test_orc_writer_dtypes_not_supported(df_not_supported):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
     msg = """The dtype of one or more columns is unsigned integers,
 intervals, periods, sparse or categorical which is not supported yet."""
     with pytest.raises(NotImplementedError, match=msg):
-        unimplemented.to_orc()
+        df_not_supported.to_orc()
