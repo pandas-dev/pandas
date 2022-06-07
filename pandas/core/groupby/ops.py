@@ -932,6 +932,8 @@ class BaseGrouper:
             #  may become unnecessary
         return ids
 
+    # TODO
+    #  ISSUE: https://github.com/pandas-dev/pandas/issues/28572
     @final
     def _get_compressed_codes(
         self,

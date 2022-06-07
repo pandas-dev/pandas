@@ -30,7 +30,7 @@ ENV DEBIAN_FRONTEND=dialog
 
 # Clone pandas repo
 RUN mkdir "$pandas_home" \
-    && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
+    && git clone -b dev_groupby "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
     && git pull upstream main
