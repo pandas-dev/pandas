@@ -231,10 +231,8 @@ class TestEval:
             result = pd.eval(ex, engine=engine, parser=parser)
             tm.assert_almost_equal(expected, result)
 
-    # @pytest.mark.parametrize("cmp1", ["<", ">"])
-    # @pytest.mark.parametrize("cmp2", ["<", ">"])
-    @pytest.mark.parametrize("cmp1", ["<"])
-    @pytest.mark.parametrize("cmp2", ["<"])
+    @pytest.mark.parametrize("cmp1", ["<", ">"])
+    @pytest.mark.parametrize("cmp2", ["<", ">"])
     def test_chained_cmp_op(self, cmp1, cmp2, lhs, midhs, rhs, engine, parser):
         mid = midhs
         if parser == "python":
@@ -1892,16 +1890,32 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
-def test_eval_no_support_column_name():
-    error_msg = 'Column name "{}" cannot be same as name from pandas scope {}'.format(
-        "Timestamp", "datetime"
-    )
-
-    with pytest.raises(NameError, match=error_msg):
-        df = DataFrame(
-            np.random.randint(0, 100, size=(10, 2)), columns=["Timestamp", "col1"]
-        )
-        df.eval("Timestamp>6")
+@pytest.mark.parametrize("column", ["Timestamp", "datetime"])
+def test_eval_no_support_column_name(engine, parser, column):
+    if engine == "numexpr":
+        error_msg = "unknown type object"
+        with pytest.raises(ValueError, match=error_msg):
+            df = DataFrame(
+                np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"]
+            )
+            pd.eval(
+                f"{column}>6",
+                local_dict={"df": df},
+                engine=engine,
+                parser=parser,
+            )
+    else:
+        error_msg = f'Column name "{column}" cannot be supported'
+        with pytest.raises(NameError, match=error_msg):
+            df = DataFrame(
+                np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"]
+            )
+            pd.eval(
+                f"{column}>6",
+                local_dict={"df": df},
+                engine=engine,
+                parser=parser,
+            )
 
 
 class TestValidate:

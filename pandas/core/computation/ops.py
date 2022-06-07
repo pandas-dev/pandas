@@ -407,12 +407,12 @@ class BinOp(Op):
             The result of an evaluated expression.
         """
         # recurse over the left/right nodes
-        error_msg = 'Column name "{}" cannot be same as name from pandas scope {}'
-        if str(self.lhs) in env.scope:
-            raise NameError(error_msg.format(self.lhs, list(env.scope)))
+        error_msg = 'Column name "{}" cannot be supported'
+        if str(self.lhs) in env.scope and isinstance(env.scope[str(self.lhs)], type):
+            raise NameError(error_msg.format(self.lhs))
 
-        if str(self.rhs) in env.scope:
-            raise NameError(error_msg.format(self.rhs, list(env.scope)))
+        if str(self.rhs) in env.scope and isinstance(env.scope[str(self.rhs)], type):
+            raise NameError(error_msg.format(self.rhs))
 
         left = self.lhs(env)
         right = self.rhs(env)
