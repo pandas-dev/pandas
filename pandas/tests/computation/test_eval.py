@@ -9,7 +9,10 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    NumExprClobberingError,
+    PerformanceWarning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -27,10 +30,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import pytables
-from pandas.core.computation.engines import (
-    ENGINES,
-    NumExprClobberingError,
-)
+from pandas.core.computation.engines import ENGINES
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
