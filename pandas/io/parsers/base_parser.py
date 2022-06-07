@@ -121,13 +121,7 @@ class ParserBase:
 
         # validate header options for mi
         self.header = kwds.get("header")
-        if isinstance(self.header, (list, tuple, np.ndarray)):
-            if not all(map(is_integer, self.header)):
-                raise ValueError("header must be integer or list of integers")
-            if any(i < 0 for i in self.header):
-                raise ValueError(
-                    "cannot specify multi-index header with negative integers"
-                )
+        if is_list_like(self.header, allow_sets=False):
             if kwds.get("usecols"):
                 raise ValueError(
                     "cannot specify usecols when specifying a multi-index header"
@@ -139,9 +133,8 @@ class ParserBase:
 
             # validate index_col that only contains integers
             if self.index_col is not None:
-                is_sequence = isinstance(self.index_col, (list, tuple, np.ndarray))
                 if not (
-                    is_sequence
+                    is_list_like(self.index_col, allow_sets=False)
                     and all(map(is_integer, self.index_col))
                     or is_integer(self.index_col)
                 ):
@@ -149,21 +142,11 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-        elif self.header is not None:
+        elif self.header is not None and self.prefix is not None:
             # GH 27394
-            if self.prefix is not None:
-                raise ValueError(
-                    "Argument prefix must be None if argument header is not None"
-                )
-            # GH 16338
-            elif not is_integer(self.header):
-                raise ValueError("header must be integer or list of integers")
-            # GH 27779
-            elif self.header < 0:
-                raise ValueError(
-                    "Passing negative integer to header is invalid. "
-                    "For no header, use header=None instead"
-                )
+            raise ValueError(
+                "Argument prefix must be None if argument header is not None"
+            )
 
         self._name_processed = False
 
