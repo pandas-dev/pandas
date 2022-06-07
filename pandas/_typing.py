@@ -114,7 +114,7 @@ Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
-Axes = Union[AnyArrayLike, List, Dict, range, Sequence[str]]
+Axes = Union[AnyArrayLike, List, range]
 
 RandomState = Union[
     int,
