@@ -670,13 +670,16 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     type: type[Timestamp] = Timestamp
     kind: str_type = "M"
-    str = "|M8[ns]"
     num = 101
-    base = np.dtype("M8[ns]")
+    base = np.dtype("M8[ns]")  # TODO: depend on reso?
     na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+
+    @cache_readonly
+    def str(self):
+        return f"|M8[{self._unit}]"
 
     def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
@@ -696,8 +699,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
                 raise ValueError(msg)
-            else:
-                raise ValueError("DatetimeTZDtype only supports ns units")
+            if unit not in ["s", "ms", "us", "ns"]:
+                raise ValueError("DatetimeTZDtype only supports s, ms, us, ns units")
 
         if tz:
             tz = timezones.maybe_get_tz(tz)
@@ -709,6 +712,19 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         self._unit = unit
         self._tz = tz
+
+    @cache_readonly
+    def _reso(self) -> int:
+        """
+        The NPY_DATETIMEUNIT corresponding to this dtype's resolution.
+        """
+        reso = {
+            "s": dtypes.NpyDatetimeUnit.NPY_FR_s,
+            "ms": dtypes.NpyDatetimeUnit.NPY_FR_ms,
+            "us": dtypes.NpyDatetimeUnit.NPY_FR_us,
+            "ns": dtypes.NpyDatetimeUnit.NPY_FR_ns,
+        }[self._unit]
+        return reso.value
 
     @property
     def unit(self) -> str_type:
@@ -1059,10 +1075,12 @@ class IntervalDtype(PandasExtensionDtype):
         "subtype",
         "inclusive",
     )
+
     _match = re.compile(
-        r"(I|i)nterval\[(?P<subtype>[^,]+)(, ("
-        r"?P<inclusive>(right|left|both|neither)))?\]"
+        r"(I|i)nterval\[(?P<subtype>[^,]+(\[.+\])?)"
+        r"(, (?P<inclusive>(right|left|both|neither)))?\]"
     )
+
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(
