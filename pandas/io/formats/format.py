@@ -1245,7 +1245,7 @@ def format_array(
     float_format: FloatFormatType | None = None,
     na_rep: str = "NaN",
     digits: int | None = None,
-    space: str | int | None = None,
+    space: str | int = 12,
     justify: str = "right",
     decimal: str = ".",
     leading_space: bool | None = True,
@@ -1292,9 +1292,6 @@ def format_array(
         fmt_klass = IntArrayFormatter
     else:
         fmt_klass = GenericArrayFormatter
-
-    if space is None:
-        space = get_option("display.column_space")
 
     if float_format is None:
         float_format = get_option("display.float_format")
@@ -2099,7 +2096,6 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     See also EngFormatter.
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
-    set_option("display.column_space", max(12, accuracy + 9))
 
 
 def get_level_lengths(
