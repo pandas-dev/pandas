@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import abc
 
+from pandas.errors import NumExprClobberingError
+
 from pandas.core.computation.align import (
     align_terms,
     reconstruct_object,
@@ -18,10 +20,6 @@ from pandas.core.computation.ops import (
 import pandas.io.formats.printing as printing
 
 _ne_builtins = frozenset(MATHOPS + REDUCTIONS)
-
-
-class NumExprClobberingError(NameError):
-    pass
 
 
 def _check_ne_builtin_clash(expr: Expr) -> None:
