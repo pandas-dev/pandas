@@ -259,14 +259,14 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         else:
             if unit in ["Y", "M"]:
                 if ts != int(ts):
-                    # it is clear that 2 "M" corresponds to 1970-02-01, but not
-                    #  clear what 2.5 "M" corresponds to, so we will disallow that
-                    #  case.
+                    # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
+                    #  but not clear what 2.5 "M" corresponds to, so we will
+                    #  disallow that case.
                     warnings.warn(
                         "Conversion of non-round float with unit={unit} is ambiguous "
                         "and will raise in a future version.",
                         FutureWarning,
-                        stacklevel=1,  # wild guess
+                        stacklevel=1,
                     )
 
             ts = cast_from_unit(ts, unit)
