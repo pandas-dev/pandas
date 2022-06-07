@@ -316,6 +316,8 @@ cdef convert_to_timedelta64(object ts, str unit):
 
     Return an ns based int64
     """
+    # Caller is responsible for checking unit not in ["Y", "y", "M"]
+
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT, "ns")
     elif isinstance(ts, _Timedelta):
@@ -329,17 +331,9 @@ cdef convert_to_timedelta64(object ts, str unit):
         if ts == NPY_NAT:
             return np.timedelta64(NPY_NAT, "ns")
         else:
-            if unit in ["Y", "M", "W"]:
-                ts = np.timedelta64(ts, unit)
-            else:
-                ts = cast_from_unit(ts, unit)
-                ts = np.timedelta64(ts, "ns")
+            ts = _maybe_cast_from_unit(ts, unit)
     elif is_float_object(ts):
-        if unit in ["Y", "M", "W"]:
-            ts = np.timedelta64(int(ts), unit)
-        else:
-            ts = cast_from_unit(ts, unit)
-            ts = np.timedelta64(ts, "ns")
+        ts = _maybe_cast_from_unit(ts, unit)
     elif isinstance(ts, str):
         if (len(ts) > 0 and ts[0] == "P") or (len(ts) > 1 and ts[:2] == "-P"):
             ts = parse_iso_format_string(ts)
@@ -356,6 +350,20 @@ cdef convert_to_timedelta64(object ts, str unit):
     return ts.astype("timedelta64[ns]")
 
 
+cdef _maybe_cast_from_unit(ts, str unit):
+    # caller is responsible for checking
+    #  assert unit not in ["Y", "y", "M"]
+    try:
+        ts = cast_from_unit(ts, unit)
+    except OverflowError as err:
+        raise OutOfBoundsTimedelta(
+            f"Cannot cast {ts} from {unit} to 'ns' without overflow."
+        ) from err
+
+    ts = np.timedelta64(ts, "ns")
+    return ts
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def array_to_timedelta64(
@@ -370,6 +378,8 @@ def array_to_timedelta64(
     -------
     np.ndarray[timedelta64ns]
     """
+    # Caller is responsible for checking
+    assert unit not in ["Y", "y", "M"]
 
     cdef:
         Py_ssize_t i, n = values.size
@@ -652,24 +662,20 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     cdef:
         str n
 
-    try:
-        unit = ''.join(unit)
+    unit = ''.join(unit)
+    if unit in ["M", "Y", "y"]:
+        warnings.warn(
+            "Units 'M', 'Y' and 'y' do not represent unambiguous "
+            "timedelta values and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=3,
+        )
 
-        if unit in ["M", "Y", "y"]:
-            warnings.warn(
-                "Units 'M', 'Y' and 'y' do not represent unambiguous "
-                "timedelta values and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-
-        if unit == 'M':
-            # To parse ISO 8601 string, 'M' should be treated as minute,
-            # not month
-            unit = 'm'
-        unit = parse_timedelta_unit(unit)
-    except KeyError:
-        raise ValueError(f"invalid abbreviation: {unit}")
+    if unit == 'M':
+        # To parse ISO 8601 string, 'M' should be treated as minute,
+        # not month
+        unit = 'm'
+    unit = parse_timedelta_unit(unit)
 
     n = ''.join(number) + '.' + ''.join(frac)
     return cast_from_unit(float(n), unit)
@@ -696,7 +702,7 @@ cpdef inline str parse_timedelta_unit(str unit):
         return unit
     try:
         return timedelta_abbrevs[unit.lower()]
-    except (KeyError, AttributeError):
+    except KeyError:
         raise ValueError(f"invalid unit abbreviation: {unit}")
 
 # ----------------------------------------------------------------------
