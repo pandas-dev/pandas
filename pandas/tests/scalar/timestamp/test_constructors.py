@@ -25,6 +25,19 @@ from pandas.tseries import offsets
 
 
 class TestTimestampConstructors:
+    @pytest.mark.parametrize("typ", [int, float])
+    def test_constructor_int_float_with_YM_unit(self, typ):
+        # avoid the conversions in cast_from_unit
+        val = typ(150)
+
+        ts = Timestamp(val, unit="Y")
+        expected = Timestamp("2120-01-01")
+        assert ts == expected
+
+        ts = Timestamp(val, unit="M")
+        expected = Timestamp("1982-07-01")
+        assert ts == expected
+
     def test_constructor_datetime64_with_tz(self):
         # GH#42288, GH#24559
         dt = np.datetime64("1970-01-01 05:00:00")

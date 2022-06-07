@@ -248,6 +248,12 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
+            if unit in ["Y", "M"]:
+                # cast_from_unit leads to weird results e.g. with "Y" and 150
+                #  we'd get 2120-01-01 09:00:00
+                ts = np.datetime64(ts, unit.upper())
+                return convert_to_tsobject(ts, tz, None, False, False)
+
             ts = ts * cast_from_unit(None, unit)
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
@@ -255,6 +261,12 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
+            if unit in ["Y", "M"]:
+                if ts == int(ts):
+                    # Avoid cast_from_unit, which would give weird results e.g.
+                    #  with "Y" and 150.0 we'd get 2120-01-01 09:00:00
+                    return convert_to_tsobject(int(ts), tz, unit, False, False)
+
             ts = cast_from_unit(ts, unit)
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
