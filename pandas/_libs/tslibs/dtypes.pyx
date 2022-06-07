@@ -384,7 +384,7 @@ cdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
 
 
 @cython.overflowcheck(True)
-cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit):
+cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1:
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """
