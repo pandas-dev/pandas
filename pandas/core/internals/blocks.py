@@ -1989,11 +1989,9 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     _validate_ndim = True
     _can_consolidate = False
 
-    def values_for_json(self) -> np.ndarray:
-        # force dt64tz to go through object dtype
-        # tz info will be lost when converting to
-        # dt64 which is naive
-        return self.values.astype(object)
+    # Don't use values_for_json from DatetimeLikeBlock since it is
+    # an invalid optimization here(drop the tz)
+    values_for_json = NDArrayBackedExtensionBlock.values_for_json
 
 
 class ObjectBlock(NumpyBlock):
