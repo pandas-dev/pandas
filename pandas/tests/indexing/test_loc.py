@@ -2870,10 +2870,10 @@ def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
 
 
 def test_loc_set_int_dtype():
-    df = pd.DataFrame([list('abc')])
-    df.loc[:, 'col1'] = int(5)
+    df = pd.DataFrame([list("abc")])
+    df.loc[:, "col1"] = int(5)
 
-    assert str(df.dtypes['col1']) == 'int64'
+    assert str(df.dtypes["col1"]) == "int64"
 
 
 class TestLocSeries:
