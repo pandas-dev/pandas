@@ -193,7 +193,7 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
             elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
                 result[i] = timedelta(weeks=value)
             else:
-                # Month, Year, NPY_FR_GENERIC, pico, fempto, atto
+                # Month, Year, NPY_FR_GENERIC, pico, femto, atto
                 raise NotImplementedError(reso)
 
     return result.base  # .base to access underlying np.ndarray
