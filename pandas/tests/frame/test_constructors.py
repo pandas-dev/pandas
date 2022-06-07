@@ -18,7 +18,6 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import is_platform_mac
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -3126,7 +3125,8 @@ class TestAllowNonNano:
         assert df.dtypes[0] == arr.dtype
 
     @pytest.mark.xfail(
-        is_platform_mac(),
+        # TODO(2.0): xfail should become unnecessary
+        strict=False,
         reason="stack_arrays converts TDA to ndarray, then goes "
         "through ensure_wrapped_if_datetimelike",
     )
