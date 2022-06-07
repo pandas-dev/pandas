@@ -6,6 +6,8 @@ import os
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import read_orc
 import pandas._testing as tm
@@ -20,6 +22,26 @@ pytestmark = pytest.mark.filterwarnings(
 @pytest.fixture
 def dirpath(datapath):
     return datapath("io", "data", "orc")
+
+
+# Examples of dataframes with dtypes for which conversion to ORC
+# hasn't been implemented yet.
+orc_writer_not_implemented = [
+    pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")}),
+    pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")}),
+    pd.DataFrame(
+        {"unimpl": [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)]}
+    ),
+    pd.DataFrame(
+        {
+            "unimpl": [
+                pd.Period("2022-01-03", freq="D"),
+                pd.Period("2022-01-04", freq="D"),
+            ]
+        }
+    ),
+    pd.DataFrame({"unimpl": [np.nan] * 50}).astype(pd.SparseDtype("float", np.nan)),
+]
 
 
 def test_orc_reader_empty(dirpath):
@@ -227,10 +249,10 @@ def test_orc_reader_snappy_compressed(dirpath):
     tm.assert_equal(expected, got)
 
 
+@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_roundtrip_file(dirpath):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
-    pytest.importorskip("pyarrow", minversion="7.0.0")
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
         "byte1": np.array([1, 100], dtype="int8"),
@@ -251,10 +273,10 @@ def test_orc_roundtrip_file(dirpath):
     tm.assert_equal(expected, got)
 
 
+@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_roundtrip_bytesio():
     # GH44554
     # PyArrow gained ORC write support with the current argument order
-    pytest.importorskip("pyarrow", minversion="7.0.0")
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
         "byte1": np.array([1, 100], dtype="int8"),
@@ -274,29 +296,11 @@ def test_orc_roundtrip_bytesio():
     tm.assert_equal(expected, got)
 
 
-testdata = [
-    pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")}),
-    pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")}),
-    pd.DataFrame(
-        {"unimpl": [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)]}
-    ),
-    pd.DataFrame(
-        {
-            "unimpl": [
-                pd.Period("2022-01-03", freq="D"),
-                pd.Period("2022-01-04", freq="D"),
-            ]
-        }
-    ),
-    pd.DataFrame({"unimpl": [np.nan] * 50}).astype(pd.SparseDtype("float", np.nan)),
-]
-
-
-@pytest.mark.parametrize("unimplemented", testdata)
+@td.skip_if_no("pyarrow", min_version="7.0.0")
+@pytest.mark.parametrize("unimplemented", orc_writer_not_implemented)
 def test_orc_writer_unimplemented_dtypes(unimplemented):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
-    pytest.importorskip("pyarrow", minversion="7.0.0")
     msg = """The dtype of one or more columns is unsigned integers,
 intervals, periods, sparse or categorical which is not supported yet."""
     with pytest.raises(NotImplementedError, match=msg):
