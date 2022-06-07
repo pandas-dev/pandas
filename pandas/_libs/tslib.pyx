@@ -144,8 +144,8 @@ def format_array_from_datetime(
         if basic_format:
             reso_obj = get_resolution(values)
             show_ns = reso_obj == Resolution.RESO_NS
-                show_us = reso_obj == Resolution.RESO_US
-                    show_ms = reso_obj == Resolution.RESO_MS
+            show_us = reso_obj == Resolution.RESO_US
+            show_ms = reso_obj == Resolution.RESO_MS
 
         elif format == "%Y-%m-%d %H:%M:%S":
             # Same format as default, but with hardcoded precision (s)
