@@ -314,7 +314,7 @@ class NumExprClobberingError(NameError):
     """
     Exception is raised when trying to use a built-in numexpr name as a variable name
     in a method like query or eval. Eval will throw the error if the engine is set
-    to `numexpr'. 'numexpr' is the default engine value for eval if the numexpr package
+    to 'numexpr'. 'numexpr' is the default engine value for eval if the numexpr package
     is installed.
 
     Examples
