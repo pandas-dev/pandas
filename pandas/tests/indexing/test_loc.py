@@ -2869,6 +2869,13 @@ def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
     tm.assert_index_equal(df.index, expected_index, exact=True)
 
 
+def test_loc_set_int_dtype():
+    df = pd.DataFrame([list('abc')])
+    df.loc[:, 'col1'] = int(5)
+
+    assert str(df.dtypes['col1']) == 'int64'
+
+
 class TestLocSeries:
     @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
     def test_loc_uint64(self, val, expected):
