@@ -76,7 +76,6 @@ def delta_to_nanoseconds(
     delta: np.timedelta64 | timedelta | Tick,
     reso: int = ...,  # NPY_DATETIMEUNIT
     round_ok: bool = ...,
-    allow_year_month: bool = ...,
 ) -> int: ...
 
 class Timedelta(timedelta):
