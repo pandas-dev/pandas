@@ -253,7 +253,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             if unit in ["Y", "M"]:
                 # GH#47266 cast_from_unit leads to weird results e.g. with "Y"
                 #  and 150 we'd get 2120-01-01 09:00:00
-                ts = np.datetime64(ts, unit.upper())
+                ts = np.datetime64(ts, unit)
                 return convert_to_tsobject(ts, tz, None, False, False)
 
             ts = ts * cast_from_unit(None, unit)
