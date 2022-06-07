@@ -182,10 +182,9 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
 
         if value == NPY_NAT:
             res_val = <object>NaT
-            result[i] = <object>NaT
         else:
             if box:
-                result[i] = _timedelta_from_value_and_reso(value, reso=reso)
+                res_val = _timedelta_from_value_and_reso(value, reso=reso)
             elif reso == NPY_DATETIMEUNIT.NPY_FR_ns:
                 res_val = timedelta(microseconds=int(value) / 1000)
             elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
