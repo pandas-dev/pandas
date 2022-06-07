@@ -213,6 +213,8 @@ def ints_to_pytimedelta(ndarray m8values, box=False):
         #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
         res_flat[i] = res_val
 
+        cnp.PyArray_ITER_NEXT(it)
+
     return result
 
 
