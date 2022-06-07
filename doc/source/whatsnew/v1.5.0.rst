@@ -726,7 +726,7 @@ Datetimelike
 - Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
 - Bug in :meth:`DatetimeIndex.tz_localize` localizing to UTC failing to make a copy of the underlying data (:issue:`46460`)
 - Bug in :meth:`DatetimeIndex.resolution` incorrectly returning "day" instead of "nanosecond" for nanosecond-resolution indexes (:issue:`46903`)
-- Bug in :class:`Timestamp` with an integer or float value and ``unit="Y"`` or ``unit="M"`` giving slightly-wrong results (:issue:`??`)
+- Bug in :class:`Timestamp` with an integer or float value and ``unit="Y"`` or ``unit="M"`` giving slightly-wrong results (:issue:`47266`)
 -
 
 Timedelta
