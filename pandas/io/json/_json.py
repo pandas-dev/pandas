@@ -52,6 +52,7 @@ from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,
+    _extension_to_compression,
     file_exists,
     get_handle,
     is_fsspec_url,
@@ -698,6 +699,9 @@ class JsonReader(abc.Iterator):
 
         This method turns (1) into (2) to simplify the rest of the processing.
         It returns input types (2) and (3) unchanged.
+
+        It raises FileNotFoundError if the input is a string ending in
+        one of .json, .json.gz, .json.bz2, etc. but no such file exists.
         """
         # if it is a string but the file does not exist, it might be a JSON string
         filepath_or_buffer = stringify_path(filepath_or_buffer)
@@ -716,6 +720,14 @@ class JsonReader(abc.Iterator):
                 errors=self.encoding_errors,
             )
             filepath_or_buffer = self.handles.handle
+        elif (
+            isinstance(filepath_or_buffer, str)
+            and filepath_or_buffer.lower().endswith(
+                (".json",) + tuple(f".json{c}" for c in _extension_to_compression)
+            )
+            and not file_exists(filepath_or_buffer)
+        ):
+            raise FileNotFoundError(f"File {filepath_or_buffer} does not exist")
 
         return filepath_or_buffer
 
