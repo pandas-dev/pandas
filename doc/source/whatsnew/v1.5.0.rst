@@ -732,7 +732,7 @@ Timedelta
 ^^^^^^^^^
 - Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
 - Bug in constructing a :class:`Timedelta` with a ``np.timedelta64`` object and a ``unit`` sometimes silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`46827`)
-- Bug in constructing a :class:`Timedelta` from a large integer or float with ``unit="W"`` silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`??`)
+- Bug in constructing a :class:`Timedelta` from a large integer or float with ``unit="W"`` silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`47268`)
 -
 
 Time Zones
