@@ -2923,7 +2923,7 @@ class DataFrame(NDFrame, OpsMixin):
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
-        engine : {{'pyarrow'}}, default 'pyarrow'
+        engine : str, default 'pyarrow'
             ORC library to use, or library it self, checked with 'pyarrow' name
             and version >= 7.0.0. Raises ValueError if it is anything but
             'pyarrow'.
