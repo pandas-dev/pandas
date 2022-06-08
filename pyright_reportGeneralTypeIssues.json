@@ -1,4 +1,4 @@
-# this becomes obsolet when reportGeneralTypeIssues can be enabled in pyproject.toml
+# this becomes obsolete when reportGeneralTypeIssues can be enabled in pyproject.toml
 {
     "typeCheckingMode": "off",
     "reportGeneralTypeIssues": true,
