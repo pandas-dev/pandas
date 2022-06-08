@@ -821,6 +821,7 @@ class BaseBlockManager(DataManager):
             dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
             if is_float_dtype(dtype):
                 # GH45857 avoid unnecessary upcasting
+                dtype = cast(np.dtype, dtype)
                 fill_value = dtype.type(fill_value)
 
         block_shape = list(self.shape)
