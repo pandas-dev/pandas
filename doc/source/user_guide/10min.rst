@@ -24,6 +24,11 @@ See the :ref:`Intro to data structures section <dsintro>`.
 :class:`Series` is a one-dimensional labeled array capable of holding any
 data type (integers, strings, floating point numbers, Python objects, etc.).
 
+:class:`Dataframe` is a 2-dimensional labeled data structure with columns of potentially different
+types. You can think of it like a spreadsheet or SQL table, or a dict of Series objects. Like
+Series, DataFrame accepts many different kinds of input such as: Dicts of 1D ndarrays, lists,
+dicts or series, along with 2-D numpy.ndarray, Structured or record ndarray, and another DataFrame.
+
 Creating a :class:`Series` by passing a list of values, letting pandas create
 a default integer index:
 
@@ -31,11 +36,6 @@ a default integer index:
 
    s = pd.Series([1, 3, 5, np.nan, 6, 8])
    s
-
-:class:`Dataframe` is a 2-dimensional labeled data structure with columns of potentially different
-types. You can think of it like a spreadsheet or SQL table, or a dict of Series objects. Like 
-Series, DataFrame accepts many different kinds of input such as: Dicts of 1D ndarrays lists, 
-dicts or series, along with 2-D numpy.ndarray, Structured or record ndarray, and another DataFrame.
 
 Creating a :class:`DataFrame` by passing a NumPy array, with a datetime index using :func:`date_range`
 and labeled columns:
