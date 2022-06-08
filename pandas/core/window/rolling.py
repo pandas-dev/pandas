@@ -301,7 +301,7 @@ class BaseWindow(SelectionMixin):
         # filter out the on from the object
         if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
             obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
-        if numeric_only or self.axis == 1:
+        if obj.ndim > 1 and (numeric_only or self.axis == 1):
             # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
             # to float to calculate the complete row at once. We exclude all non-numeric
             # dtypes.
@@ -1706,6 +1706,7 @@ class RollingAndExpandingMixin(BaseWindow):
     ):
         if self.step is not None:
             raise NotImplementedError("step not implemented for cov")
+        self._validate_numeric_only("cov", numeric_only)
 
         from pandas import Series
 
@@ -1753,6 +1754,7 @@ class RollingAndExpandingMixin(BaseWindow):
     ):
         if self.step is not None:
             raise NotImplementedError("step not implemented for corr")
+        self._validate_numeric_only("corr", numeric_only)
 
         from pandas import Series
 

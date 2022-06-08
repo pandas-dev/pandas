@@ -754,6 +754,8 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         from pandas import Series
 
+        self._validate_numeric_only("cov", numeric_only)
+
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
@@ -824,6 +826,8 @@ class ExponentialMovingWindow(BaseWindow):
         **kwargs,
     ):
         from pandas import Series
+
+        self._validate_numeric_only("corr", numeric_only)
 
         def cov_func(x, y):
             x_array = self._prep_values(x)
