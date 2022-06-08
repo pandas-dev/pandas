@@ -28,6 +28,7 @@ def get_date_field(
 def get_timedelta_field(
     tdindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int32]: ...
 def isleapyear_arr(
     years: np.ndarray,
