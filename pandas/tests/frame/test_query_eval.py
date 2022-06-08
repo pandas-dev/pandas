@@ -533,7 +533,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
-        from pandas.core.computation.engines import NumExprClobberingError
+        from pandas.errors import NumExprClobberingError
 
         engine, parser = self.engine, self.parser
 
