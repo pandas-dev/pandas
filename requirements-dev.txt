@@ -24,7 +24,7 @@ jinja2
 lxml
 matplotlib
 numba
-numexpr>=2.7.1
+numexpr>=2.8.0
 openpyxl
 odfpy
 pandas-gbq
