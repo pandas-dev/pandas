@@ -193,7 +193,7 @@ jobs:
         id: setup_python
         uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python_version }}
           cache: 'pip'
           cache-dependency-path: 'requirements-dev.txt'
 
