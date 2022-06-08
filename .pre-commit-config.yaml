@@ -94,7 +94,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.252
+        - pyright@1.1.253
 -   repo: local
     hooks:
     -   id: pyright_reportGeneralTypeIssues
