@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
-        result = get_timedelta_field(values, alias)
+        result = get_timedelta_field(values, alias, reso=self._reso)
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -269,6 +269,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     ) -> TimedeltaArray:
         if dtype:
             _validate_td64_dtype(dtype)
+
+        assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
@@ -923,6 +925,8 @@ def sequence_to_td64ns(
     errors to be ignored; they are caught and subsequently ignored at a
     higher level.
     """
+    assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
+
     inferred_freq = None
     if unit is not None:
         unit = parse_timedelta_unit(unit)
@@ -954,7 +958,7 @@ def sequence_to_td64ns(
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
         # no need to make a copy, need to convert if string-dtyped
-        data = objects_to_td64ns(data, unit=unit, errors=errors)
+        data = _objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
 
     elif is_integer_dtype(data.dtype):
@@ -1032,7 +1036,7 @@ def ints_to_td64ns(data, unit="ns"):
     return data, copy_made
 
 
-def objects_to_td64ns(data, unit=None, errors="raise"):
+def _objects_to_td64ns(data, unit=None, errors="raise"):
     """
     Convert a object-dtyped or string-dtyped array into an
     timedelta64[ns]-dtyped array.
