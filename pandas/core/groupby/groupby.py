@@ -53,7 +53,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DataError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -89,7 +92,6 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.base import (
-    DataError,
     PandasObject,
     SelectionMixin,
 )
@@ -2255,7 +2257,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             counts = self.count()
             result_ilocs = result.columns.get_indexer_for(cols)
             count_ilocs = counts.columns.get_indexer_for(cols)
-            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
+            with warnings.catch_warnings():
+                # TODO(2.0): once iloc[:, foo] = bar depecation is enforced,
+                #  this catching will be unnecessary
+                warnings.filterwarnings(
+                    "ignore", ".*will attempt to set the values inplace.*"
+                )
+                result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final
@@ -2542,6 +2550,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with self._group_selection_context():
+            if len(self._selected_obj) == 0:
+                described = self._selected_obj.describe(**kwargs)
+                if self._selected_obj.ndim == 1:
+                    result = described
+                else:
+                    result = described.unstack()
+                return result.to_frame().T.iloc[:0]
+
             result = self._python_apply_general(
                 lambda x: x.describe(**kwargs),
                 self._selected_obj,
