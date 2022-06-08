@@ -171,8 +171,8 @@ which are actually expected (typically ``KeyError``).
   * In particular, code should never (intentionally) raise new exceptions in the ``except`` portion of a ``try... exception``
 
 8. **Any code portion which is not specific to setters and getters must be shared**,
-and when small differences in behavior are expected (e.g. setting with ``.loc`` raises for
-missing labels, getting still doesn't), they can be managed with a specific parameter.
+and when small differences in behavior are expected (e.g. getting with ``.loc`` raises for
+missing labels, setting still doesn't), they can be managed with a specific parameter.
 
 Numba-accelerated operations
 ----------------------------

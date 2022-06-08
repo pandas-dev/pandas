@@ -388,28 +388,28 @@ xfail is not to be used for tests involving failure due to invalid user argument
 For these tests, we need to verify the correct exception type and error message
 is being raised, using ``pytest.raises`` instead.
 
-Testing an exception
-^^^^^^^^^^^^^^^^^^^^
+Testing a warning
+^^^^^^^^^^^^^^^^^
 
-Use `pytest.raises <https://docs.pytest.org/en/latest/reference/reference.html#pytest-raises>`_ as a context manager
-with the specific exception subclass (i.e. never use :py:class:`Exception`) and the exception message in ``match``.
+Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
 
 .. code-block:: python
 
-    with assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(DeprecationWarning):
         pd.deprecated_function()
 
 If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
 
 .. code-block:: python
 
-    with assert_produces_warning(False):
+    with tm.assert_produces_warning(False):
         pd.no_warning_function()
 
-Testing a warning
-^^^^^^^^^^^^^^^^^
+Testing an exception
+^^^^^^^^^^^^^^^^^^^^
 
-Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
+Use `pytest.raises <https://docs.pytest.org/en/latest/reference/reference.html#pytest-raises>`_ as a context manager
+with the specific exception subclass (i.e. never use :py:class:`Exception`) and the exception message in ``match``.
 
 .. code-block:: python
 

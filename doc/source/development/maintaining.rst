@@ -159,13 +159,13 @@ Backporting
 
 pandas supports point releases (e.g. ``1.4.3``) that aim to:
 
-1. Fix bugs in new features introduced since the first minor version release.
+1. Fix bugs in new features introduced in the first minor version release.
 
-  * If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``
+  * e.g. If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``
 
-2. Fix bugs that used to work in a few minor releases prior.
+2. Fix bugs that used to work in a few minor releases prior. There should be agreement between core team members that a backport is appropriate.
 
-  * If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``.
+  * e.g. If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``.
 
 Since pandas minor releases are based on Github branches (e.g. point release of ``1.4`` are based off the ``1.4.x`` branch),
 "backporting" means merging a pull request fix to the ``main`` branch and correct minor branch associated with the next point release.
