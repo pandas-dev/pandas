@@ -9,7 +9,9 @@ import pandas._testing as tm
 
 @pytest.fixture
 def mi():
-    return MultiIndex.from_tuples([("a", "1/2"), ("b", "3/4"), ("d", "5/6")])
+    return MultiIndex.from_tuples(
+        [("a", "1/2"), ("b", "3/4"), ("d", "5/6")], names=["1", "2"]
+    )
 
 
 @pytest.mark.parametrize(
