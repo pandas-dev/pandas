@@ -84,6 +84,12 @@ def ignore_na(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def numeric_only(request):
+    """numeric_only keyword argument"""
+    return request.param
+
+
 @pytest.fixture(params=[pytest.param("numba", marks=td.skip_if_no("numba")), "cython"])
 def engine(request):
     """engine keyword argument for rolling.apply"""
