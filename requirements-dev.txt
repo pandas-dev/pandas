@@ -24,7 +24,7 @@ jinja2
 lxml
 matplotlib
 numba
-numexpr
+numexpr>=2.7.1
 openpyxl
 odfpy
 pandas-gbq
@@ -57,7 +57,7 @@ coverage
 pandas-datareader
 pyyaml
 py
-pytorch
+torch
 moto
 flask
 asv
