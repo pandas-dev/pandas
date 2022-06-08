@@ -562,7 +562,11 @@ def test_slice_replace(start, stop, repl, expected, any_string_dtype):
 def test_strip_lstrip_rstrip(any_string_dtype, method, exp):
     ser = Series(["  aa   ", " bb \n", np.nan, "cc  "], dtype=any_string_dtype)
 
-    result = getattr(ser.str, method)()
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = getattr(ser.str, method)()
     expected = Series(exp, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
