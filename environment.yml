@@ -32,7 +32,7 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
-  - numba
+  - numba>=0.53.1
   - numexpr>=2.8.0  # pin for "Run checks on imported code" job
   - openpyxl
   - odfpy
