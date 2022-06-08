@@ -169,3 +169,36 @@ jobs:
 
       - name: Build image
         run: docker build --pull --no-cache --tag pandas-dev-env .
+
+  requirements-dev-text-installable:
+    strategy:
+      matrix:
+        os: [ macos-latest, windows-latest, ubuntu-latest ]
+        python_version: [ '3.8', '3.9', '3.10' ]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    name: Install requirements-dev.txt on Python ${{ matrix.python_version }} on ${{ matrix.os }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.python_version }}-${{ matrix.os }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        id: setup_python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
+
+      - name: Install requirements-dev.txt
+        run: pip install -r requirements-dev.txt
+
+      - name: Check Pip Cache Hit
+        run: echo ${{ steps.setup_python.outputs.cache-hit }}
