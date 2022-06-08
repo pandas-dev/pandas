@@ -6,9 +6,7 @@ import numpy as np
 import pytest
 
 from pandas import (
-    NA,
     DataFrame,
-    Float64Dtype,
     IndexSlice,
     MultiIndex,
     Series,
@@ -330,14 +328,6 @@ def test_loc_setitem_all_false_indexer():
     rhs = Series([6, 7], index=["a", "b"])
     ser.loc[ser > 100] = rhs
     tm.assert_series_equal(ser, expected)
-
-
-def test_reindexing_values():
-    # GH 47055
-    s = Series([1.0, NA], dtype=Float64Dtype())
-    s_reindex = s.reindex(range(3))
-    expected = np.array([1, np.NaN, np.NaN])
-    tm.assert_numpy_array_equal(s_reindex.values._data, expected)
 
 
 class TestDeprecatedIndexers:
