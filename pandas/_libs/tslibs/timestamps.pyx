@@ -90,7 +90,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
@@ -455,7 +458,7 @@ cdef class _Timestamp(ABCTimestamp):
             # Timedelta
             try:
                 return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime) as err:
+            except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if isinstance(other, _Timestamp):
                     if both_timestamps:
                         raise OutOfBoundsDatetime(
