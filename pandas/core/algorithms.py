@@ -453,30 +453,34 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     else:
         values = extract_array(values, extract_numpy=True, extract_range=True)
 
-    comps = _ensure_arraylike(comps)
-    comps = extract_array(comps, extract_numpy=True)
-    if not isinstance(comps, np.ndarray):
+    comps_array = _ensure_arraylike(comps)
+    comps_array = extract_array(comps_array, extract_numpy=True)
+    if not isinstance(comps_array, np.ndarray):
         # i.e. Extension Array
-        return comps.isin(values)
+        return comps_array.isin(values)
 
-    elif needs_i8_conversion(comps.dtype):
+    elif needs_i8_conversion(comps_array.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
-        return pd_array(comps).isin(values)
-    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
-        # e.g. comps are integers and values are datetime64s
-        return np.zeros(comps.shape, dtype=bool)
+        return pd_array(comps_array).isin(values)
+    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps_array.dtype):
+        # e.g. comps_array are integers and values are datetime64s
+        return np.zeros(comps_array.shape, dtype=bool)
         # TODO: not quite right ... Sparse/Categorical
     elif needs_i8_conversion(values.dtype):
-        return isin(comps, values.astype(object))
+        return isin(comps_array, values.astype(object))
 
     elif isinstance(values.dtype, ExtensionDtype):
-        return isin(np.asarray(comps), np.asarray(values))
+        return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
-    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
+    if (
+        len(comps_array) > 1_000_000
+        and len(values) <= 26
+        and not is_object_dtype(comps_array)
+    ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
@@ -488,12 +492,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        common = np.find_common_type([values.dtype, comps.dtype], [])
+        common = np.find_common_type([values.dtype, comps_array.dtype], [])
         values = values.astype(common, copy=False)
-        comps = comps.astype(common, copy=False)
+        comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
 
-    return f(comps, values)
+    return f(comps_array, values)
 
 
 def factorize_array(

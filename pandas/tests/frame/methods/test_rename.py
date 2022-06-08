@@ -176,11 +176,15 @@ class TestRename:
 
         assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
 
-        renamed.loc[:, "foo"] = 1.0
+        with tm.assert_produces_warning(None):
+            # This loc setitem already happens inplace, so no warning
+            #  that this will change in the future
+            renamed.loc[:, "foo"] = 1.0
         if using_copy_on_write:
             assert not (float_frame["C"] == 1.0).all()
         else:
             assert (float_frame["C"] == 1.0).all()
+        assert (float_frame["C"] == 1.0).all()
 
     def test_rename_inplace(self, float_frame):
         float_frame.rename(columns={"C": "foo"})

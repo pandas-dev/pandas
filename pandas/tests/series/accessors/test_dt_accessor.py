@@ -12,6 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import SettingWithCopyError
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -37,7 +38,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-import pandas.core.common as com
 
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
@@ -292,7 +292,7 @@ class TestSeriesDatetimeValues:
                 # TODO(CoW) it would be nice to keep a warning/error for this case
                 ser.dt.hour[0] = 5
             else:
-                with pytest.raises(com.SettingWithCopyError, match=msg):
+                with pytest.raises(SettingWithCopyError, match=msg):
                     ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(

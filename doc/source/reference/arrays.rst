@@ -303,7 +303,7 @@ Properties
 .. autosummary::
    :toctree: api/
 
-   Interval.closed
+   Interval.inclusive
    Interval.closed_left
    Interval.closed_right
    Interval.is_empty
@@ -340,7 +340,7 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
 
       arrays.IntervalArray.left
       arrays.IntervalArray.right
-      arrays.IntervalArray.closed
+      arrays.IntervalArray.inclusive
       arrays.IntervalArray.mid
       arrays.IntervalArray.length
       arrays.IntervalArray.is_empty

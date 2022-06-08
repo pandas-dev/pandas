@@ -1,13 +1,15 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
     Series,
 )
 import pandas._testing as tm
-import pandas.core.common as com
+from pandas.tests.copy_view.util import get_array
 
 # -----------------------------------------------------------------------------
 # Indexing operations taking subset + modifying the subset/parent
@@ -23,17 +25,17 @@ def test_subset_column_selection(using_copy_on_write):
 
     if using_copy_on_write:
         # the subset shares memory ...
-        assert np.shares_memory(subset["a"].values, df["a"].values)
+        assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
         # ... but uses CoW when being modified
         subset.iloc[0, 0] = 0
     else:
-        assert not np.shares_memory(subset["a"].values, df["a"].values)
+        assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
         # INFO this no longer raise warning since pandas 1.4
         # with pd.option_context("chained_assignment", "warn"):
-        #     with tm.assert_produces_warning(com.SettingWithCopyWarning):
+        #     with tm.assert_produces_warning(SettingWithCopyWarning):
         subset.iloc[0, 0] = 0
 
-    assert not np.shares_memory(subset["a"].values, df["a"].values)
+    assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     expected = DataFrame({"a": [0, 2, 3], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(subset, expected)
@@ -48,14 +50,14 @@ def test_subset_column_selection_modify_parent(using_copy_on_write):
     subset = df[["a", "c"]]
     if using_copy_on_write:
         # the subset shares memory ...
-        assert np.shares_memory(subset["a"].values, df["a"].values)
+        assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
         # ... but parent uses CoW parent when it is modified
     df.iloc[0, 0] = 0
 
-    assert not np.shares_memory(subset["a"].values, df["a"].values)
+    assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
     if using_copy_on_write:
         # different column/block still shares memory
-        assert np.shares_memory(subset["c"].values, df["c"].values)
+        assert np.shares_memory(get_array(subset, "c"), get_array(df, "c"))
 
     expected = DataFrame({"a": [1, 2, 3], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(subset, expected)
@@ -70,16 +72,16 @@ def test_subset_row_slice(using_copy_on_write):
     subset = df[1:3]
     subset._mgr._verify_integrity()
 
-    assert np.shares_memory(subset["a"].values, df["a"].values)
+    assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     if using_copy_on_write:
         subset.iloc[0, 0] = 0
-        assert not np.shares_memory(subset["a"].values, df["a"].values)
+        assert not np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     else:
         # INFO this no longer raise warning since pandas 1.4
         # with pd.option_context("chained_assignment", "warn"):
-        #     with tm.assert_produces_warning(com.SettingWithCopyWarning):
+        #     with tm.assert_produces_warning(SettingWithCopyWarning):
         subset.iloc[0, 0] = 0
 
     subset._mgr._verify_integrity()
@@ -111,14 +113,14 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
     subset._mgr._verify_integrity()
 
     if using_copy_on_write:
-        assert np.shares_memory(subset["b"].values, df["b"].values)
+        assert np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
         subset.iloc[0, 0] = 0
-        assert not np.shares_memory(subset["b"].values, df["b"].values)
+        assert not np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
     else:
         # we only get a warning in case of a single block
-        warn = com.SettingWithCopyWarning if single_block else None
+        warn = SettingWithCopyWarning if single_block else None
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 subset.iloc[0, 0] = 0
@@ -132,6 +134,100 @@ def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
         tm.assert_frame_equal(df, df_orig)
     else:
         tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+@pytest.mark.parametrize(
+    "row_indexer",
+    [slice(1, 2), np.array([False, True, True]), np.array([1, 2])],
+    ids=["slice", "mask", "array"],
+)
+@pytest.mark.parametrize(
+    "column_indexer",
+    [slice("b", "c"), np.array([False, True, True]), ["b", "c"]],
+    ids=["slice", "mask", "array"],
+)
+def test_subset_loc_rows_columns(
+    dtype, row_indexer, column_indexer, using_array_manager
+):
+    # Case: taking a subset of the rows+columns of a DataFrame using .loc
+    # + afterwards modifying the subset
+    # Generic test for several combinations of row/column indexers, not all
+    # of those could actually return a view / need CoW (so this test is not
+    # checking memory sharing, only ensuring subsequent mutation doesn't
+    # affect the parent dataframe)
+    df = DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+    )
+    df_orig = df.copy()
+
+    subset = df.loc[row_indexer, column_indexer]
+
+    # modifying the subset never modifies the parent
+    subset.iloc[0, 0] = 0
+
+    expected = DataFrame(
+        {"b": [0, 6], "c": np.array([8, 9], dtype=dtype)}, index=range(1, 3)
+    )
+    tm.assert_frame_equal(subset, expected)
+    # a few corner cases _do_ actually modify the parent (with both row and column
+    # slice, and in case of ArrayManager or BlockManager with single block)
+    if (
+        isinstance(row_indexer, slice)
+        and isinstance(column_indexer, slice)
+        and (using_array_manager or dtype == "int64")
+    ):
+        df_orig.iloc[1, 1] = 0
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+@pytest.mark.parametrize(
+    "row_indexer",
+    [slice(1, 3), np.array([False, True, True]), np.array([1, 2])],
+    ids=["slice", "mask", "array"],
+)
+@pytest.mark.parametrize(
+    "column_indexer",
+    [slice(1, 3), np.array([False, True, True]), [1, 2]],
+    ids=["slice", "mask", "array"],
+)
+def test_subset_iloc_rows_columns(
+    dtype, row_indexer, column_indexer, using_array_manager
+):
+    # Case: taking a subset of the rows+columns of a DataFrame using .iloc
+    # + afterwards modifying the subset
+    # Generic test for several combinations of row/column indexers, not all
+    # of those could actually return a view / need CoW (so this test is not
+    # checking memory sharing, only ensuring subsequent mutation doesn't
+    # affect the parent dataframe)
+    df = DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+    )
+    df_orig = df.copy()
+
+    subset = df.iloc[row_indexer, column_indexer]
+
+    # modifying the subset never modifies the parent
+    subset.iloc[0, 0] = 0
+
+    expected = DataFrame(
+        {"b": [0, 6], "c": np.array([8, 9], dtype=dtype)}, index=range(1, 3)
+    )
+    tm.assert_frame_equal(subset, expected)
+    # a few corner cases _do_ actually modify the parent (with both row and column
+    # slice, and in case of ArrayManager or BlockManager with single block)
+    if (
+        isinstance(row_indexer, slice)
+        and isinstance(column_indexer, slice)
+        and (using_array_manager or dtype == "int64")
+    ):
+        df_orig.iloc[1, 1] = 0
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize(
@@ -157,7 +253,7 @@ def test_subset_set_with_row_indexer(indexer_si, indexer, using_copy_on_write):
         indexer_si(subset)[indexer] = 0
     else:
         # INFO iloc no longer raises warning since pandas 1.4
-        warn = com.SettingWithCopyWarning if indexer_si is tm.setitem else None
+        warn = SettingWithCopyWarning if indexer_si is tm.setitem else None
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 indexer_si(subset)[indexer] = 0
@@ -187,7 +283,7 @@ def test_subset_set_with_mask(using_copy_on_write):
         subset[mask] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 subset[mask] = 0
 
     expected = DataFrame(
@@ -214,7 +310,7 @@ def test_subset_set_column(using_copy_on_write):
         subset["a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 subset["a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
@@ -241,7 +337,13 @@ def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dt
         subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
+            # warnings and only assert the SettingWithCopyWarning
+            raise_on_extra_warnings = False if using_array_manager else True
+            with tm.assert_produces_warning(
+                SettingWithCopyWarning,
+                raise_on_extra_warnings=raise_on_extra_warnings,
+            ):
                 subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
@@ -272,7 +374,13 @@ def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
         subset.loc[:, "a"] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
+            # warnings and only assert the SettingWithCopyWarning
+            raise_on_extra_warnings = False if using_array_manager else True
+            with tm.assert_produces_warning(
+                SettingWithCopyWarning,
+                raise_on_extra_warnings=raise_on_extra_warnings,
+            ):
                 subset.loc[:, "a"] = 0
 
     subset._mgr._verify_integrity()
@@ -303,7 +411,7 @@ def test_subset_set_columns(using_copy_on_write, dtype):
         subset[["a", "c"]] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 subset[["a", "c"]] = 0
 
     subset._mgr._verify_integrity()
@@ -333,7 +441,11 @@ def test_subset_set_with_column_indexer(
         subset.loc[:, indexer] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            # The (i)loc[:, col] inplace deprecation gets triggered here, ignore those
+            # warnings and only assert the SettingWithCopyWarning
+            with tm.assert_produces_warning(
+                SettingWithCopyWarning, raise_on_extra_warnings=False
+            ):
                 subset.loc[:, indexer] = 0
 
     subset._mgr._verify_integrity()
@@ -413,11 +525,11 @@ def test_del_frame(using_copy_on_write):
     df_orig = df.copy()
     df2 = df[:]
 
-    assert np.shares_memory(df["a"].values, df2["a"].values)
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
 
     del df2["b"]
 
-    assert np.shares_memory(df["a"].values, df2["a"].values)
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
     tm.assert_frame_equal(df, df_orig)
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
@@ -463,19 +575,19 @@ def test_column_as_series(using_copy_on_write, using_array_manager):
 
     s = df["a"]
 
-    assert np.shares_memory(s.values, df["a"].values)
+    assert np.shares_memory(s.values, get_array(df, "a"))
 
     if using_copy_on_write or using_array_manager:
         s[0] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
     tm.assert_series_equal(s, expected)
     if using_copy_on_write:
-        # assert not np.shares_memory(s.values, df["a"].values)
+        # assert not np.shares_memory(s.values, get_array(df, "a"))
         tm.assert_frame_equal(df, df_orig)
         # ensure cached series on getitem is not the changed series
         tm.assert_series_equal(df["a"], df_orig["a"])
@@ -496,7 +608,7 @@ def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manag
         s[0] = "foo"
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+            with tm.assert_produces_warning(SettingWithCopyWarning):
                 s[0] = "foo"
 
     expected = Series(["foo", 2, 3], dtype=object, name="a")
@@ -522,7 +634,7 @@ def test_dataframe_add_column_from_series():
 
     s = Series([10, 11, 12])
     df["new"] = s
-    assert not np.shares_memory(df["new"].values, s.values)
+    assert not np.shares_memory(get_array(df, "new"), s.values)
 
     # editing series -> doesn't modify column in frame
     s[0] = 0

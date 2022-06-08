@@ -45,18 +45,17 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    dt64_to_dtstruct,
     get_unit_from_dtype,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
+    pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
-    td64_to_tdstruct,
 )
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def build_field_sarray(const int64_t[:] dtindex):
+def build_field_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     """
     Datetime as int64 representation to a structured array of fields
     """
@@ -86,7 +85,7 @@ def build_field_sarray(const int64_t[:] dtindex):
     mus = out['u']
 
     for i in range(count):
-        dt64_to_dtstruct(dtindex[i], &dts)
+        pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
         years[i] = dts.year
         months[i] = dts.month
         days[i] = dts.day
@@ -492,7 +491,11 @@ def get_date_field(const int64_t[:] dtindex, str field, NPY_DATETIMEUNIT reso=NP
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_timedelta_field(const int64_t[:] tdindex, str field):
+def get_timedelta_field(
+    const int64_t[:] tdindex,
+    str field,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+):
     """
     Given a int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.
@@ -511,7 +514,7 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                     out[i] = -1
                     continue
 
-                td64_to_tdstruct(tdindex[i], &tds)
+                pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
                 out[i] = tds.days
         return out
 
@@ -522,7 +525,7 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                     out[i] = -1
                     continue
 
-                td64_to_tdstruct(tdindex[i], &tds)
+                pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
                 out[i] = tds.seconds
         return out
 
@@ -533,7 +536,7 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                     out[i] = -1
                     continue
 
-                td64_to_tdstruct(tdindex[i], &tds)
+                pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
                 out[i] = tds.microseconds
         return out
 
@@ -544,7 +547,7 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                     out[i] = -1
                     continue
 
-                td64_to_tdstruct(tdindex[i], &tds)
+                pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
                 out[i] = tds.nanoseconds
         return out
 
@@ -565,7 +568,7 @@ cpdef isleapyear_arr(ndarray years):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso=NPY_FR_ns):
+def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     """
     Given a int64-based datetime array, return the ISO 8601 year, week, and day
     as a structured array.

@@ -35,12 +35,16 @@ Exceptions and warnings
    errors.MergeError
    errors.NullFrequencyError
    errors.NumbaUtilError
+   errors.NumExprClobberingError
    errors.OptionError
    errors.OutOfBoundsDatetime
    errors.OutOfBoundsTimedelta
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning
+   errors.SettingWithCopyError
+   errors.SettingWithCopyWarning
+   errors.SpecificationError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
 

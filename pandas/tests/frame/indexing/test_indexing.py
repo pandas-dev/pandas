@@ -8,7 +8,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    SettingWithCopyError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -27,7 +30,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 # We pass through a TypeError raised by numpy
 _slice_msg = "slice indices must be integers or None or have an __index__ method"
@@ -307,7 +309,7 @@ class TestDataFrameIndexing:
             # With CoW, adding a new column doesn't raise a warning
             smaller["col10"] = ["1", "2"]
         else:
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
@@ -554,7 +556,7 @@ class TestDataFrameIndexing:
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         if not using_copy_on_write:
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 sliced.loc[:, "C"] = 4.0
 
             assert (float_frame["C"] == 4).all()
@@ -699,7 +701,7 @@ class TestDataFrameIndexing:
         expected.loc[[0, 2], [1]] = 5
         tm.assert_frame_equal(df, expected)
 
-    def test_getitem_setitem_float_labels(self):
+    def test_getitem_setitem_float_labels(self, using_array_manager):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.randn(5, 5), index=index)
 
@@ -782,7 +784,10 @@ class TestDataFrameIndexing:
         assert len(result) == 5
 
         cp = df.copy()
-        cp.loc[1.0:5.0] = 0
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            cp.loc[1.0:5.0] = 0
         result = cp.loc[1.0:5.0]
         assert (result == 0).values.all()
 
@@ -1015,7 +1020,7 @@ class TestDataFrameIndexing:
         if using_copy_on_write:
             subset.loc[:, 2] = 0.0
         else:
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 subset.loc[:, 2] = 0.0
 
             # TODO(ArrayManager) verify it is expected that the original didn't change
@@ -1056,7 +1061,7 @@ class TestDataFrameIndexing:
 
             # and that we are setting a copy
             msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
