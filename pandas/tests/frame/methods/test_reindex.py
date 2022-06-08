@@ -950,6 +950,12 @@ class TestDataFrameSelectReindex:
         expected = df.iloc[[1]]
         tm.assert_frame_equal(result, expected)
 
+    def test_reindex_without_upcasting(self):
+        # GH45857
+        df = DataFrame(np.zeros((10, 10), dtype=np.float32))
+        result = df.reindex(columns=np.arange(5, 15)).dtypes
+        assert result.eq(np.float32).all()
+
     def test_reindex_multi(self):
         df = DataFrame(np.random.randn(3, 3))
 
