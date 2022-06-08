@@ -221,14 +221,6 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     return
 
 
-cdef inline void td64_to_tdstruct(int64_t td64,
-                                  pandas_timedeltastruct* out) nogil:
-    """Convenience function to call pandas_timedelta_to_timedeltastruct
-    with the by-far-most-common frequency NPY_FR_ns"""
-    pandas_timedelta_to_timedeltastruct(td64, NPY_FR_ns, out)
-    return
-
-
 # just exposed for testing at the moment
 def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     cdef:
