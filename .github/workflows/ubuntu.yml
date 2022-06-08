@@ -1,4 +1,4 @@
-name: Posix
+name: Ubuntu
 
 on:
   push:
