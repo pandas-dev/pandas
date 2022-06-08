@@ -151,7 +151,8 @@ Other enhancements
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
-- :class:`DataError` now exposed in ``pandas.errors`` (:issue:`27656`)
+- :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, :class:`SettingWithCopyWarning`, and :class:`NumExprClobberingError` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -362,7 +363,9 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| mypy (dev)      | 0.950           |          |    X    |
+| numpy           | 1.19.5          |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| mypy (dev)      | 0.960           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.9.3           |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -432,6 +435,8 @@ Other API changes
   <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
   The ``auth_local_webserver = False`` option is planned to stop working in
   October 2022. (:issue:`46312`)
+- :func:`read_json` now raises ``FileNotFoundError`` (previously ``ValueError``) when input is a string ending in ``.json``, ``.json.gz``, ``.json.bz2``, etc. but no such file exists. (:issue:`29102`)
+- Operations with :class:`Timestamp` or :class:`Timedelta` that would previously raise ``OverflowError`` instead raise ``OutOfBoundsDatetime`` or ``OutOfBoundsTimedelta`` where appropriate (:issue:`47268`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -605,7 +610,7 @@ In the case where ``df.columns`` is not unique, use :meth:`DataFrame.isetitem`:
 ``numeric_only`` default value
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Across the DataFrame and DataFrameGroupBy operations such as
+Across the :class:`DataFrame`, :class:`.DataFrameGroupBy`, and :class:`.Resampler` operations such as
 ``min``, ``sum``, and ``idxmax``, the default
 value of the ``numeric_only`` argument, if it exists at all, was inconsistent.
 Furthermore, operations with the default value ``None`` can lead to surprising
@@ -644,6 +649,11 @@ gained the ``numeric_only`` argument.
 - :meth:`.GroupBy.std`
 - :meth:`.GroupBy.sem`
 - :meth:`.DataFrameGroupBy.quantile`
+- :meth:`.Resampler.mean`
+- :meth:`.Resampler.median`
+- :meth:`.Resampler.sem`
+- :meth:`.Resampler.std`
+- :meth:`.Resampler.var`
 
 .. _whatsnew_150.deprecations.other:
 
@@ -669,6 +679,13 @@ Other Deprecations
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
 - Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
 - Deprecated indexing on a timezone-naive :class:`DatetimeIndex` using a string representing a timezone-aware datetime (:issue:`46903`, :issue:`36148`)
+- Deprecated the ``closed`` argument in :class:`Interval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalIndex` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalDtype` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalArray` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`intervaltree` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`ArrowInterval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated allowing ``unit="M"`` or ``unit="Y"`` in :class:`Timestamp` constructor with a non-round float value (:issue:`47267`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -682,6 +699,7 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.diff` (:issue:`16706`)
 - Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
+- Performance improvement in :meth:`.GroupBy.apply` when grouping on a non-unique unsorted index (:issue:`46527`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`45681`, :issue:`46040`, :issue:`46330`)
 - Performance improvement in :attr:`MultiIndex.values` when the MultiIndex contains levels of type DatetimeIndex, TimedeltaIndex or ExtensionDtypes (:issue:`46288`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
@@ -690,6 +708,7 @@ Performance improvements
 - Performance improvement when setting values in a pyarrow backed string array (:issue:`46400`)
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
+- Performance improvement in :func:`read_excel` when ``nrows`` argument provided (:issue:`32727`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
@@ -712,12 +731,14 @@ Datetimelike
 - Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
 - Bug in :meth:`DatetimeIndex.tz_localize` localizing to UTC failing to make a copy of the underlying data (:issue:`46460`)
 - Bug in :meth:`DatetimeIndex.resolution` incorrectly returning "day" instead of "nanosecond" for nanosecond-resolution indexes (:issue:`46903`)
+- Bug in :class:`Timestamp` with an integer or float value and ``unit="Y"`` or ``unit="M"`` giving slightly-wrong results (:issue:`47266`)
 -
 
 Timedelta
 ^^^^^^^^^
 - Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
 - Bug in constructing a :class:`Timedelta` with a ``np.timedelta64`` object and a ``unit`` sometimes silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`46827`)
+- Bug in constructing a :class:`Timedelta` from a large integer or float with ``unit="W"`` silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`47268`)
 -
 
 Time Zones
@@ -751,7 +772,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalArray.__setitem__` when setting ``np.nan`` into an integer-backed array raising ``ValueError`` instead of ``TypeError`` (:issue:`45484`)
--
+- Bug in :class:`IntervalDtype` when using datetime64[ns, tz] as a dtype string (:issue:`46999`)
 
 Indexing
 ^^^^^^^^
@@ -780,6 +801,8 @@ Indexing
 - Bug in setting large integer values into :class:`Series` with ``float32`` or ``float16`` dtype incorrectly altering these values instead of coercing to ``float64`` dtype (:issue:`45844`)
 - Bug in :meth:`Series.asof` and :meth:`DataFrame.asof` incorrectly casting bool-dtype results to ``float64`` dtype (:issue:`16063`)
 - Bug in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` not always propagating metadata (:issue:`28283`)
+- Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
+- Bug in :class:`IntervalTree` that lead to an infinite recursion. (:issue:`46658`)
 -
 
 Missing
@@ -809,11 +832,13 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 - Bug in :func:`read_html` where elements surrounding ``<br>`` were joined without a space between them (:issue:`29528`)
+- Bug in :func:`read_csv` when data is longer than header leading to issues with callables in ``usecols`` expecting strings (:issue:`46997`)
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
 - Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
--
+- Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
+- Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 
 Period
 ^^^^^^
@@ -821,6 +846,8 @@ Period
 - Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, directives ``%l`` and ``%u`` were giving wrong results (:issue:`46252`)
 - Bug in inferring an incorrect ``freq`` when passing a string to :class:`Period` microseconds that are a multiple of 1000 (:issue:`46811`)
 - Bug in constructing a :class:`Period` from a :class:`Timestamp` or ``np.datetime64`` object with non-zero nanoseconds and ``freq="ns"`` incorrectly truncating the nanoseconds (:issue:`46811`)
+- Bug in adding ``np.timedelta64("NaT", "ns")`` to a :class:`Period` with a timedelta-like freq incorrectly raising ``IncompatibleFrequency`` instead of returning ``NaT`` (:issue:`47196`)
+- Bug in adding an array of integers to an array with :class:`PeriodDtype` giving incorrect results when ``dtype.freq.n > 1`` (:issue:`47209`)
 -
 
 Plotting
@@ -855,7 +882,8 @@ Groupby/resample/rolling
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
 - Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 - Bug in :meth:`.DataFrameGroupBy.describe` and :meth:`.SeriesGroupBy.describe` produces inconsistent results for empty datasets (:issue:`41575`)
--
+- Bug in :meth:`DataFrame.resample` reduction methods when used with ``on`` would attempt to aggregate the provided column (:issue:`47079`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would not respect ``dropna=False`` when the input DataFrame/Series had a NaN values in a :class:`MultiIndex` (:issue:`46783`)
 
 Reshaping
 ^^^^^^^^^
@@ -882,6 +910,8 @@ Styler
 ^^^^^^
 - Bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
 - Bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
+- Bug in :meth:`Styler.set_sticky` leading to white text on white background in dark mode (:issue:`46984`)
+- Bug in :meth:`Styler.to_latex` causing ``UnboundLocalError`` when ``clines="all;data"`` and the ``DataFrame`` has no rows. (:issue:`47203`)
 
 Metadata
 ^^^^^^^^

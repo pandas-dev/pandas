@@ -240,7 +240,7 @@ _shared_doc_kwargs = {
         If 1 or 'columns': apply function to each row.""",
     "inplace": """
     inplace : bool, default False
-        If True, performs operation inplace and returns None.""",
+        Whether to modify the DataFrame rather than creating a new one.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
@@ -4071,8 +4071,7 @@ class DataFrame(NDFrame, OpsMixin):
                 Expanding functionality of backtick quoting for more than only spaces.
 
         inplace : bool
-            Whether the query should modify the data in place or return
-            a modified copy.
+            Whether to modify the DataFrame rather than creating a new one.
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
@@ -5175,8 +5174,8 @@ class DataFrame(NDFrame, OpsMixin):
         copy : bool, default True
             Also copy underlying data.
         inplace : bool, default False
-            Whether to return a new DataFrame. If True then value of copy is
-            ignored.
+            Whether to modify the DataFrame rather than creating a new one.
+            If True then value of copy is ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
@@ -5507,7 +5506,13 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         ncols = len(self.columns)
-        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
+        if (
+            axis == 1
+            and periods != 0
+            and freq is None
+            and fill_value is lib.no_default
+            and ncols > 0
+        ):
             # We will infer fill_value to match the closest column
 
             # Use a column that we know is valid for our column's dtype GH#38434
@@ -5607,7 +5612,7 @@ class DataFrame(NDFrame, OpsMixin):
         append : bool, default False
             Whether to append columns to existing index.
         inplace : bool, default False
-            If True, modifies the DataFrame in place (do not create a new object).
+            Whether to modify the DataFrame rather than creating a new one.
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
@@ -5884,7 +5889,7 @@ class DataFrame(NDFrame, OpsMixin):
             Do not try to insert index into dataframe columns. This resets
             the index to the default integer index.
         inplace : bool, default False
-            Modify the DataFrame in place (do not create a new object).
+            Whether to modify the DataFrame rather than creating a new one.
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -6171,7 +6176,7 @@ class DataFrame(NDFrame, OpsMixin):
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
         inplace : bool, default False
-            If True, do operation inplace and return None.
+            Whether to modify the DataFrame rather than creating a new one.
 
         Returns
         -------
@@ -6279,8 +6284,7 @@ class DataFrame(NDFrame, OpsMixin):
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
             mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
         else:
-            if how is not no_default:
-                raise ValueError(f"invalid how option: {how}")
+            raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
             result = self.copy()
@@ -6317,7 +6321,7 @@ class DataFrame(NDFrame, OpsMixin):
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
         inplace : bool, default False
-            Whether to drop duplicates in place or to return a copy.
+            Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
@@ -6691,7 +6695,7 @@ class DataFrame(NDFrame, OpsMixin):
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False
-            If True, perform operation in-place.
+            Whether to modify the DataFrame rather than creating a new one.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. `mergesort` and `stable` are the only stable algorithms. For
@@ -8050,9 +8054,6 @@ Parrot 2  Parrot       24.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
             obj=self,
             keys=by,
@@ -8061,7 +8062,7 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -10158,8 +10159,8 @@ Parrot 2  Parrot       24.0
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
-            row-wise.
+            The axis to use. 0 or 'index' to compute row-wise, 1 or 'columns' for
+            column-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
@@ -10835,7 +10836,7 @@ Parrot 2  Parrot       24.0
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             Value between 0 <= q <= 1, the quantile(s) to compute.
-        axis : {0, 1, 'index', 'columns'}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
             If False, the quantile of datetime and timedelta data will be
@@ -10935,10 +10936,8 @@ Parrot 2  Parrot       24.0
                 if needs_i8_conversion(cdtype):
                     dtype = cdtype
 
-            if is_list_like(q):
-                res = self._constructor([], index=q, columns=cols, dtype=dtype)
-                return res.__finalize__(self, method="quantile")
-            return self._constructor_sliced([], index=cols, name=q, dtype=dtype)
+            res = self._constructor([], index=q, columns=cols, dtype=dtype)
+            return res.__finalize__(self, method="quantile")
 
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 

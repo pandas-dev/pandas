@@ -43,31 +43,17 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Install Dependencies
-      uses: conda-incubator/setup-miniconda@v2.1.1
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
       with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: ${{ matrix.os == 'macos-latest' && 'flexible' || 'strict' }}
         environment-file: ci/deps/${{ matrix.env_file }}
-        use-only-tar-bz2: true
-
-    # ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
-    # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
-    # Reason: image not found
-    - name: Upgrade pyarrow on MacOS
-      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=6
-      if: ${{ matrix.os == 'macos-latest' }}
+        pyarrow-version: ${{ matrix.os == 'macos-latest' && '6' || '' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
     - name: Test
       run: ci/run_tests.sh
-
-    - name: Build Version
-      run: conda list
 
     - name: Publish test results
       uses: actions/upload-artifact@v3

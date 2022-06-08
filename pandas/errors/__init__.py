@@ -244,3 +244,85 @@ class DataError(Exception):
     Or, it can be raised when trying to apply a function to a non-numerical
     column on a rolling window.
     """
+
+
+class SpecificationError(Exception):
+    """
+    Exception raised in two scenarios. The first way is calling agg on a
+    Dataframe or Series using a nested renamer (dict-of-dict).
+    The second way is calling agg on a Dataframe with duplicated functions
+    names without assigning column name.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+    ...                    'B': range(5),
+    ...                    'C': range(5)})
+    >>> df.groupby('A').B.agg({'foo': 'count'}) # doctest: +SKIP
+    ... # SpecificationError: nested renamer is not supported
+
+    >>> df.groupby('A').agg({'B': {'foo': ['sum', 'max']}}) # doctest: +SKIP
+    ... # SpecificationError: nested renamer is not supported
+
+    >>> df.groupby('A').agg(['min', 'min']) # doctest: +SKIP
+    ... # SpecificationError: nested renamer is not supported
+    """
+
+
+class SettingWithCopyError(ValueError):
+    """
+    Exception is raised when trying to set on a copied slice from a dataframe and
+    the mode.chained_assignment is set to 'raise.' This can happen unintentionally
+    when chained indexing.
+
+    For more information on eveluation order,
+    see :ref:`the user guide<indexing.evaluation_order>`.
+
+    For more information on view vs. copy,
+    see :ref:`the user guide<indexing.view_versus_copy>`.
+
+    Examples
+    --------
+    >>> pd.options.mode.chained_assignment = 'raise'
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    ... # SettingWithCopyError: A value is trying to be set on a copy of a...
+    """
+
+
+class SettingWithCopyWarning(Warning):
+    """
+    Warning is raised when trying to set on a copied slice from a dataframe and
+    the mode.chained_assignment is set to 'warn.' 'Warn' is the default option.
+    This can happen unintentionally when chained indexing.
+
+    For more information on eveluation order,
+    see :ref:`the user guide<indexing.evaluation_order>`.
+
+    For more information on view vs. copy,
+    see :ref:`the user guide<indexing.view_versus_copy>`.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2]}, columns=['A'])
+    >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
+    ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
+    """
+
+
+class NumExprClobberingError(NameError):
+    """
+    Exception is raised when trying to use a built-in numexpr name as a variable name
+    in a method like query or eval. Eval will throw the error if the engine is set
+    to 'numexpr'. 'numexpr' is the default engine value for eval if the numexpr package
+    is installed.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'abs': [1, 1, 1]})
+    >>> df.query("abs > 2") # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
+    >>> sin, a = 1, 2
+    >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
+    """
