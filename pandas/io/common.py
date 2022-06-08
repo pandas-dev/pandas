@@ -590,7 +590,6 @@ def check_parent_directory(path: Path | str) -> None:
     ----------
     path: Path or str
         Path to check parent directory of
-
     """
     parent = Path(path).parent
     if not parent.is_dir():

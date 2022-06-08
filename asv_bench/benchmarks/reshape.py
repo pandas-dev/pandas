@@ -78,7 +78,7 @@ class ReshapeExtensionDtype:
         self.df.stack()
 
     def time_unstack_fast(self, dtype):
-        # last level -> doesnt have to make copies
+        # last level -> doesn't have to make copies
         self.ser.unstack("bar")
 
     def time_unstack_slow(self, dtype):

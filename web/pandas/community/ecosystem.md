@@ -177,7 +177,7 @@ users to view, manipulate and edit pandas `Index`, `Series`, and
 `DataFrame` objects like a "spreadsheet", including copying and
 modifying values, sorting, displaying a "heatmap", converting data
 types and more. Pandas objects can also be renamed, duplicated, new
-columns added, copyed/pasted to/from the clipboard (as TSV), and
+columns added, copied/pasted to/from the clipboard (as TSV), and
 saved/loaded to/from a file. Spyder can also import data from a variety
 of plain text and binary files or the clipboard into a new pandas
 DataFrame via a sophisticated import wizard.
@@ -379,8 +379,8 @@ A directory of projects providing
 `extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library
 authors to coordinate on the namespace.
 
-  | Library                                                              | Accessor   |  Classes              |
-  | ---------------------------------------------------------------------|------------|-----------------------|
+  | Library                                                              | Accessor   | Classes               |
+  | -------------------------------------------------------------------- | ---------- | --------------------- |
   | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |

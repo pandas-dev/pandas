@@ -610,7 +610,7 @@ class TestToDatetime:
         actual = to_datetime("20080115")
         assert actual == datetime(2008, 1, 15)
 
-    def test_to_datetime_unparseable_ignore(self):
+    def test_to_datetime_unparsable_ignore(self):
         # unparsable
         ser = "Month 1, 1999"
         assert to_datetime(ser, errors="ignore") == ser
