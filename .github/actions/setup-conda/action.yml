@@ -18,10 +18,11 @@ runs:
       if: ${{ inputs.pyarrow-version }}
 
     - name: Install ${{ inputs.environment-file }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v2.1.1
       with:
         environment-file: ${{ inputs.environment-file }}
         channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
         channels: conda-forge
         mamba-version: "0.23"
         use-mamba: true
+        condarc-file: ci/condarc.yml

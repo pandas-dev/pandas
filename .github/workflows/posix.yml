@@ -155,6 +155,7 @@ jobs:
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
+        condarc-file: ci/condarc.yml
 
     - name: Upgrade Arrow version
       run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
