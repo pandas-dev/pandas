@@ -6,8 +6,10 @@ import pytest
 
 from pandas._libs import iNaT
 
+import pandas as pd
 import pandas._testing as tm
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.take import _take_nd_ndarray
 
 
 @pytest.fixture(params=[True, False])
@@ -332,3 +334,25 @@ class TestExtensionTake:
         result = algos.take(arr, [0, 0])
         expected = np.array([1, 1])
         tm.assert_numpy_array_equal(result, expected)
+
+
+class TestTakeNumpyNull:
+    # GH 46848
+
+    def test_take_2d_axis0_object_object(self):
+        arr = np.array([[None]], dtype=object)
+        indexer = np.array([0])
+        axis = 1
+        fill_value = None
+        allow_fill = False
+
+        result = _take_nd_ndarray(arr, indexer, axis, fill_value, allow_fill)
+        assert result == [[None]]
+        arr2 = np.empty_like(arr)
+        result2 = _take_nd_ndarray(arr2, indexer, axis, fill_value, allow_fill)
+        assert result2 == [[None]]
+
+    def test_take_2d_axis1_object_object(self):
+        df = pd.DataFrame(np.empty((1, 1), dtype=object))
+        df[0] = np.empty_like(df[0])
+        df[[0]]
