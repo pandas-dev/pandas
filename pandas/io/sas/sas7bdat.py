@@ -374,7 +374,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             return self._cached_page[offset : offset + length]
 
     def _read_and_convert_header_text(self, offset: int, length: int) -> str | bytes:
-        return self._convert_header_text(self._read_bytes(offset, length).rstrip(b"\x00 "))
+        return self._convert_header_text(
+            self._read_bytes(offset, length).rstrip(b"\x00 ")
+        )
 
     def _parse_metadata(self) -> None:
         done = False
