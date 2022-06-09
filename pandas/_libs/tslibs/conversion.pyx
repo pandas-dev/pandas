@@ -1,5 +1,7 @@
 cimport cython
 
+import warnings
+
 import numpy as np
 
 cimport numpy as cnp
@@ -193,77 +195,6 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray with dtype datetime64[ns]
-    """
-    if (<object>arr).dtype.byteorder == ">":
-        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
-        dtype = arr.dtype
-        arr = arr.astype(dtype.newbyteorder("<"))
-
-    if arr.size == 0:
-        # Fastpath; doesn't matter but we have old tests for result.base
-        #  being arr.
-        result = arr.view(DT64NS_DTYPE)
-        if copy:
-            result = result.copy()
-        return result
-
-    return astype_overflowsafe(arr, DT64NS_DTYPE, copy=copy)
-
-
-def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray[timedelta64[ns]]
-    """
-    assert arr.dtype.kind == "m", arr.dtype
-
-    if arr.dtype == TD64NS_DTYPE:
-        return arr.copy() if copy else arr
-
-    # Re-use the datetime64 machinery to do an overflow-safe `astype`
-    dtype = arr.dtype.str.replace("m8", "M8")
-    dummy = arr.view(dtype)
-    try:
-        dt64_result = ensure_datetime64ns(dummy, copy)
-    except OutOfBoundsDatetime as err:
-        # Re-write the exception in terms of timedelta64 instead of dt64
-
-        # Find the value that we are going to report as causing an overflow
-        tdmin = arr.min()
-        tdmax = arr.max()
-        if np.abs(tdmin) >= np.abs(tdmax):
-            bad_val = tdmin
-        else:
-            bad_val = tdmax
-
-        msg = f"Out of bounds for nanosecond {arr.dtype.name} {str(bad_val)}"
-        raise OutOfBoundsTimedelta(msg)
-
-    return dt64_result.view(TD64NS_DTYPE)
-
-
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 
@@ -319,6 +250,12 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
+            if unit in ["Y", "M"]:
+                # GH#47266 cast_from_unit leads to weird results e.g. with "Y"
+                #  and 150 we'd get 2120-01-01 09:00:00
+                ts = np.datetime64(ts, unit)
+                return convert_to_tsobject(ts, tz, None, False, False)
+
             ts = ts * cast_from_unit(None, unit)
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
@@ -326,6 +263,22 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
+            if unit in ["Y", "M"]:
+                if ts == int(ts):
+                    # GH#47266 Avoid cast_from_unit, which would give weird results
+                    #  e.g. with "Y" and 150.0 we'd get 2120-01-01 09:00:00
+                    return convert_to_tsobject(int(ts), tz, unit, False, False)
+                else:
+                    # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
+                    #  but not clear what 2.5 "M" corresponds to, so we will
+                    #  disallow that case.
+                    warnings.warn(
+                        "Conversion of non-round float with unit={unit} is ambiguous "
+                        "and will raise in a future version.",
+                        FutureWarning,
+                        stacklevel=1,
+                    )
+
             ts = cast_from_unit(ts, unit)
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)

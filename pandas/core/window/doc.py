@@ -29,6 +29,15 @@ template_see_also = dedent(
     """
 ).replace("\n", "", 1)
 
+kwargs_numeric_only = dedent(
+    """
+    numeric_only : bool, default False
+        Include only float, int, boolean columns.
+
+        .. versionadded:: 1.5.0\n
+    """
+).replace("\n", "", 1)
+
 args_compat = dedent(
     """
     *args

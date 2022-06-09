@@ -54,7 +54,6 @@ from pandas._testing._io import (  # noqa:F401
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
-    with_connectivity_check,
     write_to_compressed,
 )
 from pandas._testing._random import (  # noqa:F401

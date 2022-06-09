@@ -86,4 +86,15 @@ class ReadExcel:
         read_excel(fname, engine=engine)
 
 
+class ReadExcelNRows(ReadExcel):
+    def time_read_excel(self, engine):
+        if engine == "xlrd":
+            fname = self.fname_excel_xls
+        elif engine == "odf":
+            fname = self.fname_odf
+        else:
+            fname = self.fname_excel
+        read_excel(fname, engine=engine, nrows=10)
+
+
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

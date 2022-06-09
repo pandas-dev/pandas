@@ -1,0 +1,27 @@
+name: Set up Conda environment
+inputs:
+  environment-file:
+    description: Conda environment file to use.
+    default: environment.yml
+  pyarrow-version:
+    description: If set, overrides the PyArrow version in the Conda environment to the given string.
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
+      run: |
+        grep -q '  - pyarrow' ${{ inputs.environment-file }}
+        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
+        cat ${{ inputs.environment-file }}
+      shell: bash
+      if: ${{ inputs.pyarrow-version }}
+
+    - name: Install ${{ inputs.environment-file }}
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        environment-file: ${{ inputs.environment-file }}
+        channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
+        channels: conda-forge
+        mamba-version: "0.23"
+        use-mamba: true
