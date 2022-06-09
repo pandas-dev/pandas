@@ -9,6 +9,7 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Literal,
+    cast,
 )
 import warnings
 
@@ -2399,6 +2400,7 @@ def _validate_dt64_dtype(dtype):
             # Without this, things like adding an array of timedeltas and
             # a  tz-aware Timestamp (with a tz specific to its datetime) will
             # be incorrect(ish?) for the array as a whole
+            dtype = cast(DatetimeTZDtype, dtype)
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
 
     return dtype
