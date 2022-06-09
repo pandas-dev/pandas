@@ -43,7 +43,7 @@ from .tzconversion cimport Localizer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_convert_from_utc(ndarray stamps, tzinfo tz):
+def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     # stamps is int64_t, arbitrary ndim
     """
     Convert the values (in i8) from UTC to tz
@@ -58,7 +58,7 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz):
     ndarray[int64]
     """
     cdef:
-        Localizer info = Localizer(tz, reso=NPY_FR_ns)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t pos, i, n = stamps.size
 
