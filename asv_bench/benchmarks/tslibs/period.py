@@ -1,6 +1,6 @@
 """
-Period benchmarks that rely only on tslibs.  See benchmarks.period for
-Period benchmarks that rely on other parts fo pandas.
+Period benchmarks that rely only on tslibs. See benchmarks.period for
+Period benchmarks that rely on other parts of pandas.
 """
 
 import numpy as np

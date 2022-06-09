@@ -52,7 +52,11 @@ from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     convert_to_tsobject,
 )
-from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.dtypes cimport (
+    npy_unit_to_abbrev,
+    periods_per_day,
+    periods_per_second,
+)
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_datetime64_object,
@@ -86,7 +90,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
@@ -95,6 +102,7 @@ from pandas._libs.tslibs.offsets cimport (
 )
 from pandas._libs.tslibs.timedeltas cimport (
     delta_to_nanoseconds,
+    ensure_td64ns,
     is_any_td_scalar,
 )
 
@@ -144,7 +152,7 @@ cdef inline _Timestamp create_timestamp_from_ts(
     return ts_base
 
 
-def _unpickle_timestamp(value, freq, tz, reso):
+def _unpickle_timestamp(value, freq, tz, reso=NPY_FR_ns):
     # GH#41949 dont warn on unpickle if we have a freq
     if reso == NPY_FR_ns:
         ts = Timestamp(value, tz=tz)
@@ -349,7 +357,26 @@ cdef class _Timestamp(ABCTimestamp):
             raise NotImplementedError(self._reso)
 
         if is_any_td_scalar(other):
-            nanos = delta_to_nanoseconds(other)
+            if is_timedelta64_object(other):
+                other_reso = get_datetime64_unit(other)
+                if (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+                ):
+                    # TODO: deprecate allowing this?  We only get here
+                    #  with test_timedelta_add_timestamp_interval
+                    other = np.timedelta64(other.view("i8"), "ns")
+                elif (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
+                ):
+                    # TODO: deprecate allowing these?  or handle more like the
+                    #  corresponding DateOffsets?
+                    # TODO: no tests get here
+                    other = ensure_td64ns(other)
+
+            # TODO: disallow round_ok
+            nanos = delta_to_nanoseconds(
+                other, reso=self._reso, round_ok=True
+            )
             try:
                 result = type(self)(self.value + nanos, tz=self.tzinfo)
             except OverflowError:
@@ -431,7 +458,7 @@ cdef class _Timestamp(ABCTimestamp):
             # Timedelta
             try:
                 return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime) as err:
+            except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if isinstance(other, _Timestamp):
                     if both_timestamps:
                         raise OutOfBoundsDatetime(
@@ -811,11 +838,12 @@ cdef class _Timestamp(ABCTimestamp):
         cdef:
             local_val = self._maybe_convert_value_to_local()
             int64_t normalized
+            int64_t ppd = periods_per_day(self._reso)
 
         if self._reso != NPY_FR_ns:
             raise NotImplementedError(self._reso)
 
-        normalized = normalize_i8_stamp(local_val)
+        normalized = normalize_i8_stamp(local_val, ppd)
         return Timestamp(normalized).tz_localize(self.tzinfo)
 
     # -----------------------------------------------------------------
@@ -834,8 +862,8 @@ cdef class _Timestamp(ABCTimestamp):
 
         if len(state) == 3:
             # pre-non-nano pickle
+            # TODO: no tests get here 2022-05-10
             reso = NPY_FR_ns
-            assert False  # checking for coverage
         else:
             reso = state[4]
         self._reso = reso
@@ -982,10 +1010,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
 
-        return round(self.value / 1e9, 6)
+        denom = periods_per_second(self._reso)
+
+        return round(self.value / denom, 6)
 
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
@@ -1079,9 +1107,6 @@ cdef class _Timestamp(ABCTimestamp):
         Period('2020Q1', 'Q-DEC')
         """
         from pandas import Period
-
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
 
         if self.tz is not None:
             # GH#21333
@@ -1977,22 +2002,19 @@ default 'raise'
             value = tz_localize_to_utc_single(self.value, tz,
                                               ambiguous=ambiguous,
                                               nonexistent=nonexistent)
-            out = Timestamp(value, tz=tz)
-            if out is not NaT:
-                out._set_freq(self._freq)  # avoid warning in constructor
-            return out
+        elif tz is None:
+            # reset tz
+            value = tz_convert_from_utc_single(self.value, self.tz)
+
         else:
-            if tz is None:
-                # reset tz
-                value = tz_convert_from_utc_single(self.value, self.tz)
-                out = Timestamp(value, tz=tz)
-                if out is not NaT:
-                    out._set_freq(self._freq)  # avoid warning in constructor
-                return out
-            else:
-                raise TypeError(
-                    "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
-                )
+            raise TypeError(
+                "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
+            )
+
+        out = Timestamp(value, tz=tz)
+        if out is not NaT:
+            out._set_freq(self._freq)  # avoid warning in constructor
+        return out
 
     def tz_convert(self, tz):
         """
@@ -2252,16 +2274,18 @@ Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
 
 
 @cython.cdivision(False)
-cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
+cdef inline int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 
     Parameters
     ----------
     local_val : int64_t
+    ppd : int64_t
+        Periods per day in the Timestamp's resolution.
 
     Returns
     -------
     int64_t
     """
-    return local_val - (local_val % ccalendar.DAY_NANOS)
+    return local_val - (local_val % ppd)

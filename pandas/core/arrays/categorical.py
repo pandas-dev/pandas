@@ -446,9 +446,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "_codes"
-            old_codes = extract_array(values)._codes  # type: ignore[union-attr]
+            old_codes = extract_array(values)._codes
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories, copy=copy
             )
