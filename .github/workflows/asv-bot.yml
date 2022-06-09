@@ -47,6 +47,7 @@ jobs:
           channel-priority: strict
           environment-file: ${{ env.ENV_FILE }}
           use-only-tar-bz2: true
+          condarc-file: ci/condarc.yml
 
       - name: Run benchmarks
         id: bench
