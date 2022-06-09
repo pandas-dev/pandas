@@ -24,11 +24,11 @@ jobs:
     timeout-minutes: 120
     strategy:
       matrix:
-        env_file: [] #actions-38.yaml, actions-39.yaml, actions-310.yaml]
-        pattern: [] #"not single_cpu", "single_cpu"]
+        env_file: [actions-38.yaml] #, actions-39.yaml, actions-310.yaml]
+        pattern: ["not single_cpu"] #, "single_cpu"]
         # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
         # even if tests are skipped/xfailed
-        pyarrow_version: [] #"5", "6", "7"]
+        pyarrow_version: ["5"] #, "6", "7"]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
