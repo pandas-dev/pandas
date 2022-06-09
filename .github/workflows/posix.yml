@@ -165,6 +165,6 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: ./.github/actions/run-tests
+      uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
