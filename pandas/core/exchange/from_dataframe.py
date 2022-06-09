@@ -136,7 +136,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
         buffers.append(buf)
 
     pandas_df = pd.DataFrame(columns)
-    pandas_df._buffers = buffers
+    pandas_df.attrs["_EXCHANGE_PROTOCOL_BUFFERS"] = buffers
     return pandas_df
 
 
