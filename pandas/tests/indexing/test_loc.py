@@ -2871,7 +2871,7 @@ def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
 
 def test_loc_set_int_dtype():
     # GH#23326
-    df = pd.DataFrame([list("abc")])
+    df = DataFrame([list("abc")])
     df.loc[:, "col1"] = 5
 
     expected = DataFrame({'0': ['a'], '1': ['b'], '2': ['c'], 'col1': [5]})
