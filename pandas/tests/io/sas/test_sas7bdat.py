@@ -343,6 +343,13 @@ def test_null_date(datapath):
     tm.assert_frame_equal(df, expected)
 
 
+def test_meta2_page(datapath):
+    # GH 35545
+    fname = datapath("io", "sas", "data", "test_meta2_page.sas7bdat")
+    df = pd.read_sas(fname)
+    assert len(df) == 1000
+
+
 @pytest.mark.parametrize("test_file", ["test2.sas7bdat", "test3.sas7bdat"])
 def test_exception_propagation_rdc_rle_decompress(datapath, monkeypatch, test_file):
     """Errors in RLE/RDC decompression should propagate the same error."""

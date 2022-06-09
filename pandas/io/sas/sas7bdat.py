@@ -410,11 +410,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def _process_page_meta(self) -> bool:
         self._read_page_header()
-        pt = [const.page_meta_type, const.page_amd_type] + const.page_mix_types
+        pt = const.page_meta_types + [const.page_amd_type, const.page_mix_type]
         if self._current_page_type in pt:
             self._process_page_metadata()
-        is_data_page = self._current_page_type & const.page_data_type
-        is_mix_page = self._current_page_type in const.page_mix_types
+        is_data_page = self._current_page_type == const.page_data_type
+        is_mix_page = self._current_page_type == const.page_mix_type
         return bool(
             is_data_page
             or is_mix_page
@@ -424,7 +424,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _read_page_header(self):
         bit_offset = self._page_bit_offset
         tx = const.page_type_offset + bit_offset
-        self._current_page_type = self._read_int(tx, const.page_type_length)
+        self._current_page_type = (
+            self._read_int(tx, const.page_type_length) & const.page_type_mask2
+        )
         tx = const.block_count_offset + bit_offset
         self._current_page_block_count = self._read_int(tx, const.block_count_length)
         tx = const.subheader_count_offset + bit_offset
@@ -774,13 +776,13 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise ValueError(msg)
 
         self._read_page_header()
-        page_type = self._current_page_type
-        if page_type == const.page_meta_type:
+        if self._current_page_type in const.page_meta_types:
             self._process_page_metadata()
 
-        is_data_page = page_type & const.page_data_type
-        pt = [const.page_meta_type] + const.page_mix_types
-        if not is_data_page and self._current_page_type not in pt:
+        if self._current_page_type not in const.page_meta_types + [
+            const.page_data_type,
+            const.page_mix_type,
+        ]:
             return self._read_next_page()
 
         return False
