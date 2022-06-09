@@ -2001,10 +2001,11 @@ default 'raise'
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc_single(self.value, tz,
                                               ambiguous=ambiguous,
-                                              nonexistent=nonexistent)
+                                              nonexistent=nonexistent,
+                                              reso=self._reso)
         elif tz is None:
             # reset tz
-            value = tz_convert_from_utc_single(self.value, self.tz)
+            value = tz_convert_from_utc_single(self.value, self.tz, reso=self._reso)
 
         else:
             raise TypeError(
@@ -2152,7 +2153,7 @@ default 'raise'
             fold = self.fold
 
         if tzobj is not None:
-            value = tz_convert_from_utc_single(value, tzobj)
+            value = tz_convert_from_utc_single(value, tzobj, reso=self._reso)
 
         # setup components
         dt64_to_dtstruct(value, &dts)

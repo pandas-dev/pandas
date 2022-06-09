@@ -401,7 +401,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         return obj
 
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, NPY_FR_ns)
 
     # Infer fold from offset-adjusted obj.value
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
@@ -569,7 +569,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     cdef:
         int64_t local_val
         Py_ssize_t outpos = -1
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, NPY_FR_ns)
 
     assert obj.tzinfo is None
 
