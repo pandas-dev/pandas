@@ -2071,6 +2071,90 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
 
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize(
+        "kind", ("line", "bar", "barh", "hist", "kde", "density", "area", "pie")
+    )
+    def test_group_subplot(self, kind):
+        d = {
+            "a": np.arange(10),
+            "b": np.arange(10) + 1,
+            "c": np.arange(10) + 1,
+            "d": np.arange(10),
+            "e": np.arange(10),
+        }
+        df = DataFrame(d)
+
+        axes = df.plot(subplots=[("b", "e"), ("c", "d")], kind=kind)
+        assert len(axes) == 3  # 2 groups + single column a
+
+        expected_labels = (["b", "e"], ["c", "d"], ["a"])
+        for ax, labels in zip(axes, expected_labels):
+            if kind != "pie":
+                self._check_legend_labels(ax, labels=labels)
+            if kind == "line":
+                assert len(ax.lines) == len(labels)
+
+    def test_group_subplot_series_notimplemented(self):
+        ser = Series(range(1))
+        msg = "An iterable subplots for a Series"
+        with pytest.raises(NotImplementedError, match=msg):
+            ser.plot(subplots=[("a",)])
+
+    def test_group_subplot_multiindex_notimplemented(self):
+        df = DataFrame(np.eye(2), columns=MultiIndex.from_tuples([(0, 1), (1, 2)]))
+        msg = "An iterable subplots for a DataFrame with a MultiIndex"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.plot(subplots=[(0, 1)])
+
+    def test_group_subplot_nonunique_cols_notimplemented(self):
+        df = DataFrame(np.eye(2), columns=["a", "a"])
+        msg = "An iterable subplots for a DataFrame with non-unique"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.plot(subplots=[("a",)])
+
+    @pytest.mark.parametrize(
+        "subplots, expected_msg",
+        [
+            (123, "subplots should be a bool or an iterable"),
+            ("a", "each entry should be a list/tuple"),  # iterable of non-iterable
+            ((1,), "each entry should be a list/tuple"),  # iterable of non-iterable
+            (("a",), "each entry should be a list/tuple"),  # iterable of strings
+        ],
+    )
+    def test_group_subplot_bad_input(self, subplots, expected_msg):
+        # Make sure error is raised when subplots is not a properly
+        # formatted iterable. Only iterables of iterables are permitted, and
+        # entries should not be strings.
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = DataFrame(d)
+
+        with pytest.raises(ValueError, match=expected_msg):
+            df.plot(subplots=subplots)
+
+    def test_group_subplot_invalid_column_name(self):
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = DataFrame(d)
+
+        with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
+            df.plot(subplots=[("a", "bad_name")])
+
+    def test_group_subplot_duplicated_column(self):
+        d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}
+        df = DataFrame(d)
+
+        with pytest.raises(ValueError, match="should be in only one subplot"):
+            df.plot(subplots=[("a", "b"), ("a", "c")])
+
+    @pytest.mark.parametrize("kind", ("box", "scatter", "hexbin"))
+    def test_group_subplot_invalid_kind(self, kind):
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = DataFrame(d)
+        with pytest.raises(
+            ValueError, match="When subplots is an iterable, kind must be one of"
+        ):
+            df.plot(subplots=[("a", "b")], kind=kind)
+
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
         [
