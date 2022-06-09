@@ -53,4 +53,4 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: ./.github/actions/run-tests
+      uses: ./.github/actions/run-tests
