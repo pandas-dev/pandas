@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        env_file: [actions-38.yaml] #, actions-39.yaml, actions-310.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -53,18 +53,4 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: ci/run_tests.sh
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: false
+      run: ./.github/actions/run-tests

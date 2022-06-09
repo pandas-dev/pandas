@@ -29,7 +29,7 @@ env:
 
 jobs:
   build:
-    if: false # Comment this line out to "unfreeze"
+    #if: false # Comment this line out to "unfreeze"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -72,25 +72,5 @@ jobs:
       run: |
         python -c "import pandas; pandas.show_versions();"
 
-    - name: Test with pytest
-      shell: bash -el {0}
-      run: |
-        ci/run_tests.sh
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Report Coverage
-      run: |
-        coverage report -m
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: true
+    - name: Test
+      run: ./.github/actions/run-tests
