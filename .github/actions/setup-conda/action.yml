@@ -5,7 +5,7 @@ inputs:
     default: environment.yml
   environment-name:
     description: Name to use for the Conda environment
-    required: false
+    default: test
   python-version:
     description: Python version to install
     required: false
