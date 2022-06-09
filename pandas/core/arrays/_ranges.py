@@ -33,7 +33,7 @@ def generate_regular_range(
         First point of produced date range.
     end : Timedelta, Timestamp or None
         Last point of produced date range.
-    periods : int
+    periods : int or None
         Number of periods in produced date range.
     freq : Tick
         Describes space between dates in produced date range.
