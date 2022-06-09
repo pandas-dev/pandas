@@ -73,4 +73,4 @@ jobs:
         python -c "import pandas; pandas.show_versions();"
 
     - name: Test
-      run: ./.github/actions/run-tests
+      uses: ./.github/actions/run-tests
