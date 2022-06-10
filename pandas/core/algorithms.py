@@ -4,6 +4,7 @@ intended for public consumption
 """
 from __future__ import annotations
 
+import inspect
 import operator
 from textwrap import dedent
 from typing import (
@@ -746,10 +747,17 @@ def factorize(
         return _re_wrap_factorize(original, uniques, codes)
 
     elif not isinstance(values.dtype, np.dtype):
-        with warnings.catch_warnings():
-            # We've already warned above
-            warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
-            codes, uniques = values.factorize(na_sentinel=na_sentinel)
+        if (
+            na_sentinel == -1
+            and "use_na_sentinel" in inspect.signature(values.factorize).parameters
+        ):
+            # Avoid using catch_warnings when possible
+            codes, uniques = values.factorize(use_na_sentinel=True)
+        else:
+            with warnings.catch_warnings():
+                # We've already warned above
+                warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
+                codes, uniques = values.factorize(na_sentinel=na_sentinel)
 
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex

@@ -1517,8 +1517,7 @@ class MultiIndex(Index):
             return grouper, None, None
 
         values = self.get_level_values(level)
-        na_sentinel = -1 if dropna else None
-        codes, uniques = algos.factorize(values, sort=True, na_sentinel=na_sentinel)
+        codes, uniques = algos.factorize(values, sort=True, use_na_sentinel=dropna)
         assert isinstance(uniques, Index)
 
         if self.levels[level]._can_hold_na:

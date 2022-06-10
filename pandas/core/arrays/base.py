@@ -466,10 +466,10 @@ class ExtensionArray:
             # See GH#46910 for details on the deprecation
             name = cls.__name__
             warnings.warn(
-                f"The na_sentinel argument of {name}.factorize is deprecated. "
-                f"In the future, pandas will use the use_na_sentinel argument instead. "
-                f"Add this argument to {name}.factorize to be compatible with future"
-                f"versions of pandas and silence this warning.",
+                f"The `na_sentinel` argument of `{name}.factorize` is deprecated. "
+                f"In the future, pandas will use the `use_na_sentinel` argument "
+                f"instead.  Add this argument to `{name}.factorize` to be compatible "
+                f"with future versions of pandas and silence this warning.",
                 DeprecationWarning,
                 stacklevel=find_stack_level(),
             )

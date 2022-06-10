@@ -29,7 +29,7 @@ class TestExtensionArray:
 
 def test_depr_na_sentinel():
     # GH#46910
-    msg = "The na_sentinel argument of MyEA.factorize is deprecated"
+    msg = "The `na_sentinel` argument of `MyEA.factorize` is deprecated"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
 
         class MyEA(ExtensionArray):

@@ -724,28 +724,28 @@ def resolve_na_sentinel(
     """
     if na_sentinel is not lib.no_default and use_na_sentinel is not lib.no_default:
         raise ValueError(
-            "Cannot specify both na_sentinel and use_na_sentile; "
-            f"got na_sentinel={na_sentinel} and use_na_sentinel={use_na_sentinel}"
+            "Cannot specify both `na_sentinel` and `use_na_sentile`; "
+            f"got `na_sentinel={na_sentinel}` and `use_na_sentinel={use_na_sentinel}`"
         )
     if na_sentinel is lib.no_default:
         result = -1 if use_na_sentinel is lib.no_default or use_na_sentinel else None
     else:
         if na_sentinel is None:
             msg = (
-                "Specifying na_sentinel=None is deprecated, specify "
-                "use_na_sentinel=False instead."
+                "Specifying `na_sentinel=None` is deprecated, specify "
+                "`use_na_sentinel=False` instead."
             )
         elif na_sentinel == -1:
             msg = (
-                "Specifying na_sentinel=-1 is deprecated, specify "
-                "use_na_sentinel=True instead."
+                "Specifying `na_sentinel=-1` is deprecated, specify "
+                "`use_na_sentinel=True` instead."
             )
         else:
             msg = (
-                "Specifying the specific value to use for na_sentinel is "
+                "Specifying the specific value to use for `na_sentinel` is "
                 "deprecated and will be removed in a future version of pandas. "
-                "Specify use_na_sentinel=True to use the sentinel value -1, and "
-                "use_na_sentinel=False to encode NaN values."
+                "Specify `use_na_sentinel=True` to use the sentinel value -1, and "
+                "`use_na_sentinel=False` to encode NaN values."
             )
         warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         result = na_sentinel

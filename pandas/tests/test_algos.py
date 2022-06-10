@@ -91,11 +91,11 @@ class TestFactorize:
     def test_depr_na_sentinel(self, na_sentinel, index_or_series_obj):
         # GH#46910
         if na_sentinel is None:
-            msg = "Specifying na_sentinel=None is deprecated"
+            msg = "Specifying `na_sentinel=None` is deprecated"
         elif na_sentinel == -1:
-            msg = "Specifying na_sentinel=-1 is deprecated"
+            msg = "Specifying `na_sentinel=-1` is deprecated"
         else:
-            msg = "Specifying the specific value to use for na_sentinel is deprecated"
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             _ = pd.factorize(index_or_series_obj, na_sentinel=na_sentinel)
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -433,9 +433,9 @@ class TestFactorize:
     )
     def test_factorize_na_sentinel(self, sort, na_sentinel, data, uniques):
         if na_sentinel == -1:
-            msg = "Specifying na_sentinel=-1 is deprecated"
+            msg = "Specifying `na_sentinel=-1` is deprecated"
         else:
-            msg = "the specific value to use for na_sentinel is deprecated"
+            msg = "the specific value to use for `na_sentinel` is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             codes, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
         if sort:
