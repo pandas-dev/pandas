@@ -25,6 +25,7 @@ from pandas._typing import (
     FilePath,
     IndexLabel,
     Level,
+    QuantileInterpolation,
     Scalar,
     WriteBuffer,
 )
@@ -3467,7 +3468,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         q_left: float = 0.0,
         q_right: float = 1.0,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
@@ -3539,13 +3540,17 @@ class Styler(StylerRenderer):
 
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
-        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
+        quantiles = [q_left, q_right]
         if axis is None:
-            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
+            q = Series(data.to_numpy().ravel()).quantile(
+                q=quantiles, interpolation=interpolation
+            )
             axis_apply: int | None = None
         else:
             axis = self.data._get_axis_number(axis)
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            q = data.quantile(
+                axis=axis, numeric_only=False, q=quantiles, interpolation=interpolation
+            )
             axis_apply = 1 - axis
 
         if props is None:

@@ -33,6 +33,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyArrayLike,
     ArrayLike,
     Axis,
     Dtype,
@@ -42,6 +43,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    QuantileInterpolation,
     Renamer,
     SingleManager,
     SortKind,
@@ -2478,7 +2480,33 @@ Name: Max Speed, dtype: float64
 
         return result
 
-    def quantile(self, q=0.5, interpolation="linear"):
+    @overload
+    def quantile(
+        self, q: float = ..., interpolation: QuantileInterpolation = ...
+    ) -> float:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: Sequence[float] | AnyArrayLike,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> float | Series:
+        ...
+
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = 0.5,
+        interpolation: QuantileInterpolation = "linear",
+    ) -> float | Series:
         """
         Return value at the given quantile.
 
