@@ -26,6 +26,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 from pandas._typing import Dtype
+from pandas.compat import pa_version_under1p01
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -54,7 +55,6 @@ from pandas._testing._io import (  # noqa:F401
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
-    with_connectivity_check,
     write_to_compressed,
 )
 from pandas._testing._random import (  # noqa:F401
@@ -192,6 +192,45 @@ NP_NAT_OBJECTS = [
         "as",
     ]
 ]
+
+if not pa_version_under1p01:
+    import pyarrow as pa
+
+    UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
+    SIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.int16(), pa.int32(), pa.uint64()]
+    ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
+
+    FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
+    STRING_PYARROW_DTYPES = [pa.string(), pa.utf8()]
+
+    TIME_PYARROW_DTYPES = [
+        pa.time32("s"),
+        pa.time32("ms"),
+        pa.time64("us"),
+        pa.time64("ns"),
+    ]
+    DATE_PYARROW_DTYPES = [pa.date32(), pa.date64()]
+    DATETIME_PYARROW_DTYPES = [
+        pa.timestamp(unit=unit, tz=tz)
+        for unit in ["s", "ms", "us", "ns"]
+        for tz in [None, "UTC", "US/Pacific", "US/Eastern"]
+    ]
+    TIMEDELTA_PYARROW_DTYPES = [pa.duration(unit) for unit in ["s", "ms", "us", "ns"]]
+
+    BOOL_PYARROW_DTYPES = [pa.bool_()]
+
+    # TODO: Add container like pyarrow types:
+    #  https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions
+    ALL_PYARROW_DTYPES = (
+        ALL_INT_PYARROW_DTYPES
+        + FLOAT_PYARROW_DTYPES
+        + TIME_PYARROW_DTYPES
+        + DATE_PYARROW_DTYPES
+        + DATETIME_PYARROW_DTYPES
+        + TIMEDELTA_PYARROW_DTYPES
+        + BOOL_PYARROW_DTYPES
+    )
+
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 

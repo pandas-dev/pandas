@@ -527,7 +527,7 @@ class GroupByMethods:
 
 class GroupByCythonAgg:
     """
-    Benchmarks specifically targetting our cython aggregation algorithms
+    Benchmarks specifically targeting our cython aggregation algorithms
     (using a big enough dataframe with simple key, so a large part of the
     time is actually spent in the grouped aggregation).
     """

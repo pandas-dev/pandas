@@ -198,10 +198,11 @@ cdef enum ColumnTypes:
 
 
 # type the page_data types
+assert len(const.page_meta_types) == 2
 cdef:
-    int page_meta_type = const.page_meta_type
-    int page_mix_types_0 = const.page_mix_types[0]
-    int page_mix_types_1 = const.page_mix_types[1]
+    int page_meta_types_0 = const.page_meta_types[0]
+    int page_meta_types_1 = const.page_meta_types[1]
+    int page_mix_type = const.page_mix_type
     int page_data_type = const.page_data_type
     int subheader_pointers_offset = const.subheader_pointers_offset
 
@@ -332,7 +333,7 @@ cdef class Parser:
 
         # Loop until a data row is read
         while True:
-            if self.current_page_type == page_meta_type:
+            if self.current_page_type in (page_meta_types_0, page_meta_types_1):
                 flag = self.current_row_on_page_index >=\
                     self.current_page_data_subheader_pointers_len
                 if flag:
@@ -347,8 +348,7 @@ cdef class Parser:
                     current_subheader_pointer.offset,
                     current_subheader_pointer.length)
                 return False
-            elif (self.current_page_type == page_mix_types_0 or
-                    self.current_page_type == page_mix_types_1):
+            elif self.current_page_type == page_mix_type:
                 align_correction = (
                     bit_offset
                     + subheader_pointers_offset
@@ -366,7 +366,7 @@ cdef class Parser:
                     if done:
                         return True
                 return False
-            elif self.current_page_type & page_data_type == page_data_type:
+            elif self.current_page_type == page_data_type:
                 self.process_byte_array_with_data(
                     bit_offset
                     + subheader_pointers_offset
