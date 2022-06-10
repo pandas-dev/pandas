@@ -33,4 +33,5 @@ runs:
         channels: conda-forge
         mamba-version: "0.24"
         use-mamba: true
+        use-only-tar-bz2: true
         condarc-file: ci/condarc.yml
