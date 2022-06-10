@@ -29,6 +29,7 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     fields,
     get_resolution,
+    get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     is_date_array_normalized,
@@ -336,10 +337,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert isinstance(values, np.ndarray)
         assert dtype.kind == "M"
         if isinstance(dtype, np.dtype):
-            # TODO: once non-nano DatetimeTZDtype is implemented, require that
-            #  dtype's reso match values's reso
             assert dtype == values.dtype
             assert not is_unitless(dtype)
+        else:
+            # DatetimeTZDtype. If we have e.g. DatetimeTZDtype[us, UTC],
+            #  then values.dtype should be M8[us].
+            assert dtype._reso == get_unit_from_dtype(values.dtype)
 
         result = super()._simple_new(values, dtype)
         result._freq = freq
@@ -1186,6 +1189,9 @@ default 'raise'
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
+        if self._ndarray.dtype != "M8[ns]":
+            raise NotImplementedError("Only supported for nanosecond resolution.")
+
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
         m8delta = i8delta.view("m8[ns]")
         return TimedeltaArray(m8delta)
@@ -1974,10 +1980,13 @@ default 'raise'
         #  without creating a copy by using a view on self._ndarray
         from pandas.core.arrays import TimedeltaArray
 
-        tda = TimedeltaArray(self._ndarray.view("i8"))
-        return tda.std(
-            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims, skipna=skipna
-        )
+        # Find the td64 dtype with the same resolution as our dt64 dtype
+        dtype_str = self._ndarray.dtype.name.replace("datetime64", "timedelta64")
+        dtype = np.dtype(dtype_str)
+
+        tda = TimedeltaArray._simple_new(self._ndarray.view(dtype), dtype=dtype)
+
+        return tda.std(axis=axis, out=out, ddof=ddof, keepdims=keepdims, skipna=skipna)
 
 
 # -------------------------------------------------------------------
