@@ -1203,6 +1203,9 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_timeoffset_as_window_parameter_for_corr():
@@ -1456,18 +1459,6 @@ def test_groupby_rolling_nan_included():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_rolling_non_monotonic():
-    # GH 43909
-
-    shuffled = [3, 0, 1, 2]
-    sec = 1_000
-    df = DataFrame(
-        [{"t": Timestamp(2 * x * sec), "x": x + 1, "c": 42} for x in shuffled]
-    )
-    with pytest.raises(ValueError, match=r".* must be monotonic"):
-        df.groupby("c").rolling(on="t", window="3s")
-
-
 @pytest.mark.parametrize("method", ["skew", "kurt"])
 def test_rolling_skew_kurt_numerical_stability(method):
     # GH#6929
@@ -1521,6 +1512,9 @@ def test_rolling_var_floating_artifact_precision():
     result = s.rolling(3).var()
     expected = Series([np.nan, np.nan, 4 / 3, 0])
     tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_rolling_std_small_values():
@@ -1781,3 +1775,178 @@ def test_step_not_integer_raises():
 def test_step_not_positive_raises():
     with pytest.raises(ValueError, match="step must be >= 0"):
         DataFrame(range(2)).rolling(1, step=-1)
+
+
+@pytest.mark.parametrize(
+    ["values", "window", "min_periods", "expected"],
+    [
+        [
+            [20, 10, 10, np.inf, 1, 1, 2, 3],
+            3,
+            1,
+            [np.nan, 50, 100 / 3, 0, 40.5, 0, 1 / 3, 1],
+        ],
+        [
+            [20, 10, 10, np.nan, 10, 1, 2, 3],
+            3,
+            1,
+            [np.nan, 50, 100 / 3, 0, 0, 40.5, 73 / 3, 1],
+        ],
+        [
+            [np.nan, 5, 6, 7, 5, 5, 5],
+            3,
+            3,
+            [np.nan] * 3 + [1, 1, 4 / 3, 0],
+        ],
+        [
+            [5, 7, 7, 7, np.nan, np.inf, 4, 3, 3, 3],
+            3,
+            3,
+            [np.nan] * 2 + [4 / 3, 0] + [np.nan] * 4 + [1 / 3, 0],
+        ],
+        [
+            [5, 7, 7, 7, np.nan, np.inf, 7, 3, 3, 3],
+            3,
+            3,
+            [np.nan] * 2 + [4 / 3, 0] + [np.nan] * 4 + [16 / 3, 0],
+        ],
+        [
+            [5, 7] * 4,
+            3,
+            3,
+            [np.nan] * 2 + [4 / 3] * 6,
+        ],
+        [
+            [5, 7, 5, np.nan, 7, 5, 7],
+            3,
+            2,
+            [np.nan, 2, 4 / 3] + [2] * 3 + [4 / 3],
+        ],
+    ],
+)
+def test_rolling_var_same_value_count_logic(values, window, min_periods, expected):
+    # GH 42064.
+
+    expected = Series(expected)
+    sr = Series(values)
+
+    # With new algo implemented, result will be set to .0 in rolling var
+    # if sufficient amount of consecutively same values are found.
+    result_var = sr.rolling(window, min_periods=min_periods).var()
+
+    # use `assert_series_equal` twice to check for equality,
+    # because `check_exact=True` will fail in 32-bit tests due to
+    # precision loss.
+
+    # 1. result should be close to correct value
+    # non-zero values can still differ slightly from "truth"
+    # as the result of online algorithm
+    tm.assert_series_equal(result_var, expected)
+    # 2. zeros should be exactly the same since the new algo takes effect here
+    tm.assert_series_equal(expected == 0, result_var == 0)
+
+    # std should also pass as it's just a sqrt of var
+    result_std = sr.rolling(window, min_periods=min_periods).std()
+    tm.assert_series_equal(result_std, np.sqrt(expected))
+    tm.assert_series_equal(expected == 0, result_std == 0)
+
+
+def test_rolling_mean_sum_floating_artifacts():
+    # GH 42064.
+
+    sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
+    r = sr.rolling(3)
+    result = r.mean()
+    assert (result[-3:] == 0).all()
+    result = r.sum()
+    assert (result[-3:] == 0).all()
+
+
+def test_rolling_skew_kurt_floating_artifacts():
+    # GH 42064 46431
+
+    sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
+    r = sr.rolling(4)
+    result = r.skew()
+    assert (result[-2:] == 0).all()
+    result = r.kurt()
+    assert (result[-2:] == -3).all()
+
+
+def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    df = DataFrame({"a": [1], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    rolling = df.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    result = op(numeric_only=numeric_only)
+
+    columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+    expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
+    assert list(expected.columns) == columns
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
+    # GH#46560
+    df = DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    arg = (df,) if use_arg else ()
+    rolling = df.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    result = op(*arg, numeric_only=numeric_only)
+
+    # Compare result to op using float dtypes, dropping c when numeric_only is True
+    columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+    df2 = df[columns].astype(float)
+    arg2 = (df2,) if use_arg else ()
+    rolling2 = df2.rolling(2, min_periods=1)
+    op2 = getattr(rolling2, kernel)
+    expected = op2(*arg2, numeric_only=numeric_only)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    ser = Series([1], dtype=dtype)
+    rolling = ser.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    if numeric_only and dtype is object:
+        msg = f"Rolling.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(numeric_only=numeric_only)
+    else:
+        result = op(numeric_only=numeric_only)
+        expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
+    # GH#46560
+    ser = Series([1, 2, 3], dtype=dtype)
+    arg = (ser,) if use_arg else ()
+    rolling = ser.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    if numeric_only and dtype is object:
+        msg = f"Rolling.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(*arg, numeric_only=numeric_only)
+    else:
+        result = op(*arg, numeric_only=numeric_only)
+
+        ser2 = ser.astype(float)
+        arg2 = (ser2,) if use_arg else ()
+        rolling2 = ser2.rolling(2, min_periods=1)
+        op2 = getattr(rolling2, kernel)
+        expected = op2(*arg2, numeric_only=numeric_only)
+        tm.assert_series_equal(result, expected)

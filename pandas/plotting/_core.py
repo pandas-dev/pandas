@@ -649,8 +649,18 @@ class PlotAccessor(PandasObject):
         - 'hexbin' : hexbin plot (DataFrame only)
     ax : matplotlib axes object, default None
         An axes of the current figure.
-    subplots : bool, default False
-        Make separate subplots for each column.
+    subplots : bool or sequence of iterables, default False
+        Whether to group columns into subplots:
+
+        - ``False`` : No subplots will be used
+        - ``True`` : Make separate subplots for each column.
+        - sequence of iterables of column labels: Create a subplot for each
+          group of columns. For example `[('a', 'c'), ('b', 'd')]` will
+          create 2 subplots: one with columns 'a' and 'c', and one
+          with columns 'b' and 'd'. Remaining columns that aren't specified
+          will be plotted in additional subplots (one per column).
+          .. versionadded:: 1.5.0
+
     sharex : bool, default True if ax is None else False
         In case ``subplots=True``, share x axis and set some x axis labels
         to invisible; defaults to True if ax is None otherwise False if
@@ -1615,6 +1625,11 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
+        size : str, scalar or array-like, optional
+            Alias for s.
+
+            .. versionadded:: 1.5.0
+
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1628,6 +1643,10 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
+        color : str, int or array-like, optional
+            Alias for c.
+
+            .. versionadded:: 1.5.0
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
@@ -1666,7 +1685,19 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
+        size = kwargs.pop("size", None)
+        if s is not None and size is not None:
+            raise TypeError("Specify exactly one of `s` and `size`")
+        elif s is not None or size is not None:
+            kwargs["s"] = s if s is not None else size
+
+        color = kwargs.pop("color", None)
+        if c is not None and color is not None:
+            raise TypeError("Specify exactly one of `c` and `color`")
+        elif c is not None or color is not None:
+            kwargs["c"] = c if c is not None else color
+
+        return self(kind="scatter", x=x, y=y, **kwargs)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs):
         """

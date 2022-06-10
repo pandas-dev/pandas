@@ -18,6 +18,14 @@ import numpy as np
 
 cnp.import_array()
 
+cimport cython
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDelta_Check,
+    datetime,
+    import_datetime,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -31,36 +39,23 @@ from libc.time cimport (
     tm,
 )
 
-import cython
-
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    PyDelta_Check,
-    datetime,
-    import_datetime,
-)
-
 # import datetime C API
 import_datetime()
 
+cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     NPY_FR_us,
+    astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
+    get_timedelta64_value,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
 )
-
-
-cdef extern from "src/datetime/np_datetime.h":
-    int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                           npy_datetimestruct *d) nogil
-
-cimport pandas._libs.tslibs.util as util
 
 from pandas._libs.tslibs.timestamps import Timestamp
 
@@ -77,7 +72,7 @@ from pandas._libs.tslibs.timedeltas cimport (
     is_any_td_scalar,
 )
 
-from pandas._libs.tslibs.conversion import ensure_datetime64ns
+from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
@@ -956,7 +951,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     periods per period convention.
     """
     cdef:
-        int64_t[:] out
+        int64_t[::1] out
         Py_ssize_t i, N
 
     if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
@@ -972,6 +967,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     else:
         # Short-circuit for performance
         if freq == FR_NS:
+            # TODO: copy?
             return periodarr.base
 
         if freq == FR_US:
@@ -986,7 +982,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
             dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
             dta = periodarr.base.view("M8[D]")
-        return ensure_datetime64ns(dta)
+        return astype_overflowsafe(dta, dtype=DT64NS_DTYPE)
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
@@ -1063,7 +1059,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     cdef:
         Py_ssize_t n = len(arr)
         Py_ssize_t increment = arr.strides[0] // 8
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_INT64, 0)
 
     _period_asfreq(
         <int64_t*>cnp.PyArray_DATA(arr),
@@ -1369,7 +1365,7 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
 def get_period_field_arr(str field, const int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
-        int64_t[:] out
+        int64_t[::1] out
         accessor f
 
     func = _get_accessor_func(field)
@@ -1421,7 +1417,7 @@ cdef accessor _get_accessor_func(str field):
 def from_ordinals(const int64_t[:] values, freq):
     cdef:
         Py_ssize_t i, n = len(values)
-        int64_t[:] result = np.empty(len(values), dtype="i8")
+        int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
     freq = to_offset(freq)
@@ -1446,7 +1442,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = values.size
         int64_t ordinal
-        ndarray ordinals = np.empty((<object>values).shape, dtype=np.int64)
+        ndarray ordinals = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
 
@@ -1686,16 +1682,24 @@ cdef class _Period(PeriodMixin):
 
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
-            int64_t nanos, base_nanos
+            int64_t inc
 
-        if is_tick_object(self.freq):
-            nanos = delta_to_nanoseconds(other)
-            base_nanos = self.freq.base.nanos
-            if nanos % base_nanos == 0:
-                ordinal = self.ordinal + (nanos // base_nanos)
-                return Period(ordinal=ordinal, freq=self.freq)
-        raise IncompatibleFrequency("Input cannot be converted to "
-                                    f"Period(freq={self.freqstr})")
+        if not is_tick_object(self.freq):
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})")
+
+        if util.is_timedelta64_object(other) and get_timedelta64_value(other) == NPY_NAT:
+            # i.e. np.timedelta64("nat")
+            return NaT
+
+        try:
+            inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
+        except ValueError as err:
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})") from err
+        # TODO: overflow-check here
+        ordinal = self.ordinal + inc
+        return Period(ordinal=ordinal, freq=self.freq)
 
     def _add_offset(self, other) -> "Period":
         # Non-Tick DateOffset other
@@ -1724,10 +1728,12 @@ cdef class _Period(PeriodMixin):
         elif util.is_integer_object(other):
             ordinal = self.ordinal + other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
-        elif (PyDateTime_Check(other) or
-              is_period_object(other) or util.is_datetime64_object(other)):
+
+        elif is_period_object(other):
             # can't add datetime-like
-            # GH#17983
+            # GH#17983; can't just return NotImplemented bc we get a RecursionError
+            #  when called via np.add.reduce see TestNumpyReductions.test_add
+            #  in npdev build
             sname = type(self).__name__
             oname = type(other).__name__
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
@@ -1746,16 +1752,12 @@ cdef class _Period(PeriodMixin):
                 return NaT
             return NotImplemented
 
-        elif is_any_td_scalar(other):
-            neg_other = -other
-            return self + neg_other
-        elif is_offset_object(other):
-            # Non-Tick DateOffset
-            neg_other = -other
-            return self + neg_other
-        elif util.is_integer_object(other):
-            ordinal = self.ordinal - other * self.freq.n
-            return Period(ordinal=ordinal, freq=self.freq)
+        elif (
+            is_any_td_scalar(other)
+            or is_offset_object(other)
+            or util.is_integer_object(other)
+        ):
+            return self + (-other)
         elif is_period_object(other):
             self._require_matching_freq(other)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
@@ -2208,7 +2210,7 @@ cdef class _Period(PeriodMixin):
         2018
 
         If the fiscal year starts in April (`Q-MAR`), the first quarter of
-        2018 will start in April 2017. `year` will then be 2018, but `qyear`
+        2018 will start in April 2017. `year` will then be 2017, but `qyear`
         will be the fiscal year, 2018.
 
         >>> per = pd.Period('2018Q1', freq='Q-MAR')
@@ -2259,7 +2261,7 @@ cdef class _Period(PeriodMixin):
     @property
     def daysinmonth(self) -> int:
         """
-        Get the total number of days of the month that the Period falls in.
+        Get the total number of days of the month that this period falls on.
 
         Returns
         -------
@@ -2590,10 +2592,13 @@ class Period(_Period):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
+            if isinstance(dt, Timestamp):
+                nanosecond = dt.nanosecond
         elif util.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
+            nanosecond = dt.nanosecond
         elif PyDate_Check(value):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:

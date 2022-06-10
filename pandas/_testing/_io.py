@@ -3,7 +3,9 @@ from __future__ import annotations
 import bz2
 from functools import wraps
 import gzip
+import io
 import socket
+import tarfile
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -248,9 +250,6 @@ def network(
     return wrapper
 
 
-with_connectivity_check = network
-
-
 def can_connect(url, error_classes=None):
     """
     Try to connect to the given url. True if succeeds, False if OSError
@@ -398,6 +397,14 @@ def write_to_compressed(compression, path, data, dest="test"):
         mode = "w"
         args = (dest, data)
         method = "writestr"
+    elif compression == "tar":
+        compress_method = tarfile.TarFile
+        mode = "w"
+        file = tarfile.TarInfo(name=dest)
+        bytes = io.BytesIO(data)
+        file.size = len(data)
+        args = (file, bytes)
+        method = "addfile"
     elif compression == "gzip":
         compress_method = gzip.GzipFile
     elif compression == "bz2":

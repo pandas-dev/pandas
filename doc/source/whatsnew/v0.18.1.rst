@@ -149,8 +149,8 @@ can return a valid boolean indexer or anything which is valid for these indexer'
    # callable returns list of labels
    df.loc[lambda x: [1, 2], lambda x: ["A", "B"]]
 
-Indexing with``[]``
-"""""""""""""""""""
+Indexing with ``[]``
+""""""""""""""""""""
 
 Finally, you can use a callable in ``[]`` indexing of Series, DataFrame and Panel.
 The callable must return a valid input for ``[]`` indexing depending on its
@@ -166,7 +166,7 @@ without using temporary variable.
 .. ipython:: python
 
    bb = pd.read_csv("data/baseball.csv", index_col="id")
-   (bb.groupby(["year", "team"]).sum().loc[lambda df: df.r > 100])
+   (bb.groupby(["year", "team"]).sum(numeric_only=True).loc[lambda df: df.r > 100])
 
 .. _whatsnew_0181.partial_string_indexing:
 

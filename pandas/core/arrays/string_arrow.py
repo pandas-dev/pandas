@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable  # noqa: PDF001
 import re
-from typing import (
-    Union,
-    overload,
-)
+from typing import Union
 
 import numpy as np
 
@@ -16,10 +13,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     NpDtype,
-    PositionalIndexer,
     Scalar,
-    ScalarIndexer,
-    SequenceIndexer,
     npt,
 )
 from pandas.compat import (
@@ -32,7 +26,6 @@ from pandas.compat import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dtype_equal,
-    is_integer,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
@@ -42,7 +35,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import ArrowExtensionArray
+from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.numeric import NumericDtype
@@ -50,15 +43,13 @@ from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
-from pandas.core.indexers import (
-    check_array_indexer,
-    unpack_tuple_and_ellipses,
-)
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under1p01:
     import pyarrow as pa
     import pyarrow.compute as pc
+
+    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -74,7 +65,7 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 def _chk_pyarrow_available() -> None:
     if pa_version_under1p01:
-        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+        msg = "pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -130,13 +121,9 @@ class ArrowStringArray(
     """
 
     def __init__(self, values) -> None:
+        super().__init__(values)
+        # TODO: Migrate to ArrowDtype instead
         self._dtype = StringDtype(storage="pyarrow")
-        if isinstance(values, pa.Array):
-            self._data = pa.chunked_array([values])
-        elif isinstance(values, pa.ChunkedArray):
-            self._data = values
-        else:
-            raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
 
         if not pa.types.is_string(self._data.type):
             raise ValueError(
@@ -172,7 +159,7 @@ class ArrowStringArray(
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
-    def dtype(self) -> StringDtype:
+    def dtype(self) -> StringDtype:  # type: ignore[override]
         """
         An instance of 'string[pyarrow]'.
         """
@@ -202,86 +189,6 @@ class ArrowStringArray(
             mask = self.isna()
             result[mask] = na_value
         return result
-
-    @overload
-    def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
-        ...
-
-    @overload
-    def __getitem__(self: ArrowStringArray, item: SequenceIndexer) -> ArrowStringArray:
-        ...
-
-    def __getitem__(
-        self: ArrowStringArray, item: PositionalIndexer
-    ) -> ArrowStringArray | ArrowStringScalarOrNAT:
-        """Select a subset of self.
-
-        Parameters
-        ----------
-        item : int, slice, or ndarray
-            * int: The position in 'self' to get.
-            * slice: A slice object, where 'start', 'stop', and 'step' are
-              integers or None
-            * ndarray: A 1-d boolean NumPy ndarray the same length as 'self'
-
-        Returns
-        -------
-        item : scalar or ExtensionArray
-
-        Notes
-        -----
-        For scalar ``item``, return a scalar value suitable for the array's
-        type. This should be an instance of ``self.dtype.type``.
-        For slice ``key``, return an instance of ``ExtensionArray``, even
-        if the slice is length 0 or 1.
-        For a boolean mask, return an instance of ``ExtensionArray``, filtered
-        to the values where ``item`` is True.
-        """
-        item = check_array_indexer(self, item)
-
-        if isinstance(item, np.ndarray):
-            if not len(item):
-                return type(self)(pa.chunked_array([], type=pa.string()))
-            elif is_integer_dtype(item.dtype):
-                return self.take(item)
-            elif is_bool_dtype(item.dtype):
-                return type(self)(self._data.filter(item))
-            else:
-                raise IndexError(
-                    "Only integers, slices and integer or "
-                    "boolean arrays are valid indices."
-                )
-        elif isinstance(item, tuple):
-            item = unpack_tuple_and_ellipses(item)
-
-        # error: Non-overlapping identity check (left operand type:
-        # "Union[Union[int, integer[Any]], Union[slice, List[int],
-        # ndarray[Any, Any]]]", right operand type: "ellipsis")
-        if item is Ellipsis:  # type: ignore[comparison-overlap]
-            # TODO: should be handled by pyarrow?
-            item = slice(None)
-
-        if is_scalar(item) and not is_integer(item):
-            # e.g. "foo" or 2.5
-            # exception message copied from numpy
-            raise IndexError(
-                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
-                r"(`None`) and integer or boolean arrays are valid indices"
-            )
-        # We are not an array indexer, so maybe e.g. a slice or integer
-        # indexer. We dispatch to pyarrow.
-        value = self._data[item]
-        if isinstance(value, pa.ChunkedArray):
-            return type(self)(value)
-        else:
-            return self._as_pandas_scalar(value)
-
-    def _as_pandas_scalar(self, arrow_scalar: pa.Scalar):
-        scalar = arrow_scalar.as_py()
-        if scalar is None:
-            return self._dtype.na_value
-        else:
-            return scalar
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
@@ -331,6 +238,7 @@ class ArrowStringArray(
 
     def isin(self, values):
         if pa_version_under2p0:
+            fallback_performancewarning(version="2")
             return super().isin(values)
 
         value_set = [
@@ -437,10 +345,12 @@ class ArrowStringArray(
 
     def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
         if flags:
+            fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
             if pa_version_under4p0 or case is False:
+                fallback_performancewarning(version="4")
                 return super()._str_contains(pat, case, flags, na, regex)
             else:
                 result = pc.match_substring_regex(self._data, pat)
@@ -456,6 +366,7 @@ class ArrowStringArray(
 
     def _str_startswith(self, pat: str, na=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_startswith(pat, na)
 
         pat = "^" + re.escape(pat)
@@ -463,6 +374,7 @@ class ArrowStringArray(
 
     def _str_endswith(self, pat: str, na=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_endswith(pat, na)
 
         pat = re.escape(pat) + "$"
@@ -484,6 +396,7 @@ class ArrowStringArray(
             or not case
             or flags
         ):
+            fallback_performancewarning(version="4")
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
@@ -494,6 +407,7 @@ class ArrowStringArray(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_match(pat, case, flags, na)
 
         if not pat.startswith("^"):
@@ -504,6 +418,7 @@ class ArrowStringArray(
         self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_fullmatch(pat, case, flags, na)
 
         if not pat.endswith("$") or pat.endswith("//$"):
@@ -536,6 +451,7 @@ class ArrowStringArray(
 
     def _str_isspace(self):
         if pa_version_under2p0:
+            fallback_performancewarning(version="2")
             return super()._str_isspace()
 
         result = pc.utf8_is_space(self._data)
@@ -551,6 +467,7 @@ class ArrowStringArray(
 
     def _str_len(self):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_len()
 
         result = pc.utf8_length(self._data)
@@ -564,6 +481,7 @@ class ArrowStringArray(
 
     def _str_strip(self, to_strip=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_strip(to_strip)
 
         if to_strip is None:
@@ -574,6 +492,7 @@ class ArrowStringArray(
 
     def _str_lstrip(self, to_strip=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_lstrip(to_strip)
 
         if to_strip is None:
@@ -584,6 +503,7 @@ class ArrowStringArray(
 
     def _str_rstrip(self, to_strip=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_rstrip(to_strip)
 
         if to_strip is None:

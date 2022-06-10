@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import (
+    Literal,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -10,6 +13,7 @@ from pandas._libs.lib import (
     no_default,
 )
 from pandas._libs.missing import is_matching_na
+from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
 from pandas.util._exceptions import find_stack_level
 
@@ -61,7 +65,7 @@ from pandas.io.formats.printing import pprint_thing
 def assert_almost_equal(
     left,
     right,
-    check_dtype: bool | str = "equiv",
+    check_dtype: bool | Literal["equiv"] = "equiv",
     check_less_precise: bool | int | NoDefault = no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
@@ -112,12 +116,7 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
-        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
-        rtol = atol = _get_tol_from_less_precise(
-            check_less_precise  # type: ignore[arg-type]
-        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     if isinstance(left, Index):
         assert_index_equal(
@@ -169,9 +168,8 @@ def assert_almost_equal(
                 assert_class_equal(left, right, obj=obj)
 
         # if we have "equiv", this becomes True
-        check_dtype = bool(check_dtype)
         _testing.assert_almost_equal(
-            left, right, check_dtype=check_dtype, rtol=rtol, atol=atol, **kwargs
+            left, right, check_dtype=bool(check_dtype), rtol=rtol, atol=atol, **kwargs
         )
 
 
@@ -345,12 +343,7 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
-        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
-        rtol = atol = _get_tol_from_less_precise(
-            check_less_precise  # type: ignore[arg-type]
-        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, Index)
@@ -616,7 +609,7 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
     assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
-    assert_attr_equal("closed", left, right, obj=obj)
+    assert_attr_equal("inclusive", left, right, obj=obj)
 
 
 def assert_period_array_equal(left, right, obj="PeriodArray"):
@@ -686,7 +679,7 @@ def assert_numpy_array_equal(
     left,
     right,
     strict_nan=False,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     err_msg=None,
     check_same=None,
     obj="numpy array",
@@ -765,7 +758,7 @@ def assert_numpy_array_equal(
 def assert_extension_array_equal(
     left,
     right,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     index_values=None,
     check_less_precise=no_default,
     check_exact=False,
@@ -858,7 +851,7 @@ def assert_extension_array_equal(
         _testing.assert_almost_equal(
             left_valid,
             right_valid,
-            check_dtype=check_dtype,
+            check_dtype=bool(check_dtype),
             rtol=rtol,
             atol=atol,
             obj="ExtensionArray",
@@ -870,7 +863,7 @@ def assert_extension_array_equal(
 def assert_series_equal(
     left,
     right,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     check_index_type="equiv",
     check_series_type=True,
     check_less_precise=no_default,
@@ -886,6 +879,7 @@ def assert_series_equal(
     obj="Series",
     *,
     check_index=True,
+    check_like=False,
 ):
     """
     Check that left and right Series are equal.
@@ -951,6 +945,11 @@ def assert_series_equal(
         Whether to check index equivalence. If False, then compare only values.
 
         .. versionadded:: 1.3.0
+    check_like : bool, default False
+        If True, ignore the order of the index. Must be False if check_index is False.
+        Note: same labels must be with the same data.
+
+        .. versionadded:: 1.5.0
 
     Examples
     --------
@@ -960,6 +959,9 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
+
+    if not check_index and check_like:
+        raise ValueError("check_like must be False if check_index is False")
 
     if check_less_precise is not no_default:
         warnings.warn(
@@ -995,10 +997,14 @@ def assert_series_equal(
             check_names=check_names,
             check_exact=check_exact,
             check_categorical=check_categorical,
+            check_order=not check_like,
             rtol=rtol,
             atol=atol,
             obj=f"{obj}.index",
         )
+
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
         lidx = left.index
@@ -1064,7 +1070,7 @@ def assert_series_equal(
             right._values,
             rtol=rtol,
             atol=atol,
-            check_dtype=check_dtype,
+            check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
         )
@@ -1100,7 +1106,7 @@ def assert_series_equal(
             right._values,
             rtol=rtol,
             atol=atol,
-            check_dtype=check_dtype,
+            check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
         )
@@ -1125,7 +1131,7 @@ def assert_series_equal(
 def assert_frame_equal(
     left,
     right,
-    check_dtype=True,
+    check_dtype: bool | Literal["equiv"] = True,
     check_index_type="equiv",
     check_column_type="equiv",
     check_frame_type=True,
@@ -1146,7 +1152,7 @@ def assert_frame_equal(
     Check that left and right DataFrame are equal.
 
     This function is intended to compare two DataFrames and output any
-    differences. Is is mostly intended for use in unit tests.
+    differences. It is mostly intended for use in unit tests.
     Additional parameters allow varying the strictness of the
     equality checks performed.
 
@@ -1403,8 +1409,8 @@ def assert_sp_array_equal(left, right):
     assert_numpy_array_equal(left.sp_values, right.sp_values)
 
     # SparseIndex comparison
-    assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
-    assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
+    assert isinstance(left.sp_index, SparseIndex)
+    assert isinstance(right.sp_index, SparseIndex)
 
     left_index = left.sp_index
     right_index = right.sp_index

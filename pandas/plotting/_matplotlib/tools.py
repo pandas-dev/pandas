@@ -328,13 +328,13 @@ def _remove_labels_from_axis(axis: Axis):
     axis.get_label().set_visible(False)
 
 
-def _has_externally_shared_axis(ax1: matplotlib.axes, compare_axis: str) -> bool:
+def _has_externally_shared_axis(ax1: Axes, compare_axis: str) -> bool:
     """
     Return whether an axis is externally shared.
 
     Parameters
     ----------
-    ax1 : matplotlib.axes
+    ax1 : matplotlib.axes.Axes
         Axis to query.
     compare_axis : str
         `"x"` or `"y"` according to whether the X-axis or Y-axis is being

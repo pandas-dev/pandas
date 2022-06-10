@@ -1,11 +1,13 @@
 from datetime import timedelta
 from decimal import Decimal
+import inspect
 import re
 
 from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -67,6 +69,7 @@ def assert_stat_op_calc(
     skipna_alternative : function, default None
         NaN-safe version of alternative
     """
+    warn = FutureWarning if opname == "mad" else None
     f = getattr(frame, opname)
 
     if check_dates:
@@ -88,8 +91,9 @@ def assert_stat_op_calc(
             return alternative(x.values)
 
         skipna_wrapper = tm._make_skipna_wrapper(alternative, skipna_alternative)
-        result0 = f(axis=0, skipna=False)
-        result1 = f(axis=1, skipna=False)
+        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+            result0 = f(axis=0, skipna=False)
+            result1 = f(axis=1, skipna=False)
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
@@ -102,8 +106,9 @@ def assert_stat_op_calc(
     else:
         skipna_wrapper = alternative
 
-    result0 = f(axis=0)
-    result1 = f(axis=1)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result0 = f(axis=0)
+        result1 = f(axis=1)
     tm.assert_series_equal(
         result0,
         frame.apply(skipna_wrapper),
@@ -125,14 +130,18 @@ def assert_stat_op_calc(
         assert lcd_dtype == result1.dtype
 
     # bad axis
-    with pytest.raises(ValueError, match="No axis named 2"):
-        f(axis=2)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        with pytest.raises(ValueError, match="No axis named 2"):
+            f(axis=2)
 
     # all NA case
     if has_skipna:
         all_na = frame * np.NaN
-        r0 = getattr(all_na, opname)(axis=0)
-        r1 = getattr(all_na, opname)(axis=1)
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
+            r0 = getattr(all_na, opname)(axis=0)
+            r1 = getattr(all_na, opname)(axis=1)
         if opname in ["sum", "prod"]:
             unit = 1 if opname == "prod" else 0  # result for empty sum/prod
             expected = Series(unit, index=r0.index, dtype=r0.dtype)
@@ -167,9 +176,13 @@ class TestDataFrameAnalytics:
         ],
     )
     def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        getattr(float_string_frame, opname)(axis=axis)
-        if opname not in ("nunique", "mad"):
-            getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
+        warn = FutureWarning if opname == "mad" else None
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
+            getattr(float_string_frame, opname)(axis=axis)
+            if opname not in ("nunique", "mad"):
+                getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
     @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
@@ -765,6 +778,40 @@ class TestDataFrameAnalytics:
         expected = Series([np.nan, np.nan], index=["x", "y"])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "kwargs, expected_result",
+        [
+            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.NaN]),
+            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
+            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.NaN]),
+        ],
+    )
+    def test_sum_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
+        # GH#46947
+        df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype=float_type)
+        result = df.sum(**kwargs)
+        expected = Series(expected_result).astype(float_type)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "kwargs, expected_result",
+        [
+            ({"axis": 1, "min_count": 2}, [2.0, 4.0, np.NaN]),
+            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
+            ({"axis": 1, "skipna": False}, [2.0, 4.0, np.NaN]),
+        ],
+    )
+    def test_prod_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
+        # GH#46947
+        df = DataFrame(
+            {"a": [1.0, 2.0, 4.4], "b": [2.0, 2.0, np.nan]}, dtype=float_type
+        )
+        result = df.prod(**kwargs)
+        expected = Series(expected_result).astype(float_type)
+        tm.assert_series_equal(result, expected)
+
     def test_sum_object(self, float_frame):
         values = float_frame.values.astype(int)
         frame = DataFrame(values, index=float_frame.index, columns=float_frame.columns)
@@ -886,6 +933,17 @@ class TestDataFrameAnalytics:
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_idxmin_numeric_only(self, numeric_only):
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        if numeric_only:
+            result = df.idxmin(numeric_only=numeric_only)
+            expected = Series([2, 1], index=["a", "b"])
+            tm.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(TypeError, match="not allowed for this dtype"):
+                df.idxmin(numeric_only=numeric_only)
+
     def test_idxmin_axis_2(self, float_frame):
         frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
@@ -902,6 +960,17 @@ class TestDataFrameAnalytics:
             result = df.idxmax(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_idxmax_numeric_only(self, numeric_only):
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        if numeric_only:
+            result = df.idxmax(numeric_only=numeric_only)
+            expected = Series([1, 0], index=["a", "b"])
+            tm.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(TypeError, match="not allowed for this dtype"):
+                df.idxmin(numeric_only=numeric_only)
 
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
@@ -1055,11 +1124,11 @@ class TestDataFrameAnalytics:
             },
             index=["a", "b", "c"],
         )
-        result = df[["A", "B"]].any(1)
+        result = df[["A", "B"]].any(axis=1)
         expected = Series([True, True, False], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
-        result = df[["A", "B"]].any(1, bool_only=True)
+        result = df[["A", "B"]].any(axis=1, bool_only=True)
         tm.assert_series_equal(result, expected)
 
         result = df.all(1)
@@ -1108,7 +1177,7 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        result = df.any(1)
+        result = df.any(axis=1)
         expected = Series([True, True, True, False])
         tm.assert_series_equal(result, expected)
 
@@ -1424,7 +1493,9 @@ class TestDataFrameReductions:
     def test_reductions_deprecation_skipna_none(self, frame_or_series):
         # GH#44580
         obj = frame_or_series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning, match="skipna"):
+        with tm.assert_produces_warning(
+            FutureWarning, match="skipna", raise_on_extra_warnings=False
+        ):
             obj.mad(skipna=None)
 
     def test_reductions_deprecation_level_argument(
@@ -1445,7 +1516,7 @@ class TestDataFrameReductions:
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         elif reduction_functions == "mad":
-            pytest.skip("Mad needs a deprecation cycle: GH 11787")
+            pytest.skip("Mad is deprecated: GH#11787")
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
@@ -1644,25 +1715,37 @@ def test_mad_nullable_integer(any_signed_int_ea_dtype):
     df = DataFrame(np.random.randn(100, 4).astype(np.int64))
     df2 = df.astype(any_signed_int_ea_dtype)
 
-    result = df2.mad()
-    expected = df.mad()
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad()
+        expected = df.mad()
     tm.assert_series_equal(result, expected)
 
-    result = df2.mad(axis=1)
-    expected = df.mad(axis=1)
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad(axis=1)
+        expected = df.mad(axis=1)
     tm.assert_series_equal(result, expected)
 
     # case with NAs present
     df2.iloc[::2, 1] = pd.NA
 
-    result = df2.mad()
-    expected = df.mad()
-    expected[1] = df.iloc[1::2, 1].mad()
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad()
+        expected = df.mad()
+        expected[1] = df.iloc[1::2, 1].mad()
     tm.assert_series_equal(result, expected)
 
-    result = df2.mad(axis=1)
-    expected = df.mad(axis=1)
-    expected[::2] = df.T.loc[[0, 2, 3], ::2].mad()
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad(axis=1)
+        expected = df.mad(axis=1)
+        expected[::2] = df.T.loc[[0, 2, 3], ::2].mad()
     tm.assert_series_equal(result, expected)
 
 
@@ -1673,10 +1756,17 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
-    df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
-    df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
-    result = df2.mad()
-    expected = df.mad()
+    msg = "will attempt to set the values inplace instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
+        df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
+
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad()
+        expected = df.mad()
+
     expected[1] = pd.NA
     expected = expected.astype("Float64")
     tm.assert_series_equal(result, expected)
@@ -1702,7 +1792,9 @@ def test_groupby_regular_arithmetic_equivalent(meth):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
+    with tm.assert_produces_warning(
+        FutureWarning, match="The default value of numeric_only"
+    ):
         result = df.sum()
     expected = Series([1, 1.1, "foo"], index=list("abc"))
     tm.assert_series_equal(result, expected)
@@ -1736,3 +1828,60 @@ def test_reduction_axis_none_deprecation(method):
         expected = meth()
     tm.assert_series_equal(res, expected)
     tm.assert_series_equal(res, meth(axis=0))
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    [
+        "corr",
+        "corrwith",
+        "count",
+        "cov",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "kurt",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "mode",
+        "prod",
+        "prod",
+        "quantile",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    ],
+)
+def test_numeric_only_deprecation(kernel):
+    # GH#46852
+    df = DataFrame({"a": [1, 2, 3], "b": object})
+    args = (df,) if kernel == "corrwith" else ()
+    signature = inspect.signature(getattr(DataFrame, kernel))
+    default = signature.parameters["numeric_only"].default
+    assert default is not True
+
+    if kernel in ("idxmax", "idxmin"):
+        # kernels that default to numeric_only=False and fail on nuisance columns
+        assert default is False
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            getattr(df, kernel)(*args)
+    else:
+        if default is None or default is lib.no_default:
+            expected = getattr(df[["a"]], kernel)(*args)
+            warn = FutureWarning
+        else:
+            # default must be False and works on any nuisance columns
+            expected = getattr(df, kernel)(*args)
+            if kernel == "mode":
+                assert "b" in expected.columns
+            else:
+                assert "b" in expected.index
+            warn = None
+        msg = f"The default value of numeric_only in DataFrame.{kernel}"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(df, kernel)(*args)
+        tm.assert_equal(result, expected)
