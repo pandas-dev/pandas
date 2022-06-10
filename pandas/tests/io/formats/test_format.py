@@ -1442,8 +1442,6 @@ class TestDataFrameFormatting:
         fmt.set_option(
             "display.precision",
             5,
-            "display.column_space",
-            12,
             "display.notebook_repr_html",
             False,
         )
@@ -3402,3 +3400,9 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())
+
+
+def test_col_space_deprecated():
+    # GH 7576
+    with tm.assert_produces_warning(FutureWarning, match="column_space is"):
+        set_option("display.column_space", 11)

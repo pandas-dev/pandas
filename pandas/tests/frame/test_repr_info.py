@@ -219,7 +219,7 @@ NaT   4"""
         )
         repr(unsortable)
 
-        fmt.set_option("display.precision", 3, "display.column_space", 10)
+        fmt.set_option("display.precision", 3)
         repr(float_frame)
 
         fmt.set_option("display.max_rows", 10, "display.max_columns", 2)
