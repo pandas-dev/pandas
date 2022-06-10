@@ -197,6 +197,10 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_loc_iloc_frame_single_dtype(data)
 
 
+class TestBaseIndex(base.BaseIndexTests):
+    pass
+
+
 def test_arrowdtype_construct_from_string_type_with_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("timestamp[s][pyarrow]")
