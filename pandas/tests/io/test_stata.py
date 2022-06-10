@@ -1786,11 +1786,11 @@ the string values returned are correct."""
                 [2.0, 2, "ᴮ", ""],
                 [3.0, 3, "ᴰ", None],
             ],
-            columns=["a", "β", "ĉ", "strls"],
+            columns=["Å", "β", "ĉ", "strls"],
         )
         data["ᴐᴬᵀ"] = cat
         variable_labels = {
-            "a": "apple",
+            "Å": "apple",
             "β": "ᵈᵉᵊ",
             "ĉ": "ᴎტჄႲႳႴႶႺ",
             "strls": "Long Strings",

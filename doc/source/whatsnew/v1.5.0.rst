@@ -847,6 +847,7 @@ I/O
 - Bug in :func:`read_sas` with certain types of compressed SAS7BDAT files (:issue:`35545`)
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
+- Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
 
 Period
 ^^^^^^
