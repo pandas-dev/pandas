@@ -22,7 +22,6 @@ class ArrowDtype(StorageExtensionDtype):
     Modeled after BaseMaskedDtype
     """
 
-    na_value = libmissing.NA
     _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
