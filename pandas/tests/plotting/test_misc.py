@@ -461,7 +461,7 @@ class TestDataFramePlots(TestPlotBase):
             for a, b in zip(plot_bar.get_xticklabels(), expected)
         )
 
-    def test_barh_plot(self):
+    def test_barh_plot_labels_mixed_integer_string(self):
         # GH39126
         # Test barh plot with string and integer at the same column
         from matplotlib.text import Text
