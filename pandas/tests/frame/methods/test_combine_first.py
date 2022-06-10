@@ -66,7 +66,7 @@ class TestDataFrameCombineFirst:
         assert (combined["A"][:10] == 1).all()
 
         # reverse overlap
-        tail["A"][:10] = 0
+        tail.iloc[:10, tail.columns.get_loc("A")] = 0
         combined = tail.combine_first(head)
         assert (combined["A"][:10] == 0).all()
 
@@ -402,7 +402,7 @@ class TestDataFrameCombineFirst:
         (datetime(2020, 1, 1), datetime(2020, 1, 2)),
         (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
         (pd.Timedelta("89 days"), pd.Timedelta("60 min")),
-        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, closed="left")),
+        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, inclusive="left")),
     ],
 )
 def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):

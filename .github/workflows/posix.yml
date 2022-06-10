@@ -28,7 +28,7 @@ jobs:
         pattern: ["not single_cpu", "single_cpu"]
         # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
         # even if tests are skipped/xfailed
-        pyarrow_version: ["5", "7"]
+        pyarrow_version: ["5", "6", "7"]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -62,6 +62,15 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             pandas_testing_mode: "deprecate"
             test_args: "-W error::DeprecationWarning:numpy"
+        exclude:
+          - env_file: actions-39.yaml
+            pyarrow_version: "6"
+          - env_file: actions-39.yaml
+            pyarrow_version: "7"
+          - env_file: actions-310.yaml
+            pyarrow_version: "6"
+          - env_file: actions-310.yaml
+            pyarrow_version: "7"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
@@ -146,23 +155,11 @@ jobs:
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
-      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
+        condarc-file: ci/condarc.yml
 
     - name: Upgrade Arrow version
       run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
       if: ${{ matrix.pyarrow_version }}
-
-    - name: Setup PyPy
-      uses: actions/setup-python@v3
-      with:
-        python-version: "pypy-3.8"
-      if: ${{ env.IS_PYPY == 'true' }}
-
-    - name: Setup PyPy dependencies
-      run: |
-        # TODO: re-enable cov, its slowing the tests down though
-        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio>=0.17 hypothesis>=5.5.3
-      if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
@@ -171,7 +168,6 @@ jobs:
       run: ci/run_tests.sh
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
-      if: always()
 
     - name: Build Version
       run: conda list

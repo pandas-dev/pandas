@@ -43,9 +43,9 @@ def set_locale(
 
     try:
         locale.setlocale(lc_var, new_locale)
-        normalized_locale = locale.getlocale()
-        if all(x is not None for x in normalized_locale):
-            yield ".".join(normalized_locale)
+        normalized_code, normalized_encoding = locale.getlocale()
+        if normalized_code is not None and normalized_encoding is not None:
+            yield f"{normalized_code}.{normalized_encoding}"
         else:
             yield new_locale
     finally:

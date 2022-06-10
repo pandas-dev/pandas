@@ -187,7 +187,7 @@ Look,a snake,🐍"""
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -253,7 +253,7 @@ Look,a snake,🐍"""
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -413,39 +413,31 @@ class TestMMapWrapper:
             err = mmap.error
 
         with pytest.raises(err, match=msg):
-            icom._MMapWrapper(non_file)
+            icom._maybe_memory_map(non_file, True)
 
         with open(mmap_file) as target:
             pass
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
-            icom._MMapWrapper(target)
-
-    def test_get_attr(self, mmap_file):
-        with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
-
-        attrs = dir(wrapper.mmap)
-        attrs = [attr for attr in attrs if not attr.startswith("__")]
-        attrs.append("__next__")
-
-        for attr in attrs:
-            assert hasattr(wrapper, attr)
-
-        assert not hasattr(wrapper, "foo")
+            icom._maybe_memory_map(target, True)
 
     def test_next(self, mmap_file):
         with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
             lines = target.readlines()
 
-        for line in lines:
-            next_line = next(wrapper)
-            assert next_line.strip() == line.strip()
+            with icom.get_handle(
+                target, "r", is_text=True, memory_map=True
+            ) as wrappers:
+                wrapper = wrappers.handle
+                assert isinstance(wrapper.buffer.buffer, mmap.mmap)
 
-        with pytest.raises(StopIteration, match=r"^$"):
-            next(wrapper)
+                for line in lines:
+                    next_line = next(wrapper)
+                    assert next_line.strip() == line.strip()
+
+                with pytest.raises(StopIteration, match=r"^$"):
+                    next(wrapper)
 
     def test_unknown_engine(self):
         with tm.ensure_clean() as path:
@@ -600,3 +592,15 @@ def test_fail_mmap():
     with pytest.raises(UnsupportedOperation, match="fileno"):
         with BytesIO() as buffer:
             icom.get_handle(buffer, "rb", memory_map=True)
+
+
+def test_close_on_error():
+    # GH 47136
+    class TestError:
+        def close(self):
+            raise OSError("test")
+
+    with pytest.raises(OSError, match="test"):
+        with BytesIO() as buffer:
+            with icom.get_handle(buffer, "rb") as handles:
+                handles.created_handles.append(TestError())

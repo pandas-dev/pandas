@@ -2,8 +2,6 @@
 This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
-from contextlib import nullcontext
-
 import numpy as np
 import pytest
 
@@ -18,20 +16,15 @@ import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
-def maybe_perf_warn(using_pyarrow):
-    if using_pyarrow:
-        return tm.assert_produces_warning(PerformanceWarning, match="Falling back")
-    else:
-        return nullcontext()
-
-
 @pytest.fixture
 def dtype(string_storage):
+    """Fixture giving StringDtype from parametrized 'string_storage'"""
     return pd.StringDtype(storage=string_storage)
 
 
 @pytest.fixture
 def cls(dtype):
+    """Fixture giving array type from parametrized 'dtype'"""
     return dtype.construct_array_type()
 
 
@@ -269,7 +262,7 @@ def test_constructor_raises(cls):
     if cls is pd.arrays.StringArray:
         msg = "StringArray requires a sequence of strings or pandas.NA"
     else:
-        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
+        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
 
     with pytest.raises(ValueError, match=msg):
         cls(np.array(["a", "b"], dtype="S1"))
@@ -568,22 +561,30 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
 def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
-    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
         result = s.isin(["a", "c"])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
 
-    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
         result = s.isin(["a", pd.NA])
     expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
-    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
         result = s.isin([])
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+    with tm.maybe_produces_warning(
+        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+    ):
         result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)

@@ -34,7 +34,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DataError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -50,10 +53,7 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import (
-    DataError,
-    PandasObject,
-)
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
@@ -165,6 +165,10 @@ class Resampler(BaseGroupBy, PandasObject):
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
         self._selection = selection
+        if self.groupby.key is not None:
+            self.exclusions = frozenset([self.groupby.key])
+        else:
+            self.exclusions = frozenset()
 
     @final
     def _shallow_copy(self, obj, **kwargs):
@@ -389,7 +393,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._selected_obj.groupby(self.groupby).transform(arg, *args, **kwargs)
 
-    def _downsample(self, f):
+    def _downsample(self, f, **kwargs):
         raise AbstractMethodError(self)
 
     def _upsample(self, f, limit=None, fill_value=None):
@@ -426,7 +430,11 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         grouper = self.grouper
 
-        obj = self._selected_obj
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
         grouped = get_groupby(
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
@@ -929,7 +937,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -937,6 +945,10 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         ddof : int, default 1
             Degrees of freedom.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -944,10 +956,9 @@ class Resampler(BaseGroupBy, PandasObject):
             Standard deviation of values within each group.
         """
         nv.validate_resampler_func("std", args, kwargs)
-        # error: Unexpected keyword argument "ddof" for "_downsample"
-        return self._downsample("std", ddof=ddof)  # type: ignore[call-arg]
+        return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
         """
         Compute variance of groups, excluding missing values.
 
@@ -956,14 +967,18 @@ class Resampler(BaseGroupBy, PandasObject):
         ddof : int, default 1
             Degrees of freedom.
 
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         DataFrame or Series
             Variance of values within each group.
         """
         nv.validate_resampler_func("var", args, kwargs)
-        # error: Unexpected keyword argument "ddof" for "_downsample"
-        return self._downsample("var", ddof=ddof)  # type: ignore[call-arg]
+        return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @doc(GroupBy.size)
     def size(self):
@@ -1019,53 +1034,94 @@ class Resampler(BaseGroupBy, PandasObject):
             Return a DataFrame, where the coulmns are groupby columns,
             and the values are its quantiles.
         """
-        # error: Unexpected keyword argument "q" for "_downsample"
-        # error: Too many arguments for "_downsample"
-        return self._downsample("quantile", q=q, **kwargs)  # type: ignore[call-arg]
+        return self._downsample("quantile", q=q, **kwargs)
 
 
-# downsample methods
-for method in ["sum", "prod", "min", "max", "first", "last"]:
+def _add_downsample_kernel(
+    name: str, args: tuple[str, ...], docs_class: type = GroupBy
+) -> None:
+    """
+    Add a kernel to Resampler.
 
-    def f(
-        self,
-        _method: str = method,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
-        min_count: int = 0,
-        *args,
-        **kwargs,
-    ):
-        if numeric_only is lib.no_default:
-            if _method != "sum":
+    Arguments
+    ---------
+    name : str
+        Name of the kernel.
+    args : tuple
+        Arguments of the method.
+    docs_class : type
+        Class to get kernel docstring from.
+    """
+    assert args in (
+        ("numeric_only", "min_count"),
+        ("numeric_only",),
+        ("ddof", "numeric_only"),
+        (),
+    )
+
+    # Explicitly provide args rather than args/kwargs for API docs
+    if args == ("numeric_only", "min_count"):
+
+        def f(
+            self,
+            numeric_only: bool | lib.NoDefault = lib.no_default,
+            min_count: int = 0,
+            *args,
+            **kwargs,
+        ):
+            nv.validate_resampler_func(name, args, kwargs)
+            if numeric_only is lib.no_default and name != "sum":
                 # For DataFrameGroupBy, set it to be False for methods other than `sum`.
                 numeric_only = False
 
-        nv.validate_resampler_func(_method, args, kwargs)
-        return self._downsample(_method, numeric_only=numeric_only, min_count=min_count)
+            return self._downsample(
+                name, numeric_only=numeric_only, min_count=min_count
+            )
 
-    f.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, f)
+    elif args == ("numeric_only",):
+        # error: All conditional function variants must have identical signatures
+        def f(  # type: ignore[misc]
+            self, numeric_only: bool | lib.NoDefault = lib.no_default, *args, **kwargs
+        ):
+            nv.validate_resampler_func(name, args, kwargs)
+            return self._downsample(name, numeric_only=numeric_only)
+
+    elif args == ("ddof", "numeric_only"):
+        # error: All conditional function variants must have identical signatures
+        def f(  # type: ignore[misc]
+            self,
+            ddof: int = 1,
+            numeric_only: bool | lib.NoDefault = lib.no_default,
+            *args,
+            **kwargs,
+        ):
+            nv.validate_resampler_func(name, args, kwargs)
+            return self._downsample(name, ddof=ddof, numeric_only=numeric_only)
+
+    else:
+        # error: All conditional function variants must have identical signatures
+        def f(  # type: ignore[misc]
+            self,
+            *args,
+            **kwargs,
+        ):
+            nv.validate_resampler_func(name, args, kwargs)
+            return self._downsample(name)
+
+    f.__doc__ = getattr(docs_class, name).__doc__
+    setattr(Resampler, name, f)
 
 
-# downsample methods
-for method in ["mean", "sem", "median", "ohlc"]:
-
-    def g(self, _method=method, *args, **kwargs):
-        nv.validate_resampler_func(_method, args, kwargs)
-        return self._downsample(_method)
-
-    g.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, g)
-
-
-# series only methods
+for method in ["sum", "prod", "min", "max", "first", "last"]:
+    _add_downsample_kernel(method, ("numeric_only", "min_count"))
+for method in ["mean", "median"]:
+    _add_downsample_kernel(method, ("numeric_only",))
+for method in ["sem"]:
+    _add_downsample_kernel(method, ("ddof", "numeric_only"))
+for method in ["ohlc"]:
+    _add_downsample_kernel(method, ())
 for method in ["nunique"]:
-
-    def h(self, _method=method):
-        return self._downsample(_method)
-
-    h.__doc__ = getattr(SeriesGroupBy, method).__doc__
-    setattr(Resampler, method, h)
+    _add_downsample_kernel(method, (), SeriesGroupBy)
 
 
 class _GroupByMixin(PandasObject):
@@ -1180,7 +1236,11 @@ class DatetimeIndexResampler(Resampler):
         """
         how = com.get_cython_func(how) or how
         ax = self.ax
-        obj = self._selected_obj
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            # Excludes `on` column when provided
+            obj = self._obj_with_exclusions
 
         if not len(ax):
             # reset to the new freq

@@ -44,7 +44,7 @@ def test_check_nopython_kwargs():
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
@@ -73,7 +73,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
@@ -199,3 +199,30 @@ def test_engine_kwargs_not_cached():
     )
     expected = DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_multiindex_one_key(nogil, parallel, nopython):
+    def numba_func(values, index):
+        return 1
+
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    result = df.groupby("A").transform(
+        numba_func, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame([{"A": 1, "B": 2, "C": 1.0}]).set_index(["A", "B"])
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
+    def numba_func(values, index):
+        return 1
+
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    with pytest.raises(NotImplementedError, match="More than 1 grouping labels"):
+        df.groupby(["A", "B"]).transform(
+            numba_func, engine="numba", engine_kwargs=engine_kwargs
+        )

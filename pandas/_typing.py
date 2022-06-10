@@ -256,7 +256,7 @@ StorageOptions = Optional[Dict[str, Any]]
 # compression keywords and compression
 CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
-    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
+    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict]
 ]
 
 # types in DataFrameFormatter
@@ -313,7 +313,8 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
-IntervalClosedType = Literal["left", "right", "both", "neither"]
+IntervalLeftRight = Literal["left", "right"]
+IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
