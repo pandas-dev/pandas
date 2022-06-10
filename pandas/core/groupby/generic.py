@@ -275,9 +275,9 @@ class SeriesGroupBy(GroupBy[Series]):
             func = maybe_mangle_lambdas(func)
             ret = self._aggregate_multiple_funcs(func)
             if relabeling:
-                # error: Incompatible types in assignment (expression has type
-                # "Optional[List[str]]", variable has type "Index")
-                ret.columns = columns  # type: ignore[assignment]
+                # columns is not narrowed by mypy from relabeling flag
+                assert columns is not None  # for mypy
+                ret.columns = columns
             return ret
 
         else:

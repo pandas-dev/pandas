@@ -105,12 +105,7 @@ class ArrowParserWrapper(ParserBase):
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
-        # error: Incompatible types in assignment (expression has type
-        # "Union[List[Union[Union[str, int, float, bool], Union[Period, Timestamp,
-        # Timedelta, Any]]], Index]", variable has type "Index")  [assignment]
-        frame.columns, frame = self._do_date_conversions(  # type: ignore[assignment]
-            frame.columns, frame
-        )
+        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
             for i, item in enumerate(self.index_col):
                 if is_integer(item):
