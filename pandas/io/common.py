@@ -198,6 +198,8 @@ def validate_header_arg(header: object) -> None:
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
             raise ValueError("cannot specify multi-index header with negative integers")
+        if list(header) != sorted(set(header)):
+            raise ValueError("multi-index header elements must be increasing")
         return
     if is_bool(header):
         raise TypeError(

@@ -61,6 +61,20 @@ def test_negative_multi_index_header(all_parsers, header):
         parser.read_csv(StringIO(data), header=header)
 
 
+@pytest.mark.parametrize("header", [([0, 0]), ([1, 0])])
+def test_nonincreasing_multi_index_header(all_parsers, header):
+    # see gh-47011
+    parser = all_parsers
+    data = """1,2,3,4,5
+        6,7,8,9,10
+        11,12,13,14,15
+        """
+    with pytest.raises(
+        ValueError, match="multi-index header elements must be increasing"
+    ):
+        parser.read_csv(StringIO(data), header=header)
+
+
 @pytest.mark.parametrize("header", [True, False])
 def test_bool_header_arg(all_parsers, header):
     # see gh-6114
