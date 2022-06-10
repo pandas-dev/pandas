@@ -462,7 +462,11 @@ class ExtensionArray:
 
     def __init_subclass__(cls, **kwargs):
         factorize = getattr(cls, "factorize")
-        if "use_na_sentinel" not in inspect.signature(factorize).parameters:
+        if (
+            "use_na_sentinel" not in inspect.signature(factorize).parameters
+            # TimelikeOps uses old factorize args to ensure we don't break things
+            and cls.__name__ not in ("TimelikeOps", "DatetimeArray", "TimedeltaArray")
+        ):
             # See GH#46910 for details on the deprecation
             name = cls.__name__
             warnings.warn(
