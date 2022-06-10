@@ -51,6 +51,7 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
     convert_to_tsobject,
+    maybe_localize_tso,
 )
 from pandas._libs.tslibs.dtypes cimport (
     npy_unit_to_abbrev,
@@ -90,7 +91,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
@@ -99,6 +103,7 @@ from pandas._libs.tslibs.offsets cimport (
 )
 from pandas._libs.tslibs.timedeltas cimport (
     delta_to_nanoseconds,
+    ensure_td64ns,
     is_any_td_scalar,
 )
 
@@ -207,6 +212,23 @@ cdef class _Timestamp(ABCTimestamp):
     # Constructors
 
     @classmethod
+    def _from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso, tzinfo tz):
+        cdef:
+            npy_datetimestruct dts
+            _TSObject obj = _TSObject()
+
+        if value == NPY_NAT:
+            return NaT
+
+        obj.value = value
+        pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
+        maybe_localize_tso(obj, tz, reso)
+
+        return create_timestamp_from_ts(
+            value, obj.dts, tz=obj.tzinfo, freq=None, fold=obj.fold, reso=reso
+        )
+
+    @classmethod
     def _from_dt64(cls, dt64: np.datetime64):
         # construct a Timestamp from a np.datetime64 object, keeping the
         #  resolution of the input.
@@ -219,10 +241,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         reso = get_datetime64_unit(dt64)
         value = get_datetime64_value(dt64)
-        pandas_datetime_to_datetimestruct(value, reso, &dts)
-        return create_timestamp_from_ts(
-            value, dts, tz=None, freq=None, fold=0, reso=reso
-        )
+        return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
 
@@ -353,7 +372,26 @@ cdef class _Timestamp(ABCTimestamp):
             raise NotImplementedError(self._reso)
 
         if is_any_td_scalar(other):
-            nanos = delta_to_nanoseconds(other)
+            if is_timedelta64_object(other):
+                other_reso = get_datetime64_unit(other)
+                if (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+                ):
+                    # TODO: deprecate allowing this?  We only get here
+                    #  with test_timedelta_add_timestamp_interval
+                    other = np.timedelta64(other.view("i8"), "ns")
+                elif (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
+                ):
+                    # TODO: deprecate allowing these?  or handle more like the
+                    #  corresponding DateOffsets?
+                    # TODO: no tests get here
+                    other = ensure_td64ns(other)
+
+            # TODO: disallow round_ok
+            nanos = delta_to_nanoseconds(
+                other, reso=self._reso, round_ok=True
+            )
             try:
                 result = type(self)(self.value + nanos, tz=self.tzinfo)
             except OverflowError:
@@ -435,7 +473,7 @@ cdef class _Timestamp(ABCTimestamp):
             # Timedelta
             try:
                 return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime) as err:
+            except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if isinstance(other, _Timestamp):
                     if both_timestamps:
                         raise OutOfBoundsDatetime(
@@ -1978,10 +2016,11 @@ default 'raise'
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc_single(self.value, tz,
                                               ambiguous=ambiguous,
-                                              nonexistent=nonexistent)
+                                              nonexistent=nonexistent,
+                                              reso=self._reso)
         elif tz is None:
             # reset tz
-            value = tz_convert_from_utc_single(self.value, self.tz)
+            value = tz_convert_from_utc_single(self.value, self.tz, reso=self._reso)
 
         else:
             raise TypeError(
@@ -2129,7 +2168,7 @@ default 'raise'
             fold = self.fold
 
         if tzobj is not None:
-            value = tz_convert_from_utc_single(value, tzobj)
+            value = tz_convert_from_utc_single(value, tzobj, reso=self._reso)
 
         # setup components
         dt64_to_dtstruct(value, &dts)

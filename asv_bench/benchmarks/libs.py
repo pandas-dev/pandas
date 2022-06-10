@@ -2,7 +2,7 @@
 Benchmarks for code in pandas/_libs, excluding pandas/_libs/tslibs,
 which has its own directory.
 
-If a PR does not edit anything in _libs/, then it is unlikely that thes
+If a PR does not edit anything in _libs/, then it is unlikely that the
 benchmarks will be affected.
 """
 import numpy as np

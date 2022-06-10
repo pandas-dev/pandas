@@ -4,6 +4,9 @@ Tests for DatetimeArray
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import tz_compare
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -14,20 +17,34 @@ from pandas.core.arrays import DatetimeArray
 class TestNonNano:
     @pytest.fixture(params=["s", "ms", "us"])
     def unit(self, request):
+        """Fixture returning parametrized time units"""
         return request.param
 
     @pytest.fixture
     def reso(self, unit):
-        # TODO: avoid hard-coding
-        return {"s": 7, "ms": 8, "us": 9}[unit]
+        """Fixture returning datetime resolution for a given time unit"""
+        return {
+            "s": NpyDatetimeUnit.NPY_FR_s.value,
+            "ms": NpyDatetimeUnit.NPY_FR_ms.value,
+            "us": NpyDatetimeUnit.NPY_FR_us.value,
+        }[unit]
 
-    @pytest.mark.xfail(reason="_box_func is not yet patched to get reso right")
-    def test_non_nano(self, unit, reso):
+    @pytest.fixture
+    def dtype(self, unit, tz_naive_fixture):
+        tz = tz_naive_fixture
+        if tz is None:
+            return np.dtype(f"datetime64[{unit}]")
+        else:
+            return DatetimeTZDtype(unit=unit, tz=tz)
+
+    def test_non_nano(self, unit, reso, dtype):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
-        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
-        assert dta.dtype == arr.dtype
+        assert dta.dtype == dtype
         assert dta[0]._reso == reso
+        assert tz_compare(dta.tz, dta[0].tz)
+        assert (dta[0] == dta[:1]).all()
 
     @pytest.mark.filterwarnings(
         "ignore:weekofyear and week have been deprecated:FutureWarning"
@@ -35,11 +52,19 @@ class TestNonNano:
     @pytest.mark.parametrize(
         "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
     )
-    def test_fields(self, unit, reso, field):
-        dti = pd.date_range("2016-01-01", periods=55, freq="D")
-        arr = np.asarray(dti).astype(f"M8[{unit}]")
+    def test_fields(self, unit, reso, field, dtype):
+        tz = getattr(dtype, "tz", None)
+        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz)
+        if tz is None:
+            arr = np.asarray(dti).astype(f"M8[{unit}]")
+        else:
+            arr = np.asarray(dti.tz_convert("UTC").tz_localize(None)).astype(
+                f"M8[{unit}]"
+            )
 
-        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+
+        # FIXME: assert (dti == dta).all()
 
         res = getattr(dta, field)
         expected = getattr(dti._data, field)

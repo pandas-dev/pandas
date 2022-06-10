@@ -77,7 +77,6 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil
 cdef void dt64_to_dtstruct(int64_t dt64, npy_datetimestruct* out) nogil
-cdef void td64_to_tdstruct(int64_t td64, pandas_timedeltastruct* out) nogil
 
 cdef int64_t pydatetime_to_dt64(datetime val, npy_datetimestruct *dts)
 cdef int64_t pydate_to_dt64(date val, npy_datetimestruct *dts)
