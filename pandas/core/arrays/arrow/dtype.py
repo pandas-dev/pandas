@@ -5,7 +5,6 @@ import re
 import numpy as np
 import pyarrow as pa
 
-from pandas._libs import missing as libmissing
 from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
