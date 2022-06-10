@@ -99,6 +99,10 @@ def na_value():
     return pd.NA
 
 
+class TestBaseCasting(base.BaseCastingTests):
+    pass
+
+
 class TestConstructors(base.BaseConstructorsTests):
     @pytest.mark.xfail(
         reason=(
@@ -109,6 +113,20 @@ class TestConstructors(base.BaseConstructorsTests):
     )
     def test_from_dtype(self, data):
         super().test_from_dtype(data)
+
+
+@pytest.mark.xfail(
+    raises=NotImplementedError, reason="pyarrow.ChunkedArray backing is 1D."
+)
+class TestDim2Compat(base.Dim2CompatTests):
+    pass
+
+
+@pytest.mark.xfail(
+    raises=NotImplementedError, reason="pyarrow.ChunkedArray backing is 1D."
+)
+class TestNDArrayBacked2D(base.NDArrayBacked2DTests):
+    pass
 
 
 class TestGetitemTests(base.BaseGetitemTests):
@@ -177,6 +195,10 @@ class TestGetitemTests(base.BaseGetitemTests):
                 )
             )
         super().test_loc_iloc_frame_single_dtype(data)
+
+
+class TestBaseIndex(base.BaseIndexTests):
+    pass
 
 
 def test_arrowdtype_construct_from_string_type_with_parameters():
