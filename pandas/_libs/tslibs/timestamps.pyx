@@ -51,6 +51,7 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
     convert_to_tsobject,
+    maybe_localize_tso,
 )
 from pandas._libs.tslibs.dtypes cimport (
     npy_unit_to_abbrev,
@@ -211,6 +212,23 @@ cdef class _Timestamp(ABCTimestamp):
     # Constructors
 
     @classmethod
+    def _from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso, tzinfo tz):
+        cdef:
+            npy_datetimestruct dts
+            _TSObject obj = _TSObject()
+
+        if value == NPY_NAT:
+            return NaT
+
+        obj.value = value
+        pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
+        maybe_localize_tso(obj, tz, reso)
+
+        return create_timestamp_from_ts(
+            value, obj.dts, tz=obj.tzinfo, freq=None, fold=obj.fold, reso=reso
+        )
+
+    @classmethod
     def _from_dt64(cls, dt64: np.datetime64):
         # construct a Timestamp from a np.datetime64 object, keeping the
         #  resolution of the input.
@@ -223,10 +241,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         reso = get_datetime64_unit(dt64)
         value = get_datetime64_value(dt64)
-        pandas_datetime_to_datetimestruct(value, reso, &dts)
-        return create_timestamp_from_ts(
-            value, dts, tz=None, freq=None, fold=0, reso=reso
-        )
+        return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
 
