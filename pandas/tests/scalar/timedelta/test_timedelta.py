@@ -744,10 +744,12 @@ class TestTimedeltas:
         td = Timedelta(min_td.value - 1, "ns")
         assert td is NaT
 
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Cannot cast -9223372036854775809 from ns to 'ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta(min_td.value - 2, "ns")
 
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Cannot cast 9223372036854775808 from ns to 'ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta(max_td.value + 1, "ns")
 
     def test_total_seconds_precision(self):

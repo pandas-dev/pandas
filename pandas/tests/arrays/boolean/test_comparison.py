@@ -9,6 +9,7 @@ from pandas.tests.arrays.masked_shared import ComparisonOps
 
 @pytest.fixture
 def data():
+    """Fixture returning boolean array with valid and missing data"""
     return pd.array(
         [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
         dtype="boolean",
@@ -17,6 +18,7 @@ def data():
 
 @pytest.fixture
 def dtype():
+    """Fixture returning BooleanDtype"""
     return pd.BooleanDtype()
 
 

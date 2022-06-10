@@ -98,7 +98,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
@@ -2413,13 +2412,10 @@ class DataFrame(NDFrame, OpsMixin):
                   dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
         if index:
-            if isinstance(self.index, MultiIndex):
-                # array of tuples to numpy cols. copy copy copy
-                ix_vals = list(map(np.array, zip(*self.index._values)))
-            else:
-                # error: List item 0 has incompatible type "ArrayLike"; expected
-                # "ndarray"
-                ix_vals = [self.index.values]  # type: ignore[list-item]
+            ix_vals = [
+                np.asarray(self.index.get_level_values(i))
+                for i in range(self.index.nlevels)
+            ]
 
             arrays = ix_vals + [
                 np.asarray(self.iloc[:, i]) for i in range(len(self.columns))
@@ -3942,17 +3938,18 @@ class DataFrame(NDFrame, OpsMixin):
         """
         try:
             if takeable:
-                series = self._ixs(col, axis=1)
-                loc = index
+                icol = col
+                iindex = cast(int, index)
             else:
-                series = self._get_item_cache(col)
-                loc = self.index.get_loc(index)
+                icol = self.columns.get_loc(col)
+                iindex = self.index.get_loc(index)
+            self._mgr.column_setitem(icol, iindex, value)
+            self._clear_item_cache()
 
-            # setitem_inplace will do validation that may raise TypeError,
-            #  ValueError, or LossySetitemError
-            series._mgr.setitem_inplace(loc, value)
-
-        except (KeyError, TypeError, ValueError, LossySetitemError):
+        except (KeyError, TypeError, ValueError):
+            # get_loc might raise a KeyError for missing labels (falling back
+            #  to (i)loc will do expansion of the index)
+            # column_setitem will do validation that may raise TypeError or ValueError
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
@@ -10156,8 +10153,8 @@ Parrot 2  Parrot       24.0
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
-            row-wise.
+            The axis to use. 0 or 'index' to compute row-wise, 1 or 'columns' for
+            column-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
@@ -10833,7 +10830,7 @@ Parrot 2  Parrot       24.0
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             Value between 0 <= q <= 1, the quantile(s) to compute.
-        axis : {0, 1, 'index', 'columns'}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
             If False, the quantile of datetime and timedelta data will be
@@ -11199,12 +11196,10 @@ Parrot 2  Parrot       24.0
     _info_axis_number = 1
     _info_axis_name = "columns"
 
-    index: Index = properties.AxisProperty(
+    index = properties.AxisProperty(
         axis=1, doc="The index (row labels) of the DataFrame."
     )
-    columns: Index = properties.AxisProperty(
-        axis=0, doc="The column labels of the DataFrame."
-    )
+    columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
 
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:
