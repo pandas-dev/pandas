@@ -1,0 +1,32 @@
+# https://docs.conda.io/projects/conda/en/latest/configuration.html
+
+# always_yes (NoneType, bool)
+#   aliases: yes
+#   Automatically choose the 'yes' option whenever asked to proceed with a
+#   conda operation, such as when running `conda install`.
+#
+always_yes: true
+
+# remote_connect_timeout_secs (float)
+#   The number seconds conda will wait for your client to establish a
+#   connection to a remote url resource.
+#
+remote_connect_timeout_secs: 30.0
+
+# remote_max_retries (int)
+#   The maximum number of retries each HTTP connection should attempt.
+#
+remote_max_retries: 10
+
+# remote_backoff_factor (int)
+#   The factor determines the time HTTP connection should wait for
+#   attempt.
+#
+remote_backoff_factor: 3
+
+# remote_read_timeout_secs (float)
+#   Once conda has connected to a remote resource and sent an HTTP
+#   request, the read timeout is the number of seconds conda will wait for
+#   the server to send a response.
+#
+remote_read_timeout_secs: 60.0

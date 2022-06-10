@@ -186,21 +186,22 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         if isinstance(values, type(self)):
             if explicit_none:
-                # dont inherit from values
+                # don't inherit from values
                 pass
             elif freq is None:
                 freq = values.freq
             elif freq and values.freq:
                 freq = to_offset(freq)
                 freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
+
             values = values._ndarray
 
         if not isinstance(values, np.ndarray):
-            msg = (
+            raise ValueError(
                 f"Unexpected type '{type(values).__name__}'. 'values' must be a "
-                "TimedeltaArray, ndarray, or Series or Index containing one of those."
+                f"{type(self).__name__}, ndarray, or Series or Index "
+                "containing one of those."
             )
-            raise ValueError(msg)
         if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
 
@@ -214,11 +215,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         dtype = _validate_td64_dtype(dtype)
 
         if freq == "infer":
-            msg = (
-                "Frequency inference not allowed in TimedeltaArray.__init__. "
+            raise ValueError(
+                f"Frequency inference not allowed in {type(self).__name__}.__init__. "
                 "Use 'pd.array()' instead."
             )
-            raise ValueError(msg)
 
         if copy:
             values = values.copy()
