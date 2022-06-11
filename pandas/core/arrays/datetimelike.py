@@ -1999,7 +1999,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
 
     # GH#46910 - Keep old signature to test we don't break things for EA library authors
-    def factorize(
+    def factorize(  # type:ignore[override]
         self,
         na_sentinel: int = -1,
         sort: bool = False,

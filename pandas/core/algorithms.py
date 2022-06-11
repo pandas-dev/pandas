@@ -752,7 +752,10 @@ def factorize(
             and "use_na_sentinel" in inspect.signature(values.factorize).parameters
         ):
             # Avoid using catch_warnings when possible
-            codes, uniques = values.factorize(use_na_sentinel=True)
+            # GH#46910 - TimelikeOps has deprecated signature
+            codes, uniques = values.factorize(  # type: ignore[call-arg]
+                use_na_sentinel=True
+            )
         else:
             with warnings.catch_warnings():
                 # We've already warned above
