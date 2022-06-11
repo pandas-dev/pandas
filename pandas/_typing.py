@@ -323,3 +323,6 @@ DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
+
+# plotting
+PlottingOrientation = Literal["horizontal", "vertical"]

@@ -83,7 +83,11 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
+def _get_layout(
+    nplots: int,
+    layout: tuple[int, int] | None = None,
+    layout_type: str = "box",
+) -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")

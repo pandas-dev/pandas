@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterable,
+    Literal,
     Sequence,
 )
 import warnings
@@ -11,7 +16,10 @@ import warnings
 from matplotlib.artist import Artist
 import numpy as np
 
-from pandas._typing import IndexLabel
+from pandas._typing import (
+    IndexLabel,
+    PlottingOrientation,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -78,7 +86,7 @@ def _color_in_style(style: str) -> bool:
     return not set(BASE_COLORS).isdisjoint(style)
 
 
-class MPLPlot:
+class MPLPlot(ABC):
     """
     Base class for assembling a pandas plot using matplotlib
 
@@ -89,13 +97,17 @@ class MPLPlot:
     """
 
     @property
-    def _kind(self):
+    @abstractmethod
+    def _kind(self) -> str:
         """Specify kind str. Must be overridden in child class"""
         raise NotImplementedError
 
     _layout_type = "vertical"
     _default_rot = 0
-    orientation: str | None = None
+
+    @property
+    def orientation(self) -> str | None:
+        return None
 
     axes: np.ndarray  # of Axes objects
 
@@ -843,7 +855,9 @@ class MPLPlot:
 
     @classmethod
     @register_pandas_matplotlib_converters
-    def _plot(cls, ax: Axes, x, y, style=None, is_errorbar: bool = False, **kwds):
+    def _plot(
+        cls, ax: Axes, x, y: np.ndarray, style=None, is_errorbar: bool = False, **kwds
+    ):
         mask = isna(y)
         if mask.any():
             y = np.ma.array(y)
@@ -1101,7 +1115,7 @@ class MPLPlot:
         return (len(y_set), len(x_set))
 
 
-class PlanePlot(MPLPlot):
+class PlanePlot(MPLPlot, ABC):
     """
     Abstract class for plotting on plane, currently scatter and hexbin.
     """
@@ -1159,7 +1173,9 @@ class PlanePlot(MPLPlot):
 
 
 class ScatterPlot(PlanePlot):
-    _kind = "scatter"
+    @property
+    def _kind(self) -> Literal["scatter"]:
+        return "scatter"
 
     def __init__(self, data, x, y, s=None, c=None, **kwargs) -> None:
         if s is None:
@@ -1247,7 +1263,9 @@ class ScatterPlot(PlanePlot):
 
 
 class HexBinPlot(PlanePlot):
-    _kind = "hexbin"
+    @property
+    def _kind(self) -> Literal["hexbin"]:
+        return "hexbin"
 
     def __init__(self, data, x, y, C=None, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
@@ -1277,14 +1295,20 @@ class HexBinPlot(PlanePlot):
 
 
 class LinePlot(MPLPlot):
-    _kind = "line"
     _default_rot = 0
-    orientation = "vertical"
+
+    @property
+    def orientation(self) -> PlottingOrientation:
+        return "vertical"
+
+    @property
+    def _kind(self) -> Literal["line", "area", "hist", "kde", "box"]:
+        return "line"
 
     def __init__(self, data, **kwargs) -> None:
         from pandas.plotting import plot_params
 
-        MPLPlot.__init__(self, data, **kwargs)
+        super().__init__(self, data, **kwargs)
         if self.stacked:
             self.data = self.data.fillna(value=0)
         self.x_compat = plot_params["x_compat"]
@@ -1471,7 +1495,9 @@ class LinePlot(MPLPlot):
 
 
 class AreaPlot(LinePlot):
-    _kind = "area"
+    @property
+    def _kind(self) -> Literal["area"]:
+        return "area"
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
@@ -1544,9 +1570,15 @@ class AreaPlot(LinePlot):
 
 
 class BarPlot(MPLPlot):
-    _kind = "bar"
+    @property
+    def _kind(self) -> Literal["bar", "barh"]:
+        return "bar"
+
     _default_rot = 90
-    orientation = "vertical"
+
+    @property
+    def orientation(self) -> PlottingOrientation:
+        return "vertical"
 
     def __init__(self, data, **kwargs) -> None:
         # we have to treat a series differently than a
@@ -1698,9 +1730,15 @@ class BarPlot(MPLPlot):
 
 
 class BarhPlot(BarPlot):
-    _kind = "barh"
+    @property
+    def _kind(self) -> Literal["barh"]:
+        return "barh"
+
     _default_rot = 0
-    orientation = "horizontal"
+
+    @property
+    def orientation(self) -> Literal["horizontal"]:
+        return "horizontal"
 
     @property
     def _start_base(self):
@@ -1727,7 +1765,10 @@ class BarhPlot(BarPlot):
 
 
 class PiePlot(MPLPlot):
-    _kind = "pie"
+    @property
+    def _kind(self) -> Literal["pie"]:
+        return "pie"
+
     _layout_type = "horizontal"
 
     def __init__(self, data, kind=None, **kwargs) -> None:

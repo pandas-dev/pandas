@@ -574,6 +574,8 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         Period(ordinal=int(vmin), freq=freq),
         Period(ordinal=int(vmax), freq=freq),
     )
+    assert isinstance(vmin, Period)
+    assert isinstance(vmax, Period)
     span = vmax.ordinal - vmin.ordinal + 1
     dates_ = period_range(start=vmin, end=vmax, freq=freq)
     # Initialize the output
@@ -1073,7 +1075,9 @@ class TimeSeries_DateFormatter(Formatter):
             fmt = self.formatdict.pop(x, "")
             if isinstance(fmt, np.bytes_):
                 fmt = fmt.decode("utf-8")
-            return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
+            period = Period(ordinal=int(x), freq=self.freq)
+            assert isinstance(period, Period)
+            return period.strftime(fmt)
 
 
 class TimeSeries_TimedeltaFormatter(Formatter):

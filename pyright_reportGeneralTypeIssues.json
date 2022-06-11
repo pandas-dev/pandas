@@ -116,13 +116,6 @@
         "pandas/io/stata.py",
         "pandas/io/xml.py",
         "pandas/plotting/_core.py",
-        "pandas/plotting/_matplotlib/converter.py",
-        "pandas/plotting/_matplotlib/core.py",
-        "pandas/plotting/_matplotlib/hist.py",
-        "pandas/plotting/_matplotlib/misc.py",
-        "pandas/plotting/_matplotlib/style.py",
-        "pandas/plotting/_matplotlib/timeseries.py",
-        "pandas/plotting/_matplotlib/tools.py",
         "pandas/tseries/frequencies.py",
       ],
 }
