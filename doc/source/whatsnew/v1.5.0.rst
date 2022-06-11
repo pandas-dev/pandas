@@ -832,6 +832,7 @@ I/O
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
+- Bug affecting :func:`read_csv`, :func:`read_excel`, :func:`read_html`, and :func:`read_table`, which accepted decreasing multi-index header arguments even though they don't work (:issue:`47011`)
 
 Period
 ^^^^^^
