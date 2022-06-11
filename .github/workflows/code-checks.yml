@@ -65,6 +65,14 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
 
+    - name: List symbols in np_datetime
+      run: nm -gD pandas/_libs/tslibs/np_datetime.cpython-38-x86_64-linux-gnu.so
+      if: ${{ steps.build.outcome == 'success' }}
+
+    - name: List symbols in timestamps
+      run: nm -gD pandas/_libs/tslibs/timestamps.cpython-38-x86_64-linux-gnu.so
+      if: ${{ steps.build.outcome == 'success' }}
+
     - name: Check for no warnings when building single-page docs
       run: ci/code_checks.sh single-docs
       if: ${{ steps.build.outcome == 'success' }}
