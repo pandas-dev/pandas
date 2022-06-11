@@ -850,3 +850,26 @@ class TestNonNano:
     def test_to_period(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.to_period("D") == alt.to_period("D")
+
+    @pytest.mark.parametrize(
+        "td", [timedelta(days=4), Timedelta(days=4), np.timedelta64(4, "D")]
+    )
+    def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
+
+        result = ts - td
+        expected = Timestamp(dt64) - td
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert result == expected
+
+        result = ts + td
+        expected = Timestamp(dt64) + td
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert result == expected
+
+        result = td + ts
+        expected = td + Timestamp(dt64)
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert result == expected
