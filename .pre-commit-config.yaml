@@ -26,7 +26,6 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^(pandas|doc)/
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.2.0
     hooks:
@@ -93,7 +92,19 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-        additional_dependencies: ['pyright@1.1.248']
+        additional_dependencies: &pyright_dependencies
+        - pyright@1.1.253
+-   repo: local
+    hooks:
+    -   id: pyright_reportGeneralTypeIssues
+        name: pyright reportGeneralTypeIssues
+        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        # note: assumes python env is setup and activated
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        additional_dependencies: *pyright_dependencies
 -   repo: local
     hooks:
     -   id: mypy

@@ -59,11 +59,12 @@ jobs:
         name: ${{matrix.python-version}}-sdist.gz
         path: dist/*.gz
 
-    - uses: conda-incubator/setup-miniconda@v2.1.1
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
       with:
-        activate-environment: pandas-sdist
-        channels: conda-forge
-        python-version: '${{ matrix.python-version }}'
+        environment-file: ""
+        environment-name: pandas-sdist
+        python-version: ${{ matrix.python-version }}
 
     - name: Install pandas from sdist
       run: |

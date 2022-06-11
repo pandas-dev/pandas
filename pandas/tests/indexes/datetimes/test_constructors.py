@@ -925,6 +925,9 @@ class TestTimeSeries:
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
 
+        dta = DatetimeArray(rng, freq=None)
+        assert dta.freq is None
+
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
