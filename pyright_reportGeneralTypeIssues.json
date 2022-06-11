@@ -85,7 +85,6 @@
         "pandas/core/util/hashing.py",
         "pandas/core/util/numba_.py",
         "pandas/core/window/ewm.py",
-        "pandas/core/window/expanding.py",
         "pandas/core/window/rolling.py",
         "pandas/io/common.py",
         "pandas/io/excel/_base.py",
