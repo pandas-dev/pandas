@@ -262,7 +262,7 @@ def test_constructor_raises(cls):
     if cls is pd.arrays.StringArray:
         msg = "StringArray requires a sequence of strings or pandas.NA"
     else:
-        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
+        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
 
     with pytest.raises(ValueError, match=msg):
         cls(np.array(["a", "b"], dtype="S1"))

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+
 import pandas as pd
 from pandas import Timedelta
 import pandas._testing as tm
@@ -8,13 +10,39 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestNonNano:
-    @pytest.mark.parametrize("unit,reso", [("s", 7), ("ms", 8), ("us", 9)])
+    @pytest.fixture(params=["s", "ms", "us"])
+    def unit(self, request):
+        return request.param
+
+    @pytest.fixture
+    def reso(self, unit):
+        if unit == "s":
+            return NpyDatetimeUnit.NPY_FR_s.value
+        elif unit == "ms":
+            return NpyDatetimeUnit.NPY_FR_ms.value
+        elif unit == "us":
+            return NpyDatetimeUnit.NPY_FR_us.value
+        else:
+            raise NotImplementedError(unit)
+
     def test_non_nano(self, unit, reso):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 
         assert tda.dtype == arr.dtype
         assert tda[0]._reso == reso
+
+    @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
+    def test_fields(self, unit, reso, field):
+        arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
+        tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
+
+        as_nano = arr.astype("m8[ns]")
+        tda_nano = TimedeltaArray._simple_new(as_nano, dtype=as_nano.dtype)
+
+        result = getattr(tda, field)
+        expected = getattr(tda_nano, field)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestTimedeltaArray:
