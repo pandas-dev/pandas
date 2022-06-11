@@ -698,6 +698,64 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
+    def test_excel_date_datetime_format(self, engine, path):
+        # see gh-44284
+        #
+        # Test that custom date/datetime formats are respected
+        # by inspecting formatting info in written file.
+        df = DataFrame(
+            [
+                [date(2014, 1, 31), datetime(1998, 5, 26, 23, 33, 4)],
+                [date(1999, 9, 24), datetime(2014, 2, 28, 13, 5, 13)],
+            ],
+            index=["X", "Y"],
+            columns=["DATE", "DATETIME"],
+        )
+
+        with ExcelWriter(
+            path,
+            date_format="DD.MM.YYYY",
+            datetime_format="DD.MM.YYYY HH-MM-SS",
+        ) as writer:
+            df.to_excel(writer, "test1")
+
+        if engine == "odf":
+            pytest.skip("Feature not supported by odf.")
+        elif engine == "xlwt":
+            # formatting_info defaults to False
+            # so have to use xlrd.open_workbook() directly
+            # as there's no way to pass this parameter through
+            # if using ExcelFile to open the file
+            from xlrd import open_workbook
+
+            with open_workbook(path, formatting_info=True) as book:
+                sh = book["test1"]
+                xf_list = book.xf_list
+                format_map = book.format_map
+                date_cells = (sh[1, 1], sh[2, 1])
+                assert all(
+                    format_map[xf_list[cell.xf_index].format_key].format_str
+                    == "DD.MM.YYYY"
+                    for cell in date_cells
+                )
+                datetime_cells = (sh[1, 2], sh[2, 2])
+                assert all(
+                    format_map[xf_list[cell.xf_index].format_key].format_str
+                    == "DD.MM.YYYY HH-MM-SS"
+                    for cell in datetime_cells
+                )
+        else:
+            with ExcelFile(path) as reader:
+                wb = reader.book
+                ws = wb["test1"]
+                date_cells = (ws["B2"], ws["B3"])
+                assert all(cell.number_format == "DD.MM.YYYY" for cell in date_cells)
+                datetime_cells = (ws["C2"], ws["C3"])
+                assert all(
+                    cell.number_format == "DD.MM.YYYY HH-MM-SS"
+                    for cell in datetime_cells
+                )
+
     def test_to_excel_interval_no_labels(self, path):
         # see gh-19242
         #
