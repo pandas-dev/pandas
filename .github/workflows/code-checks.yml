@@ -143,6 +143,15 @@ jobs:
         asv machine --yes
         asv run --quick --dry-run --strict --durations=30 --python=same
 
+    - name: List symbols in np_datetime.o
+      run: objdump -t build/temp.linux-x86_64-cpython-38/pandas/_libs/tslibs/src/datetime/np_datetime.o
+
+    - name: List symbols in np_datetime.so
+      run: nm -gD pandas/_libs/tslibs/np_datetime.cpython-38-x86_64-linux-gnu.so
+
+    - name: List symbols in timestamps.so
+      run: nm -gD pandas/_libs/tslibs/timestamps.cpython-38-x86_64-linux-gnu.so
+
   build_docker_dev_environment:
     name: Build Docker Dev Environment
     runs-on: ubuntu-latest
