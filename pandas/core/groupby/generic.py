@@ -1196,13 +1196,32 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 applied.append(res)
 
         # Compute and process with the remaining groups
+        emit_alignment_warning = False
         for name, group in gen:
             if group.size == 0:
                 continue
             object.__setattr__(group, "name", name)
             res = path(group)
+            if (
+                not emit_alignment_warning
+                and res.ndim == 2
+                and not res.index.equals(group.index)
+            ):
+                emit_alignment_warning = True
+
             res = _wrap_transform_general_frame(self.obj, group, res)
             applied.append(res)
+
+        if emit_alignment_warning:
+            # GH#45648
+            warnings.warn(
+                "In a future version of pandas, returning a DataFrame in "
+                "groupby.transform will align with the input's index. Apply "
+                "`.to_numpy()` to the result in the transform function to keep "
+                "the current behavior and silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1

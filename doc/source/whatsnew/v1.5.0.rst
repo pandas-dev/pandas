@@ -692,7 +692,8 @@ Other Deprecations
 - Deprecated allowing ``unit="M"`` or ``unit="Y"`` in :class:`Timestamp` constructor with a non-round float value (:issue:`47267`)
 - Deprecated the ``display.column_space`` global configuration option (:issue:`7576`)
 - Deprecated the argument ``na_sentinel`` in :func:`factorize`, :meth:`Index.factorize`, and :meth:`.ExtensionArray.factorize`; pass ``use_na_sentinel=True`` instead to use the sentinel ``-1`` for NaN values and ``use_na_sentinel=False`` instead of ``na_sentinel=None`` to encode NaN values (:issue:`46910`)
--
+- Deprecated :meth:`DataFrameGroupBy.transform` not aligning the result when the UDF returned DataFrame (:issue:`45648`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
