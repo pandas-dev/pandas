@@ -3085,3 +3085,9 @@ class TestFromScalar:
 
         assert np.all(result.dtypes == "M8[ns]")
         assert np.all(result == ts_naive)
+
+    def test_construction_empty_array_multi_column_raises(self):
+        # GH#46822
+        msg = "Empty data passed with indices specified."
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(data=np.array([]), columns=["a", "b"])
