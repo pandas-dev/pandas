@@ -1294,7 +1294,7 @@ def format_array(
         fmt_klass = GenericArrayFormatter
 
     if space is None:
-        space = get_option("display.column_space")
+        space = 12
 
     if float_format is None:
         float_format = get_option("display.float_format")
@@ -2099,7 +2099,6 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     See also EngFormatter.
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
-    set_option("display.column_space", max(12, accuracy + 9))
 
 
 def get_level_lengths(

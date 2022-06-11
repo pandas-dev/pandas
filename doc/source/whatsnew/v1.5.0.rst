@@ -690,6 +690,7 @@ Other Deprecations
 - Deprecated the ``closed`` argument in :class:`intervaltree` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the ``closed`` argument in :class:`ArrowInterval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated allowing ``unit="M"`` or ``unit="Y"`` in :class:`Timestamp` constructor with a non-round float value (:issue:`47267`)
+- Deprecated the ``display.column_space`` global configuration option (:issue:`7576`)
 - Deprecated the argument ``na_sentinel`` in :func:`factorize`, :meth:`Index.factorize`, and :meth:`.ExtensionArray.factorize`; pass ``use_na_sentinel=True`` instead to use the sentinel ``-1`` for NaN values and ``use_na_sentinel=False`` instead of ``na_sentinel=None`` to encode NaN values (:issue:`46910`)
 -
 
@@ -848,6 +849,7 @@ I/O
 - Bug in :func:`read_sas` with certain types of compressed SAS7BDAT files (:issue:`35545`)
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
+- Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
 
 Period
 ^^^^^^
