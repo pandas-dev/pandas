@@ -1308,7 +1308,7 @@ class LinePlot(MPLPlot):
     def __init__(self, data, **kwargs) -> None:
         from pandas.plotting import plot_params
 
-        super().__init__(self, data, **kwargs)
+        MPLPlot.__init__(self, data, **kwargs)
         if self.stacked:
             self.data = self.data.fillna(value=0)
         self.x_compat = plot_params["x_compat"]
