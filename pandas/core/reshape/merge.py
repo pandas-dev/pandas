@@ -162,9 +162,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
                 lcols = lhs.columns.tolist()
                 cols = lcols + [r for r in right.columns if r not in set(lcols)]
                 merged = lhs.reindex(columns=cols)
-                # error: Incompatible types in assignment (expression has type
-                # "range", variable has type "Index")
-                merged.index = range(len(merged))  # type: ignore[assignment]
+                merged.index = range(len(merged))
                 pieces.append(merged)
                 continue
 
