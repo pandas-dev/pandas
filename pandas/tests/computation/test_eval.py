@@ -1892,30 +1892,12 @@ def test_negate_lt_eq_le(engine, parser):
 
 @pytest.mark.parametrize("column", ["Timestamp", "datetime"])
 def test_eval_no_support_column_name(engine, parser, column):
-    if engine == "numexpr":
-        error_msg = "unknown type object"
-        with pytest.raises(ValueError, match=error_msg):
-            df = DataFrame(
-                np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"]
-            )
-            pd.eval(
-                f"{column}>6",
-                local_dict={"df": df},
-                engine=engine,
-                parser=parser,
-            )
-    else:
-        error_msg = f'Column name "{column}" cannot be supported'
-        with pytest.raises(NameError, match=error_msg):
-            df = DataFrame(
-                np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"]
-            )
-            pd.eval(
-                f"{column}>6",
-                local_dict={"df": df},
-                engine=engine,
-                parser=parser,
-            )
+    # GH#44603
+    df = DataFrame(np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"])
+    expected = df[df[column] > 6]
+    result = df.query(f"{column}>6", engine=engine, parser=parser)
+
+    tm.assert_frame_equal(result, expected)
 
 
 class TestValidate:
