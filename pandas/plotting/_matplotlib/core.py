@@ -1387,8 +1387,7 @@ class LinePlot(MPLPlot):
         cls._update_stacker(ax, stacking_id, y)
         return lines
 
-    @classmethod
-    def _ts_plot(cls, ax: Axes, x, data, style=None, **kwds):
+    def _ts_plot(self, ax: Axes, x, data, style=None, **kwds):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
@@ -1401,9 +1400,9 @@ class LinePlot(MPLPlot):
             decorate_axes(ax.left_ax, freq, kwds)
         if hasattr(ax, "right_ax"):
             decorate_axes(ax.right_ax, freq, kwds)
-        ax._plot_data.append((data, cls._kind, kwds))
+        ax._plot_data.append((data, self._kind, kwds))
 
-        lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
+        lines = self._plot(ax, data.index, data.values, style=style, **kwds)
         # set date formatter, locators and rescale limits
         format_dateaxis(ax, ax.freq, data.index)
         return lines
