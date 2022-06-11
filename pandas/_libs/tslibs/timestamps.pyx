@@ -400,10 +400,14 @@ cdef class _Timestamp(ABCTimestamp):
                 new_value = int(self.value) + int(nanos)
 
             try:
-                result = type(self)._from_value_and_reso(new_value, reso=self._reso, tz=self.tzinfo)
+                result = type(self)._from_value_and_reso(
+                    new_value, reso=self._reso, tz=self.tzinfo
+                )
             except OverflowError as err:
                 # TODO: don't hard-code nanosecond here
-                raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {new_value}") from err
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds nanosecond timestamp: {new_value}"
+                ) from err
 
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
