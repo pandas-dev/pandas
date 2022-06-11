@@ -69,10 +69,13 @@ jobs:
       run: ci/code_checks.sh single-docs
       if: ${{ steps.build.outcome == 'success' }}
 
-    - name: List symbols in np_datetime
+    - name: List symbols in np_datetime.o
+      run: objdump -t build/temp.linux-x86_64-cpython-38/pandas/_libs/tslibs/src/datetime/np_datetime.o
+
+    - name: List symbols in np_datetime.so
       run: nm -gD pandas/_libs/tslibs/np_datetime.cpython-38-x86_64-linux-gnu.so
 
-    - name: List symbols in timestamps
+    - name: List symbols in timestamps.so
       run: nm -gD pandas/_libs/tslibs/timestamps.cpython-38-x86_64-linux-gnu.so
 
     - name: Run checks on imported code
