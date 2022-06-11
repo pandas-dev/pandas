@@ -250,9 +250,6 @@ def network(
     return wrapper
 
 
-with_connectivity_check = network
-
-
 def can_connect(url, error_classes=None):
     """
     Try to connect to the given url. True if succeeds, False if OSError
