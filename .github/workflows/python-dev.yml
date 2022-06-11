@@ -57,7 +57,7 @@ jobs:
     - name: Install dependencies
       shell: bash -el {0}
       run: |
-        python -m pip install --upgrade pip setuptools wheel
+        pip install --upgrade pip setuptools wheel
         #pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install numpy
         pip install git+https://github.com/nedbat/coveragepy.git
@@ -67,7 +67,7 @@ jobs:
     - name: Build Pandas
       run: |
         python setup.py build_ext -q -j2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+        pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Build Version
       run: |
