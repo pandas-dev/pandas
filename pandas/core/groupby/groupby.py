@@ -373,14 +373,14 @@ Examples
 """
 
 _transform_template = """
-Call function producing a like-indexed %(klass)s on each group and
+Call function producing a same-indexed %(klass)s on each group and
 return a %(klass)s having the same indexes as the original object
 filled with the transformed values.
 
 Parameters
 ----------
 f : function
-    Function to apply to each group.
+    Function to apply to each group. See the Notes section below for requirements.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified.
@@ -450,6 +450,14 @@ user defined function, and no alternative execution attempts will be tried.
 
     The resulting dtype will reflect the return value of the passed ``func``,
     see the examples below.
+
+.. deprecated:: 1.5.0
+
+    When using ``.transform`` on a grouped DataFrame and the transformation function
+    returns a DataFrame, currently pandas does not align the result's index
+    with the input's index. This behavior is deprecated and alignment will
+    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    result of the transformation function to avoid alignment.
 
 Examples
 --------

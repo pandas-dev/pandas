@@ -74,10 +74,11 @@ applies only to certain dtypes.
 Extension types
 ---------------
 
-.. warning::
+.. note::
 
-   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
-   experimental. They may change between versions without warning.
+   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs were
+   experimental prior to pandas 1.5. Starting with version 1.5, future changes will follow
+   the :ref:`pandas deprecation policy <policies.version>`.
 
 pandas defines an interface for implementing data types and arrays that *extend*
 NumPy's type system. pandas itself uses the extension system for some types

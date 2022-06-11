@@ -43,7 +43,7 @@ from .tzconversion cimport Localizer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_convert_from_utc(ndarray stamps, tzinfo tz):
+def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     # stamps is int64_t, arbitrary ndim
     """
     Convert the values (in i8) from UTC to tz
@@ -58,7 +58,7 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz):
     ndarray[int64]
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t pos, i, n = stamps.size
 
@@ -130,7 +130,7 @@ def ints_to_pydatetime(
     ndarray[object] of type specified by box
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=NPY_FR_ns)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -229,7 +229,7 @@ cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
 def get_resolution(ndarray stamps, tzinfo tz=None) -> Resolution:
     # stamps is int64_t, any ndim
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=NPY_FR_ns)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -281,7 +281,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNI
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val, res_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -328,7 +328,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
     is_normalized : bool True if all stamps are normalized
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -357,7 +357,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
 def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
     # stamps is int64_t, arbitrary ndim
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=NPY_FR_ns)
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         int64_t utc_val, local_val, res_val

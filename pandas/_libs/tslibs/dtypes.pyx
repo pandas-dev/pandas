@@ -349,7 +349,7 @@ cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) 
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_ps:
         # pico is the smallest unit for which we don't overflow, so
-        #  we exclude fempto and atto
+        #  we exclude femto and atto
         day_units = 24 * 3600 * 1_000_000_000_000
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ns:
         day_units = 24 * 3600 * 1_000_000_000

@@ -9,6 +9,8 @@ from typing import (
 import numpy as np
 
 from pandas._typing import (
+    Dtype,
+    PositionalIndexer,
     TakeIndexer,
     npt,
 )
@@ -24,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_integer,
+    is_integer_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna
@@ -31,6 +34,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
+    unpack_tuple_and_ellipses,
     validate_indices,
 )
 
@@ -39,6 +43,7 @@ if not pa_version_under1p01:
     import pyarrow.compute as pc
 
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+    from pandas.core.arrays.arrow.dtype import ArrowDtype
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -48,16 +53,130 @@ ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArra
 
 class ArrowExtensionArray(ExtensionArray):
     """
-    Base class for ExtensionArray backed by Arrow array.
+    Base class for ExtensionArray backed by Arrow ChunkedArray.
     """
 
     _data: pa.ChunkedArray
 
-    def __init__(self, values: pa.ChunkedArray) -> None:
-        self._data = values
+    def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
+        if pa_version_under1p01:
+            msg = "pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray."
+            raise ImportError(msg)
+        if isinstance(values, pa.Array):
+            self._data = pa.chunked_array([values])
+        elif isinstance(values, pa.ChunkedArray):
+            self._data = values
+        else:
+            raise ValueError(
+                f"Unsupported type '{type(values)}' for ArrowExtensionArray"
+            )
+        self._dtype = ArrowDtype(self._data.type)
+
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+        """
+        Construct a new ExtensionArray from a sequence of scalars.
+        """
+        if isinstance(dtype, ArrowDtype):
+            pa_dtype = dtype.pyarrow_dtype
+        elif dtype:
+            pa_dtype = pa.from_numpy_dtype(dtype)
+        else:
+            pa_dtype = None
+
+        if isinstance(scalars, cls):
+            data = scalars._data
+            if pa_dtype:
+                data = data.cast(pa_dtype)
+            return cls(data)
+        else:
+            return cls(
+                pa.chunked_array(pa.array(scalars, type=pa_dtype, from_pandas=True))
+            )
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Dtype | None = None, copy=False
+    ):
+        """
+        Construct a new ExtensionArray from a sequence of strings.
+        """
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    def __getitem__(self, item: PositionalIndexer):
+        """Select a subset of self.
+
+        Parameters
+        ----------
+        item : int, slice, or ndarray
+            * int: The position in 'self' to get.
+            * slice: A slice object, where 'start', 'stop', and 'step' are
+              integers or None
+            * ndarray: A 1-d boolean NumPy ndarray the same length as 'self'
+
+        Returns
+        -------
+        item : scalar or ExtensionArray
+
+        Notes
+        -----
+        For scalar ``item``, return a scalar value suitable for the array's
+        type. This should be an instance of ``self.dtype.type``.
+        For slice ``key``, return an instance of ``ExtensionArray``, even
+        if the slice is length 0 or 1.
+        For a boolean mask, return an instance of ``ExtensionArray``, filtered
+        to the values where ``item`` is True.
+        """
+        item = check_array_indexer(self, item)
+
+        if isinstance(item, np.ndarray):
+            if not len(item):
+                # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
+                if self._dtype.name == "string" and self._dtype.storage == "pyarrow":
+                    pa_dtype = pa.string()
+                else:
+                    pa_dtype = self._dtype.pyarrow_dtype
+                return type(self)(pa.chunked_array([], type=pa_dtype))
+            elif is_integer_dtype(item.dtype):
+                return self.take(item)
+            elif is_bool_dtype(item.dtype):
+                return type(self)(self._data.filter(item))
+            else:
+                raise IndexError(
+                    "Only integers, slices and integer or "
+                    "boolean arrays are valid indices."
+                )
+        elif isinstance(item, tuple):
+            item = unpack_tuple_and_ellipses(item)
+
+        # error: Non-overlapping identity check (left operand type:
+        # "Union[Union[int, integer[Any]], Union[slice, List[int],
+        # ndarray[Any, Any]]]", right operand type: "ellipsis")
+        if item is Ellipsis:  # type: ignore[comparison-overlap]
+            # TODO: should be handled by pyarrow?
+            item = slice(None)
+
+        if is_scalar(item) and not is_integer(item):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
+        # We are not an array indexer, so maybe e.g. a slice or integer
+        # indexer. We dispatch to pyarrow.
+        value = self._data[item]
+        if isinstance(value, pa.ChunkedArray):
+            return type(self)(value)
+        else:
+            scalar = value.as_py()
+            if scalar is None:
+                return self._dtype.na_value
+            else:
+                return scalar
 
     def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
+        """Convert myself to a pyarrow ChunkedArray."""
         return self._data
 
     def equals(self, other) -> bool:
@@ -66,6 +185,13 @@ class ArrowExtensionArray(ExtensionArray):
         # I'm told that pyarrow makes __eq__ behave like pandas' equals;
         #  TODO: is this documented somewhere?
         return self._data == other._data
+
+    @property
+    def dtype(self) -> ArrowDtype:
+        """
+        An instance of 'ExtensionDtype'.
+        """
+        return self._dtype
 
     @property
     def nbytes(self) -> int:
@@ -137,6 +263,12 @@ class ArrowExtensionArray(ExtensionArray):
             uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
         return indices.values, uniques
+
+    def reshape(self, *args, **kwargs):
+        raise NotImplementedError(
+            f"{type(self)} does not support reshape "
+            f"as backed by a 1D pyarrow.ChunkedArray."
+        )
 
     def take(
         self,
@@ -377,7 +509,8 @@ class ArrowExtensionArray(ExtensionArray):
 
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
-        raise NotImplementedError()
+        # TODO: Make more robust like ArrowStringArray._maybe_convert_setitem_value
+        return value
 
     def _set_via_chunk_iteration(
         self, indices: npt.NDArray[np.intp], value: npt.NDArray[Any]
