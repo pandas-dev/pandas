@@ -112,7 +112,14 @@ class Term:
         return self
 
     def _resolve_name(self):
-        res = self.env.resolve(self.local_name, is_local=self.is_local)
+        local_name = str(self.local_name)
+        is_local = self.is_local
+        if local_name in self.env.scope and isinstance(
+            self.env.scope[local_name], type
+        ):
+            is_local = False
+
+        res = self.env.resolve(local_name, is_local=is_local)
         self.update(res)
 
         if hasattr(res, "ndim") and res.ndim > 2:
@@ -407,13 +414,6 @@ class BinOp(Op):
             The result of an evaluated expression.
         """
         # recurse over the left/right nodes
-        error_msg = 'Column name "{}" cannot be supported'
-        if str(self.lhs) in env.scope and isinstance(env.scope[str(self.lhs)], type):
-            raise NameError(error_msg.format(self.lhs))
-
-        if str(self.rhs) in env.scope and isinstance(env.scope[str(self.rhs)], type):
-            raise NameError(error_msg.format(self.rhs))
-
         left = self.lhs(env)
         right = self.rhs(env)
 
