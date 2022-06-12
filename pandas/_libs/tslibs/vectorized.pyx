@@ -33,6 +33,7 @@ from .np_datetime cimport (
     NPY_FR_ns,
     dt64_to_dtstruct,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
 )
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
@@ -354,10 +355,12 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
+def dt64arr_to_periodarr(
+    ndarray stamps, int freq, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_ns
+):
     # stamps is int64_t, arbitrary ndim
     cdef:
-        Localizer info = Localizer(tz, reso=NPY_FR_ns)
+        Localizer info = Localizer(tz, reso=reso)
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         int64_t utc_val, local_val, res_val
@@ -374,7 +377,7 @@ def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
             res_val = NPY_NAT
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
-            dt64_to_dtstruct(local_val, &dts)
+            pandas_datetime_to_datetimestruct(local_val, reso, &dts)
             res_val = get_period_ordinal(&dts, freq)
 
         # Analogous to: result[i] = res_val
