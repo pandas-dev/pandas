@@ -495,6 +495,5 @@ def test_info_int_columns():
 def test_info_from_rec():
     # GH47285
     df = DataFrame.from_records([], index="foo")
-    print(df.info())
-    #buf = StringIO()
-    #df.info(buf=buf)
+    buf = StringIO()
+    df.info(buf=buf)
