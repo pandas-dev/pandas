@@ -518,7 +518,7 @@ func : function, str, list or dict
     - function
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
-    - dict of axis labels -> functions, function names or list of such.
+    - dict of axis labels -> functions, function names or list of such, e.g. ``{{'col1': 'min', 'col2': list}}``.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified. Only passing a single function is supported
