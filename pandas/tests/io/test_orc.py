@@ -267,11 +267,11 @@ def test_orc_roundtrip_file(dirpath):
     }
     expected = pd.DataFrame.from_dict(data)
 
-    outputfile = os.path.join(dirpath, "TestOrcFile.testReadWrite.orc")
-    expected.to_orc(outputfile)
-    got = read_orc(outputfile)
+    with tm.ensure_clean() as path:
+        expected.to_orc(path)
+        got = read_orc(path)
 
-    tm.assert_equal(expected, got)
+        tm.assert_equal(expected, got)
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")

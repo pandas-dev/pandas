@@ -2925,8 +2925,7 @@ class DataFrame(NDFrame, OpsMixin):
             a bytes object is returned.
         engine : str, default 'pyarrow'
             ORC library to use, or library it self, checked with 'pyarrow' name
-            and version >= 7.0.0. Raises ValueError if it is anything but
-            'pyarrow'.
+            and version >= 7.0.0.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -2964,8 +2963,8 @@ class DataFrame(NDFrame, OpsMixin):
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
           library.
-        * Category, unsigned integers, interval, period and sparse Dtypes
-          are not supported yet.
+        * For supported dtypes please refer to
+          `this article <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
         * Currently timezones in datetime columns are not preserved when a
           dataframe is converted into ORC files.
 

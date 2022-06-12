@@ -119,8 +119,8 @@ def to_orc(
       :ref:`install optional dependencies <install.warn_orc>`.
     * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
       library.
-    * Category, unsigned integers, interval, period and sparse Dtypes
-      are not supported yet.
+    * For supported dtypes please refer to
+      `this article <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
     * Currently timezones in datetime columns are not preserved when a
       dataframe is converted into ORC files.
     """

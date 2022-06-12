@@ -100,6 +100,28 @@ as seen in the following example.
                1 2021-01-02 08:00:00  4
                2 2021-01-02 16:00:00  5
 
+.. _whatsnew_150.enhancements.orc:
+
+Writing to ORC files
+^^^^^^^^^^^^^^^^^^^^
+
+The new method :meth:`DataFrame.to_orc` allows writing to ORC files (:issue:`43864`).
+
+This functionality depends the `pyarrow <http://arrow.apache.org/docs/python/>`__ library. For more details, see :ref:`the IO docs on ORC <io.orc>`.
+
+.. warning::
+
+   * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
+   * :func:`~pandas.DataFrame.to_orc` requires pyarrow>=7.0.0.
+   * :func:`~pandas.DataFrame.to_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
+   * For supported dtypes please refer to `supported ORC features in Arrow <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
+   * Currently timezones in datetime columns are not preserved when a dataframe is converted into ORC files.
+
+.. code-block:: python
+
+    df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
+    df.to_orc("./out.orc")
+
 .. _whatsnew_150.enhancements.tar:
 
 Reading directly from TAR archives
