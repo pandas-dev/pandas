@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
+from pandas.core.algorithms import resolve_na_sentinel
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
@@ -516,7 +517,7 @@ class RangeIndex(NumericIndex):
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
         # resolve to emit warning if appropriate
-        _ = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        _ = resolve_na_sentinel(na_sentinel, use_na_sentinel)
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:

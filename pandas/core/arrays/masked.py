@@ -59,7 +59,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms as algos,
     arraylike,
-    common as com,
     missing,
     nanops,
     ops,
@@ -875,7 +874,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         na_sentinel: int | lib.NoDefault = lib.no_default,
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[np.ndarray, ExtensionArray]:
-        resolved_na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        resolved_na_sentinel = algos.resolve_na_sentinel(na_sentinel, use_na_sentinel)
         if resolved_na_sentinel is None:
             raise NotImplementedError("Encoding NaN values is not yet implemented")
         else:

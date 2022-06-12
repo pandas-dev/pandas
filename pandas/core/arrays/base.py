@@ -71,7 +71,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     arraylike,
-    common as com,
     missing,
     roperator,
 )
@@ -80,6 +79,7 @@ from pandas.core.algorithms import (
     isin,
     mode,
     rank,
+    resolve_na_sentinel,
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
@@ -1079,7 +1079,7 @@ class ExtensionArray:
         #    original ExtensionArray.
         # 2. ExtensionArray.factorize.
         #    Complete control over factorization.
-        resolved_na_sentinel = com.resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
         if resolved_na_sentinel is None:
             raise NotImplementedError("Encoding NaN values is not yet implemented")
         else:
