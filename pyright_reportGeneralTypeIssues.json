@@ -11,13 +11,15 @@
       [
         # exclude tests
         "pandas/tests",
+        # exclude vendored files
+        "pandas/io/clipboard",
+        "pandas/util/version",
         # and all files that currently don't pass
         "pandas/_config/config.py",
         "pandas/core/algorithms.py",
         "pandas/core/apply.py",
         "pandas/core/array_algos/take.py",
         "pandas/core/arrays/_mixins.py",
-        "pandas/core/arrays/_ranges.py",
         "pandas/core/arrays/arrow/array.py",
         "pandas/core/arrays/base.py",
         "pandas/core/arrays/boolean.py",
@@ -37,7 +39,6 @@
         "pandas/core/computation/align.py",
         "pandas/core/construction.py",
         "pandas/core/describe.py",
-        "pandas/core/dtypes/base.py",
         "pandas/core/dtypes/cast.py",
         "pandas/core/dtypes/common.py",
         "pandas/core/dtypes/concat.py",
