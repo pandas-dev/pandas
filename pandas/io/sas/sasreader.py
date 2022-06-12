@@ -19,7 +19,7 @@ from pandas._typing import (
     ReadBuffer,
 )
 from pandas.util._decorators import (
-    Appender,
+    Substitution,
     deprecate_nonkeyword_arguments,
 )
 
@@ -29,44 +29,6 @@ from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
     from pandas import DataFrame
-
-
-_doc_read_sas = r"""
-Read SAS files stored as either XPORT or SAS7BDAT format files.
-
-Parameters
-----------
-filepath_or_buffer : str, path object, or file-like object
-    String, path object (implementing ``os.PathLike[str]``), or file-like
-    object implementing a binary ``read()`` function. The string could be a URL.
-    Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
-    expected. A local file could be:
-    ``file://localhost/path/to/table.sas``.
-format : str {{'xport', 'sas7bdat'}} or None
-    If None, file format is inferred from file extension. If 'xport' or
-    'sas7bdat', uses the corresponding format.
-index : identifier of index column, defaults to None
-    Identifier of column that should be used as index of the DataFrame.
-encoding : str, default is None
-    Encoding for text data.  If None, text data are stored as raw bytes.
-chunksize : int
-    Read file `chunksize` lines at a time, returns iterator.
-
-    .. versionchanged:: 1.2
-
-        ``TextFileReader`` is a context manager.
-iterator : bool, defaults to False
-    If True, returns an iterator for reading the file incrementally.
-
-    .. versionchanged:: 1.2
-
-        ``TextFileReader`` is a context manager.
-{decompression_options}
-
-Returns
--------
-DataFrame if iterator=False and chunksize=None, else SAS7BDATReader or XportReader
-"""
 
 
 # TODO(PY38): replace with Protocol in Python 3.8
@@ -119,9 +81,7 @@ def read_sas(
 @deprecate_nonkeyword_arguments(
     version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
 )
-@Appender(
-    _doc_read_sas.format(decompression_options=_shared_docs["decompression_options"])
-)
+@Substitution(decompression_options=_shared_docs["decompression_options"])
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     format: str | None = None,
@@ -131,6 +91,43 @@ def read_sas(
     iterator: bool = False,
     compression: CompressionOptions = "infer",
 ) -> DataFrame | ReaderBase:
+    """
+    Read SAS files stored as either XPORT or SAS7BDAT format files.
+
+    Parameters
+    ----------
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``read()`` function. The string could be a URL.
+        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.sas``.
+    format : str {'xport', 'sas7bdat'} or None
+        If None, file format is inferred from file extension. If 'xport' or
+        'sas7bdat', uses the corresponding format.
+    index : identifier of index column, defaults to None
+        Identifier of column that should be used as index of the DataFrame.
+    encoding : str, default is None
+        Encoding for text data.  If None, text data are stored as raw bytes.
+    chunksize : int
+        Read file `chunksize` lines at a time, returns iterator.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
+    iterator : bool, defaults to False
+        If True, returns an iterator for reading the file incrementally.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
+    %(decompression_options)s
+
+    Returns
+    -------
+    DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
+    or XportReader
+    """
     if format is None:
         buffer_error_msg = (
             "If this is a buffer object rather "
