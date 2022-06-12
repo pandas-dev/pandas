@@ -850,7 +850,8 @@ I/O
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 - Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
-- Bug in :func:`read_sas` that caused an "Unexpected non-zero end_of_first_byte" error when reading certain SAS7BDAT files.
+- Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
+-
 
 Period
 ^^^^^^
