@@ -37,6 +37,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     Axis,
     CompressionOptions,
@@ -70,6 +71,7 @@ from pandas.errors import (
     AbstractMethodError,
     InvalidIndexError,
     SettingWithCopyError,
+    SettingWithCopyWarning,
 )
 from pandas.util._decorators import (
     deprecate_kwarg,
@@ -756,7 +758,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis: int, labels: Index) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
@@ -3952,7 +3954,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if value == "raise":
             raise SettingWithCopyError(t)
         elif value == "warn":
-            warnings.warn(t, com.SettingWithCopyWarning, stacklevel=find_stack_level())
+            warnings.warn(t, SettingWithCopyWarning, stacklevel=find_stack_level())
 
     def __delitem__(self, key) -> None:
         """
@@ -11755,14 +11757,14 @@ Create a dataframe from a dictionary.
 0  True   True
 1  True  False
 
-Default behaviour checks if column-wise values all return True.
+Default behaviour checks if values in each column all return True.
 
 >>> df.all()
 col1     True
 col2    False
 dtype: bool
 
-Specify ``axis='columns'`` to check if row-wise values all return True.
+Specify ``axis='columns'`` to check if values in each row all return True.
 
 >>> df.all(axis='columns')
 0     True

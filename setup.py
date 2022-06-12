@@ -333,7 +333,7 @@ if is_platform_windows():
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # PANDAS_CI=1 is set by ci/setup_env.sh
+    # PANDAS_CI=1 is set in CI
     if os.environ.get("PANDAS_CI", "0") == "1":
         extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
@@ -549,6 +549,7 @@ ext_data = {
     "_libs.tslibs.tzconversion": {
         "pyxfile": "_libs/tslibs/tzconversion",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.vectorized": {"pyxfile": "_libs/tslibs/vectorized"},
     "_libs.testing": {"pyxfile": "_libs/testing"},
