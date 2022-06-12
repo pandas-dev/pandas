@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
+    cast,
     final,
 )
 import warnings
@@ -52,7 +53,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import (
     check_array_indexer,
     is_empty_indexer,
-    is_exact_shape_match,
     is_list_like_indexer,
     is_scalar_indexer,
     length_of_indexer,
@@ -539,14 +539,30 @@ class IndexingMixin:
         Raises
         ------
         KeyError
-            If 'label' does not exist in DataFrame.
+            * If getting a value and 'label' does not exist in a DataFrame or
+                Series.
+        ValueError
+            * If row/column label pair is not a tuple or if any label from
+                the pair is not a scalar for DataFrame.
+            * If label is list-like (*excluding* NamedTuple) for Series.
 
         See Also
         --------
+        DataFrame.at : Access a single value for a row/column pair by label.
         DataFrame.iat : Access a single value for a row/column pair by integer
             position.
         DataFrame.loc : Access a group of rows and columns by label(s).
-        Series.at : Access a single value using a label.
+        DataFrame.iloc : Access a group of rows and columns by integer
+            position(s).
+        Series.at : Access a single value by label.
+        Series.iat : Access a single value by integer position.
+        Series.loc : Access a group of rows by label(s).
+        Series.iloc : Access a group of rows by integer position(s).
+
+        Notes
+        -----
+        See :ref:`Fast scalar value getting and setting <indexing.basics.get_value>`
+        for more details.
 
         Examples
         --------
@@ -627,7 +643,10 @@ class IndexingMixin:
 
 class _LocationIndexer(NDFrameIndexerBase):
     _valid_types: str
-    axis = None
+    axis: int | None = None
+
+    # sub-classes need to set _takeable
+    _takeable: bool
 
     @final
     def __call__(self, axis=None):
@@ -652,7 +671,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 check_deprecated_indexers(x)
 
         if self.axis is not None:
-            key = self._tupleize_axis_indexer(key)
+            key = _tupleize_axis_indexer(self.ndim, self.axis, key)
 
         ax = self.obj._get_axis(0)
 
@@ -736,17 +755,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             indexer = indexer.nonzero()[0]
 
         return indexer, value
-
-    @final
-    def _tupleize_axis_indexer(self, key) -> tuple:
-        """
-        If we have an axis, adapt the given key to be axis-independent.
-        """
-        new_key = [slice(None)] * self.ndim
-        # error: Invalid index type "Optional[Any]" for "List[slice]"; expected
-        # type "SupportsIndex"
-        new_key[self.axis] = key  # type: ignore[index]
-        return tuple(new_key)
 
     @final
     def _ensure_listlike_indexer(self, key, axis=None, value=None):
@@ -935,7 +943,9 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  is equivalent.
             #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
-                return self._handle_lowerdim_multi_index_axis0(tup)
+                # error "_LocationIndexer" has no attribute
+                # "_handle_lowerdim_multi_index_axis0"
+                return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(tup)
 
         tup = self._validate_key_length(tup)
 
@@ -991,7 +1001,11 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
-                    return self._handle_lowerdim_multi_index_axis0(tup)
+                    # error "_LocationIndexer" has no attribute
+                    # "_handle_lowerdim_multi_index_axis0"
+                    return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(
+                        tup
+                    )
             elif isinstance(self.obj, ABCSeries) and any(
                 isinstance(k, tuple) for k in tup
             ):
@@ -1621,7 +1635,7 @@ class _iLocIndexer(_LocationIndexer):
             key = list(key)
 
         if self.axis is not None:
-            key = self._tupleize_axis_indexer(key)
+            key = _tupleize_axis_indexer(self.ndim, self.axis, key)
 
         return key
 
@@ -1936,8 +1950,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         pi = plane_indexer
 
-        ser = self.obj._ixs(loc, axis=1)
-        orig_values = ser._values
+        orig_values = self.obj._get_column_array(loc)
 
         # perform the equivalent of a setitem on the info axis
         # as we have a null slice or a slice with full bounds
@@ -1948,7 +1961,8 @@ class _iLocIndexer(_LocationIndexer):
             pass
         elif (
             is_array_like(value)
-            and is_exact_shape_match(ser, value)
+            and len(value.shape) > 0
+            and self.obj.shape[0] == value.shape[0]
             and not is_empty_indexer(pi)
         ):
             if is_list_like(pi):
@@ -1957,31 +1971,23 @@ class _iLocIndexer(_LocationIndexer):
                 # in case of slice
                 value = value[pi]
         else:
-            # set the item, first attempting to operate inplace, then
-            #  falling back to casting if necessary; see
-            #  _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
-
-            orig_values = ser._values
-            ser._mgr = ser._mgr.setitem((pi,), value)
-
-            if ser._values is orig_values:
-                # The setitem happened inplace, so the DataFrame's values
-                #  were modified inplace.
-                return
-            self.obj._iset_item(loc, ser)
+            # set value into the column (first attempting to operate inplace, then
+            #  falling back to casting if necessary)
+            self.obj._mgr.column_setitem(loc, plane_indexer, value)
+            self.obj._clear_item_cache()
             return
 
         # We will not operate in-place, but will attempt to in the future.
         #  To determine whether we need to issue a FutureWarning, see if the
         #  setting in-place would work, i.e. behavior will change.
-        warn = can_hold_element(ser._values, value)
+        warn = can_hold_element(orig_values, value)
         # Don't issue the warning yet, as we can still trim a few cases where
         #  behavior will not change.
 
         self.obj._iset_item(loc, value)
 
         if warn:
-            new_values = self.obj._ixs(loc, axis=1)._values
+            new_values = self.obj._get_column_array(loc)
 
             if (
                 isinstance(new_values, np.ndarray)
@@ -2137,13 +2143,11 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int]
+        ilocs: Sequence[int] | np.ndarray
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ilocs = np.arange(len(self.obj.columns))[  # type: ignore[assignment]
-                column_indexer
-            ]
+            ilocs = np.arange(len(self.obj.columns))[column_indexer]
         elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
             column_indexer.dtype
         ):
@@ -2201,18 +2205,16 @@ class _iLocIndexer(_LocationIndexer):
                 # TODO: This is hacky, align Series and DataFrame behavior GH#45778
                 if obj.ndim == 2 and is_empty_indexer(indexer[0]):
                     return ser._values.copy()
-                ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
+                ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
                     len_indexer = len(indexer[1])
-                    ser = (
-                        np.tile(ser, len_indexer)  # type: ignore[assignment]
-                        .reshape(len_indexer, -1)
-                        .T
+                    ser_values = (
+                        np.tile(ser_values, len_indexer).reshape(len_indexer, -1).T
                     )
 
-                return ser
+                return ser_values
 
             for i, idx in enumerate(indexer):
                 ax = obj.axes[i]
@@ -2317,6 +2319,9 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
     """
     Access scalars quickly.
     """
+
+    # sub-classes need to set _takeable
+    _takeable: bool
 
     def _convert_key(self, key):
         raise AbstractMethodError(self)
@@ -2426,6 +2431,15 @@ def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     _tup = [slice(None, None) for _ in range(ndim)]
     _tup[0] = loc
     return tuple(_tup)
+
+
+def _tupleize_axis_indexer(ndim: int, axis: int, key) -> tuple:
+    """
+    If we have an axis, adapt the given key to be axis-independent.
+    """
+    new_key = [slice(None)] * ndim
+    new_key[axis] = key
+    return tuple(new_key)
 
 
 def convert_to_index_sliceable(obj: DataFrame, key):

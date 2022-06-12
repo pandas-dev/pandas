@@ -1,6 +1,6 @@
 """
-Timedelta benchmarks that rely only on tslibs.  See benchmarks.timedeltas for
-Timedelta benchmarks that rely on other parts fo pandas.
+Timedelta benchmarks that rely only on tslibs. See benchmarks.timedeltas for
+Timedelta benchmarks that rely on other parts of pandas.
 """
 import datetime
 

@@ -610,7 +610,7 @@ class TestToDatetime:
         actual = to_datetime("20080115")
         assert actual == datetime(2008, 1, 15)
 
-    def test_to_datetime_unparseable_ignore(self):
+    def test_to_datetime_unparsable_ignore(self):
         # unparsable
         ser = "Month 1, 1999"
         assert to_datetime(ser, errors="ignore") == ser
@@ -1847,14 +1847,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_overflow(self):
         # gh-17637
         # we are overflowing Timedelta range here
-
-        msg = "|".join(
-            [
-                "Python int too large to convert to C long",
-                "long too big to convert",
-                "int too big to convert",
-            ]
-        )
+        msg = "Cannot cast 139999 days, 0:00:00 to unit=ns without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 

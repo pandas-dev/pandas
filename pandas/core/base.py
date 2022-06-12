@@ -176,10 +176,6 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class SpecificationError(Exception):
-    pass
-
-
 class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
@@ -599,7 +595,7 @@ class IndexOpsMixin(OpsMixin):
         Parameters
         ----------
         axis : {{None}}
-            Dummy argument for consistency with Series.
+            Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
         *args, **kwargs
