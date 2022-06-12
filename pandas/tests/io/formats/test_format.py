@@ -950,36 +950,35 @@ class TestDataFrameFormatting:
         result = df.to_string(col_space=[10, 11, 12])
         assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
 
-    def test_to_string_truncate_indices(self):
-        for index in [
+    @pytest.mark.parametrize(
+        "index",
+        [
             tm.makeStringIndex,
-            tm.makeUnicodeIndex,
             tm.makeIntIndex,
             tm.makeDateIndex,
             tm.makePeriodIndex,
-        ]:
-            for column in [tm.makeStringIndex]:
-                for h in [10, 20]:
-                    for w in [10, 20]:
-                        with option_context("display.expand_frame_repr", False):
-                            df = DataFrame(index=index(h), columns=column(w))
-                            with option_context("display.max_rows", 15):
-                                if h == 20:
-                                    assert has_vertically_truncated_repr(df)
-                                else:
-                                    assert not has_vertically_truncated_repr(df)
-                            with option_context("display.max_columns", 15):
-                                if w == 20:
-                                    assert has_horizontally_truncated_repr(df)
-                                else:
-                                    assert not (has_horizontally_truncated_repr(df))
-                            with option_context(
-                                "display.max_rows", 15, "display.max_columns", 15
-                            ):
-                                if h == 20 and w == 20:
-                                    assert has_doubly_truncated_repr(df)
-                                else:
-                                    assert not has_doubly_truncated_repr(df)
+        ],
+    )
+    @pytest.mark.parametrize("h", [10, 20])
+    @pytest.mark.parametrize("w", [10, 20])
+    def test_to_string_truncate_indices(self, index, h, w):
+        with option_context("display.expand_frame_repr", False):
+            df = DataFrame(index=index(h), columns=tm.makeStringIndex(w))
+            with option_context("display.max_rows", 15):
+                if h == 20:
+                    assert has_vertically_truncated_repr(df)
+                else:
+                    assert not has_vertically_truncated_repr(df)
+            with option_context("display.max_columns", 15):
+                if w == 20:
+                    assert has_horizontally_truncated_repr(df)
+                else:
+                    assert not (has_horizontally_truncated_repr(df))
+            with option_context("display.max_rows", 15, "display.max_columns", 15):
+                if h == 20 and w == 20:
+                    assert has_doubly_truncated_repr(df)
+                else:
+                    assert not has_doubly_truncated_repr(df)
 
     def test_to_string_truncate_multilevel(self):
         arrays = [
@@ -1443,8 +1442,6 @@ class TestDataFrameFormatting:
         fmt.set_option(
             "display.precision",
             5,
-            "display.column_space",
-            12,
             "display.notebook_repr_html",
             False,
         )
@@ -3403,3 +3400,9 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())
+
+
+def test_col_space_deprecated():
+    # GH 7576
+    with tm.assert_produces_warning(FutureWarning, match="column_space is"):
+        set_option("display.column_space", 11)

@@ -203,15 +203,24 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
-    warn = FutureWarning if reduction_func == "mad" else None
+    if reduction_func == "mad":
+        warn = FutureWarning
+        msg = "The 'mad' method is deprecated"
+    elif reduction_func in ("sem", "std"):
+        warn = FutureWarning
+        msg = "The default value of numeric_only"
+    else:
+        warn = None
+        msg = ""
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+    with tm.assert_produces_warning(warn, match=msg):
         result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     if reduction_func == "size":
         # size doesn't behave in the same manner; hardcode expected result
         expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
     else:
+        warn = FutureWarning if reduction_func == "mad" else None
         with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
             expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
@@ -462,8 +471,10 @@ def test_transform_exclude_nuisance(df):
 
 
 def test_transform_function_aliases(df):
-    result = df.groupby("A").transform("mean")
-    expected = df.groupby("A").transform(np.mean)
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").transform("mean")
+        expected = df.groupby("A").transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -774,8 +785,15 @@ def test_cython_transform_frame(op, args, targop):
                 expected = gb.apply(targop)
 
             expected = expected.sort_index(axis=1)
-            tm.assert_frame_equal(expected, gb.transform(op, *args).sort_index(axis=1))
-            tm.assert_frame_equal(expected, getattr(gb, op)(*args).sort_index(axis=1))
+
+            warn = None if op == "shift" else FutureWarning
+            msg = "The default value of numeric_only"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = gb.transform(op, *args).sort_index(axis=1)
+            tm.assert_frame_equal(result, expected)
+            with tm.assert_produces_warning(warn, match=msg):
+                result = getattr(gb, op)(*args).sort_index(axis=1)
+            tm.assert_frame_equal(result, expected)
             # individual columns
             for c in df:
                 if (
@@ -1043,7 +1061,7 @@ def test_groupby_transform_rename():
         if isinstance(x, Series):
             return result
 
-        result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
+        result = result.rename(columns={c: f"{c}_demeaned" for c in result.columns})
 
         return result
 
@@ -1513,3 +1531,42 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, series, expected_values",
+    [
+        (Series.sort_values, False, [4, 5, 3, 1, 2]),
+        (lambda x: x.head(1), False, ValueError),
+        # SeriesGroupBy already has correct behavior
+        (Series.sort_values, True, [5, 4, 3, 2, 1]),
+        (lambda x: x.head(1), True, [5.0, np.nan, 3.0, 2.0, np.nan]),
+    ],
+)
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+@pytest.mark.parametrize("keys_in_index", [True, False])
+def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_index):
+    # GH#45648 - transform should align with the input's index
+    df = DataFrame({"a1": [1, 1, 3, 2, 2], "b": [5, 4, 3, 2, 1]})
+    if "a2" in keys:
+        df["a2"] = df["a1"]
+    if keys_in_index:
+        df = df.set_index(keys, append=True)
+
+    gb = df.groupby(keys)
+    if series:
+        gb = gb["b"]
+
+    warn = None if series else FutureWarning
+    msg = "returning a DataFrame in groupby.transform will align"
+    if expected_values is ValueError:
+        with tm.assert_produces_warning(warn, match=msg):
+            with pytest.raises(ValueError, match="Length mismatch"):
+                gb.transform(func)
+    else:
+        with tm.assert_produces_warning(warn, match=msg):
+            result = gb.transform(func)
+        expected = DataFrame({"b": expected_values}, index=df.index)
+        if series:
+            expected = expected["b"]
+        tm.assert_equal(result, expected)

@@ -58,27 +58,16 @@ jobs:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
-    - uses: conda-incubator/setup-miniconda@v2.1.1
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
-        environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
-
-    - name: Install node.js (for pyright)
-      uses: actions/setup-node@v3
-      with:
-        node-version: "16"
-
-    - name: Install pyright
-      # note: keep version in sync with .pre-commit-config.yaml
-      run: npm install -g pyright@1.1.230
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+
+    - name: Check for no warnings when building single-page docs
+      run: ci/code_checks.sh single-docs
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run checks on imported code
       run: ci/code_checks.sh code
@@ -92,8 +81,16 @@ jobs:
       run: ci/code_checks.sh docstrings
       if: ${{ steps.build.outcome == 'success' }}
 
-    - name: Run typing validation
-      run: ci/code_checks.sh typing
+    - name: Use existing environment for type checking
+      run: |
+        echo $PATH >> $GITHUB_PATH
+        echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
+        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
+
+    - name: Typing
+      uses: pre-commit/action@v2.0.3
+      with:
+        extra_args: --hook-stage manual --all-files
       if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run docstring validation script tests
@@ -124,14 +121,8 @@ jobs:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
-    - uses: conda-incubator/setup-miniconda@v2.1.1
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
-        environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
       id: build

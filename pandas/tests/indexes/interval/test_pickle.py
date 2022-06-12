@@ -5,9 +5,9 @@ import pandas._testing as tm
 
 
 class TestPickle:
-    @pytest.mark.parametrize("closed", ["left", "right", "both"])
-    def test_pickle_round_trip_closed(self, closed):
+    @pytest.mark.parametrize("inclusive", ["left", "right", "both"])
+    def test_pickle_round_trip_closed(self, inclusive):
         # https://github.com/pandas-dev/pandas/issues/35658
-        idx = IntervalIndex.from_tuples([(1, 2), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(1, 2), (2, 3)], inclusive=inclusive)
         result = tm.round_trip_pickle(idx)
         tm.assert_index_equal(result, idx)

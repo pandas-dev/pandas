@@ -26,11 +26,11 @@ This analysis and the raw data can be found [on GitHub](https://github.com/panda
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pandas-dev/pandas-user-surveys/master?filepath=2019.ipynb)
 
 
-We had about 1250 repsonses over the 15 days we ran the survey in the summer of 2019.
+We had about 1250 responses over the 15 days we ran the survey in the summer of 2019.
 
 ## About the Respondents
 
-There was a fair amount of representation across pandas experience and frequeny of use, though the majority of respondents are on the more experienced side.
+There was a fair amount of representation across pandas experience and frequency of use, though the majority of respondents are on the more experienced side.
 
 
 
@@ -101,7 +101,7 @@ CSV and Excel are (for better or worse) the most popular formats.
 ![png]({{ base_url }}/static/img/blog/2019-user-survey/2019_18_0.png)
 
 
-In preperation for a possible refactor of pandas internals, we wanted to get a sense for
+In preparation for a possible refactor of pandas internals, we wanted to get a sense for
 how common wide (100s of columns or more) DataFrames are.
 
 
@@ -109,7 +109,7 @@ how common wide (100s of columns or more) DataFrames are.
 ![png]({{ base_url }}/static/img/blog/2019-user-survey/2019_20_0.png)
 
 
-Pandas is slowly growing new exentension types. Categoricals are the most popular,
+Pandas is slowly growing new extension types. Categoricals are the most popular,
 and the nullable integer type is already almost as popular as datetime with timezone.
 
 
@@ -139,7 +139,7 @@ Of these, the clear standout is "scaling" to large datasets. A couple observatio
 1. Perhaps pandas' documentation should do a better job of promoting libraries that provide scalable dataframes (like [Dask](https://dask.org), [vaex](https://dask.org), and [modin](https://modin.readthedocs.io/en/latest/))
 2. Memory efficiency (perhaps from a native string data type, fewer internal copies, etc.) is a valuable goal.
 
-After that, the next-most critical improvement is integer missing values. Those were actually added in [Pandas 0.24](https://pandas.pydata.org/pandas-docs/stable/whatsnew/v0.24.0.html#optional-integer-na-support), but they're not the default, and there's still some incompatibilites with the rest of pandas API.
+After that, the next-most critical improvement is integer missing values. Those were actually added in [Pandas 0.24](https://pandas.pydata.org/pandas-docs/stable/whatsnew/v0.24.0.html#optional-integer-na-support), but they're not the default, and there's still some incompatibilities with the rest of pandas API.
 
 Pandas is a less conservative library than, say, NumPy. We're approaching 1.0, but on the way we've made many deprecations and some outright API breaking changes. Fortunately, most people are OK with the tradeoff.
 

@@ -5,6 +5,7 @@ from collections import deque
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 import locale
@@ -455,6 +456,14 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_mixed_datetime_and_string(self):
+        # GH#47018 adapted old doctest with new behavior
+        d1 = datetime(2020, 1, 1, 17, tzinfo=timezone(-timedelta(hours=1)))
+        d2 = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
+        res = to_datetime(["2020-01-01 17:00 -0100", d2])
+        expected = to_datetime([d1, d2]).tz_convert(pytz.FixedOffset(-60))
+        tm.assert_index_equal(res, expected)
+
     def test_to_datetime_np_str(self):
         # GH#32264
         value = np.str_("2019-02-04 10:18:46.297000+0000")
@@ -601,7 +610,7 @@ class TestToDatetime:
         actual = to_datetime("20080115")
         assert actual == datetime(2008, 1, 15)
 
-    def test_to_datetime_unparseable_ignore(self):
+    def test_to_datetime_unparsable_ignore(self):
         # unparsable
         ser = "Month 1, 1999"
         assert to_datetime(ser, errors="ignore") == ser
@@ -1838,14 +1847,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_overflow(self):
         # gh-17637
         # we are overflowing Timedelta range here
-
-        msg = "|".join(
-            [
-                "Python int too large to convert to C long",
-                "long too big to convert",
-                "int too big to convert",
-            ]
-        )
+        msg = "Cannot cast 139999 days, 0:00:00 to unit=ns without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 

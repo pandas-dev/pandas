@@ -185,7 +185,7 @@ class ArrowBoolArray(ArrowExtensionArray):
 
         assert values.type == pa.bool_()
         self._data = values
-        self._dtype = ArrowBoolDtype()
+        self._dtype = ArrowBoolDtype()  # type: ignore[assignment]
 
 
 class ArrowStringArray(ArrowExtensionArray):
@@ -195,4 +195,4 @@ class ArrowStringArray(ArrowExtensionArray):
 
         assert values.type == pa.string()
         self._data = values
-        self._dtype = ArrowStringDtype()
+        self._dtype = ArrowStringDtype()  # type: ignore[assignment]

@@ -42,7 +42,10 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    NoDefault,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AnyArrayLike,
@@ -95,7 +98,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
@@ -218,6 +220,7 @@ import pandas.plotting
 
 if TYPE_CHECKING:
 
+    from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
@@ -236,7 +239,7 @@ _shared_doc_kwargs = {
         If 1 or 'columns': apply function to each row.""",
     "inplace": """
     inplace : bool, default False
-        If True, performs operation inplace and returns None.""",
+        Whether to modify the DataFrame rather than creating a new one.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
@@ -812,6 +815,40 @@ class DataFrame(NDFrame, OpsMixin):
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
+    def __dataframe__(
+        self, nan_as_null: bool = False, allow_copy: bool = True
+    ) -> DataFrameXchg:
+        """
+        Return the dataframe exchange object implementing the exchange protocol.
+
+        Parameters
+        ----------
+        nan_as_null : bool, default False
+            Whether to tell the DataFrame to overwrite null values in the data
+            with ``NaN`` (or ``NaT``).
+        allow_copy : bool, default True
+            Whether to allow memory copying when exporting. If set to False
+            it would cause non-zero-copy exports to fail.
+
+        Returns
+        -------
+        DataFrame exchange object
+            The object which consuming library can use to ingress the dataframe.
+
+        Notes
+        -----
+        Details on the exchange protocol:
+        https://data-apis.org/dataframe-protocol/latest/index.html
+
+        `nan_as_null` currently has no effect; once support for nullable extension
+        dtypes is added, this value should be propagated to columns.
+        """
+
+        from pandas.core.exchange.dataframe import PandasDataFrameXchg
+
+        return PandasDataFrameXchg(self, nan_as_null, allow_copy)
+
+    # ----------------------------------------------------------------------
 
     @property
     def axes(self) -> list[Index]:
@@ -1339,7 +1376,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns = self.columns
         klass = self._constructor_sliced
         for k, v in zip(self.index, self.values):
-            s = klass(v, index=columns, name=k)
+            s = klass(v, index=columns, name=k).__finalize__(self)
             yield k, s
 
     def itertuples(
@@ -2378,13 +2415,10 @@ class DataFrame(NDFrame, OpsMixin):
                   dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
         if index:
-            if isinstance(self.index, MultiIndex):
-                # array of tuples to numpy cols. copy copy copy
-                ix_vals = list(map(np.array, zip(*self.index._values)))
-            else:
-                # error: List item 0 has incompatible type "ArrayLike"; expected
-                # "ndarray"
-                ix_vals = [self.index.values]  # type: ignore[list-item]
+            ix_vals = [
+                np.asarray(self.index.get_level_values(i))
+                for i in range(self.index.nlevels)
+            ]
 
             arrays = ix_vals + [
                 np.asarray(self.iloc[:, i]) for i in range(len(self.columns))
@@ -3446,15 +3480,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         # irow
         if axis == 0:
-            new_values = self._mgr.fast_xs(i)
+            new_mgr = self._mgr.fast_xs(i)
 
             # if we are a copy, mark as such
-            copy = isinstance(new_values, np.ndarray) and new_values.base is None
-            result = self._constructor_sliced(
-                new_values,
-                index=self.columns,
-                name=self.index[i],
-                dtype=new_values.dtype,
+            copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
+            result = self._constructor_sliced(new_mgr, name=self.index[i]).__finalize__(
+                self
             )
             result._set_is_copy(self, copy=copy)
             return result
@@ -3651,6 +3682,29 @@ class DataFrame(NDFrame, OpsMixin):
         #  same-length tuples; see test_get_set_value_no_partial_indexing
         loc = engine.get_loc(index)
         return series._values[loc]
+
+    def isetitem(self, loc, value) -> None:
+        """
+        Set the given value in the column with position 'loc'.
+
+        This is a positional analogue to __setitem__.
+
+        Parameters
+        ----------
+        loc : int or sequence of ints
+        value : scalar or arraylike
+
+        Notes
+        -----
+        Unlike `frame.iloc[:, i] = value`, `frame.isetitem(loc, value)` will
+        _never_ try to set the values in place, but will always insert a new
+        array.
+
+        In cases where `frame.columns` is unique, this is equivalent to
+        `frame[frame.columns[i]] = value`.
+        """
+        arraylike = self._sanitize_column(value)
+        self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
@@ -3887,17 +3941,18 @@ class DataFrame(NDFrame, OpsMixin):
         """
         try:
             if takeable:
-                series = self._ixs(col, axis=1)
-                loc = index
+                icol = col
+                iindex = cast(int, index)
             else:
-                series = self._get_item_cache(col)
-                loc = self.index.get_loc(index)
+                icol = self.columns.get_loc(col)
+                iindex = self.index.get_loc(index)
+            self._mgr.column_setitem(icol, iindex, value)
+            self._clear_item_cache()
 
-            # setitem_inplace will do validation that may raise TypeError,
-            #  ValueError, or LossySetitemError
-            series._mgr.setitem_inplace(loc, value)
-
-        except (KeyError, TypeError, ValueError, LossySetitemError):
+        except (KeyError, TypeError, ValueError):
+            # get_loc might raise a KeyError for missing labels (falling back
+            #  to (i)loc will do expansion of the index)
+            # column_setitem will do validation that may raise TypeError or ValueError
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
@@ -4013,8 +4068,7 @@ class DataFrame(NDFrame, OpsMixin):
                 Expanding functionality of backtick quoting for more than only spaces.
 
         inplace : bool
-            Whether the query should modify the data in place or return
-            a modified copy.
+            Whether to modify the DataFrame rather than creating a new one.
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
@@ -5117,8 +5171,8 @@ class DataFrame(NDFrame, OpsMixin):
         copy : bool, default True
             Also copy underlying data.
         inplace : bool, default False
-            Whether to return a new DataFrame. If True then value of copy is
-            ignored.
+            Whether to modify the DataFrame rather than creating a new one.
+            If True then value of copy is ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
@@ -5432,7 +5486,7 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax[i]]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res.iloc[:, i] = newobj
+                res._iset_item(i, newobj)
 
         if inplace:
             return
@@ -5449,7 +5503,13 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         ncols = len(self.columns)
-        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
+        if (
+            axis == 1
+            and periods != 0
+            and freq is None
+            and fill_value is lib.no_default
+            and ncols > 0
+        ):
             # We will infer fill_value to match the closest column
 
             # Use a column that we know is valid for our column's dtype GH#38434
@@ -5549,7 +5609,7 @@ class DataFrame(NDFrame, OpsMixin):
         append : bool, default False
             Whether to append columns to existing index.
         inplace : bool, default False
-            If True, modifies the DataFrame in place (do not create a new object).
+            Whether to modify the DataFrame rather than creating a new one.
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
@@ -5826,7 +5886,7 @@ class DataFrame(NDFrame, OpsMixin):
             Do not try to insert index into dataframe columns. This resets
             the index to the default integer index.
         inplace : bool, default False
-            Modify the DataFrame in place (do not create a new object).
+            Whether to modify the DataFrame rather than creating a new one.
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -6075,8 +6135,8 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str = "any",
-        thresh=None,
+        how: str | NoDefault = no_default,
+        thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
     ):
@@ -6108,12 +6168,12 @@ class DataFrame(NDFrame, OpsMixin):
             * 'all' : If all values are NA, drop that row or column.
 
         thresh : int, optional
-            Require that many non-NA values.
+            Require that many non-NA values. Cannot be combined with how.
         subset : column label or sequence of labels, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
         inplace : bool, default False
-            If True, do operation inplace and return None.
+            Whether to modify the DataFrame rather than creating a new one.
 
         Returns
         -------
@@ -6183,6 +6243,14 @@ class DataFrame(NDFrame, OpsMixin):
              name        toy       born
         1  Batman  Batmobile 1940-04-25
         """
+        if (how is not no_default) and (thresh is not no_default):
+            raise TypeError(
+                "You cannot set both the how and thresh arguments at the same time."
+            )
+
+        if how is no_default:
+            how = "any"
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
             # GH20987
@@ -6203,7 +6271,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
-        if thresh is not None:
+        if thresh is not no_default:
             count = agg_obj.count(axis=agg_axis)
             mask = count >= thresh
         elif how == "any":
@@ -6213,10 +6281,7 @@ class DataFrame(NDFrame, OpsMixin):
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
             mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
         else:
-            if how is not None:
-                raise ValueError(f"invalid how option: {how}")
-            else:
-                raise TypeError("must specify how or thresh")
+            raise ValueError(f"invalid how option: {how}")
 
         if np.all(mask):
             result = self.copy()
@@ -6253,7 +6318,7 @@ class DataFrame(NDFrame, OpsMixin):
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
         inplace : bool, default False
-            Whether to drop duplicates in place or to return a copy.
+            Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
@@ -6627,7 +6692,7 @@ class DataFrame(NDFrame, OpsMixin):
             Sort ascending vs. descending. When the index is a MultiIndex the
             sort direction can be controlled for each level individually.
         inplace : bool, default False
-            If True, perform operation in-place.
+            Whether to modify the DataFrame rather than creating a new one.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. `mergesort` and `stable` are the only stable algorithms. For
@@ -7986,9 +8051,6 @@ Parrot 2  Parrot       24.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
             obj=self,
             keys=by,
@@ -7997,7 +8059,7 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -8944,6 +9006,42 @@ Parrot 2  Parrot       24.0
 
     agg = aggregate
 
+    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
+    @overload  # type: ignore[override]
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: None = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: Level,
+        **kwargs,
+    ) -> DataFrame | Series:
+        ...
+
+    @doc(NDFrame.any, **_shared_doc_kwargs)
+    def any(
+        self,
+        axis: Axis = 0,
+        bool_only: bool | None = None,
+        skipna: bool = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> DataFrame | Series:
+        ...
+
     @doc(
         _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
@@ -9385,6 +9483,7 @@ Parrot 2  Parrot       24.0
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
+        validate: str | None = None,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -9428,6 +9527,14 @@ Parrot 2  Parrot       24.0
         sort : bool, default False
             Order result DataFrame lexicographically by the join key. If False,
             the order of the join key depends on the join type (how keyword).
+        validate : str, optional
+            If specified, checks if join is of specified type.
+            * "one_to_one" or "1:1": check if join keys are unique in both left
+            and right datasets.
+            * "one_to_many" or "1:m": check if join keys are unique in left dataset.
+            * "many_to_one" or "m:1": check if join keys are unique in right dataset.
+            * "many_to_many" or "m:m": allowed, but does not result in checks.
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -9522,7 +9629,7 @@ Parrot 2  Parrot       24.0
         4  K0  A4
         5  K1  A5
 
-        >>> df.join(other.set_index('key'), on='key')
+        >>> df.join(other.set_index('key'), on='key', validate='m:1')
           key   A    B
         0  K0  A0   B0
         1  K1  A1   B1
@@ -9532,7 +9639,13 @@ Parrot 2  Parrot       24.0
         5  K1  A5   B1
         """
         return self._join_compat(
-            other, on=on, how=how, lsuffix=lsuffix, rsuffix=rsuffix, sort=sort
+            other,
+            on=on,
+            how=how,
+            lsuffix=lsuffix,
+            rsuffix=rsuffix,
+            sort=sort,
+            validate=validate,
         )
 
     def _join_compat(
@@ -9543,6 +9656,7 @@ Parrot 2  Parrot       24.0
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
+        validate: str | None = None,
     ):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
@@ -9561,6 +9675,7 @@ Parrot 2  Parrot       24.0
                     on=on,
                     suffixes=(lsuffix, rsuffix),
                     sort=sort,
+                    validate=validate,
                 )
             return merge(
                 self,
@@ -9571,6 +9686,7 @@ Parrot 2  Parrot       24.0
                 right_index=True,
                 suffixes=(lsuffix, rsuffix),
                 sort=sort,
+                validate=validate,
             )
         else:
             if on is not None:
@@ -9603,7 +9719,12 @@ Parrot 2  Parrot       24.0
 
             for frame in frames[1:]:
                 joined = merge(
-                    joined, frame, how=how, left_index=True, right_index=True
+                    joined,
+                    frame,
+                    how=how,
+                    left_index=True,
+                    right_index=True,
+                    validate=validate,
                 )
 
             return joined
@@ -9766,7 +9887,7 @@ Parrot 2  Parrot       24.0
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
-        numeric_only: bool = True,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -9791,6 +9912,10 @@ Parrot 2  Parrot       24.0
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. deprecated:: 1.5.0
+                The default value of ``numeric_only`` will be ``False`` in a future
+                version of pandas.
 
         Returns
         -------
@@ -9830,10 +9955,11 @@ Parrot 2  Parrot       24.0
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa:E501
-        if numeric_only:
-            data = self._get_numeric_data()
-        else:
-            data = self
+        numeric_only_bool = com.resolve_numeric_only(numeric_only)
+        data = self._get_numeric_data() if numeric_only_bool else self
+        if numeric_only is lib.no_default and len(data.columns) < len(self.columns):
+            com.deprecate_numeric_only_default(type(self), "corr")
+
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -9879,7 +10005,7 @@ Parrot 2  Parrot       24.0
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
-        numeric_only: bool = True,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Compute pairwise covariance of columns, excluding NA/null values.
@@ -9915,6 +10041,10 @@ Parrot 2  Parrot       24.0
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. deprecated:: 1.5.0
+                The default value of ``numeric_only`` will be ``False`` in a future
+                version of pandas.
 
         Returns
         -------
@@ -9984,10 +10114,11 @@ Parrot 2  Parrot       24.0
         b       NaN  1.248003  0.191417
         c -0.150812  0.191417  0.895202
         """
-        if numeric_only:
-            data = self._get_numeric_data()
-        else:
-            data = self
+        numeric_only_bool = com.resolve_numeric_only(numeric_only)
+        data = self._get_numeric_data() if numeric_only_bool else self
+        if numeric_only is lib.no_default and len(data.columns) < len(self.columns):
+            com.deprecate_numeric_only_default(type(self), "cov")
+
         cols = data.columns
         idx = cols.copy()
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
@@ -10010,7 +10141,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = 0,
         drop=False,
         method="pearson",
-        numeric_only: bool = True,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
         Compute pairwise correlation.
@@ -10025,8 +10156,8 @@ Parrot 2  Parrot       24.0
         other : DataFrame, Series
             Object with which to compute correlations.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
-            row-wise.
+            The axis to use. 0 or 'index' to compute row-wise, 1 or 'columns' for
+            column-wise.
         drop : bool, default False
             Drop missing indices from result.
         method : {'pearson', 'kendall', 'spearman'} or callable
@@ -10042,6 +10173,10 @@ Parrot 2  Parrot       24.0
             Include only `float`, `int` or `boolean` data.
 
             .. versionadded:: 1.5.0
+
+            .. deprecated:: 1.5.0
+                The default value of ``numeric_only`` will be ``False`` in a future
+                version of pandas.
 
         Returns
         -------
@@ -10074,10 +10209,10 @@ Parrot 2  Parrot       24.0
         dtype: float64
         """  # noqa:E501
         axis = self._get_axis_number(axis)
-        if numeric_only:
-            this = self._get_numeric_data()
-        else:
-            this = self
+        numeric_only_bool = com.resolve_numeric_only(numeric_only)
+        this = self._get_numeric_data() if numeric_only_bool else self
+        if numeric_only is lib.no_default and len(this.columns) < len(self.columns):
+            com.deprecate_numeric_only_default(type(self), "corrwith")
 
         # GH46174: when other is a Series object and axis=0, we achieve a speedup over
         # passing .corr() to .apply() by taking the columns as ndarrays and iterating
@@ -10303,12 +10438,14 @@ Parrot 2  Parrot       24.0
         else:
             mask = index_mask.reshape(-1, 1) & values_mask
 
-        if isinstance(level, str):
-            level = count_axis._get_level_number(level)
+        if isinstance(level, int):
+            level_number = level
+        else:
+            level_number = count_axis._get_level_number(level)
 
-        level_name = count_axis._names[level]
-        level_index = count_axis.levels[level]._rename(name=level_name)
-        level_codes = ensure_platform_int(count_axis.codes[level])
+        level_name = count_axis._names[level_number]
+        level_index = count_axis.levels[level_number]._rename(name=level_name)
+        level_codes = ensure_platform_int(count_axis.codes[level_number])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
@@ -10329,7 +10466,6 @@ Parrot 2  Parrot       24.0
         filter_type=None,
         **kwds,
     ):
-
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
@@ -10384,6 +10520,7 @@ Parrot 2  Parrot       24.0
                 data = self._get_bool_data()
             return data
 
+        numeric_only_bool = com.resolve_numeric_only(numeric_only)
         if numeric_only is not None or axis == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
@@ -10391,7 +10528,7 @@ Parrot 2  Parrot       24.0
             #  dtypes are unambiguous can be handled with BlockManager.reduce
             # Case with EAs see GH#35881
             df = self
-            if numeric_only is True:
+            if numeric_only_bool:
                 df = _get_data()
             if axis == 1:
                 df = df.T
@@ -10412,16 +10549,8 @@ Parrot 2  Parrot       24.0
 
             if numeric_only is None and out.shape[0] != df.shape[1]:
                 # columns have been dropped GH#41480
-                arg_name = "numeric_only"
-                if name in ["all", "any"]:
-                    arg_name = "bool_only"
-                warnings.warn(
-                    "Dropping of nuisance columns in DataFrame reductions "
-                    f"(with '{arg_name}=None') is deprecated; in a future "
-                    "version this will raise TypeError.  Select only valid "
-                    "columns before calling the reduction.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+                com.deprecate_numeric_only_default(
+                    type(self), name, deprecate_none=True
                 )
 
             return out
@@ -10538,11 +10667,17 @@ Parrot 2  Parrot       24.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    @doc(_shared_docs["idxmin"])
-    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    @doc(_shared_docs["idxmin"], numeric_only_default="False")
+    def idxmin(
+        self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
+    ) -> Series:
         axis = self._get_axis_number(axis)
+        if numeric_only:
+            data = self._get_numeric_data()
+        else:
+            data = self
 
-        res = self._reduce(
+        res = data._reduce(
             nanops.nanargmin, "argmin", axis=axis, skipna=skipna, numeric_only=False
         )
         indices = res._values
@@ -10552,15 +10687,22 @@ Parrot 2  Parrot       24.0
         # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
         assert isinstance(indices, np.ndarray)  # for mypy
 
-        index = self._get_axis(axis)
+        index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return self._constructor_sliced(result, index=self._get_agg_axis(axis))
+        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
 
-    @doc(_shared_docs["idxmax"])
-    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    @doc(_shared_docs["idxmax"], numeric_only_default="False")
+    def idxmax(
+        self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
+    ) -> Series:
+
         axis = self._get_axis_number(axis)
+        if numeric_only:
+            data = self._get_numeric_data()
+        else:
+            data = self
 
-        res = self._reduce(
+        res = data._reduce(
             nanops.nanargmax, "argmax", axis=axis, skipna=skipna, numeric_only=False
         )
         indices = res._values
@@ -10570,9 +10712,9 @@ Parrot 2  Parrot       24.0
         # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
         assert isinstance(indices, np.ndarray)  # for mypy
 
-        index = self._get_axis(axis)
+        index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return self._constructor_sliced(result, index=self._get_agg_axis(axis))
+        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """
@@ -10691,11 +10833,16 @@ Parrot 2  Parrot       24.0
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             Value between 0 <= q <= 1, the quantile(s) to compute.
-        axis : {0, 1, 'index', 'columns'}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
             If False, the quantile of datetime and timedelta data will be
             computed as well.
+
+            .. deprecated:: 1.5.0
+                The default value of ``numeric_only`` will be ``False`` in a future
+                version of pandas.
+
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -10753,15 +10900,8 @@ Parrot 2  Parrot       24.0
         axis = self._get_axis_number(axis)
         any_not_numeric = any(not is_numeric_dtype(x) for x in self.dtypes)
         if numeric_only is no_default and any_not_numeric:
-            warnings.warn(
-                "In future versions of pandas, numeric_only will be set to "
-                "False by default, and the datetime/timedelta columns will "
-                "be considered in the results. To not consider these columns"
-                "specify numeric_only=True.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            numeric_only = True
+            com.deprecate_numeric_only_default(type(self), "quantile")
+        numeric_only = com.resolve_numeric_only(numeric_only)
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
@@ -10793,10 +10933,8 @@ Parrot 2  Parrot       24.0
                 if needs_i8_conversion(cdtype):
                     dtype = cdtype
 
-            if is_list_like(q):
-                res = self._constructor([], index=q, columns=cols, dtype=dtype)
-                return res.__finalize__(self, method="quantile")
-            return self._constructor_sliced([], index=cols, name=q, dtype=dtype)
+            res = self._constructor([], index=q, columns=cols, dtype=dtype)
+            return res.__finalize__(self, method="quantile")
 
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
@@ -11061,12 +11199,10 @@ Parrot 2  Parrot       24.0
     _info_axis_number = 1
     _info_axis_name = "columns"
 
-    index: Index = properties.AxisProperty(
+    index = properties.AxisProperty(
         axis=1, doc="The index (row labels) of the DataFrame."
     )
-    columns: Index = properties.AxisProperty(
-        axis=0, doc="The column labels of the DataFrame."
-    )
+    columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
 
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:

@@ -1,4 +1,7 @@
-import cython
+cimport cython
+
+import warnings
+
 import numpy as np
 
 cimport numpy as cnp
@@ -31,7 +34,6 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    _string_to_dts,
     astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
@@ -43,6 +45,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dt64,
+    string_to_dts,
 )
 
 from pandas._libs.tslibs.np_datetime import (
@@ -51,12 +54,8 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 from pandas._libs.tslibs.timezones cimport (
-    get_dst_info,
     get_utcoffset,
-    is_fixed_offset,
-    is_tzlocal,
     is_utc,
-    is_zoneinfo,
     maybe_get_tz,
     tz_compare,
     utc_pytz as UTC,
@@ -76,10 +75,7 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
 )
 from pandas._libs.tslibs.tzconversion cimport (
-    bisect_right_i8,
-    infer_dateutil_fold,
-    localize_tzinfo_api,
-    tz_convert_from_utc_single,
+    Localizer,
     tz_localize_to_utc_single,
 )
 
@@ -199,151 +195,6 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray with dtype datetime64[ns]
-    """
-    if (<object>arr).dtype.byteorder == ">":
-        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
-        dtype = arr.dtype
-        arr = arr.astype(dtype.newbyteorder("<"))
-
-    if arr.size == 0:
-        # Fastpath; doesn't matter but we have old tests for result.base
-        #  being arr.
-        result = arr.view(DT64NS_DTYPE)
-        if copy:
-            result = result.copy()
-        return result
-
-    return astype_overflowsafe(arr, DT64NS_DTYPE, copy=copy)
-
-
-def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
-    """
-    Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
-
-    Parameters
-    ----------
-    arr : ndarray
-    copy : bool, default True
-
-    Returns
-    -------
-    ndarray[timedelta64[ns]]
-    """
-    assert arr.dtype.kind == "m", arr.dtype
-
-    if arr.dtype == TD64NS_DTYPE:
-        return arr.copy() if copy else arr
-
-    # Re-use the datetime64 machinery to do an overflow-safe `astype`
-    dtype = arr.dtype.str.replace("m8", "M8")
-    dummy = arr.view(dtype)
-    try:
-        dt64_result = ensure_datetime64ns(dummy, copy)
-    except OutOfBoundsDatetime as err:
-        # Re-write the exception in terms of timedelta64 instead of dt64
-
-        # Find the value that we are going to report as causing an overflow
-        tdmin = arr.min()
-        tdmax = arr.max()
-        if np.abs(tdmin) >= np.abs(tdmax):
-            bad_val = tdmin
-        else:
-            bad_val = tdmax
-
-        msg = f"Out of bounds for nanosecond {arr.dtype.name} {str(bad_val)}"
-        raise OutOfBoundsTimedelta(msg)
-
-    return dt64_result.view(TD64NS_DTYPE)
-
-
-# ----------------------------------------------------------------------
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def datetime_to_datetime64(ndarray values):
-    # ndarray[object], but can't declare object without ndim
-    """
-    Convert ndarray of datetime-like objects to int64 array representing
-    nanosecond timestamps.
-
-    Parameters
-    ----------
-    values : ndarray[object]
-
-    Returns
-    -------
-    result : ndarray[datetime64ns]
-    inferred_tz : tzinfo or None
-    """
-    cdef:
-        Py_ssize_t i, n = values.size
-        object val
-        int64_t ival
-        ndarray iresult  # int64_t, but can't declare that without specifying ndim
-        npy_datetimestruct dts
-        _TSObject _ts
-        bint found_naive = False
-        tzinfo inferred_tz = None
-
-        cnp.broadcast mi
-
-    result = np.empty((<object>values).shape, dtype='M8[ns]')
-    iresult = result.view('i8')
-
-    mi = cnp.PyArray_MultiIterNew2(iresult, values)
-    for i in range(n):
-        # Analogous to: val = values[i]
-        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
-
-        if checknull_with_nat(val):
-            ival = NPY_NAT
-        elif PyDateTime_Check(val):
-            if val.tzinfo is not None:
-                if found_naive:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                if inferred_tz is not None:
-                    if not tz_compare(val.tzinfo, inferred_tz):
-                        raise ValueError('Array must be all same time zone')
-                else:
-                    inferred_tz = val.tzinfo
-
-                _ts = convert_datetime_to_tsobject(val, None)
-                ival = _ts.value
-                check_dts_bounds(&_ts.dts)
-            else:
-                found_naive = True
-                if inferred_tz is not None:
-                    raise ValueError('Cannot mix tz-aware with '
-                                     'tz-naive values')
-                ival = pydatetime_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
-        else:
-            raise TypeError(f'Unrecognized value type: {type(val)}')
-
-        # Analogous to: iresult[i] = ival
-        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
-
-        cnp.PyArray_MultiIter_NEXT(mi)
-
-    return result, inferred_tz
-
-
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 
@@ -399,6 +250,12 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
+            if unit in ["Y", "M"]:
+                # GH#47266 cast_from_unit leads to weird results e.g. with "Y"
+                #  and 150 we'd get 2120-01-01 09:00:00
+                ts = np.datetime64(ts, unit)
+                return convert_to_tsobject(ts, tz, None, False, False)
+
             ts = ts * cast_from_unit(None, unit)
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
@@ -406,6 +263,22 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
+            if unit in ["Y", "M"]:
+                if ts == int(ts):
+                    # GH#47266 Avoid cast_from_unit, which would give weird results
+                    #  e.g. with "Y" and 150.0 we'd get 2120-01-01 09:00:00
+                    return convert_to_tsobject(int(ts), tz, unit, False, False)
+                else:
+                    # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
+                    #  but not clear what 2.5 "M" corresponds to, so we will
+                    #  disallow that case.
+                    warnings.warn(
+                        "Conversion of non-round float with unit={unit} is ambiguous "
+                        "and will raise in a future version.",
+                        FutureWarning,
+                        stacklevel=1,
+                    )
+
             ts = cast_from_unit(ts, unit)
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
@@ -423,14 +296,18 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
                         f'Timestamp')
 
+    maybe_localize_tso(obj, tz, NPY_FR_ns)
+    return obj
+
+
+cdef maybe_localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
     if tz is not None:
-        _localize_tso(obj, tz)
+        _localize_tso(obj, tz, reso)
 
     if obj.value != NPY_NAT:
         # check_overflows needs to run after _localize_tso
-        check_dts_bounds(&obj.dts)
+        check_dts_bounds(&obj.dts, reso)
         check_overflows(obj)
-    return obj
 
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
@@ -517,9 +394,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
-        ndarray[int64_t] trans
-        int64_t* tdata
-        int64_t[::1] deltas
+        Py_ssize_t pos
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -529,19 +404,18 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         check_overflows(obj)
         return obj
 
+    cdef:
+        Localizer info = Localizer(tz, NPY_FR_ns)
+
     # Infer fold from offset-adjusted obj.value
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
-    if is_utc(tz):
+    if info.use_utc:
         pass
-    elif is_tzlocal(tz) or is_zoneinfo(tz):
-        localize_tzinfo_api(obj.value, tz, &obj.fold)
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ == 'dateutil':
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
-            obj.fold = infer_dateutil_fold(obj.value, trans, deltas, pos)
+    elif info.use_tzlocal:
+        info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
+    elif info.use_dst and not info.use_pytz:
+        # i.e. dateutil
+        info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -585,6 +459,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         int out_local = 0, out_tzoffset = 0, string_to_dts_failed
         datetime dt
         int64_t ival
+        NPY_DATETIMEUNIT out_bestunit
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT
@@ -602,8 +477,8 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
-        string_to_dts_failed = _string_to_dts(
-            ts, &dts, &out_local,
+        string_to_dts_failed = string_to_dts(
+            ts, &dts, &out_bestunit, &out_local,
             &out_tzoffset, False
         )
         if not string_to_dts_failed:
@@ -677,7 +552,7 @@ cdef inline check_overflows(_TSObject obj):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
+cdef inline void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone.
@@ -686,6 +561,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     ----------
     obj : _TSObject
     tz : tzinfo
+    reso : NPY_DATETIMEUNIT
 
     Returns
     -------
@@ -698,21 +574,22 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     cdef:
         int64_t local_val
         Py_ssize_t outpos = -1
+        Localizer info = Localizer(tz, reso)
 
     assert obj.tzinfo is None
 
-    if is_utc(tz):
+    if info.use_utc:
         pass
     elif obj.value == NPY_NAT:
         pass
     else:
-        local_val = tz_convert_from_utc_single(obj.value, tz, &obj.fold, &outpos)
+        local_val = info.utc_val_to_local_val(obj.value, &outpos, &obj.fold)
 
-        if outpos != -1:
-            # infer we went through a pytz path
+        if info.use_pytz:
+            # infer we went through a pytz path, will have outpos!=-1
             tz = tz._tzinfos[tz._transition_info[outpos]]
 
-        dt64_to_dtstruct(local_val, &obj.dts)
+        pandas_datetime_to_datetimestruct(local_val, reso, &obj.dts)
 
     obj.tzinfo = tz
 
