@@ -33,6 +33,7 @@ from .np_datetime cimport (
     NPY_FR_ns,
     dt64_to_dtstruct,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
 )
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
@@ -226,17 +227,19 @@ cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_resolution(ndarray stamps, tzinfo tz=None) -> Resolution:
+def get_resolution(
+    ndarray stamps, tzinfo tz=None, NPY_DATETIMEUNIT reso=NPY_FR_ns
+) -> Resolution:
     # stamps is int64_t, any ndim
     cdef:
-        Localizer info = Localizer(tz, reso=NPY_FR_ns)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         cnp.flatiter it = cnp.PyArray_IterNew(stamps)
 
         npy_datetimestruct dts
-        c_Resolution reso = c_Resolution.RESO_DAY, curr_reso
+        c_Resolution pd_reso = c_Resolution.RESO_DAY, curr_reso
 
     for i in range(n):
         # Analogous to: utc_val = stamps[i]
@@ -247,14 +250,14 @@ def get_resolution(ndarray stamps, tzinfo tz=None) -> Resolution:
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
 
-            dt64_to_dtstruct(local_val, &dts)
+            pandas_datetime_to_datetimestruct(local_val, reso, &dts)
             curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
+            if curr_reso < pd_reso:
+                pd_reso = curr_reso
 
         cnp.PyArray_ITER_NEXT(it)
 
-    return Resolution(reso)
+    return Resolution(pd_reso)
 
 
 # -------------------------------------------------------------------------

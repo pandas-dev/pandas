@@ -28,6 +28,7 @@ def normalize_i8_timestamps(
 def get_resolution(
     stamps: npt.NDArray[np.int64],
     tz: tzinfo | None = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> Resolution: ...
 def ints_to_pydatetime(
     arr: npt.NDArray[np.int64],
