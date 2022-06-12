@@ -21,6 +21,7 @@ from pytz import (
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
+    tz_compare,
 )
 import pandas.util._test_decorators as td
 
@@ -850,3 +851,13 @@ class TestNonNano:
     def test_to_period(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.to_period("D") == alt.to_period("D")
+
+    def test_tz_convert(self, ts):
+        ts = Timestamp._from_value_and_reso(ts.value, ts._reso, utc)
+
+        tz = pytz.timezone("US/Pacific")
+        result = ts.tz_convert(tz)
+
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert tz_compare(result.tz, tz)
