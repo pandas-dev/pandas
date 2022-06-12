@@ -58,7 +58,7 @@ jobs:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
-    - Name: Set up Conda
+    - name: Set up Conda
       uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
