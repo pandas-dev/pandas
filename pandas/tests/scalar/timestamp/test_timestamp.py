@@ -18,6 +18,7 @@ from pytz import (
     utc,
 )
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
@@ -713,11 +714,11 @@ class TestNonNano:
         assert ts.value == dt64.view("i8")
 
         if reso == "s":
-            assert ts._reso == 7
+            assert ts._reso == NpyDatetimeUnit.NPY_FR_s.value
         elif reso == "ms":
-            assert ts._reso == 8
+            assert ts._reso == NpyDatetimeUnit.NPY_FR_ms.value
         elif reso == "us":
-            assert ts._reso == 9
+            assert ts._reso == NpyDatetimeUnit.NPY_FR_us.value
 
     def test_non_nano_fields(self, dt64, ts):
         alt = Timestamp(dt64)
@@ -850,3 +851,9 @@ class TestNonNano:
     def test_to_period(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.to_period("D") == alt.to_period("D")
+
+    def test_normalize(self, dt64, ts):
+        alt = Timestamp(dt64)
+        result = ts.normalize()
+        assert result._reso == ts._reso
+        assert result == alt.normalize()

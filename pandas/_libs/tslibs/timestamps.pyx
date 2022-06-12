@@ -854,12 +854,11 @@ cdef class _Timestamp(ABCTimestamp):
             local_val = self._maybe_convert_value_to_local()
             int64_t normalized
             int64_t ppd = periods_per_day(self._reso)
-
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
+            _Timestamp ts
 
         normalized = normalize_i8_stamp(local_val, ppd)
-        return Timestamp(normalized).tz_localize(self.tzinfo)
+        ts = type(self)._from_value_and_reso(normalized, reso=self._reso, tz=None)
+        return ts.tz_localize(self.tzinfo)
 
     # -----------------------------------------------------------------
     # Pickle Methods
@@ -1997,6 +1996,8 @@ default 'raise'
         NaT
         """
         if self._reso != NPY_FR_ns:
+            if tz is None and self.tz is None:
+                return self
             raise NotImplementedError(self._reso)
 
         if ambiguous == 'infer':
