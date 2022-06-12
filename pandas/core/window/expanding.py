@@ -127,7 +127,7 @@ class Expanding(RollingAndExpandingMixin):
         self,
         obj: NDFrame,
         min_periods: int = 1,
-        center=None,
+        center: bool | None = None,
         axis: Axis = 0,
         method: str = "single",
         selection=None,
