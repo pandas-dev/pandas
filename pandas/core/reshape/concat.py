@@ -145,7 +145,7 @@ def concat(
 
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
-    objs: Iterable[NDFrame | DataFrame | Series] | Mapping[HashableT, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
