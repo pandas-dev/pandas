@@ -115,7 +115,6 @@
         "pandas/io/sql.py",
         "pandas/io/stata.py",
         "pandas/io/xml.py",
-        "pandas/plotting/_core.py",
         "pandas/tseries/frequencies.py",
       ],
 }
