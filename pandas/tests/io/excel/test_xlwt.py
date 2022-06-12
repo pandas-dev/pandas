@@ -1,3 +1,7 @@
+from datetime import (
+    date,
+    datetime,
+)
 import re
 
 import numpy as np
@@ -144,3 +148,49 @@ def test_deprecated_attr(ext, attr):
             msg = f"{attr} is not part of the public API"
             with tm.assert_produces_warning(FutureWarning, match=msg):
                 getattr(writer, attr)
+
+
+def test_write_date_datetime_format(ext):
+    # see gh-44284
+    #
+    # Test that custom date/datetime formats are respected
+    # by inspecting formatting info in written file.
+    xlrd = pytest.importorskip("xlrd")
+
+    df = DataFrame(
+        [
+            [date(2014, 1, 31), datetime(1998, 5, 26, 23, 33, 4)],
+            [date(1999, 9, 24), datetime(2014, 2, 28, 13, 5, 13)],
+        ],
+        index=["X", "Y"],
+        columns=["DATE", "DATETIME"],
+    )
+
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(
+            f,
+            engine="xlwt",
+            date_format="DD.MM.YYYY",
+            datetime_format="DD.MM.YYYY HH-MM-SS",
+        ) as writer:
+            df.to_excel(writer, "test1")
+
+        # formatting_info defaults to False
+        # so have to use xlrd.open_workbook() directly
+        with xlrd.open_workbook(f, formatting_info=True) as book:
+            sh = book["test1"]
+            xf_list = book.xf_list
+            format_map = book.format_map
+
+            date_cells = (sh[1, 1], sh[2, 1])
+            assert all(
+                format_map[xf_list[cell.xf_index].format_key].format_str == "DD.MM.YYYY"
+                for cell in date_cells
+            )
+
+            datetime_cells = (sh[1, 2], sh[2, 2])
+            assert all(
+                format_map[xf_list[cell.xf_index].format_key].format_str
+                == "DD.MM.YYYY HH-MM-SS"
+                for cell in datetime_cells
+            )

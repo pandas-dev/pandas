@@ -1,4 +1,8 @@
 import contextlib
+from datetime import (
+    date,
+    datetime,
+)
 from pathlib import Path
 import re
 
@@ -10,6 +14,7 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.excel import (
+    ExcelFile,
     ExcelWriter,
     _OpenpyxlWriter,
 )
@@ -388,3 +393,38 @@ def test_book_and_sheets_consistent(ext):
             assert writer.sheets == {}
             sheet = writer.book.create_sheet("test_name", 0)
             assert writer.sheets == {"test_name": sheet}
+
+
+def test_write_date_datetime_format(ext):
+    # see gh-44284
+    #
+    # Test that custom date/datetime formats are respected
+    # by inspecting formatting info in written file.
+    df = DataFrame(
+        [
+            [date(2014, 1, 31), datetime(1998, 5, 26, 23, 33, 4)],
+            [date(1999, 9, 24), datetime(2014, 2, 28, 13, 5, 13)],
+        ],
+        index=["X", "Y"],
+        columns=["DATE", "DATETIME"],
+    )
+
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(
+            f,
+            engine="xlsxwriter",
+            date_format="DD.MM.YYYY",
+            datetime_format="DD.MM.YYYY HH-MM-SS",
+        ) as writer:
+            df.to_excel(writer, "test1")
+
+        with ExcelFile(f) as reader:
+            ws = reader.book["test1"]
+
+            date_cells = (ws["B2"], ws["B3"])
+            assert all(cell.number_format == "DD.MM.YYYY" for cell in date_cells)
+
+            datetime_cells = (ws["C2"], ws["C3"])
+            assert all(
+                cell.number_format == "DD.MM.YYYY HH-MM-SS" for cell in datetime_cells
+            )
