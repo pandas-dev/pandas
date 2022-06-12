@@ -820,6 +820,7 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
+- Bug in :class:`ExcelWriter` not respecting ``date_format`` and ``datetime_format`` (:issue:`44284`)
 -
 
 Period
