@@ -2970,12 +2970,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [4, 3]})
         >>> df.to_orc('df.orc')  # doctest: +SKIP
         >>> pd.read_orc('df.orc')  # doctest: +SKIP
            col1  col2
-        0     1     3
-        1     2     4
+        0     1     4
+        1     2     3
 
         If you want to get a buffer to the orc content you can write it to io.BytesIO
         >>> import io
