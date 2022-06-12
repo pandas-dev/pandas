@@ -491,3 +491,10 @@ def test_info_int_columns():
         """
     )
     assert result == expected
+
+def test_info_from_rec():
+    # GH47285
+    df = DataFrame.from_records([], index="foo")
+    print(df.info())
+    #buf = StringIO()
+    #df.info(buf=buf)

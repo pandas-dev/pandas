@@ -776,7 +776,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameter _pat_. Now raises ``TypeError`` (:issue:`3485`)
--
+- Bug in :meth:`DataFrame.from_records` raises a ``KeyError`` if passed a string index and an empty iterable (:isue:`#47285`)
 
 Interval
 ^^^^^^^^
