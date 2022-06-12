@@ -53,7 +53,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import (
     check_array_indexer,
     is_empty_indexer,
-    is_exact_shape_match,
     is_list_like_indexer,
     is_scalar_indexer,
     length_of_indexer,
@@ -1951,8 +1950,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         pi = plane_indexer
 
-        ser = self.obj._ixs(loc, axis=1)
-        orig_values = ser._values
+        orig_values = self.obj._get_column_array(loc)
 
         # perform the equivalent of a setitem on the info axis
         # as we have a null slice or a slice with full bounds
@@ -1963,7 +1961,8 @@ class _iLocIndexer(_LocationIndexer):
             pass
         elif (
             is_array_like(value)
-            and is_exact_shape_match(ser, value)
+            and len(value.shape) > 0
+            and self.obj.shape[0] == value.shape[0]
             and not is_empty_indexer(pi)
         ):
             if is_list_like(pi):
@@ -1972,31 +1971,23 @@ class _iLocIndexer(_LocationIndexer):
                 # in case of slice
                 value = value[pi]
         else:
-            # set the item, first attempting to operate inplace, then
-            #  falling back to casting if necessary; see
-            #  _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
-
-            orig_values = ser._values
-            ser._mgr = ser._mgr.setitem((pi,), value)
-
-            if ser._values is orig_values:
-                # The setitem happened inplace, so the DataFrame's values
-                #  were modified inplace.
-                return
-            self.obj._iset_item(loc, ser)
+            # set value into the column (first attempting to operate inplace, then
+            #  falling back to casting if necessary)
+            self.obj._mgr.column_setitem(loc, plane_indexer, value)
+            self.obj._clear_item_cache()
             return
 
         # We will not operate in-place, but will attempt to in the future.
         #  To determine whether we need to issue a FutureWarning, see if the
         #  setting in-place would work, i.e. behavior will change.
-        warn = can_hold_element(ser._values, value)
+        warn = can_hold_element(orig_values, value)
         # Don't issue the warning yet, as we can still trim a few cases where
         #  behavior will not change.
 
         self.obj._iset_item(loc, value)
 
         if warn:
-            new_values = self.obj._ixs(loc, axis=1)._values
+            new_values = self.obj._get_column_array(loc)
 
             if (
                 isinstance(new_values, np.ndarray)
