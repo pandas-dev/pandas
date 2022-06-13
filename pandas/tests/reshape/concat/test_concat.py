@@ -471,10 +471,10 @@ class TestConcatenate:
     def test_concat_order(self):
         # GH 17344
         dfs = [DataFrame(index=range(3), columns=["a", 1, None])]
-        dfs += [DataFrame(index=range(3), columns=[None, 1, "a"]) for i in range(100)]
+        dfs += [DataFrame(index=range(3), columns=[None, 1, "a"]) for _ in range(100)]
 
         result = concat(dfs, sort=True).columns
-        expected = dfs[0].columns
+        expected = Index([1, "a", None])
         tm.assert_index_equal(result, expected)
 
     def test_concat_different_extension_dtypes_upcasts(self):
