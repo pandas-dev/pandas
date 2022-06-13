@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_interval_dtype,
     is_period_dtype,
-    is_sparse,
     is_unsigned_integer_dtype,
 )
 
@@ -141,7 +140,6 @@ def to_orc(
             is_categorical(dtype)
             or is_interval_dtype(dtype)
             or is_period_dtype(dtype)
-            or is_sparse(dtype)
             or is_unsigned_integer_dtype(dtype)
         ):
             raise NotImplementedError(
@@ -159,11 +157,16 @@ def to_orc(
     assert path is not None  # For mypy
     with get_handle(path, "wb", is_text=False) as handles:
         assert isinstance(engine, ModuleType)  # For mypy
-        orc.write_table(
-            engine.Table.from_pandas(df, preserve_index=index),
-            handles.handle,
-            **engine_kwargs,
-        )
+        try:
+            orc.write_table(
+                engine.Table.from_pandas(df, preserve_index=index),
+                handles.handle,
+                **engine_kwargs,
+            )
+        except TypeError as e:
+            raise NotImplementedError(
+                """The dtype of one or more columns is not supported yet."""
+            ) from e
 
     if was_none:
         assert isinstance(path, io.BytesIO)  # For mypy
