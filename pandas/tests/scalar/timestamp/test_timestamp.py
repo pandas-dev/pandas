@@ -22,6 +22,7 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
+    maybe_get_tz,
 )
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
@@ -825,7 +826,10 @@ class TestNonNano:
 
         assert other.asm8 < ts
 
-    def test_pickle(self, ts):
+    def test_pickle(self, ts, tz_aware_fixture):
+        tz = tz_aware_fixture
+        tz = maybe_get_tz(tz)
+        ts = Timestamp._from_value_and_reso(ts.value, ts._reso, tz)
         rt = tm.round_trip_pickle(ts)
         assert rt._reso == ts._reso
         assert rt == ts
