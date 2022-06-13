@@ -17,7 +17,7 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
-    is_categorical,
+    is_categorical_dtype,
     is_interval_dtype,
     is_period_dtype,
     is_unsigned_integer_dtype,
@@ -137,7 +137,7 @@ def to_orc(
     # In Pyarrow 9.0.0 this check will no longer be needed
     for dtype in df.dtypes:
         if (
-            is_categorical(dtype)
+            is_categorical_dtype(dtype)
             or is_interval_dtype(dtype)
             or is_period_dtype(dtype)
             or is_unsigned_integer_dtype(dtype)
