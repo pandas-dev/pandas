@@ -1604,3 +1604,15 @@ def test_get_attributes_dict_deprecated():
     with tm.assert_produces_warning(DeprecationWarning):
         attrs = idx._get_attributes_dict()
     assert attrs == {"name": None}
+
+
+def test_nan_comparison_same_object():
+    # GH#47105
+    idx = Index([np.nan])
+    expected = np.array([False])
+
+    result = idx > idx
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = idx > idx.copy()
+    tm.assert_numpy_array_equal(result, expected)
