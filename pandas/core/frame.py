@@ -2908,7 +2908,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         engine: Literal["pyarrow"] = "pyarrow",
         index: bool | None = None,
-        **kwargs,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
         """
         Write a DataFrame to the ORC format.
@@ -2924,8 +2924,7 @@ class DataFrame(NDFrame, OpsMixin):
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
         engine : str, default 'pyarrow'
-            ORC library to use, or library it self, checked with 'pyarrow' name
-            and version >= 7.0.0.
+            ORC library to use. Pyarrow must be >= 7.0.0.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -2934,8 +2933,8 @@ class DataFrame(NDFrame, OpsMixin):
             the RangeIndex will be stored as a range in the metadata so it
             doesn't require much space and is faster. Other indexes will
             be included as columns in the file output.
-        **kwargs
-            Additional keyword arguments passed to the engine.
+        engine_kwargs: dict[str, Any], optional
+            Additional keyword arguments passed to :func:`pyarrow.orc.write_table`.
 
         Returns
         -------
@@ -2963,8 +2962,8 @@ class DataFrame(NDFrame, OpsMixin):
           ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
         * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
           library.
-        * For supported dtypes please refer to
-          `this article <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
+        * For supported dtypes please refer to `supported ORC features in Arrow
+          <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
         * Currently timezones in datetime columns are not preserved when a
           dataframe is converted into ORC files.
 
@@ -2986,7 +2985,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.orc import to_orc
 
-        return to_orc(self, path, engine=engine, index=index, **kwargs)
+        return to_orc(self, path, engine=engine, index=index, **engine_kwargs)
 
     @Substitution(
         header_type="bool",

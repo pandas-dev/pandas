@@ -5,6 +5,7 @@ import io
 from types import ModuleType
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -14,6 +15,14 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
+
+from pandas.core.dtypes.common import (
+    is_categorical,
+    is_interval_dtype,
+    is_period_dtype,
+    is_sparse,
+    is_unsigned_integer_dtype,
+)
 
 from pandas.io.common import get_handle
 
@@ -66,7 +75,7 @@ def to_orc(
     *,
     engine: Literal["pyarrow"] = "pyarrow",
     index: bool | None = None,
-    **kwargs,
+    engine_kwargs: dict[str, Any] | None = None,
 ) -> bytes | None:
     """
     Write a DataFrame to the ORC format.
@@ -85,10 +94,8 @@ def to_orc(
         we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function). If path is None,
         a bytes object is returned.
-    engine : {{'pyarrow'}}, default 'pyarrow'
-        ORC library to use, or library it self, checked with 'pyarrow' name
-        and version >= 7.0.0. Raises ValueError if it is anything but
-        'pyarrow'.
+    engine : str, default 'pyarrow'
+        ORC library to use. Pyarrow must be >= 7.0.0.
     index : bool, optional
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -97,8 +104,8 @@ def to_orc(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-    **kwargs
-        Additional keyword arguments passed to the engine.
+    engine_kwargs: dict[str, Any], optional
+        Additional keyword arguments passed to :func:`pyarrow.orc.write_table`.
 
     Returns
     -------
@@ -119,8 +126,8 @@ def to_orc(
       :ref:`install optional dependencies <install.warn_orc>`.
     * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
       library.
-    * For supported dtypes please refer to
-      `this article <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
+    * For supported dtypes please refer to `supported ORC features in Arrow
+      <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
     * Currently timezones in datetime columns are not preserved when a
       dataframe is converted into ORC files.
     """
@@ -128,18 +135,17 @@ def to_orc(
         index = df.index.names[0] is not None
 
     # If unsupported dtypes are found raise NotImplementedError
+    # In Pyarrow 9.0.0 this check will no longer be needed
     for dtype in df.dtypes:
-        dtype_str = dtype.__str__().lower()
         if (
-            "category" in dtype_str
-            or "interval" in dtype_str
-            or "sparse" in dtype_str
-            or "period" in dtype_str
-            or "uint" in dtype_str
+            is_categorical(dtype)
+            or is_interval_dtype(dtype)
+            or is_period_dtype(dtype)
+            or is_sparse(dtype)
+            or is_unsigned_integer_dtype(dtype)
         ):
             raise NotImplementedError(
-                """The dtype of one or more columns is unsigned integers,
-intervals, periods, sparse or categorical which is not supported yet."""
+                """The dtype of one or more columns is not supported yet."""
             )
 
     if engine != "pyarrow":
@@ -154,7 +160,9 @@ intervals, periods, sparse or categorical which is not supported yet."""
     with get_handle(path, "wb", is_text=False) as handles:
         assert isinstance(engine, ModuleType)  # For mypy
         orc.write_table(
-            engine.Table.from_pandas(df, preserve_index=index), handles.handle, **kwargs
+            engine.Table.from_pandas(df, preserve_index=index),
+            handles.handle,
+            **engine_kwargs,
         )
 
     if was_none:
