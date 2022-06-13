@@ -1268,6 +1268,11 @@ automatically excluded. In other words, there will never be an "NA group" or
 generally discarding the NA group anyway (and supporting it was an
 implementation headache).
 
+.. note::
+   If you need to include NaN or NaT values in your grouping, you can workaround the automatic exclusion by replacing
+   the NaN / NaT values with a placeholder string. For example, you can use ``df.fillna("default", inplace=True)`` to
+   create a **default** group in your dataframe that captures NaN / NaT values.
+
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
