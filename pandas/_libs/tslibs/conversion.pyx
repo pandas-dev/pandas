@@ -31,6 +31,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas._libs.tslibs.dtypes cimport periods_per_second
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
@@ -40,11 +41,14 @@ from pandas._libs.tslibs.np_datetime cimport (
     dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
+    get_implementation_bounds,
     get_unit_from_dtype,
     npy_datetime,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dt64,
+    pydatetime_to_dtstruct,
     string_to_dts,
 )
 
@@ -307,11 +311,15 @@ cdef maybe_localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
     if obj.value != NPY_NAT:
         # check_overflows needs to run after _localize_tso
         check_dts_bounds(&obj.dts, reso)
-        check_overflows(obj)
+        check_overflows(obj, reso)
 
 
-cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
-                                            int32_t nanos=0):
+cdef _TSObject convert_datetime_to_tsobject(
+    datetime ts,
+    tzinfo tz,
+    int32_t nanos=0,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+):
     """
     Convert a datetime (or Timestamp) input `ts`, along with optional timezone
     object `tz` to a _TSObject.
@@ -327,6 +335,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
         timezone for the timezone-aware output
     nanos : int32_t, default is 0
         nanoseconds supplement the precision of the datetime input ts
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
@@ -334,6 +343,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
     """
     cdef:
         _TSObject obj = _TSObject()
+        int64_t pps
 
     obj.fold = ts.fold
     if tz is not None:
@@ -342,34 +352,35 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
         if ts.tzinfo is not None:
             # Convert the current timezone to the passed timezone
             ts = ts.astimezone(tz)
-            obj.value = pydatetime_to_dt64(ts, &obj.dts)
+            pydatetime_to_dtstruct(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
         elif not is_utc(tz):
             ts = _localize_pydatetime(ts, tz)
-            obj.value = pydatetime_to_dt64(ts, &obj.dts)
+            pydatetime_to_dtstruct(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
         else:
             # UTC
-            obj.value = pydatetime_to_dt64(ts, &obj.dts)
+            pydatetime_to_dtstruct(ts, &obj.dts)
             obj.tzinfo = tz
     else:
-        obj.value = pydatetime_to_dt64(ts, &obj.dts)
+        pydatetime_to_dtstruct(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
 
-    if obj.tzinfo is not None and not is_utc(obj.tzinfo):
-        offset = get_utcoffset(obj.tzinfo, ts)
-        obj.value -= int(offset.total_seconds() * 1e9)
-
     if isinstance(ts, ABCTimestamp):
-        obj.value += <int64_t>ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
     if nanos:
-        obj.value += nanos
         obj.dts.ps = nanos * 1000
 
-    check_dts_bounds(&obj.dts)
-    check_overflows(obj)
+    obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+
+    if obj.tzinfo is not None and not is_utc(obj.tzinfo):
+        offset = get_utcoffset(obj.tzinfo, ts)
+        pps = periods_per_second(reso)
+        obj.value -= int(offset.total_seconds() * pps)
+
+    check_dts_bounds(&obj.dts, reso)
+    check_overflows(obj, reso)
     return obj
 
 
@@ -401,7 +412,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     obj.tzinfo = pytz.FixedOffset(tzoffset)
     obj.value = tz_localize_to_utc_single(value, obj.tzinfo)
     if tz is None:
-        check_overflows(obj)
+        check_overflows(obj, NPY_FR_ns)
         return obj
 
     cdef:
@@ -515,13 +526,14 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     return convert_datetime_to_tsobject(dt, tz)
 
 
-cdef inline check_overflows(_TSObject obj):
+cdef inline check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Check that we haven't silently overflowed in timezone conversion
 
     Parameters
     ----------
     obj : _TSObject
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
@@ -532,7 +544,12 @@ cdef inline check_overflows(_TSObject obj):
     OutOfBoundsDatetime
     """
     # GH#12677
-    if obj.dts.year == 1677:
+    cdef:
+        npy_datetimestruct lb, ub
+
+    get_implementation_bounds(reso, &lb, &ub)
+
+    if obj.dts.year == lb.year:
         if not (obj.value < 0):
             from pandas._libs.tslibs.timestamps import Timestamp
             fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
@@ -540,7 +557,7 @@ cdef inline check_overflows(_TSObject obj):
             raise OutOfBoundsDatetime(
                 f"Converting {fmt} underflows past {Timestamp.min}"
             )
-    elif obj.dts.year == 2262:
+    elif obj.dts.year == ub.year:
         if not (obj.value > 0):
             from pandas._libs.tslibs.timestamps import Timestamp
             fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "

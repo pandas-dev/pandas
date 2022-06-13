@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     iNaT,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.util._test_decorators as td
 
@@ -337,6 +338,16 @@ class TestTimestampUnaryOps:
 
     # --------------------------------------------------------------
     # Timestamp.replace
+
+    def test_replace_non_nano(self):
+        ts = Timestamp._from_value_and_reso(
+            91514880000000000, NpyDatetimeUnit.NPY_FR_us.value, None
+        )
+        assert ts.to_pydatetime() == datetime(4869, 12, 28)
+
+        result = ts.replace(year=4900)
+        assert result._reso == ts._reso
+        assert result.to_pydatetime() == datetime(4900, 12, 28)
 
     def test_replace_naive(self):
         # GH#14621, GH#7825

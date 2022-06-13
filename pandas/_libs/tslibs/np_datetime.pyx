@@ -167,6 +167,26 @@ class OutOfBoundsTimedelta(ValueError):
     pass
 
 
+cdef get_implementation_bounds(NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper):
+    if reso == NPY_FR_ns:
+        upper[0] = _NS_MAX_DTS
+        lower[0] = _NS_MIN_DTS
+    elif reso == NPY_FR_us:
+        upper[0] = _US_MAX_DTS
+        lower[0] = _US_MIN_DTS
+    elif reso == NPY_FR_ms:
+        upper[0] = _MS_MAX_DTS
+        lower[0] = _MS_MIN_DTS
+    elif reso == NPY_FR_s:
+        upper[0] = _S_MAX_DTS
+        lower[0] = _S_MIN_DTS
+    elif reso == NPY_FR_m:
+        upper[0] = _M_MAX_DTS
+        lower[0] = _M_MIN_DTS
+    else:
+        raise NotImplementedError(reso)
+
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""
@@ -174,23 +194,7 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
         bint error = False
         npy_datetimestruct cmp_upper, cmp_lower
 
-    if unit == NPY_FR_ns:
-        cmp_upper = _NS_MAX_DTS
-        cmp_lower = _NS_MIN_DTS
-    elif unit == NPY_FR_us:
-        cmp_upper = _US_MAX_DTS
-        cmp_lower = _US_MIN_DTS
-    elif unit == NPY_FR_ms:
-        cmp_upper = _MS_MAX_DTS
-        cmp_lower = _MS_MIN_DTS
-    elif unit == NPY_FR_s:
-        cmp_upper = _S_MAX_DTS
-        cmp_lower = _S_MIN_DTS
-    elif unit == NPY_FR_m:
-        cmp_upper = _M_MAX_DTS
-        cmp_lower = _M_MIN_DTS
-    else:
-        raise NotImplementedError(unit)
+    get_implementation_bounds(unit, &cmp_lower, &cmp_upper)
 
     if cmp_npy_datetimestruct(dts, &cmp_lower) == -1:
         error = True
@@ -229,19 +233,23 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
+cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(dt)
+    dts.month = PyDateTime_GET_MONTH(dt)
+    dts.day = PyDateTime_GET_DAY(dt)
+    dts.hour = PyDateTime_DATE_GET_HOUR(dt)
+    dts.min = PyDateTime_DATE_GET_MINUTE(dt)
+    dts.sec = PyDateTime_DATE_GET_SECOND(dt)
+    dts.us = PyDateTime_DATE_GET_MICROSECOND(dt)
+    dts.ps = dts.as = 0
+
+
 cdef inline int64_t pydatetime_to_dt64(datetime val,
                                        npy_datetimestruct *dts):
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
-    dts.year = PyDateTime_GET_YEAR(val)
-    dts.month = PyDateTime_GET_MONTH(val)
-    dts.day = PyDateTime_GET_DAY(val)
-    dts.hour = PyDateTime_DATE_GET_HOUR(val)
-    dts.min = PyDateTime_DATE_GET_MINUTE(val)
-    dts.sec = PyDateTime_DATE_GET_SECOND(val)
-    dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
-    dts.ps = dts.as = 0
+    pydatetime_to_dtstruct(val, dts)
     return dtstruct_to_dt64(dts)
 
 
