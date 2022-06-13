@@ -74,7 +74,7 @@ def to_orc(
     *,
     engine: Literal["pyarrow"] = "pyarrow",
     index: bool | None = None,
-    engine_kwargs: dict[str, Any] | None = None,
+    engine_kwargs: dict[str, Any] = {},
 ) -> bytes | None:
     """
     Write a DataFrame to the ORC format.
@@ -103,7 +103,7 @@ def to_orc(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-    engine_kwargs: dict[str, Any], optional
+    engine_kwargs : dict[str, Any], default {}
         Additional keyword arguments passed to :func:`pyarrow.orc.write_table`.
 
     Returns
