@@ -29,7 +29,7 @@ env:
 
 jobs:
   build:
-    if: false # Comment this line out to "unfreeze"
+#     if: false # Comment this line out to "unfreeze"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -57,20 +57,22 @@ jobs:
     - name: Install dependencies
       shell: bash -el {0}
       run: |
-        pip install --upgrade pip setuptools wheel
-        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
-        pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov pytest-asyncio>=0.17
-        pip list
+        python3 -VV
+        python3 -m pip install --upgrade pip setuptools wheel
+        #python3 -m pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
+        python3 -m pip install numpy
+        python3 -m pip install git+https://github.com/nedbat/coveragepy.git
+        python3 -m pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov pytest-asyncio>=0.17
+        python3 -m pip list
 
     - name: Build Pandas
       run: |
-        python setup.py build_ext -q -j2
-        pip install -e . --no-build-isolation --no-use-pep517
+        python3 setup.py build_ext -q -j2
+        python3 -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Build Version
       run: |
-        python -c "import pandas; pandas.show_versions();"
+        python3 -c "import pandas; pandas.show_versions();"
 
     - name: Test
       uses: ./.github/actions/run-tests
