@@ -14,6 +14,7 @@ def dt64arr_to_periodarr(
     stamps: npt.NDArray[np.int64],
     freq: int,
     tz: tzinfo | None,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int64]: ...
 def is_date_array_normalized(
     stamps: npt.NDArray[np.int64],

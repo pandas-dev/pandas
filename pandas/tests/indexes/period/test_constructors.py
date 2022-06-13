@@ -183,9 +183,10 @@ class TestPeriodIndex:
         vals = np.arange(100000, 100000 + 10000, 100, dtype=np.int64)
         vals = vals.view(np.dtype("M8[us]"))
 
-        msg = r"Wrong dtype: datetime64\[us\]"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(vals, freq="D")
+        pi = PeriodIndex(vals, freq="D")
+
+        expected = PeriodIndex(vals.astype("M8[ns]"), freq="D")
+        tm.assert_index_equal(pi, expected)
 
     @pytest.mark.parametrize("box", [None, "series", "index"])
     def test_constructor_datetime64arr_ok(self, box):
