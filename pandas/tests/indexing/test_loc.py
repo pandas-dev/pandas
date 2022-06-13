@@ -2869,6 +2869,15 @@ def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
     tm.assert_index_equal(df.index, expected_index, exact=True)
 
 
+def test_loc_set_int_dtype():
+    # GH#23326
+    df = DataFrame([list("abc")])
+    df.loc[:, "col1"] = 5
+
+    expected = DataFrame({0: ["a"], 1: ["b"], 2: ["c"], "col1": [5]})
+    tm.assert_frame_equal(df, expected)
+
+
 class TestLocSeries:
     @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
     def test_loc_uint64(self, val, expected):
