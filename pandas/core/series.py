@@ -33,6 +33,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyArrayLike,
     ArrayLike,
     Axis,
     Dtype,
@@ -553,7 +554,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
         """
         Override generic, we want to set the _typ here.
 
@@ -2073,6 +2074,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
+        Series.drop_duplicates : Return Series with duplicate values removed.
         unique : Top-level unique method for any 1-d array-like object.
         Index.unique : Return Index with unique values from an Index object.
 
@@ -2163,6 +2165,7 @@ Name: Max Speed, dtype: float64
         DataFrame.drop_duplicates : Equivalent method on DataFrame.
         Series.duplicated : Related method on Series, indicating duplicate
             Series values.
+        Series.unique : Return unique values as an array.
 
         Examples
         --------
@@ -5811,7 +5814,7 @@ Keep all original rows and also all original values
     _info_axis_number = 0
     _info_axis_name = "index"
 
-    index: Index = properties.AxisProperty(
+    index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
 

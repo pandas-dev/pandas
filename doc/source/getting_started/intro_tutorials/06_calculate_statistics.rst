@@ -143,8 +143,8 @@ returned.
 
 Calculating a given statistic (e.g. ``mean`` age) *for each category in
 a column* (e.g. male/female in the ``Sex`` column) is a common pattern.
-The ``groupby`` method is used to support this type of operations. More
-general, this fits in the more general ``split-apply-combine`` pattern:
+The ``groupby`` method is used to support this type of operations. This
+fits in the more general ``split-apply-combine`` pattern:
 
 -  **Split** the data into groups
 -  **Apply** a function to each group independently
