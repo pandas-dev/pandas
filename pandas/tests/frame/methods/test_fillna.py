@@ -673,6 +673,16 @@ class TestFillNA:
         df.fillna(axis=1, value=100, limit=1, inplace=True)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
+    def test_inplace_dict_update_view(self, val):
+        # GH#47188
+        df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
+        result_view = df["x"]
+        df.fillna(val, inplace=True)
+        expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_series_equal(result_view, expected["x"])
+
 
 def test_fillna_nonconsolidated_frame():
     # https://github.com/pandas-dev/pandas/issues/36495
