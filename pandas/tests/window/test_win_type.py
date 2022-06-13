@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
@@ -679,6 +683,10 @@ def test_cmov_window_special_linear_range(win_types_special, step):
 
 
 @td.skip_if_no_scipy
+@pytest.mark.skipif(
+    is_ci_environment() and is_platform_windows(),
+    reason="Causes MemoryError on Windows",
+)
 def test_weighted_var_big_window_no_segfault(win_types, center):
     # Github Issue #46772
     x = Series(0)
