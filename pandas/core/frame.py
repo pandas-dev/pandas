@@ -2908,7 +2908,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         engine: Literal["pyarrow"] = "pyarrow",
         index: bool | None = None,
-        engine_kwargs: dict[str, Any] = {},
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> bytes | None:
         """
         Write a DataFrame to the ORC format.
@@ -2933,7 +2933,7 @@ class DataFrame(NDFrame, OpsMixin):
             the RangeIndex will be stored as a range in the metadata so it
             doesn't require much space and is faster. Other indexes will
             be included as columns in the file output.
-        engine_kwargs : dict[str, Any], default {}
+        engine_kwargs : dict[str, Any] or None, default None
             Additional keyword arguments passed to :func:`pyarrow.orc.write_table`.
 
         Returns
@@ -2985,7 +2985,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.orc import to_orc
 
-        return to_orc(self, path, engine=engine, index=index, **engine_kwargs)
+        return to_orc(
+            self, path, engine=engine, index=index, engine_kwargs=engine_kwargs
+        )
 
     @Substitution(
         header_type="bool",

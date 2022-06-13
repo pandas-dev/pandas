@@ -74,7 +74,7 @@ def to_orc(
     *,
     engine: Literal["pyarrow"] = "pyarrow",
     index: bool | None = None,
-    engine_kwargs: dict[str, Any] = {},
+    engine_kwargs: dict[str, Any] | None = None,
 ) -> bytes | None:
     """
     Write a DataFrame to the ORC format.
@@ -103,7 +103,7 @@ def to_orc(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-    engine_kwargs : dict[str, Any], default {}
+    engine_kwargs : dict[str, Any] or None, default None
         Additional keyword arguments passed to :func:`pyarrow.orc.write_table`.
 
     Returns
@@ -132,6 +132,8 @@ def to_orc(
     """
     if index is None:
         index = df.index.names[0] is not None
+    if engine_kwargs is None:
+        engine_kwargs = {}
 
     # If unsupported dtypes are found raise NotImplementedError
     # In Pyarrow 9.0.0 this check will no longer be needed
