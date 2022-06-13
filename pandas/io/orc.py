@@ -143,7 +143,7 @@ def to_orc(
             or is_unsigned_integer_dtype(dtype)
         ):
             raise NotImplementedError(
-                """The dtype of one or more columns is not supported yet."""
+                "The dtype of one or more columns is not supported yet."
             )
 
     if engine != "pyarrow":
@@ -165,7 +165,7 @@ def to_orc(
             )
         except TypeError as e:
             raise NotImplementedError(
-                """The dtype of one or more columns is not supported yet."""
+                "The dtype of one or more columns is not supported yet."
             ) from e
 
     if was_none:
