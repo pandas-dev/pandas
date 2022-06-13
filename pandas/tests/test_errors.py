@@ -23,6 +23,7 @@ import pandas as pd
         "SpecificationError",
         "SettingWithCopyError",
         "SettingWithCopyWarning",
+        "NumExprClobberingError",
     ],
 )
 def test_exception_importable(exc):

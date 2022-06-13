@@ -37,6 +37,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     Axis,
     CompressionOptions,
@@ -757,7 +758,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis: int, labels: Index) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()

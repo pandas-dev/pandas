@@ -13,6 +13,15 @@ from pandas import (
 )
 
 
+def test_construct_with_weeks_unit_overflow():
+    # GH#47268 don't silently wrap around
+    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+        Timedelta(1000000000000000000, unit="W")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+        Timedelta(1000000000000000000.0, unit="W")
+
+
 def test_construct_from_td64_with_unit():
     # ignore the unit, as it may cause silently overflows leading to incorrect
     #  results, and in non-overflow cases is irrelevant GH#46827
@@ -204,15 +213,15 @@ def test_td_from_repr_roundtrip(val):
 
 
 def test_overflow_on_construction():
-    msg = "int too (large|big) to convert"
-
     # GH#3374
     value = Timedelta("1day").value * 20169940
-    with pytest.raises(OverflowError, match=msg):
+    msg = "Cannot cast 1742682816000000000000 from ns to 'ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(value)
 
     # xref GH#17637
-    with pytest.raises(OverflowError, match=msg):
+    msg = "Cannot cast 139993 from D to 'ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(7 * 19999, unit="D")
 
     msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
