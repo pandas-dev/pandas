@@ -1151,11 +1151,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        # Argument 3 to "putmask" has incompatible type "object"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
-        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Nested
-        # Sequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
-        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self._falsey_value)
         result = values.any()
         if skipna:
             return result
@@ -1231,11 +1227,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        # Argument 3 to "putmask" has incompatible type "object"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
-        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Neste
-        # dSequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
-        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self._truthy_value)
         result = values.all()
 
         if skipna:
