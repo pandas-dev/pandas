@@ -12,6 +12,7 @@ import pytest
 from pandas.errors import (
     NumExprClobberingError,
     PerformanceWarning,
+    UndefinedVariableError,
 )
 import pandas.util._test_decorators as td
 
@@ -44,7 +45,6 @@ from pandas.core.computation.expressions import (
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
     SPECIAL_CASE_ARITH_OPS_SYMS,
-    UndefinedVariableError,
     _binary_math_ops,
     _binary_ops_dict,
     _unary_math_ops,

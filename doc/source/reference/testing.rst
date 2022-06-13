@@ -45,6 +45,7 @@ Exceptions and warnings
    errors.SettingWithCopyError
    errors.SettingWithCopyWarning
    errors.SpecificationError
+   errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
 

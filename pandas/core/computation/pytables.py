@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import npt
 from pandas.compat.chainmap import DeepChainMap
+from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -24,10 +25,7 @@ from pandas.core.computation import (
 )
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import (
-    UndefinedVariableError,
-    is_term,
-)
+from pandas.core.computation.ops import is_term
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 

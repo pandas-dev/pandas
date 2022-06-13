@@ -1,6 +1,7 @@
 """
 Expose public exceptions & warnings
 """
+from __future__ import annotations
 
 from pandas._config.config import OptionError  # noqa:F401
 
@@ -326,3 +327,29 @@ class NumExprClobberingError(NameError):
     >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
     ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
     """
+
+
+class UndefinedVariableError(NameError):
+    """
+    Exception is raised when trying to use an undefined variable name in a method
+    like query or eval. It will also specific whether the undefined variable is
+    local or not.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df.query("A > x") # doctest: +SKIP
+    ... # UndefinedVariableError: name 'x' is not defined
+    >>> df.query("A > @y") # doctest: +SKIP
+    ... # UndefinedVariableError: local variable 'y' is not defined
+    >>> pd.eval('x + 1') # doctest: +SKIP
+    ... # UndefinedVariableError: name 'x' is not defined
+    """
+
+    def __init__(self, name: str, is_local: bool | None = None) -> None:
+        base_msg = f"{repr(name)} is not defined"
+        if is_local:
+            msg = f"local variable {base_msg}"
+        else:
+            msg = f"name {base_msg}"
+        super().__init__(msg)

@@ -495,7 +495,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("i - +", engine=engine, parser=parser)
 
     def test_query_scope(self):
-        from pandas.core.computation.ops import UndefinedVariableError
+        from pandas.errors import UndefinedVariableError
 
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
@@ -522,7 +522,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("@a > b > c", engine=engine, parser=parser)
 
     def test_query_doesnt_pickup_local(self):
-        from pandas.core.computation.ops import UndefinedVariableError
+        from pandas.errors import UndefinedVariableError
 
         engine, parser = self.engine, self.parser
         n = m = 10
@@ -618,7 +618,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_nested_raises_on_local_self_reference(self):
-        from pandas.core.computation.ops import UndefinedVariableError
+        from pandas.errors import UndefinedVariableError
 
         df = DataFrame(np.random.randn(5, 3))
 
@@ -678,7 +678,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_query_undefined_local(self):
-        from pandas.core.computation.ops import UndefinedVariableError
+        from pandas.errors import UndefinedVariableError
 
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
@@ -838,7 +838,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
             df.query("index < 20130101 < dates3", engine=engine, parser=parser)
 
     def test_nested_scope(self):
-        from pandas.core.computation.ops import UndefinedVariableError
+        from pandas.errors import UndefinedVariableError
 
         engine = self.engine
         parser = self.parser
