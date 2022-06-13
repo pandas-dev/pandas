@@ -2121,8 +2121,6 @@ default 'raise'
         >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
         NaT
         """
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
 
         if self.tzinfo is None:
             # tz naive, use tz_localize
@@ -2131,7 +2129,8 @@ default 'raise'
             )
         else:
             # Same UTC timestamp, different time zone
-            out = Timestamp(self.value, tz=tz)
+            tz = maybe_get_tz(tz)
+            out = type(self)._from_value_and_reso(self.value, reso=self._reso, tz=tz)
             if out is not NaT:
                 out._set_freq(self._freq)  # avoid warning in constructor
             return out
