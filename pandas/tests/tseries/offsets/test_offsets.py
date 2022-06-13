@@ -556,10 +556,6 @@ class TestCommon(Base):
         # check that the result with non-nano matches nano
         off = self._get_offset(offset_types)
 
-        if type(off) is DateOffset:
-            mark = pytest.mark.xfail(reason="non-nano not implemented")
-            request.node.add_marker(mark)
-
         dti = date_range("2016-01-01", periods=35, freq="D")
 
         arr = dti._data._ndarray.astype(f"M8[{unit}]")
