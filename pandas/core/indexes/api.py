@@ -187,9 +187,7 @@ def safe_sort_index(index: Index) -> Index:
     else:
         array_sorted = cast(np.ndarray, array_sorted)
         if isinstance(index, MultiIndex):
-            index = MultiIndex.from_tuples(
-                array_sorted, names=index.names, dtypes=index.dtypes
-            )
+            index = MultiIndex.from_tuples(array_sorted, names=index.names)
         else:
             index = Index(array_sorted, name=index.name, dtype=index.dtype)
 
