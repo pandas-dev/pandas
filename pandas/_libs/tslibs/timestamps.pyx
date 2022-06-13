@@ -2203,9 +2203,6 @@ default 'raise'
             datetime ts_input
             tzinfo_type tzobj
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         # set to naive if needed
         tzobj = self.tzinfo
         value = self.value
@@ -2218,7 +2215,7 @@ default 'raise'
             value = tz_convert_from_utc_single(value, tzobj, reso=self._reso)
 
         # setup components
-        dt64_to_dtstruct(value, &dts)
+        pandas_datetime_to_datetimestruct(value, self._reso, &dts)
         dts.ps = self.nanosecond * 1000
 
         # replace
@@ -2265,12 +2262,16 @@ default 'raise'
                       'fold': fold}
             ts_input = datetime(**kwargs)
 
-        ts = convert_datetime_to_tsobject(ts_input, tzobj)
+        ts = convert_datetime_to_tsobject(ts_input, tzobj, nanos=0, reso=self._reso)
+        # TODO: passing nanos=dts.ps // 1000 causes a RecursionError in
+        #  TestTimestampConstructors.test_constructor; not clear why
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
-            check_dts_bounds(&dts)
+            check_dts_bounds(&dts, self._reso)
 
-        return create_timestamp_from_ts(value, dts, tzobj, self._freq, fold)
+        return create_timestamp_from_ts(
+            value, dts, tzobj, self._freq, fold, reso=self._reso
+        )
 
     def to_julian_date(self) -> np.float64:
         """
