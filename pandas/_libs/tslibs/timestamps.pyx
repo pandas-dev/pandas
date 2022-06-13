@@ -370,9 +370,6 @@ cdef class _Timestamp(ABCTimestamp):
         cdef:
             int64_t nanos = 0
 
-        if isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         if is_any_td_scalar(other):
             if is_timedelta64_object(other):
                 other_reso = get_datetime64_unit(other)
@@ -390,19 +387,30 @@ cdef class _Timestamp(ABCTimestamp):
                     # TODO: no tests get here
                     other = ensure_td64ns(other)
 
+            # TODO: what to do with mismatched resos?
             # TODO: disallow round_ok
             nanos = delta_to_nanoseconds(
                 other, reso=self._reso, round_ok=True
             )
             try:
-                result = type(self)(self.value + nanos, tz=self.tzinfo)
+                new_value = self.value + nanos
             except OverflowError:
                 # Use Python ints
                 # Hit in test_tdi_add_overflow
-                result = type(self)(int(self.value) + int(nanos), tz=self.tzinfo)
+                new_value = int(self.value) + int(nanos)
+
+            try:
+                result = type(self)._from_value_and_reso(new_value, reso=self._reso, tz=self.tzinfo)
+            except OverflowError as err:
+                # TODO: don't hard-code nanosecond here
+                raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {new_value}") from err
+
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
             return result
+
+        elif isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
+            raise NotImplementedError(self._reso)
 
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
@@ -431,12 +439,15 @@ cdef class _Timestamp(ABCTimestamp):
         return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
+        if other is NaT:
+            return NaT
 
-        if is_any_td_scalar(other) or is_integer_object(other):
+        elif is_any_td_scalar(other) or is_integer_object(other):
             neg_other = -other
             return self + neg_other
+
+        elif isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
+            raise NotImplementedError(self._reso)
 
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
@@ -449,9 +460,6 @@ cdef class _Timestamp(ABCTimestamp):
                     dtype=object,
                 )
             return NotImplemented
-
-        if other is NaT:
-            return NaT
 
         # coerce if necessary if we are a Timestamp-like
         if (PyDateTime_Check(self)
