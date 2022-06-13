@@ -818,7 +818,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     >>> df.groupby('A').agg(lambda x: sum(x) + 2)
         B	       C
-    A		
+    A
     1	5	2.590715
     2	9	2.704907
 
