@@ -534,6 +534,20 @@ class TestSetitemWithExpansion:
         expected = concat([string_series, app])
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_keep_precision(self, any_numeric_ea_dtype):
+        # GH#32346
+        ser = Series([1, 2], dtype=any_numeric_ea_dtype)
+        ser[2] = 10
+        expected = Series([1, 2, 10], dtype=any_numeric_ea_dtype)
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_enlarge_with_na(self):
+        # GH#32346
+        ser = Series([1, 2], dtype="Int64")
+        ser[2] = NA
+        expected = Series([1, 2, NA], dtype="Int64")
+        tm.assert_series_equal(ser, expected)
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
