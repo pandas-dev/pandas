@@ -318,9 +318,7 @@ class JSONTableWriter(FrameWriter):
     decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
 )
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
-@deprecate_nonkeyword_arguments(
-    version="2.0", allowed_args=["path_or_buf"], stacklevel=3
-)
+@deprecate_nonkeyword_arguments(version="2.0", allowed_args=["path_or_buf"])
 def read_json(
     path_or_buf=None,
     orient=None,

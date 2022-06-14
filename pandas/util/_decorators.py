@@ -261,7 +261,6 @@ def future_version_msg(version: str | None) -> str:
 def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
-    stacklevel: int = None,
     name: str | None = None,
 ) -> Callable[[F], F]:
     """
@@ -280,9 +279,6 @@ def deprecate_nonkeyword_arguments(
         OK to be given as positional arguments. In case of None value,
         defaults to list of all arguments not having the
         default value.
-
-    stacklevel : int
-        The stack level for warnings.warn
 
     name : str, optional
         The specific name of the function to show in the warning
@@ -305,7 +301,6 @@ def deprecate_nonkeyword_arguments(
             f"{future_version_msg(version)} all arguments of "
             f"{name or func.__qualname__}{{arguments}} will be keyword-only."
         )
-        stacklevel = find_stack_level()
 
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -314,7 +309,7 @@ def deprecate_nonkeyword_arguments(
                 warnings.warn(
                     msg.format(arguments=arguments),
                     FutureWarning,
-                    stacklevel=stacklevel,
+                    stacklevel=find_stack_level(),
                 )
             return func(*args, **kwargs)
 
