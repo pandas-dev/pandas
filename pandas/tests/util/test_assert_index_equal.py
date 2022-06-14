@@ -249,3 +249,10 @@ def test_assert_index_equal_ea_dtype_order_false(any_numeric_ea_dtype):
     idx1 = Index([1, 3], dtype=any_numeric_ea_dtype)
     idx2 = Index([3, 1], dtype=any_numeric_ea_dtype)
     tm.assert_index_equal(idx1, idx2, check_order=False)
+
+
+def test_assert_index_equal_object_ints_order_false(any_numeric_ea_dtype):
+    # GH#47207
+    idx1 = Index([1, 3], dtype="object")
+    idx2 = Index([3, 1], dtype="object")
+    tm.assert_index_equal(idx1, idx2, check_order=False)
