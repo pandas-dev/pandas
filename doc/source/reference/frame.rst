@@ -373,6 +373,7 @@ Serialization / IO / conversion
 
    DataFrame.from_dict
    DataFrame.from_records
+   DataFrame.to_orc
    DataFrame.to_parquet
    DataFrame.to_pickle
    DataFrame.to_csv
