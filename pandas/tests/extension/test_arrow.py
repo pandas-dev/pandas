@@ -198,6 +198,11 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 
 class TestBaseDtype(base.BaseDtypeTests):
+    def test_construct_from_string_another_type_raises(self, dtype):
+        msg = r"'another_type' must end with '\[pyarrow\]'"
+        with pytest.raises(TypeError, match=msg):
+            type(dtype).construct_from_string("another_type")
+
     def test_get_common_dtype(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if (
@@ -226,4 +231,4 @@ class TestBaseIndex(base.BaseIndexTests):
 
 def test_arrowdtype_construct_from_string_type_with_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("timestamp[s][pyarrow]")
+        ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
