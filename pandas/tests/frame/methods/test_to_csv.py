@@ -1293,6 +1293,7 @@ class TestDataFrameToCSV:
         df["b"] = df["b"].astype("category")
         result = df.to_csv()
         expected = ",a,b\n0,x,1\n1,x,\n"
+        expected = tm.convert_rows_list_to_csv_str(expected)
         assert result == expected
 
     def test_to_csv_categorical_and_interval(self):
@@ -1303,4 +1304,5 @@ class TestDataFrameToCSV:
         df["a"] = df["a"].astype("category")  # astype("object") does not raise an error
         result = df.to_csv()
         expected = ',a\n0,"[2020-01-01, 2020-01-02]"\n'
+        expected = tm.convert_rows_list_to_csv_str(expected)
         assert result == expected
