@@ -610,4 +610,7 @@ class TestDataFramePlots(TestPlotBase):
             index=[interval_range(0, 2)],
         )
         _check_plot_works(s.plot.bar)
-        assert s.plot.bar().get_xticklabels() == expected
+        assert all(
+            (a.get_text() == b.get_text())
+            for a, b in zip(s.plot.bar().get_xticklabels(), expected)
+        )
