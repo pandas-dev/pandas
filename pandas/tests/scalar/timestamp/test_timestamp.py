@@ -914,11 +914,22 @@ class TestNonNano:
         assert result.month == 12
         assert tz_compare(result.tz, ts_tz.tz)
 
+        result = ts_tz - off
+
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts_tz._reso
+        assert result.year == ts_tz.year - 1
+        assert result.day == 31
+        assert result.month == 12
+        assert tz_compare(result.tz, ts_tz.tz)
+
     def test_sub_datetimelike_mismatched_reso(self, ts_tz):
         # case with non-lossy rounding
         ts = ts_tz
 
-        #  choose a unit for `other` that doesn't match ts_tz's
+        # choose a unit for `other` that doesn't match ts_tz's;
+        #  this construction ensures we get cases with other._reso < ts._reso
+        #  and cases with other._reso > ts._reso
         unit = {
             NpyDatetimeUnit.NPY_FR_us.value: "ms",
             NpyDatetimeUnit.NPY_FR_ms.value: "s",
@@ -937,8 +948,7 @@ class TestNonNano:
         assert result.value == 0
         assert result._reso == min(ts._reso, other._reso)
 
-        # TODO: clarify in message that add/sub is allowed only when lossless?
-        msg = "Cannot losslessly convert units"
+        msg = "Timestamp subtraction with mismatched resolutions"
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)

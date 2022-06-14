@@ -479,10 +479,17 @@ cdef class _Timestamp(ABCTimestamp):
 
             # We allow silent casting to the lower resolution if and only
             #  if it is lossless.
-            if self._reso < other._reso:
-                other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
-            elif self._reso > other._reso:
-                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+            try:
+                if self._reso < other._reso:
+                    other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
+                elif self._reso > other._reso:
+                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+            except ValueError as err:
+                raise ValueError(
+                    "Timestamp subtraction with mismatched resolutions is not "
+                    "allowed when casting to the lower resolution would require "
+                    "lossy rounding."
+                ) from err
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
