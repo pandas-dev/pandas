@@ -143,8 +143,8 @@ def _get_colors_from_colormap(
     num_colors: int,
 ) -> list[Color]:
     """Get colors from colormap."""
-    colormap = _get_cmap_instance(colormap)
-    return [colormap(num) for num in np.linspace(0, 1, num=num_colors)]
+    cmap = _get_cmap_instance(colormap)
+    return [cmap(num) for num in np.linspace(0, 1, num=num_colors)]
 
 
 def _get_cmap_instance(colormap: str | Colormap) -> Colormap:
