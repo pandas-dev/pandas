@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -185,7 +186,7 @@ def _get_ax_freq(ax: Axes):
     return ax_freq
 
 
-def _get_period_alias(freq: BaseOffset | str) -> str | None:
+def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     freqstr = to_offset(freq).rule_code
 
     return get_period_alias(freqstr)
