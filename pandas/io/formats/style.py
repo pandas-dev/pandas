@@ -3865,8 +3865,8 @@ def _highlight_between(
         # Timedelta, Interval[Any], datetime64, timedelta64,
         # datetime, Sequence[Any], ndarray[Any, Any], NDFrame, None]";
         # expected "Union[NDFrame, Sequence[Any], ndarray[Any, Any]]"
-        left = _validate_apply_axis_arg(  # type: ignore[arg-type]
-            left, "left", None, data
+        left = _validate_apply_axis_arg(
+            left, "left", None, data  # type: ignore[arg-type]
         )
 
     if np.iterable(right) and not isinstance(right, str):
@@ -3875,8 +3875,8 @@ def _highlight_between(
         # Timedelta, Interval[Any], datetime64, timedelta64,
         # datetime, Sequence[Any], ndarray[Any, Any], NDFrame, None]";
         # expected "Union[NDFrame, Sequence[Any], ndarray[Any, Any]]"
-        right = _validate_apply_axis_arg(  # type: ignore[arg-type]
-            right, "right", None, data
+        right = _validate_apply_axis_arg(
+            right, "right", None, data  # type: ignore[arg-type]
         )
 
     # get ops with correct boundary attribution

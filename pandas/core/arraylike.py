@@ -267,8 +267,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     # Determine if we should defer.
     # error: "Type[ndarray[Any, Any]]" has no attribute "__array_ufunc__"
     no_defer = (
-        np.ndarray.__array_ufunc__,  # type: ignore[comparison-overlap]
-        cls.__array_ufunc__,  # type: ignore[comparison-overlap]
+        np.ndarray.__array_ufunc__,  # type: ignore[attr-defined]
+        cls.__array_ufunc__,
     )
 
     for item in inputs:

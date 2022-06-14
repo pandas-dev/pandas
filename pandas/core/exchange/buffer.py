@@ -58,7 +58,7 @@ class PandasBuffer(Buffer):
         """
         if _NUMPY_HAS_DLPACK:
             # error: "ndarray[Any, Any]" has no attribute "__dlpack__"
-            return self._x.__dlpack__()  # type: ignore[arg-type]
+            return self._x.__dlpack__()  # type: ignore[arg-defined]
         raise NotImplementedError("__dlpack__")
 
     def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
