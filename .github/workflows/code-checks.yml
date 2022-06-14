@@ -58,14 +58,8 @@ jobs:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
-    - uses: conda-incubator/setup-miniconda@v2.1.1
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
-        environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
       id: build
@@ -127,14 +121,8 @@ jobs:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
-    - uses: conda-incubator/setup-miniconda@v2.1.1
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
-        environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
       id: build

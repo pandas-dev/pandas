@@ -263,6 +263,9 @@ class TestTimedeltaIndex:
         result = TimedeltaIndex(tdi._data, freq=None)
         assert result.freq is None
 
+        tda = TimedeltaArray(tdi, freq=None)
+        assert tda.freq is None
+
     def test_from_categorical(self):
         tdi = timedelta_range(1, periods=5)
 

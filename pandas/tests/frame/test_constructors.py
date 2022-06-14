@@ -2575,7 +2575,8 @@ class TestDataFrameConstructors:
 
         # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
-        df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
+        with tm.assert_produces_warning(FutureWarning, match="will attempt to set"):
+            df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
         if not copy:
             check_views(True)
@@ -2664,6 +2665,12 @@ class TestDataFrameConstructors:
             dtype=object,
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_construction_empty_array_multi_column_raises(self):
+        # GH#46822
+        msg = "Empty data passed with indices specified."
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(data=np.array([]), columns=["a", "b"])
 
 
 class TestDataFrameConstructorIndexInference:
