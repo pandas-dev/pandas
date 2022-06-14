@@ -23,6 +23,7 @@ from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
     maybe_get_tz,
+    tz_compare,
 )
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
@@ -763,6 +764,16 @@ class TestNonNano:
     def test_month_name(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.month_name() == alt.month_name()
+
+    def test_tz_convert(self, ts):
+        ts = Timestamp._from_value_and_reso(ts.value, ts._reso, utc)
+
+        tz = pytz.timezone("US/Pacific")
+        result = ts.tz_convert(tz)
+
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert tz_compare(result.tz, tz)
 
     def test_repr(self, dt64, ts):
         alt = Timestamp(dt64)
