@@ -9,7 +9,11 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    NumExprClobberingError,
+    PerformanceWarning,
+    UndefinedVariableError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -27,10 +31,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import pytables
-from pandas.core.computation.engines import (
-    ENGINES,
-    NumExprClobberingError,
-)
+from pandas.core.computation.engines import ENGINES
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
@@ -44,7 +45,6 @@ from pandas.core.computation.expressions import (
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
     SPECIAL_CASE_ARITH_OPS_SYMS,
-    UndefinedVariableError,
     _binary_math_ops,
     _binary_ops_dict,
     _unary_math_ops,

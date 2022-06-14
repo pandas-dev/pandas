@@ -70,6 +70,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport (
+    _Timedelta,
     delta_to_nanoseconds,
     is_any_td_scalar,
 )
@@ -1140,7 +1141,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
-                dt64other = dt64other + Timedelta(days=7 * weeks)
+                delta = Timedelta(days=7 * weeks)
+                td = (<_Timedelta>delta)._as_reso(reso)
+                dt64other = dt64other + td
 
             timedelta_kwds = {
                 k: v
@@ -1149,13 +1152,14 @@ cdef class RelativeDeltaOffset(BaseOffset):
             }
             if timedelta_kwds:
                 delta = Timedelta(**timedelta_kwds)
-                dt64other = dt64other + (self.n * delta)
-                # FIXME: fails to preserve non-nano
+                td = (<_Timedelta>delta)._as_reso(reso)
+                dt64other = dt64other + (self.n * td)
             return dt64other
         elif not self._use_relativedelta and hasattr(self, "_offset"):
             # timedelta
-            # FIXME: fails to preserve non-nano
-            return dt64other + Timedelta(self._offset * self.n)
+            delta = Timedelta(self._offset * self.n)
+            td = (<_Timedelta>delta)._as_reso(reso)
+            return dt64other + td
         else:
             # relativedelta with other keywords
             kwd = set(kwds) - relativedelta_fast

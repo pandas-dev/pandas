@@ -549,8 +549,13 @@ ext_data = {
     "_libs.tslibs.tzconversion": {
         "pyxfile": "_libs/tslibs/tzconversion",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
-    "_libs.tslibs.vectorized": {"pyxfile": "_libs/tslibs/vectorized"},
+    "_libs.tslibs.vectorized": {
+        "pyxfile": "_libs/tslibs/vectorized",
+        "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+    },
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",

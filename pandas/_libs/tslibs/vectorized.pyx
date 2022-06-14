@@ -33,6 +33,7 @@ from .np_datetime cimport (
     NPY_FR_ns,
     dt64_to_dtstruct,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
 )
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
@@ -43,7 +44,7 @@ from .tzconversion cimport Localizer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_convert_from_utc(ndarray stamps, tzinfo tz):
+def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     # stamps is int64_t, arbitrary ndim
     """
     Convert the values (in i8) from UTC to tz
@@ -58,7 +59,7 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz):
     ndarray[int64]
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t pos, i, n = stamps.size
 
@@ -130,7 +131,7 @@ def ints_to_pydatetime(
     ndarray[object] of type specified by box
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=NPY_FR_ns)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -226,17 +227,19 @@ cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_resolution(ndarray stamps, tzinfo tz=None) -> Resolution:
+def get_resolution(
+    ndarray stamps, tzinfo tz=None, NPY_DATETIMEUNIT reso=NPY_FR_ns
+) -> Resolution:
     # stamps is int64_t, any ndim
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         cnp.flatiter it = cnp.PyArray_IterNew(stamps)
 
         npy_datetimestruct dts
-        c_Resolution reso = c_Resolution.RESO_DAY, curr_reso
+        c_Resolution pd_reso = c_Resolution.RESO_DAY, curr_reso
 
     for i in range(n):
         # Analogous to: utc_val = stamps[i]
@@ -247,14 +250,14 @@ def get_resolution(ndarray stamps, tzinfo tz=None) -> Resolution:
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
 
-            dt64_to_dtstruct(local_val, &dts)
+            pandas_datetime_to_datetimestruct(local_val, reso, &dts)
             curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
+            if curr_reso < pd_reso:
+                pd_reso = curr_reso
 
         cnp.PyArray_ITER_NEXT(it)
 
-    return Resolution(reso)
+    return Resolution(pd_reso)
 
 
 # -------------------------------------------------------------------------
@@ -281,7 +284,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNI
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val, res_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -328,7 +331,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
     is_normalized : bool True if all stamps are normalized
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -354,10 +357,12 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
+def dt64arr_to_periodarr(
+    ndarray stamps, int freq, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_ns
+):
     # stamps is int64_t, arbitrary ndim
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         int64_t utc_val, local_val, res_val
@@ -374,7 +379,7 @@ def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
             res_val = NPY_NAT
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
-            dt64_to_dtstruct(local_val, &dts)
+            pandas_datetime_to_datetimestruct(local_val, reso, &dts)
             res_val = get_period_ordinal(&dts, freq)
 
         # Analogous to: result[i] = res_val

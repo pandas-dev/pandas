@@ -35,6 +35,7 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas._typing import F
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -216,7 +217,7 @@ def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     )
 
 
-def parametrize_fixture_doc(*args):
+def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
     this function will wrap the decorated function with a pytest

@@ -47,6 +47,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     NPY_FR_us,
+    astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -71,7 +72,7 @@ from pandas._libs.tslibs.timedeltas cimport (
     is_any_td_scalar,
 )
 
-from pandas._libs.tslibs.conversion import ensure_datetime64ns
+from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
@@ -981,7 +982,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
             dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
             dta = periodarr.base.view("M8[D]")
-        return ensure_datetime64ns(dta)
+        return astype_overflowsafe(dta, dtype=DT64NS_DTYPE)
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
@@ -1727,10 +1728,12 @@ cdef class _Period(PeriodMixin):
         elif util.is_integer_object(other):
             ordinal = self.ordinal + other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
-        elif (PyDateTime_Check(other) or
-              is_period_object(other) or util.is_datetime64_object(other)):
+
+        elif is_period_object(other):
             # can't add datetime-like
-            # GH#17983
+            # GH#17983; can't just return NotImplemented bc we get a RecursionError
+            #  when called via np.add.reduce see TestNumpyReductions.test_add
+            #  in npdev build
             sname = type(self).__name__
             oname = type(other).__name__
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
@@ -1749,16 +1752,12 @@ cdef class _Period(PeriodMixin):
                 return NaT
             return NotImplemented
 
-        elif is_any_td_scalar(other):
-            neg_other = -other
-            return self + neg_other
-        elif is_offset_object(other):
-            # Non-Tick DateOffset
-            neg_other = -other
-            return self + neg_other
-        elif util.is_integer_object(other):
-            ordinal = self.ordinal - other * self.freq.n
-            return Period(ordinal=ordinal, freq=self.freq)
+        elif (
+            is_any_td_scalar(other)
+            or is_offset_object(other)
+            or util.is_integer_object(other)
+        ):
+            return self + (-other)
         elif is_period_object(other):
             self._require_matching_freq(other)
             # GH 23915 - mul by base freq since __add__ is agnostic of n

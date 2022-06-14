@@ -31,10 +31,12 @@ from pandas._libs.tslibs.ccalendar cimport (
     DAY_NANOS,
     HOUR_NANOS,
 )
+from pandas._libs.tslibs.dtypes cimport periods_per_second
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
-    dt64_to_dtstruct,
+    NPY_DATETIMEUNIT,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
 )
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -54,6 +56,7 @@ cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
 cdef class Localizer:
     # cdef:
     #    tzinfo tz
+    #    NPY_DATETIMEUNIT _reso
     #    bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
     #    ndarray trans
     #    Py_ssize_t ntrans
@@ -63,8 +66,9 @@ cdef class Localizer:
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
-    def __cinit__(self, tzinfo tz):
+    def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT reso):
         self.tz = tz
+        self._reso = reso
         self.use_utc = self.use_tzlocal = self.use_fixed = False
         self.use_dst = self.use_pytz = False
         self.ntrans = -1  # placeholder
@@ -80,6 +84,23 @@ cdef class Localizer:
 
         else:
             trans, deltas, typ = get_dst_info(tz)
+            if reso != NPY_DATETIMEUNIT.NPY_FR_ns:
+                # NB: using floordiv here is implicitly assuming we will
+                #  never see trans or deltas that are not an integer number
+                #  of seconds.
+                # TODO: avoid these np.array calls
+                if reso == NPY_DATETIMEUNIT.NPY_FR_us:
+                    trans = np.array(trans) // 1_000
+                    deltas = np.array(deltas) // 1_000
+                elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+                    trans = np.array(trans) // 1_000_000
+                    deltas = np.array(deltas) // 1_000_000
+                elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
+                    trans = np.array(trans) // 1_000_000_000
+                    deltas = np.array(deltas) // 1_000_000_000
+                else:
+                    raise NotImplementedError(reso)
+
             self.trans = trans
             self.ntrans = self.trans.shape[0]
             self.deltas = deltas
@@ -87,12 +108,12 @@ cdef class Localizer:
             if typ != "pytz" and typ != "dateutil":
                 # static/fixed; in this case we know that len(delta) == 1
                 self.use_fixed = True
-                self.delta = self.deltas[0]
+                self.delta = deltas[0]
             else:
                 self.use_dst = True
                 if typ == "pytz":
                     self.use_pytz = True
-                self.tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
+                self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
     @cython.boundscheck(False)
     cdef inline int64_t utc_val_to_local_val(
@@ -102,7 +123,7 @@ cdef class Localizer:
             return utc_val
         elif self.use_tzlocal:
             return utc_val + _tz_localize_using_tzinfo_api(
-                utc_val, self.tz, to_utc=False, fold=fold
+                utc_val, self.tz, to_utc=False, reso=self._reso, fold=fold
             )
         elif self.use_fixed:
             return utc_val + self.delta
@@ -117,7 +138,11 @@ cdef class Localizer:
 
 
 cdef int64_t tz_localize_to_utc_single(
-    int64_t val, tzinfo tz, object ambiguous=None, object nonexistent=None,
+    int64_t val,
+    tzinfo tz,
+    object ambiguous=None,
+    object nonexistent=None,
+    NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns,
 ) except? -1:
     """See tz_localize_to_utc.__doc__"""
     cdef:
@@ -131,7 +156,7 @@ cdef int64_t tz_localize_to_utc_single(
         return val
 
     elif is_tzlocal(tz) or is_zoneinfo(tz):
-        return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True)
+        return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True, reso=reso)
 
     elif is_fixed_offset(tz):
         _, deltas, _ = get_dst_info(tz)
@@ -144,13 +169,19 @@ cdef int64_t tz_localize_to_utc_single(
             tz,
             ambiguous=ambiguous,
             nonexistent=nonexistent,
+            reso=reso,
         )[0]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_localize_to_utc(ndarray[int64_t] vals, tzinfo tz, object ambiguous=None,
-                       object nonexistent=None):
+def tz_localize_to_utc(
+    ndarray[int64_t] vals,
+    tzinfo tz,
+    object ambiguous=None,
+    object nonexistent=None,
+    NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns,
+):
     """
     Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -177,6 +208,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, tzinfo tz, object ambiguous=None,
     nonexistent : {None, "NaT", "shift_forward", "shift_backward", "raise", \
 timedelta-like}
         How to handle non-existent times when converting wall times to UTC
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
@@ -196,7 +228,7 @@ timedelta-like}
         bint shift_forward = False, shift_backward = False
         bint fill_nonexist = False
         str stamp
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
 
     # Vectorized version of DstTzInfo.localize
     if info.use_utc:
@@ -210,7 +242,7 @@ timedelta-like}
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                result[i] = v - _tz_localize_using_tzinfo_api(v, tz, to_utc=True)
+                result[i] = v - _tz_localize_using_tzinfo_api(v, tz, to_utc=True, reso=reso)
         return result.base  # to return underlying ndarray
 
     elif info.use_fixed:
@@ -512,7 +544,9 @@ cdef ndarray[int64_t] _get_dst_hours(
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz) except? -1:
+cpdef int64_t tz_convert_from_utc_single(
+    int64_t utc_val, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns
+) except? -1:
     """
     Convert the val (in i8) from UTC to tz
 
@@ -522,13 +556,14 @@ cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz) except? -1:
     ----------
     utc_val : int64
     tz : tzinfo
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
     converted: int64
     """
     cdef:
-        Localizer info = Localizer(tz)
+        Localizer info = Localizer(tz, reso=reso)
         Py_ssize_t pos
 
     # Note: caller is responsible for ensuring utc_val != NPY_NAT
@@ -538,7 +573,11 @@ cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz) except? -1:
 # OSError may be thrown by tzlocal on windows at or close to 1970-01-01
 #  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
 cdef int64_t _tz_localize_using_tzinfo_api(
-    int64_t val, tzinfo tz, bint to_utc=True, bint* fold=NULL
+    int64_t val,
+    tzinfo tz,
+    bint to_utc=True,
+    NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns,
+    bint* fold=NULL,
 ) except? -1:
     """
     Convert the i8 representation of a datetime from a general-case timezone to
@@ -552,6 +591,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     tz : tzinfo
     to_utc : bint
         True if converting _to_ UTC, False if going the other direction.
+    reso : NPY_DATETIMEUNIT
     fold : bint*, default NULL
         pointer to fold: whether datetime ends up in a fold or not
         after adjustment.
@@ -571,8 +611,9 @@ cdef int64_t _tz_localize_using_tzinfo_api(
         datetime dt
         int64_t delta
         timedelta td
+        int64_t pps = periods_per_second(reso)
 
-    dt64_to_dtstruct(val, &dts)
+    pandas_datetime_to_datetimestruct(val, reso, &dts)
 
     # datetime_new is cython-optimized constructor
     if not to_utc:
@@ -590,7 +631,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
                           dts.min, dts.sec, dts.us, None)
 
     td = tz.utcoffset(dt)
-    delta = int(td.total_seconds() * 1_000_000_000)
+    delta = int(td.total_seconds() * pps)
     return delta
 
 

@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 
 
-@pytest.fixture(scope="package")
+@pytest.fixture
 def df_from_dict():
     def maker(dct, is_categorical=False):
         df = pd.DataFrame(dct)

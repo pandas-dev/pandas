@@ -35,6 +35,7 @@ Exceptions and warnings
    errors.MergeError
    errors.NullFrequencyError
    errors.NumbaUtilError
+   errors.NumExprClobberingError
    errors.OptionError
    errors.OutOfBoundsDatetime
    errors.OutOfBoundsTimedelta
@@ -44,6 +45,7 @@ Exceptions and warnings
    errors.SettingWithCopyError
    errors.SettingWithCopyWarning
    errors.SpecificationError
+   errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
 
