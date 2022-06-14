@@ -839,24 +839,24 @@ class TestExcelWriter:
         tm.assert_frame_equal(frame1, frame3)
 
     def test_to_excel_empty_multiindex(self, path):
-        # Test writing and re-reading an empty MI. GH 19543.
+        # GH 19543.
 
         # Initial non-MI frame.
-        frame1 = DataFrame([[], [], []]).T
+        expected = DataFrame([], columns=[0, 1, 2])
 
-        # Add a MI.
-        frame2 = frame1.set_index([0, 1])
+        # Frame with empty MI.
+        df = DataFrame([], index=MultiIndex.from_tuples([], names=[0, 1]), columns=[2])
 
         # Write out to Excel.
-        frame2.to_excel(path, "test1")
+        df.to_excel(path, "test1")
 
         # Read it back in.
         with ExcelFile(path) as reader:
-            frame3 = pd.read_excel(reader, sheet_name="test1")
+            result = pd.read_excel(reader, sheet_name="test1")
 
         # Test that it is the same as the initial frame
         # (do not check index and dtype due to empty frame).
-        tm.assert_frame_equal(frame1, frame3, check_index_type=False, check_dtype=False)
+        tm.assert_frame_equal(result, expected, check_index_type=False, check_dtype=False)
 
     def test_to_excel_float_format(self, path):
         df = DataFrame(
