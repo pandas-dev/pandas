@@ -548,6 +548,13 @@ class TestSetitemWithExpansion:
         expected = Series([1, 2, NA], dtype="Int64")
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_enlarge_with_nan(self):
+        # GH#32346
+        ser = Series([1, 2])
+        ser[2] = np.nan
+        expected = Series([1, 2, np.nan])
+        tm.assert_series_equal(ser, expected)
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer

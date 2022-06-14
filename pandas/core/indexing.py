@@ -2087,7 +2087,7 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value and of the object
-            if isna(value):
+            if isna(value == value):
                 new_dtype = self.obj.dtype
             elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
                 # We should not cast, if we have object dtype because we can
