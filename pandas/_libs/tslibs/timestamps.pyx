@@ -157,14 +157,7 @@ cdef inline _Timestamp create_timestamp_from_ts(
 
 def _unpickle_timestamp(value, freq, tz, reso=NPY_FR_ns):
     # GH#41949 dont warn on unpickle if we have a freq
-    if reso == NPY_FR_ns:
-        ts = Timestamp(value, tz=tz)
-    else:
-        if tz is not None:
-            raise NotImplementedError
-        abbrev = npy_unit_to_abbrev(reso)
-        dt64 = np.datetime64(value, abbrev)
-        ts = Timestamp._from_dt64(dt64)
+    ts = Timestamp._from_value_and_reso(value, reso, tz)
     ts._set_freq(freq)
     return ts
 
@@ -2121,8 +2114,6 @@ default 'raise'
         >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
         NaT
         """
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
 
         if self.tzinfo is None:
             # tz naive, use tz_localize
@@ -2131,7 +2122,8 @@ default 'raise'
             )
         else:
             # Same UTC timestamp, different time zone
-            out = Timestamp(self.value, tz=tz)
+            tz = maybe_get_tz(tz)
+            out = type(self)._from_value_and_reso(self.value, reso=self._reso, tz=tz)
             if out is not NaT:
                 out._set_freq(self._freq)  # avoid warning in constructor
             return out
