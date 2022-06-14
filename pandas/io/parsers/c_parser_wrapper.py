@@ -383,7 +383,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            if common_type == object:
+            if common_type == np.dtype(object):
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()

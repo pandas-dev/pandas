@@ -3860,10 +3860,24 @@ def _highlight_between(
     Return an array of css props based on condition of data values within given range.
     """
     if np.iterable(left) and not isinstance(left, str):
-        left = _validate_apply_axis_arg(left, "left", None, data)
+        # error: Argument 1 to "_validate_apply_axis_arg"
+        # has incompatible type "Union[str, float, Period,
+        # Timedelta, Interval[Any], datetime64, timedelta64,
+        # datetime, Sequence[Any], ndarray[Any, Any], NDFrame, None]";
+        # expected "Union[NDFrame, Sequence[Any], ndarray[Any, Any]]"
+        left = _validate_apply_axis_arg(  # type: ignore[arg-type]
+            left, "left", None, data
+        )
 
     if np.iterable(right) and not isinstance(right, str):
-        right = _validate_apply_axis_arg(right, "right", None, data)
+        # error: Argument 1 to "_validate_apply_axis_arg"
+        # has incompatible type "Union[str, float, Period,
+        # Timedelta, Interval[Any], datetime64, timedelta64,
+        # datetime, Sequence[Any], ndarray[Any, Any], NDFrame, None]";
+        # expected "Union[NDFrame, Sequence[Any], ndarray[Any, Any]]"
+        right = _validate_apply_axis_arg(  # type: ignore[arg-type]
+            right, "right", None, data
+        )
 
     # get ops with correct boundary attribution
     if inclusive == "both":

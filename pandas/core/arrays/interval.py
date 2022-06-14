@@ -687,7 +687,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, inclusive=self.inclusive)
-        if np.ndim(left) > 1:
+        # error: Argument 1 to "ndim" has incompatible type
+        # "Union[ndarray[Any, Any], ExtensionArray]"; expected
+        # "Union[Sequence[Sequence[Sequence[Sequence[Sequence[Any]]]]],
+        # Union[Union[_SupportsArray[dtype[Any]],
+        # Sequence[_SupportsArray[dtype[Any]]],
+        # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
+        # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]],
+        # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]],
+        # Union[bool, int, float, complex, str, bytes,
+        # Sequence[Union[bool, int, float, complex, str, bytes]],
+        # Sequence[Sequence[Union[bool, int, float, complex, str, bytes]]],
+        # Sequence[Sequence[Sequence[Union[bool, int, float, complex, str, bytes]]]],
+        # Sequence[Sequence[Sequence[Sequence[Union[bool, int, float,
+        # complex, str, bytes]]]]]]]]"
+        if np.ndim(left) > 1:  # type: ignore[arg-type]
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)

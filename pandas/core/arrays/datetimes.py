@@ -487,7 +487,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 np.linspace(0, end.value - start.value, periods, dtype="int64")
                 + start.value
             )
-            if i8values.dtype != "i8":
+            # error: Non-overlapping equality check
+            # (left operand type: "dtype[signedinteger[Any]]",
+            # right operand type: "Literal['i8']")
+            if i8values.dtype != "i8":  # type: ignore[comparison-overlap]
                 # 2022-01-09 I (brock) am not sure if it is possible for this
                 #  to overflow and cast to e.g. f8, but if it does we need to cast
                 i8values = i8values.astype("i8")

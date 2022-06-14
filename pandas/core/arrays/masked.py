@@ -110,7 +110,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
     ) -> None:
         # values is supposed to already be validated in the subclass
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+        # error: Non-overlapping equality check
+        # (left operand type: "dtype[bool_]", right operand type: "Type[bool_]")
+        is_bool_mask = mask.dtype == np.bool_  # type: ignore[comparison-overlap]
+        if not (isinstance(mask, np.ndarray) and is_bool_mask):
             raise TypeError(
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
