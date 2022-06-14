@@ -856,7 +856,9 @@ class TestExcelWriter:
 
         # Test that it is the same as the initial frame
         # (do not check index and dtype due to empty frame).
-        tm.assert_frame_equal(result, expected, check_index_type=False, check_dtype=False)
+        tm.assert_frame_equal(
+            result, expected, check_index_type=False, check_dtype=False
+        )
 
     def test_to_excel_float_format(self, path):
         df = DataFrame(
