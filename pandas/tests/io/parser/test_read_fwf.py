@@ -21,8 +21,8 @@ from pandas import (
     DatetimeIndex,
 )
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 
-import pandas.io.common as icom
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -656,7 +656,7 @@ def test_fwf_compression(compression_only, infer):
     3333333333""".strip()
 
     compression = compression_only
-    extension = icom._compression_to_extension[compression]
+    extension = _compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)

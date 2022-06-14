@@ -77,9 +77,9 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil
 cdef void dt64_to_dtstruct(int64_t dt64, npy_datetimestruct* out) nogil
-cdef void td64_to_tdstruct(int64_t td64, pandas_timedeltastruct* out) nogil
 
 cdef int64_t pydatetime_to_dt64(datetime val, npy_datetimestruct *dts)
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts)
 cdef int64_t pydate_to_dt64(date val, npy_datetimestruct *dts)
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts)
 
@@ -87,9 +87,14 @@ cdef npy_datetime get_datetime64_value(object obj) nogil
 cdef npy_timedelta get_timedelta64_value(object obj) nogil
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
 
-cdef int _string_to_dts(str val, npy_datetimestruct* dts,
-                        int* out_local, int* out_tzoffset,
-                        bint want_exc) except? -1
+cdef int string_to_dts(
+    str val,
+    npy_datetimestruct* dts,
+    NPY_DATETIMEUNIT* out_bestunit,
+    int* out_local,
+    int* out_tzoffset,
+    bint want_exc,
+) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
 
@@ -100,3 +105,6 @@ cpdef cnp.ndarray astype_overflowsafe(
 )
 
 cdef bint cmp_dtstructs(npy_datetimestruct* left, npy_datetimestruct* right, int op)
+cdef get_implementation_bounds(
+    NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper
+)

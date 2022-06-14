@@ -109,6 +109,7 @@ def rank_1d(
     ascending: bool = ...,
     pct: bool = ...,
     na_option=...,
+    mask: npt.NDArray[np.bool_] | None = ...,
 ) -> np.ndarray: ...  # np.ndarray[float64_t, ndim=1]
 def rank_2d(
     in_arr: np.ndarray,  # ndarray[numeric_object_t, ndim=2]

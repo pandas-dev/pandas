@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyError
+
 from pandas import (
     DataFrame,
     Index,
@@ -12,7 +14,6 @@ from pandas import (
     concat,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 from pandas.tseries.offsets import BDay
 
@@ -120,7 +121,7 @@ class TestXS:
             # INFO(ArrayManager) with ArrayManager getting a row as a view is
             # not possible
             msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 dm.xs(2)[:] = 20
             assert not (dm.xs(2) == 20).any()
         else:
@@ -183,7 +184,7 @@ class TestXSWithMultiIndex:
         # setting this will give a SettingWithCopyError
         # as we are trying to write a view
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        with pytest.raises(SettingWithCopyError, match=msg):
             result[:] = 10
 
     def test_xs_setting_with_copy_error_multiple(self, four_level_index_dataframe):
@@ -194,7 +195,7 @@ class TestXSWithMultiIndex:
         # setting this will give a SettingWithCopyError
         # as we are trying to write a view
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        with pytest.raises(SettingWithCopyError, match=msg):
             result[:] = 10
 
     @pytest.mark.parametrize("key, level", [("one", "second"), (["one"], ["second"])])

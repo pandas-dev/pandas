@@ -105,7 +105,11 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
+        self,
+        dtype=None,
+        copy: bool = False,
+        na_value: object = no_default,
+        decimals=None,
     ) -> np.ndarray:
         result = np.asarray(self, dtype=dtype)
         if decimals is not None:

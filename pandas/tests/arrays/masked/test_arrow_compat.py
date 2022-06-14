@@ -15,6 +15,10 @@ arrays += [pd.array([True, False, True, None], dtype="boolean")]
 
 @pytest.fixture(params=arrays, ids=[a.dtype.name for a in arrays])
 def data(request):
+    """
+    Fixture returning parametrized array from given dtype, including integer,
+    float and boolean
+    """
     return request.param
 
 
@@ -101,6 +105,10 @@ def test_arrow_sliced(data):
 
 @pytest.fixture
 def np_dtype_to_arrays(any_real_numpy_dtype):
+    """
+    Fixture returning actual and expected dtype, pandas and numpy arrays and
+    mask from a given numpy dtype
+    """
     np_dtype = np.dtype(any_real_numpy_dtype)
     pa_type = pa.from_numpy_dtype(np_dtype)
 
