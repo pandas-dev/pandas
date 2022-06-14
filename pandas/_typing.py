@@ -326,3 +326,6 @@ NaPosition = Literal["first", "last"]
 
 # quantile interpolation
 QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
+
+# plotting
+PlottingOrientation = Literal["horizontal", "vertical"]

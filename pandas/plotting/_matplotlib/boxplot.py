@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Literal,
     NamedTuple,
 )
 import warnings
@@ -34,7 +35,10 @@ if TYPE_CHECKING:
 
 
 class BoxPlot(LinePlot):
-    _kind = "box"
+    @property
+    def _kind(self) -> Literal["box"]:
+        return "box"
+
     _layout_type = "horizontal"
 
     _valid_return_types = (None, "axes", "dict", "both")

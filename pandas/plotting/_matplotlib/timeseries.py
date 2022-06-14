@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -185,11 +186,10 @@ def _get_ax_freq(ax: Axes):
     return ax_freq
 
 
-def _get_period_alias(freq) -> str | None:
+def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     freqstr = to_offset(freq).rule_code
 
-    freq = get_period_alias(freqstr)
-    return freq
+    return get_period_alias(freqstr)
 
 
 def _get_freq(ax: Axes, series: Series):
@@ -235,7 +235,9 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
-        return Period(x[0], freq_str).to_timestamp().tz_localize(x.tz) == x[0]
+        period = Period(x[0], freq_str)
+        assert isinstance(period, Period)
+        return period.to_timestamp().tz_localize(x.tz) == x[0]
     return True
 
 
