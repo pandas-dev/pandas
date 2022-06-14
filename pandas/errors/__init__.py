@@ -1,6 +1,7 @@
 """
 Expose public exceptions & warnings
 """
+from __future__ import annotations
 
 from pandas._config.config import OptionError  # noqa:F401
 
@@ -308,3 +309,47 @@ class SettingWithCopyWarning(Warning):
     >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
     ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
     """
+
+
+class NumExprClobberingError(NameError):
+    """
+    Exception is raised when trying to use a built-in numexpr name as a variable name
+    in a method like query or eval. Eval will throw the error if the engine is set
+    to 'numexpr'. 'numexpr' is the default engine value for eval if the numexpr package
+    is installed.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'abs': [1, 1, 1]})
+    >>> df.query("abs > 2") # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
+    >>> sin, a = 1, 2
+    >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
+    """
+
+
+class UndefinedVariableError(NameError):
+    """
+    Exception is raised when trying to use an undefined variable name in a method
+    like query or eval. It will also specific whether the undefined variable is
+    local or not.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df.query("A > x") # doctest: +SKIP
+    ... # UndefinedVariableError: name 'x' is not defined
+    >>> df.query("A > @y") # doctest: +SKIP
+    ... # UndefinedVariableError: local variable 'y' is not defined
+    >>> pd.eval('x + 1') # doctest: +SKIP
+    ... # UndefinedVariableError: name 'x' is not defined
+    """
+
+    def __init__(self, name: str, is_local: bool | None = None) -> None:
+        base_msg = f"{repr(name)} is not defined"
+        if is_local:
+            msg = f"local variable {base_msg}"
+        else:
+            msg = f"name {base_msg}"
+        super().__init__(msg)

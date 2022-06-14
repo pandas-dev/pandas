@@ -323,3 +323,9 @@ DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
+
+# quantile interpolation
+QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
+
+# plotting
+PlottingOrientation = Literal["horizontal", "vertical"]

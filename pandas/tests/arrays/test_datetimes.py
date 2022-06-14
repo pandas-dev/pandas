@@ -4,6 +4,9 @@ Tests for DatetimeArray
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import tz_compare
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -20,16 +23,48 @@ class TestNonNano:
     @pytest.fixture
     def reso(self, unit):
         """Fixture returning datetime resolution for a given time unit"""
-        # TODO: avoid hard-coding
-        return {"s": 7, "ms": 8, "us": 9}[unit]
+        return {
+            "s": NpyDatetimeUnit.NPY_FR_s.value,
+            "ms": NpyDatetimeUnit.NPY_FR_ms.value,
+            "us": NpyDatetimeUnit.NPY_FR_us.value,
+        }[unit]
 
-    @pytest.mark.xfail(reason="_box_func is not yet patched to get reso right")
-    def test_non_nano(self, unit, reso):
+    @pytest.fixture
+    def dtype(self, unit, tz_naive_fixture):
+        tz = tz_naive_fixture
+        if tz is None:
+            return np.dtype(f"datetime64[{unit}]")
+        else:
+            return DatetimeTZDtype(unit=unit, tz=tz)
+
+    @pytest.fixture
+    def dta_dti(self, unit, dtype):
+        tz = getattr(dtype, "tz", None)
+
+        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz)
+        if tz is None:
+            arr = np.asarray(dti).astype(f"M8[{unit}]")
+        else:
+            arr = np.asarray(dti.tz_convert("UTC").tz_localize(None)).astype(
+                f"M8[{unit}]"
+            )
+
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        return dta, dti
+
+    @pytest.fixture
+    def dta(self, dta_dti):
+        dta, dti = dta_dti
+        return dta
+
+    def test_non_nano(self, unit, reso, dtype):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
-        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
-        assert dta.dtype == arr.dtype
+        assert dta.dtype == dtype
         assert dta[0]._reso == reso
+        assert tz_compare(dta.tz, dta[0].tz)
+        assert (dta[0] == dta[:1]).all()
 
     @pytest.mark.filterwarnings(
         "ignore:weekofyear and week have been deprecated:FutureWarning"
@@ -37,11 +72,10 @@ class TestNonNano:
     @pytest.mark.parametrize(
         "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
     )
-    def test_fields(self, unit, reso, field):
-        dti = pd.date_range("2016-01-01", periods=55, freq="D")
-        arr = np.asarray(dti).astype(f"M8[{unit}]")
+    def test_fields(self, unit, reso, field, dtype, dta_dti):
+        dta, dti = dta_dti
 
-        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+        # FIXME: assert (dti == dta).all()
 
         res = getattr(dta, field)
         expected = getattr(dti._data, field)
@@ -61,6 +95,36 @@ class TestNonNano:
 
         res = dta.normalize()
         tm.assert_extension_array_equal(res, expected)
+
+    def test_simple_new_requires_match(self, unit):
+        arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
+        dtype = DatetimeTZDtype(unit, "UTC")
+
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        assert dta.dtype == dtype
+
+        wrong = DatetimeTZDtype("ns", "UTC")
+        with pytest.raises(AssertionError, match=""):
+            DatetimeArray._simple_new(arr, dtype=wrong)
+
+    def test_std_non_nano(self, unit):
+        dti = pd.date_range("2016-01-01", periods=55, freq="D")
+        arr = np.asarray(dti).astype(f"M8[{unit}]")
+
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        # we should match the nano-reso std, but floored to our reso.
+        res = dta.std()
+        assert res._reso == dta._reso
+        assert res == dti.std().floor(unit)
+
+    @pytest.mark.filterwarnings("ignore:Converting to PeriodArray.*:UserWarning")
+    def test_to_period(self, dta_dti):
+        dta, dti = dta_dti
+        result = dta.to_period("D")
+        expected = dti._data.to_period("D")
+
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestDatetimeArrayComparisons:
