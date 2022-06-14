@@ -53,18 +53,4 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: ci/run_tests.sh
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: false
+      uses: ./.github/actions/run-tests
