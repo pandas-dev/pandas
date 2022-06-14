@@ -1285,3 +1285,12 @@ class TestDataFrameToCSV:
         )
         expected = '""\n""\n'
         assert result == expected
+
+    def test_to_csv_categorical_and_ea(self):
+        # GH#46812
+        df = DataFrame({"a": "x", "b": [1, pd.NA]})
+        df["b"] = df["b"].astype("Int16")
+        df["b"] = df["b"].astype("category")
+        result = df.to_csv()
+        expected = ",a,b\n0,x,1\n1,x,\n"
+        assert result == expected
