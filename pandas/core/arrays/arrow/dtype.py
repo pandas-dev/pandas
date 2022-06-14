@@ -5,7 +5,6 @@ import re
 import numpy as np
 import pyarrow as pa
 
-from pandas._libs import missing as libmissing
 from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
@@ -22,7 +21,6 @@ class ArrowDtype(StorageExtensionDtype):
     Modeled after BaseMaskedDtype
     """
 
-    na_value = libmissing.NA
     _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
