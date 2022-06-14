@@ -1531,3 +1531,42 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, series, expected_values",
+    [
+        (Series.sort_values, False, [4, 5, 3, 1, 2]),
+        (lambda x: x.head(1), False, ValueError),
+        # SeriesGroupBy already has correct behavior
+        (Series.sort_values, True, [5, 4, 3, 2, 1]),
+        (lambda x: x.head(1), True, [5.0, np.nan, 3.0, 2.0, np.nan]),
+    ],
+)
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+@pytest.mark.parametrize("keys_in_index", [True, False])
+def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_index):
+    # GH#45648 - transform should align with the input's index
+    df = DataFrame({"a1": [1, 1, 3, 2, 2], "b": [5, 4, 3, 2, 1]})
+    if "a2" in keys:
+        df["a2"] = df["a1"]
+    if keys_in_index:
+        df = df.set_index(keys, append=True)
+
+    gb = df.groupby(keys)
+    if series:
+        gb = gb["b"]
+
+    warn = None if series else FutureWarning
+    msg = "returning a DataFrame in groupby.transform will align"
+    if expected_values is ValueError:
+        with tm.assert_produces_warning(warn, match=msg):
+            with pytest.raises(ValueError, match="Length mismatch"):
+                gb.transform(func)
+    else:
+        with tm.assert_produces_warning(warn, match=msg):
+            result = gb.transform(func)
+        expected = DataFrame({"b": expected_values}, index=df.index)
+        if series:
+            expected = expected["b"]
+        tm.assert_equal(result, expected)

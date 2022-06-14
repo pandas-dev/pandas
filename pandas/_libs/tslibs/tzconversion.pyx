@@ -88,15 +88,16 @@ cdef class Localizer:
                 # NB: using floordiv here is implicitly assuming we will
                 #  never see trans or deltas that are not an integer number
                 #  of seconds.
+                # TODO: avoid these np.array calls
                 if reso == NPY_DATETIMEUNIT.NPY_FR_us:
-                    trans = trans // 1_000
-                    deltas = deltas // 1_000
+                    trans = np.array(trans) // 1_000
+                    deltas = np.array(deltas) // 1_000
                 elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-                    trans = trans // 1_000_000
-                    deltas = deltas // 1_000_000
+                    trans = np.array(trans) // 1_000_000
+                    deltas = np.array(deltas) // 1_000_000
                 elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-                    trans = trans // 1_000_000_000
-                    deltas = deltas // 1_000_000_000
+                    trans = np.array(trans) // 1_000_000_000
+                    deltas = np.array(deltas) // 1_000_000_000
                 else:
                     raise NotImplementedError(reso)
 
