@@ -18,10 +18,13 @@ from pytz import (
     utc,
 )
 
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
+    tz_compare,
 )
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -713,11 +716,11 @@ class TestNonNano:
         assert ts.value == dt64.view("i8")
 
         if reso == "s":
-            assert ts._reso == 7
+            assert ts._reso == NpyDatetimeUnit.NPY_FR_s.value
         elif reso == "ms":
-            assert ts._reso == 8
+            assert ts._reso == NpyDatetimeUnit.NPY_FR_ms.value
         elif reso == "us":
-            assert ts._reso == 9
+            assert ts._reso == NpyDatetimeUnit.NPY_FR_us.value
 
     def test_non_nano_fields(self, dt64, ts):
         alt = Timestamp(dt64)
@@ -760,6 +763,16 @@ class TestNonNano:
     def test_month_name(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.month_name() == alt.month_name()
+
+    def test_tz_convert(self, ts):
+        ts = Timestamp._from_value_and_reso(ts.value, ts._reso, utc)
+
+        tz = pytz.timezone("US/Pacific")
+        result = ts.tz_convert(tz)
+
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert tz_compare(result.tz, tz)
 
     def test_repr(self, dt64, ts):
         alt = Timestamp(dt64)
@@ -828,6 +841,12 @@ class TestNonNano:
         assert rt._reso == ts._reso
         assert rt == ts
 
+    def test_normalize(self, dt64, ts):
+        alt = Timestamp(dt64)
+        result = ts.normalize()
+        assert result._reso == ts._reso
+        assert result == alt.normalize()
+
     def test_asm8(self, dt64, ts):
         rt = ts.asm8
         assert rt == dt64
@@ -850,3 +869,105 @@ class TestNonNano:
     def test_to_period(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.to_period("D") == alt.to_period("D")
+
+    @pytest.mark.parametrize(
+        "td", [timedelta(days=4), Timedelta(days=4), np.timedelta64(4, "D")]
+    )
+    def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
+
+        result = ts - td
+        expected = Timestamp(dt64) - td
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert result == expected
+
+        result = ts + td
+        expected = Timestamp(dt64) + td
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert result == expected
+
+        result = td + ts
+        expected = td + Timestamp(dt64)
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert result == expected
+
+
+class TestAsUnit:
+    def test_as_unit(self):
+        ts = Timestamp("1970-01-01")
+
+        assert ts._as_unit("ns") is ts
+
+        res = ts._as_unit("us")
+        assert res.value == ts.value // 1000
+        assert res._reso == NpyDatetimeUnit.NPY_FR_us.value
+
+        rt = res._as_unit("ns")
+        assert rt.value == ts.value
+        assert rt._reso == ts._reso
+
+        res = ts._as_unit("ms")
+        assert res.value == ts.value // 1_000_000
+        assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
+
+        rt = res._as_unit("ns")
+        assert rt.value == ts.value
+        assert rt._reso == ts._reso
+
+        res = ts._as_unit("s")
+        assert res.value == ts.value // 1_000_000_000
+        assert res._reso == NpyDatetimeUnit.NPY_FR_s.value
+
+        rt = res._as_unit("ns")
+        assert rt.value == ts.value
+        assert rt._reso == ts._reso
+
+    def test_as_unit_overflows(self):
+        # microsecond that would be just out of bounds for nano
+        us = 9223372800000000
+        ts = Timestamp._from_value_and_reso(us, NpyDatetimeUnit.NPY_FR_us.value, None)
+
+        msg = "Cannot cast 2262-04-12 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts._as_unit("ns")
+
+        res = ts._as_unit("ms")
+        assert res.value == us // 1000
+        assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
+
+    def test_as_unit_rounding(self):
+        ts = Timestamp(1_500_000)  # i.e. 1500 microseconds
+        res = ts._as_unit("ms")
+
+        expected = Timestamp(1_000_000)  # i.e. 1 millisecond
+        assert res == expected
+
+        assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
+        assert res.value == 1
+
+        with pytest.raises(ValueError, match="Cannot losslessly convert units"):
+            ts._as_unit("ms", round_ok=False)
+
+    def test_as_unit_non_nano(self):
+        # case where we are going neither to nor from nano
+        ts = Timestamp("1970-01-02")._as_unit("ms")
+        assert ts.year == 1970
+        assert ts.month == 1
+        assert ts.day == 2
+        assert ts.hour == ts.minute == ts.second == ts.microsecond == ts.nanosecond == 0
+
+        res = ts._as_unit("s")
+        assert res.value == 24 * 3600
+        assert res.year == 1970
+        assert res.month == 1
+        assert res.day == 2
+        assert (
+            res.hour
+            == res.minute
+            == res.second
+            == res.microsecond
+            == res.nanosecond
+            == 0
+        )
