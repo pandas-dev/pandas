@@ -1,5 +1,6 @@
 """ Test cases for misc plot functions """
 
+from matplotlib.text import Text
 import numpy as np
 import pytest
 
@@ -446,7 +447,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_bar_plot(self):
         # GH38947
         # Test bar plot with string and int index
-        from matplotlib.text import Text
 
         expected = [Text(0, 0, "0"), Text(1, 0, "Total")]
 
@@ -465,7 +465,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_barh_plot_labels_mixed_integer_string(self):
         # GH39126
         # Test barh plot with string and integer at the same column
-        from matplotlib.text import Text
 
         df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledg", "value": 2}])
         plot_barh = df.plot.barh(x="word", legend=None)
@@ -602,7 +601,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_bar_plt_xaxis_intervalrange(self):
         # GH 38969
         # Ensure IntervalIndex x-axis produces a bar plot as expected
-        from matplotlib.text import Text
 
         expected = [Text(0, 0, "([0, 1],)"), Text(1, 0, "([1, 2],)")]
         s = Series(
