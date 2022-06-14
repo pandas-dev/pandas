@@ -1634,10 +1634,10 @@ class Timestamp(_Timestamp):
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
-            int64_t nanos = to_offset(freq).nanos
+            int64_t nanos
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
+        to_offset(freq).nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(to_offset(freq), self._reso)
 
         if self.tz is not None:
             value = self.tz_localize(None).value
@@ -1648,7 +1648,7 @@ class Timestamp(_Timestamp):
 
         # Will only ever contain 1 element for timestamp
         r = round_nsint64(value, mode, nanos)[0]
-        result = Timestamp(r, unit='ns')
+        result = Timestamp._from_value_and_reso(r, self._reso, None)
         if self.tz is not None:
             result = result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent

@@ -603,6 +603,22 @@ class TestTimedeltas:
         assert np.abs((res - td).value) < nanos
         assert res.value % nanos == 0
 
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_round_non_nano(self, unit):
+        td = Timedelta("1 days 02:34:57")._as_unit(unit)
+
+        res = td.round("min")
+        assert res == Timedelta("1 days 02:35:00")
+        assert res._reso == td._reso
+
+        res = td.floor("min")
+        assert res == Timedelta("1 days 02:34:00")
+        assert res._reso == td._reso
+
+        res = td.ceil("min")
+        assert res == Timedelta("1 days 02:35:00")
+        assert res._reso == td._reso
+
     def test_contains(self):
         # Checking for any NaT-like objects
         # GH 13603

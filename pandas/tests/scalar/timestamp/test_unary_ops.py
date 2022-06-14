@@ -148,11 +148,13 @@ class TestTimestampUnaryOps:
         result = func(freq)
         assert result == expected
 
-    def test_ceil(self):
-        dt = Timestamp("20130101 09:10:11")
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_ceil(self, unit):
+        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
         result = dt.ceil("D")
         expected = Timestamp("20130102")
         assert result == expected
+        assert result._reso == dt._reso
 
     def test_floor(self):
         dt = Timestamp("20130101 09:10:11")
