@@ -3614,6 +3614,7 @@ class DataFrame(NDFrame, OpsMixin):
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
             # GH#45316 Return view if key is not duplicated
+            # Only use drop_duplicates with duplicates for performance
             if not is_mi and (
                 self.columns.is_unique
                 and key in self.columns
