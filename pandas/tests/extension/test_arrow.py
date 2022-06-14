@@ -34,7 +34,7 @@ pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
-@pytest.fixture(params=tm.ALL_PYARROW_DTYPES)
+@pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
 def dtype(request):
     return ArrowDtype(pyarrow_dtype=request.param)
 
@@ -195,6 +195,29 @@ class TestGetitemTests(base.BaseGetitemTests):
                 )
             )
         super().test_loc_iloc_frame_single_dtype(data)
+
+
+class TestBaseDtype(base.BaseDtypeTests):
+    def test_get_common_dtype(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_time(pa_dtype)
+            or (
+                pa.types.is_timestamp(pa_dtype)
+                and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
+            )
+            or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"{pa_dtype} does not have associated numpy "
+                        f"dtype findable by find_common_type"
+                    )
+                )
+            )
+        super().test_get_common_dtype(dtype)
 
 
 class TestBaseIndex(base.BaseIndexTests):
