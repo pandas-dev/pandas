@@ -827,3 +827,13 @@ def test_multiindex_inference_consistency():
     mi = MultiIndex.from_tuples([(x,) for x in arr])
     lev = mi.levels[0]
     assert lev.dtype == object
+
+
+def test_dtype_representation():
+    # GH#46900
+    pmidx = MultiIndex.from_arrays([[1], ["a"]], names=[("a", "b"), ("c", "d")])
+    result = pmidx.dtypes
+    expected = Series(
+        ["int64", "object"], index=MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+    )
+    tm.assert_series_equal(result, expected)
