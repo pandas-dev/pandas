@@ -167,12 +167,7 @@ class TestTimestampUnaryOps:
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
     @pytest.mark.parametrize(
         "unit",
-        [
-            "ns",
-            pytest.param("us", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("ms", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("s", marks=pytest.mark.xfail(reason="round not implemented")),
-        ],
+        ["ns", "us", "ms", "s"],
     )
     def test_round_dst_border_ambiguous(self, method, unit):
         # GH 18946 round near "fall back" DST
@@ -207,12 +202,7 @@ class TestTimestampUnaryOps:
     )
     @pytest.mark.parametrize(
         "unit",
-        [
-            "ns",
-            pytest.param("us", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("ms", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("s", marks=pytest.mark.xfail(reason="round not implemented")),
-        ],
+        ["ns", "us", "ms", "s"],
     )
     def test_round_dst_border_nonexistent(self, method, ts_str, freq, unit):
         # GH 23324 round near "spring forward" DST
