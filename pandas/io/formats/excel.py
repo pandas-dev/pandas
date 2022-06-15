@@ -169,16 +169,17 @@ class CSSToExcelConverter:
 
     @lru_cache
     def __call__(
-        self, declarations: str | set[tuple[str, str]]
+        self, declarations: str | frozenset[tuple[str, str]]
     ) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
         Parameters
         ----------
-        declarations_str : str
-            List of CSS declarations.
-            e.g. "font-weight: bold; background: blue"
+        declarations : str | frozenset[tuple[str, str]]
+            CSS string or set of CSS declaration tuples.
+            e.g. "font-weight: bold; background: blue" or 
+            {("font-weight", "bold"), ("background", "blue")}
 
         Returns
         -------

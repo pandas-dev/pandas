@@ -205,7 +205,7 @@ class CSSResolver:
 
     def __call__(
         self,
-        declarations: str | frozenset[tuple[str, str]],
+        declarations: str | Iterable[tuple[str, str]],
         inherited: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """
@@ -213,8 +213,10 @@ class CSSResolver:
 
         Parameters
         ----------
-        declarations_str : str
-            A list of CSS declarations
+        declarations_str : str | Iterable[tuple[str, str]]
+            A CSS string or set of CSS declaration tuples
+            e.g. "font-weight: bold; background: blue" or 
+            {("font-weight", "bold"), ("background", "blue")}
         inherited : dict, optional
             Atomic properties indicating the inherited style context in which
             declarations_str is to be resolved. ``inherited`` should already
