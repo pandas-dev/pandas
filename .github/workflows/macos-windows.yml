@@ -17,6 +17,7 @@ env:
   PYTEST_TARGET: pandas
   PYTEST_WORKERS: auto
   PATTERN: "not slow and not db and not network and not single_cpu"
+  PYTEST_DEBUG: true
 
 
 jobs:
@@ -54,3 +55,10 @@ jobs:
 
     - name: Test
       uses: ./.github/actions/run-tests
+
+    - name: Save debug log as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: pytest_debug_log
+        path: pytestdebug.log
+        retention-days: 14
