@@ -11,6 +11,7 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    List,
     Mapping,
     Sequence,
     cast,
@@ -85,10 +86,7 @@ class CssExcelCell(ExcelCell):
         **kwargs,
     ) -> None:
         if css_styles and css_converter:
-            css = ";".join(
-                [a + ":" + str(v) for (a, v) in css_styles[css_row, css_col]]
-            )
-            style = css_converter(css)
+            style = css_converter(frozenset(css_styles[css_row, css_col]))
 
         return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
@@ -167,7 +165,7 @@ class CSSToExcelConverter:
     compute_css = CSSResolver()
 
     @lru_cache
-    def __call__(self, declarations_str: str) -> dict[str, dict[str, str]]:
+    def __call__(self, declarations) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
@@ -183,7 +181,7 @@ class CSSToExcelConverter:
             A style as interpreted by ExcelWriter when found in
             ExcelCell.style.
         """
-        properties = self.compute_css(declarations_str, self.inherited)
+        properties = self.compute_css(declarations, self.inherited)
         return self.build_xlstyle(properties)
 
     def build_xlstyle(self, props: Mapping[str, str]) -> dict[str, dict[str, str]]:

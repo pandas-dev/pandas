@@ -7,6 +7,7 @@ import re
 from typing import (
     Callable,
     Generator,
+    List,
 )
 import warnings
 
@@ -195,7 +196,7 @@ class CSSResolver:
 
     def __call__(
         self,
-        declarations_str: str,
+        declarations,
         inherited: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """
@@ -235,7 +236,7 @@ class CSSResolver:
          ('font-size', '24pt'),
          ('font-weight', 'bold')]
         """
-        props = dict(self.atomize(self.parse(declarations_str)))
+        props = dict(self.atomize(declarations))
         if inherited is None:
             inherited = {}
 
@@ -354,10 +355,10 @@ class CSSResolver:
 
     def atomize(self, declarations) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
-            if prop in self.CSS_EXPANSIONS:
-                expand = self.CSS_EXPANSIONS[prop]
-                for prop, value in expand(self, prop, value):
-                    yield prop, value
+            if prop.lower() in self.CSS_EXPANSIONS:
+                expand = self.CSS_EXPANSIONS[prop.lower()]
+                for expanded_prop, expanded_value in expand(self, prop.lower(), value.lower()):
+                    yield expanded_prop, expanded_value
             else:
                 yield prop, value
 
