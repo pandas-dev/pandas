@@ -125,11 +125,11 @@ def is_bool_indexer(key: Any) -> bool:
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
-            key = np.asarray(key)
+            key_array = np.asarray(key)
 
-            if not lib.is_bool_array(key):
+            if not lib.is_bool_array(key_array):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
-                if lib.infer_dtype(key) == "boolean" and isna(key).any():
+                if lib.infer_dtype(key_array) == "boolean" and isna(key_array).any():
                     # Don't raise on e.g. ["A", "B", np.nan], see
                     #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)
@@ -508,18 +508,14 @@ def get_rename_function(mapper):
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
-        def f(x):
-            if x in mapper:
-                return mapper[x]
-            else:
-                return x
+    def f(x):
+        if x in mapper:
+            return mapper[x]
+        else:
+            return x
 
-    else:
-        f = mapper
-
-    return f
+    return f if isinstance(mapper, (abc.Mapping, ABCSeries)) else mapper
 
 
 def convert_to_list_like(
