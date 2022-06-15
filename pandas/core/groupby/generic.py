@@ -814,6 +814,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     1    1    2
     2    3    4
 
+    User-defined function for aggregation
+
+    >>> df.groupby('A').agg(lambda x: sum(x) + 2)
+        B	       C
+    A
+    1	5	2.590715
+    2	9	2.704907
+
     Different aggregations per column
 
     >>> df.groupby('A').agg({'B': ['min', 'max'], 'C': 'sum'})
