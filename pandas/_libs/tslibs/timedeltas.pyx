@@ -1742,13 +1742,21 @@ class Timedelta(_Timedelta):
             other = Timedelta(other)
             if other is NaT:
                 return np.nan
+            if other._reso != self._reso:
+                raise ValueError(
+                    "division between Timedeltas with mismatched resolutions "
+                    "are not supported. Explicitly cast to matching resolutions "
+                    "before dividing."
+                )
             return self.value / float(other.value)
 
         elif is_integer_object(other) or is_float_object(other):
             # integers or floats
-            if self._reso != NPY_FR_ns:
-                raise NotImplementedError
-            return Timedelta(self.value / other, unit='ns')
+            if util.is_nan(other):
+                return NaT
+            return Timedelta._from_value_and_reso(
+                <int64_t>(self.value / other), self._reso
+            )
 
         elif is_array(other):
             return self.to_timedelta64() / other
@@ -1761,8 +1769,12 @@ class Timedelta(_Timedelta):
             other = Timedelta(other)
             if other is NaT:
                 return np.nan
-            if self._reso != NPY_FR_ns:
-                raise NotImplementedError
+            if self._reso != other._reso:
+                raise ValueError(
+                    "division between Timedeltas with mismatched resolutions "
+                    "are not supported. Explicitly cast to matching resolutions "
+                    "before dividing."
+                )
             return float(other.value) / self.value
 
         elif is_array(other):
@@ -1781,14 +1793,18 @@ class Timedelta(_Timedelta):
             other = Timedelta(other)
             if other is NaT:
                 return np.nan
-            if self._reso != NPY_FR_ns:
-                raise NotImplementedError
+            if self._reso != other._reso:
+                raise ValueError(
+                    "floordivision between Timedeltas with mismatched resolutions "
+                    "are not supported. Explicitly cast to matching resolutions "
+                    "before dividing."
+                )
             return self.value // other.value
 
         elif is_integer_object(other) or is_float_object(other):
-            if self._reso != NPY_FR_ns:
-                raise NotImplementedError
-            return Timedelta(self.value // other, unit='ns')
+            if util.is_nan(other):
+                return NaT
+            return type(self)._from_value_and_reso(self.value // other, self._reso)
 
         elif is_array(other):
             if other.dtype.kind == 'm':
@@ -1798,9 +1814,7 @@ class Timedelta(_Timedelta):
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
             elif other.dtype.kind in ['i', 'u', 'f']:
                 if other.ndim == 0:
-                    if self._reso != NPY_FR_ns:
-                        raise NotImplementedError
-                    return Timedelta(self.value // other)
+                    return self // other.item()
                 else:
                     return self.to_timedelta64() // other
 
@@ -1816,8 +1830,12 @@ class Timedelta(_Timedelta):
             other = Timedelta(other)
             if other is NaT:
                 return np.nan
-            if self._reso != NPY_FR_ns:
-                raise NotImplementedError
+            if self._reso != other._reso:
+                raise ValueError(
+                    "floordivision between Timedeltas with mismatched resolutions "
+                    "are not supported. Explicitly cast to matching resolutions "
+                    "before dividing."
+                )
             return other.value // self.value
 
         elif is_array(other):
@@ -1914,10 +1932,10 @@ cdef _broadcast_floordiv_td64(
         if mask:
             return np.nan
 
-        return operation(value, other.astype('m8[ns]').astype('i8'))
+        return operation(value, other.astype('m8[ns]', copy=False).astype('i8'))
 
     else:
-        res = operation(value, other.astype('m8[ns]').astype('i8'))
+        res = operation(value, other.astype('m8[ns]', copy=False).astype('i8'))
 
         if mask.any():
             res = res.astype('f8')
