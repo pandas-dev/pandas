@@ -113,6 +113,17 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
                 )
             )
+        elif (
+            pa.types.is_timestamp(pa_dtype)
+            and pa_dtype.tz is not None
+            and pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"timestamp data with tz={pa_dtype.tz} "
+                    "converted to integer when pyarrow < 2.0",
+                )
+            )
         super().test_from_dtype(data)
 
 
