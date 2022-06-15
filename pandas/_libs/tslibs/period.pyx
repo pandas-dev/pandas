@@ -60,7 +60,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.ccalendar cimport (
-    c_MONTH_NUMBERS,
     dayofweek,
     get_day_of_year,
     get_days_in_month,
