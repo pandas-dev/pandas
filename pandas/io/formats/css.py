@@ -199,8 +199,8 @@ class CSSResolver:
         },
         **{
             "margin": _side_expander("margin-{:s}"),
-            "padding": _side_expander("padding-{:s}")
-        }
+            "padding": _side_expander("padding-{:s}"),
+        },
     }
 
     def __call__(
@@ -372,8 +372,7 @@ class CSSResolver:
             value = value.lower()
             if prop in self.CSS_EXPANSIONS:
                 expand = self.CSS_EXPANSIONS[prop]
-                for expanded_prop, expanded_value in expand(self, prop, value):
-                    yield expanded_prop, expanded_value
+                yield from expand(self, prop, value)
             else:
                 yield prop, value
 
