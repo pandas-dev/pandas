@@ -104,8 +104,6 @@
         "pandas/io/parsers/arrow_parser_wrapper.py",
         "pandas/io/parsers/base_parser.py",
         "pandas/io/parsers/c_parser_wrapper.py",
-        "pandas/io/parsers/python_parser.py",
-        "pandas/io/parsers/readers.py",
         "pandas/io/pytables.py",
         "pandas/io/sas/sas7bdat.py",
         "pandas/io/sas/sasreader.py",
