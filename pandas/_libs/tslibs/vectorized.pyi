@@ -37,6 +37,7 @@ def ints_to_pydatetime(
     freq: BaseOffset | None = ...,
     fold: bool = ...,
     box: str = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...
 def tz_convert_from_utc(
     stamps: npt.NDArray[np.int64],

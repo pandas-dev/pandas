@@ -424,17 +424,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if is_object_dtype(dtype):
             if self.dtype.kind == "M":
+                self = cast("DatetimeArray", self)
                 # *much* faster than self._box_values
                 #  for e.g. test_get_loc_tuple_monotonic_above_size_cutoff
-                i8data = self.asi8.ravel()
+                i8data = self.asi8
                 converted = ints_to_pydatetime(
                     i8data,
-                    # error: "DatetimeLikeArrayMixin" has no attribute "tz"
-                    tz=self.tz,  # type: ignore[attr-defined]
+                    tz=self.tz,
                     freq=self.freq,
                     box="timestamp",
+                    reso=self._reso,
                 )
-                return converted.reshape(self.shape)
+                return converted
 
             elif self.dtype.kind == "m":
                 return ints_to_pytimedelta(self._ndarray, box=True)
