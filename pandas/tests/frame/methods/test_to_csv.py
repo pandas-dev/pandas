@@ -1298,18 +1298,17 @@ class TestDataFrameToCSV:
 
     def test_to_csv_categorical_and_interval(self):
         # GH#46297
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df = DataFrame(
-                {
-                    "a": [
-                        pd.Interval(
-                            Timestamp("2020-01-01"),
-                            Timestamp("2020-01-02"),
-                            closed="both",
-                        )
-                    ]
-                }
-            )
+        df = DataFrame(
+            {
+                "a": [
+                    pd.Interval(
+                        Timestamp("2020-01-01"),
+                        Timestamp("2020-01-02"),
+                        inclusive="both",
+                    )
+                ]
+            }
+        )
         df["a"] = df["a"].astype("category")
         result = df.to_csv()
         expected_rows = [",a", '0,"[2020-01-01, 2020-01-02]"']
