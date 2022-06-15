@@ -30,6 +30,7 @@ Exceptions and warnings
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError
+   errors.IndexingError
    errors.InvalidIndexError
    errors.IntCastingNaNError
    errors.MergeError
