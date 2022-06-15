@@ -6660,7 +6660,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # TODO: should set MultiIndex._can_hold_na = False?
                     arr[self.isna()] = False
                 return arr
-            elif op in {operator.ne, operator.lt, operator.gt}:
+            elif op is operator.ne:
                 arr = np.zeros(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     arr[self.isna()] = True
