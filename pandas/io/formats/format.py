@@ -1748,7 +1748,9 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    reso = get_unit_from_dtype(values.dtype)
+    # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+    reso = get_unit_from_dtype(values.dtype)  # type: ignore[arg-type]
     ppd = periods_per_day(reso)
 
     # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
