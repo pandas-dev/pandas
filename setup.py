@@ -438,42 +438,12 @@ tseries_depends = [
 ]
 
 ext_data = {
-    "_libs.algos": {
-        "pyxfile": "_libs/algos",
-        "include": klib_include,
-        "depends": _pxi_dep["algos"],
-    },
-    "_libs.arrays": {"pyxfile": "_libs/arrays"},
-    "_libs.groupby": {"pyxfile": "_libs/groupby"},
-    "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
-    "_libs.hashtable": {
-        "pyxfile": "_libs/hashtable",
-        "include": klib_include,
-        "depends": (
-            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
-            + _pxi_dep["hashtable"]
-        ),
-    },
-    "_libs.index": {
-        "pyxfile": "_libs/index",
-        "include": klib_include,
-        "depends": _pxi_dep["index"],
-    },
-    "_libs.indexing": {"pyxfile": "_libs/indexing"},
-    "_libs.internals": {"pyxfile": "_libs/internals"},
-    "_libs.interval": {
-        "pyxfile": "_libs/interval",
-        "include": klib_include,
-        "depends": _pxi_dep["interval"],
-    },
-    "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
     "_libs.lib": {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
         "include": klib_include,  # due to tokenizer import
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
-    "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
         "include": klib_include + ["pandas/_libs/src"],
@@ -486,13 +456,8 @@ ext_data = {
             "pandas/_libs/src/parser/io.c",
         ],
     },
-    "_libs.reduction": {"pyxfile": "_libs/reduction"},
-    "_libs.ops": {"pyxfile": "_libs/ops"},
     "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
-    "_libs.properties": {"pyxfile": "_libs/properties"},
-    "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
-    "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
-    "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
+
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
     "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
@@ -556,7 +521,6 @@ ext_data = {
         "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
-    "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",
         "language": "c++",
@@ -564,7 +528,6 @@ ext_data = {
         "depends": ["pandas/_libs/src/skiplist.h"],
     },
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
-    "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
 }
 
