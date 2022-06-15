@@ -36,3 +36,10 @@ target_link_libraries(lib ${Python_LIBRARIES})
 add_library(parsers SHARED parsers.c src/parser/tokenizer.c src/parser/io.c)
 target_include_directories(parsers PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "src")
 target_link_libraries(parsers ${Python_LIBRARIES})
+
+add_library(json SHARED src/ujson/python/ujson.c src/ujson/python/objToJSON.c
+		 src/ujson/python/date_conversions.c src/ujson/python/JSONtoObj.c
+		 src/ujson/lib/ultrajsonenc.c src/ujson/lib/ultrajsondec.c
+		 tslibs/src/datetime/np_datetime.c tslibs/src/datetime/np_datetime_strings.c)
+target_include_directories(json PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} src/ujson/python src/ujson/lib src/datetime)
+target_link_libraries(json ${Python_LIBRARIES})
