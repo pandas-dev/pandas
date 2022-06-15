@@ -19,7 +19,6 @@ cnp.import_array()
 
 from .dtypes import Resolution
 
-from .ccalendar cimport DAY_NANOS
 from .dtypes cimport (
     c_Resolution,
     periods_per_day,

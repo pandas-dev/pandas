@@ -20,6 +20,7 @@ from pytz.exceptions import (
 )
 
 from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
@@ -57,10 +58,11 @@ class TestTimestampTZOperations:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.tz_localize("US/Pacific")
 
-    def test_tz_localize_ambiguous_bool(self):
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_tz_localize_ambiguous_bool(self, unit):
         # make sure that we are correctly accepting bool values as ambiguous
         # GH#14402
-        ts = Timestamp("2015-11-01 01:00:03")
+        ts = Timestamp("2015-11-01 01:00:03")._as_unit(unit)
         expected0 = Timestamp("2015-11-01 01:00:03-0500", tz="US/Central")
         expected1 = Timestamp("2015-11-01 01:00:03-0600", tz="US/Central")
 
@@ -70,9 +72,11 @@ class TestTimestampTZOperations:
 
         result = ts.tz_localize("US/Central", ambiguous=True)
         assert result == expected0
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = ts.tz_localize("US/Central", ambiguous=False)
         assert result == expected1
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     def test_tz_localize_ambiguous(self):
         ts = Timestamp("2014-11-02 01:00")
@@ -245,17 +249,28 @@ class TestTimestampTZOperations:
         ],
     )
     @pytest.mark.parametrize("tz_type", ["", "dateutil/"])
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_timestamp_tz_localize_nonexistent_shift(
-        self, start_ts, tz, end_ts, shift, tz_type
+        self, start_ts, tz, end_ts, shift, tz_type, unit
     ):
         # GH 8917, 24466
         tz = tz_type + tz
         if isinstance(shift, str):
             shift = "shift_" + shift
-        ts = Timestamp(start_ts)
+        ts = Timestamp(start_ts)._as_unit(unit)
         result = ts.tz_localize(tz, nonexistent=shift)
         expected = Timestamp(end_ts).tz_localize(tz)
-        assert result == expected
+
+        if unit == "us":
+            assert result == expected.replace(nanosecond=0)
+        elif unit == "ms":
+            micros = expected.microsecond - expected.microsecond % 1000
+            assert result == expected.replace(microsecond=micros, nanosecond=0)
+        elif unit == "s":
+            assert result == expected.replace(microsecond=0, nanosecond=0)
+        else:
+            assert result == expected
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     @pytest.mark.parametrize("offset", [-1, 1])
     @pytest.mark.parametrize("tz_type", ["", "dateutil/"])
@@ -268,16 +283,18 @@ class TestTimestampTZOperations:
             ts.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
     @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
-    def test_timestamp_tz_localize_nonexistent_NaT(self, tz):
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_timestamp_tz_localize_nonexistent_NaT(self, tz, unit):
         # GH 8917
-        ts = Timestamp("2015-03-29 02:20:00")
+        ts = Timestamp("2015-03-29 02:20:00")._as_unit(unit)
         result = ts.tz_localize(tz, nonexistent="NaT")
         assert result is NaT
 
     @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
-    def test_timestamp_tz_localize_nonexistent_raise(self, tz):
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_timestamp_tz_localize_nonexistent_raise(self, tz, unit):
         # GH 8917
-        ts = Timestamp("2015-03-29 02:20:00")
+        ts = Timestamp("2015-03-29 02:20:00")._as_unit(unit)
         msg = "2015-03-29 02:20:00"
         with pytest.raises(pytz.NonExistentTimeError, match=msg):
             ts.tz_localize(tz, nonexistent="raise")
