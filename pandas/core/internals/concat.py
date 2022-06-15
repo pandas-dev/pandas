@@ -507,7 +507,7 @@ class JoinUnit:
             if self.block.is_bool:
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
-                values = self.block.astype(np.object_).values
+                values = self.block.astype(np.dtype("object")).values
             else:
                 # No dtype upcasting is done here, it will be performed during
                 # concatenation itself.
