@@ -3,7 +3,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
-from functools import reduce
+from functools import lru_cache, reduce
 import itertools
 import re
 from typing import (
@@ -166,6 +166,7 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
+    @lru_cache
     def __call__(self, declarations_str: str) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
@@ -182,7 +183,6 @@ class CSSToExcelConverter:
             A style as interpreted by ExcelWriter when found in
             ExcelCell.style.
         """
-        # TODO: memoize?
         properties = self.compute_css(declarations_str, self.inherited)
         return self.build_xlstyle(properties)
 
