@@ -838,6 +838,19 @@ class TestExcelWriter:
         # Test that it is the same as the initial frame.
         tm.assert_frame_equal(frame1, frame3)
 
+    def test_to_excel_empty_multiindex(self, path):
+        # GH 19543.
+        expected = DataFrame([], columns=[0, 1, 2])
+
+        df = DataFrame([], index=MultiIndex.from_tuples([], names=[0, 1]), columns=[2])
+        df.to_excel(path, "test1")
+
+        with ExcelFile(path) as reader:
+            result = pd.read_excel(reader, sheet_name="test1")
+        tm.assert_frame_equal(
+            result, expected, check_index_type=False, check_dtype=False
+        )
+
     def test_to_excel_float_format(self, path):
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
