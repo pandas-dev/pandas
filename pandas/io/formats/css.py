@@ -215,7 +215,7 @@ class CSSResolver:
         ----------
         declarations_str : str | Iterable[tuple[str, str]]
             A CSS string or set of CSS declaration tuples
-            e.g. "font-weight: bold; background: blue" or 
+            e.g. "font-weight: bold; background: blue" or
             {("font-weight", "bold"), ("background", "blue")}
         inherited : dict, optional
             Atomic properties indicating the inherited style context in which

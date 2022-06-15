@@ -178,7 +178,7 @@ class CSSToExcelConverter:
         ----------
         declarations : str | frozenset[tuple[str, str]]
             CSS string or set of CSS declaration tuples.
-            e.g. "font-weight: bold; background: blue" or 
+            e.g. "font-weight: bold; background: blue" or
             {("font-weight", "bold"), ("background", "blue")}
 
         Returns
