@@ -46,6 +46,7 @@ class WriteExcel:
         self.df.to_excel(writer, sheet_name="Sheet1")
         writer.save()
 
+
 class WriteExcelStyled:
     params = ["openpyxl", "xlsxwriter"]
     param_names = ["engine"]

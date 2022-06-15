@@ -189,9 +189,18 @@ class CSSResolver:
     SIDES = ("top", "right", "bottom", "left")
 
     CSS_EXPANSIONS = {
-        **{"-".join(filter(None, ["border", prop])): _border_expander(prop) for prop in ["", "top", "right", "bottom", "left"]},
-        **{"-".join(["border", prop]): _side_expander("border-{:s}-"+prop) for prop in ["color", "style", "width"]},
-        **{"margin": _side_expander("margin-{:s}"), "padding": _side_expander("padding-{:s}")}
+        **{
+            "-".join(filter(None, ["border", prop])): _border_expander(prop)
+            for prop in ["", "top", "right", "bottom", "left"]
+        },
+        **{
+            "-".join(["border", prop]): _side_expander("border-{:s}-" + prop)
+            for prop in ["color", "style", "width"]
+        },
+        **{
+            "margin": _side_expander("margin-{:s}"),
+            "padding": _side_expander("padding-{:s}")
+        }
     }
 
     def __call__(

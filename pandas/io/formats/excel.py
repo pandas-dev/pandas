@@ -168,7 +168,9 @@ class CSSToExcelConverter:
     compute_css = CSSResolver()
 
     @lru_cache
-    def __call__(self, declarations: str | set[tuple[str, str]]) -> dict[str, dict[str, str]]:
+    def __call__(
+        self, declarations: str | set[tuple[str, str]]
+    ) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
