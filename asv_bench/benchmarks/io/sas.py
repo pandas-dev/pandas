@@ -1,30 +1,23 @@
-import os
+from pathlib import Path
 
 from pandas import read_sas
 
+ROOT = Path(__file__).parents[3] / "pandas" / "tests" / "io" / "sas" / "data"
+
 
 class SAS:
+    def time_read_sas7bdat(self):
+        read_sas(ROOT / "test1.sas7bdat")
 
-    params = ["sas7bdat", "xport"]
-    param_names = ["format"]
+    def time_read_xpt(self):
+        read_sas(ROOT / "paxraw_d_short.xpt")
 
-    def setup(self, format):
-        # Read files that are located in 'pandas/tests/io/sas/data'
-        files = {"sas7bdat": "test1.sas7bdat", "xport": "paxraw_d_short.xpt"}
-        file = files[format]
-        paths = [
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "..",
-            "pandas",
-            "tests",
-            "io",
-            "sas",
-            "data",
-            file,
-        ]
-        self.f = os.path.join(*paths)
+    def time_read_sas7bdat_2(self):
+        next(read_sas(ROOT / "0x00controlbyte.sas7bdat.bz2", chunksize=11000))
 
-    def time_read_sas(self, format):
-        read_sas(self.f, format=format)
+    def time_read_sas7bdat_2_chunked(self):
+        for i, _ in enumerate(
+            read_sas(ROOT / "0x00controlbyte.sas7bdat.bz2", chunksize=1000)
+        ):
+            if i == 10:
+                break
