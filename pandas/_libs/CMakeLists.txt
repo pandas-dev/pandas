@@ -1,4 +1,4 @@
-set(BASIC_LIBRARIES arrays groupby hashing indexing internals reduction ops properties reshape sparse testing writers)
+set(BASIC_LIBRARIES arrays groupby hashing indexing internals reduction ops ops_dispatch properties reshape sparse testing writers)
 foreach(LIB ${BASIC_LIBRARIES})
   add_library(${LIB} SHARED ${LIB}.c)
   target_include_directories(${LIB} PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS})
@@ -27,11 +27,12 @@ foreach(LIB ${TSLIBS_REQUIRING})
 endforeach()
 
 add_subdirectory("tslibs")
+add_subdirectory("window")
 
-# Depends on tokenizer being built
-#include ("src/parser")
-#set(PARSER_REQUIRING lib parsers)
-#foreach(LIB ${PARSER_REQUIRING})
-#add_library(lib SHARED lib.c)
-#target_include_directories(lib PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs" "src/parser")
-#target_link_libraries(lib ${Python_LIBRARIES})
+add_library(lib SHARED lib.c src/parser/tokenizer.c)
+target_include_directories(lib PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
+target_link_libraries(lib ${Python_LIBRARIES})
+
+add_library(parsers SHARED parsers.c src/parser/tokenizer.c src/parser/io.c)
+target_include_directories(parsers PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "src")
+target_link_libraries(parsers ${Python_LIBRARIES})

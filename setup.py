@@ -437,42 +437,6 @@ tseries_depends = [
     "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
 ]
 
-ext_data = {
-    "_libs.lib": {
-        "pyxfile": "_libs/lib",
-        "depends": lib_depends + tseries_depends,
-        "include": klib_include,  # due to tokenizer import
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
-    },
-    "_libs.parsers": {
-        "pyxfile": "_libs/parsers",
-        "include": klib_include + ["pandas/_libs/src"],
-        "depends": [
-            "pandas/_libs/src/parser/tokenizer.h",
-            "pandas/_libs/src/parser/io.h",
-        ],
-        "sources": [
-            "pandas/_libs/src/parser/tokenizer.c",
-            "pandas/_libs/src/parser/io.c",
-        ],
-    },
-    "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
-
-    "_libs.tslibs.parsing": {
-        "pyxfile": "_libs/tslibs/parsing",
-        "include": klib_include,
-        "depends": ["pandas/_libs/src/parser/tokenizer.h"],
-        "sources": ["pandas/_libs/src/parser/tokenizer.c"],
-    },
-    "_libs.window.aggregations": {
-        "pyxfile": "_libs/window/aggregations",
-        "language": "c++",
-        "suffix": ".cpp",
-        "depends": ["pandas/_libs/src/skiplist.h"],
-    },
-    "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
-    "io.sas._sas": {"pyxfile": "io/sas/sas"},
-}
 
 extensions = []
 

@@ -6,3 +6,4 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 
 find_package(Python REQUIRED COMPONENTS Development NumPy)
 add_subdirectory("pandas/_libs")
+add_subdirectory("pandas/io/sas")

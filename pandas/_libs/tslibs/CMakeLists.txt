@@ -16,4 +16,8 @@ add_library(np_datetime SHARED np_datetime.c src/datetime/np_datetime.c src/date
 target_include_directories(np_datetime PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(np_datetime ${Python_LIBRARIES})
 
+add_library(parsing SHARED parsing.c "../src/parser/tokenizer.c")
+target_include_directories(parsing PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "../src/klib")
+target_link_libraries(parsing ${Python_LIBRARIES})
+
 
