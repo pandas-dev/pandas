@@ -19,7 +19,9 @@ runs:
       run: |
         grep -q '  - pyarrow' ${{ inputs.environment-file }}
         sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
+        echo ::group::Patched environment.yml contents
         cat ${{ inputs.environment-file }}
+        echo ::endgroup::
       shell: bash
       if: ${{ inputs.pyarrow-version }}
 

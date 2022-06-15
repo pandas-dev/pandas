@@ -3,17 +3,13 @@ description: Rebuilds the C extensions and installs pandas
 runs:
   using: composite
   steps:
-
-    - name: Environment Detail
-      run: |
-        micromamba info
-        micromamba list
-      shell: bash -el {0}
+    - name: Set up Ccache
+      uses: ./.github/actions/setup-ccache
 
     - name: Build Pandas
       if : ${{ runner.os != 'Windows' }}
       run: |
-        pip install -e . --no-build-isolation -v
+        python -m pip install . --no-build-isolation -v
       shell: bash -el {0}
 
     - name: Build Pandas (Windows)

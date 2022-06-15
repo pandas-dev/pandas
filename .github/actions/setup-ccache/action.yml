@@ -1,0 +1,33 @@
+name: Setup sccache
+runs:
+  using: composite
+  steps:
+    - name: Make cache key
+      id: cache-key
+      run: |
+        key="${{ runner.os }}--${{ runner.arch }}--${{ github.workflow }}"
+        # Date: Daily invalidation of all ccaches as an extra safety measure.
+        key="$key--$(/bin/date -u '+%Y%m%d')"
+        # Python version: Separate caches for each Python version. This reduces the number of cache misses.
+        key="$key--$(python -V)"
+        # Cache version: Bump this number to manually invalidate the cache.
+        key="$key--0"
+
+        echo "cache-key=$key" >> $GITHUB_OUTPUT
+      shell: bash
+
+    # On Windows, for some reason the default temporary directory provided to sccache
+    # may become read-only at some point. Work around by having a private tempdir.
+    - name: Fix Windows temporary directory
+      id: mktemp
+      run: echo "tmpdir=$(cygpath -w $(mktemp -d))" >> $GITHUB_OUTPUT
+      shell: bash
+      if: ${{ runner.os == 'Windows' }}
+
+    - name: Setup sccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        variant: sccache
+        key: ${{ steps.cache-key.outputs.cache-key }}
+      env:
+        TMP: "${{ steps.mktemp.outputs.tmpdir }}"

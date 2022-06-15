@@ -20,7 +20,7 @@ import sys
 import toml
 import yaml
 
-EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
+EXCLUDE = {"python", "c-compiler", "cxx-compiler", "sccache"}
 REMAP_VERSION = {"tzdata": "2022.1"}
 RENAME = {
     "pytables": "tables",

@@ -44,7 +44,7 @@ jobs:
       uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
-      uses: ./.github/actions/build_pandas
+      uses: ./.github/actions/build-pandas
 
     - name: Set up maintainers cache
       uses: actions/cache@v3

@@ -173,7 +173,7 @@ jobs:
         pyarrow-version: ${{ matrix.pyarrow_version }}
 
     - name: Build Pandas
-      uses: ./.github/actions/build_pandas
+      uses: ./.github/actions/build-pandas
 
     - name: Test
       uses: ./.github/actions/run-tests

@@ -62,7 +62,7 @@ jobs:
 
     - name: Build Pandas
       id: build
-      uses: ./.github/actions/build_pandas
+      uses: ./.github/actions/build-pandas
 
     # The following checks are independent of each other and should still be run if one fails
     - name: Check for no warnings when building single-page docs
@@ -125,7 +125,7 @@ jobs:
 
     - name: Build Pandas
       id: build
-      uses: ./.github/actions/build_pandas
+      uses: ./.github/actions/build-pandas
 
     - name: Run ASV benchmarks
       run: |
