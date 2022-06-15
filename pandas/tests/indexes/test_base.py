@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 from io import StringIO
 import math
+import operator
 import re
 
 import numpy as np
@@ -1604,3 +1605,16 @@ def test_get_attributes_dict_deprecated():
     with tm.assert_produces_warning(DeprecationWarning):
         attrs = idx._get_attributes_dict()
     assert attrs == {"name": None}
+
+
+@pytest.mark.parametrize("op", [operator.lt, operator.gt])
+def test_nan_comparison_same_object(op):
+    # GH#47105
+    idx = Index([np.nan])
+    expected = np.array([False])
+
+    result = op(idx, idx)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = op(idx, idx.copy())
+    tm.assert_numpy_array_equal(result, expected)
