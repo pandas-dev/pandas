@@ -12,21 +12,21 @@ foreach(LIB ${KLIB_REQUIRING})
   target_link_libraries(${LIB} ${Python_LIBRARIES})
 endforeach()
 
-set(KLIB_AND_NP_DATETIME_REQUIRING index interval)
-foreach(LIB ${KLIB_AND_NP_DATETIME_REQUIRING})
+set(KLIB_AND_TSLIBS_REQUIRING index interval)
+foreach(LIB ${KLIB_AND_TSLIBS_REQUIRING})
   add_library(${LIB} SHARED ${LIB}.c)
   target_include_directories(${LIB} PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
   target_link_libraries(${LIB} ${Python_LIBRARIES})
 endforeach()
 
-SET(NP_DATETIME_REQUIRING missing tslib)
-foreach(LIB ${NP_DATETIME_REQUIRING})
+SET(TSLIBS_REQUIRING missing tslib)
+foreach(LIB ${TSLIBS_REQUIRING})
   add_library(${LIB} SHARED ${LIB}.c)
   target_include_directories(${LIB} PRIVATE ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "./tslibs")
   target_link_libraries(${LIB} ${Python_LIBRARIES})
 endforeach()
 
-#include ("tslibs")
+add_subdirectory("tslibs")
 
 # Depends on tokenizer being built
 #include ("src/parser")

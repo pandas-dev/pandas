@@ -458,68 +458,11 @@ ext_data = {
     },
     "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
 
-    "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
-    "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
-    "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
-    "_libs.tslibs.conversion": {
-        "pyxfile": "_libs/tslibs/conversion",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
-    "_libs.tslibs.fields": {
-        "pyxfile": "_libs/tslibs/fields",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
-    "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
-    "_libs.tslibs.np_datetime": {
-        "pyxfile": "_libs/tslibs/np_datetime",
-        "depends": tseries_depends,
-        "sources": [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
-        ],
-    },
-    "_libs.tslibs.offsets": {
-        "pyxfile": "_libs/tslibs/offsets",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
         "include": klib_include,
         "depends": ["pandas/_libs/src/parser/tokenizer.h"],
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
-    },
-    "_libs.tslibs.period": {
-        "pyxfile": "_libs/tslibs/period",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
-    "_libs.tslibs.strptime": {
-        "pyxfile": "_libs/tslibs/strptime",
-        "depends": tseries_depends,
-    },
-    "_libs.tslibs.timedeltas": {
-        "pyxfile": "_libs/tslibs/timedeltas",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
-    "_libs.tslibs.timestamps": {
-        "pyxfile": "_libs/tslibs/timestamps",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
-    "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
-    "_libs.tslibs.tzconversion": {
-        "pyxfile": "_libs/tslibs/tzconversion",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
-    "_libs.tslibs.vectorized": {
-        "pyxfile": "_libs/tslibs/vectorized",
-        "depends": tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",
