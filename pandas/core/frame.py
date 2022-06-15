@@ -9699,7 +9699,9 @@ Parrot 2  Parrot       24.0
                     "Suffixes not supported when joining multiple DataFrames"
                 )
 
-            frames = [self] + list(other)
+            frames = [cast("DataFrame | Series", self)] + list(
+                cast("Iterable[DataFrame | Series]", other)
+            )
 
             can_concat = all(df.index.is_unique for df in frames)
 
