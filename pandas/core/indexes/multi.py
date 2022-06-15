@@ -741,7 +741,7 @@ class MultiIndex(Index):
         from pandas import Series
 
         names = com.fill_missing_names([level.name for level in self.levels])
-        return Series([level.dtype for level in self.levels], index=names)
+        return Series([level.dtype for level in self.levels], index=Index(names))
 
     def __len__(self) -> int:
         return len(self.codes[0])
