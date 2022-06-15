@@ -62,7 +62,11 @@ class XlrdReader(BaseExcelReader):
         return self.book.sheet_by_index(index)
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+        self,
+        sheet,
+        convert_float: bool,
+        file_rows_needed: int | None = None,
+        file_offset_needed: int | None = None,
     ) -> list[list[Scalar]]:
         from xlrd import (
             XL_CELL_BOOLEAN,
@@ -115,13 +119,26 @@ class XlrdReader(BaseExcelReader):
         data = []
 
         nrows = sheet.nrows
-        if file_rows_needed is not None:
-            nrows = min(nrows, file_rows_needed)
-        for i in range(nrows):
-            row = [
-                _parse_cell(value, typ)
-                for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
-            ]
-            data.append(row)
+        nrows_range = range(nrows)
+        if file_rows_needed:
+            nrows_range = range(min(nrows, file_rows_needed))
+            if file_offset_needed:
+                nrows_range = range(
+                    file_offset_needed, file_offset_needed + file_rows_needed
+                )
+        elif file_offset_needed:
+            nrows_range = range(file_offset_needed, nrows)
+
+        data = []
+
+        for i in nrows_range:
+            try:
+                row = [
+                    _parse_cell(value, typ)
+                    for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
+                ]
+                data.append(row)
+            except IndexError:
+                break
 
         return data

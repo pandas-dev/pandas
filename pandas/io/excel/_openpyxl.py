@@ -595,36 +595,63 @@ class OpenpyxlReader(BaseExcelReader):
         return cell.value
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+        self,
+        sheet,
+        convert_float: bool,
+        file_rows_needed: int | None = None,
+        file_offset_needed: int | None = None,
     ) -> list[list[Scalar]]:
 
         if self.book.read_only:
             sheet.reset_dimensions()
 
-        data: list[list[Scalar]] = []
-        last_row_with_data = -1
-        for row_number, row in enumerate(sheet.rows):
-            converted_row = [self._convert_cell(cell, convert_float) for cell in row]
-            while converted_row and converted_row[-1] == "":
-                # trim trailing empty elements
-                converted_row.pop()
-            if converted_row:
-                last_row_with_data = row_number
-            data.append(converted_row)
-            if file_rows_needed is not None and len(data) >= file_rows_needed:
-                break
-
-        # Trim trailing empty rows
-        data = data[: last_row_with_data + 1]
-
-        if len(data) > 0:
-            # extend rows to max width
-            max_width = max(len(data_row) for data_row in data)
-            if min(len(data_row) for data_row in data) < max_width:
-                empty_cell: list[Scalar] = [""]
-                data = [
-                    data_row + (max_width - len(data_row)) * empty_cell
-                    for data_row in data
+        def _loop_rows(iterator):
+            data: list[list[Scalar]] = []
+            last_row_with_data = -1
+            for row_number, row in iterator:
+                converted_row = [
+                    self._convert_cell(cell, convert_float) for cell in row
                 ]
+                while converted_row and converted_row[-1] == "":
+                    # trim trailing empty elements
+                    converted_row.pop()
+                if converted_row:
+                    last_row_with_data = row_number
+                data.append(converted_row)
+                if file_rows_needed is not None and len(data) >= file_rows_needed:
+                    break
+
+            # Trim trailing empty rows
+            data = data[: last_row_with_data + 1]
+
+            if data:
+                # extend rows to max width
+                max_width = max(len(data_row) for data_row in data)
+                if min(len(data_row) for data_row in data) < max_width:
+                    empty_cell: list[Scalar] = [""]
+                    data = [
+                        data_row + (max_width - len(data_row)) * empty_cell
+                        for data_row in data
+                    ]
+
+            return data
+
+        data: list[list[Scalar]] = []
+        loop_on = sheet.rows
+        if file_rows_needed or file_offset_needed:
+            min_row = max_row = None
+            # +1 are here because this is 1-based indexing
+            if file_rows_needed:
+                max_row = file_rows_needed + 1
+                if file_offset_needed:
+                    max_row += file_offset_needed
+
+            if file_offset_needed:
+                min_row = file_offset_needed + 1
+
+            # Then we return the generator
+            loop_on = list(sheet.iter_rows(min_row=min_row, max_row=max_row))
+
+        data = _loop_rows(enumerate(loop_on))
 
         return data

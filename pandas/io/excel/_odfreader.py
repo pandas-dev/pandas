@@ -90,7 +90,11 @@ class ODFReader(BaseExcelReader):
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+        self,
+        sheet,
+        convert_float: bool,
+        file_rows_needed: int | None = None,
+        file_offset_needed: int | None = None,
     ) -> list[list[Scalar | NaTType]]:
         """
         Parse an ODF Table into a list of lists
@@ -111,7 +115,17 @@ class ODFReader(BaseExcelReader):
 
         table: list[list[Scalar | NaTType]] = []
 
-        for sheet_row in sheet_rows:
+        loop_on = sheet_rows
+        if file_rows_needed:
+            loop_on = sheet_rows[: file_rows_needed + 1]
+            if file_offset_needed:
+                loop_on = sheet_rows[
+                    file_offset_needed : file_offset_needed + file_rows_needed + 1
+                ]
+        elif file_offset_needed:
+            loop_on = sheet_rows[file_offset_needed:]
+
+        for sheet_row in loop_on:
             sheet_cells = [
                 x
                 for x in sheet_row.childNodes

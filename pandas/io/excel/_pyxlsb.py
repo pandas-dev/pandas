@@ -84,21 +84,33 @@ class PyxlsbReader(BaseExcelReader):
         sheet,
         convert_float: bool,
         file_rows_needed: int | None = None,
+        file_offset_needed: int | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
-        prevous_row_number = -1
+        loop_on = sheet.rows(sparse=True)
+        previous_row_number = -1
+
+        if file_rows_needed:
+            loop_on = loop_on[: file_rows_needed + 1]
+            if file_offset_needed:
+                loop_on = loop_on[
+                    file_offset_needed : file_offset_needed + file_rows_needed + 1
+                ]
+        elif file_offset_needed:
+            loop_on = loop_on[file_offset_needed:]
+
         # When sparse=True the rows can have different lengths and empty rows are
         # not returned. The cells are namedtuples of row, col, value (r, c, v).
-        for row in sheet.rows(sparse=True):
+        for row in loop_on:
             row_number = row[0].r
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()
             if converted_row:
-                data.extend([[]] * (row_number - prevous_row_number - 1))
+                data.extend([[]] * (row_number - previous_row_number - 1))
                 data.append(converted_row)
-                prevous_row_number = row_number
+                previous_row_number = row_number
             if file_rows_needed is not None and len(data) >= file_rows_needed:
                 break
         if data:

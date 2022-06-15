@@ -565,7 +565,13 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float: bool, rows: int | None = None):
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        rows: int | None = None,
+        offset: int | None = None,
+    ):
         pass
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -740,7 +746,16 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
-            data = self.get_sheet_data(sheet, convert_float, file_rows_needed)
+            file_offset_needed = None
+            if header is None:
+                if is_integer(skiprows):
+                    file_offset_needed = skiprows
+                elif is_list_like(skiprows):
+                    file_offset_needed = skiprows[0]
+
+            data = self.get_sheet_data(
+                sheet, convert_float, file_rows_needed, file_offset_needed
+            )
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
@@ -817,6 +832,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
             # GH 12292 : error when read one empty column from excel file
             try:
+                skiprows = None if is_integer(skiprows) and header is None else skiprows
                 parser = TextParser(
                     data,
                     names=names,
