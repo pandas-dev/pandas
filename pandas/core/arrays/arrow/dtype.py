@@ -44,7 +44,7 @@ class ArrowDtype(StorageExtensionDtype):
         """
         A string identifying the data type.
         """
-        return str(self.pyarrow_dtype)
+        return f"{str(self.pyarrow_dtype)}[{self.storage}]"
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:

@@ -198,6 +198,39 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 
 class TestBaseDtype(base.BaseDtypeTests):
+    def test_construct_from_string_own_name(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
+        super().test_construct_from_string_own_name(dtype)
+
+    def test_is_dtype_from_name(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
+        super().test_is_dtype_from_name(dtype)
+
+    def test_construct_from_string(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
+        super().test_construct_from_string(dtype)
+
     def test_construct_from_string_another_type_raises(self, dtype):
         msg = r"'another_type' must end with '\[pyarrow\]'"
         with pytest.raises(TypeError, match=msg):
@@ -229,6 +262,6 @@ class TestBaseIndex(base.BaseIndexTests):
     pass
 
 
-def test_arrowdtype_construct_from_string_type_with_parameters():
+def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
