@@ -86,7 +86,10 @@ class CssExcelCell(ExcelCell):
         **kwargs,
     ) -> None:
         if css_styles and css_converter:
-            style = css_converter(frozenset(css_styles[css_row, css_col]))
+            # Use dict to get only one declaration per property, then convert
+            # to frozenset for caching
+            unique_declarations = frozenset(dict(css_styles[css_row, css_col]).items())
+            style = css_converter(unique_declarations)
 
         return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
@@ -165,7 +168,7 @@ class CSSToExcelConverter:
     compute_css = CSSResolver()
 
     @lru_cache
-    def __call__(self, declarations) -> dict[str, dict[str, str]]:
+    def __call__(self, declarations: str | set[tuple[str, str]]) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 

@@ -7,7 +7,7 @@ import re
 from typing import (
     Callable,
     Generator,
-    List,
+    Iterable,
 )
 import warnings
 
@@ -189,14 +189,14 @@ class CSSResolver:
     SIDES = ("top", "right", "bottom", "left")
 
     CSS_EXPANSIONS = {
-        **{"-".join(["border", prop]): _border_expander(prop) for prop in ["", "top", "right", "bottom", "left"]},
+        **{"-".join(filter(None, ["border", prop])): _border_expander(prop) for prop in ["", "top", "right", "bottom", "left"]},
         **{"-".join(["border", prop]): _side_expander("border-{:s}-"+prop) for prop in ["color", "style", "width"]},
         **{"margin": _side_expander("margin-{:s}"), "padding": _side_expander("padding-{:s}")}
     }
 
     def __call__(
         self,
-        declarations,
+        declarations: str | frozenset[tuple[str, str]],
         inherited: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """
@@ -236,6 +236,8 @@ class CSSResolver:
          ('font-size', '24pt'),
          ('font-weight', 'bold')]
         """
+        if isinstance(declarations, str):
+            declarations = self.parse(declarations)
         props = dict(self.atomize(declarations))
         if inherited is None:
             inherited = {}
@@ -353,11 +355,13 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations) -> Generator[tuple[str, str], None, None]:
+    def atomize(self, declarations: Iterable) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
-            if prop.lower() in self.CSS_EXPANSIONS:
-                expand = self.CSS_EXPANSIONS[prop.lower()]
-                for expanded_prop, expanded_value in expand(self, prop.lower(), value.lower()):
+            prop = prop.lower()
+            value = value.lower()
+            if prop in self.CSS_EXPANSIONS:
+                expand = self.CSS_EXPANSIONS[prop]
+                for expanded_prop, expanded_value in expand(self, prop, value):
                     yield expanded_prop, expanded_value
             else:
                 yield prop, value
