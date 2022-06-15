@@ -176,6 +176,7 @@ Other enhancements
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
 - :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, :class:`SettingWithCopyWarning`, :class:`NumExprClobberingError`, :class:`UndefinedVariableError`, and :class:`IndexingError` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
+- Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
