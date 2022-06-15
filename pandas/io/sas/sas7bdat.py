@@ -26,6 +26,7 @@ from typing import cast
 import numpy as np
 
 from pandas._typing import (
+    CompressionOptions,
     FilePath,
     ReadBuffer,
 )
@@ -168,6 +169,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         encoding=None,
         convert_text=True,
         convert_header_text=True,
+        compression: CompressionOptions = "infer",
     ) -> None:
 
         self.index = index
@@ -195,7 +197,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self.handles = get_handle(path_or_buf, "rb", is_text=False)
+        self.handles = get_handle(
+            path_or_buf, "rb", is_text=False, compression=compression
+        )
 
         self._path_or_buf = self.handles.handle
 
