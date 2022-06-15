@@ -374,8 +374,8 @@ def assert_index_equal(
 
     # If order doesn't matter then sort the index entries
     if not check_order:
-        left = Index(safe_sort(left))
-        right = Index(safe_sort(right))
+        left = Index(safe_sort(left), dtype=left.dtype)
+        right = Index(safe_sort(right), dtype=right.dtype)
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
