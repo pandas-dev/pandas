@@ -458,30 +458,34 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     else:
         values = extract_array(values, extract_numpy=True, extract_range=True)
 
-    comps = _ensure_arraylike(comps)
-    comps = extract_array(comps, extract_numpy=True)
-    if not isinstance(comps, np.ndarray):
+    comps_array = _ensure_arraylike(comps)
+    comps_array = extract_array(comps_array, extract_numpy=True)
+    if not isinstance(comps_array, np.ndarray):
         # i.e. Extension Array
-        return comps.isin(values)
+        return comps_array.isin(values)
 
-    elif needs_i8_conversion(comps.dtype):
+    elif needs_i8_conversion(comps_array.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
-        return pd_array(comps).isin(values)
-    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
-        # e.g. comps are integers and values are datetime64s
-        return np.zeros(comps.shape, dtype=bool)
+        return pd_array(comps_array).isin(values)
+    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps_array.dtype):
+        # e.g. comps_array are integers and values are datetime64s
+        return np.zeros(comps_array.shape, dtype=bool)
         # TODO: not quite right ... Sparse/Categorical
     elif needs_i8_conversion(values.dtype):
-        return isin(comps, values.astype(object))
+        return isin(comps_array, values.astype(object))
 
     elif isinstance(values.dtype, ExtensionDtype):
-        return isin(np.asarray(comps), np.asarray(values))
+        return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
-    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
+    if (
+        len(comps_array) > 1_000_000
+        and len(values) <= 26
+        and not is_object_dtype(comps_array)
+    ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
@@ -493,19 +497,19 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        common = np.find_common_type([values.dtype, comps.dtype], [])
+        common = np.find_common_type([values.dtype, comps_array.dtype], [])
         values = values.astype(common, copy=False)
-        comps = comps.astype(common, copy=False)
+        comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
 
-    return f(comps, values)
+    return f(comps_array, values)
 
 
 def factorize_array(
     values: np.ndarray,
     na_sentinel: int = -1,
     size_hint: int | None = None,
-    na_value=None,
+    na_value: object = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
@@ -863,12 +867,15 @@ def value_counts(
 
 
 # Called once from SparseArray, otherwise could be private
-def value_counts_arraylike(values: np.ndarray, dropna: bool):
+def value_counts_arraylike(
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
+):
     """
     Parameters
     ----------
     values : np.ndarray
     dropna : bool
+    mask : np.ndarray[bool] or None, default None
 
     Returns
     -------
@@ -878,7 +885,7 @@ def value_counts_arraylike(values: np.ndarray, dropna: bool):
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna)
+    keys, counts = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -916,7 +923,9 @@ def duplicated(
     return htable.duplicated(values, keep=keep)
 
 
-def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
+def mode(
+    values: ArrayLike, dropna: bool = True, mask: npt.NDArray[np.bool_] | None = None
+) -> ArrayLike:
     """
     Returns the mode(s) of an array.
 
@@ -942,7 +951,7 @@ def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
 
     values = _ensure_data(values)
 
-    npresult = htable.mode(values, dropna=dropna)
+    npresult = htable.mode(values, dropna=dropna, mask=mask)
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
@@ -1186,7 +1195,6 @@ class SelectNSeries(SelectN):
             arr = arr[::-1]
 
         nbase = n
-        findex = len(self.obj)
         narr = len(arr)
         n = min(n, narr)
 
@@ -1199,6 +1207,11 @@ class SelectNSeries(SelectN):
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        else:
+            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+                findex = len(nan_index) + len(inds)
+            else:
+                findex = len(inds)
 
         if self.keep == "last":
             # reverse indices
@@ -1763,9 +1776,12 @@ def safe_sort(
 def _sort_mixed(values) -> np.ndarray:
     """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos])
+    none_pos = np.array([x is None for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos & ~none_pos])
     strs = np.sort(values[str_pos])
-    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+    return np.concatenate(
+        [nums, np.asarray(strs, dtype=object), np.array(values[none_pos])]
+    )
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:

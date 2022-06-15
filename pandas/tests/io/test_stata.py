@@ -5,6 +5,7 @@ import gzip
 import io
 import os
 import struct
+import tarfile
 import warnings
 import zipfile
 
@@ -20,8 +21,8 @@ from pandas.core.frame import (
     Series,
 )
 from pandas.core.indexes.api import ensure_index
+from pandas.tests.io.test_compression import _compression_to_extension
 
-import pandas.io.common as icom
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
     CategoricalConversionWarning,
@@ -1693,7 +1694,7 @@ The repeated labels are:\n-+\nwolof
             tm.assert_frame_equal(reread, expected)
 
             # Check strl supports all None (null)
-            output.loc[:, "mixed"] = None
+            output["mixed"] = None
             output.to_stata(
                 path, write_index=False, convert_strl=["mixed"], version=117
             )
@@ -1705,7 +1706,7 @@ The repeated labels are:\n-+\nwolof
     def test_all_none_exception(self, version):
         output = [{"none": "none", "number": 0}, {"none": None, "number": 1}]
         output = DataFrame(output)
-        output.loc[:, "none"] = None
+        output["none"] = None
         with tm.ensure_clean() as path:
             with pytest.raises(ValueError, match="Column `none` cannot be exported"):
                 output.to_stata(path, version=version)
@@ -1785,17 +1786,18 @@ the string values returned are correct."""
                 [2.0, 2, "ᴮ", ""],
                 [3.0, 3, "ᴰ", None],
             ],
-            columns=["a", "β", "ĉ", "strls"],
+            columns=["Å", "β", "ĉ", "strls"],
         )
         data["ᴐᴬᵀ"] = cat
         variable_labels = {
-            "a": "apple",
+            "Å": "apple",
             "β": "ᵈᵉᵊ",
             "ĉ": "ᴎტჄႲႳႴႶႺ",
             "strls": "Long Strings",
             "ᴐᴬᵀ": "",
         }
         data_label = "ᴅaᵀa-label"
+        value_labels = {"β": {1: "label", 2: "æøå", 3: "ŋot valid latin-1"}}
         data["β"] = data["β"].astype(np.int32)
         with tm.ensure_clean() as path:
             writer = StataWriterUTF8(
@@ -1806,11 +1808,16 @@ the string values returned are correct."""
                 variable_labels=variable_labels,
                 write_index=False,
                 version=version,
+                value_labels=value_labels,
             )
             writer.write_file()
             reread_encoded = read_stata(path)
             # Missing is intentionally converted to empty strl
             data["strls"] = data["strls"].fillna("")
+            # Variable with value labels is reread as categorical
+            data["β"] = (
+                data["β"].replace(value_labels["β"]).astype("category").cat.as_ordered()
+            )
             tm.assert_frame_equal(data, reread_encoded)
             reader = StataReader(path)
             assert reader.data_label == data_label
@@ -1849,7 +1856,7 @@ def test_compression(compression, version, use_dict, infer):
         if use_dict:
             file_ext = compression
         else:
-            file_ext = icom._compression_to_extension[compression]
+            file_ext = _compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -1867,6 +1874,9 @@ def test_compression(compression, version, use_dict, infer):
         elif compression == "zip":
             with zipfile.ZipFile(path, "r") as comp:
                 fp = io.BytesIO(comp.read(comp.filelist[0]))
+        elif compression == "tar":
+            with tarfile.open(path) as tar:
+                fp = io.BytesIO(tar.extractfile(tar.getnames()[0]).read())
         elif compression == "bz2":
             with bz2.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
@@ -2001,7 +2011,7 @@ def test_compression_roundtrip(compression):
 def test_stata_compression(compression_only, read_infer, to_infer):
     compression = compression_only
 
-    ext = icom._compression_to_extension[compression]
+    ext = _compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(

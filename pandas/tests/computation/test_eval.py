@@ -9,7 +9,11 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    NumExprClobberingError,
+    PerformanceWarning,
+    UndefinedVariableError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -27,10 +31,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import pytables
-from pandas.core.computation.engines import (
-    ENGINES,
-    NumExprClobberingError,
-)
+from pandas.core.computation.engines import ENGINES
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
@@ -692,6 +693,18 @@ class TestEval:
         with pytest.raises(SyntaxError, match=msg):
             df.query("lambda == 0")
 
+    def test_true_false_logic(self):
+        # GH 25823
+        assert pd.eval("not True") == -2
+        assert pd.eval("not False") == -1
+        assert pd.eval("True and not True") == 0
+
+    def test_and_logic_string_match(self):
+        # GH 25823
+        event = Series({"a": "hello"})
+        assert pd.eval(f"{event.str.match('hello').a}")
+        assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
+
 
 f = lambda *args, **kwargs: np.random.randn()
 
@@ -730,7 +743,7 @@ def should_warn(*args):
 
 class TestAlignment:
 
-    index_types = ["i", "u", "dt"]
+    index_types = ["i", "s", "dt"]
     lhs_index_types = index_types + ["s"]  # 'p'
 
     def test_align_nested_unary_op(self, engine, parser):
@@ -829,12 +842,25 @@ class TestAlignment:
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize(
         "r_idx_type, c_idx_type",
-        list(product(["i", "u", "s"], ["i", "u", "s"])) + [("dt", "dt")],
+        list(product(["i", "s"], ["i", "s"])) + [("dt", "dt")],
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
-        self, engine, parser, index_name, r_idx_type, c_idx_type
+        self, request, engine, parser, index_name, r_idx_type, c_idx_type
     ):
+        if (
+            engine == "numexpr"
+            and parser == "pandas"
+            and index_name == "index"
+            and r_idx_type == "i"
+            and c_idx_type == "s"
+        ):
+            reason = (
+                f"Flaky column ordering when engine={engine}, "
+                f"parser={parser}, index_name={index_name}, "
+                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
+            )
+            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
@@ -1645,6 +1671,20 @@ class TestScope:
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
         assert gbls == gbls2
+
+    def test_empty_locals(self, engine, parser):
+        # GH 47084
+        x = 1  # noqa: F841
+        msg = "name 'x' is not defined"
+        with pytest.raises(UndefinedVariableError, match=msg):
+            pd.eval("x + 1", engine=engine, parser=parser, local_dict={})
+
+    def test_empty_globals(self, engine, parser):
+        # GH 47084
+        msg = "name '_var_s' is not defined"
+        e = "_var_s * 2"
+        with pytest.raises(UndefinedVariableError, match=msg):
+            pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
 @td.skip_if_no_ne

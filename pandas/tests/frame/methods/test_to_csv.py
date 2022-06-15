@@ -346,7 +346,7 @@ class TestDataFrameToCSV:
         "nrows", [2, 10, 99, 100, 101, 102, 198, 199, 200, 201, 202, 249, 250, 251]
     )
     @pytest.mark.parametrize(
-        "r_idx_type, c_idx_type", [("i", "i"), ("s", "s"), ("u", "dt"), ("p", "p")]
+        "r_idx_type, c_idx_type", [("i", "i"), ("s", "s"), ("s", "dt"), ("p", "p")]
     )
     @pytest.mark.parametrize("ncols", [1, 2, 3, 4])
     def test_to_csv_idx_types(self, nrows, r_idx_type, c_idx_type, ncols):

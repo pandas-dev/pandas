@@ -1,5 +1,6 @@
 from io import BytesIO
 import os
+import tarfile
 import zipfile
 
 import numpy as np
@@ -14,9 +15,8 @@ from pandas import (
     read_parquet,
 )
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 from pandas.util import _test_decorators as td
-
-import pandas.io.common as icom
 
 
 @pytest.fixture
@@ -106,6 +106,18 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
         ) as res:
             for res_info, exp_info in zip(res.infolist(), exp.infolist()):
                 assert res_info.CRC == exp_info.CRC
+    elif compression == "tar":
+        with tarfile.open(fileobj=BytesIO(result)) as tar_exp, tarfile.open(
+            fileobj=BytesIO(expected)
+        ) as tar_res:
+            for tar_res_info, tar_exp_info in zip(
+                tar_res.getmembers(), tar_exp.getmembers()
+            ):
+                actual_file = tar_res.extractfile(tar_res_info)
+                expected_file = tar_exp.extractfile(tar_exp_info)
+                assert (actual_file is None) == (expected_file is None)
+                if actual_file is not None and expected_file is not None:
+                    assert actual_file.read() == expected_file.read()
     else:
         assert result == expected
 
@@ -144,7 +156,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     tm.assert_frame_equal(df, read_df)
 
     # write compressed file with implicit compression
-    file_ext = icom._compression_to_extension[compression_only]
+    file_ext = _compression_to_extension[compression_only]
     compression["method"] = "infer"
     path_gcs += f".{file_ext}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
