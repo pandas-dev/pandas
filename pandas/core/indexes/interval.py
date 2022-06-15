@@ -263,7 +263,7 @@ class IntervalIndex(ExtensionIndex):
 
         inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
@@ -300,7 +300,7 @@ class IntervalIndex(ExtensionIndex):
 
         inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
@@ -336,7 +336,7 @@ class IntervalIndex(ExtensionIndex):
 
         inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(

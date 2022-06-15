@@ -280,7 +280,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if inclusive is None and isinstance(dtype, IntervalDtype):
             inclusive = dtype.inclusive
 
-        inclusive = inclusive or "both"
+        inclusive = inclusive or "right"
 
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
@@ -423,7 +423,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        inclusive="both",
+        inclusive="right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -501,7 +501,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive="both",
+        inclusive="right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -569,7 +569,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_tuples(
         cls: type[IntervalArrayT],
         data,
-        inclusive="both",
+        inclusive="right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:

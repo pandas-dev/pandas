@@ -229,7 +229,7 @@ def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault
             stacklevel=2,
         )
         if closed is None:
-            inclusive = "both"
+            inclusive = "right"
         elif closed in ("both", "neither", "left", "right"):
             inclusive = closed
         else:
@@ -364,7 +364,7 @@ cdef class Interval(IntervalMixin):
         inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         if inclusive not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'inclusive': {inclusive}")
