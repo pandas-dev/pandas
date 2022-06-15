@@ -7,6 +7,8 @@ import weakref
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -24,7 +26,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import Float64Index
-from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 

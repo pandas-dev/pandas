@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import is_numpy_min
+from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -32,7 +33,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
 
 # We pass through the error message from numpy

@@ -12,6 +12,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -36,10 +37,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
-from pandas.core.indexing import (
-    IndexingError,
-    _one_ellipsis_message,
-)
+from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import Base
 
 
