@@ -104,14 +104,15 @@ class TestBaseCasting(base.BaseCastingTests):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    @pytest.mark.xfail(
-        reason=(
-            "str(dtype) constructs "
-            "e.g. in64[pyarrow] like int64 (numpy) "
-            "due to StorageExtensionDtype.__str__"
-        )
-    )
-    def test_from_dtype(self, data):
+    def test_from_dtype(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
         super().test_from_dtype(data)
 
 
