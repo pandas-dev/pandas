@@ -393,17 +393,18 @@ cdef class _Timestamp(ABCTimestamp):
                 new_value = int(self.value) + int(nanos)
 
             try:
-                result = type(self)._from_value_and_reso(new_value, reso=self._reso, tz=self.tzinfo)
+                result = type(self)._from_value_and_reso(
+                    new_value, reso=self._reso, tz=self.tzinfo
+                )
             except OverflowError as err:
                 # TODO: don't hard-code nanosecond here
-                raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {new_value}") from err
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds nanosecond timestamp: {new_value}"
+                ) from err
 
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
             return result
-
-        elif isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
 
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
@@ -439,9 +440,6 @@ cdef class _Timestamp(ABCTimestamp):
             neg_other = -other
             return self + neg_other
 
-        elif isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
@@ -472,10 +470,25 @@ cdef class _Timestamp(ABCTimestamp):
                     "Cannot subtract tz-naive and tz-aware datetime-like objects."
                 )
 
+            # We allow silent casting to the lower resolution if and only
+            #  if it is lossless.
+            try:
+                if self._reso < other._reso:
+                    other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
+                elif self._reso > other._reso:
+                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+            except ValueError as err:
+                raise ValueError(
+                    "Timestamp subtraction with mismatched resolutions is not "
+                    "allowed when casting to the lower resolution would require "
+                    "lossy rounding."
+                ) from err
+
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
             try:
-                return Timedelta(self.value - other.value)
+                res_value = self.value - other.value
+                return Timedelta._from_value_and_reso(res_value, self._reso)
             except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if isinstance(other, _Timestamp):
                     if both_timestamps:
@@ -496,9 +509,6 @@ cdef class _Timestamp(ABCTimestamp):
         return NotImplemented
 
     def __rsub__(self, other):
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         if PyDateTime_Check(other):
             try:
                 return type(self)(other) - self
