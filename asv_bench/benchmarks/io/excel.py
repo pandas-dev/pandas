@@ -46,6 +46,24 @@ class WriteExcel:
         self.df.to_excel(writer, sheet_name="Sheet1")
         writer.save()
 
+class WriteExcelStyled:
+    params = ["openpyxl", "xlsxwriter"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
+        self.df = _generate_dataframe()
+
+    def time_write_excel_style(self, engine):
+        bio = BytesIO()
+        bio.seek(0)
+        writer = ExcelWriter(bio, engine=engine)
+        df_style = self.df.style
+        df_style.applymap(lambda x: "border: red 1px solid;")
+        df_style.applymap(lambda x: "color: blue")
+        df_style.applymap(lambda x: "border-color: green black", subset=["float1"])
+        df_style.to_excel(writer, sheet_name="Sheet1")
+        writer.save()
+
 
 class ReadExcel:
 
