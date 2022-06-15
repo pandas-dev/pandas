@@ -156,11 +156,13 @@ class TestTimestampUnaryOps:
         assert result == expected
         assert result._reso == dt._reso
 
-    def test_floor(self):
-        dt = Timestamp("20130101 09:10:11")
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_floor(self, unit):
+        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
         result = dt.floor("D")
         expected = Timestamp("20130101")
         assert result == expected
+        assert result._reso == dt._reso
 
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
     def test_round_dst_border_ambiguous(self, method):
