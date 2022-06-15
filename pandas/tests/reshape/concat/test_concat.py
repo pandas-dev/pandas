@@ -755,3 +755,37 @@ def test_concat_retain_attrs(data):
     df2.attrs = {1: 1}
     df = concat([df1, df2])
     assert df.attrs[1] == 1
+
+
+@pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
+@pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
+def test_concat_ignore_emtpy_object_float(empty_dtype, df_dtype):
+    # https://github.com/pandas-dev/pandas/issues/45637
+    df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
+    empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
+    result = concat([empty, df])
+    expected = df
+    if df_dtype == "int64":
+        # TODO what exact behaviour do we want for integer eventually?
+        if empty_dtype == "float64":
+            expected = df.astype("float64")
+        else:
+            expected = df.astype("object")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
+@pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
+def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
+    df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
+    empty = DataFrame({"foo": [np.nan], "bar": [np.nan]}, dtype=empty_dtype)
+    result = concat([empty, df], ignore_index=True)
+
+    if df_dtype == "int64":
+        # TODO what exact behaviour do we want for integer eventually?
+        if empty_dtype == "object":
+            df_dtype = "object"
+        else:
+            df_dtype = "float64"
+    expected = DataFrame({"foo": [None, 1, 2], "bar": [None, 1, 2]}, dtype=df_dtype)
+    tm.assert_frame_equal(result, expected)
