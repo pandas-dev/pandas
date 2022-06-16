@@ -56,9 +56,9 @@ jobs:
     - name: Test
       uses: ./.github/actions/run-tests
 
-    - name: Save debug log as an artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: pytest_debug_log
-        path: pytestdebug.log
-        retention-days: 14
+#    - name: Save debug log as an artifact
+#      uses: actions/upload-artifact@v3
+#      with:
+#        name: pytest_debug_log
+#        path: pytestdebug.log
+#        retention-days: 14
