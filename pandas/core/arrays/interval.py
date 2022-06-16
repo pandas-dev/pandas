@@ -1416,7 +1416,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     )
     def set_closed(
         self: IntervalArrayT,
-        inclusive: IntervalClosedType = None,
+        inclusive: IntervalClosedType | lib.no_default = lib.no_default,
         closed: IntervalClosedType | lib.no_default = lib.no_default,
     ) -> IntervalArrayT:
         if inclusive == lib.no_default and closed == lib.no_default:
