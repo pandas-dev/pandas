@@ -202,6 +202,20 @@ class TestBaseIndex(base.BaseIndexTests):
 
 
 class TestBaseInterface(base.BaseInterfaceTests):
+    def test_contains(self, data, data_missing, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
+        if pa_version_under2p0 and tz not in (None, "UTC") and unit == "us":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"Not supported by pyarrow < 2.0 "
+                        f"with timestamp type {tz} and {unit}"
+                    )
+                )
+            )
+        super().test_contains(data, data_missing)
+
     @pytest.mark.xfail(reason="pyarrow.ChunkedArray does not support views.")
     def test_view(self, data):
         super().test_view(data)
