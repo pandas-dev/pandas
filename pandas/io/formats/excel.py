@@ -634,7 +634,7 @@ class ExcelFormatter:
             if self.index:
                 coloffset = 1
                 if isinstance(self.df.index, MultiIndex):
-                    coloffset = len(self.df.index[0])
+                    coloffset = len(self.df.index.names)
 
             colnames = self.columns
             if self._has_aliases:
