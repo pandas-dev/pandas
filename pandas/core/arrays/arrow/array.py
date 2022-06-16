@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
@@ -45,13 +46,22 @@ if not pa_version_under1p01:
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
     from pandas.core.arrays.arrow.dtype import ArrowDtype
 
+    ARROW_CMP_FUNCS = {
+        "eq": pc.equal,
+        "ne": pc.not_equal,
+        "lt": pc.less,
+        "gt": pc.greater,
+        "le": pc.less_equal,
+        "ge": pc.greater_equal,
+    }
+
 if TYPE_CHECKING:
     from pandas import Series
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
 
 
-class ArrowExtensionArray(ExtensionArray):
+class ArrowExtensionArray(OpsMixin, ExtensionArray):
     """
     Base class for ExtensionArray backed by Arrow ChunkedArray.
     """
@@ -178,6 +188,34 @@ class ArrowExtensionArray(ExtensionArray):
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._data
+
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
+
+        pc_func = ARROW_CMP_FUNCS[op.__name__]
+        if isinstance(other, ArrowExtensionArray):
+            result = pc_func(self._data, other._data)
+        elif isinstance(other, (np.ndarray, list)):
+            result = pc_func(self._data, other)
+        elif is_scalar(other):
+            try:
+                result = pc_func(self._data, pa.scalar(other))
+            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                mask = isna(self) | isna(other)
+                valid = ~mask
+                result = np.zeros(len(self), dtype="bool")
+                result[valid] = op(np.array(self)[valid], other)
+                return BooleanArray(result, mask)
+        else:
+            return NotImplementedError(
+                f"{op.__name__} not implemented for {type(other)}"
+            )
+
+        if pa_version_under2p0:
+            result = result.to_pandas().values
+        else:
+            result = result.to_numpy()
+        return BooleanArray._from_sequence(result)
 
     def equals(self, other) -> bool:
         if not isinstance(other, ArrowExtensionArray):

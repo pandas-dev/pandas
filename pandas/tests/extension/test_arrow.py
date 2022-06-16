@@ -34,7 +34,7 @@ pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
-@pytest.fixture(params=tm.ALL_PYARROW_DTYPES)
+@pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
 def dtype(request):
     return ArrowDtype(pyarrow_dtype=request.param)
 
@@ -199,6 +199,12 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 class TestBaseIndex(base.BaseIndexTests):
     pass
+
+
+class TestBaseInterface(base.BaseInterfaceTests):
+    @pytest.mark.xfail(reason="pyarrow.ChunkedArray does not support views.")
+    def test_view(self, data):
+        super().test_view(data)
 
 
 def test_arrowdtype_construct_from_string_type_with_parameters():
