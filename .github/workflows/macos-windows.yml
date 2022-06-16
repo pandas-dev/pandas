@@ -17,7 +17,7 @@ env:
   PYTEST_TARGET: pandas
   PYTEST_WORKERS: auto
   PATTERN: "not slow and not db and not network and not single_cpu"
-  PYTEST_DEBUG: true
+  #PYTEST_DEBUG: true
 
 
 jobs:
