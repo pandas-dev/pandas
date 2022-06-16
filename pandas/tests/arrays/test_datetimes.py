@@ -155,6 +155,20 @@ class TestNonNano:
         expected = getattr(dti, meth)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_format_native_types(self, unit, reso, dtype, dta_dti):
+        # In this case we should get the same formatted values with our nano
+        #  version dti._data as we do with the non-nano dta
+        dta, dti = dta_dti
+
+        res = dta._format_native_types()
+        exp = dti._data._format_native_types()
+        tm.assert_numpy_array_equal(res, exp)
+
+    def test_repr(self, dta_dti, unit):
+        dta, dti = dta_dti
+
+        assert repr(dta) == repr(dti._data).replace("[ns", f"[{unit}")
+
 
 class TestDatetimeArrayComparisons:
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is

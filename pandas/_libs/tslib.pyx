@@ -28,11 +28,12 @@ import pytz
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    NPY_FR_ns,
     check_dts_bounds,
-    dt64_to_dtstruct,
     dtstruct_to_dt64,
     get_datetime64_value,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     pydatetime_to_dt64,
     string_to_dts,
@@ -107,7 +108,8 @@ def format_array_from_datetime(
     ndarray[int64_t] values,
     tzinfo tz=None,
     str format=None,
-    object na_rep=None
+    object na_rep=None,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -120,6 +122,7 @@ def format_array_from_datetime(
           a strftime capable string
     na_rep : optional, default is None
           a nat format
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
@@ -141,7 +144,7 @@ def format_array_from_datetime(
     # a format based on precision
     basic_format = format is None and tz is None
     if basic_format:
-        reso_obj = get_resolution(values)
+        reso_obj = get_resolution(values, reso=reso)
         show_ns = reso_obj == Resolution.RESO_NS
         show_us = reso_obj == Resolution.RESO_US
         show_ms = reso_obj == Resolution.RESO_MS
@@ -153,7 +156,7 @@ def format_array_from_datetime(
             result[i] = na_rep
         elif basic_format:
 
-            dt64_to_dtstruct(val, &dts)
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
             res = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
                    f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
 
@@ -169,7 +172,7 @@ def format_array_from_datetime(
 
         else:
 
-            ts = Timestamp(val, tz=tz)
+            ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
                 result[i] = str(ts)
             else:
