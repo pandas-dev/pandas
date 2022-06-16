@@ -4091,9 +4091,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
         cache = self._item_cache
-        # self._clear_item_cache()
         res = cache.get(item)
-        # res = None
         if res is None:
             # All places that call _get_item_cache have unique columns,
             #  pending resolution of GH#33047
