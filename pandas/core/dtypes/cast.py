@@ -1697,6 +1697,9 @@ def construct_1d_arraylike_from_scalar(
     else:
 
         if is_integer_dtype(dtype) and isna(value):
+            if not length:
+                # numpy > 1.24 will raise filling np.nan into int dtypes
+                return np.array([], dtype=dtype)
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
         elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
