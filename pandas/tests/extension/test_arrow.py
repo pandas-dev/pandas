@@ -106,24 +106,21 @@ class TestBaseCasting(base.BaseCastingTests):
 class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz:
+            if pa_version_under2p0:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        reason=f"timestamp data with tz={pa_dtype.tz} "
+                        "converted to integer when pyarrow < 2.0",
+                    )
                 )
-            )
-        elif (
-            pa.types.is_timestamp(pa_dtype)
-            and pa_dtype.tz is not None
-            and pa_version_under2p0
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"timestamp data with tz={pa_dtype.tz} "
-                    "converted to integer when pyarrow < 2.0",
+            else:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=NotImplementedError,
+                        reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                    )
                 )
-            )
         super().test_from_dtype(data)
 
 
