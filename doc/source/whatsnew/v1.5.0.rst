@@ -174,8 +174,9 @@ Other enhancements
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
-- :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, :class:`SettingWithCopyWarning`, :class:`NumExprClobberingError`, :class:`UndefinedVariableError` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, :class:`SettingWithCopyWarning`, :class:`NumExprClobberingError`, :class:`UndefinedVariableError`, and :class:`IndexingError` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
+- Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -872,6 +873,7 @@ I/O
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 - Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
+- Bug in :meth:`DataFrame.to_excel` when writing an empty dataframe with :class:`MultiIndex` (:issue:`19543`)
 
 Period
 ^^^^^^
