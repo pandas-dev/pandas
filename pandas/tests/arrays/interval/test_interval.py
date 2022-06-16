@@ -484,3 +484,24 @@ def test_from_arrays_deprecation():
     # GH#40245
     with tm.assert_produces_warning(FutureWarning):
         IntervalArray.from_arrays([0, 1, 2], [1, 2, 3], closed="right")
+
+
+def test_set_closed_deprecated_closed():
+    # GH#40245
+    array = IntervalArray.from_breaks(range(10))
+    with tm.assert_produces_warning(FutureWarning):
+        array.set_closed(closed="both")
+
+
+def test_set_closed_both_provided_deprecation():
+    # GH#40245
+    array = IntervalArray.from_breaks(range(10))
+    with pytest.raises(ValueError, match="inclusive and closed"):
+        array.set_closed(inclusive="both", closed="both")
+
+
+def test_set_closed_none_provided_deprecation():
+    # GH#40245
+    array = IntervalArray.from_breaks(range(10))
+    with pytest.raises(ValueError, match="inclusive has to be passed into"):
+        array.set_closed()

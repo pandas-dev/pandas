@@ -1427,7 +1427,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         elif closed != lib.no_default:
             warnings.warn(
-                "Argument closed is deprecated, use inclusive instead",
+                "Argument closed is deprecated, use inclusive instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -1817,7 +1817,7 @@ def _warning_interval_array_functions(
             stacklevel=find_stack_level(),
         )
         inclusive = closed
-    else:
+    elif inclusive == lib.no_default:
         inclusive = "right"
 
     return inclusive
