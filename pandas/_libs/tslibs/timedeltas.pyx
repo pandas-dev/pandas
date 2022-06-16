@@ -1653,15 +1653,14 @@ class Timedelta(_Timedelta):
             int64_t result, unit, remainder
             ndarray[int64_t] arr
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError
-
         from pandas._libs.tslibs.offsets import to_offset
-        unit = to_offset(freq).nanos
+
+        to_offset(freq).nanos  # raises on non-fixed freq
+        unit = delta_to_nanoseconds(to_offset(freq), self._reso)
 
         arr = np.array([self.value], dtype="i8")
         result = round_nsint64(arr, mode, unit)[0]
-        return Timedelta(result, unit="ns")
+        return Timedelta._from_value_and_reso(result, self._reso)
 
     def round(self, freq):
         """
