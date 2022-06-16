@@ -42,7 +42,9 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    get_unit_from_dtype,
     iNaT,
+    periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
@@ -1294,7 +1296,7 @@ def format_array(
         fmt_klass = GenericArrayFormatter
 
     if space is None:
-        space = get_option("display.column_space")
+        space = 12
 
     if float_format is None:
         float_format = get_option("display.float_format")
@@ -1738,16 +1740,21 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
     if not isinstance(values, Index):
         values = values.ravel()
 
-    values = DatetimeIndex(values)
+    if not isinstance(values, (DatetimeArray, DatetimeIndex)):
+        values = DatetimeIndex(values)
+
     if values.tz is not None:
         return False
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 10**9
-    even_days = (
-        np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
-    )
+    # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+    reso = get_unit_from_dtype(values.dtype)  # type: ignore[arg-type]
+    ppd = periods_per_day(reso)
+
+    # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
+    even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
     if even_days:
         return True
     return False
@@ -2107,7 +2114,6 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     See also EngFormatter.
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
-    set_option("display.column_space", max(12, accuracy + 9))
 
 
 def get_level_lengths(
