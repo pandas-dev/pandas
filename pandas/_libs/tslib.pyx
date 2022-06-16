@@ -173,7 +173,7 @@ def format_array_from_datetime(
             result[i] = na_rep
         elif basic_format_day:
 
-            dt64_to_dtstruct(val, &dts)
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
             res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
 
             result[i] = res
