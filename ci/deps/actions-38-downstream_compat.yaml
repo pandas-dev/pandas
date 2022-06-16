@@ -6,7 +6,7 @@ dependencies:
   - python=3.8
 
   # test dependencies
-  - cython=0.29.24
+  - cython=0.29.30
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31

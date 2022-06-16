@@ -51,8 +51,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip
+conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip setuptools
 
 echo "conda info -a"
 conda info -a
@@ -67,8 +66,6 @@ echo "mamba env update --file=${ENV_FILE}"
 # See https://github.com/mamba-org/mamba/issues/633
 mamba create -q -n pandas-dev
 time mamba env update -n pandas-dev --file="${ENV_FILE}"
-# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-mamba install -n pandas-dev 'setuptools<60'
 
 echo "conda list -n pandas-dev"
 conda list -n pandas-dev

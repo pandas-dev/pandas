@@ -30,7 +30,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
-    conversion,
+    astype_overflowsafe,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -515,7 +515,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
         elif isinstance(dtype, IntervalDtype):
             # TODO(GH#45349): don't special-case IntervalDtype, allow
             #  overriding instead of returning object below.
-            return IntervalDtype(np.float64, closed=dtype.closed)
+            return IntervalDtype(np.float64, inclusive=dtype.inclusive)
         return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
@@ -834,7 +834,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = PeriodDtype(freq=val.freq)
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
+            dtype = IntervalDtype(subtype=subtype, inclusive=val.inclusive)
 
     return dtype, val
 
@@ -1419,10 +1419,10 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     """
     dtype = values.dtype
     if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-        values = conversion.ensure_datetime64ns(values)
+        values = astype_overflowsafe(values, dtype=DT64NS_DTYPE)
 
     elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        values = conversion.ensure_timedelta64ns(values)
+        values = astype_overflowsafe(values, dtype=TD64NS_DTYPE)
 
     elif copy:
         values = values.copy()

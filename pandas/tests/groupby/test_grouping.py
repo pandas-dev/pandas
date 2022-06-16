@@ -150,24 +150,26 @@ class TestSelection:
 
 
 class TestGrouping:
-    def test_grouper_index_types(self):
-        # related GH5375
-        # groupby misbehaving when using a Floatlike index
-        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
-        for index in [
+    @pytest.mark.parametrize(
+        "index",
+        [
             tm.makeFloatIndex,
             tm.makeStringIndex,
-            tm.makeUnicodeIndex,
             tm.makeIntIndex,
             tm.makeDateIndex,
             tm.makePeriodIndex,
-        ]:
+        ],
+    )
+    def test_grouper_index_types(self, index):
+        # related GH5375
+        # groupby misbehaving when using a Floatlike index
+        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
 
-            df.index = index(len(df))
-            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
+        df.index = index(len(df))
+        df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
-            df.index = list(reversed(df.index.tolist()))
-            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
+        df.index = list(reversed(df.index.tolist()))
+        df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
 
@@ -469,7 +471,7 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
         result = mframe.groupby(level=[-2, -1]).sum()
-        expected = mframe
+        expected = mframe.sort_index()
         tm.assert_frame_equal(result, expected)
 
         result = mframe.groupby(level=[-1, "first"]).sum()
@@ -797,13 +799,13 @@ class TestGetGroup:
 
         # TODO: should prob allow a str of Interval work as well
         # IOW '(0, 5]'
-        result = g.get_group(pd.Interval(0, 5))
+        result = g.get_group(pd.Interval(0, 5, "right"))
         expected = DataFrame([3, 1], index=[0, 1])
         tm.assert_frame_equal(result, expected)
 
-        msg = r"Interval\(10, 15, closed='right'\)"
+        msg = r"Interval\(10, 15, inclusive='right'\)"
         with pytest.raises(KeyError, match=msg):
-            g.get_group(pd.Interval(10, 15))
+            g.get_group(pd.Interval(10, 15, "right"))
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121

@@ -290,8 +290,10 @@ def test_array_multiindex_raises():
         ),
         (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
         (
-            IntervalArray.from_breaks([0, 1, 2]),
-            np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
+            IntervalArray.from_breaks([0, 1, 2], "right"),
+            np.array(
+                [pd.Interval(0, 1, "right"), pd.Interval(1, 2, "right")], dtype=object
+            ),
         ),
         (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
         # tz-naive datetime

@@ -38,6 +38,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import timezones
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     DtypeArg,
     Shape,
@@ -3042,7 +3043,7 @@ class GenericFixed(Fixed):
         node._v_attrs.shape = value.shape
 
     def write_array(
-        self, key: str, obj: DataFrame | Series, items: Index | None = None
+        self, key: str, obj: AnyArrayLike, items: Index | None = None
     ) -> None:
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have

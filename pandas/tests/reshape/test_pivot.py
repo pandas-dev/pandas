@@ -301,7 +301,7 @@ class TestPivotTable:
 
     def test_pivot_with_interval_index_margins(self):
         # GH 25815
-        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2])
+        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2], "right")
         df = DataFrame(
             {
                 "A": np.arange(4, 0, -1, dtype=np.intp),
@@ -319,7 +319,10 @@ class TestPivotTable:
         result = pivot_tab["All"]
         expected = Series(
             [3, 7, 10],
-            index=Index([pd.Interval(0, 1), pd.Interval(1, 2), "All"], name="C"),
+            index=Index(
+                [pd.Interval(0, 1, "right"), pd.Interval(1, 2, "right"), "All"],
+                name="C",
+            ),
             name="All",
             dtype=np.intp,
         )
@@ -2177,6 +2180,28 @@ class TestPivotTable:
             columns=Index(["2018", "2019"], name="year"),
             index=MultiIndex.from_arrays(
                 [["d1", "d4", "d3"], ["a", "b", "c"]], names=["a", "col"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_sort_false_with_multiple_values(self):
+        df = DataFrame(
+            {
+                "firstname": ["John", "Michael"],
+                "lastname": ["Foo", "Bar"],
+                "height": [173, 182],
+                "age": [47, 33],
+            }
+        )
+        result = df.pivot_table(
+            index=["lastname", "firstname"], values=["height", "age"], sort=False
+        )
+        expected = DataFrame(
+            [[173, 47], [182, 33]],
+            columns=["height", "age"],
+            index=MultiIndex.from_tuples(
+                [("Foo", "John"), ("Bar", "Michael")],
+                names=["lastname", "firstname"],
             ),
         )
         tm.assert_frame_equal(result, expected)
