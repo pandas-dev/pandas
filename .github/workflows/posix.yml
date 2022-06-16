@@ -147,40 +147,16 @@ jobs:
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
-    - uses: conda-incubator/setup-miniconda@v2.1.1
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
       with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
-
-    - name: Upgrade Arrow version
-      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
-      if: ${{ matrix.pyarrow_version }}
+        pyarrow-version: ${{ matrix.pyarrow_version }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: ci/run_tests.sh
+      uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
-
-    - name: Build Version
-      run: conda list
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: false

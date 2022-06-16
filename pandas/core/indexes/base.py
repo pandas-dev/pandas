@@ -2227,7 +2227,11 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     def _get_grouper_for_level(
-        self, mapper, *, level=None
+        self,
+        mapper,
+        *,
+        level=None,
+        dropna: bool = True,
     ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         """
         Get index grouper corresponding to an index level
@@ -2238,6 +2242,8 @@ class Index(IndexOpsMixin, PandasObject):
             Function mapping index values to groups
         level : int or None
             Index level, positional
+        dropna : bool
+            dropna from groupby
 
         Returns
         -------
@@ -6949,7 +6955,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # TODO: should set MultiIndex._can_hold_na = False?
                     arr[self.isna()] = False
                 return arr
-            elif op in {operator.ne, operator.lt, operator.gt}:
+            elif op is operator.ne:
                 arr = np.zeros(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     arr[self.isna()] = True

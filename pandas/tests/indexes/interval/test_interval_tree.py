@@ -207,3 +207,21 @@ class TestIntervalTree:
         ):
             left, right = np.arange(10), [np.iinfo(np.int64).max] * 10
             IntervalTree(left, right, closed="both")
+
+    @pytest.mark.xfail(not IS64, reason="GH 23440")
+    @pytest.mark.parametrize(
+        "left, right, expected",
+        [
+            ([-np.inf, 1.0], [1.0, 2.0], 0.0),
+            ([-np.inf, -2.0], [-2.0, -1.0], -2.0),
+            ([-2.0, -1.0], [-1.0, np.inf], 0.0),
+            ([1.0, 2.0], [2.0, np.inf], 2.0),
+        ],
+    )
+    def test_inf_bound_infinite_recursion(self, left, right, expected):
+        # GH 46658
+
+        tree = IntervalTree(left * 101, right * 101)
+
+        result = tree.root.pivot
+        assert result == expected

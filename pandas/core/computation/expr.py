@@ -18,6 +18,7 @@ from typing import (
 import numpy as np
 
 from pandas.compat import PY39
+from pandas.errors import UndefinedVariableError
 
 import pandas.core.common as com
 from pandas.core.computation.ops import (
@@ -35,7 +36,6 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
-    UndefinedVariableError,
     is_term,
 )
 from pandas.core.computation.parsing import (
