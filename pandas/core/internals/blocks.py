@@ -2160,7 +2160,7 @@ def to_native_types(
     **kwargs,
 ) -> np.ndarray:
     """convert to our native types format"""
-    if isinstance(values, Categorical):
+    if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
         # GH#40754 Convert categorical datetimes to datetime array
         values = take_nd(
             values.categories._values,
