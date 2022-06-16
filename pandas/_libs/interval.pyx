@@ -9,6 +9,8 @@ from cpython.datetime cimport (
     import_datetime,
 )
 
+from pandas.util._exceptions import find_stack_level
+
 import_datetime()
 
 cimport cython
@@ -378,6 +380,15 @@ cdef class Interval(IntervalMixin):
         self.left = left
         self.right = right
         self.inclusive = inclusive
+
+    @property
+    def closed(self):
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.inclusive
 
     def _validate_endpoint(self, endpoint):
         # GH 23013

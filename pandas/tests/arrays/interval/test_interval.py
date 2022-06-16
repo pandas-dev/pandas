@@ -460,3 +460,27 @@ def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
         dates[:-1], dates[1:], inclusive=inclusive_endpoints_fixture
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_from_tuples_deprecation():
+    # GH#40245
+    with tm.assert_produces_warning(FutureWarning):
+        IntervalArray.from_tuples([(0, 1), (1, 2)], closed="right")
+
+
+def test_from_tuples_deprecation_error():
+    # GH#40245
+    with pytest.raises(ValueError, match="cannot be passed"):
+        IntervalArray.from_tuples([(0, 1), (1, 2)], closed="right", inclusive=None)
+
+
+def test_from_breaks_deprecation():
+    # GH#40245
+    with tm.assert_produces_warning(FutureWarning):
+        IntervalArray.from_breaks([0, 1, 2, 3], closed="right")
+
+
+def test_from_arrays_deprecation():
+    # GH#40245
+    with tm.assert_produces_warning(FutureWarning):
+        IntervalArray.from_arrays([0, 1, 2], [1, 2, 3], closed="right")

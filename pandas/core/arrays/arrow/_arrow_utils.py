@@ -131,6 +131,15 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def inclusive(self):
         return self._closed
 
+    @property
+    def closed(self):
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._closed
+
     def __arrow_ext_serialize__(self):
         metadata = {"subtype": str(self.subtype), "inclusive": self.inclusive}
         return json.dumps(metadata).encode()

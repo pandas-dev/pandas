@@ -955,3 +955,9 @@ def test_searchsorted_invalid_argument(arg):
     msg = "'<' not supported between instances of 'pandas._libs.interval.Interval' and "
     with pytest.raises(TypeError, match=msg):
         values.searchsorted(arg)
+
+
+def test_interval_range_deprecated_closed():
+    # GH#40245
+    with tm.assert_produces_warning(FutureWarning):
+        interval_range(start=0, end=5, closed="right")

@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     Literal,
 )
+import warnings
 
 import numpy as np
 
@@ -38,7 +39,10 @@ from pandas.util._decorators import (
     Appender,
     cache_readonly,
 )
-from pandas.util._exceptions import rewrite_exception
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_exception,
+)
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -213,11 +217,11 @@ class IntervalIndex(ExtensionIndex):
         cls,
         data,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
         verify_integrity: bool = True,
+        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
 
         inclusive, closed = _warning_interval(inclusive, closed)
@@ -234,6 +238,15 @@ class IntervalIndex(ExtensionIndex):
             )
 
         return cls._simple_new(array, name)
+
+    @property
+    def closed(self):
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.inclusive
 
     @classmethod
     @Appender(
@@ -255,10 +268,10 @@ class IntervalIndex(ExtensionIndex):
         cls,
         breaks,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
+        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
 
         inclusive, closed = _warning_interval(inclusive, closed)
@@ -292,10 +305,10 @@ class IntervalIndex(ExtensionIndex):
         left,
         right,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
+        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
 
         inclusive, closed = _warning_interval(inclusive, closed)
@@ -328,10 +341,10 @@ class IntervalIndex(ExtensionIndex):
         cls,
         data,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
+        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
 
         inclusive, closed = _warning_interval(inclusive, closed)
@@ -980,8 +993,8 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: IntervalClosedType | lib.NoDefault = lib.no_default,
     inclusive: IntervalClosedType | None = None,
+    closed: IntervalClosedType | lib.NoDefault = lib.no_default,
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -1079,7 +1092,7 @@ def interval_range(
     """
     inclusive, closed = _warning_interval(inclusive, closed)
     if inclusive is None:
-        inclusive = "both"
+        inclusive = "right"
 
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)
