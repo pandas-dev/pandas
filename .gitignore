@@ -37,6 +37,10 @@
 *.so
 .build_cache_dir
 MANIFEST
+Makefile
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
 
 # Python files #
 ################
