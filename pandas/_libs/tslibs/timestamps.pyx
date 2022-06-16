@@ -84,13 +84,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
-    dt64_to_dtstruct,
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
-    pydatetime_to_dt64,
+    pydatetime_to_dtstruct,
 )
 
 from pandas._libs.tslibs.np_datetime import (
@@ -157,14 +157,7 @@ cdef inline _Timestamp create_timestamp_from_ts(
 
 def _unpickle_timestamp(value, freq, tz, reso=NPY_FR_ns):
     # GH#41949 dont warn on unpickle if we have a freq
-    if reso == NPY_FR_ns:
-        ts = Timestamp(value, tz=tz)
-    else:
-        if tz is not None:
-            raise NotImplementedError
-        abbrev = npy_unit_to_abbrev(reso)
-        dt64 = np.datetime64(value, abbrev)
-        ts = Timestamp._from_dt64(dt64)
+    ts = Timestamp._from_value_and_reso(value, reso, tz)
     ts._set_freq(freq)
     return ts
 
@@ -400,17 +393,18 @@ cdef class _Timestamp(ABCTimestamp):
                 new_value = int(self.value) + int(nanos)
 
             try:
-                result = type(self)._from_value_and_reso(new_value, reso=self._reso, tz=self.tzinfo)
+                result = type(self)._from_value_and_reso(
+                    new_value, reso=self._reso, tz=self.tzinfo
+                )
             except OverflowError as err:
                 # TODO: don't hard-code nanosecond here
-                raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {new_value}") from err
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds nanosecond timestamp: {new_value}"
+                ) from err
 
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
             return result
-
-        elif isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
 
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
@@ -446,9 +440,6 @@ cdef class _Timestamp(ABCTimestamp):
             neg_other = -other
             return self + neg_other
 
-        elif isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
                 raise integer_op_not_supported(self)
@@ -479,10 +470,25 @@ cdef class _Timestamp(ABCTimestamp):
                     "Cannot subtract tz-naive and tz-aware datetime-like objects."
                 )
 
+            # We allow silent casting to the lower resolution if and only
+            #  if it is lossless.
+            try:
+                if self._reso < other._reso:
+                    other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
+                elif self._reso > other._reso:
+                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+            except ValueError as err:
+                raise ValueError(
+                    "Timestamp subtraction with mismatched resolutions is not "
+                    "allowed when casting to the lower resolution would require "
+                    "lossy rounding."
+                ) from err
+
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
             try:
-                return Timedelta(self.value - other.value)
+                res_value = self.value - other.value
+                return Timedelta._from_value_and_reso(res_value, self._reso)
             except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if isinstance(other, _Timestamp):
                     if both_timestamps:
@@ -503,9 +509,6 @@ cdef class _Timestamp(ABCTimestamp):
         return NotImplemented
 
     def __rsub__(self, other):
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         if PyDateTime_Check(other):
             try:
                 return type(self)(other) - self
@@ -527,7 +530,8 @@ cdef class _Timestamp(ABCTimestamp):
             npy_datetimestruct dts
 
         if own_tz is not None and not is_utc(own_tz):
-            val = pydatetime_to_dt64(self, &dts) + self.nanosecond
+            pydatetime_to_dtstruct(self, &dts)
+            val = npy_datetimestruct_to_datetime(self._reso, &dts) + self.nanosecond
         else:
             val = self.value
         return val
@@ -1641,10 +1645,10 @@ class Timestamp(_Timestamp):
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
-            int64_t nanos = to_offset(freq).nanos
+            int64_t nanos
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
+        to_offset(freq).nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(to_offset(freq), self._reso)
 
         if self.tz is not None:
             value = self.tz_localize(None).value
@@ -1655,7 +1659,7 @@ class Timestamp(_Timestamp):
 
         # Will only ever contain 1 element for timestamp
         r = round_nsint64(value, mode, nanos)[0]
-        result = Timestamp(r, unit='ns')
+        result = Timestamp._from_value_and_reso(r, self._reso, None)
         if self.tz is not None:
             result = result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent
@@ -2041,11 +2045,6 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if self._reso != NPY_FR_ns:
-            if tz is None and self.tz is None:
-                return self
-            raise NotImplementedError(self._reso)
-
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
@@ -2074,7 +2073,7 @@ default 'raise'
                 "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
             )
 
-        out = Timestamp(value, tz=tz)
+        out = type(self)._from_value_and_reso(value, self._reso, tz=tz)
         if out is not NaT:
             out._set_freq(self._freq)  # avoid warning in constructor
         return out
@@ -2121,7 +2120,6 @@ default 'raise'
         >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
         NaT
         """
-
         if self.tzinfo is None:
             # tz naive, use tz_localize
             raise TypeError(
