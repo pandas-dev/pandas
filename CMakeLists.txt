@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
-set(CMAKE_SHARED_LIBRARY_SUFFIX .cpython-38-darwin.so)
+set(CMAKE_SHARED_LIBRARY_SUFFIX .cpython-38-x86_64-linux-gnu.so)
 
 find_package(Python REQUIRED COMPONENTS Development NumPy)
 add_subdirectory("pandas/_libs")
