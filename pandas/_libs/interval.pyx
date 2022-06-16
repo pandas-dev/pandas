@@ -388,7 +388,6 @@ cdef class Interval(IntervalMixin):
         neither.
 
         .. deprecated:: 1.5.0
-
         """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
