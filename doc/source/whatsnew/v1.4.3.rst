@@ -44,7 +44,7 @@ Bug fixes
 Other
 ~~~~~
 - The minimum version of Cython needed to compile pandas is now ``0.29.30`` (:issue:`41935`)
-- Recommended dependencies ``numexpr`` & ``bottleneck`` can be managed as extras in a requirements/setup file eg. ``pandas[numexpr,bottleneck]>=1.4.3`` (:issue:`47335`)
+- Recommended dependencies ``numexpr`` & ``bottleneck`` can be managed as extras in a requirements/setup file eg. ``pandas[recommended]>=1.4.3`` (:issue:`47335`)
 
 .. ---------------------------------------------------------------------------
 
