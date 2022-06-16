@@ -10,10 +10,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_windows,
-)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -143,10 +139,6 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
-    @pytest.mark.skipif(
-        is_ci_environment() and is_platform_windows(),
-        reason="Causes MemoryError on Windows",
-    )
     def test_nullable_int_plot(self):
         # GH 32073
         dates = ["2008", "2009", None, "2011", "2012"]

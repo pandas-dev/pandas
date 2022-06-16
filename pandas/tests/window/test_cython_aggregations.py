@@ -5,10 +5,6 @@ import numpy as np
 import pytest
 
 import pandas._libs.window.aggregations as window_aggregations
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_windows,
-)
 
 from pandas import Series
 import pandas._testing as tm
@@ -90,10 +86,6 @@ def test_rolling_aggregation_boundary_consistency(rolling_aggregation):
     tm.assert_equal(expected, result)
 
 
-@pytest.mark.skipif(
-    is_ci_environment() and is_platform_windows(),
-    reason="Causes MemoryError on Windows",
-)
 def test_rolling_aggregation_with_unused_elements(rolling_aggregation):
     # GH-45647
     minp, width = 0, 5  # width at least 4 for kurt

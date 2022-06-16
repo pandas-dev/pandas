@@ -16,6 +16,7 @@ env:
 
 jobs:
   pre_commit:
+    if: false
     name: pre-commit
     runs-on: ubuntu-latest
     concurrency:
@@ -35,6 +36,7 @@ jobs:
       uses: pre-commit/action@v2.0.3
 
   typing_and_docstring_validation:
+    if: false
     name: Docstring and typing validation
     runs-on: ubuntu-latest
     defaults:
@@ -98,6 +100,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' }}
 
   asv-benchmarks:
+    if: false
     name: ASV Benchmarks
     runs-on: ubuntu-latest
     defaults:
@@ -135,6 +138,7 @@ jobs:
         asv run --quick --dry-run --strict --durations=30 --python=same
 
   build_docker_dev_environment:
+    if: false
     name: Build Docker Dev Environment
     runs-on: ubuntu-latest
     defaults:
