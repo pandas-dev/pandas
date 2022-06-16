@@ -259,6 +259,16 @@ class TestDataFrameShift:
         result = df.shift(1, axis="columns")
         tm.assert_frame_equal(result, expected)
 
+    def test_shift_other_axis_with_freq(self, datetime_frame):
+        obj = datetime_frame.T
+        offset = offsets.BDay()
+
+        # GH#47039
+        shifted = obj.shift(5, freq=offset, axis=1)
+        assert len(shifted) == len(obj)
+        unshifted = shifted.shift(-5, freq=offset, axis=1)
+        tm.assert_equal(unshifted, obj)
+
     def test_shift_bool(self):
         df = DataFrame({"high": [True, False], "low": [False, False]})
         rs = df.shift(1)
@@ -354,17 +364,23 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(df, rs)
 
-    def test_shift_duplicate_columns(self):
+    def test_shift_duplicate_columns(self, using_array_manager):
         # GH#9092; verify that position-based shifting works
         # in the presence of duplicate columns
         column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
         data = np.random.randn(20, 5)
 
+        warn = None
+        if using_array_manager:
+            warn = FutureWarning
+
         shifted = []
         for columns in column_lists:
             df = DataFrame(data.copy(), columns=columns)
             for s in range(5):
-                df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
+                msg = "will attempt to set the values inplace"
+                with tm.assert_produces_warning(warn, match=msg):
+                    df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
             df.columns = range(5)
             shifted.append(df)
 

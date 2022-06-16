@@ -1,11 +1,28 @@
 from __future__ import annotations
 
 import json
+import warnings
 
 import numpy as np
 import pyarrow
 
+from pandas._libs import lib
+from pandas._libs.interval import _warning_interval
+from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.arrays.interval import VALID_CLOSED
+
+
+def fallback_performancewarning(version: str | None = None):
+    """
+    Raise a PerformanceWarning for falling back to ExtensionArray's
+    non-pyarrow method
+    """
+    msg = "Falling back on a non-pyarrow code path which may decrease performance."
+    if version is not None:
+        msg += f" Upgrade to pyarrow >={version} to possibly suppress this warning."
+    warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
 
 
 def pyarrow_array_to_numpy_and_mask(arr, dtype: np.dtype):
@@ -88,11 +105,17 @@ pyarrow.register_extension_type(_period_type)
 
 
 class ArrowIntervalType(pyarrow.ExtensionType):
-    def __init__(self, subtype, closed) -> None:
+    def __init__(
+        self,
+        subtype,
+        inclusive: str | None = None,
+        closed: None | lib.NoDefault = lib.no_default,
+    ) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
-        assert closed in VALID_CLOSED
-        self._closed = closed
+        inclusive, closed = _warning_interval(inclusive, closed)
+        assert inclusive in VALID_CLOSED
+        self._closed = inclusive
         if not isinstance(subtype, pyarrow.DataType):
             subtype = pyarrow.type_for_alias(str(subtype))
         self._subtype = subtype
@@ -105,37 +128,37 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         return self._subtype
 
     @property
-    def closed(self):
+    def inclusive(self):
         return self._closed
 
     def __arrow_ext_serialize__(self):
-        metadata = {"subtype": str(self.subtype), "closed": self.closed}
+        metadata = {"subtype": str(self.subtype), "inclusive": self.inclusive}
         return json.dumps(metadata).encode()
 
     @classmethod
     def __arrow_ext_deserialize__(cls, storage_type, serialized):
         metadata = json.loads(serialized.decode())
         subtype = pyarrow.type_for_alias(metadata["subtype"])
-        closed = metadata["closed"]
-        return ArrowIntervalType(subtype, closed)
+        inclusive = metadata["inclusive"]
+        return ArrowIntervalType(subtype, inclusive)
 
     def __eq__(self, other):
         if isinstance(other, pyarrow.BaseExtensionType):
             return (
                 type(self) == type(other)
                 and self.subtype == other.subtype
-                and self.closed == other.closed
+                and self.inclusive == other.inclusive
             )
         else:
             return NotImplemented
 
     def __hash__(self):
-        return hash((str(self), str(self.subtype), self.closed))
+        return hash((str(self), str(self.subtype), self.inclusive))
 
     def to_pandas_dtype(self):
         import pandas as pd
 
-        return pd.IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
+        return pd.IntervalDtype(self.subtype.to_pandas_dtype(), self.inclusive)
 
 
 # register the type with a dummy instance

@@ -143,8 +143,8 @@ returned.
 
 Calculating a given statistic (e.g. ``mean`` age) *for each category in
 a column* (e.g. male/female in the ``Sex`` column) is a common pattern.
-The ``groupby`` method is used to support this type of operations. More
-general, this fits in the more general ``split-apply-combine`` pattern:
+The ``groupby`` method is used to support this type of operations. This
+fits in the more general ``split-apply-combine`` pattern:
 
 -  **Split** the data into groups
 -  **Apply** a function to each group independently
@@ -154,11 +154,11 @@ The apply and combine steps are typically done together in pandas.
 
 In the previous example, we explicitly selected the 2 columns first. If
 not, the ``mean`` method is applied to each column containing numerical
-columns:
+columns by passing ``numeric_only=True``:
 
 .. ipython:: python
 
-    titanic.groupby("Sex").mean()
+    titanic.groupby("Sex").mean(numeric_only=True)
 
 It does not make much sense to get the average value of the ``Pclass``.
 If we are only interested in the average age for each gender, the

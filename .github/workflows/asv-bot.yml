@@ -41,12 +41,8 @@ jobs:
 
         # Although asv sets up its own env, deps are still needed
         # during discovery process
-      - uses: conda-incubator/setup-miniconda@v2.1.1
-        with:
-          activate-environment: pandas-dev
-          channel-priority: strict
-          environment-file: ${{ env.ENV_FILE }}
-          use-only-tar-bz2: true
+      - name: Set up Conda
+        uses: ./.github/actions/setup-conda
 
       - name: Run benchmarks
         id: bench

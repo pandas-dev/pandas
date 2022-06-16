@@ -23,9 +23,9 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script validates the doctests, formatting in docstrings, static typing, and
+The script validates the doctests, formatting in docstrings, and
 imported modules. It is possible to run the checks independently by using the
-parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+parameters ``docstring``, ``code``, and ``doctests``
 (e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
@@ -33,9 +33,9 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-In addition to ``./ci/code_checks.sh``, some extra checks are run by
-``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
-run them.
+In addition to ``./ci/code_checks.sh``, some extra checks (including static type
+checking) are run by ``pre-commit`` - see :ref:`here <contributing.pre-commit>`
+for how to run them.
 
 .. _contributing.pre-commit:
 
@@ -260,9 +260,9 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   ./ci/code_checks.sh typing
+   pre-commit run --hook-stage manual --all-files
 
-A recent version of ``numpy`` (>=1.21.0) is required for type validation.
+in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
 
 .. _contributing.ci:
 
@@ -289,13 +289,11 @@ library. This makes type checkers aware of the type annotations shipped with pan
 Testing with continuous integration
 -----------------------------------
 
-The pandas test suite will run automatically on `GitHub Actions <https://github.com/features/actions/>`__ and
-`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__
+The pandas test suite will run automatically on `GitHub Actions <https://github.com/features/actions/>`__
 continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
-for `GitHub Actions <https://docs.github.com/en/actions/>`__ and
-`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/?view=azure-devops>`__.
+for `GitHub Actions <https://docs.github.com/en/actions/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -306,8 +304,8 @@ This is an example of a green build.
 .. _contributing.tdd:
 
 
-Test-driven development/code writing
-------------------------------------
+Test-driven development
+-----------------------
 
 pandas is serious about testing and strongly encourages contributors to embrace
 `test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
@@ -339,10 +337,11 @@ pandas existing test structure is *mostly* class-based, meaning that you will ty
 
 .. code-block:: python
 
-    class TestReallyCoolFeature:
-        pass
+   class TestReallyCoolFeature:
+       def test_cool_feature_aspect(self):
+           pass
 
-Going forward, we are moving to a more *functional* style using the `pytest <https://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
+We prefer a more *functional* style using the `pytest <https://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
@@ -350,8 +349,8 @@ framework that will facilitate testing and developing. Thus, instead of writing 
     def test_really_cool_feature():
         pass
 
-Preferred idioms
-^^^^^^^^^^^^^^^^
+Preferred ``pytest`` idioms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * Functional tests named ``def test_*`` and *only* take arguments that are either fixtures or parameters.
 * Use a bare ``assert`` for testing scalars and truth-testing
@@ -389,9 +388,66 @@ xfail is not to be used for tests involving failure due to invalid user argument
 For these tests, we need to verify the correct exception type and error message
 is being raised, using ``pytest.raises`` instead.
 
-If your test requires working with files or
-network connectivity, there is more information on the :wiki:`Testing` of the wiki.
+Testing a warning
+^^^^^^^^^^^^^^^^^
 
+Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
+
+.. code-block:: python
+
+    with tm.assert_produces_warning(DeprecationWarning):
+        pd.deprecated_function()
+
+If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
+
+.. code-block:: python
+
+    with tm.assert_produces_warning(False):
+        pd.no_warning_function()
+
+Testing an exception
+^^^^^^^^^^^^^^^^^^^^
+
+Use `pytest.raises <https://docs.pytest.org/en/latest/reference/reference.html#pytest-raises>`_ as a context manager
+with the specific exception subclass (i.e. never use :py:class:`Exception`) and the exception message in ``match``.
+
+.. code-block:: python
+
+    with pytest.raises(ValueError, match="an error"):
+        raise ValueError("an error")
+
+Testing involving files
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``tm.ensure_clean`` context manager creates a temporary file for testing,
+with a generated filename (or your filename if provided), that is automatically
+deleted when the context block is exited.
+
+.. code-block:: python
+
+    with tm.ensure_clean('my_file_path') as path:
+        # do something with the path
+
+Testing involving network connectivity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is highly discouraged to add a test that connects to the internet due to flakiness of network connections and
+lack of ownership of the server that is being connected to. If network connectivity is absolutely required, use the
+``tm.network`` decorator.
+
+.. code-block:: python
+
+    @tm.network   # noqa
+    def test_network():
+        result = package.call_to_internet()
+
+If the test requires data from a specific website, specify ``check_before_test=True`` and the site in the decorator.
+
+.. code-block:: python
+
+    @tm.network("https://www.somespecificsite.com", check_before_test=True)
+    def test_network():
+        result = pd.read_html("https://www.somespecificsite.com")
 
 Example
 ^^^^^^^

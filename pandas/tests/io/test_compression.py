@@ -1,17 +1,26 @@
+import gzip
 import io
 import os
 from pathlib import Path
 import subprocess
 import sys
+import tarfile
 import textwrap
 import time
+import zipfile
 
 import pytest
+
+from pandas.compat import is_platform_windows
 
 import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
+
+_compression_to_extension = {
+    value: key for key, value in icom._extension_to_compression.items()
+}
 
 
 @pytest.mark.parametrize(
@@ -26,6 +35,9 @@ import pandas.io.common as icom
 )
 @pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
 def test_compression_size(obj, method, compression_only):
+    if compression_only == "tar":
+        compression_only = {"method": "tar", "mode": "w:gz"}
+
     with tm.ensure_clean() as path:
         getattr(obj, method)(path, compression=compression_only)
         compressed_size = os.path.getsize(path)
@@ -47,7 +59,11 @@ def test_compression_size(obj, method, compression_only):
 @pytest.mark.parametrize("method", ["to_csv", "to_json"])
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        with icom.get_handle(path, "w", compression=compression_only) as handles:
+        with icom.get_handle(
+            path,
+            "w:gz" if compression_only == "tar" else "w",
+            compression=compression_only,
+        ) as handles:
             getattr(obj, method)(handles.handle)
             assert not handles.handle.closed
         compressed_size = os.path.getsize(path)
@@ -72,7 +88,7 @@ def test_dataframe_compression_defaults_to_infer(
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
-    extension = icom._compression_to_extension[compression_only]
+    extension = _compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
@@ -92,7 +108,7 @@ def test_series_compression_defaults_to_infer(
 ):
     # GH22004
     input = pd.Series([0, 5, -2, 10], name="X")
-    extension = icom._compression_to_extension[compression_only]
+    extension = _compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         if "squeeze" in read_kwargs:
@@ -255,3 +271,72 @@ def test_bzip_compression_level(obj, method):
     """
     with tm.ensure_clean() as path:
         getattr(obj, method)(path, compression={"method": "bz2", "compresslevel": 1})
+
+
+@pytest.mark.parametrize(
+    "suffix,archive",
+    [
+        (".zip", zipfile.ZipFile),
+        (".tar", tarfile.TarFile),
+    ],
+)
+def test_empty_archive_zip(suffix, archive):
+    with tm.ensure_clean(filename=suffix) as path:
+        file = archive(path, "w")
+        file.close()
+        with pytest.raises(ValueError, match="Zero files found"):
+            pd.read_csv(path)
+
+
+def test_ambiguous_archive_zip():
+    with tm.ensure_clean(filename=".zip") as path:
+        file = zipfile.ZipFile(path, "w")
+        file.writestr("a.csv", "foo,bar")
+        file.writestr("b.csv", "foo,bar")
+        file.close()
+        with pytest.raises(ValueError, match="Multiple files found in ZIP file"):
+            pd.read_csv(path)
+
+
+def test_ambiguous_archive_tar():
+    with tm.ensure_clean_dir() as dir:
+        csvAPath = os.path.join(dir, "a.csv")
+        with open(csvAPath, "w") as a:
+            a.write("foo,bar\n")
+        csvBPath = os.path.join(dir, "b.csv")
+        with open(csvBPath, "w") as b:
+            b.write("foo,bar\n")
+
+        tarpath = os.path.join(dir, "archive.tar")
+        with tarfile.TarFile(tarpath, "w") as tar:
+            tar.add(csvAPath, "a.csv")
+            tar.add(csvBPath, "b.csv")
+
+        with pytest.raises(ValueError, match="Multiple files found in TAR archive"):
+            pd.read_csv(tarpath)
+
+
+def test_tar_gz_to_different_filename():
+    with tm.ensure_clean(filename=".foo") as file:
+        pd.DataFrame(
+            [["1", "2"]],
+            columns=["foo", "bar"],
+        ).to_csv(file, compression={"method": "tar", "mode": "w:gz"}, index=False)
+        with gzip.open(file) as uncompressed:
+            with tarfile.TarFile(fileobj=uncompressed) as archive:
+                members = archive.getmembers()
+                assert len(members) == 1
+                content = archive.extractfile(members[0]).read().decode("utf8")
+
+                if is_platform_windows():
+                    expected = "foo,bar\r\n1,2\r\n"
+                else:
+                    expected = "foo,bar\n1,2\n"
+
+                assert content == expected
+
+
+def test_tar_no_error_on_close():
+    with io.BytesIO() as buffer:
+        with icom._BytesTarFile(fileobj=buffer, mode="w"):
+            pass
