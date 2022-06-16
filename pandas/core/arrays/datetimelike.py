@@ -1933,7 +1933,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        nanos = to_offset(freq).nanos
+        nanos = to_offset(freq).nanos  # raises on non-fixed frequencies
+        nanos = delta_to_nanoseconds(to_offset(freq), self._reso)
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)
