@@ -383,6 +383,13 @@ cdef class Interval(IntervalMixin):
 
     @property
     def closed(self):
+        """
+        Whether the interval is closed on the left-side, right-side, both or
+        neither.
+
+        .. deprecated:: 1.5.0
+
+        """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,

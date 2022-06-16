@@ -1013,6 +1013,10 @@ def interval_range(
         for numeric and 'D' for datetime-like.
     name : str, default None
         Name of the resulting IntervalIndex.
+    inclusive : {"both", "neither", "left", "right"}, default "both"
+        Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.5.0
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
@@ -1020,10 +1024,6 @@ def interval_range(
         .. deprecated:: 1.5.0
            Argument `closed` has been deprecated to standardize boundary inputs.
            Use `inclusive` instead, to set each bound as closed or open.
-    inclusive : {"both", "neither", "left", "right"}, default "both"
-        Include boundaries; Whether to set each bound as closed or open.
-
-        .. versionadded:: 1.5.0
 
     Returns
     -------
