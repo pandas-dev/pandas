@@ -1104,7 +1104,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return DatetimeArray(result)
 
         i8 = self.asi8
-        result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
+        # Incompatible types in assignment (expression has type "ndarray[Any,
+        # dtype[signedinteger[_64Bit]]]", variable has type
+        # "ndarray[Any, dtype[datetime64]]")
+        result = checked_add_with_arr(  # type: ignore[assignment]
+            i8, other.value, arr_mask=self._isnan
+        )
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
@@ -1180,8 +1185,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
         asi8 = self.asi8
-        new_data = asi8 - other.ordinal  # TODO: checked_add_with_arr
-        new_data = np.array([self.freq.base * x for x in new_data])
+        new_i8_data = asi8 - other.ordinal  # TODO: checked_add_with_arr
+        new_data = np.array([self.freq.base * x for x in new_i8_data])
 
         if self._hasna:
             new_data[self._isnan] = NaT
@@ -1300,11 +1305,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("PeriodArray", self)
         self._require_matching_freq(other)
 
-        new_values = checked_add_with_arr(
+        new_i8_values = checked_add_with_arr(
             self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
         )
 
-        new_values = np.array([self.freq.base * x for x in new_values])
+        new_values = np.array([self.freq.base * x for x in new_i8_values])
         if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             new_values[mask] = NaT
