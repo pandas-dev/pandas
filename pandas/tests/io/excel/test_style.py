@@ -211,7 +211,7 @@ def test_styler_custom_converter():
             assert wb["custom"].cell(2, 2).font.color.value == "00111222"
 
 
-def test_styler_to_s3(self, s3_resource, s3so):
+def test_styler_to_s3(s3_resource, s3so):
     # GH#46381
 
     mock_bucket_name, target_file = "pandas-test", "test.xlsx"
