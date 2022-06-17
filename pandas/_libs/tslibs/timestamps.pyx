@@ -84,13 +84,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
-    dt64_to_dtstruct,
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
-    pydatetime_to_dt64,
+    pydatetime_to_dtstruct,
 )
 
 from pandas._libs.tslibs.np_datetime import (
@@ -530,7 +530,8 @@ cdef class _Timestamp(ABCTimestamp):
             npy_datetimestruct dts
 
         if own_tz is not None and not is_utc(own_tz):
-            val = pydatetime_to_dt64(self, &dts) + self.nanosecond
+            pydatetime_to_dtstruct(self, &dts)
+            val = npy_datetimestruct_to_datetime(self._reso, &dts) + self.nanosecond
         else:
             val = self.value
         return val
@@ -1644,10 +1645,10 @@ class Timestamp(_Timestamp):
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
-            int64_t nanos = to_offset(freq).nanos
+            int64_t nanos
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
+        to_offset(freq).nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(to_offset(freq), self._reso)
 
         if self.tz is not None:
             value = self.tz_localize(None).value
@@ -1658,7 +1659,7 @@ class Timestamp(_Timestamp):
 
         # Will only ever contain 1 element for timestamp
         r = round_nsint64(value, mode, nanos)[0]
-        result = Timestamp(r, unit='ns')
+        result = Timestamp._from_value_and_reso(r, self._reso, None)
         if self.tz is not None:
             result = result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent
@@ -2044,11 +2045,6 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if self._reso != NPY_FR_ns:
-            if tz is None and self.tz is None:
-                return self
-            raise NotImplementedError(self._reso)
-
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
@@ -2077,7 +2073,7 @@ default 'raise'
                 "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
             )
 
-        out = Timestamp(value, tz=tz)
+        out = type(self)._from_value_and_reso(value, self._reso, tz=tz)
         if out is not NaT:
             out._set_freq(self._freq)  # avoid warning in constructor
         return out
@@ -2124,7 +2120,6 @@ default 'raise'
         >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
         NaT
         """
-
         if self.tzinfo is None:
             # tz naive, use tz_localize
             raise TypeError(
