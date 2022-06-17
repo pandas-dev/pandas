@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
 
-find_package(Python REQUIRED COMPONENTS Development NumPy)
+find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
 set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}.so")
 add_compile_definitions(NPY_NO_DEPRECATED_API=0)
 add_subdirectory("pandas/_libs")
