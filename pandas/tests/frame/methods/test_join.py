@@ -373,7 +373,7 @@ def test_join_list_series(float_frame):
     left = float_frame.A.to_frame()
     right = [float_frame.B, float_frame[["C", "D"]]]
     result = left.join(right)
-    assert tm.assert_frame_equal(result, float_frame)
+    tm.assert_frame_equal(result, float_frame)
 
 
 @pytest.mark.parametrize("sort_kw", [True, False])
