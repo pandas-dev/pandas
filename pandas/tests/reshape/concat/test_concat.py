@@ -794,6 +794,7 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_invalid_test
 def test_concat_ignore_empty_from_reindex():
     # https://github.com/pandas-dev/pandas/pull/43507#issuecomment-920375856
     df1 = DataFrame({"a": [1], "b": [pd.Timestamp("2012-01-01")]})

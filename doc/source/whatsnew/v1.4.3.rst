@@ -10,6 +10,17 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_143.concat:
+
+Behaviour of ``concat`` with empty or all-NA DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The behaviour change in version 1.4.0 to stop ignoring the data type
+of empty or all-NA columns with float or object dtype in :func:`concat`
+(:ref:`whatsnew_140.notable_bug_fixes.concat_with_empty_or_all_na`) has been
+reverted (:issue:`45637`).
+
+
 .. _whatsnew_143.regressions:
 
 Fixed regressions
