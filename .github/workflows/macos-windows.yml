@@ -59,7 +59,7 @@ jobs:
     - name: Save debug log as an artifact
       uses: actions/upload-artifact@v3
       with:
-        name: pytest_debug_log
+        name: pytest_debug_log_${{ matrix.env_file }}_${{ matrix.os }}
         path: pytestdebug.log
         retention-days: 14
       if: failure()
