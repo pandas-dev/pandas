@@ -1333,3 +1333,32 @@ class TestDataFrameToCSV:
         )
         expected = '""\n""\n'
         assert result == expected
+
+    def test_to_csv_categorical_and_ea(self):
+        # GH#46812
+        df = DataFrame({"a": "x", "b": [1, pd.NA]})
+        df["b"] = df["b"].astype("Int16")
+        df["b"] = df["b"].astype("category")
+        result = df.to_csv()
+        expected_rows = [",a,b", "0,x,1", "1,x,"]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
+
+    def test_to_csv_categorical_and_interval(self):
+        # GH#46297
+        df = DataFrame(
+            {
+                "a": [
+                    pd.Interval(
+                        Timestamp("2020-01-01"),
+                        Timestamp("2020-01-02"),
+                        closed="both",
+                    )
+                ]
+            }
+        )
+        df["a"] = df["a"].astype("category")
+        result = df.to_csv()
+        expected_rows = [",a", '0,"[2020-01-01, 2020-01-02]"']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
