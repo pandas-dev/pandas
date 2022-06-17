@@ -368,10 +368,12 @@ def test_join_left_sequence_non_unique_index():
 
 
 def test_join_list_series(float_frame):
+    # GH#46850
+    # Join a DataFrame with a list containing both a Series and a DataFrame
     left = float_frame.A.to_frame()
     right = [float_frame.B, float_frame[["C", "D"]]]
     result = left.join(right)
-    assert result.equals(float_frame)
+    assert tm.assert_frame_equal(result, float_frame)
 
 
 @pytest.mark.parametrize("sort_kw", [True, False])
