@@ -60,7 +60,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.ccalendar cimport (
-    c_MONTH_NUMBERS,
     dayofweek,
     get_day_of_year,
     get_days_in_month,
@@ -2483,9 +2482,11 @@ class Period(_Period):
     Parameters
     ----------
     value : Period or str, default None
-        The time period represented (e.g., '4Q2005').
+        The time period represented (e.g., '4Q2005'). This represents neither
+        the start or the end of the period, but rather the entire period itself.
     freq : str, default None
-        One of pandas period strings or corresponding objects.
+        One of pandas period strings or corresponding objects. Accepted
+        strings are listed in the :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
@@ -2502,6 +2503,12 @@ class Period(_Period):
         Minute value of the period.
     second : int, default 0
         Second value of the period.
+
+    Examples
+    --------
+    >>> period = pd.Period('2012-1-1', freq='D')
+    >>> period
+    Period('2012-01-01', 'D')
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,
