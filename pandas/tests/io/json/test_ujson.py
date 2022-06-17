@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas._libs.json as ujson
+import pandas._libs.ujson as ujson
 from pandas.compat import (
     IS64,
     is_platform_windows,
