@@ -72,6 +72,8 @@ foreach(LIB ${BASIC_LIBRARIES})
   target_link_libraries(${LIB} PUBLIC ${Python_LIBRARIES})
 endforeach()
 
+add_subdirectory("tslibs")
+
 add_custom_command(OUTPUT tslib.c COMMAND python -m cython -3 tslib.pyx)
 add_library(tslib ${LIB} SHARED tslib.c tslibs/src/datetime/np_datetime.c)
 target_include_directories(tslib PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "./tslibs")
@@ -99,5 +101,4 @@ add_library(json SHARED src/ujson/python/ujson.c src/ujson/python/objToJSON.c
 target_include_directories(json PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} src/ujson/python src/ujson/lib src/datetime)
 target_link_libraries(json PUBLIC ${Python_LIBRARIES})
 
-add_subdirectory("tslibs")
 add_subdirectory("window")
