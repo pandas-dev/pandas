@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import pandas._libs.json as json
+import pandas._libs.ujson as json
 from pandas._typing import (
     FilePath,
     StorageOptions,

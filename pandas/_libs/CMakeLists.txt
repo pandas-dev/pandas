@@ -10,11 +10,6 @@ add_custom_command(OUTPUT
   COMMAND python generate_templates.py
 )
 
-add_custom_command(OUTPUT khash.h
-  COMMAND python -m cython -3 khash.pxd
-  DEPENDS khash_for_primitive_helper.pxi
-)
-
 add_custom_command(OUTPUT algos.c
   COMMAND python -m cython -3 algos.pyx
   DEPENDS algos_common_helper.pxi algos_take_helper.pxi
@@ -84,19 +79,19 @@ add_library(missing SHARED missing.c)
 target_include_directories(missing PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "./tslibs")
 target_link_libraries(missing PUBLIC ${Python_LIBRARIES})
 
-add_custom_command(OUTPUT lib.c COMMAND python -m cython -3 lib.pyx DEPENDS khash.h)
+add_custom_command(OUTPUT lib.c COMMAND python -m cython -3 lib.pyx)
 add_library(lib SHARED lib.c src/parser/tokenizer.c)
 target_include_directories(lib PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
 target_link_libraries(lib PUBLIC ${Python_LIBRARIES})
 
-add_custom_command(OUTPUT join.c COMMAND python -m cython -3 join.pyx DEPENDS khash.h)
+add_custom_command(OUTPUT join.c COMMAND python -m cython -3 join.pyx)
 add_library(join SHARED join.c)
 target_include_directories(join PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
 target_link_libraries(join PUBLIC ${Python_LIBRARIES})
 
-add_custom_command(OUTPUT parsers.c COMMAND python -m cython -3 parsers.pyx DEPENDS khash.h)
+add_custom_command(OUTPUT parsers.c COMMAND python -m cython -3 parsers.pyx)
 add_library(parsers SHARED parsers.c src/parser/tokenizer.c src/parser/io.c)
-target_include_directories(parsers PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS})
+target_include_directories(parsers PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "src")
 target_link_libraries(parsers PUBLIC ${Python_LIBRARIES})
 
 add_library(ujson SHARED src/ujson/python/ujson.c src/ujson/python/objToJSON.c

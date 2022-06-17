@@ -74,7 +74,7 @@ static PyModuleDef moduledef = {
 };
 
 
-PyMODINIT_FUNC PyInit_json(void) {
+PyMODINIT_FUNC PyInit_ujson(void) {
   import_array()
   initObjToJSON();  // TODO(username): clean up, maybe via tp_free?
   return PyModuleDef_Init(&moduledef);
