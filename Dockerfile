@@ -49,5 +49,6 @@ RUN . /opt/conda/etc/profile.d/conda.sh \
     && conda activate base \
     && cd "$pandas_home" \
     && export \
-    && python setup.py build_ext -j 4 \
+    && cmake . \
+    && cmake --build . --parallel \
     && python -m pip install --no-build-isolation -e .

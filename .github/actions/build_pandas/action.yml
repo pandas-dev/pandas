@@ -12,7 +12,8 @@ runs:
 
     - name: Build Pandas
       run: |
-        python setup.py build_ext -j $N_JOBS
+        cmake .
+	cmake --build . --parallel
         python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
       shell: bash -el {0}
       env:
