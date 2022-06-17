@@ -14,7 +14,7 @@ runs:
       run: |
         cmake .
         cmake --build . --parallel
-        python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
+        python -m pip install -e . --no-build-isolation  --no-index
       shell: bash -el {0}
       env:
         # Cannot use parallel compilation on Windows, see https://github.com/pandas-dev/pandas/issues/30873
