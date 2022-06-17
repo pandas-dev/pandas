@@ -567,7 +567,9 @@ def sanitize_array(
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                subarr = np.array(data, copy=copy)
+                # GH 47391 numpy > 1.24 will raise a RuntimeError for this behavior too.
+                with np.errstate(invalid="ignore"):
+                    subarr = np.array(data, copy=copy)
             except ValueError:
                 if not raise_cast_failure:
                     # i.e. called via DataFrame constructor
