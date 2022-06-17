@@ -89,9 +89,14 @@ add_library(lib SHARED lib.c src/parser/tokenizer.c)
 target_include_directories(lib PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
 target_link_libraries(lib PUBLIC ${Python_LIBRARIES})
 
+add_custom_command(OUTPUT join.c COMMAND python -m cython -3 join.pyx DEPENDS khash.h)
+add_library(join SHARED join.c)
+target_include_directories(join PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
+target_link_libraries(join PUBLIC ${Python_LIBRARIES})
+
 add_custom_command(OUTPUT parsers.c COMMAND python -m cython -3 parsers.pyx DEPENDS khash.h)
 add_library(parsers SHARED parsers.c src/parser/tokenizer.c src/parser/io.c)
-target_include_directories(parsers PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "src")
+target_include_directories(parsers PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(parsers PUBLIC ${Python_LIBRARIES})
 
 add_library(ujson SHARED src/ujson/python/ujson.c src/ujson/python/objToJSON.c
