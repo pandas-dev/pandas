@@ -23,17 +23,17 @@ cdef struct Buffer:
 
 
 cdef inline uint8_t buf_get(Buffer buf, size_t offset) except? 0:
-    assert offset < buf.length
+    assert offset < buf.length, f"Out of bounds read"
     return buf.data[offset]
 
 
 cdef inline void buf_set(Buffer buf, size_t offset, uint8_t value) except *:
-    assert offset < buf.length
+    assert offset < buf.length, "Out of bounds write"
     buf.data[offset] = value
 
 
 cdef inline bytes buf_as_bytes(Buffer buf, size_t offset, size_t length):
-    assert offset + length <= buf.length
+    assert offset + length <= buf.length, "Out of bounds read"
     return buf.data[offset:offset+length]
 
 
@@ -428,7 +428,7 @@ cdef class Parser:
             object[:, :] string_chunk
             bint compressed
 
-        assert offset + length <= self.cached_page_len
+        assert offset + length <= self.cached_page_len, "Out of bounds read"
         source = Buffer(&self.cached_page[offset], length)
 
         compressed = self.decompress != NULL and length < self.row_length
