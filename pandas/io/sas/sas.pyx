@@ -1,13 +1,19 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
 from cython cimport Py_ssize_t
+from libc.stdint cimport (
+    int64_t,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
+from libc.string cimport memcpy
+
 import numpy as np
 
 import pandas.io.sas.sas_constants as const
 
-ctypedef signed long long   int64_t
-ctypedef unsigned char      uint8_t
-ctypedef unsigned short     uint16_t
 
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
@@ -433,3 +439,73 @@ cdef class Parser:
         self.current_row_on_page_index += 1
         self.current_row_in_chunk_index += 1
         self.current_row_in_file_index += 1
+
+
+def read_float_with_byteswap(const uint8_t *data, bint byteswap):
+    cdef float res = (<float*>data)[0]
+    if byteswap:
+        res = _byteswap_float(res)
+    return res
+
+
+def read_double_with_byteswap(const uint8_t *data, bint byteswap):
+    cdef double res = (<double*>data)[0]
+    if byteswap:
+        res = _byteswap_double(res)
+    return res
+
+
+def read_uint16_with_byteswap(const uint8_t *data, bint byteswap):
+    cdef uint16_t res = (<uint16_t *>data)[0]
+    if byteswap:
+        res = _byteswap2(res)
+    return res
+
+
+def read_uint32_with_byteswap(const uint8_t *data, bint byteswap):
+    cdef uint32_t res = (<uint32_t *>data)[0]
+    if byteswap:
+        res = _byteswap4(res)
+    return res
+
+
+def read_uint64_with_byteswap(const uint8_t *data, bint byteswap):
+    cdef uint64_t res = (<uint64_t *>data)[0]
+    if byteswap:
+        res = _byteswap8(res)
+    return res
+
+
+# Byteswapping
+# From https://github.com/WizardMac/ReadStat/blob/master/src/readstat_bits.
+# Copyright (c) 2013-2016 Evan Miller, Apache 2 License
+
+cdef inline uint16_t _byteswap2(uint16_t num):
+    return ((num & 0xFF00) >> 8) | ((num & 0x00FF) << 8)
+
+
+cdef inline uint32_t _byteswap4(uint32_t num):
+    num = ((num & <uint32_t>0xFFFF0000) >> 16) | ((num & <uint32_t>0x0000FFFF) << 16)
+    return ((num & <uint32_t>0xFF00FF00) >> 8) | ((num & <uint32_t>0x00FF00FF) << 8)
+
+
+cdef inline uint64_t _byteswap8(uint64_t num):
+    num = ((num & <uint64_t>0xFFFFFFFF00000000) >> 32) | ((num & <uint64_t>0x00000000FFFFFFFF) << 32)
+    num = ((num & <uint64_t>0xFFFF0000FFFF0000) >> 16) | ((num & <uint64_t>0x0000FFFF0000FFFF) << 16)
+    return ((num & <uint64_t>0xFF00FF00FF00FF00) >> 8) | ((num & <uint64_t>0x00FF00FF00FF00FF) << 8)
+
+
+cdef inline float _byteswap_float(float num):
+    cdef uint32_t answer = 0
+    memcpy(&answer, &num, 4)
+    answer = _byteswap4(answer)
+    memcpy(&num, &answer, 4)
+    return num
+
+
+cdef inline double _byteswap_double(double num):
+    cdef uint64_t answer = 0
+    memcpy(&answer, &num, 8)
+    answer = _byteswap8(answer)
+    memcpy(&num, &answer, 8)
+    return num

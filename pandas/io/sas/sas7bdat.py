@@ -20,7 +20,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-import struct
+import sys
 from typing import cast
 
 import numpy as np
@@ -42,7 +42,14 @@ from pandas import (
 )
 
 from pandas.io.common import get_handle
-from pandas.io.sas._sas import Parser
+from pandas.io.sas._sas import (
+    Parser,
+    read_double_with_byteswap,
+    read_float_with_byteswap,
+    read_uint16_with_byteswap,
+    read_uint32_with_byteswap,
+    read_uint64_with_byteswap,
+)
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
 
@@ -259,8 +266,10 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         buf = self._read_bytes(const.endianness_offset, const.endianness_length)
         if buf == b"\x01":
             self.byte_order = "<"
+            self.need_byteswap = sys.byteorder == "big"
         else:
             self.byte_order = ">"
+            self.need_byteswap = sys.byteorder == "little"
 
         # Get encoding information
         buf = self._read_bytes(const.encoding_offset, const.encoding_length)[0]
@@ -345,22 +354,37 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     # Read a single float of the given width (4 or 8).
     def _read_float(self, offset: int, width: int):
-        if width not in (4, 8):
+        if width == 4:
+            return read_float_with_byteswap(
+                self._read_bytes(offset, 4), self.need_byteswap
+            )
+        elif width == 8:
+            return read_double_with_byteswap(
+                self._read_bytes(offset, 8), self.need_byteswap
+            )
+        else:
             self.close()
             raise ValueError("invalid float width")
-        buf = self._read_bytes(offset, width)
-        fd = "f" if width == 4 else "d"
-        return struct.unpack(self.byte_order + fd, buf)[0]
 
     # Read a single signed integer of the given width (1, 2, 4 or 8).
     def _read_int(self, offset: int, width: int) -> int:
-        if width not in (1, 2, 4, 8):
+        if width == 1:
+            return self._read_bytes(offset, 1)[0]
+        elif width == 2:
+            return read_uint16_with_byteswap(
+                self._read_bytes(offset, 2), self.need_byteswap
+            )
+        elif width == 4:
+            return read_uint32_with_byteswap(
+                self._read_bytes(offset, 4), self.need_byteswap
+            )
+        elif width == 8:
+            return read_uint64_with_byteswap(
+                self._read_bytes(offset, 8), self.need_byteswap
+            )
+        else:
             self.close()
             raise ValueError("invalid int width")
-        buf = self._read_bytes(offset, width)
-        it = {1: "b", 2: "h", 4: "l", 8: "q"}[width]
-        iv = struct.unpack(self.byte_order + it, buf)[0]
-        return iv
 
     def _read_bytes(self, offset: int, length: int):
         if self._cached_page is None:
