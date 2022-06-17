@@ -34,7 +34,7 @@ pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
-@pytest.fixture(params=tm.ALL_PYARROW_DTYPES)
+@pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
 def dtype(request):
     return ArrowDtype(pyarrow_dtype=request.param)
 
@@ -104,14 +104,23 @@ class TestBaseCasting(base.BaseCastingTests):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    @pytest.mark.xfail(
-        reason=(
-            "str(dtype) constructs "
-            "e.g. in64[pyarrow] like int64 (numpy) "
-            "due to StorageExtensionDtype.__str__"
-        )
-    )
-    def test_from_dtype(self, data):
+    def test_from_dtype(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz:
+            if pa_version_under2p0:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        reason=f"timestamp data with tz={pa_dtype.tz} "
+                        "converted to integer when pyarrow < 2.0",
+                    )
+                )
+            else:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=NotImplementedError,
+                        reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                    )
+                )
         super().test_from_dtype(data)
 
 
@@ -197,10 +206,71 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_loc_iloc_frame_single_dtype(data)
 
 
+class TestBaseDtype(base.BaseDtypeTests):
+    def test_construct_from_string_own_name(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
+        super().test_construct_from_string_own_name(dtype)
+
+    def test_is_dtype_from_name(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
+        super().test_is_dtype_from_name(dtype)
+
+    def test_construct_from_string(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
+                )
+            )
+        super().test_construct_from_string(dtype)
+
+    def test_construct_from_string_another_type_raises(self, dtype):
+        msg = r"'another_type' must end with '\[pyarrow\]'"
+        with pytest.raises(TypeError, match=msg):
+            type(dtype).construct_from_string("another_type")
+
+    def test_get_common_dtype(self, dtype, request):
+        pa_dtype = dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_time(pa_dtype)
+            or (
+                pa.types.is_timestamp(pa_dtype)
+                and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
+            )
+            or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"{pa_dtype} does not have associated numpy "
+                        f"dtype findable by find_common_type"
+                    )
+                )
+            )
+        super().test_get_common_dtype(dtype)
+
+
 class TestBaseIndex(base.BaseIndexTests):
     pass
 
 
-def test_arrowdtype_construct_from_string_type_with_parameters():
+def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("timestamp[s][pyarrow]")
+        ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
