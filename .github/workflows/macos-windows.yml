@@ -62,3 +62,4 @@ jobs:
         name: pytest_debug_log
         path: pytestdebug.log
         retention-days: 14
+      if: failure()
