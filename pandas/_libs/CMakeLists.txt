@@ -1,9 +1,68 @@
-add_custom_command(OUTPUT khash.h khash_for_primitive_helper.pxi COMMAND python -m cythonize_templates khash header)
+add_custom_command(OUTPUT
+  algos_common_helper.pxi
+  algos_take_helper.pxi
+  hashtable_class_helper.pxi
+  hashtable_func_helper.pxi
+  index_class_helper.pxi
+  intervaltree.pxi
+  khash_for_primitive_helper.pxi
+  sparse_op_helper.pxi
+  COMMAND python generate_templates.py
+)
 
-set(HEADERS arrays dtypes hashtable lib missing util)
-foreach(HEADER ${HEADERS})
-  add_custom_command(OUTPUT ${HEADER}.h COMMAND python -m cython -3 ${HEADER}.pxd)
-endforeach()
+add_custom_command(OUTPUT khash.h
+  COMMAND python -m cython -3 khash.pxd
+  DEPENDS khash_for_primitive_helper.pxi
+)
+
+add_custom_command(OUTPUT algos.c
+  COMMAND python -m cython -3 algos.pyx
+  DEPENDS algos_common_helper.pxi algos_take_helper.pxi
+)
+add_library(algos SHARED algos.c)
+target_include_directories(algos PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
+target_link_libraries(algos PUBLIC ${Python_LIBRARIES})
+
+add_custom_command(
+  OUTPUT hashtable.c
+  COMMAND python -m cython -3 hashtable.pyx
+  DEPENDS hashtable_class_helper.pxi hashtable_func_helper.pxi
+)
+
+add_library(hashtable SHARED hashtable.c)
+target_include_directories(hashtable PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
+target_link_libraries(hashtable PUBLIC ${Python_LIBRARIES})
+
+add_custom_command(
+  OUTPUT index.c
+  COMMAND python -m cython -3 index.pyx
+  DEPENDS index_class_helper.pxi
+)
+add_library(index SHARED index.c)
+target_include_directories(index PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
+target_link_libraries(index PUBLIC ${Python_LIBRARIES})
+
+add_custom_command(
+  OUTPUT interval.c
+  COMMAND python -m cython -3 interval.pyx
+  DEPENDS intervaltree.pxi
+)
+add_library(interval SHARED interval.c)
+target_include_directories(interval PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
+target_link_libraries(interval PUBLIC ${Python_LIBRARIES})
+
+add_custom_command(OUTPUT sparse.c
+  COMMAND python -m cython -3 sparse.pyx
+  DEPENDS sparse_op_helper.pxi
+)
+add_library(sparse SHARED sparse.c)
+target_include_directories(sparse PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
+target_link_libraries(sparse PUBLIC ${Python_LIBRARIES})
+
+#set(HEADERS arrays dtypes hashtable lib missing util)
+#foreach(HEADER ${HEADERS})
+#  add_custom_command(OUTPUT ${HEADER}.h COMMAND python -m cython -3 ${HEADER}.pxd)
+#endforeach()
 
 set(BASIC_LIBRARIES arrays groupby hashing indexing internals reduction ops ops_dispatch properties reshape testing writers)
 foreach(LIB ${BASIC_LIBRARIES})
@@ -12,39 +71,6 @@ foreach(LIB ${BASIC_LIBRARIES})
   target_include_directories(${LIB} PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS})
   target_link_libraries(${LIB} PUBLIC ${Python_LIBRARIES})
 endforeach()
-
-add_custom_command(OUTPUT sparse.c sparse_op_helper.pxi COMMAND python -m cythonize_templates sparse lib)
-add_library(sparse SHARED sparse.c)
-target_include_directories(sparse PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
-target_link_libraries(sparse PUBLIC ${Python_LIBRARIES})
-
-set(KLIB_REQUIRING join)
-foreach(LIB ${KLIB_REQUIRING})
-  add_custom_command(OUTPUT ${LIB}.c COMMAND python -m cython -3 ${LIB}.pyx DEPENDS khash.h)
-  add_library(${LIB} SHARED ${LIB}.c)
-  target_include_directories(${LIB} PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
-  target_link_libraries(${LIB} PUBLIC ${Python_LIBRARIES})
-endforeach()
-
-add_custom_command(OUTPUT algos.c algos_common_helper.pxi algos_take_helper.pxi COMMAND python -m cythonize_templates algos lib DEPENDS khash.h)
-add_library(algos SHARED algos.c)
-target_include_directories(algos PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
-target_link_libraries(algos PUBLIC ${Python_LIBRARIES})
-
-add_custom_command(OUTPUT hashtable.c hashtable_class_helper.pxi hashtable_func_helper.pxi COMMAND python -m cythonize_templates hashtable lib DEPENDS khash.h)
-add_library(hashtable SHARED hashtable.c)
-target_include_directories(hashtable PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
-target_link_libraries(hashtable PUBLIC ${Python_LIBRARIES})
-
-add_custom_command(OUTPUT index.c index_class_helper.pxi COMMAND python -m cythonize_templates index lib DEPENDS khash.h)
-add_library(index SHARED index.c)
-target_include_directories(index PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
-target_link_libraries(index PUBLIC ${Python_LIBRARIES})
-
-add_custom_command(OUTPUT interval.c intervaltree.pxi COMMAND python -m cythonize_templates interval lib DEPENDS khash.h)
-add_library(interval SHARED interval.c)
-target_include_directories(interval PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib" "./tslibs")
-target_link_libraries(interval PUBLIC ${Python_LIBRARIES})
 
 add_custom_command(OUTPUT tslib.c COMMAND python -m cython -3 tslib.pyx)
 add_library(tslib ${LIB} SHARED tslib.c tslibs/src/datetime/np_datetime.c)
