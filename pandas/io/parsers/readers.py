@@ -1396,8 +1396,7 @@ class TextFileReader(abc.Iterator):
                 )
             kwds = _merge_with_dialect_properties(dialect, kwds)
 
-        header = kwds.get("header", "infer")
-        if header == "infer":
+        if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
 
         self.orig_options = kwds
@@ -1418,9 +1417,6 @@ class TextFileReader(abc.Iterator):
 
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
-
-        if self.engine == "python":
-            self.options["_header_passed"] = header
 
         self.handles: IOHandles | None = None
         self._engine = self._make_engine(f, self.engine)

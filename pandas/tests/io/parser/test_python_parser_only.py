@@ -477,6 +477,6 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
     parser = python_parser_only
     data = StringIO("a\na,b\nc,d,e\nf,g,h")
     with tm.assert_produces_warning(ParserWarning, match="Length of header"):
-        result = parser.read_csv(data, engine="python", index_col=False, header=0)
+        result = parser.read_csv(data, engine="python", index_col=False)
     expected = DataFrame({"a": ["a", "c", "f"]})
     tm.assert_frame_equal(result, expected)

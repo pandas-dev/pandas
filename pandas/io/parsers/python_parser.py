@@ -101,8 +101,6 @@ class PythonParser(ParserBase):
 
         self.comment = kwds["comment"]
 
-        self._passed_header = kwds.get("_header_passed")
-
         # Set self.data to something that can read lines.
         if isinstance(f, list):
             # read_excel: f is a list
@@ -938,7 +936,7 @@ class PythonParser(ParserBase):
             if (
                 next_line is not None
                 and self.header is not None
-                and not isinstance(self._passed_header, int)
+                and index_col is not False
             ):
                 if len(next_line) == len(line) + self.num_original_columns:
                     # column and index names on diff rows
