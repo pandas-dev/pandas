@@ -425,11 +425,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        inclusive=lib.no_default,
+        inclusive: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment] # noqa: E501
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed: IntervalClosedType | None | lib.no_default = lib.no_default,
+        closed: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment]
     ) -> IntervalArrayT:
+        # Incompatible default for argument "closed" (default has type
+        # "Literal[_NoDefault.no_default]", argument has type
+        # "Optional[Union[Literal['left', 'right'], Literal['both', 'neither']]]")
         inclusive = _warning_interval_array_functions(inclusive, closed)
 
         breaks = _maybe_convert_platform_interval(breaks)
@@ -506,11 +509,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive=lib.no_default,
+        inclusive: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment] # noqa: E501
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed: IntervalClosedType | None | lib.no_default = lib.no_default,
+        closed: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment]
     ) -> IntervalArrayT:
+        # Incompatible default for argument "closed" (default has type
+        # "Literal[_NoDefault.no_default]", argument has type
+        # "Optional[Union[Literal['left', 'right'], Literal['both', 'neither']]]")
         inclusive = _warning_interval_array_functions(inclusive, closed)
 
         left = _maybe_convert_platform_interval(left)
@@ -1416,13 +1422,25 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     )
     def set_closed(
         self: IntervalArrayT,
-        inclusive: IntervalClosedType | lib.no_default = lib.no_default,
-        closed: IntervalClosedType | lib.no_default = lib.no_default,
+        inclusive: IntervalClosedType = lib.no_default,  # type: ignore[assignment]
+        closed: IntervalClosedType = lib.no_default,  # type: ignore[assignment]
     ) -> IntervalArrayT:
-        if inclusive == lib.no_default and closed == lib.no_default:
+        # Incompatible default for argument "closed" (default has type
+        # "Literal[_NoDefault.no_default]", argument has type
+        # "Optional[Union[Literal['left', 'right'], Literal['both', 'neither']]]")
+        # Non-overlapping equality check (left operand type:
+        # "Union[Literal['left', 'right'], Literal['both', 'neither']]",
+        # right operand type: "Literal[_NoDefault.no_default]")
+        if (
+            inclusive == lib.no_default  # type: ignore[comparison-overlap]
+            and closed == lib.no_default
+        ):
             raise ValueError("inclusive has to be passed into the function.")
 
-        elif closed != lib.no_default and inclusive != lib.no_default:
+        elif (
+            closed != lib.no_default  # type: ignore[comparison-overlap]
+            and inclusive != lib.no_default  # type: ignore[comparison-overlap]
+        ):
             raise ValueError("You can not pass inclusive and closed.")
 
         elif closed != lib.no_default:
@@ -1798,10 +1816,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     return values
 
 
-def _warning_interval_array_functions(
-    inclusive: str | None | lib.no_default = lib.no_default,
-    closed: None | lib.NoDefault = lib.no_default,
-):
+def _warning_interval_array_functions(inclusive, closed):
     """
     warning in interval class for variable inclusive and closed
     """
