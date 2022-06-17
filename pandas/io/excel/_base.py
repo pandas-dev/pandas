@@ -774,6 +774,11 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                         assert isinstance(skiprows, int)
                         row += skiprows
 
+                    if row > len(data) - 1:
+                        raise ValueError(
+                            f"Header index {row} references non-existing rows.",
+                        )
+
                     data[row], control_row = fill_mi_header(data[row], control_row)
 
                     if index_col is not None:
