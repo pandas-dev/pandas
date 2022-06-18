@@ -2723,7 +2723,7 @@ succeeds, the function will return*.
 
    dfs = pd.read_html(url, "Metcalf Bank", index_col=0, flavor=["lxml", "bs4"])
 
-Links can be extracted from cells along with the text using ``extract_links=True``.
+Links can be extracted from cells along with the text using ``extract_links="all"``.
 
 .. ipython:: python
 
@@ -2740,11 +2740,11 @@ Links can be extracted from cells along with the text using ``extract_links=True
 
     df = pd.read_html(
         html_table,
-        extract_links=True
+        extract_links="all"
     )[0]
     df
-    df["GitHub"]
-    df["GitHub"].str[1]
+    df[("GitHub", None)]
+    df[("GitHub", None)].str[1]
 
 .. versionadded:: 1.5.0
 
