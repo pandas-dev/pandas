@@ -361,9 +361,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                     self.encoding or self.default_encoding
                 )
 
-    def __next__(self):
+    def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
-        if da is None:
+        if df.empty:
             self.close()
             raise StopIteration
         return da
@@ -744,7 +744,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise EmptyDataError("No columns to parse from file")
 
         if nrows > 0 and self._current_row_in_file_index >= self.row_count:
-            return pd.DataFrame()
+            return DataFrame()
 
         m = self.row_count - self._current_row_in_file_index
         if nrows > m:
