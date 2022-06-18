@@ -17,6 +17,17 @@ add_library(algos SHARED algos.c)
 target_include_directories(algos PUBLIC ${Python_INCLUDE_DIRS}
                                         ${Python_NumPy_INCLUDE_DIRS} "src/klib")
 target_link_libraries(algos PUBLIC ${Python_LIBRARIES})
+target_link_options(algos PUBLIC ${Python_LINK_OPTIONS})
+
+# There is a khash header file in src/klib and a cython generated
+# one in _libs. Depending on the build timing one of the other could
+# get picked up, though unclear why we need both? If we stick to the
+# non-generated version we can remove any DEPENDS khash.h
+add_custom_command(
+  OUTPUT khash.h
+  COMMAND ${Python_EXECUTABLE} -m cython -3 khash.pxd
+  DEPENDS hkash_for_primitive_helper.pxi
+)
 
 add_custom_command(
   OUTPUT hashtable.c
@@ -26,8 +37,9 @@ add_custom_command(
 add_library(hashtable SHARED hashtable.c)
 target_include_directories(
   hashtable PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
-                   "src/klib")
+                   "src/klib" DEPENDS khash.h)
 target_link_libraries(hashtable PUBLIC ${Python_LIBRARIES})
+target_link_options(hashtable PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(
   OUTPUT index.c
@@ -38,6 +50,7 @@ target_include_directories(
   index PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib"
                "./tslibs")
 target_link_libraries(index PUBLIC ${Python_LIBRARIES})
+target_link_options(index PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(
   OUTPUT interval.c
@@ -48,6 +61,7 @@ target_include_directories(
   interval PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
                   "src/klib" "./tslibs")
 target_link_libraries(interval PUBLIC ${Python_LIBRARIES})
+target_link_options(interval PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(
   OUTPUT sparse.c
@@ -57,6 +71,7 @@ add_library(sparse SHARED sparse.c)
 target_include_directories(
   sparse PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
 target_link_libraries(sparse PUBLIC ${Python_LIBRARIES})
+target_link_options(sparse PUBLIC ${Python_LINK_OPTIONS})
 
 # set(HEADERS arrays dtypes hashtable lib missing util) foreach(HEADER
 # ${HEADERS}) add_custom_command(OUTPUT ${HEADER}.h COMMAND ${Python_EXECUTABLE}
@@ -82,6 +97,7 @@ foreach(LIB ${BASIC_LIBRARIES})
   target_include_directories(${LIB} PUBLIC ${Python_INCLUDE_DIRS}
                                            ${Python_NumPy_INCLUDE_DIRS})
   target_link_libraries(${LIB} PUBLIC ${Python_LIBRARIES})
+  target_link_options(${LIB} PUBLIC ${Python_LINK_OPTIONS})
 endforeach()
 
 add_subdirectory("tslibs")
@@ -92,6 +108,7 @@ add_library(tslib ${LIB} SHARED tslib.c tslibs/src/datetime/np_datetime.c)
 target_include_directories(tslib PUBLIC ${Python_INCLUDE_DIRS}
                                         ${Python_NumPy_INCLUDE_DIRS} "./tslibs")
 target_link_libraries(tslib PUBLIC ${Python_LIBRARIES})
+target_link_options(tslib PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(OUTPUT missing.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                             missing.pyx)
@@ -99,6 +116,7 @@ add_library(missing SHARED missing.c)
 target_include_directories(
   missing PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "./tslibs")
 target_link_libraries(missing PUBLIC ${Python_LIBRARIES})
+target_link_options(missing PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(OUTPUT lib.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                         lib.pyx)
@@ -107,13 +125,15 @@ target_include_directories(
   lib PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib"
              "./tslibs")
 target_link_libraries(lib PUBLIC ${Python_LIBRARIES})
+target_link_options(lib PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(OUTPUT join.c COMMAND ${Python_EXECUTABLE} -m cython -3
-                                         join.pyx)
+                                         join.pyx DEPENDS khash_for_primitive_helper.pxi)
 add_library(join SHARED join.c)
 target_include_directories(join PUBLIC ${Python_INCLUDE_DIRS}
                                        ${Python_NumPy_INCLUDE_DIRS} "src/klib")
 target_link_libraries(join PUBLIC ${Python_LIBRARIES})
+target_link_options(join PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(OUTPUT parsers.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                             parsers.pyx)
@@ -122,6 +142,7 @@ target_include_directories(
   parsers PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib"
                  "src")
 target_link_libraries(parsers PUBLIC ${Python_LIBRARIES})
+target_link_options(parsers PUBLIC ${Python_LINK_OPTIONS})
 
 add_library(
   ujson SHARED
@@ -137,5 +158,6 @@ target_include_directories(
   ujson PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
                src/ujson/python src/ujson/lib src/datetime)
 target_link_libraries(ujson PUBLIC ${Python_LIBRARIES})
+target_link_options(ujson PUBLIC ${Python_LINK_OPTIONS})
 
 add_subdirectory("window")

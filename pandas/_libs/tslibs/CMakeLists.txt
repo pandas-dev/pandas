@@ -6,6 +6,7 @@ foreach(LIB ${BASIC_LIBRARIES})
   target_include_directories(${LIB} PUBLIC ${Python_INCLUDE_DIRS}
                                            ${Python_NumPy_INCLUDE_DIRS})
   target_link_libraries(${LIB} PUBLIC ${Python_LIBRARIES})
+  target_link_options(${LIB} PUBLIC ${Python_LINK_OPTIONS})
 endforeach()
 
 set(NP_DATETIME_REQUIRING
@@ -25,6 +26,7 @@ foreach(LIB ${NP_DATETIME_REQUIRING})
     ${LIB} PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
                   "src/datetime")
   target_link_libraries(${LIB} PUBLIC ${Python_LIBRARIES})
+  target_link_options(${LIB} PUBLIC ${Python_LINK_OPTIONS})
 endforeach()
 
 add_custom_command(OUTPUT np_datetime.c COMMAND ${Python_EXECUTABLE} -m cython
@@ -34,6 +36,7 @@ add_library(np_datetime SHARED np_datetime.c src/datetime/np_datetime.c
 target_include_directories(np_datetime PUBLIC ${Python_INCLUDE_DIRS}
                                               ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(np_datetime PUBLIC ${Python_LIBRARIES})
+target_link_options(np_datetime PUBLIC ${Python_LINK_OPTIONS})
 
 add_custom_command(OUTPUT parsing.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                             parsing.pyx)
@@ -42,3 +45,4 @@ target_include_directories(
   parsing PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
                  "../src/klib")
 target_link_libraries(parsing PUBLIC ${Python_LIBRARIES})
+target_link_options(parsing PUBLIC ${Python_LINK_OPTIONS})

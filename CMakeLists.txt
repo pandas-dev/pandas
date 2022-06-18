@@ -9,7 +9,6 @@ set(CMAKE_SOURCE_DIR .)
 set(CMAKE_BINARY_DIR .)
 
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
 set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}.so")
