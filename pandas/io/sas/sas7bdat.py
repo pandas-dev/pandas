@@ -363,7 +363,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
-        if df.empty:
+        if da.empty:
             self.close()
             raise StopIteration
         return da
