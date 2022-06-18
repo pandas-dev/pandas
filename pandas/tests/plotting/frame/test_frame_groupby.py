@@ -1,34 +1,15 @@
 """ Test cases for DataFrame.plot """
 
-import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
-import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
-
-pytestmark = pytest.mark.slow
 
 
 @td.skip_if_no_mpl
 class TestDataFramePlotsGroupby(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame(
-            {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
-            }
-        )
-
     def _assert_ytickslabels_visibility(self, axes, expected):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_yticklabels(), visible=exp)

@@ -9,7 +9,7 @@ import pandas._testing as tm
     [
         {"start": 0, "periods": 4},
         {"start": 1, "periods": 5},
-        {"start": 5, "end": 10, "closed": "left"},
+        {"start": 5, "end": 10, "inclusive": "left"},
     ],
 )
 def test_interval_array_equal(kwargs):
@@ -19,13 +19,13 @@ def test_interval_array_equal(kwargs):
 
 def test_interval_array_equal_closed_mismatch():
     kwargs = {"start": 0, "periods": 5}
-    arr1 = interval_range(closed="left", **kwargs).values
-    arr2 = interval_range(closed="right", **kwargs).values
+    arr1 = interval_range(inclusive="left", **kwargs).values
+    arr2 = interval_range(inclusive="right", **kwargs).values
 
     msg = """\
 IntervalArray are different
 
-Attribute "closed" are different
+Attribute "inclusive" are different
 \\[left\\]:  left
 \\[right\\]: right"""
 

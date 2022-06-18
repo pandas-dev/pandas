@@ -14,31 +14,30 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.tests.arrays.categorical.common import TestCategorical
 
 
-class TestCategoricalIndexingWithFactor(TestCategorical):
-    def test_getitem(self):
-        assert self.factor[0] == "a"
-        assert self.factor[-1] == "c"
+class TestCategoricalIndexingWithFactor:
+    def test_getitem(self, factor):
+        assert factor[0] == "a"
+        assert factor[-1] == "c"
 
-        subf = self.factor[[0, 1, 2]]
+        subf = factor[[0, 1, 2]]
         tm.assert_numpy_array_equal(subf._codes, np.array([0, 1, 1], dtype=np.int8))
 
-        subf = self.factor[np.asarray(self.factor) == "c"]
+        subf = factor[np.asarray(factor) == "c"]
         tm.assert_numpy_array_equal(subf._codes, np.array([2, 2, 2], dtype=np.int8))
 
-    def test_setitem(self):
+    def test_setitem(self, factor):
 
         # int/positional
-        c = self.factor.copy()
+        c = factor.copy()
         c[0] = "b"
         assert c[0] == "b"
         c[-1] = "a"
         assert c[-1] == "a"
 
         # boolean
-        c = self.factor.copy()
+        c = factor.copy()
         indexer = np.zeros(len(c), dtype="bool")
         indexer[0] = True
         indexer[-1] = True

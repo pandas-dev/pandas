@@ -242,7 +242,7 @@ I want to work with passenger data for which the age is known.
     age_no_na.head()
 
 The :meth:`~Series.notna` conditional function returns a ``True`` for each row the
-values are not an ``Null`` value. As such, this can be combined with the
+values are not a ``Null`` value. As such, this can be combined with the
 selection brackets ``[]`` to filter the data table.
 
 .. raw:: html
@@ -358,9 +358,9 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
    of column/row labels, a slice of labels, a conditional expression or
    a colon.
 -  Select specific rows and/or columns using ``loc`` when using the row
-   and column names
+   and column names.
 -  Select specific rows and/or columns using ``iloc`` when using the
-   positions in the table
+   positions in the table.
 -  You can assign new values to a selection based on ``loc``/``iloc``.
 
 .. raw:: html

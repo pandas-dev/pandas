@@ -19,8 +19,6 @@ from pandas.tests.reshape.merge.test_merge import (
     get_test_data,
 )
 
-a_ = np.array
-
 
 class TestJoin:
     def setup_method(self):
@@ -555,7 +553,9 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        mn = grouped.mean()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            mn = grouped.mean()
         cn = grouped.count()
 
         # it works!
@@ -880,4 +880,45 @@ def test_join_multiindex_not_alphabetical_categorical(categories, values):
             "value_right": [3, 4],
         }
     ).set_index(["first", "second"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "left_empty, how, exp",
+    [
+        (False, "left", "left"),
+        (False, "right", "empty"),
+        (False, "inner", "empty"),
+        (False, "outer", "left"),
+        (False, "cross", "empty"),
+        (True, "left", "empty"),
+        (True, "right", "right"),
+        (True, "inner", "empty"),
+        (True, "outer", "right"),
+        (True, "cross", "empty"),
+    ],
+)
+def test_join_empty(left_empty, how, exp):
+
+    left = DataFrame({"A": [2, 1], "B": [3, 4]}, dtype="int64").set_index("A")
+    right = DataFrame({"A": [1], "C": [5]}, dtype="int64").set_index("A")
+
+    if left_empty:
+        left = left.head(0)
+    else:
+        right = right.head(0)
+
+    result = left.join(right, how=how)
+
+    if exp == "left":
+        expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
+        expected = expected.set_index("A")
+    elif exp == "right":
+        expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
+        expected = expected.set_index("A")
+    elif exp == "empty":
+        expected = DataFrame(index=Index([]), columns=["B", "C"], dtype="int64")
+        if how != "cross":
+            expected = expected.rename_axis("A")
+
     tm.assert_frame_equal(result, expected)

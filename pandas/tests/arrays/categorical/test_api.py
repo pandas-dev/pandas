@@ -12,7 +12,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays.categorical import recode_for_categories
-from pandas.tests.arrays.categorical.common import TestCategorical
 
 
 class TestCategoricalAPI:
@@ -427,13 +426,13 @@ class TestCategoricalAPI:
         assert out.tolist() == val.tolist()
 
 
-class TestCategoricalAPIWithFactor(TestCategorical):
-    def test_describe(self):
+class TestCategoricalAPIWithFactor:
+    def test_describe(self, factor):
         # string type
-        desc = self.factor.describe()
-        assert self.factor.ordered
+        desc = factor.describe()
+        assert factor.ordered
         exp_index = CategoricalIndex(
-            ["a", "b", "c"], name="categories", ordered=self.factor.ordered
+            ["a", "b", "c"], name="categories", ordered=factor.ordered
         )
         expected = DataFrame(
             {"counts": [3, 2, 3], "freqs": [3 / 8.0, 2 / 8.0, 3 / 8.0]}, index=exp_index
@@ -441,7 +440,7 @@ class TestCategoricalAPIWithFactor(TestCategorical):
         tm.assert_frame_equal(desc, expected)
 
         # check unused categories
-        cat = self.factor.copy()
+        cat = factor.copy()
 
         with tm.assert_produces_warning(FutureWarning):
             # issue #37643 inplace kwarg deprecated
@@ -450,7 +449,7 @@ class TestCategoricalAPIWithFactor(TestCategorical):
         desc = cat.describe()
 
         exp_index = CategoricalIndex(
-            list("abcd"), ordered=self.factor.ordered, name="categories"
+            list("abcd"), ordered=factor.ordered, name="categories"
         )
         expected = DataFrame(
             {"counts": [3, 2, 3, 0], "freqs": [3 / 8.0, 2 / 8.0, 3 / 8.0, 0]},
@@ -480,8 +479,8 @@ class TestCategoricalAPIWithFactor(TestCategorical):
         )
         tm.assert_frame_equal(desc, expected)
 
-    def test_set_categories_inplace(self):
-        cat = self.factor.copy()
+    def test_set_categories_inplace(self, factor):
+        cat = factor.copy()
 
         with tm.assert_produces_warning(FutureWarning):
             # issue #37643 inplace kwarg deprecated

@@ -31,8 +31,6 @@ from pandas.io.common import file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
 
-HERE = os.path.dirname(__file__)
-
 
 @pytest.fixture(
     params=[
@@ -187,9 +185,15 @@ class TestReadHtml:
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://www.fdic.gov/resources/resolutions/"
+            "bank-failures/failed-bank-list/index.html"
+        ),
+        check_before_test=True,
+    )
     def test_banklist_url_positional_match(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
@@ -207,9 +211,15 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://www.fdic.gov/resources/resolutions/"
+            "bank-failures/failed-bank-list/index.html"
+        ),
+        check_before_test=True,
+    )
     def test_banklist_url(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         df1 = self.read_html(
             # lxml cannot find attrs leave out for now
             url,
@@ -224,7 +234,13 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+            "pandas/tests/io/data/html/spam.html"
+        ),
+        check_before_test=True,
+    )
     def test_spam_url(self):
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
@@ -460,14 +476,14 @@ class TestReadHtml:
             self.read_html(spam_data, match="Water", skiprows=-1)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
     def test_multiple_matches(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
         assert len(dfs) > 1
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
     def test_python_docs_table(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
@@ -663,17 +679,17 @@ class TestReadHtml:
         )
         assert df.shape == ground_truth.shape
         old = [
-            "First Vietnamese American BankIn Vietnamese",
-            "Westernbank Puerto RicoEn Espanol",
-            "R-G Premier Bank of Puerto RicoEn Espanol",
-            "EurobankEn Espanol",
-            "Sanderson State BankEn Espanol",
-            "Washington Mutual Bank(Including its subsidiary Washington "
+            "First Vietnamese American Bank In Vietnamese",
+            "Westernbank Puerto Rico En Espanol",
+            "R-G Premier Bank of Puerto Rico En Espanol",
+            "Eurobank En Espanol",
+            "Sanderson State Bank En Espanol",
+            "Washington Mutual Bank (Including its subsidiary Washington "
             "Mutual Bank FSB)",
-            "Silver State BankEn Espanol",
-            "AmTrade International BankEn Espanol",
-            "Hamilton Bank, NAEn Espanol",
-            "The Citizens Savings BankPioneer Community Bank, Inc.",
+            "Silver State Bank En Espanol",
+            "AmTrade International Bank En Espanol",
+            "Hamilton Bank, NA En Espanol",
+            "The Citizens Savings Bank Pioneer Community Bank, Inc.",
         ]
         new = [
             "First Vietnamese American Bank",
@@ -1184,6 +1200,25 @@ class TestReadHtml:
         result = df.to_html()
         assert "2000-01-01" in result
 
+    def test_to_html_borderless(self):
+        df = DataFrame([{"A": 1, "B": 2}])
+        out_border_default = df.to_html()
+        out_border_true = df.to_html(border=True)
+        out_border_explicit_default = df.to_html(border=1)
+        out_border_nondefault = df.to_html(border=2)
+        out_border_zero = df.to_html(border=0)
+
+        out_border_false = df.to_html(border=False)
+
+        assert ' border="1"' in out_border_default
+        assert out_border_true == out_border_default
+        assert out_border_default == out_border_explicit_default
+        assert out_border_default != out_border_nondefault
+        assert ' border="2"' in out_border_nondefault
+        assert ' border="0"' not in out_border_zero
+        assert " border" not in out_border_false
+        assert out_border_zero == out_border_false
+
     @pytest.mark.parametrize(
         "displayed_only,exp0,exp1",
         [
@@ -1279,7 +1314,7 @@ class TestReadHtml:
         # Issue #17975
 
         class MockFile:
-            def __init__(self, data):
+            def __init__(self, data) -> None:
                 self.data = data
                 self.at_end = False
 
@@ -1338,6 +1373,25 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_parse_br_as_space(self):
+        # GH 29528: pd.read_html() convert <br> to space
+        result = self.read_html(
+            """
+            <table>
+                <tr>
+                    <th>A</th>
+                </tr>
+                <tr>
+                    <td>word1<br>word2</td>
+                </tr>
+            </table>
+        """
+        )[0]
+
+        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("arg", ["all", "body", "header", "footer"])
     def test_extract_links(self, gh_13141_data, gh_13141_expected, arg):

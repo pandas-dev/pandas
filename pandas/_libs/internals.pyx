@@ -1,9 +1,8 @@
 from collections import defaultdict
 
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.slice cimport PySlice_GetIndicesEx
+from cython cimport Py_ssize_t
 
 
 cdef extern from "Python.h":
@@ -544,7 +543,7 @@ cpdef update_blklocs_and_blknos(
     """
     cdef:
         Py_ssize_t i
-        cnp.npy_intp length = len(blklocs) + 1
+        cnp.npy_intp length = blklocs.shape[0] + 1
         ndarray[intp_t, ndim=1] new_blklocs, new_blknos
 
     # equiv: new_blklocs = np.empty(length, dtype=np.intp)

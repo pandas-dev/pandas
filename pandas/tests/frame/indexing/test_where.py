@@ -4,7 +4,7 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p19
+from pandas.compat import np_version_under1p20
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -12,6 +12,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     StringDtype,
     Timestamp,
@@ -364,7 +365,7 @@ class TestDataFrameIndexingWhere:
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
-    def test_where_datetime(self):
+    def test_where_datetime(self, using_array_manager):
 
         # GH 3311
         df = DataFrame(
@@ -384,7 +385,11 @@ class TestDataFrameIndexingWhere:
 
         expected = df.copy()
         expected.loc[[0, 1], "A"] = np.nan
-        expected.loc[:, "C"] = np.nan
+
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected.loc[:, "C"] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_where_none(self):
@@ -512,7 +517,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_axis_multiple_dtypes(self):
+    def test_where_axis_multiple_dtypes(self, using_array_manager):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -568,7 +573,10 @@ class TestDataFrameIndexingWhere:
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
-        expected.loc[:, 1] = np.nan
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected.loc[:, 1] = np.nan
 
         result = df.where(mask, d2)
         tm.assert_frame_equal(result, expected)
@@ -769,25 +777,15 @@ def test_where_try_cast_deprecated(frame_or_series):
         obj.where(mask, -1, try_cast=False)
 
 
-def test_where_int_downcasting_deprecated(using_array_manager, request):
+def test_where_int_downcasting_deprecated():
     # GH#44597
-    if not using_array_manager:
-        mark = pytest.mark.xfail(
-            reason="After fixing a bug in can_hold_element, we don't go through "
-            "the deprecated path, and also up-cast both columns to int32 "
-            "instead of just 1."
-        )
-        request.node.add_marker(mark)
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
     df = DataFrame(arr)
 
     mask = np.zeros(arr.shape, dtype=bool)
     mask[:, 0] = True
 
-    msg = "Downcasting integer-dtype"
-    warn = FutureWarning if not using_array_manager else None
-    with tm.assert_produces_warning(warn, match=msg):
-        res = df.where(mask, 2**17)
+    res = df.where(mask, 2**17)
 
     expected = DataFrame({0: arr[:, 0], 1: np.array([2**17] * 3, dtype=np.int32)})
     tm.assert_frame_equal(res, expected)
@@ -863,6 +861,21 @@ def test_where_none_nan_coerce():
     tm.assert_frame_equal(result, expected)
 
 
+def test_where_duplicate_axes_mixed_dtypes():
+    # GH 25399, verify manually masking is not affected anymore by dtype of column for
+    # duplicate axes.
+    result = DataFrame(data=[[0, np.nan]], columns=Index(["A", "A"]))
+    index, columns = result.axes
+    mask = DataFrame(data=[[True, True]], columns=columns, index=index)
+    a = result.astype(object).where(mask)
+    b = result.astype("f8").where(mask)
+    c = result.T.where(mask.T).T
+    d = result.where(mask)  # used to fail with "cannot reindex from a duplicate axis"
+    tm.assert_frame_equal(a.astype("f8"), b.astype("f8"))
+    tm.assert_frame_equal(b.astype("f8"), c.astype("f8"))
+    tm.assert_frame_equal(c.astype("f8"), d.astype("f8"))
+
+
 def test_where_non_keyword_deprecation(frame_or_series):
     # GH 41485
     obj = frame_or_series(range(5))
@@ -905,13 +918,6 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
             r"Cannot setitem on a Categorical with a new category \(NaT\), "
             "set the categories first"
         )
-        if np_version_under1p19:
-            mark = pytest.mark.xfail(
-                reason="When evaluating the f-string to generate the exception "
-                "message, numpy somehow ends up trying to cast None to int, so "
-                "ends up raising TypeError but with an unrelated message."
-            )
-            request.node.add_marker(mark)
     else:
         msg = "value should be a 'Period'"
 
@@ -988,10 +994,19 @@ def _check_where_equivalences(df, mask, other, expected):
     res = df.mask(~mask, other)
     tm.assert_frame_equal(res, expected)
 
-    # Note: we cannot do the same with frame.mask(~mask, other, inplace=True)
-    #  bc that goes through Block.putmask which does *not* downcast.
+    # Note: frame.mask(~mask, other, inplace=True) takes some more work bc
+    #  Block.putmask does *not* downcast.  The change to 'expected' here
+    #  is specific to the cases in test_where_dt64_2d.
+    df = df.copy()
+    df.mask(~mask, other, inplace=True)
+    if not mask.all():
+        # with mask.all(), Block.putmask is a no-op, so does not downcast
+        expected = expected.copy()
+        expected["A"] = expected["A"].astype(object)
+    tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.xfail(np_version_under1p20, reason="failed on Numpy 1.19.5")
 def test_where_dt64_2d():
     dti = date_range("2016-01-01", periods=6)
     dta = dti._data.reshape(3, 2)

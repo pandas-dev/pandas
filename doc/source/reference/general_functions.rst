@@ -79,9 +79,9 @@ Hashing
    util.hash_array
    util.hash_pandas_object
 
-Testing
-~~~~~~~
+Importing from other DataFrame libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
-   test
+   api.exchange.from_dataframe

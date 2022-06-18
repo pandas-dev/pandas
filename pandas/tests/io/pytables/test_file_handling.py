@@ -26,7 +26,7 @@ from pandas.io.pytables import (
     Term,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Iterable
+
 import numpy as np
 
 import pandas as pd
@@ -16,7 +18,7 @@ class TablePlotter:
         cell_width: float = 0.37,
         cell_height: float = 0.25,
         font_size: float = 7.5,
-    ):
+    ) -> None:
         self.cell_width = cell_width
         self.cell_height = cell_height
         self.font_size = font_size
@@ -41,7 +43,7 @@ class TablePlotter:
             hcells = sum([self._shape(df)[1] for df in left] + [self._shape(right)[1]])
         return hcells, vcells
 
-    def plot(self, left, right, labels=None, vertical: bool = True):
+    def plot(self, left, right, labels: Iterable[str] = (), vertical: bool = True):
         """
         Plot left / right DataFrames in specified layout.
 

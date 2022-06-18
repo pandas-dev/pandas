@@ -140,7 +140,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
         assert m is not None, f"incompatible typestr -> {typestr}"
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
-        values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)._data
+        values = DatetimeIndex(np.arange(N) * 10**9, tz=tz)._data
         values = ensure_block_shape(values, ndim=len(shape))
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
@@ -243,13 +243,12 @@ def create_mgr(descr, item_shape=None):
     )
 
 
-class TestBlock:
-    def setup_method(self):
-        self.fblock = create_block("float", [0, 2, 4])
-        self.cblock = create_block("complex", [7])
-        self.oblock = create_block("object", [1, 3])
-        self.bool_block = create_block("bool", [5])
+@pytest.fixture
+def fblock():
+    return create_block("float", [0, 2, 4])
 
+
+class TestBlock:
     def test_constructor(self):
         int32block = create_block("i4", [0])
         assert int32block.dtype == np.int32
@@ -267,24 +266,24 @@ class TestBlock:
         blk = create_block(typ, data)
         assert_block_equal(tm.round_trip_pickle(blk), blk)
 
-    def test_mgr_locs(self):
-        assert isinstance(self.fblock.mgr_locs, BlockPlacement)
+    def test_mgr_locs(self, fblock):
+        assert isinstance(fblock.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            self.fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.intp)
+            fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.intp)
         )
 
-    def test_attrs(self):
-        assert self.fblock.shape == self.fblock.values.shape
-        assert self.fblock.dtype == self.fblock.values.dtype
-        assert len(self.fblock) == len(self.fblock.values)
+    def test_attrs(self, fblock):
+        assert fblock.shape == fblock.values.shape
+        assert fblock.dtype == fblock.values.dtype
+        assert len(fblock) == len(fblock.values)
 
-    def test_copy(self):
-        cop = self.fblock.copy()
-        assert cop is not self.fblock
-        assert_block_equal(self.fblock, cop)
+    def test_copy(self, fblock):
+        cop = fblock.copy()
+        assert cop is not fblock
+        assert_block_equal(fblock, cop)
 
-    def test_delete(self):
-        newb = self.fblock.copy()
+    def test_delete(self, fblock):
+        newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(0)
         assert newb.mgr_locs is locs
@@ -297,7 +296,7 @@ class TestBlock:
         assert not (newb.values[0] == 1).all()
         assert (nb.values[0] == 1).all()
 
-        newb = self.fblock.copy()
+        newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(1)
         assert newb.mgr_locs is locs
@@ -308,7 +307,7 @@ class TestBlock:
         assert not (newb.values[1] == 2).all()
         assert (nb.values[1] == 2).all()
 
-        newb = self.fblock.copy()
+        newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(2)
         tm.assert_numpy_array_equal(
@@ -316,7 +315,7 @@ class TestBlock:
         )
         assert (nb.values[1] == 1).all()
 
-        newb = self.fblock.copy()
+        newb = fblock.copy()
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
@@ -357,9 +356,9 @@ class TestBlock:
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
 
-    def test_is_categorical_deprecated(self):
+    def test_is_categorical_deprecated(self, fblock):
         # GH#40571
-        blk = self.fblock
+        blk = fblock
         with tm.assert_produces_warning(DeprecationWarning):
             blk.is_categorical
 
@@ -784,6 +783,7 @@ class TestBlockManager:
         )
 
     def test_get_bool_data(self):
+        msg = "object-dtype columns with all-bool values"
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -791,7 +791,8 @@ class TestBlockManager:
         )
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
-        bools = mgr.get_bool_data()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            bools = mgr.get_bool_data()
         tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
@@ -805,7 +806,8 @@ class TestBlockManager:
         )
 
         # Check sharing
-        bools2 = mgr.get_bool_data(copy=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            bools2 = mgr.get_bool_data(copy=True)
         bools2.iset(0, np.array([False, True, False]))
         tm.assert_numpy_array_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
@@ -1269,7 +1271,7 @@ class TestCanHoldElement:
 
         # Careful: to get the expected Series-inplace behavior we need
         # `elem` to not have the same length as `arr`
-        ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
+        ii2 = IntervalIndex.from_breaks(arr[:-1], inclusive="neither")
         elem = element(ii2)
         self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
@@ -1346,10 +1348,7 @@ class TestCanHoldElement:
 
         if inplace:
             # assertion here implies setting was done inplace
-
-            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]" has no
-            #  attribute "blocks"
-            assert df._mgr.blocks[0].values is arr  # type:ignore[union-attr]
+            assert df._mgr.arrays[0] is arr
         else:
             assert df.dtypes[0] == object
 

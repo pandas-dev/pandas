@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    IndexingError,
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -11,7 +14,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 
 @pytest.fixture
@@ -402,6 +404,18 @@ class TestMultiIndexLoc:
         result = df.loc["2011-01-01":"2011-01-02"]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_no_second_level_index(self):
+        # GH#43599
+        df = DataFrame(
+            index=MultiIndex.from_product([list("ab"), list("cd"), list("e")]),
+            columns=["Val"],
+        )
+        res = df.loc[np.s_[:, "c", :]]
+        expected = DataFrame(
+            index=MultiIndex.from_product([list("ab"), list("e")]), columns=["Val"]
+        )
+        tm.assert_frame_equal(res, expected)
+
 
 @pytest.mark.parametrize(
     "indexer, pos",
@@ -526,8 +540,11 @@ def test_loc_setitem_single_column_slice():
         columns=MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")]),
     )
     expected = df.copy()
-    df.loc[:, "B"] = np.arange(4)
-    expected.iloc[:, 2] = np.arange(4)
+    msg = "will attempt to set the values inplace instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.loc[:, "B"] = np.arange(4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected.iloc[:, 2] = np.arange(4)
     tm.assert_frame_equal(df, expected)
 
 

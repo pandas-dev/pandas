@@ -16,20 +16,26 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 
-import pandas.io.common as icom
 from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
-@tm.network
+@tm.network(
+    url=(
+        "https://github.com/pandas-dev/pandas/raw/main/"
+        "pandas/tests/io/parser/data/salaries.csv"
+    ),
+    check_before_test=True,
+)
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
 def test_compressed_urls(salaries_table, mode, engine, compression_only):
     # test reading compressed urls with various engines and
     # extension inference
-    extension = icom._compression_to_extension[compression_only]
+    extension = _compression_to_extension[compression_only]
     base_url = (
         "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
@@ -45,7 +51,13 @@ def test_compressed_urls(salaries_table, mode, engine, compression_only):
 
 
 @pytest.mark.network
-@tm.network
+@tm.network(
+    url=(
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+        "pandas/tests/io/parser/data/unicode_series.csv"
+    ),
+    check_before_test=True,
+)
 def test_url_encoding_csv():
     """
     read_csv should honor the requested encoding for URLs.
@@ -66,6 +78,7 @@ def tips_df(datapath):
     return read_csv(datapath("io", "data", "csv", "tips.csv"))
 
 
+@pytest.mark.single_cpu
 @pytest.mark.usefixtures("s3_resource")
 @pytest.mark.xfail(
     reason="CI race condition GH 45433, GH 44584",
@@ -247,6 +260,7 @@ class TestS3:
                 storage_options=s3so,
             )
 
+    @pytest.mark.single_cpu
     def test_read_csv_handles_boto_s3_object(self, s3_resource, tips_file):
         # see gh-16135
 
@@ -262,6 +276,7 @@ class TestS3:
         expected = read_csv(tips_file)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.single_cpu
     @pytest.mark.skipif(
         is_ci_environment(),
         reason="This test can hang in our CI min_versions build "

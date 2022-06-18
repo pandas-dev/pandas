@@ -73,7 +73,7 @@ def _validate_additional_dependencies(
     for dep in flake8_additional_dependencies:
         if dep not in environment_additional_dependencies:
             sys.stdout.write(
-                f"Mismatch of '{dep.name}' version between 'enviroment.yml' "
+                f"Mismatch of '{dep.name}' version between 'environment.yml' "
                 "and additional dependencies of 'flake8' in '.pre-commit-config.yaml'\n"
             )
             sys.exit(1)

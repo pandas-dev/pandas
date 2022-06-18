@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -17,6 +19,19 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
+    @td.skip_array_manager_not_yet_implemented
+    def test_fillna_on_column_view(self):
+        # GH#46149 avoid unnecessary copies
+        arr = np.full((40, 50), np.nan)
+        df = DataFrame(arr)
+
+        df[0].fillna(-1, inplace=True)
+        assert (arr[:, 0] == -1).all()
+
+        # i.e. we didn't create a new 49-column block
+        assert len(df._mgr.arrays) == 1
+        assert np.shares_memory(df.values, arr)
+
     def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
         tf.loc[tf.index[:5], "A"] = np.nan

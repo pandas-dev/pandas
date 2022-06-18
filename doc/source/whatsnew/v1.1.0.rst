@@ -665,9 +665,9 @@ the previous index (:issue:`32240`).
    In [4]: result
    Out[4]:
         min_val
-    0 	x
-    1 	y
-    2 	z
+    0   x
+    1   y
+    2   z
 
 *New behavior*:
 

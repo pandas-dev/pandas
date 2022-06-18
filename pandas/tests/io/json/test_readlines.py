@@ -281,7 +281,7 @@ def test_chunksize_is_incremental():
     )
 
     class MyReader:
-        def __init__(self, contents):
+        def __init__(self, contents) -> None:
             self.read_count = 0
             self.stringio = StringIO(contents)
 

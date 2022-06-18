@@ -1,12 +1,14 @@
 from datetime import datetime
 from functools import partial
 from io import StringIO
+from typing import List
 
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs import lib
+from pandas._typing import DatetimeNaTType
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -1286,7 +1288,7 @@ def test_resample_consistency():
     tm.assert_series_equal(s10_2, rl)
 
 
-dates1 = [
+dates1: List[DatetimeNaTType] = [
     datetime(2014, 10, 1),
     datetime(2014, 9, 3),
     datetime(2014, 11, 5),
@@ -1295,7 +1297,9 @@ dates1 = [
     datetime(2014, 7, 15),
 ]
 
-dates2 = dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
+dates2: List[DatetimeNaTType] = (
+    dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
+)
 dates3 = [pd.NaT] + dates1 + [pd.NaT]  # type: ignore[operator]
 
 
@@ -1852,15 +1856,11 @@ def test_resample_unsigned_int(any_unsigned_int_numpy_dtype):
     )
     df = df.loc[(df.index < "2000-01-02") | (df.index > "2000-01-03"), :]
 
-    if any_unsigned_int_numpy_dtype == "uint64":
-        with pytest.raises(RuntimeError, match="empty group with uint64_t"):
-            df.resample("D").max()
-    else:
-        result = df.resample("D").max()
+    result = df.resample("D").max()
 
-        expected = DataFrame(
-            [1, np.nan, 0],
-            columns=["x"],
-            index=date_range(start="2000-01-01", end="2000-01-03 23", freq="D"),
-        )
-        tm.assert_frame_equal(result, expected)
+    expected = DataFrame(
+        [1, np.nan, 0],
+        columns=["x"],
+        index=date_range(start="2000-01-01", end="2000-01-03 23", freq="D"),
+    )
+    tm.assert_frame_equal(result, expected)

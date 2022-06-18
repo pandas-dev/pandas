@@ -22,7 +22,7 @@ import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 import pandas.core.common as com
 from pandas.core.sorting import (
-    decons_group_index,
+    _decons_group_index,
     get_group_index,
     is_int64_overflow_possible,
     lexsort_indexer,
@@ -389,7 +389,7 @@ class TestMerge:
 )
 def test_decons(codes_list, shape):
     group_index = get_group_index(codes_list, shape, sort=True, xnull=True)
-    codes_list2 = decons_group_index(group_index, shape)
+    codes_list2 = _decons_group_index(group_index, shape)
 
     for a, b in zip(codes_list, codes_list2):
         tm.assert_numpy_array_equal(a, b)

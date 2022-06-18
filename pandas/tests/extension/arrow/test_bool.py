@@ -1,6 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
@@ -23,12 +28,12 @@ def dtype():
 def data():
     values = np.random.randint(0, 2, size=100, dtype=bool)
     values[1] = ~values[0]
-    return ArrowBoolArray.from_scalars(values)
+    return ArrowBoolArray._from_sequence(values)
 
 
 @pytest.fixture
 def data_missing():
-    return ArrowBoolArray.from_scalars([None, True])
+    return ArrowBoolArray._from_sequence([None, True])
 
 
 def test_basic_equals(data):
@@ -62,11 +67,6 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
-    # seems like some bug in isna on empty BoolArray returning floats.
-    @pytest.mark.xfail(reason="bad is-na for empty data")
-    def test_from_sequence_from_cls(self, data):
-        super().test_from_sequence_from_cls(data)
-
     @pytest.mark.xfail(reason="pa.NULL is not recognised as scalar, GH-33899")
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
@@ -76,10 +76,6 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
         super().test_series_constructor_scalar_na_with_index(dtype, na_value)
-
-    @pytest.mark.xfail(reason="ufunc 'invert' not supported for the input types")
-    def test_construct_empty_dataframe(self, dtype):
-        super().test_construct_empty_dataframe(dtype)
 
     @pytest.mark.xfail(reason="_from_sequence ignores dtype keyword")
     def test_empty(self, dtype):
@@ -91,6 +87,10 @@ class TestReduce(base.BaseNoReduceTests):
         pass
 
 
+@pytest.mark.skipif(
+    is_ci_environment() and is_platform_windows(),
+    reason="Causes stack overflow on Windows CI",
+)
 class TestReduceBoolean(base.BaseBooleanReduceTests):
     pass
 

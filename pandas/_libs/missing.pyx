@@ -2,8 +2,8 @@ from decimal import Decimal
 import numbers
 from sys import maxsize
 
-import cython
-from cython import Py_ssize_t
+cimport cython
+from cython cimport Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
@@ -312,7 +312,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
     def method(self, other):
         if (other is C_NA or isinstance(other, str)
                 or isinstance(other, (numbers.Number, np.bool_))
-                or isinstance(other, np.ndarray) and not other.shape):
+                or util.is_array(other) and not other.shape):
             # Need the other.shape clause to handle NumPy scalars,
             # since we do a setitem on `out` below, which
             # won't work for NumPy scalars.
@@ -321,7 +321,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
             else:
                 return NA
 
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             out = np.empty(other.shape, dtype=object)
             out[:] = NA
 
@@ -433,7 +433,7 @@ class NAType(C_NAType):
                 return type(other)(1)
             else:
                 return NA
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             return np.where(other == 0, other.dtype.type(1), NA)
 
         return NotImplemented
@@ -446,7 +446,7 @@ class NAType(C_NAType):
                 return other
             else:
                 return NA
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             return np.where(other == 1, other, NA)
         return NotImplemented
 

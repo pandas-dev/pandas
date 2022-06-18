@@ -25,10 +25,10 @@ cnp.import_array()
 from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
     PyTZInfo_Check,
     datetime,
+    import_datetime,
     time,
     tzinfo as tzinfo_type,
 )
@@ -43,7 +43,7 @@ from cpython.object cimport (
     PyObject_RichCompareBool,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
@@ -51,7 +51,13 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
     convert_to_tsobject,
-    normalize_i8_stamp,
+    maybe_localize_tso,
+)
+from pandas._libs.tslibs.dtypes cimport (
+    get_conversion_factor,
+    npy_unit_to_abbrev,
+    periods_per_day,
+    periods_per_second,
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
@@ -73,21 +79,33 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    NPY_FR_ns,
     check_dts_bounds,
+    cmp_dtstructs,
     cmp_scalar,
-    dt64_to_dtstruct,
+    get_datetime64_unit,
+    get_datetime64_value,
+    get_unit_from_dtype,
     npy_datetimestruct,
-    pydatetime_to_dt64,
+    npy_datetimestruct_to_datetime,
+    pandas_datetime_to_datetimestruct,
+    pydatetime_to_dtstruct,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.offsets cimport (
+    BaseOffset,
     is_offset_object,
     to_offset,
 )
 from pandas._libs.tslibs.timedeltas cimport (
     delta_to_nanoseconds,
+    ensure_td64ns,
     is_any_td_scalar,
 )
 
@@ -114,24 +132,32 @@ _no_input = object()
 # ----------------------------------------------------------------------
 
 
-cdef inline object create_timestamp_from_ts(int64_t value,
-                                            npy_datetimestruct dts,
-                                            tzinfo tz, object freq, bint fold):
+cdef inline _Timestamp create_timestamp_from_ts(
+    int64_t value,
+    npy_datetimestruct dts,
+    tzinfo tz,
+    BaseOffset freq,
+    bint fold,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+):
     """ convenience routine to construct a Timestamp from its parts """
-    cdef _Timestamp ts_base
+    cdef:
+        _Timestamp ts_base
+
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
                                  dts.day, dts.hour, dts.min,
                                  dts.sec, dts.us, tz, fold=fold)
     ts_base.value = value
     ts_base._freq = freq
     ts_base.nanosecond = dts.ps // 1000
+    ts_base._reso = reso
 
     return ts_base
 
 
-def _unpickle_timestamp(value, freq, tz):
+def _unpickle_timestamp(value, freq, tz, reso=NPY_FR_ns):
     # GH#41949 dont warn on unpickle if we have a freq
-    ts = Timestamp(value, tz=tz)
+    ts = Timestamp._from_value_and_reso(value, reso, tz)
     ts._set_freq(freq)
     return ts
 
@@ -177,12 +203,50 @@ cdef class _Timestamp(ABCTimestamp):
         )
         return self._freq
 
+    # -----------------------------------------------------------------
+    # Constructors
+
+    @classmethod
+    def _from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso, tzinfo tz):
+        cdef:
+            npy_datetimestruct dts
+            _TSObject obj = _TSObject()
+
+        if value == NPY_NAT:
+            return NaT
+
+        obj.value = value
+        pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
+        maybe_localize_tso(obj, tz, reso)
+
+        return create_timestamp_from_ts(
+            value, obj.dts, tz=obj.tzinfo, freq=None, fold=obj.fold, reso=reso
+        )
+
+    @classmethod
+    def _from_dt64(cls, dt64: np.datetime64):
+        # construct a Timestamp from a np.datetime64 object, keeping the
+        #  resolution of the input.
+        # This is herely mainly so we can incrementally implement non-nano
+        #  (e.g. only tznaive at first)
+        cdef:
+            npy_datetimestruct dts
+            int64_t value
+            NPY_DATETIMEUNIT reso
+
+        reso = get_datetime64_unit(dt64)
+        value = get_datetime64_value(dt64)
+        return cls._from_value_and_reso(value, reso, None)
+
+    # -----------------------------------------------------------------
+
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
         if self.fold:
             return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
+        # TODO(non-nano): what if we are out of bounds for pydatetime?
 
     def __richcmp__(_Timestamp self, object other, int op):
         cdef:
@@ -193,17 +257,16 @@ cdef class _Timestamp(ABCTimestamp):
             ots = other
         elif other is NaT:
             return op == Py_NE
-        elif PyDateTime_Check(other) or is_datetime64_object(other):
-            if self.nanosecond == 0 and PyDateTime_Check(other):
+        elif is_datetime64_object(other):
+            ots = _Timestamp._from_dt64(other)
+        elif PyDateTime_Check(other):
+            if self.nanosecond == 0:
                 val = self.to_pydatetime()
                 return PyObject_RichCompareBool(val, other, op)
 
             try:
                 ots = type(self)(other)
             except ValueError:
-                if is_datetime64_object(other):
-                    # cast non-nano dt64 to pydatetime
-                    other = other.astype(object)
                 return self._compare_outside_nanorange(other, op)
 
         elif is_array(other):
@@ -253,7 +316,21 @@ cdef class _Timestamp(ABCTimestamp):
             raise TypeError(
                 "Cannot compare tz-naive and tz-aware timestamps"
             )
-        return cmp_scalar(self.value, ots.value, op)
+        if self._reso == ots._reso:
+            return cmp_scalar(self.value, ots.value, op)
+        return self._compare_mismatched_resos(ots, op)
+
+    # TODO: copied from Timedelta; try to de-duplicate
+    cdef inline bint _compare_mismatched_resos(self, _Timestamp other, int op):
+        # Can't just dispatch to numpy as they silently overflow and get it wrong
+        cdef:
+            npy_datetimestruct dts_self
+            npy_datetimestruct dts_other
+
+        # dispatch to the datetimestruct utils instead of writing new ones!
+        pandas_datetime_to_datetimestruct(self.value, self._reso, &dts_self)
+        pandas_datetime_to_datetimestruct(other.value, other._reso, &dts_other)
+        return cmp_dtstructs(&dts_self,  &dts_other, op)
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
@@ -281,13 +358,50 @@ cdef class _Timestamp(ABCTimestamp):
             return other.tzinfo is not None
         return other.tzinfo is None
 
+    @cython.overflowcheck(True)
     def __add__(self, other):
         cdef:
             int64_t nanos = 0
 
         if is_any_td_scalar(other):
-            nanos = delta_to_nanoseconds(other)
-            result = type(self)(self.value + nanos, tz=self.tzinfo)
+            if is_timedelta64_object(other):
+                other_reso = get_datetime64_unit(other)
+                if (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+                ):
+                    # TODO: deprecate allowing this?  We only get here
+                    #  with test_timedelta_add_timestamp_interval
+                    other = np.timedelta64(other.view("i8"), "ns")
+                elif (
+                    other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
+                ):
+                    # TODO: deprecate allowing these?  or handle more like the
+                    #  corresponding DateOffsets?
+                    # TODO: no tests get here
+                    other = ensure_td64ns(other)
+
+            # TODO: what to do with mismatched resos?
+            # TODO: disallow round_ok
+            nanos = delta_to_nanoseconds(
+                other, reso=self._reso, round_ok=True
+            )
+            try:
+                new_value = self.value + nanos
+            except OverflowError:
+                # Use Python ints
+                # Hit in test_tdi_add_overflow
+                new_value = int(self.value) + int(nanos)
+
+            try:
+                result = type(self)._from_value_and_reso(
+                    new_value, reso=self._reso, tz=self.tzinfo
+                )
+            except OverflowError as err:
+                # TODO: don't hard-code nanosecond here
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds nanosecond timestamp: {new_value}"
+                ) from err
+
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
             return result
@@ -308,12 +422,21 @@ cdef class _Timestamp(ABCTimestamp):
 
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
+            # TODO(cython3): remove this it moved to __radd__
             return other.__add__(self)
         return NotImplemented
 
-    def __sub__(self, other):
+    def __radd__(self, other):
+        # Have to duplicate checks to avoid infinite recursion due to NotImplemented
+        if is_any_td_scalar(other) or is_integer_object(other) or is_array(other):
+            return self.__add__(other)
+        return NotImplemented
 
-        if is_any_td_scalar(other) or is_integer_object(other):
+    def __sub__(self, other):
+        if other is NaT:
+            return NaT
+
+        elif is_any_td_scalar(other) or is_integer_object(other):
             neg_other = -other
             return self + neg_other
 
@@ -329,14 +452,12 @@ cdef class _Timestamp(ABCTimestamp):
                 )
             return NotImplemented
 
-        if other is NaT:
-            return NaT
-
         # coerce if necessary if we are a Timestamp-like
         if (PyDateTime_Check(self)
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
             # both_timestamps is to determine whether Timedelta(self - other)
             # should raise the OOB error, or fall back returning a timedelta.
+            # TODO(cython3): clean out the bits that moved to __rsub__
             both_timestamps = (isinstance(other, _Timestamp) and
                                isinstance(self, _Timestamp))
             if isinstance(self, _Timestamp):
@@ -349,11 +470,26 @@ cdef class _Timestamp(ABCTimestamp):
                     "Cannot subtract tz-naive and tz-aware datetime-like objects."
                 )
 
+            # We allow silent casting to the lower resolution if and only
+            #  if it is lossless.
+            try:
+                if self._reso < other._reso:
+                    other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
+                elif self._reso > other._reso:
+                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+            except ValueError as err:
+                raise ValueError(
+                    "Timestamp subtraction with mismatched resolutions is not "
+                    "allowed when casting to the lower resolution would require "
+                    "lossy rounding."
+                ) from err
+
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
             try:
-                return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime) as err:
+                res_value = self.value - other.value
+                return Timedelta._from_value_and_reso(res_value, self._reso)
+            except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 if isinstance(other, _Timestamp):
                     if both_timestamps:
                         raise OutOfBoundsDatetime(
@@ -367,8 +503,21 @@ cdef class _Timestamp(ABCTimestamp):
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
             #  the Timestamp
+            # TODO(cython3): remove this, this moved to __rsub__
             return type(other)(self) - other
 
+        return NotImplemented
+
+    def __rsub__(self, other):
+        if PyDateTime_Check(other):
+            try:
+                return type(self)(other) - self
+            except (OverflowError, OutOfBoundsDatetime) as err:
+                # We get here in stata tests, fall back to stdlib datetime
+                #  method and return stdlib timedelta object
+                pass
+        elif is_datetime64_object(other):
+            return type(self)(other) - self
         return NotImplemented
 
     # -----------------------------------------------------------------
@@ -381,11 +530,13 @@ cdef class _Timestamp(ABCTimestamp):
             npy_datetimestruct dts
 
         if own_tz is not None and not is_utc(own_tz):
-            val = pydatetime_to_dt64(self, &dts) + self.nanosecond
+            pydatetime_to_dtstruct(self, &dts)
+            val = npy_datetimestruct_to_datetime(self._reso, &dts) + self.nanosecond
         else:
             val = self.value
         return val
 
+    @cython.boundscheck(False)
     cdef bint _get_start_end_field(self, str field, freq):
         cdef:
             int64_t val
@@ -402,8 +553,9 @@ cdef class _Timestamp(ABCTimestamp):
             freqstr = None
 
         val = self._maybe_convert_value_to_local()
+
         out = get_start_end_field(np.array([val], dtype=np.int64),
-                                  field, freqstr, month_kw)
+                                  field, freqstr, month_kw, self._reso)
         return out[0]
 
     cdef _warn_on_field_deprecation(self, freq, str field):
@@ -557,14 +709,16 @@ cdef class _Timestamp(ABCTimestamp):
         self._warn_on_field_deprecation(self._freq, "is_year_end")
         return self._get_start_end_field("is_year_end", self._freq)
 
+    @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
             int64_t val
-            object[:] out
+            object[::1] out
 
         val = self._maybe_convert_value_to_local()
+
         out = get_date_name_field(np.array([val], dtype=np.int64),
-                                  field, locale=locale)
+                                  field, locale=locale, reso=self._reso)
         return out[0]
 
     def day_name(self, locale=None) -> str:
@@ -713,9 +867,12 @@ cdef class _Timestamp(ABCTimestamp):
         cdef:
             local_val = self._maybe_convert_value_to_local()
             int64_t normalized
+            int64_t ppd = periods_per_day(self._reso)
+            _Timestamp ts
 
-        normalized = normalize_i8_stamp(local_val)
-        return Timestamp(normalized).tz_localize(self.tzinfo)
+        normalized = normalize_i8_stamp(local_val, ppd)
+        ts = type(self)._from_value_and_reso(normalized, reso=self._reso, tz=None)
+        return ts.tz_localize(self.tzinfo)
 
     # -----------------------------------------------------------------
     # Pickle Methods
@@ -731,8 +888,16 @@ cdef class _Timestamp(ABCTimestamp):
         self._freq = state[1]
         self.tzinfo = state[2]
 
+        if len(state) == 3:
+            # pre-non-nano pickle
+            # TODO: no tests get here 2022-05-10
+            reso = NPY_FR_ns
+        else:
+            reso = state[4]
+        self._reso = reso
+
     def __reduce__(self):
-        object_state = self.value, self._freq, self.tzinfo
+        object_state = self.value, self._freq, self.tzinfo, self._reso
         return (_unpickle_timestamp, object_state)
 
     # -----------------------------------------------------------------
@@ -848,6 +1013,42 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Conversion Methods
 
+    # TODO: share with _Timedelta?
+    @cython.cdivision(False)
+    cdef _Timestamp _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
+        cdef:
+            int64_t value, mult, div, mod
+
+        if reso == self._reso:
+            return self
+
+        if reso < self._reso:
+            # e.g. ns -> us
+            mult = get_conversion_factor(reso, self._reso)
+            div, mod = divmod(self.value, mult)
+            if mod > 0 and not round_ok:
+                raise ValueError("Cannot losslessly convert units")
+
+            # Note that when mod > 0, we follow np.datetime64 in always
+            #  rounding down.
+            value = div
+        else:
+            mult = get_conversion_factor(self._reso, reso)
+            with cython.overflowcheck(True):
+                # Note: caller is responsible for re-raising as OutOfBoundsDatetime
+                value = self.value * mult
+        return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
+
+    def _as_unit(self, str unit, bint round_ok=True):
+        dtype = np.dtype(f"M8[{unit}]")
+        reso = get_unit_from_dtype(dtype)
+        try:
+            return self._as_reso(reso, round_ok=round_ok)
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                f"Cannot cast {self} to unit='{unit}' without overflow."
+            ) from err
+
     @property
     def asm8(self) -> np.datetime64:
         """
@@ -859,7 +1060,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.asm8
         numpy.datetime64('2020-03-14T15:00:00.000000000')
         """
-        return np.datetime64(self.value, 'ns')
+        return self.to_datetime64()
 
     def timestamp(self):
         """
@@ -873,7 +1074,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
-        return round(self.value / 1e9, 6)
+
+        denom = periods_per_second(self._reso)
+
+        return round(self.value / denom, 6)
 
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
@@ -904,7 +1108,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
-        return np.datetime64(self.value, "ns")
+        # TODO: find a way to construct dt64 directly from _reso
+        abbrev = npy_unit_to_abbrev(self._reso)
+        return np.datetime64(self.value, abbrev)
 
     def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
@@ -1439,7 +1645,10 @@ class Timestamp(_Timestamp):
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
-            int64_t nanos = to_offset(freq).nanos
+            int64_t nanos
+
+        to_offset(freq).nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(to_offset(freq), self._reso)
 
         if self.tz is not None:
             value = self.tz_localize(None).value
@@ -1450,7 +1659,7 @@ class Timestamp(_Timestamp):
 
         # Will only ever contain 1 element for timestamp
         r = round_nsint64(value, mode, nanos)[0]
-        result = Timestamp(r, unit='ns')
+        result = Timestamp._from_value_and_reso(r, self._reso, None)
         if self.tz is not None:
             result = result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent
@@ -1853,23 +2062,21 @@ default 'raise'
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc_single(self.value, tz,
                                               ambiguous=ambiguous,
-                                              nonexistent=nonexistent)
-            out = Timestamp(value, tz=tz)
-            if out is not NaT:
-                out._set_freq(self._freq)  # avoid warning in constructor
-            return out
+                                              nonexistent=nonexistent,
+                                              reso=self._reso)
+        elif tz is None:
+            # reset tz
+            value = tz_convert_from_utc_single(self.value, self.tz, reso=self._reso)
+
         else:
-            if tz is None:
-                # reset tz
-                value = tz_convert_from_utc_single(self.value, self.tz)
-                out = Timestamp(value, tz=tz)
-                if out is not NaT:
-                    out._set_freq(self._freq)  # avoid warning in constructor
-                return out
-            else:
-                raise TypeError(
-                    "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
-                )
+            raise TypeError(
+                "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
+            )
+
+        out = type(self)._from_value_and_reso(value, self._reso, tz=tz)
+        if out is not NaT:
+            out._set_freq(self._freq)  # avoid warning in constructor
+        return out
 
     def tz_convert(self, tz):
         """
@@ -1920,7 +2127,8 @@ default 'raise'
             )
         else:
             # Same UTC timestamp, different time zone
-            out = Timestamp(self.value, tz=tz)
+            tz = maybe_get_tz(tz)
+            out = type(self)._from_value_and_reso(self.value, reso=self._reso, tz=tz)
             if out is not NaT:
                 out._set_freq(self._freq)  # avoid warning in constructor
             return out
@@ -2001,10 +2209,10 @@ default 'raise'
             fold = self.fold
 
         if tzobj is not None:
-            value = tz_convert_from_utc_single(value, tzobj)
+            value = tz_convert_from_utc_single(value, tzobj, reso=self._reso)
 
         # setup components
-        dt64_to_dtstruct(value, &dts)
+        pandas_datetime_to_datetimestruct(value, self._reso, &dts)
         dts.ps = self.nanosecond * 1000
 
         # replace
@@ -2051,12 +2259,16 @@ default 'raise'
                       'fold': fold}
             ts_input = datetime(**kwargs)
 
-        ts = convert_datetime_to_tsobject(ts_input, tzobj)
+        ts = convert_datetime_to_tsobject(ts_input, tzobj, nanos=0, reso=self._reso)
+        # TODO: passing nanos=dts.ps // 1000 causes a RecursionError in
+        #  TestTimestampConstructors.test_constructor; not clear why
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
-            check_dts_bounds(&dts)
+            check_dts_bounds(&dts, self._reso)
 
-        return create_timestamp_from_ts(value, dts, tzobj, self._freq, fold)
+        return create_timestamp_from_ts(
+            value, dts, tzobj, self._freq, fold, reso=self._reso
+        )
 
     def to_julian_date(self) -> np.float64:
         """
@@ -2116,3 +2328,25 @@ cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
+
+
+# ----------------------------------------------------------------------
+# Scalar analogues to functions in vectorized.pyx
+
+
+@cython.cdivision(False)
+cdef inline int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+    """
+    Round the localized nanosecond timestamp down to the previous midnight.
+
+    Parameters
+    ----------
+    local_val : int64_t
+    ppd : int64_t
+        Periods per day in the Timestamp's resolution.
+
+    Returns
+    -------
+    int64_t
+    """
+    return local_val - (local_val % ppd)

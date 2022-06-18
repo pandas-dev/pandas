@@ -120,12 +120,6 @@ class HashTable:
     # TODO: `item` type is subclass-specific
     def get_item(self, item): ...  # TODO: return type?
     def set_item(self, item) -> None: ...
-    # FIXME: we don't actually have this for StringHashTable or ObjectHashTable?
-    def map(
-        self,
-        keys: np.ndarray,  # np.ndarray[subclass-specific]
-        values: np.ndarray,  # const int64_t[:]
-    ) -> None: ...
     def map_locations(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
@@ -150,26 +144,13 @@ class HashTable:
         np.ndarray,  # np.ndarray[subclass-specific]
         npt.NDArray[np.intp],
     ] | np.ndarray: ...  # np.ndarray[subclass-specific]
-    def _unique(
-        self,
-        values: np.ndarray,  # np.ndarray[subclass-specific]
-        uniques,  # FooVector
-        count_prior: int = ...,
-        na_sentinel: int = ...,
-        na_value: object = ...,
-        ignore_na: bool = ...,
-        return_inverse: bool = ...,
-    ) -> tuple[
-        np.ndarray,  # np.ndarray[subclass-specific]
-        npt.NDArray[np.intp],
-    ] | np.ndarray: ...  # np.ndarray[subclass-specific]
     def factorize(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
         na_sentinel: int = ...,
         na_value: object = ...,
         mask=...,
-    ) -> tuple[np.ndarray, npt.NDArray[np.intp],]: ...  # np.ndarray[subclass-specific]
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
 
 class Complex128HashTable(HashTable): ...
 class Complex64HashTable(HashTable): ...
@@ -177,11 +158,16 @@ class Float64HashTable(HashTable): ...
 class Float32HashTable(HashTable): ...
 
 class Int64HashTable(HashTable):
-    # Only Int64HashTable has get_labels_groupby
+    # Only Int64HashTable has get_labels_groupby, map_keys_to_values
     def get_labels_groupby(
         self,
-        values: np.ndarray,  # const int64_t[:]
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64],]: ...
+        values: npt.NDArray[np.int64],  # const int64_t[:]
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]: ...
+    def map_keys_to_values(
+        self,
+        keys: npt.NDArray[np.int64],
+        values: npt.NDArray[np.int64],  # const int64_t[:]
+    ) -> None: ...
 
 class Int32HashTable(HashTable): ...
 class Int16HashTable(HashTable): ...
@@ -198,11 +184,14 @@ def duplicated(
     values: np.ndarray,
     keep: Literal["last", "first", False] = ...,
 ) -> npt.NDArray[np.bool_]: ...
-def mode(values: np.ndarray, dropna: bool) -> np.ndarray: ...
+def mode(
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = ...
+) -> np.ndarray: ...
 def value_count(
     values: np.ndarray,
     dropna: bool,
-) -> tuple[np.ndarray, npt.NDArray[np.int64],]: ...  # np.ndarray[same-as-values]
+    mask: npt.NDArray[np.bool_] | None = ...,
+) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype
 def ismember(

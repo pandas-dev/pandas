@@ -18,7 +18,6 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -53,6 +52,7 @@ from pandas.arrays import (
     IntervalArray,
     PeriodArray,
     SparseArray,
+    TimedeltaArray,
 )
 from pandas.core.api import Int64Index
 
@@ -308,7 +308,6 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
-    @pytest.mark.skipif(np_version_under1p19, reason="NumPy change.")
     def test_constructor_list_of_2d_raises(self):
         # https://github.com/pandas-dev/pandas/issues/32289
         a = DataFrame()
@@ -323,43 +322,34 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=r"shape=\(2, 2, 1\)"):
             DataFrame([a, a])
 
-    def test_constructor_mixed_dtypes(self):
-        def _make_mixed_dtypes_df(typ, ad=None):
+    @pytest.mark.parametrize(
+        "typ, ad",
+        [
+            # mixed floating and integer coexist in the same frame
+            ["float", {}],
+            # add lots of types
+            ["float", {"A": 1, "B": "foo", "C": "bar"}],
+            # GH 622
+            ["int", {}],
+        ],
+    )
+    def test_constructor_mixed_dtypes(self, typ, ad):
+        if typ == "int":
+            dtypes = MIXED_INT_DTYPES
+            arrays = [np.array(np.random.rand(10), dtype=d) for d in dtypes]
+        elif typ == "float":
+            dtypes = MIXED_FLOAT_DTYPES
+            arrays = [np.array(np.random.randint(10, size=10), dtype=d) for d in dtypes]
 
-            if typ == "int":
-                dtypes = MIXED_INT_DTYPES
-                arrays = [np.array(np.random.rand(10), dtype=d) for d in dtypes]
-            elif typ == "float":
-                dtypes = MIXED_FLOAT_DTYPES
-                arrays = [
-                    np.array(np.random.randint(10, size=10), dtype=d) for d in dtypes
-                ]
+        for d, a in zip(dtypes, arrays):
+            assert a.dtype == d
+        ad.update({d: a for d, a in zip(dtypes, arrays)})
+        df = DataFrame(ad)
 
-            for d, a in zip(dtypes, arrays):
-                assert a.dtype == d
-            if ad is None:
-                ad = {}
-            ad.update({d: a for d, a in zip(dtypes, arrays)})
-            return DataFrame(ad)
-
-        def _check_mixed_dtypes(df, dtypes=None):
-            if dtypes is None:
-                dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
-            for d in dtypes:
-                if d in df:
-                    assert df.dtypes[d] == d
-
-        # mixed floating and integer coexist in the same frame
-        df = _make_mixed_dtypes_df("float")
-        _check_mixed_dtypes(df)
-
-        # add lots of types
-        df = _make_mixed_dtypes_df("float", {"A": 1, "B": "foo", "C": "bar"})
-        _check_mixed_dtypes(df)
-
-        # GH 622
-        df = _make_mixed_dtypes_df("int")
-        _check_mixed_dtypes(df)
+        dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
+        for d in dtypes:
+            if d in df:
+                assert df.dtypes[d] == d
 
     def test_constructor_complex_dtypes(self):
         # GH10952
@@ -893,7 +883,10 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+            (
+                Interval(left=0, right=5, inclusive="right"),
+                IntervalDtype("int64", "right"),
+            ),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -1372,7 +1365,7 @@ class TestDataFrameConstructors:
         # collections.Sequence like
 
         class DummyContainer(abc.Sequence):
-            def __init__(self, lst):
+            def __init__(self, lst) -> None:
                 self._lst = lst
 
             def __getitem__(self, n):
@@ -2419,16 +2412,16 @@ class TestDataFrameConstructors:
         result = DataFrame({"1": ser1, "2": ser2})
         index = CategoricalIndex(
             [
-                Interval(-0.099, 9.9, closed="right"),
-                Interval(9.9, 19.8, closed="right"),
-                Interval(19.8, 29.7, closed="right"),
-                Interval(29.7, 39.6, closed="right"),
-                Interval(39.6, 49.5, closed="right"),
-                Interval(49.5, 59.4, closed="right"),
-                Interval(59.4, 69.3, closed="right"),
-                Interval(69.3, 79.2, closed="right"),
-                Interval(79.2, 89.1, closed="right"),
-                Interval(89.1, 99, closed="right"),
+                Interval(-0.099, 9.9, inclusive="right"),
+                Interval(9.9, 19.8, inclusive="right"),
+                Interval(19.8, 29.7, inclusive="right"),
+                Interval(29.7, 39.6, inclusive="right"),
+                Interval(39.6, 49.5, inclusive="right"),
+                Interval(49.5, 59.4, inclusive="right"),
+                Interval(59.4, 69.3, inclusive="right"),
+                Interval(69.3, 79.2, inclusive="right"),
+                Interval(79.2, 89.1, inclusive="right"),
+                Interval(89.1, 99, inclusive="right"),
             ],
             ordered=True,
         )
@@ -2528,6 +2521,7 @@ class TestDataFrameConstructors:
             return
 
         c = pd.array([1, 2], dtype=any_numeric_ea_dtype)
+        c_orig = c.copy()
         df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
 
         def get_base(obj):
@@ -2539,9 +2533,19 @@ class TestDataFrameConstructors:
             else:
                 raise TypeError
 
-        def check_views():
+        def check_views(c_only: bool = False):
             # written to work for either BlockManager or ArrayManager
+
+            # Check that the underlying data behind df["c"] is still `c`
+            #  after setting with iloc.  Since we don't know which entry in
+            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
+            #  one of these arrays is `c`.  GH#38939
             assert sum(x is c for x in df._mgr.arrays) == 1
+            if c_only:
+                # If we ever stop consolidating in setitem_with_indexer,
+                #  this will become unnecessary.
+                return
+
             assert (
                 sum(
                     get_base(x) is a
@@ -2563,23 +2567,19 @@ class TestDataFrameConstructors:
             # constructor preserves views
             check_views()
 
+        # TODO: most of the rest of this test belongs in indexing tests
         df.iloc[0, 0] = 0
         df.iloc[0, 1] = 0
         if not copy:
-            # Check that the underlying data behind df["c"] is still `c`
-            #  after setting with iloc.  Since we don't know which entry in
-            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
-            #  one of these arrays is `c`.  GH#38939
-            assert sum(x is c for x in df._mgr.arrays) == 1
-            # TODO: we can call check_views if we stop consolidating
-            #  in setitem_with_indexer
+            check_views(True)
 
         # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
-        # df.iloc[0, 2] = 0
-        # if not copy:
-        #     check_views()
-        c[0] = 0
+        with tm.assert_produces_warning(FutureWarning, match="will attempt to set"):
+            df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
+        assert df.dtypes.iloc[2] == c.dtype
+        if not copy:
+            check_views(True)
 
         if copy:
             if a.dtype.kind == "M":
@@ -2589,14 +2589,13 @@ class TestDataFrameConstructors:
                 assert a[0] == a.dtype.type(1)
                 assert b[0] == b.dtype.type(3)
             # FIXME(GH#35417): enable after GH#35417
-            # assert c[0] == 1
-            assert df.iloc[0, 2] == 1
+            assert c[0] == c_orig[0]  # i.e. df.iloc[0, 2]=45 did *not* update c
         else:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
-            # FIXME(GH#35417): enable after GH#35417
-            # assert b[0] == 0
-            assert df.iloc[0, 2] == 0
+            assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
+            # TODO: we can check b[0] == 0 if we stop consolidating in
+            #  setitem_with_indexer (except for datetimelike?)
 
     def test_from_series_with_name_with_columns(self):
         # GH 7893
@@ -2666,6 +2665,12 @@ class TestDataFrameConstructors:
             dtype=object,
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_construction_empty_array_multi_column_raises(self):
+        # GH#46822
+        msg = "Empty data passed with indices specified."
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(data=np.array([]), columns=["a", "b"])
 
 
 class TestDataFrameConstructorIndexInference:
@@ -3087,3 +3092,51 @@ class TestFromScalar:
 
         assert np.all(result.dtypes == "M8[ns]")
         assert np.all(result == ts_naive)
+
+
+# TODO: better location for this test?
+class TestAllowNonNano:
+    # Until 2.0, we do not preserve non-nano dt64/td64 when passed as ndarray,
+    #  but do preserve it when passed as DTA/TDA
+
+    @pytest.fixture(params=[True, False])
+    def as_td(self, request):
+        return request.param
+
+    @pytest.fixture
+    def arr(self, as_td):
+        values = np.arange(5).astype(np.int64).view("M8[s]")
+        if as_td:
+            values = values - values[0]
+            return TimedeltaArray._simple_new(values, dtype=values.dtype)
+        else:
+            return DatetimeArray._simple_new(values, dtype=values.dtype)
+
+    def test_index_allow_non_nano(self, arr):
+        idx = Index(arr)
+        assert idx.dtype == arr.dtype
+
+    def test_dti_tdi_allow_non_nano(self, arr, as_td):
+        if as_td:
+            idx = pd.TimedeltaIndex(arr)
+        else:
+            idx = DatetimeIndex(arr)
+        assert idx.dtype == arr.dtype
+
+    def test_series_allow_non_nano(self, arr):
+        ser = Series(arr)
+        assert ser.dtype == arr.dtype
+
+    def test_frame_allow_non_nano(self, arr):
+        df = DataFrame(arr)
+        assert df.dtypes[0] == arr.dtype
+
+    @pytest.mark.xfail(
+        # TODO(2.0): xfail should become unnecessary
+        strict=False,
+        reason="stack_arrays converts TDA to ndarray, then goes "
+        "through ensure_wrapped_if_datetimelike",
+    )
+    def test_frame_from_dict_allow_non_nano(self, arr):
+        df = DataFrame({0: arr})
+        assert df.dtypes[0] == arr.dtype

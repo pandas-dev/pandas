@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import numpy as np
+
+from pandas._typing import PlottingOrientation
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -40,9 +45,11 @@ if TYPE_CHECKING:
 
 
 class HistPlot(LinePlot):
-    _kind = "hist"
+    @property
+    def _kind(self) -> Literal["hist", "kde"]:
+        return "hist"
 
-    def __init__(self, data, bins=10, bottom=0, **kwargs):
+    def __init__(self, data, bins=10, bottom=0, **kwargs) -> None:
         self.bins = bins  # use mpl default
         self.bottom = bottom
         # Do not call LinePlot.__init__ which may fill nan
@@ -64,8 +71,8 @@ class HistPlot(LinePlot):
 
     def _calculate_bins(self, data: DataFrame) -> np.ndarray:
         """Calculate bins given data"""
-        values = data._convert(datetime=True)._get_numeric_data()
-        values = np.ravel(values)
+        nd_values = data._convert(datetime=True)._get_numeric_data()
+        values = np.ravel(nd_values)
         values = values[~isna(values)]
 
         hist, bins = np.histogram(
@@ -159,7 +166,7 @@ class HistPlot(LinePlot):
             ax.set_ylabel("Frequency")
 
     @property
-    def orientation(self):
+    def orientation(self) -> PlottingOrientation:
         if self.kwds.get("orientation", None) == "horizontal":
             return "horizontal"
         else:
@@ -167,10 +174,15 @@ class HistPlot(LinePlot):
 
 
 class KdePlot(HistPlot):
-    _kind = "kde"
-    orientation = "vertical"
+    @property
+    def _kind(self) -> Literal["kde"]:
+        return "kde"
 
-    def __init__(self, data, bw_method=None, ind=None, **kwargs):
+    @property
+    def orientation(self) -> Literal["vertical"]:
+        return "vertical"
+
+    def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
         MPLPlot.__init__(self, data, **kwargs)
         self.bw_method = bw_method
         self.ind = ind

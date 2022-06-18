@@ -17,6 +17,7 @@ from io import StringIO
 import itertools
 from numbers import Number
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -91,7 +92,7 @@ class MockNumpyLikeArray:
     a scalar (`is_scalar(np.array(1)) == False`), but it is not list-like either.
     """
 
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         self._values = values
 
     def __iter__(self):
@@ -205,8 +206,14 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with tm.external_error_raised(RecursionError):
-        foo()
+    rec_limit = sys.getrecursionlimit()
+    try:
+        # Limit to avoid stack overflow on Windows CI
+        sys.setrecursionlimit(100)
+        with tm.external_error_raised(RecursionError):
+            foo()
+    finally:
+        sys.setrecursionlimit(rec_limit)
 
 
 def test_is_list_like_iter_is_none():
@@ -323,7 +330,7 @@ def test_is_dict_like_fails(ll):
 @pytest.mark.parametrize("has_contains", [True, False])
 def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
     class DictLike:
-        def __init__(self, d):
+        def __init__(self, d) -> None:
             self.d = d
 
         if has_keys:
@@ -952,7 +959,7 @@ class TestInference:
     @pytest.mark.parametrize(
         "idx",
         [
-            pd.IntervalIndex.from_breaks(range(5), closed="both"),
+            pd.IntervalIndex.from_breaks(range(5), inclusive="both"),
             pd.period_range("2016-01-01", periods=3, freq="D"),
         ],
     )
@@ -1645,7 +1652,7 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("asobject", [True, False])
     def test_interval(self, asobject):
-        idx = pd.IntervalIndex.from_breaks(range(5), closed="both")
+        idx = pd.IntervalIndex.from_breaks(range(5), inclusive="both")
         if asobject:
             idx = idx.astype(object)
 
@@ -1661,21 +1668,21 @@ class TestTypeInference:
     @pytest.mark.parametrize("value", [Timestamp(0), Timedelta(0), 0, 0.0])
     def test_interval_mismatched_closed(self, value):
 
-        first = Interval(value, value, closed="left")
-        second = Interval(value, value, closed="right")
+        first = Interval(value, value, inclusive="left")
+        second = Interval(value, value, inclusive="right")
 
-        # if closed match, we should infer "interval"
+        # if inclusive match, we should infer "interval"
         arr = np.array([first, first], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
 
-        # if closed dont match, we should _not_ get "interval"
+        # if inclusive dont match, we should _not_ get "interval"
         arr2 = np.array([first, second], dtype=object)
         assert lib.infer_dtype(arr2, skipna=False) == "mixed"
 
     def test_interval_mismatched_subtype(self):
-        first = Interval(0, 1, closed="left")
-        second = Interval(Timestamp(0), Timestamp(1), closed="left")
-        third = Interval(Timedelta(0), Timedelta(1), closed="left")
+        first = Interval(0, 1, inclusive="left")
+        second = Interval(Timestamp(0), Timestamp(1), inclusive="left")
+        third = Interval(Timedelta(0), Timedelta(1), inclusive="left")
 
         arr = np.array([first, second])
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
@@ -1687,7 +1694,7 @@ class TestTypeInference:
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
         # float vs int subdtype are compatible
-        flt_interval = Interval(1.5, 2.5, closed="left")
+        flt_interval = Interval(1.5, 2.5, inclusive="left")
         arr = np.array([first, flt_interval], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
 
@@ -1826,12 +1833,13 @@ class TestNumberScalar:
         assert not is_datetime64tz_dtype(ts)
         assert is_datetime64tz_dtype(tsa)
 
-        for tz in ["US/Eastern", "UTC"]:
-            dtype = f"datetime64[ns, {tz}]"
-            assert not is_datetime64_dtype(dtype)
-            assert is_datetime64tz_dtype(dtype)
-            assert is_datetime64_ns_dtype(dtype)
-            assert is_datetime64_any_dtype(dtype)
+    @pytest.mark.parametrize("tz", ["US/Eastern", "UTC"])
+    def test_is_datetime_dtypes_with_tz(self, tz):
+        dtype = f"datetime64[ns, {tz}]"
+        assert not is_datetime64_dtype(dtype)
+        assert is_datetime64tz_dtype(dtype)
+        assert is_datetime64_ns_dtype(dtype)
+        assert is_datetime64_any_dtype(dtype)
 
     def test_is_timedelta(self):
         assert is_timedelta64_dtype("timedelta64")
@@ -1890,26 +1898,24 @@ class TestIsScalar:
         assert is_scalar(np.datetime64("2014-01-01"))
         assert is_scalar(np.timedelta64(1, "h"))
 
-    def test_is_scalar_numpy_zerodim_arrays(self):
-        for zerodim in [
+    @pytest.mark.parametrize(
+        "zerodim",
+        [
             np.array(1),
             np.array("foobar"),
             np.array(np.datetime64("2014-01-01")),
             np.array(np.timedelta64(1, "h")),
             np.array(np.datetime64("NaT")),
-        ]:
-            assert not is_scalar(zerodim)
-            assert is_scalar(lib.item_from_zerodim(zerodim))
+        ],
+    )
+    def test_is_scalar_numpy_zerodim_arrays(self, zerodim):
+        assert not is_scalar(zerodim)
+        assert is_scalar(lib.item_from_zerodim(zerodim))
 
-    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-    def test_is_scalar_numpy_arrays(self):
-        for a in [
-            np.array([]),
-            np.array([[]]),
-            np.matrix("1; 2"),
-        ]:
-            assert not is_scalar(a)
-            assert not is_scalar(MockNumpyLikeArray(a))
+    @pytest.mark.parametrize("arr", [np.array([]), np.array([[]])])
+    def test_is_scalar_numpy_arrays(self, arr):
+        assert not is_scalar(arr)
+        assert not is_scalar(MockNumpyLikeArray(arr))
 
     def test_is_scalar_pandas_scalars(self):
         assert is_scalar(Timestamp("2014-01-01"))
@@ -1938,7 +1944,7 @@ class TestIsScalar:
         #  subclasses are.
 
         class Numeric(Number):
-            def __init__(self, value):
+            def __init__(self, value) -> None:
                 self.value = value
 
             def __int__(self):
@@ -1948,10 +1954,10 @@ class TestIsScalar:
         assert is_scalar(num)
 
 
-def test_datetimeindex_from_empty_datetime64_array():
-    for unit in ["ms", "us", "ns"]:
-        idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
-        assert len(idx) == 0
+@pytest.mark.parametrize("unit", ["ms", "us", "ns"])
+def test_datetimeindex_from_empty_datetime64_array(unit):
+    idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
+    assert len(idx) == 0
 
 
 def test_nan_to_nat_conversions():

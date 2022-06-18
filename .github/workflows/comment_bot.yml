@@ -12,18 +12,18 @@ jobs:
     if: startsWith(github.event.comment.body, '@github-actions pre-commit')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: r-lib/actions/pr-fetch@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Cache multiple paths
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cache/pre-commit
             ~/.cache/pip
           key: pre-commit-dispatched-${{ runner.os }}-build
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         with:
           python-version: 3.8
       - name: Install-pre-commit

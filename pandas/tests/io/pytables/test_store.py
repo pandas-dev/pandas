@@ -40,7 +40,7 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_context(setup_path):
@@ -993,7 +993,6 @@ def test_to_hdf_with_object_column_names(setup_path):
     types_should_run = [
         tm.makeStringIndex,
         tm.makeCategoricalIndex,
-        tm.makeUnicodeIndex,
     ]
 
     for index in types_should_fail:

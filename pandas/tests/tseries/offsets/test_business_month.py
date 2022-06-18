@@ -3,9 +3,13 @@ Tests for the following offsets:
 - BMonthBegin
 - BMonthEnd
 """
+from __future__ import annotations
+
 from datetime import datetime
 
 import pytest
+
+from pandas._libs.tslibs.offsets import MonthOffset
 
 import pandas as pd
 from pandas.tests.tseries.offsets.common import (
@@ -44,7 +48,7 @@ def test_apply_index(cls, n):
 
 
 class TestBMonthBegin(Base):
-    _offset = BMonthBegin
+    _offset: type[MonthOffset] = BMonthBegin
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -132,7 +136,7 @@ class TestBMonthBegin(Base):
 
 
 class TestBMonthEnd(Base):
-    _offset = BMonthEnd
+    _offset: type[MonthOffset] = BMonthEnd
 
     def test_normalize(self):
         dt = datetime(2007, 1, 1, 3)

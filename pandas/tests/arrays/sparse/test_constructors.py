@@ -71,6 +71,7 @@ class TestConstructors:
         assert arr.dtype == SparseDtype(object, "A")
         assert arr.fill_value == "A"
 
+    def test_constructor_object_dtype_bool_fill(self):
         # GH#17574
         data = [False, 0, 100.0, 0.0]
         arr = SparseArray(data, dtype=object, fill_value=False)

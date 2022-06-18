@@ -83,7 +83,11 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
+def _get_layout(
+    nplots: int,
+    layout: tuple[int, int] | None = None,
+    layout_type: str = "box",
+) -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -328,13 +332,13 @@ def _remove_labels_from_axis(axis: Axis):
     axis.get_label().set_visible(False)
 
 
-def _has_externally_shared_axis(ax1: matplotlib.axes, compare_axis: str) -> bool:
+def _has_externally_shared_axis(ax1: Axes, compare_axis: str) -> bool:
     """
     Return whether an axis is externally shared.
 
     Parameters
     ----------
-    ax1 : matplotlib.axes
+    ax1 : matplotlib.axes.Axes
         Axis to query.
     compare_axis : str
         `"x"` or `"y"` according to whether the X-axis or Y-axis is being
@@ -388,12 +392,8 @@ def handle_shared_axes(
     sharey: bool,
 ):
     if nplots > 1:
-        if compat.mpl_ge_3_2_0():
-            row_num = lambda x: x.get_subplotspec().rowspan.start
-            col_num = lambda x: x.get_subplotspec().colspan.start
-        else:
-            row_num = lambda x: x.rowNum
-            col_num = lambda x: x.colNum
+        row_num = lambda x: x.get_subplotspec().rowspan.start
+        col_num = lambda x: x.get_subplotspec().colspan.start
 
         if compat.mpl_ge_3_4_0():
             is_first_col = lambda x: x.get_subplotspec().is_first_col()

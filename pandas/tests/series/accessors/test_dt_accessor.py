@@ -12,6 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import SettingWithCopyError
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -37,7 +38,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-import pandas.core.common as com
 
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
@@ -288,7 +288,7 @@ class TestSeriesDatetimeValues:
         # trying to set a copy
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(

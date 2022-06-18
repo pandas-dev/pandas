@@ -51,7 +51,7 @@ class TestPandasDelegate:
             pass
 
     class Delegate(PandasDelegate, PandasObject):
-        def __init__(self, obj):
+        def __init__(self, obj) -> None:
             self.obj = obj
 
     def test_invalid_delegation(self):

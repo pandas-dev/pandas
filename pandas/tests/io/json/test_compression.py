@@ -6,8 +6,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-
-import pandas.io.common as icom
+from pandas.tests.io.test_compression import _compression_to_extension
 
 
 def test_compression_roundtrip(compression):
@@ -38,11 +37,7 @@ def test_read_zipped_json(datapath):
 
 
 @td.skip_if_not_us_locale
-@pytest.mark.xfail(
-    reason="CI race condition GH 45433, GH 44584",
-    raises=FileNotFoundError,
-    strict=False,
-)
+@pytest.mark.single_cpu
 def test_with_s3_url(compression, s3_resource, s3so):
     # Bucket "pandas-test" created in tests/io/conftest.py
 
@@ -104,7 +99,7 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
 
     # We'll complete file extension subsequently.
     filename = "test."
-    filename += icom._compression_to_extension[compression]
+    filename += _compression_to_extension[compression]
 
     df = pd.DataFrame({"A": [1]})
 

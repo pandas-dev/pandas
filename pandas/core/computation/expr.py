@@ -18,6 +18,7 @@ from typing import (
 import numpy as np
 
 from pandas.compat import PY39
+from pandas.errors import UndefinedVariableError
 
 import pandas.core.common as com
 from pandas.core.computation.ops import (
@@ -35,7 +36,6 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
-    UndefinedVariableError,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -393,7 +393,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     unsupported_nodes: tuple[str, ...]
 
-    def __init__(self, env, engine, parser, preparser=_preparse):
+    def __init__(self, env, engine, parser, preparser=_preparse) -> None:
         self.env = env
         self.engine = engine
         self.parser = parser
@@ -768,13 +768,13 @@ class PandasExprVisitor(BaseExprVisitor):
             _preparse,
             f=_compose(_replace_locals, _replace_booleans, clean_backtick_quoted_toks),
         ),
-    ):
+    ) -> None:
         super().__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(["Not"]))
 class PythonExprVisitor(BaseExprVisitor):
-    def __init__(self, env, engine, parser, preparser=lambda x: x):
+    def __init__(self, env, engine, parser, preparser=lambda x: x) -> None:
         super().__init__(env, engine, parser, preparser=preparser)
 
 
@@ -802,7 +802,7 @@ class Expr:
         parser: str = "pandas",
         env: Scope | None = None,
         level: int = 0,
-    ):
+    ) -> None:
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine

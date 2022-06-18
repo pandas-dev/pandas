@@ -314,3 +314,39 @@ def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_ta
     tm.assert_extension_array_equal(pos_result, arr)
     assert not tm.shares_memory(pos_result, arr)
     tm.assert_extension_array_equal(abs_result, abs_target)
+
+
+def test_values_multiplying_large_series_by_NA():
+    # GH#33701
+
+    result = pd.NA * pd.Series(np.zeros(10001))
+    expected = pd.Series([pd.NA] * 10001)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_bitwise(dtype):
+    left = pd.array([1, None, 3, 4], dtype=dtype)
+    right = pd.array([None, 3, 5, 4], dtype=dtype)
+
+    result = left | right
+    expected = pd.array([None, None, 3 | 5, 4 | 4], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = left & right
+    expected = pd.array([None, None, 3 & 5, 4 & 4], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = left ^ right
+    expected = pd.array([None, None, 3 ^ 5, 4 ^ 4], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+    # TODO: desired behavior when operating with boolean?  defer?
+
+    floats = right.astype("Float64")
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left | floats
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left & floats
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left ^ floats

@@ -1,6 +1,7 @@
 """Common utilities for Numba operations with groupby ops"""
 from __future__ import annotations
 
+import functools
 import inspect
 from typing import (
     TYPE_CHECKING,
@@ -14,9 +15,7 @@ from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
     NumbaUtilError,
-    get_jit_arguments,
     jit_user_function,
 )
 
@@ -43,6 +42,10 @@ def validate_udf(func: Callable) -> None:
     ------
     NumbaUtilError
     """
+    if not callable(func):
+        raise NotImplementedError(
+            "Numba engine can only be used with a single function."
+        )
     udf_signature = list(inspect.signature(func).parameters.keys())
     expected_args = ["values", "index"]
     min_number_args = len(expected_args)
@@ -56,10 +59,12 @@ def validate_udf(func: Callable) -> None:
         )
 
 
+@functools.lru_cache(maxsize=None)
 def generate_numba_agg_func(
-    kwargs: dict[str, Any],
     func: Callable[..., Scalar],
-    engine_kwargs: dict[str, bool] | None,
+    nopython: bool,
+    nogil: bool,
+    parallel: bool,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, Any], np.ndarray]:
     """
     Generate a numba jitted agg function specified by values from engine_kwargs.
@@ -72,24 +77,19 @@ def generate_numba_agg_func(
 
     Parameters
     ----------
-    kwargs : dict
-        **kwargs to be passed into the function
     func : function
-        function to be applied to each window and will be JITed
-    engine_kwargs : dict
-        dictionary of arguments to be passed into numba.jit
+        function to be applied to each group and will be JITed
+    nopython : bool
+        nopython to be passed into numba.jit
+    nogil : bool
+        nogil to be passed into numba.jit
+    parallel : bool
+        parallel to be passed into numba.jit
 
     Returns
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
-
-    validate_udf(func)
-    cache_key = (func, "groupby_agg")
-    if cache_key in NUMBA_FUNC_CACHE:
-        return NUMBA_FUNC_CACHE[cache_key]
-
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     if TYPE_CHECKING:
         import numba
@@ -120,10 +120,12 @@ def generate_numba_agg_func(
     return group_agg
 
 
+@functools.lru_cache(maxsize=None)
 def generate_numba_transform_func(
-    kwargs: dict[str, Any],
     func: Callable[..., np.ndarray],
-    engine_kwargs: dict[str, bool] | None,
+    nopython: bool,
+    nogil: bool,
+    parallel: bool,
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, Any], np.ndarray]:
     """
     Generate a numba jitted transform function specified by values from engine_kwargs.
@@ -136,24 +138,19 @@ def generate_numba_transform_func(
 
     Parameters
     ----------
-    kwargs : dict
-        **kwargs to be passed into the function
     func : function
         function to be applied to each window and will be JITed
-    engine_kwargs : dict
-        dictionary of arguments to be passed into numba.jit
+    nopython : bool
+        nopython to be passed into numba.jit
+    nogil : bool
+        nogil to be passed into numba.jit
+    parallel : bool
+        parallel to be passed into numba.jit
 
     Returns
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
-
-    validate_udf(func)
-    cache_key = (func, "groupby_transform")
-    if cache_key in NUMBA_FUNC_CACHE:
-        return NUMBA_FUNC_CACHE[cache_key]
-
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     if TYPE_CHECKING:
         import numba

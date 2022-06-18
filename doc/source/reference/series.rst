@@ -342,6 +342,7 @@ Datetime methods
    :toctree: api/
    :template: autosummary/accessor_method.rst
 
+   Series.dt.isocalendar
    Series.dt.to_period
    Series.dt.to_pydatetime
    Series.dt.tz_localize

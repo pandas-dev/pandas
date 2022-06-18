@@ -8,7 +8,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+    pa_version_under2p0,
+)
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -395,7 +398,10 @@ class TestCommon:
 
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(
+                warn,
+                raise_on_extra_warnings=not pa_version_under2p0,
+            ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
@@ -454,12 +460,16 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position):
+def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, CategoricalIndex):
-        pytest.skip("missing value sorting order not well-defined")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="missing value sorting order not well-defined", strict=False
+            )
+        )
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

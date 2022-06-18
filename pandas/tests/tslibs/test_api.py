@@ -46,9 +46,14 @@ def test_namespace():
         "delta_to_nanoseconds",
         "ints_to_pytimedelta",
         "localize_pydatetime",
+        "tz_convert_from_utc",
         "tz_convert_from_utc_single",
         "to_offset",
         "tz_compare",
+        "is_unitless",
+        "astype_overflowsafe",
+        "get_unit_from_dtype",
+        "periods_per_day",
     ]
 
     expected = set(submodules + api)

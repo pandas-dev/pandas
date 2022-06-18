@@ -585,7 +585,7 @@ class TestPandasContainer:
         # GH14256: failing column caused segfaults, if it is not the last one
 
         class BinaryThing:
-            def __init__(self, hexed):
+            def __init__(self, hexed) -> None:
                 self.hexed = hexed
                 self.binary = bytes.fromhex(hexed)
 
@@ -822,7 +822,7 @@ class TestPandasContainer:
             expected = '{"1577836800000":1577836800000,"null":null}'
         else:
             expected = (
-                '{"2020-01-01T00:00:00.000Z":"2020-01-01T00:00:00.000Z","null":null}'
+                '{"2020-01-01T00:00:00.000":"2020-01-01T00:00:00.000","null":null}'
             )
 
         if as_object:
@@ -875,8 +875,6 @@ class TestPandasContainer:
             json = df.to_json(date_format="iso")
         result = read_json(json)
         expected = df.copy()
-        expected.index = expected.index.tz_localize("UTC")
-        expected["date"] = expected["date"].dt.tz_localize("UTC")
         tm.assert_frame_equal(result, expected)
 
     def test_date_format_frame_raises(self, datetime_frame):
@@ -905,8 +903,6 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
         result = read_json(json, typ="series")
         expected = ts.copy()
-        expected.index = expected.index.tz_localize("UTC")
-        expected = expected.dt.tz_localize("UTC")
         tm.assert_series_equal(result, expected)
 
     def test_date_format_series_raises(self, datetime_series):
@@ -994,7 +990,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result.reindex(index=df.index, columns=df.columns), df)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url="https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5",
+        check_before_test=True,
+    )
     @pytest.mark.parametrize(
         "field,dtype",
         [
@@ -1189,6 +1188,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
+    def test_tz_is_naive(self):
+        from pandas.io.json import dumps
+
+        ts = Timestamp("2013-01-10 05:00:00")
+        exp = '"2013-01-10T05:00:00.000"'
+
+        assert dumps(ts, iso_dates=True) == exp
+        dt = ts.to_pydatetime()
+        assert dumps(dt, iso_dates=True) == exp
+
     @pytest.mark.parametrize(
         "tz_range",
         [
@@ -1209,10 +1218,31 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
+        # Ensure datetimes in object array are serialized correctly
+        # in addition to the normal DTI case
         assert dumps(dti, iso_dates=True) == exp
+        assert dumps(dti.astype(object), iso_dates=True) == exp
         df = DataFrame({"DT": dti})
         result = dumps(df, iso_dates=True)
         assert result == dfexp
+        assert dumps(df.astype({"DT": object}), iso_dates=True)
+
+    def test_tz_range_is_naive(self):
+        from pandas.io.json import dumps
+
+        dti = pd.date_range("2013-01-01 05:00:00", periods=2)
+
+        exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
+        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
+
+        # Ensure datetimes in object array are serialized correctly
+        # in addition to the normal DTI case
+        assert dumps(dti, iso_dates=True) == exp
+        assert dumps(dti.astype(object), iso_dates=True) == exp
+        df = DataFrame({"DT": dti})
+        result = dumps(df, iso_dates=True)
+        assert result == dfexp
+        assert dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_read_inline_jsonl(self):
         # GH9180
@@ -1220,6 +1250,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.single_cpu
     @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_resource, s3so):
         # GH17200
@@ -1536,6 +1567,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "compression",
+        ["", ".gz", ".bz2", ".tar"],
+    )
+    def test_read_json_with_very_long_file_path(self, compression):
+        # GH 46718
+        long_json_path = f'{"a" * 1000}.json{compression}'
+        with pytest.raises(
+            FileNotFoundError, match=f"File {long_json_path} does not exist"
+        ):
+            # path too long for Windows is handled in file_exists() but raises in
+            # _get_data_from_filepath()
+            read_json(long_json_path)
+
+    @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )
     def test_timedelta_as_label(self, date_format, key):
@@ -1758,6 +1803,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
+    @pytest.mark.single_cpu
     def test_to_s3(self, s3_resource, s3so):
         import time
 
@@ -1812,7 +1858,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     def test_to_json_series_of_objects(self):
         class _TestObject:
-            def __init__(self, a, b, _c, d):
+            def __init__(self, a, b, _c, d) -> None:
                 self.a = a
                 self.b = b
                 self._c = _c

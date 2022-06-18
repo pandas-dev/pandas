@@ -16,7 +16,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import Scalar
+from pandas._typing import (
+    IgnoreRaise,
+    Scalar,
+)
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -244,7 +247,7 @@ def _json_normalize(
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
     record_prefix: str | None = None,
-    errors: str = "raise",
+    errors: IgnoreRaise = "raise",
     sep: str = ".",
     max_level: int | None = None,
 ) -> DataFrame:
@@ -517,11 +520,7 @@ def _json_normalize(
     result = DataFrame(records)
 
     if record_prefix is not None:
-        # Incompatible types in assignment (expression has type "Optional[DataFrame]",
-        # variable has type "DataFrame")
-        result = result.rename(  # type: ignore[assignment]
-            columns=lambda x: f"{record_prefix}{x}"
-        )
+        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
 
     # Data types, a problem
     for k, v in meta_vals.items():

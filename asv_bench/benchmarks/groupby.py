@@ -7,6 +7,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -18,6 +19,7 @@ from .pandas_vb_common import tm
 
 method_blocklist = {
     "object": {
+        "diff",
         "median",
         "prod",
         "sem",
@@ -108,6 +110,18 @@ class Apply:
 
     def time_copy_overhead_single_col(self, factor):
         self.df.groupby("key").apply(self.df_copy_function)
+
+
+class ApplyNonUniqueUnsortedIndex:
+    def setup(self):
+        # GH 46527
+        # unsorted and non-unique index
+        idx = np.arange(100)[::-1]
+        idx = Index(np.repeat(idx, 200), name="key")
+        self.df = DataFrame(np.random.randn(len(idx), 10), index=idx)
+
+    def time_groupby_apply_non_unique_unsorted_index(self):
+        self.df.groupby("key", group_keys=False).apply(lambda x: x)
 
 
 class Groups:
@@ -405,7 +419,7 @@ class GroupByMethods:
 
     param_names = ["dtype", "method", "application", "ncols"]
     params = [
-        ["int", "float", "object", "datetime", "uint"],
+        ["int", "int16", "float", "object", "datetime", "uint"],
         [
             "all",
             "any",
@@ -417,6 +431,7 @@ class GroupByMethods:
             "cumprod",
             "cumsum",
             "describe",
+            "diff",
             "ffill",
             "first",
             "head",
@@ -478,7 +493,7 @@ class GroupByMethods:
         values = rng.take(taker, axis=0)
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
-        elif dtype == "uint":
+        elif dtype in ("int16", "uint"):
             key = np.random.randint(0, size, size=size, dtype=dtype)
         elif dtype == "float":
             key = np.concatenate(
@@ -512,7 +527,7 @@ class GroupByMethods:
 
 class GroupByCythonAgg:
     """
-    Benchmarks specifically targetting our cython aggregation algorithms
+    Benchmarks specifically targeting our cython aggregation algorithms
     (using a big enough dataframe with simple key, so a large part of the
     time is actually spent in the grouped aggregation).
     """

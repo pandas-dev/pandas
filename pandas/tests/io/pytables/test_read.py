@@ -25,7 +25,7 @@ from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_read_missing_key_close_store(setup_path):

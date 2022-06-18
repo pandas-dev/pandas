@@ -56,7 +56,7 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: ReadCsvBuffer[str] | list, **kwds):
+    def __init__(self, f: ReadCsvBuffer[str] | list, **kwds) -> None:
         """
         Workhorse function for processing nested list into DataFrame
         """
@@ -95,7 +95,6 @@ class PythonParser(ParserBase):
             self.has_index_names = kwds["has_index_names"]
 
         self.verbose = kwds["verbose"]
-        self.converters = kwds["converters"]
 
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
@@ -893,7 +892,7 @@ class PythonParser(ParserBase):
 
     def _get_index_name(
         self, columns: list[Hashable]
-    ) -> tuple[list[Hashable] | None, list[Hashable], list[Hashable]]:
+    ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:
 
@@ -934,7 +933,7 @@ class PythonParser(ParserBase):
                 implicit_first_cols = len(line) - self.num_original_columns
 
             # Case 0
-            if next_line is not None:
+            if next_line is not None and self.header is not None:
                 if len(next_line) == len(line) + self.num_original_columns:
                     # column and index names on diff rows
                     self.index_col = list(range(len(line)))

@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-def check_value_size(value, mask: np.ndarray, length: int):
+def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
     """
     Validate the size of the values passed to ExtensionArray.fillna.
     """
@@ -191,7 +191,7 @@ def find_valid_index(values, *, how: str) -> int | None:
     is_valid = ~isna(values)
 
     if values.ndim == 2:
-        is_valid = is_valid.any(1)  # reduce axis 1
+        is_valid = is_valid.any(axis=1)  # reduce axis 1
 
     if how == "first":
         idxpos = is_valid[::].argmax()

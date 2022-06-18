@@ -18,6 +18,9 @@ from pandas._typing import (
     WriteExcelBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
+
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import (
     BaseExcelReader,
@@ -33,8 +36,8 @@ if TYPE_CHECKING:
 
 
 class OpenpyxlWriter(ExcelWriter):
-    engine = "openpyxl"
-    supported_extensions = (".xlsx", ".xlsm")
+    _engine = "openpyxl"
+    _supported_extensions = (".xlsx", ".xlsm")
 
     def __init__(
         self,
@@ -47,7 +50,7 @@ class OpenpyxlWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
@@ -526,6 +529,7 @@ class OpenpyxlWriter(ExcelWriter):
 
 
 class OpenpyxlReader(BaseExcelReader):
+    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -538,8 +542,7 @@ class OpenpyxlReader(BaseExcelReader):
         ----------
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
-        storage_options : dict, optional
-            passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
+        {storage_options}
         """
         import_optional_dependency("openpyxl")
         super().__init__(filepath_or_buffer, storage_options=storage_options)
@@ -580,12 +583,20 @@ class OpenpyxlReader(BaseExcelReader):
             return ""  # compat with xlrd
         elif cell.data_type == TYPE_ERROR:
             return np.nan
-        elif not convert_float and cell.data_type == TYPE_NUMERIC:
-            return float(cell.value)
+        elif cell.data_type == TYPE_NUMERIC:
+            # GH5394, GH46988
+            if convert_float:
+                val = int(cell.value)
+                if val == cell.value:
+                    return val
+            else:
+                return float(cell.value)
 
         return cell.value
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
+    def get_sheet_data(
+        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+    ) -> list[list[Scalar]]:
 
         if self.book.read_only:
             sheet.reset_dimensions()
@@ -600,6 +611,8 @@ class OpenpyxlReader(BaseExcelReader):
             if converted_row:
                 last_row_with_data = row_number
             data.append(converted_row)
+            if file_rows_needed is not None and len(data) >= file_rows_needed:
+                break
 
         # Trim trailing empty rows
         data = data[: last_row_with_data + 1]

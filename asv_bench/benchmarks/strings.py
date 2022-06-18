@@ -268,7 +268,7 @@ class Dummies(Dtypes):
 
 class Encode:
     def setup(self):
-        self.ser = Series(tm.makeUnicodeIndex())
+        self.ser = Series(tm.makeStringIndex())
 
     def time_encode_decode(self):
         self.ser.str.encode("utf-8").str.decode("utf-8")

@@ -9,8 +9,6 @@ from pandas.tests.plotting.common import (
     _gen_two_subplots,
 )
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestCommon(TestPlotBase):

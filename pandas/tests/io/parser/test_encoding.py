@@ -2,10 +2,10 @@
 Tests encoding functionality during parsing
 for all of the parsers defined in parsers.py
 """
-
 from io import BytesIO
 import os
 import tempfile
+import uuid
 
 import numpy as np
 import pytest
@@ -54,7 +54,7 @@ A,B,C
 4,5,6""".replace(
         ",", sep
     )
-    path = f"__{tm.rands(10)}__.csv"
+    path = f"__{uuid.uuid4()}__.csv"
     kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
 

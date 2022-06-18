@@ -148,7 +148,7 @@ def test_mock_clipboard(mock_clipboard):
     assert result == "abc"
 
 
-@pytest.mark.single
+@pytest.mark.single_cpu
 @pytest.mark.clipboard
 @pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:
@@ -209,9 +209,9 @@ class TestClipboard:
 
         text = dedent(
             """
-            John James	Charlie Mingus
-            1	2
-            4	Harry Carney
+            John James\tCharlie Mingus
+            1\t2
+            4\tHarry Carney
             """.strip()
         )
         mock_clipboard[request.node.name] = text

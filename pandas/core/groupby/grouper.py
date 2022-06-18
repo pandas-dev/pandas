@@ -263,7 +263,7 @@ class Grouper:
     _gpr_index: Index | None
     _grouper: Index | None
 
-    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort", "dropna")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -281,12 +281,13 @@ class Grouper:
         axis: int = 0,
         sort: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
         self.key = key
         self.level = level
         self.freq = freq
         self.axis = axis
         self.sort = sort
+        self.dropna = dropna
 
         self.grouper = None
         self._gpr_index = None
@@ -295,7 +296,6 @@ class Grouper:
         self.binner = None
         self._grouper = None
         self._indexer = None
-        self.dropna = dropna
 
     @final
     @property
@@ -339,7 +339,7 @@ class Grouper:
         return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
-    def _set_grouper(self, obj: NDFrame, sort: bool = False):
+    def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -413,7 +413,6 @@ class Grouper:
         # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
-        return self._gpr_index
 
     @final
     @property
@@ -459,7 +458,7 @@ class Grouping:
       * groups : dict of {group -> label_list}
     """
 
-    _codes: np.ndarray | None = None
+    _codes: npt.NDArray[np.signedinteger] | None = None
     _group_index: Index | None = None
     _passed_categorical: bool
     _all_grouper: Categorical | None
@@ -475,7 +474,7 @@ class Grouping:
         observed: bool = False,
         in_axis: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
         self.level = level
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
@@ -502,7 +501,7 @@ class Grouping:
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, level=ilevel)
+            ) = index._get_grouper_for_level(mapper, level=ilevel, dropna=dropna)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -614,7 +613,7 @@ class Grouping:
         return values._reverse_indexer()
 
     @property
-    def codes(self) -> np.ndarray:
+    def codes(self) -> npt.NDArray[np.signedinteger]:
         if self._codes is not None:
             # _codes is set in __init__ for MultiIndex cases
             return self._codes
@@ -657,7 +656,7 @@ class Grouping:
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
-    def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
+    def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes
@@ -680,7 +679,7 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_arraylike
+            uniques = self.grouping_vector.result_index._values
         else:
             # GH35667, replace dropna=False with na_sentinel=None
             if not self._dropna:

@@ -52,7 +52,11 @@ class TestDatetimeIndex:
             name="idx",
         )
         tm.assert_index_equal(arr.astype("uint64"), expected)
-        tm.assert_index_equal(arr.astype("uint32"), expected)
+
+        msg = "will return exactly the specified dtype instead of uint64"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = arr.astype("uint32")
+        tm.assert_index_equal(res, expected)
 
     def test_astype_with_tz(self):
 

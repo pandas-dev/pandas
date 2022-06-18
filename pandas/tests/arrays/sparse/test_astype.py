@@ -85,7 +85,6 @@ class TestAstype:
                     np.array([0, 1], dtype="datetime64[ns]"),
                     dtype=SparseDtype("datetime64[ns]", Timestamp("1970")),
                 ),
-                marks=[pytest.mark.xfail(reason="NumPy-7619")],
             ),
             (
                 SparseArray([0, 1, 10]),

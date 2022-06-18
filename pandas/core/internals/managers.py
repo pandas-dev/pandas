@@ -146,7 +146,7 @@ class BaseBlockManager(DataManager):
     _known_consolidated: bool
     _is_consolidated: bool
 
-    def __init__(self, blocks, axes, verify_integrity: bool = True):
+    def __init__(self, blocks, axes, verify_integrity: bool = True) -> None:
         raise NotImplementedError
 
     @classmethod
@@ -597,7 +597,7 @@ class BaseBlockManager(DataManager):
     def reindex_indexer(
         self: T,
         new_axis: Index,
-        indexer,
+        indexer: npt.NDArray[np.intp] | None,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
@@ -610,7 +610,7 @@ class BaseBlockManager(DataManager):
         Parameters
         ----------
         new_axis : Index
-        indexer : ndarray of int64 or None
+        indexer : ndarray[intp] or None
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
@@ -829,7 +829,13 @@ class BaseBlockManager(DataManager):
         block_values.fill(fill_value)
         return new_block_2d(block_values, placement=placement)
 
-    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
+    def take(
+        self: T,
+        indexer,
+        axis: int = 1,
+        verify: bool = True,
+        convert_indices: bool = True,
+    ) -> T:
         """
         Take items along any axis.
 
@@ -838,6 +844,8 @@ class BaseBlockManager(DataManager):
         verify : bool, default True
             Check that all entries are between 0 and len(self) - 1, inclusive.
             Pass verify=False if this check has been done by the caller.
+        convert_indices : bool, default True
+            Whether to attempt to convert indices to positive values.
 
         Returns
         -------
@@ -851,7 +859,8 @@ class BaseBlockManager(DataManager):
         )
 
         n = self.shape[axis]
-        indexer = maybe_convert_indices(indexer, n, verify=verify)
+        if convert_indices:
+            indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -877,7 +886,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blocks: Sequence[Block],
         axes: Sequence[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
 
         if verify_integrity:
             # Assertion disabled for performance
@@ -936,7 +945,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Indexing
 
-    def fast_xs(self, loc: int) -> ArrayLike:
+    def fast_xs(self, loc: int) -> SingleBlockManager:
         """
         Return the array corresponding to `frame.iloc[loc]`.
 
@@ -949,7 +958,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
-            return self.blocks[0].iget((slice(None), loc))
+            result = self.blocks[0].iget((slice(None), loc))
+            block = new_block(result, placement=slice(0, len(result)), ndim=1)
+            return SingleBlockManager(block, self.axes[0])
 
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
@@ -967,7 +978,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
 
-        return result
+        block = new_block(result, placement=slice(0, len(result)), ndim=1)
+        return SingleBlockManager(block, self.axes[0])
 
     def iget(self, i: int) -> SingleBlockManager:
         """
@@ -1175,6 +1187,17 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
         self.blocks = new_blocks
         return
+
+    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+        """
+        Set values ("setitem") into a single column (not setting the full column).
+
+        This is a method on the BlockManager level, to avoid creating an
+        intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
+        """
+        col_mgr = self.iget(loc)
+        new_mgr = col_mgr.setitem((idx,), value)
+        self.iset(loc, new_mgr._block.values, inplace=True)
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
@@ -1502,7 +1525,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         dtype: np.dtype | None = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
@@ -1561,7 +1584,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def _interleave(
         self,
         dtype: np.dtype | None = None,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
@@ -1667,7 +1690,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         axis: Index,
         verify_integrity: bool = False,
         fastpath=lib.no_default,
-    ):
+    ) -> None:
         # Assertions disabled for performance
         # assert isinstance(block, Block), type(block)
         # assert isinstance(axis, Index), type(axis)
@@ -1883,7 +1906,7 @@ def create_block_manager_from_blocks(
     # If verify_integrity=False, then caller is responsible for checking
     #  all(x.shape[-1] == len(axes[1]) for x in blocks)
     #  sum(x.shape[0] for x in blocks) == len(axes[0])
-    #  set(x for for blk in blocks for x in blk.mgr_locs) == set(range(len(axes[0])))
+    #  set(x for blk in blocks for x in blk.mgr_locs) == set(range(len(axes[0])))
     #  all(blk.ndim == 2 for blk in blocks)
     # This allows us to safely pass verify_integrity=False
 

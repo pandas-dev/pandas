@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Literal,
     NamedTuple,
 )
 import warnings
@@ -34,7 +35,10 @@ if TYPE_CHECKING:
 
 
 class BoxPlot(LinePlot):
-    _kind = "box"
+    @property
+    def _kind(self) -> Literal["box"]:
+        return "box"
+
     _layout_type = "horizontal"
 
     _valid_return_types = (None, "axes", "dict", "both")
@@ -44,7 +48,7 @@ class BoxPlot(LinePlot):
         ax: Axes
         lines: dict[str, list[Line2D]]
 
-    def __init__(self, data, return_type="axes", **kwargs):
+    def __init__(self, data, return_type="axes", **kwargs) -> None:
         # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
             raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
