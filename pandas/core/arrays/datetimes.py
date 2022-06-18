@@ -687,7 +687,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Rendering Methods
 
-    @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:

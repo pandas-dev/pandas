@@ -105,7 +105,7 @@ def _test_parse_iso8601(ts: str):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def format_array_from_datetime(
-    ndarray[int64_t] values,
+    ndarray values,
     tzinfo tz=None,
     str format=None,
     object na_rep=None,
@@ -129,13 +129,20 @@ def format_array_from_datetime(
     np.ndarray[object]
     """
     cdef:
-        int64_t val, ns, N = len(values)
+        int64_t val, ns, N = values.size
         bint show_ms = False, show_us = False, show_ns = False
         bint basic_format = False
-        ndarray[object] result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
         _Timestamp ts
-        str res
+        object res
         npy_datetimestruct dts
+
+        # Note that `result` (and thus `result_flat`) is C-order and
+        #  `it` iterates C-order as well, so the iteration matches
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
+        ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+        object[::1] res_flat = result.ravel()     # should NOT be a copy
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
 
     if na_rep is None:
         na_rep = 'NaT'
@@ -150,10 +157,11 @@ def format_array_from_datetime(
         show_ms = reso_obj == Resolution.RESO_MS
 
     for i in range(N):
-        val = values[i]
+        # Analogous to: utc_val = values[i]
+        val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
         if val == NPY_NAT:
-            result[i] = na_rep
+            res = na_rep
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
@@ -168,22 +176,31 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f'.{dts.us // 1000:03d}'
 
-            result[i] = res
 
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
-                result[i] = str(ts)
+                res = str(ts)
             else:
 
                 # invalid format string
                 # requires dates > 1900
                 try:
                     # Note: dispatches to pydatetime
-                    result[i] = ts.strftime(format)
+                    res = ts.strftime(format)
                 except ValueError:
-                    result[i] = str(ts)
+                    res = str(ts)
+
+        # Note: we can index result directly instead of using PyArray_MultiIter_DATA
+        #  like we do for the other functions because result is known C-contiguous
+        #  and is the first argument to PyArray_MultiIterNew2.  The usual pattern
+        #  does not seem to work with object dtype.
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
+        res_flat[i] = res
+
+        cnp.PyArray_ITER_NEXT(it)
 
     return result
 
