@@ -9,6 +9,8 @@ set(CMAKE_SOURCE_DIR .)
 set(CMAKE_BINARY_DIR .)
 
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
+# for macOS
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
 set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}.so")
