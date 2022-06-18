@@ -30,6 +30,7 @@ Exceptions and warnings
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError
+   errors.IndexingError
    errors.InvalidIndexError
    errors.IntCastingNaNError
    errors.MergeError
@@ -45,6 +46,7 @@ Exceptions and warnings
    errors.SettingWithCopyError
    errors.SettingWithCopyWarning
    errors.SpecificationError
+   errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
 

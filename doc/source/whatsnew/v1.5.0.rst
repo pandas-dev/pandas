@@ -100,6 +100,28 @@ as seen in the following example.
                1 2021-01-02 08:00:00  4
                2 2021-01-02 16:00:00  5
 
+.. _whatsnew_150.enhancements.orc:
+
+Writing to ORC files
+^^^^^^^^^^^^^^^^^^^^
+
+The new method :meth:`DataFrame.to_orc` allows writing to ORC files (:issue:`43864`).
+
+This functionality depends the `pyarrow <http://arrow.apache.org/docs/python/>`__ library. For more details, see :ref:`the IO docs on ORC <io.orc>`.
+
+.. warning::
+
+   * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
+   * :func:`~pandas.DataFrame.to_orc` requires pyarrow>=7.0.0.
+   * :func:`~pandas.DataFrame.to_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
+   * For supported dtypes please refer to `supported ORC features in Arrow <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
+   * Currently timezones in datetime columns are not preserved when a dataframe is converted into ORC files.
+
+.. code-block:: python
+
+    df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
+    df.to_orc("./out.orc")
+
 .. _whatsnew_150.enhancements.tar:
 
 Reading directly from TAR archives
@@ -152,8 +174,9 @@ Other enhancements
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
-- :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, :class:`SettingWithCopyWarning`, and :class:`NumExprClobberingError` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- :class:`DataError`, :class:`SpecificationError`, :class:`SettingWithCopyError`, :class:`SettingWithCopyWarning`, :class:`NumExprClobberingError`, :class:`UndefinedVariableError`, and :class:`IndexingError` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
+- Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -850,6 +873,7 @@ I/O
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 - Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
+- Bug in :meth:`DataFrame.to_excel` when writing an empty dataframe with :class:`MultiIndex` (:issue:`19543`)
 
 Period
 ^^^^^^
@@ -902,6 +926,7 @@ Reshaping
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
 - Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
 - Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
+- Bug in :func:`concat` not sorting the column names when ``None`` is included (:issue:`47331`)
 - Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 - Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
