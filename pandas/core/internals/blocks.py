@@ -1183,6 +1183,9 @@ class Block(PandasObject):
             #  test_fillna_dtype_conversion_equiv_replace
             nbs = self.where(value, ~mask.T, _downcast=False)
 
+        if inplace:
+            return nbs
+
         # Note: blk._maybe_downcast vs self._maybe_downcast(nbs)
         #  makes a difference bc blk may have object dtype, which has
         #  different behavior in _maybe_downcast.
