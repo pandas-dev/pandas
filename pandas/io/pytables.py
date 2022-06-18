@@ -38,6 +38,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import timezones
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     DtypeArg,
     Shape,
@@ -1112,6 +1113,8 @@ class HDFStore:
                 Table format.  Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
+        index : bool, default True
+            Write DataFrame index as a column.
         append : bool, default False
             This will force Table format, append the input data to the existing.
         data_columns : list of columns or True, default None
@@ -1124,6 +1127,8 @@ class HDFStore:
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
+        dropna : bool, default False, optional
+            Remove missing values.
 
             .. versionadded:: 1.1.0
         """
@@ -1239,6 +1244,8 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
+        index : bool, default True
+            Write DataFrame index as a column.
         append       : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None
@@ -1251,7 +1258,7 @@ class HDFStore:
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for str
-        dropna : bool, default False
+        dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
 
@@ -3036,7 +3043,7 @@ class GenericFixed(Fixed):
         node._v_attrs.shape = value.shape
 
     def write_array(
-        self, key: str, obj: DataFrame | Series, items: Index | None = None
+        self, key: str, obj: AnyArrayLike, items: Index | None = None
     ) -> None:
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have

@@ -414,12 +414,11 @@ We can produce pivot tables from this data very easily:
 
 The result object is a :class:`DataFrame` having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
-will include all of the data that can be aggregated in an additional level of
-hierarchy in the columns:
+will include all of the data in an additional level of hierarchy in the columns:
 
 .. ipython:: python
 
-   pd.pivot_table(df, index=["A", "B"], columns=["C"])
+   pd.pivot_table(df[["A", "B", "C", "D", "E"]], index=["A", "B"], columns=["C"])
 
 Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For detail of :class:`Grouper`, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
 
@@ -432,7 +431,7 @@ calling :meth:`~DataFrame.to_string` if you wish:
 
 .. ipython:: python
 
-   table = pd.pivot_table(df, index=["A", "B"], columns=["C"])
+   table = pd.pivot_table(df, index=["A", "B"], columns=["C"], values=["D", "E"])
    print(table.to_string(na_rep=""))
 
 Note that :meth:`~DataFrame.pivot_table` is also available as an instance method on DataFrame,
@@ -449,7 +448,13 @@ rows and columns:
 
 .. ipython:: python
 
-   table = df.pivot_table(index=["A", "B"], columns="C", margins=True, aggfunc=np.std)
+   table = df.pivot_table(
+       index=["A", "B"],
+       columns="C",
+       values=["D", "E"],
+       margins=True,
+       aggfunc=np.std
+   )
    table
 
 Additionally, you can call :meth:`DataFrame.stack` to display a pivoted DataFrame

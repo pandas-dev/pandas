@@ -3,33 +3,33 @@
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-hard_dependencies = ("numpy", "pytz", "dateutil")
-missing_dependencies = []
+_hard_dependencies = ("numpy", "pytz", "dateutil")
+_missing_dependencies = []
 
-for dependency in hard_dependencies:
+for _dependency in _hard_dependencies:
     try:
-        __import__(dependency)
-    except ImportError as e:
-        missing_dependencies.append(f"{dependency}: {e}")
+        __import__(_dependency)
+    except ImportError as _e:
+        _missing_dependencies.append(f"{_dependency}: {_e}")
 
-if missing_dependencies:
+if _missing_dependencies:
     raise ImportError(
-        "Unable to import required dependencies:\n" + "\n".join(missing_dependencies)
+        "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
     )
-del hard_dependencies, dependency, missing_dependencies
+del _hard_dependencies, _dependency, _missing_dependencies
 
 # numpy compat
 from pandas.compat import is_numpy_dev as _is_numpy_dev
 
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
-except ImportError as err:  # pragma: no cover
-    module = err.name
+except ImportError as _err:  # pragma: no cover
+    _module = _err.name
     raise ImportError(
-        f"C extension: {module} not built. If you want to import "
+        f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
         "'python setup.py build_ext --force' to build the C extensions first."
-    ) from err
+    ) from _err
 else:
     del _tslib, _lib, _hashtable
 

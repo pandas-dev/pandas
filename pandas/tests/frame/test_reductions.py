@@ -1,11 +1,13 @@
 from datetime import timedelta
 from decimal import Decimal
+import inspect
 import re
 
 from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -774,6 +776,40 @@ class TestDataFrameAnalytics:
         df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
         result = df.sum(min_count=10)
         expected = Series([np.nan, np.nan], index=["x", "y"])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "kwargs, expected_result",
+        [
+            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.NaN]),
+            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
+            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.NaN]),
+        ],
+    )
+    def test_sum_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
+        # GH#46947
+        df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype=float_type)
+        result = df.sum(**kwargs)
+        expected = Series(expected_result).astype(float_type)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "kwargs, expected_result",
+        [
+            ({"axis": 1, "min_count": 2}, [2.0, 4.0, np.NaN]),
+            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
+            ({"axis": 1, "skipna": False}, [2.0, 4.0, np.NaN]),
+        ],
+    )
+    def test_prod_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
+        # GH#46947
+        df = DataFrame(
+            {"a": [1.0, 2.0, 4.4], "b": [2.0, 2.0, np.nan]}, dtype=float_type
+        )
+        result = df.prod(**kwargs)
+        expected = Series(expected_result).astype(float_type)
         tm.assert_series_equal(result, expected)
 
     def test_sum_object(self, float_frame):
@@ -1720,13 +1756,17 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
-    df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
-    df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
+    msg = "will attempt to set the values inplace instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
+        df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
+
     with tm.assert_produces_warning(
         FutureWarning, match="The 'mad' method is deprecated"
     ):
         result = df2.mad()
         expected = df.mad()
+
     expected[1] = pd.NA
     expected = expected.astype("Float64")
     tm.assert_series_equal(result, expected)
@@ -1752,7 +1792,9 @@ def test_groupby_regular_arithmetic_equivalent(meth):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
+    with tm.assert_produces_warning(
+        FutureWarning, match="The default value of numeric_only"
+    ):
         result = df.sum()
     expected = Series([1, 1.1, "foo"], index=list("abc"))
     tm.assert_series_equal(result, expected)
@@ -1786,3 +1828,60 @@ def test_reduction_axis_none_deprecation(method):
         expected = meth()
     tm.assert_series_equal(res, expected)
     tm.assert_series_equal(res, meth(axis=0))
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    [
+        "corr",
+        "corrwith",
+        "count",
+        "cov",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "kurt",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "mode",
+        "prod",
+        "prod",
+        "quantile",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    ],
+)
+def test_numeric_only_deprecation(kernel):
+    # GH#46852
+    df = DataFrame({"a": [1, 2, 3], "b": object})
+    args = (df,) if kernel == "corrwith" else ()
+    signature = inspect.signature(getattr(DataFrame, kernel))
+    default = signature.parameters["numeric_only"].default
+    assert default is not True
+
+    if kernel in ("idxmax", "idxmin"):
+        # kernels that default to numeric_only=False and fail on nuisance columns
+        assert default is False
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            getattr(df, kernel)(*args)
+    else:
+        if default is None or default is lib.no_default:
+            expected = getattr(df[["a"]], kernel)(*args)
+            warn = FutureWarning
+        else:
+            # default must be False and works on any nuisance columns
+            expected = getattr(df, kernel)(*args)
+            if kernel == "mode":
+                assert "b" in expected.columns
+            else:
+                assert "b" in expected.index
+            warn = None
+        msg = f"The default value of numeric_only in DataFrame.{kernel}"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(df, kernel)(*args)
+        tm.assert_equal(result, expected)

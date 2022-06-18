@@ -187,7 +187,9 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
             result = getattr(grouped, op)(skipna=skipna)
         with tm.assert_produces_warning(FutureWarning):
             expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
@@ -196,8 +198,8 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
         tm.assert_frame_equal(result, expected)
     else:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        result = getattr(grouped, op)()
         with tm.assert_produces_warning(FutureWarning):
+            result = getattr(grouped, op)()
             expected = getattr(frame, op)(level=level, axis=axis)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)

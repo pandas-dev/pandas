@@ -112,5 +112,7 @@ def test_groupby_resample_preserves_subclass(obj):
     df = df.set_index("Date")
 
     # Confirm groupby.resample() preserves dataframe type
-    result = df.groupby("Buyer").resample("5D").sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

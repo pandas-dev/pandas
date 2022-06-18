@@ -1304,8 +1304,10 @@ cdef class TextReader:
             if self.header is not None:
                 j = i - self.leading_cols
                 # generate extra (bogus) headers if there are more columns than headers
+                # These should be strings, not integers, because otherwise we might get
+                # issues with callables as usecols GH#46997
                 if j >= len(self.header[0]):
-                    return j
+                    return str(j)
                 elif self.has_mi_columns:
                     return tuple(header_row[j] for header_row in self.header)
                 else:

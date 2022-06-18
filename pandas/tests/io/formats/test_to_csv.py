@@ -13,8 +13,7 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-
-import pandas.io.common as icom
+from pandas.tests.io.test_compression import _compression_to_extension
 
 
 class TestToCSV:
@@ -555,7 +554,7 @@ z
 
         # We'll complete file extension subsequently.
         filename = "test."
-        filename += icom._compression_to_extension[compression]
+        filename += _compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
