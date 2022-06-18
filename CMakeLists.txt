@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
+
 execute_process(
   COMMAND ${Python_EXECUTABLE} -c "import versioneer as v; print(str('.'.join(v.get_version().split('.')[:3])))"
   OUTPUT_VARIABLE PANDAS_VERSION
@@ -18,6 +19,10 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "")
 if (APPLE)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
   set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}.so")
+elseif(WIN32)
+  set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}")
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "")
+  link_directories(${Python_LIBRARY_DIRS})
 else()
   set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 endif()

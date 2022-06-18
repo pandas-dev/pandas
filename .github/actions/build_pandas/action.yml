@@ -13,7 +13,7 @@ runs:
     - name: Build Pandas
       run: |
         cmake .
-        cmake --build . --parallel
+        cmake --build . --config Release --parallel
         python -m pip install -e . --no-build-isolation  --no-index
       shell: bash -el {0}
       env:
