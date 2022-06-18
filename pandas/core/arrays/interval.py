@@ -25,7 +25,6 @@ from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
     IntervalMixin,
-    _warning_interval,
     intervals_to_interval_bounds,
 )
 from pandas._libs.missing import NA
@@ -43,6 +42,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
@@ -218,6 +218,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Constructors
 
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def __new__(
         cls: type[IntervalArrayT],
         data,
@@ -225,9 +226,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
-        closed: None | lib.NoDefault = lib.no_default,
     ):
-        inclusive, closed = _warning_interval(inclusive, closed)
 
         data = extract_array(data, extract_numpy=True)
 
@@ -265,19 +264,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def _simple_new(
         cls: type[IntervalArrayT],
         left,
         right,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         copy: bool = False,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
-
-        inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None and isinstance(dtype, IntervalDtype):
             inclusive = dtype.inclusive
@@ -422,18 +419,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        inclusive: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment] # noqa: E501
+        inclusive: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment]
     ) -> IntervalArrayT:
-        # Incompatible default for argument "closed" (default has type
-        # "Literal[_NoDefault.no_default]", argument has type
-        # "Optional[Union[Literal['left', 'right'], Literal['both', 'neither']]]")
-        inclusive = _warning_interval_array_functions(inclusive, closed)
+        if inclusive is None:
+            inclusive = "right"
 
         breaks = _maybe_convert_platform_interval(breaks)
 
@@ -505,19 +500,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_arrays(
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment] # noqa: E501
+        inclusive: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed: IntervalClosedType | None = lib.no_default,  # type: ignore[assignment]
     ) -> IntervalArrayT:
-        # Incompatible default for argument "closed" (default has type
-        # "Literal[_NoDefault.no_default]", argument has type
-        # "Optional[Union[Literal['left', 'right'], Literal['both', 'neither']]]")
-        inclusive = _warning_interval_array_functions(inclusive, closed)
+
+        if inclusive is None:
+            inclusive = "right"
 
         left = _maybe_convert_platform_interval(left)
         right = _maybe_convert_platform_interval(right)
@@ -580,15 +574,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_tuples(
         cls: type[IntervalArrayT],
         data,
-        inclusive=lib.no_default,
+        inclusive=None,
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed=lib.no_default,
     ) -> IntervalArrayT:
-        inclusive = _warning_interval_array_functions(inclusive, closed)
+        if inclusive is None:
+            inclusive = "right"
+
         if len(data):
             left, right = [], []
         else:
@@ -1420,37 +1416,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def set_closed(
-        self: IntervalArrayT,
-        inclusive: IntervalClosedType = lib.no_default,  # type: ignore[assignment]
-        closed: IntervalClosedType = lib.no_default,  # type: ignore[assignment]
+        self: IntervalArrayT, inclusive: IntervalClosedType
     ) -> IntervalArrayT:
-        # Incompatible default for argument "closed" (default has type
-        # "Literal[_NoDefault.no_default]", argument has type
-        # "Optional[Union[Literal['left', 'right'], Literal['both', 'neither']]]")
-        # Non-overlapping equality check (left operand type:
-        # "Union[Literal['left', 'right'], Literal['both', 'neither']]",
-        # right operand type: "Literal[_NoDefault.no_default]")
-        if (
-            inclusive == lib.no_default  # type: ignore[comparison-overlap]
-            and closed == lib.no_default
-        ):
-            raise ValueError("inclusive has to be passed into the function.")
-
-        elif (
-            closed != lib.no_default  # type: ignore[comparison-overlap]
-            and inclusive != lib.no_default  # type: ignore[comparison-overlap]
-        ):
-            raise ValueError("You can not pass inclusive and closed.")
-
-        elif closed != lib.no_default:
-            warnings.warn(
-                "Argument closed is deprecated, use inclusive instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            inclusive = closed
-
         if inclusive not in VALID_CLOSED:
             msg = f"invalid option for 'inclusive': {inclusive}"
             raise ValueError(msg)
@@ -1814,25 +1783,3 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     if not hasattr(values, "dtype"):
         return np.asarray(values)
     return values
-
-
-def _warning_interval_array_functions(inclusive, closed):
-    """
-    warning in interval class for variable inclusive and closed
-    """
-    if inclusive != lib.no_default and closed != lib.no_default:
-        raise ValueError(
-            "Deprecated argument `closed` cannot be passed "
-            "if argument `inclusive` is passed"
-        )
-    elif closed != lib.no_default:
-        warnings.warn(
-            "Argument `closed` is deprecated in favor of `inclusive`.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        inclusive = closed
-    elif inclusive == lib.no_default:
-        inclusive = "right"
-
-    return inclusive

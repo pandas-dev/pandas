@@ -20,7 +20,6 @@ from pandas._libs.interval import (
     Interval,
     IntervalMixin,
     IntervalTree,
-    _warning_interval,
 )
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -38,6 +37,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_kwarg,
 )
 from pandas.util._exceptions import (
     find_stack_level,
@@ -213,6 +213,7 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Constructors
 
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def __new__(
         cls,
         data,
@@ -221,10 +222,7 @@ class IntervalIndex(ExtensionIndex):
         copy: bool = False,
         name: Hashable = None,
         verify_integrity: bool = True,
-        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
-
-        inclusive, closed = _warning_interval(inclusive, closed)
 
         name = maybe_extract_name(name, data, cls)
 
@@ -264,6 +262,7 @@ class IntervalIndex(ExtensionIndex):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_breaks(
         cls,
         breaks,
@@ -271,10 +270,8 @@ class IntervalIndex(ExtensionIndex):
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
 
-        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
             inclusive = "right"
 
@@ -300,6 +297,7 @@ class IntervalIndex(ExtensionIndex):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_arrays(
         cls,
         left,
@@ -308,10 +306,8 @@ class IntervalIndex(ExtensionIndex):
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
 
-        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
             inclusive = "right"
 
@@ -337,6 +333,7 @@ class IntervalIndex(ExtensionIndex):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_tuples(
         cls,
         data,
@@ -344,10 +341,8 @@ class IntervalIndex(ExtensionIndex):
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-        closed: None | lib.NoDefault = lib.no_default,
     ) -> IntervalIndex:
 
-        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
             inclusive = "right"
 
@@ -987,6 +982,7 @@ def _is_type_compatible(a, b) -> bool:
     )
 
 
+@deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
 def interval_range(
     start=None,
     end=None,
@@ -994,7 +990,6 @@ def interval_range(
     freq=None,
     name: Hashable = None,
     inclusive: IntervalClosedType | None = None,
-    closed: IntervalClosedType | lib.NoDefault = lib.no_default,
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -1090,7 +1085,6 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
-    inclusive, closed = _warning_interval(inclusive, closed)
     if inclusive is None:
         inclusive = "right"
 
