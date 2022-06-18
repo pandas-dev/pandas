@@ -7,9 +7,14 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_SOURCE_DIR .)
 set(CMAKE_BINARY_DIR .)
-project(pandas)
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
+execute_process(
+  COMMAND ${Python_EXECUTABLE} -c "import versioneer as v; print(str('.'.join(v.get_version().split('.')[:3])))"
+  OUTPUT_VARIABLE PANDAS_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+project(pandas VERSION ${PANDAS_VERSION})
 
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 if (APPLE)
