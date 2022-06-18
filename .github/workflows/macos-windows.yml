@@ -17,7 +17,6 @@ env:
   PYTEST_TARGET: pandas
   PYTEST_WORKERS: auto
   PATTERN: "not slow and not db and not network and not single_cpu"
-  PYTEST_DEBUG: true
 
 
 jobs:
@@ -28,7 +27,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [windows-latest]
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -55,11 +54,3 @@ jobs:
 
     - name: Test
       uses: ./.github/actions/run-tests
-
-    - name: Save debug log as an artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: pytest_debug_log_${{ matrix.env_file }}_${{ matrix.os }}
-        path: pytestdebug.log
-        retention-days: 14
-      if: failure()

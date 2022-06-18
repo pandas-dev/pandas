@@ -11,7 +11,7 @@ dependencies:
   - pytest-xdist>=1.31
   - psutil
   - pytest-asyncio>=0.17
-  - boto3
+  - boto3<1.24.3
 
   # required dependencies
   - python-dateutil
@@ -35,9 +35,9 @@ dependencies:
   - numexpr
   - openpyxl
   - odfpy
-  - pandas-gbq
+  - pandas-gbq<0.17.5
   - psycopg2
-  - pyarrow
+  - pyarrow<8
   - pymysql
   - pyreadstat
   - pytables

@@ -15,13 +15,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
-      run: |
-        grep -q '  - pyarrow' ${{ inputs.environment-file }}
-        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
-        cat ${{ inputs.environment-file }}
-      shell: bash
-      if: ${{ inputs.pyarrow-version }}
+#    - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
+#      run: |
+#        grep -q '  - pyarrow' ${{ inputs.environment-file }}
+#        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
+#        cat ${{ inputs.environment-file }}
+#      shell: bash
+#      if: ${{ inputs.pyarrow-version }}
 
     - name: Install ${{ inputs.environment-file }}
       uses: conda-incubator/setup-miniconda@v2.1.1
