@@ -1201,7 +1201,7 @@ class _MergeOperation:
                 # check whether ints and floats
                 elif is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
-                    with np.errstate(ignore="invalid"):
+                    with np.errstate(invalid="ignore"):
                         if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
                             warnings.warn(
                                 "You are merging on int and float "
@@ -1213,7 +1213,7 @@ class _MergeOperation:
 
                 elif is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
-                    with np.errstate(ignore="invalid"):
+                    with np.errstate(invalid="ignore"):
                         if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
                             warnings.warn(
                                 "You are merging on int and float "
