@@ -2,7 +2,7 @@ FROM quay.io/condaforge/miniforge3
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
-ARG gh_username=pandas-dev
+ARG gh_username=WillAyd
 ARG pandas_home="/home/pandas"
 
 # Avoid warnings by switching to noninteractive
@@ -18,7 +18,7 @@ RUN apt-get update \
     && dpkg-reconfigure -f noninteractive tzdata \
     #
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
-    && apt-get -y install git iproute2 procps iproute2 lsb-release \
+    && apt-get -y install cmake git iproute2 procps iproute2 lsb-release \
     #
     # cleanup
     && apt-get autoremove -y \
@@ -32,6 +32,7 @@ ENV DEBIAN_FRONTEND=dialog
 RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
+    && git checkout cmake-build \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
     && git pull upstream main
 
