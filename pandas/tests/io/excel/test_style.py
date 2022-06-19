@@ -1,6 +1,7 @@
 import contextlib
 import time
 
+from Cryptodome.SelfTest.Cipher.test_AES import td
 import numpy as np
 import pytest
 
@@ -211,6 +212,8 @@ def test_styler_custom_converter():
             assert wb["custom"].cell(2, 2).font.color.value == "00111222"
 
 
+@pytest.mark.single_cpu
+@td.skip_if_not_us_locale
 def test_styler_to_s3(s3_resource, s3so):
     # GH#46381
 
