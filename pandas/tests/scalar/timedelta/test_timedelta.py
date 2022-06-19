@@ -14,6 +14,10 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -26,6 +30,9 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.skipif(
+    is_platform_windows() and is_ci_environment(), reason="Causes pytest INTERNALERROR"
+)
 class TestAsUnit:
     def test_as_unit(self):
         td = Timedelta(days=1)
@@ -100,6 +107,9 @@ class TestAsUnit:
         assert res.total_seconds() == 86400
 
 
+@pytest.mark.skipif(
+    is_platform_windows() and is_ci_environment(), reason="Causes pytest INTERNALERROR"
+)
 class TestNonNano:
     @pytest.fixture(params=[7, 8, 9])
     def unit(self, request):
