@@ -1088,11 +1088,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @final
     def _add_datetimelike_scalar(self, other):
-        # Overridden by TimedeltaArray
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
             )
+
+        self = cast("TimedeltaArray", self)
 
         from pandas.core.arrays import DatetimeArray
 
@@ -1111,7 +1112,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
     @final
-    def _add_datetime_arraylike(self, other):
+    def _add_datetime_arraylike(self, other) -> DatetimeArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
@@ -1176,7 +1177,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_values.view("timedelta64[ns]")
 
     @final
-    def _sub_period(self, other: Period):
+    def _sub_period(self, other: Period) -> npt.NDArray[np.object_]:
         if not is_period_dtype(self.dtype):
             raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
@@ -1184,8 +1185,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
         asi8 = self.asi8
-        new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq.base * x for x in new_data])
+        new_i8_data = asi8 - other.ordinal  # TODO: checked_add_with_arr
+        new_data = np.array([self.freq.base * x for x in new_i8_data])
 
         if self._hasna:
             new_data[self._isnan] = NaT
@@ -1193,7 +1194,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_data
 
     @final
-    def _add_period(self, other: Period):
+    def _add_period(self, other: Period) -> PeriodArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(f"cannot add Period to a {type(self).__name__}")
 
@@ -1683,12 +1684,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._wrap_reduction_result(axis, result)
 
     def _mode(self, dropna: bool = True):
-        values = self
+        mask = None
         if dropna:
-            mask = values.isna()
-            values = values[~mask]
+            mask = self.isna()
 
-        i8modes = mode(values.view("i8"))
+        i8modes = mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
