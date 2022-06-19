@@ -1,9 +1,10 @@
 import contextlib
 import time
 
-from Cryptodome.SelfTest.Cipher.test_AES import td
 import numpy as np
 import pytest
+
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
