@@ -1283,9 +1283,9 @@ cdef class Seen:
         In addition to setting a flag that an integer was seen, we
         also set two flags depending on the type of integer seen:
 
-        1) sint_ : a negative (signed) number in the
+        1) sint_ : a signed numpy integer type or a negative (signed) number in the
                    range of [-2**63, 0) was encountered
-        2) uint_ : a positive number in the range of
+        2) uint_ : an unsigned numpy integer type or a positive number in the range of
                    [2**63, 2**64) was encountered
 
         Parameters
@@ -1294,8 +1294,16 @@ cdef class Seen:
             Value with which to set the flags.
         """
         self.int_ = True
-        self.sint_ = self.sint_ or (oINT64_MIN <= val < 0)
-        self.uint_ = self.uint_ or (oINT64_MAX < val <= oUINT64_MAX)
+        self.sint_ = (
+            self.sint_
+            or (oINT64_MIN <= val < 0)
+            or util.is_sinteger_object(val)
+        )
+        self.uint_ = (
+            self.uint_
+            or (oINT64_MAX < val <= oUINT64_MAX)
+            or util.is_uinteger_object(val)
+        )
 
     @property
     def numeric_(self):
@@ -2542,7 +2550,6 @@ def maybe_convert_objects(ndarray[object] objects,
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
-                val = int(val)
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or
