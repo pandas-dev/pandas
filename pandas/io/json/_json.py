@@ -16,8 +16,8 @@ from typing import (
 
 import numpy as np
 
-import pandas._libs.ujson as json
 from pandas._libs.tslibs import iNaT
+import pandas._libs.ujson as json
 from pandas._typing import (
     CompressionOptions,
     DtypeArg,
