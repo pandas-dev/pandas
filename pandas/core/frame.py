@@ -7822,12 +7822,10 @@ Keep all original rows and columns and also all original values
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        import pandas.core.computation.expressions as expressions
 
         def combiner(x, y):
             mask = extract_array(isna(x))
 
-            x_values = extract_array(x, extract_numpy=True)
             y_values = extract_array(y, extract_numpy=True)
 
             # If the column y in other DataFrame is not in first DataFrame,
@@ -7835,7 +7833,7 @@ Keep all original rows and columns and also all original values
             if y.name not in self.columns:
                 return y_values
 
-            values = self._mgr.where(y_values, mask, align=True)
+            values = self._mgr.where(y_values, mask, align=True, axis=1)
 
             return self._constructor(data=values)
 
