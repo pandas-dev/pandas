@@ -549,9 +549,20 @@ def test_union_duplicates(index, request):
 @pytest.mark.parametrize(
     "levels1, levels2, codes1, codes2, names",
     [
-        ([['2018', 'a', 'c', 'e', 'num', 'oan', 'vol'], [1970, '']],
-            [['e', 'num', 'oan', 'vol', 'year'], ['']], [[3, 6, 4, ], [1, 1, 1]],
-            [[3, 1, 4, 1, 0], [0, 0, 0, 0, 0]], ['variable', 'cit_year']),
+        (
+            [["2018", "a", "c", "e", "num", "oan", "vol"], [1970, ""]],
+            [["e", "num", "oan", "vol", "year"], [""]],
+            [
+                [
+                    3,
+                    6,
+                    4,
+                ],
+                [1, 1, 1],
+            ],
+            [[3, 1, 4, 1, 0], [0, 0, 0, 0, 0]],
+            ["variable", "cit_year"],
+        ),
     ],
 )
 def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
