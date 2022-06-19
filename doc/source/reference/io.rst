@@ -159,6 +159,7 @@ ORC
    :toctree: api/
 
    read_orc
+   DataFrame.to_orc
 
 SAS
 ~~~
