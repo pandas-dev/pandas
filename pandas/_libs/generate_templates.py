@@ -1,6 +1,5 @@
 from Cython import Tempita
 
-
 if __name__ == "__main__":
     for template in (
         "algos_common_helper.pxi.in",
