@@ -24,6 +24,7 @@ from pandas import (
     IndexSlice,
     MultiIndex,
     Period,
+    PeriodIndex,
     Series,
     SparseDtype,
     Timedelta,
@@ -2884,6 +2885,7 @@ def test_loc_periodindex_3_levels():
     mi_series = DataFrame([["A", "B", 1.0], ["A", "C", 2.0], ["Z", "Q", 3.0], ["W", "F", 4.0]], index=p_index, columns=["ONE", "TWO", "VALUES"])
     mi_series = mi_series.set_index(["ONE", "TWO"], append=True)["VALUES"]
     assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
+
 
 class TestLocSeries:
     @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
