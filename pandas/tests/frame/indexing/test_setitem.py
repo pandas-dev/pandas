@@ -684,7 +684,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(result, expected)
 
     def test_setitem_ea_dtype_rhs_series(self):
-        # GH#
+        # GH#47425
         df = DataFrame({"a": [1, 2]})
         df["a"] = Series([1, 2], dtype="Int64")
         expected = DataFrame({"a": [1, 2]}, dtype="Int64")
