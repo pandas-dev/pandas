@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    IndexingError,
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -11,7 +14,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 
 @pytest.fixture
