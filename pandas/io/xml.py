@@ -359,6 +359,9 @@ class _XMLFrameParser:
                     row = None
 
                 elem.clear()
+                if hasattr(elem, "getprevious"):
+                    while elem.getprevious() is not None:
+                        del elem.getparent()[0]
 
         if dicts == []:
             raise ParserError("No result from selected items in iterparse.")
