@@ -7835,7 +7835,9 @@ Keep all original rows and columns and also all original values
             if y.name not in self.columns:
                 return y_values
 
-            return expressions.where(mask, y_values, x_values)
+            values = self._mgr.where(y_values, mask, align=True)
+
+            return self._constructor(data=values)
 
         combined = self.combine(other, combiner, overwrite=False)
 
