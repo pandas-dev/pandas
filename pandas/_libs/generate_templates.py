@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-
-import argparse
-import pathlib
 from Cython import Tempita
-from Cython.Build import cythonize
 
 
 if __name__ == "__main__":
