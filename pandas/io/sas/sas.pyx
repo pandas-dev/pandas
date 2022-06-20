@@ -59,7 +59,7 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         uint8_t control_byte, x
         int rpos = 0
         int i, nbytes, end_of_first_byte, value
-        Py_ssize_t ipos = 0
+        size_t ipos = 0
 
     while ipos < inbuff.length:
         control_byte = buf_get(inbuff, ipos) & 0xF0
@@ -157,7 +157,7 @@ cdef int rdc_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         uint8_t cmd
         uint16_t ctrl_bits = 0, ctrl_mask = 0, ofs, cnt
         int rpos = 0, k, ii
-        Py_ssize_t ipos = 0
+        size_t ipos = 0
 
     ii = -1
 
