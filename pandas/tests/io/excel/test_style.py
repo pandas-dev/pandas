@@ -115,7 +115,9 @@ shared_style_params = [
     ),
 ]
 
+# List of (engine, css) combinations which are expected to fail
 xfail_params = []
+
 
 @pytest.fixture
 def xfail_selected_styles(request):
@@ -130,6 +132,7 @@ def xfail_selected_styles(request):
     if (engine, css) in xfail_params:
         mark = pytest.mark.xfail(reason=f"`{css}` not implemented on {engine} engine")
         request.node.add_marker(mark)
+
 
 @pytest.mark.parametrize(
     "engine",
