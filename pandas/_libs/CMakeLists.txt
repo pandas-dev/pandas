@@ -13,10 +13,9 @@ add_custom_command(
   OUTPUT algos.c
   COMMAND ${Python_EXECUTABLE} -m cython -3 algos.pyx
   DEPENDS algos_common_helper.pxi algos_take_helper.pxi)
-add_library(algos SHARED algos.c)
+Python_add_library(algos MODULE WITH_SOABI algos.c)
 target_include_directories(algos PUBLIC ${Python_INCLUDE_DIRS}
                                         ${Python_NumPy_INCLUDE_DIRS} "src/klib")
-target_link_libraries(algos LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 # There is a khash header file in src/klib and a cython generated
 # one in _libs. Depending on the build timing one of the other could
@@ -33,40 +32,36 @@ add_custom_command(
   COMMAND ${Python_EXECUTABLE} -m cython -3 hashtable.pyx
   DEPENDS hashtable_class_helper.pxi hashtable_func_helper.pxi)
 
-add_library(hashtable SHARED hashtable.c)
+Python_add_library(hashtable MODULE WITH_SOABI hashtable.c)
 target_include_directories(
   hashtable PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
                    "src/klib" DEPENDS khash.h)
-target_link_libraries(hashtable LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_custom_command(
   OUTPUT index.c
   COMMAND ${Python_EXECUTABLE} -m cython -3 index.pyx
   DEPENDS index_class_helper.pxi)
-add_library(index SHARED index.c)
+Python_add_library(index MODULE WITH_SOABI index.c)
 target_include_directories(
   index PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib"
                "./tslibs")
-target_link_libraries(index LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_custom_command(
   OUTPUT interval.c
   COMMAND ${Python_EXECUTABLE} -m cython -3 interval.pyx
   DEPENDS intervaltree.pxi)
-add_library(interval SHARED interval.c)
+Python_add_library(interval MODULE WITH_SOABI interval.c)
 target_include_directories(
   interval PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
                   "src/klib" "./tslibs")
-target_link_libraries(interval LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_custom_command(
   OUTPUT sparse.c
   COMMAND ${Python_EXECUTABLE} -m cython -3 sparse.pyx
   DEPENDS sparse_op_helper.pxi)
-add_library(sparse SHARED sparse.c)
+Python_add_library(sparse MODULE WITH_SOABI sparse.c)
 target_include_directories(
   sparse PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib")
-target_link_libraries(sparse LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 # set(HEADERS arrays dtypes hashtable lib missing util) foreach(HEADER
 # ${HEADERS}) add_custom_command(OUTPUT ${HEADER}.h COMMAND ${Python_EXECUTABLE}
@@ -88,53 +83,47 @@ set(BASIC_LIBRARIES
 foreach(LIB ${BASIC_LIBRARIES})
   add_custom_command(OUTPUT ${LIB}.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                              ${LIB}.pyx)
-  add_library(${LIB} SHARED ${LIB}.c)
+  Python_add_library(${LIB} MODULE WITH_SOABI ${LIB}.c)
   target_include_directories(${LIB} PUBLIC ${Python_INCLUDE_DIRS}
                                            ${Python_NumPy_INCLUDE_DIRS})
-  target_link_libraries(${LIB} LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 endforeach()
 
 add_subdirectory("tslibs")
 
 add_custom_command(OUTPUT tslib.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                           tslib.pyx)
-add_library(tslib ${LIB} SHARED tslib.c tslibs/src/datetime/np_datetime.c)
+Python_add_library(tslib ${LIB} MODULE WITH_SOABI tslib.c tslibs/src/datetime/np_datetime.c)
 target_include_directories(tslib PUBLIC ${Python_INCLUDE_DIRS}
                                         ${Python_NumPy_INCLUDE_DIRS} "./tslibs")
-target_link_libraries(tslib LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_custom_command(OUTPUT missing.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                             missing.pyx)
-add_library(missing SHARED missing.c)
+Python_add_library(missing MODULE WITH_SOABI missing.c)
 target_include_directories(
   missing PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "./tslibs")
-target_link_libraries(missing LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_custom_command(OUTPUT lib.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                         lib.pyx)
-add_library(lib SHARED lib.c src/parser/tokenizer.c)
+Python_add_library(lib MODULE WITH_SOABI lib.c src/parser/tokenizer.c)
 target_include_directories(
   lib PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib"
              "./tslibs")
-target_link_libraries(lib LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_custom_command(OUTPUT join.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                          join.pyx DEPENDS khash_for_primitive_helper.pxi)
-add_library(join SHARED join.c)
+Python_add_library(join MODULE WITH_SOABI join.c)
 target_include_directories(join PUBLIC ${Python_INCLUDE_DIRS}
                                        ${Python_NumPy_INCLUDE_DIRS} "src/klib")
-target_link_libraries(join LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_custom_command(OUTPUT parsers.c COMMAND ${Python_EXECUTABLE} -m cython -3
                                             parsers.pyx)
-add_library(parsers SHARED parsers.c src/parser/tokenizer.c src/parser/io.c)
+Python_add_library(parsers MODULE WITH_SOABI parsers.c src/parser/tokenizer.c src/parser/io.c)
 target_include_directories(
   parsers PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS} "src/klib"
                  "src")
-target_link_libraries(parsers LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
-add_library(
-  ujson SHARED
+Python_add_library(
+  ujson MODULE WITH_SOABI
   src/ujson/python/ujson.c
   src/ujson/python/objToJSON.c
   src/ujson/python/date_conversions.c
@@ -146,6 +135,5 @@ add_library(
 target_include_directories(
   ujson PUBLIC ${Python_INCLUDE_DIRS} ${Python_NumPy_INCLUDE_DIRS}
                src/ujson/python src/ujson/lib src/datetime)
-target_link_libraries(ujson LINK_INTERFACE_LIBRARIES ${Python_LIBRARIES})
 
 add_subdirectory("window")

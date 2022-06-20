@@ -15,18 +15,6 @@ execute_process(
 )
 project(pandas VERSION ${PANDAS_VERSION})
 
-set(CMAKE_SHARED_LIBRARY_PREFIX "")
-if (APPLE)
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
-  set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}.so")
-elseif(WIN32)
-  set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}")
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "")
-  link_directories(${Python_LIBRARY_DIRS})
-else()
-  set(CMAKE_SHARED_LIBRARY_SUFFIX ".${Python_SOABI}${CMAKE_SHARED_LIBRARY_SUFFIX}")
-endif()
-
 add_compile_definitions(NPY_NO_DEPRECATED_API=0)
 add_subdirectory("pandas/_libs")
 add_subdirectory("pandas/io/sas")
