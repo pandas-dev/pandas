@@ -34,6 +34,13 @@ RUN wget "https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog
 
+# Without this versioneer will not be able to determine the pandas version.
+# This is because of a security update to git that blocks it from reading the config folder if
+# it is not owned by the current user. We hit this since the "mounted" folder is not hit by the
+# Docker container.
+# xref https://github.com/pypa/manylinux/issues/1309
+RUN git config --global --add safe.directory "$pandas_home"
+
 # Clone pandas repo
 RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
