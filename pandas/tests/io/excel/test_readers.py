@@ -1559,7 +1559,7 @@ class TestExcelFileRead:
     def test_read_excel_header_index_out_of_range(self, engine):
         # GH#43143
         with open("df_header_oob.xlsx", "rb") as f:
-            with pytest.raises(ValueError, match="non-existing"):
+            with pytest.raises(ValueError, match="exceeds maximum"):
                 pd.read_excel(f, header=[0, 1])
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])

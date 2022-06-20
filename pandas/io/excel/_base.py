@@ -776,7 +776,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
                     if row > len(data) - 1:
                         raise ValueError(
-                            f"Header index {row} references non-existing rows.",
+                            f"header index {row} exceeds maximum index "
+                            f"{len(data) - 1} of data.",
                         )
 
                     data[row], control_row = fill_mi_header(data[row], control_row)
