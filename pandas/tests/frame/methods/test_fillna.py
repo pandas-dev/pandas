@@ -13,6 +13,7 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     date_range,
+    get_option,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
@@ -672,6 +673,13 @@ class TestFillNA:
 
         df.fillna(axis=1, value=100, limit=1, inplace=True)
         tm.assert_frame_equal(df, expected)
+
+    def test_mode(self):
+        mode = get_option("mode.data_manager")
+        if mode == "array":
+            raise ValueError(get_option("mode.data_manager"))
+        else:
+            raise AttributeError(get_option("mode.data_manager"))
 
 
 def test_fillna_nonconsolidated_frame():
