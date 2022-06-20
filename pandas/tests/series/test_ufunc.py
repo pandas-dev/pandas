@@ -443,9 +443,11 @@ def test_outer():
 
 def test_npmul():
     # GH26650
-    data = [-1, 1, 10]
-    df = pd.DataFrame({"nums": data})
-    dfT = df.T
 
     expected_result = pd.DataFrame(index=["nums"], data=[102])
-    tm.assert_frame_equal(expected_result, np.matmul(dfT, df))
+    tm.assert_frame_equal(
+        expected_result,
+        np.matmul(
+            pd.DataFrame({"nums": [-1, 1, 10]}).T, pd.DataFrame({"nums": [-1, 1, 10]})
+        ),
+    )
