@@ -652,27 +652,25 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(tsframe, recons)
 
-    def test_excel_roundtrip_date_datetime_format(self, ext, path):
+    def test_excel_date_datetime_format(self, ext, path):
         # see gh-4133
         #
-        # Test that df written with custom date/datetime format strings
-        # is read back the same as if written using the default formats,
-        # and that the values are still recognised as dates/datetimes.
+        # Excel output format strings
         df = DataFrame(
             [
-                [date(2014, 1, 31), datetime(1998, 5, 26, 23, 33, 4)],
-                [date(1999, 9, 24), datetime(2014, 2, 28, 13, 5, 13)],
+                [date(2014, 1, 31), date(1999, 9, 24)],
+                [datetime(1998, 5, 26, 23, 33, 4), datetime(2014, 2, 28, 13, 5, 13)],
             ],
-            index=["X", "Y"],
-            columns=["DATE", "DATETIME"],
+            index=["DATE", "DATETIME"],
+            columns=["X", "Y"],
         )
         df_expected = DataFrame(
             [
-                [datetime(2014, 1, 31), datetime(1998, 5, 26, 23, 33, 4)],
-                [datetime(1999, 9, 24), datetime(2014, 2, 28, 13, 5, 13)],
+                [datetime(2014, 1, 31), datetime(1999, 9, 24)],
+                [datetime(1998, 5, 26, 23, 33, 4), datetime(2014, 2, 28, 13, 5, 13)],
             ],
-            index=["X", "Y"],
-            columns=["DATE", "DATETIME"],
+            index=["DATE", "DATETIME"],
+            columns=["X", "Y"],
         )
 
         with tm.ensure_clean(ext) as filename2:
