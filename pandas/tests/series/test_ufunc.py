@@ -443,11 +443,10 @@ def test_outer():
 
 def test_npmul():
     # GH26650
-
-    expected_result = pd.DataFrame(index=["nums"], data=[102])
+    df1 = pd.DataFrame(data=[[-1, 1, 10]])
+    df2 = pd.DataFrame(data=[-1, 1, 10])
+    expected_result = pd.DataFrame(data=[102])
     tm.assert_frame_equal(
         expected_result,
-        np.matmul(
-            pd.DataFrame({"nums": [-1, 1, 10]}).T, pd.DataFrame({"nums": [-1, 1, 10]})
-        ),
+        np.matmul(df1, df2),
     )
