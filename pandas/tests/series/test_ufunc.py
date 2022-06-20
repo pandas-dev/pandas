@@ -1,6 +1,8 @@
 from collections import deque
 import string
 
+from pyparsing import nums
+
 import numpy as np
 import pytest
 
@@ -439,3 +441,12 @@ def test_outer():
 
     with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
         np.subtract.outer(s, o)
+
+def test_npmul():
+    # https://github.com/pandas-dev/pandas/issues/26650
+    nums = np.random.randint(0, 10, 100, dtype="int64")
+    df = pd.DataFrame({"nums": nums})
+    dfT = df.T
+
+    expected_result = pd.DataFrame(index= ["nums"], data= [np.sum(np.square(nums))])
+    assert expected_result.equals(np.matmul(dfT, df))
