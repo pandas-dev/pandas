@@ -505,6 +505,5 @@ def test_info_from_rec():
         {"col_1": 1, "col_2": "c"},
         {"col_1": 0, "col_2": "d"},
     ]
-    with pytest.raises(KeyError) as err:
+    with pytest.raises(KeyError, match="^'col_14'$"):
         df = DataFrame.from_records(itr, index="col_14")
-    assert "col_14" in str(err.value)
