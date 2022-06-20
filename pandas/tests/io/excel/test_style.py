@@ -1,4 +1,8 @@
 import contextlib
+from typing import (
+    List,
+    Tuple
+)
 
 import numpy as np
 import pytest
@@ -116,7 +120,7 @@ shared_style_params = [
 ]
 
 # List of (engine, css) combinations which are expected to fail
-xfail_params = []
+xfail_params: List[Tuple[str, str]] = []
 
 
 @pytest.fixture
