@@ -3342,7 +3342,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         na_rep : str, default ''
             Missing data representation.
         float_format : str, default None
-            Format string for floating point numbers.
+            Format string for floating point numbers. If a format is given, it takes
+            precedence over other numeric formatting parameters, like decimal.
         columns : sequence, optional
             Columns to write.
         header : bool or list of str, default True
