@@ -103,9 +103,6 @@ def test_book_and_sheets_consistent(ext):
 
 def test_write_date_datetime_format(ext):
     # see gh-44284
-    #
-    # Test that custom date/datetime formats are respected
-    # by inspecting formatting info in written file.
     df = DataFrame(
         [
             [date(2014, 1, 31), datetime(1998, 5, 26, 23, 33, 4)],

@@ -152,9 +152,6 @@ def test_deprecated_attr(ext, attr):
 
 def test_write_date_datetime_format(ext):
     # see gh-44284
-    #
-    # Test that custom date/datetime formats are respected
-    # by inspecting formatting info in written file.
     xlrd = pytest.importorskip("xlrd")
 
     df = DataFrame(
