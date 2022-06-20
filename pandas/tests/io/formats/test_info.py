@@ -492,16 +492,19 @@ def test_info_int_columns():
     )
     assert result == expected
 
+
 def test_info_from_rec():
     # GH47285
     df = DataFrame.from_records([], index="foo")
     buf = StringIO()
     df.info(buf=buf)
 
-    itr = [{"col_1": 3, "col_2": "a"},
-            {"col_1": 2, "col_2": "b"},
-            {"col_1": 1, "col_2": "c"},
-            {"col_1": 0, "col_2": "d"}]
+    itr = [
+        {"col_1": 3, "col_2": "a"},
+        {"col_1": 2, "col_2": "b"},
+        {"col_1": 1, "col_2": "c"},
+        {"col_1": 0, "col_2": "d"},
+    ]
     with pytest.raises(KeyError) as err:
         df = DataFrame.from_records(itr, index="col_14")
     assert "col_14" in str(err.value)
