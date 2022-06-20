@@ -7,7 +7,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
+from pandas.compat import (
+    is_platform_linux,
+    is_platform_mac,
+)
 
 from pandas import DataFrame
 import pandas._testing as tm
@@ -53,8 +56,8 @@ def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
     data = f"data\n10E{exp}"
     result = parser.read_csv(StringIO(data), float_precision=precision)
     if precision == "round_trip":
-        if exp == 999999999999999999 and is_platform_linux():
-            mark = pytest.mark.xfail(reason="GH38794, on Linux gives object result")
+        if exp == 999999999999999999 and (is_platform_linux() or is_platform_mac()):
+            mark = pytest.mark.xfail(reason="GH38794, on Unix gives object result")
             request.node.add_marker(mark)
 
         value = np.inf if exp > 0 else 0.0

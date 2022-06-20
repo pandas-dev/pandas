@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    IS64,
     is_platform_arm,
     is_platform_mac,
 )
@@ -1187,7 +1188,9 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(is_platform_arm() and not is_platform_mac(), reason="GH 38921")
+@pytest.mark.xfail(
+    (is_platform_arm() and not is_platform_mac()) or not IS64, reason="GH 38921"
+)
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [
