@@ -9,11 +9,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 
 execute_process(
-  COMMAND ${Python_EXECUTABLE} -c "import versioneer as v; print(str('.'.join(v.get_version().split('.')[:3])))"
+  COMMAND ${Python_EXECUTABLE} -c "import versioneer as v; print('.'.join(v.get_version().split('.')[:3]))"
   OUTPUT_VARIABLE PANDAS_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 project(pandas VERSION ${PANDAS_VERSION})
+
+if(WIN32)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "")
+  link_directories(${Python_LIBRARY_DIRS})
+endif()
 
 add_compile_definitions(NPY_NO_DEPRECATED_API=0)
 add_subdirectory("pandas/_libs")
