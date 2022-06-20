@@ -122,7 +122,7 @@ class BaseWindow(SelectionMixin):
         obj: NDFrame,
         window=None,
         min_periods: int | None = None,
-        center: bool = False,
+        center: bool | None = False,
         win_type: str | None = None,
         axis: Axis = 0,
         on: str | Index | None = None,

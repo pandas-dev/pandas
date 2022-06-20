@@ -12,6 +12,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -36,10 +37,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
-from pandas.core.indexing import (
-    IndexingError,
-    _one_ellipsis_message,
-)
+from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import Base
 
 
@@ -2867,6 +2865,15 @@ def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
     data.append("2022-01-08")
     expected_index = DatetimeIndex(data, dtype=exp_dtype)
     tm.assert_index_equal(df.index, expected_index, exact=True)
+
+
+def test_loc_set_int_dtype():
+    # GH#23326
+    df = DataFrame([list("abc")])
+    df.loc[:, "col1"] = 5
+
+    expected = DataFrame({0: ["a"], 1: ["b"], 2: ["c"], "col1": [5]})
+    tm.assert_frame_equal(df, expected)
 
 
 class TestLocSeries:
