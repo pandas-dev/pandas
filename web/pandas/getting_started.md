@@ -6,7 +6,7 @@ You can try `pandas` online with the following interactive shell
 without installing anything on your computer:
 
 <iframe
-  src="https://jupyterlite.github.io/demo/repl/index.html?toolbar=1&kernel=python&code=import pandas as pd"
+  src="https://jtpio.github.io/pandas-repl/repl/index.html?toolbar=1&kernel=python&code=import pandas as pd"
   width="100%"
   height="500px"
 ></iframe>
