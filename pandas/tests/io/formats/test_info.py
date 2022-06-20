@@ -492,7 +492,6 @@ def test_info_int_columns():
     )
     assert result == expected
 
-#@pytest.mark.xfail(raises=KeyError, reason="GH47285: fail on iterable is populated")
 def test_info_from_rec():
     # GH47285
     df = DataFrame.from_records([], index="foo")
