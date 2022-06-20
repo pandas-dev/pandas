@@ -1,7 +1,7 @@
 import contextlib
 from typing import (
     List,
-    Tuple
+    Tuple,
 )
 
 import numpy as np
