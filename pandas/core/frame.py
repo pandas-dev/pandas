@@ -2292,11 +2292,12 @@ class DataFrame(NDFrame, OpsMixin):
             if columns is None:
                 columns = arr_columns
 
-                if index is not None:
-                    if isinstance(index, str) or not hasattr(index, "__iter__"):
-                        if index not in columns:
-                            result_index = [index]
-                            index = None
+                if len(arrays) == 0:
+                    if index is not None:
+                        if isinstance(index, str) or not hasattr(index, "__iter__"):
+                            if index not in columns:
+                                result_index = [index]
+                                index = None
 
             else:
                 arrays, arr_columns, result_index = maybe_reorder(
