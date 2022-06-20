@@ -442,10 +442,10 @@ def test_outer():
 
 
 def test_npmul():
-    # https://github.com/pandas-dev/pandas/issues/26650
-    data = np.random.randint(0, 10, 100, dtype="int64")
+    # GH26650
+    data = [-1, 1, 10]
     df = pd.DataFrame({"nums": data})
     dfT = df.T
 
-    expected_result = pd.DataFrame(index=["nums"], data=[np.sum(np.square(data))])
-    assert expected_result.equals(np.matmul(dfT, df))
+    expected_result = pd.DataFrame(index=["nums"], data=[102])
+    tm.assert_frame_equal(expected_result, np.matmul(dfT, df))
