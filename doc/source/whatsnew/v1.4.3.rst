@@ -30,7 +30,7 @@ Fixed regressions
 - Fixed regression in :func:`assert_index_equal` when ``check_order=False`` and :class:`Index` has extension or object dtype (:issue:`47207`)
 - Fixed regression in :func:`read_excel` returning ints as floats on certain input sheets (:issue:`46988`)
 - Fixed regression in :meth:`DataFrame.shift` when ``axis`` is ``columns`` and ``fill_value`` is absent, ``freq`` is ignored (:issue:`47039`)
-- Fixed regression in :meth:`DataFrame.to_json` when ``index`` is of the type :class:`PeriodIndex` causing a segmentation violation (:issue:`46683`)
+- Fixed regression in :meth:`DataFrame.to_json` causing a segmentation violation when :class:`DataFrame` is created with an ``index`` of the type :class:`PeriodIndex` (:issue:`46683`)
 
 .. ---------------------------------------------------------------------------
 
