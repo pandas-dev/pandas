@@ -184,8 +184,6 @@ def format_array_from_datetime(
             pandas_datetime_to_datetimestruct(val, reso, &dts)
             res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
 
-            res = res
-
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
@@ -199,7 +197,6 @@ def format_array_from_datetime(
                 res += f'.{dts.us:06d}'
             elif show_ms:
                 res += f'.{dts.us // 1000:03d}'
-
 
         else:
 
