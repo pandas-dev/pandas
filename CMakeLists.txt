@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.18)
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
 set(CMAKE_C_STANDARD 99)
@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 
 execute_process(
   COMMAND ${Python_EXECUTABLE} -c "import versioneer as v; print(str('.'.join(v.get_version().split('.')[:3])))"

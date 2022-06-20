@@ -25,11 +25,11 @@ RUN apt-get update \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-# apt only has version 3.16 of cmake but we require 3.17
-RUN wget "https://github.com/Kitware/CMake/releases/download/v3.17.5/cmake-3.17.5-linux-x86_64.sh" \
-    && chmod 700 cmake-3.17.5-linux-x86_64.sh \
-    && ./cmake-3.17.5-linux-x86_64.sh --skip-license --prefix=/opt --include-subdir \
-    && ln -s /opt/cmake-3.17.5-Linux-x86_64/bin/cmake /usr/bin/cmake
+# apt only has version 3.16 of cmake but we require 3.18
+RUN wget "https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5-linux-x86_64.sh" \
+    && chmod 700 cmake-3.18.5-linux-x86_64.sh \
+    && ./cmake-3.18.5-linux-x86_64.sh --skip-license --prefix=/opt --include-subdir \
+    && ln -s /opt/cmake-3.18.5-Linux-x86_64/bin/cmake /usr/bin/cmake
 
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog
