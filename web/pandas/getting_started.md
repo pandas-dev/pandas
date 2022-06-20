@@ -3,7 +3,20 @@
 ## Try it online
 
 You can try `pandas` online with the following interactive shell
-without installing anything on your computer:
+without installing anything on your computer.
+
+For example you can use the following code snippet to interact with the `iris`
+dataset:
+
+```python
+import pandas as pd
+
+# load the dataset
+df = pd.read_csv('iris.csv')
+
+# display the DataFrame
+df
+```
 
 <iframe
   src="https://jtpio.github.io/pandas-repl/repl/index.html?toolbar=1&kernel=python&code=import pandas as pd"
