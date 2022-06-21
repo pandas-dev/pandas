@@ -22,14 +22,6 @@ else ()
   find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 endif()
 
-#execute_process(
-#  COMMAND ${Python_EXECUTABLE} -c "import versioneer as v; print('.'.join(v.get_version().split('.')[:3]))"
-#  OUTPUT_VARIABLE PANDAS_VERSION
-#  OUTPUT_STRIP_TRAILING_WHITESPACE
-#)
-
-
-
 add_compile_definitions(NPY_NO_DEPRECATED_API=0)
 add_subdirectory("pandas/_libs")
 add_subdirectory("pandas/io/sas")

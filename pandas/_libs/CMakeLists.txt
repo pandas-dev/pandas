@@ -63,10 +63,6 @@ Python3_add_library(sparse MODULE WITH_SOABI sparse.c)
 target_include_directories(
   sparse PUBLIC ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS} "src/klib")
 
-# set(HEADERS arrays dtypes hashtable lib missing util) foreach(HEADER
-# ${HEADERS}) add_custom_command(OUTPUT ${HEADER}.h COMMAND ${Python3_EXECUTABLE}
-# -m cython -3 ${HEADER}.pxd) endforeach()
-
 set(BASIC_LIBRARIES
     arrays
     groupby
