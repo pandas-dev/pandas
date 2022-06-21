@@ -550,24 +550,17 @@ def test_union_duplicates(index, request):
     "levels1, levels2, codes1, codes2, names",
     [
         (
-            [["2018", "a", "c", "e", "num", "oan", "vol"], [1970, ""]],
-            [["e", "num", "oan", "vol", "year"], [""]],
-            [
-                [
-                    3,
-                    6,
-                    4,
-                ],
-                [1, 1, 1],
-            ],
-            [[3, 1, 4, 1, 0], [0, 0, 0, 0, 0]],
-            ["variable", "cit_year"],
+            [["a", "b", "c"], [0, ""]],
+            [["c", "d", "b"], [""]],
+            [[0, 1, 2], [1, 1, 1]],
+            [[0, 1, 2], [0, 0, 0]],
+            ["name1", "name2"],
         ),
     ],
 )
 def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     # GH#25169
-    mi1 = MultiIndex(levels=levels1, codes=codes2, names=names)
+    mi1 = MultiIndex(levels=levels1, codes=codes1, names=names)
     mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
     mi_int = mi1.intersection(mi2)
 
