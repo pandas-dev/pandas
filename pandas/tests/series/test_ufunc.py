@@ -439,3 +439,14 @@ def test_outer():
 
     with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
         np.subtract.outer(s, o)
+
+
+def test_np_matmul():
+    # GH26650
+    df1 = pd.DataFrame(data=[[-1, 1, 10]])
+    df2 = pd.DataFrame(data=[-1, 1, 10])
+    expected_result = pd.DataFrame(data=[102])
+    tm.assert_frame_equal(
+        expected_result,
+        np.matmul(df1, df2),
+    )
