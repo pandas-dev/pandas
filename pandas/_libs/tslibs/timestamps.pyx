@@ -215,6 +215,11 @@ cdef class _Timestamp(ABCTimestamp):
         if value == NPY_NAT:
             return NaT
 
+        if reso < NPY_DATETIMEUNIT.NPY_FR_s or reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+            raise NotImplementedError(
+                "Only resolutions 's', 'ms', 'us', 'ns' are supported."
+            )
+
         obj.value = value
         pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
         maybe_localize_tso(obj, tz, reso)

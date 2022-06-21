@@ -127,5 +127,6 @@ def test_ints_to_pytimedelta_unsupported(unit):
 
     with pytest.raises(NotImplementedError, match=r"\d{1,2}"):
         ints_to_pytimedelta(arr, box=False)
-    with pytest.raises(NotImplementedError, match=r"\d{1,2}"):
+    msg = "Only resolutions 's', 'ms', 'us', 'ns' are supported"
+    with pytest.raises(NotImplementedError, match=msg):
         ints_to_pytimedelta(arr, box=True)
