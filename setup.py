@@ -9,7 +9,6 @@ from setuptools import setup
 
 import versioneer
 
-
 cmdclass = versioneer.get_cmdclass()
 
 
