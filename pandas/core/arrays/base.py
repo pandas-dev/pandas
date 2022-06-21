@@ -147,6 +147,9 @@ class ExtensionArray:
     _reduce
     _values_for_argsort
     _values_for_factorize
+    _values_for_mode
+    _values_for_rank
+    _values_for_format_object_summary
 
     Notes
     -----
@@ -717,7 +720,8 @@ class ExtensionArray:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
-        return nargminmax(self, "argmin")
+        values = self._values_for_argsort()
+        return nargminmax(values, "argmin")
 
     def argmax(self, skipna: bool = True) -> int:
         """
@@ -745,7 +749,8 @@ class ExtensionArray:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
-        return nargminmax(self, "argmax")
+        values = self._values_for_argsort()
+        return nargminmax(values, "argmax")
 
     def fillna(
         self,
@@ -1236,6 +1241,16 @@ class ExtensionArray:
     # Printing
     # ------------------------------------------------------------------------
 
+    def _values_for_format_object_summary(self) -> np.ndarray:
+        """
+        Return values for object summary
+
+        Returns
+        -------
+        ndarray
+        """
+        return np.array(self)
+
     def __repr__(self) -> str:
         if self.ndim > 1:
             return self._repr_2d()
@@ -1245,8 +1260,9 @@ class ExtensionArray:
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
+        values = self._values_for_format_object_summary()
         data = format_object_summary(
-            self, self._formatter(), indent_for_name=False
+            values, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
         class_name = f"<{type(self).__name__}>\n"
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
@@ -1522,6 +1538,16 @@ class ExtensionArray:
         self[mask] = new_values[mask]
         return
 
+    def _values_for_rank(self) -> np.ndarray:
+        """
+        Return values for ranking
+        
+        Returns
+        -------
+        ndarray
+        """
+        return np.array(self)
+
     def _rank(
         self,
         *,
@@ -1539,8 +1565,10 @@ class ExtensionArray:
 
         # TODO: we only have tests that get here with dt64 and td64
         # TODO: all tests that get here use the defaults for all the kwds
+
+        values = self._values_for_rank()
         return rank(
-            self,
+            values,
             axis=axis,
             method=method,
             na_option=na_option,
@@ -1593,6 +1621,16 @@ class ExtensionArray:
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
         return type(self)._from_sequence(res_values)
 
+    def _values_for_mode(self) -> np.ndarray:
+        """
+        Return values for mode
+
+        Returns
+        -------
+        ndarray
+        """
+        return np.array(self)
+
     def _mode(self: ExtensionArrayT, dropna: bool = True) -> ExtensionArrayT:
         """
         Returns the mode(s) of the ExtensionArray.
@@ -1611,7 +1649,9 @@ class ExtensionArray:
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray[Any, Any]]", expected "ExtensionArrayT")
-        return mode(self, dropna=dropna)  # type: ignore[return-value]
+
+        values = self._values_for_mode()
+        return mode(values, dropna=dropna)  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(

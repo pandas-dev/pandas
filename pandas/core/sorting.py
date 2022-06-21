@@ -22,6 +22,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
+    ArrayLike,
     IndexKeyFunc,
     Level,
     NaPosition,
@@ -447,14 +448,14 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
+def nargminmax(values: ArrayLike, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
 
     Parameters
     ----------
-    values : ExtensionArray
+    values : ArrayLike
     method : {"argmax", "argmin"}
     axis : int, default 0
 
@@ -466,18 +467,17 @@ def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
     func = np.argmax if method == "argmax" else np.argmin
 
     mask = np.asarray(isna(values))
-    arr_values = values._values_for_argsort()
 
-    if arr_values.ndim > 1:
+    if values.ndim > 1:
         if mask.any():
             if axis == 1:
-                zipped = zip(arr_values, mask)
+                zipped = zip(values, mask)
             else:
-                zipped = zip(arr_values.T, mask.T)
+                zipped = zip(values.T, mask.T)
             return np.array([_nanargminmax(v, m, func) for v, m in zipped])
-        return func(arr_values, axis=axis)
+        return func(values, axis=axis)
 
-    return _nanargminmax(arr_values, mask, func)
+    return _nanargminmax(values, mask, func)
 
 
 def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:

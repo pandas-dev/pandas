@@ -195,7 +195,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
-        return nargminmax(self, "argmin", axis=axis)
+        values = self._values_for_argsort()
+        return nargminmax(values, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
     def argmax(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
@@ -203,7 +204,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
-        return nargminmax(self, "argmax", axis=axis)
+        values = self._values_for_argsort()
+        return nargminmax(values, "argmax", axis=axis)
 
     def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = unique(self._ndarray)
