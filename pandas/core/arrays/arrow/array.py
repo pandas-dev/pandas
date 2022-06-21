@@ -619,7 +619,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # fast path for a contiguous set of indices
             arrays = [
                 chunk[:start],
-                pa.array(value, type=chunk.type),
+                pa.array(value, type=chunk.type, from_pandas=True),
                 chunk[stop + 1 :],
             ]
             arrays = [arr for arr in arrays if len(arr)]
