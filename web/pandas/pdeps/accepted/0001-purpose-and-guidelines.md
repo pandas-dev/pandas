@@ -76,7 +76,8 @@ please check how you can help in the [contributing page](/contribute.html).
 Once a PDEP is implemented and available in the main branch of pandas, its
 status will be changed to implemented, so there is visibility that the PDEP
 is not part of the roadmap and future plans, but a change that it already
-happened.
+happened. The first pandas version in which the PDEP implementation is
+available will also be included in the PDEP.
 
 #### Rejected PDEP
 
