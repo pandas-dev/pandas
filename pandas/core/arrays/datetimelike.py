@@ -1088,11 +1088,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @final
     def _add_datetimelike_scalar(self, other):
-        # Overridden by TimedeltaArray
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
             )
+
+        self = cast("TimedeltaArray", self)
 
         from pandas.core.arrays import DatetimeArray
 
@@ -1115,7 +1116,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
     @final
-    def _add_datetime_arraylike(self, other):
+    def _add_datetime_arraylike(self, other) -> DatetimeArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
@@ -1679,12 +1680,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._wrap_reduction_result(axis, result)
 
     def _mode(self, dropna: bool = True):
-        values = self
+        mask = None
         if dropna:
-            mask = values.isna()
-            values = values[~mask]
+            mask = self.isna()
 
-        i8modes = mode(values.view("i8"))
+        i8modes = mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
