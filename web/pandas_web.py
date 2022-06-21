@@ -201,9 +201,10 @@ class Preprocessors:
             "implemented": [],
         }
         # accepted, rejected and implemented
-        pdeps_path = (pathlib.Path(context["source_path"])
-                      / context["roadmap"]["pdeps_path"])
-        for status in ('accepted', 'rejected', 'implemented'):
+        pdeps_path = (
+            pathlib.Path(context["source_path"]) / context["roadmap"]["pdeps_path"]
+        )
+        for status in ("accepted", "rejected", "implemented"):
             status_dir = pdeps_path / status
             if not status_dir.is_dir():
                 continue
@@ -214,22 +215,27 @@ class Preprocessors:
                 print(pdep)
                 with pdep.open() as f:
                     title = f.readline()[2:]  # removing markdown title "# "
-                context["pdeps"][status].append({
-                    "title": title,
-                    "url": f"/pdeps/{status}/{html_file}",
-                })
+                context["pdeps"][status].append(
+                    {
+                        "title": title,
+                        "url": f"/pdeps/{status}/{html_file}",
+                    }
+                )
 
         # under discussion
         github_repo_url = context["main"]["github_repo_url"]
-        resp = requests.get("https://api.github.com/search/issues?"
-                            f"q=is:pr is:open label:PDEP repo:{github_repo_url}")
+        resp = requests.get(
+            "https://api.github.com/search/issues?"
+            f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
+        )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
         resp.raise_for_status()
 
         for pdep in resp.json()["items"]:
-            context["pdeps"]["under_discussion"].append({"title": pdep["title"],
-                                                         "url": pdep["url"]})
+            context["pdeps"]["under_discussion"].append(
+                {"title": pdep["title"], "url": pdep["url"]}
+            )
 
         return context
 
