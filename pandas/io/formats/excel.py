@@ -90,7 +90,7 @@ class CssExcelCell(ExcelCell):
             )
             style = css_converter(css)
 
-        return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
+        super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
 
 class CSSToExcelConverter:

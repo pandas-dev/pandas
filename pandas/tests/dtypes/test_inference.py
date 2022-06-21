@@ -236,7 +236,7 @@ def test_is_sequence():
     assert not is_seq(np.int64)
 
     class A:
-        def __getitem__(self):
+        def __getitem__(self, item):
             return 1
 
     assert not is_seq(A())
