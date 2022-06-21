@@ -3302,7 +3302,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         sep: str = ",",
         na_rep: str = "",
-        float_format: str | None = None,
+        float_format: str | Callable | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool_t | list[str] = True,
         index: bool_t = True,
@@ -3341,8 +3341,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             String of length 1. Field delimiter for the output file.
         na_rep : str, default ''
             Missing data representation.
-        float_format : str, default None
-            Format string for floating point numbers.
+        float_format : str, Callable, default None
+            Format string for floating point numbers. If a Callable is given, it takes
+            precedence over other numeric formatting parameters, like decimal.
         columns : sequence, optional
             Columns to write.
         header : bool or list of str, default True
