@@ -265,7 +265,6 @@ class TestFillNA:
         result = obj.fillna("", downcast=False)
         tm.assert_equal(result, obj)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476
