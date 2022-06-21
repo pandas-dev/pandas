@@ -31,7 +31,10 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
-from pandas._libs.tslibs.dtypes cimport periods_per_second
+from pandas._libs.tslibs.dtypes cimport (
+    abbrev_to_npy_unit,
+    periods_per_second,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
@@ -139,35 +142,36 @@ cpdef inline (int64_t, int) precision_from_unit(str unit):
     cdef:
         int64_t m
         int p
+        NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
-    if unit == "Y":
+    if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
         m = 1_000_000_000 * 31556952
         p = 9
-    elif unit == "M":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
         m = 1_000_000_000 * 2629746
         p = 9
-    elif unit == "W":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
         m = 1_000_000_000 * 3600 * 24 * 7
         p = 9
-    elif unit == "D" or unit == "d":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_D:
         m = 1_000_000_000 * 3600 * 24
         p = 9
-    elif unit == "h":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_h:
         m = 1_000_000_000 * 3600
         p = 9
-    elif unit == "m":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
         m = 1_000_000_000 * 60
         p = 9
-    elif unit == "s":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
         m = 1_000_000_000
         p = 9
-    elif unit == "ms":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
         m = 1_000_000
         p = 6
-    elif unit == "us":
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         m = 1000
         p = 3
-    elif unit == "ns" or unit is None:
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_ns or reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         m = 1
         p = 0
     else:

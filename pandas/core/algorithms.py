@@ -1017,10 +1017,10 @@ def rank(
 
 def checked_add_with_arr(
     arr: npt.NDArray[np.int64],
-    b,
+    b: int | npt.NDArray[np.int64],
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.int64]:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -1093,7 +1093,12 @@ def checked_add_with_arr(
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
-    return arr + b
+
+    result = arr + b
+    if arr_mask is not None or b2_mask is not None:
+        np.putmask(result, ~not_nan, iNaT)
+
+    return result
 
 
 # --------------- #
