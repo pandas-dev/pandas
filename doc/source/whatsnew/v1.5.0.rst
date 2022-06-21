@@ -562,15 +562,15 @@ As ``group_keys=True`` is the default value of :meth:`DataFrame.groupby` and
 raise a ``FutureWarning``. This can be silenced and the previous behavior
 retained by specifying ``group_keys=False``.
 
-.. _whatsnew_150.notable_bug_fixes.setitem_column_try_inplace:
+.. _whatsnew_150.deprecations.setitem_column_try_inplace:
    _ see also _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
 
-Towards consistently trying to operate inplace when setting values with ``loc`` and ``iloc``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Inplace operation when setting values with ``iloc``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Most of the time setting values with ``frame.iloc`` attempts to set values
 inplace, only falling back to inserting a new array if necessary. There are
-some edge cases where values are not set inplace, for example when setting an
-entire column from an array with different dtype:
+some cases where this rule is not followed, for example when setting an entire
+column from an array with different dtype:
 
 .. ipython:: python
 
@@ -578,7 +578,7 @@ entire column from an array with different dtype:
    df = pd.DataFrame(values)
    ser = df[0]
 
-*Old behavior with pandas < 1.5*:
+*Old behavior*:
 
 .. code-block:: ipython
 
@@ -589,22 +589,10 @@ entire column from an array with different dtype:
     1    2
     Name: 0, dtype: int64
 
-*Behavior with pandas 1.5* is the same but you get a ``FutureWarning``:
-
-.. code-block:: ipython
-
-    In [3]: df.iloc[:, 0] = np.array([10, 11], dtype=np.int32)
-    FutureWarning: In a future version, `df.iloc[:, i] = newvals` will attempt to set the values inplace instead of always setting a new array. To retain the old behavior, use either `df[df.columns[i]] = newvals` or, if columns are non-unique, `df.isetitem(i, newvals)`
-    In [4]: ser
-    Out[4]:
-    0    0
-    1    2
-    Name: 0, dtype: int64
+This behavior is deprecated. In a future version, setting an entire column with
+iloc will attempt to operate inplace.
 
 *Future behavior*:
-
-In a future version, setting an entire column with ``iloc`` will attempt to
-operate inplace.
 
 .. code-block:: ipython
 
@@ -626,12 +614,15 @@ To get the old behavior, use :meth:`DataFrame.__setitem__` directly:
     1    11
     Name: 0, dtype: int64
 
-In the case where ``df.columns`` is not unique, use :meth:`DataFrame.isetitem`:
+In the case where ``df.columns`` is not unique, :meth:`DataFrame.isetitem` has
+been added in pandas 1.5:
+
+*New behavior*
 
 .. code-block:: ipython
 
     In [5]: df.columns = ["A", "A"]
-    In [5]: df.isetitem(0, np.array([21, 31]), dtype=np.int32)
+    In [5]: df.isetitem(0, np.array([21, 31], dtype=np.int32))
     In [4]: ser
     Out[4]:
     0    10
