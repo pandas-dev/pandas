@@ -183,16 +183,6 @@ class TestDataFrameEval:
         expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
-    @td.skip_array_manager_invalid_test
-    def test_eval_update_view_inplace(self):
-        # GH#47188
-        df = DataFrame({"A": [1, 2], "B": [10, 9], "C": [11, 12]})
-        result_view = df[:]
-        df.eval("A = B + C", inplace=True)
-        expected = DataFrame({"A": [21, 21], "B": [10, 9], "C": [11, 12]})
-        tm.assert_frame_equal(df, expected)
-        tm.assert_frame_equal(result_view, expected)
-
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
