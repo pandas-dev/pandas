@@ -28,6 +28,7 @@ import datetime
 import importlib
 import operator
 import os
+import pathlib
 import re
 import shutil
 import sys
@@ -183,6 +184,53 @@ class Preprocessors:
                     ),
                 }
             )
+        return context
+
+    @staticmethod
+    def roadmap_pdeps(context):
+        """
+        PDEP's (pandas enhancement proposals) are not part of the bar
+        navigation. They are included as lists in the "Roadmap" page
+        and linked from there. This preprocessor obtains the list of
+        PDEP's in different status from the directory tree and GitHub.
+        """
+        context["pdeps"] = {
+            "accepted": [],
+            "rejected": [],
+            "under_discussion": [],
+            "implemented": [],
+        }
+        # accepted, rejected and implemented
+        pdeps_path = (pathlib.Path(context["source_path"])
+                      / context["roadmap"]["pdeps_path"])
+        for status in ('accepted', 'rejected', 'implemented'):
+            status_dir = pdeps_path / status
+            if not status_dir.is_dir():
+                continue
+            for pdep in status_dir.iterdir():
+                if pdep.suffix != ".md":
+                    continue
+                html_file = pdep.with_suffix(".html").name
+                print(pdep)
+                with pdep.open() as f:
+                    title = f.readline()[2:]  # removing markdown title "# "
+                context["pdeps"][status].append({
+                    "title": title,
+                    "url": f"/pdeps/{status}/{html_file}",
+                })
+
+        # under discussion
+        github_repo_url = context["main"]["github_repo_url"]
+        resp = requests.get("https://api.github.com/search/issues?"
+                            f"q=is:pr is:open label:PDEP repo:{github_repo_url}")
+        if context["ignore_io_errors"] and resp.status_code == 403:
+            return context
+        resp.raise_for_status()
+
+        for pdep in resp.json()["items"]:
+            context["pdeps"]["under_discussion"].append({"title": pdep["title"],
+                                                         "url": pdep["url"]})
+
         return context
 
 

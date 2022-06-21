@@ -11,6 +11,7 @@ main:
   - pandas_web.Preprocessors.blog_add_posts
   - pandas_web.Preprocessors.maintainers_add_info
   - pandas_web.Preprocessors.home_add_releases
+  - pandas_web.Preprocessors.roadmap_pdeps
   markdown_extensions:
   - toc
   - tables
@@ -157,3 +158,5 @@ sponsors:
     logo: /static/img/partners/r_studio.svg
     kind: partner
     description: "Wes McKinney"
+roadmap:
+  pdeps_path: pdeps

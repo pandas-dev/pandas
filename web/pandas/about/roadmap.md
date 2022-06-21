@@ -15,10 +15,53 @@ fundamental changes to the project that are likely to take months or
 years of developer time. Smaller-scoped items will continue to be
 tracked on our [issue tracker](https://github.com/pandas-dev/pandas/issues).
 
-See [Roadmap evolution](#roadmap-evolution) for proposing
-changes to this document.
+The roadmap is defined as a set of major enhancement proposals named PDEPs.
+For more information about PDEPs, and how to submit one, please refer to
+[PEDP-1](/pdeps/accepted/0001-puropose-and-guidelines.html).
 
-## Extensibility
+## PDEPs
+
+### PDEPs under discussion
+
+{% for pdep in pdeps.under_discussion -%}
+- [{{ pdep.title }}]({{ pdep.url }})
+{% else %}
+There are currently no PEPs under discussion
+{% endfor %}
+
+### Accepted PDEPs
+
+{% for pdep in pdeps.accepted -%}
+- [{{ pdep.title }}]({{ pdep.url }})
+{% else %}
+There are currently no accepted PEPs
+{% endfor %}
+
+### Rejected PDEPs
+
+{% for pdep in pdeps.rejected -%}
+- [{{ pdep.title }}]({{ pdep.url }})
+{% else %}
+There are currently no rejected PEPs
+{% endfor %}
+
+### Implemented PDEPs
+
+{% for pdep in pdeps.implemented -%}
+- [{{ pdep.title }}]({{ pdep.url }})
+{% else %}
+There are currently no implemented PEPs
+{% endfor %}
+
+## Roadmap points pending a PDEP
+
+<div class="alert alert-warning" role="alert">
+  pandas is in the process of moving roadmap points to PDEPs (implemented in
+  June 2022). During the transition, some roadmap points will exist as PDEPs,
+  while others will exist as sections below.
+</div>
+
+### Extensibility
 
 Pandas `extending.extension-types` allow
 for extending NumPy types with custom data types and array storage.
@@ -33,7 +76,7 @@ library, making their behavior more consistent with the handling of
 NumPy arrays. We'll do this by cleaning up pandas' internals and
 adding new methods to the extension array interface.
 
-## String data type
+### String data type
 
 Currently, pandas stores text data in an `object` -dtype NumPy array.
 The current implementation has two primary drawbacks: First, `object`
@@ -54,7 +97,7 @@ work, we may need to implement certain operations expected by pandas
 users (for example the algorithm used in, `Series.str.upper`). That work
 may be done outside of pandas.
 
-## Apache Arrow interoperability
+### Apache Arrow interoperability
 
 [Apache Arrow](https://arrow.apache.org) is a cross-language development
 platform for in-memory data. The Arrow logical types are closely aligned
@@ -65,7 +108,7 @@ data types within pandas. This will let us take advantage of its I/O
 capabilities and provide for better interoperability with other
 languages and libraries using Arrow.
 
-## Block manager rewrite
+### Block manager rewrite
 
 We'd like to replace pandas current internal data structures (a
 collection of 1 or 2-D arrays) with a simpler collection of 1-D arrays.
@@ -92,7 +135,7 @@ See [these design
 documents](https://dev.pandas.io/pandas2/internal-architecture.html#removal-of-blockmanager-new-dataframe-internals)
 for more.
 
-## Decoupling of indexing and internals
+### Decoupling of indexing and internals
 
 The code for getting and setting values in pandas' data structures
 needs refactoring. In particular, we must clearly separate code that
@@ -107,7 +150,7 @@ Indexing is a complicated API with many subtleties. This refactor will
 require care and attention. More details are discussed at
 <https://github.com/pandas-dev/pandas/wiki/(Tentative)-rules-for-restructuring-indexing-code>
 
-## Numba-accelerated operations
+### Numba-accelerated operations
 
 [Numba](https://numba.pydata.org) is a JIT compiler for Python code.
 We'd like to provide ways for users to apply their own Numba-jitted
@@ -119,7 +162,7 @@ window contexts). This will improve the performance of
 user-defined-functions in these operations by staying within compiled
 code.
 
-## Documentation improvements
+### Documentation improvements
 
 We'd like to improve the content, structure, and presentation of the
 pandas documentation. Some specific goals include
@@ -134,7 +177,7 @@ pandas documentation. Some specific goals include
     subsections of the documentation to make navigation and finding
     content easier.
 
-## Performance monitoring
+### Performance monitoring
 
 Pandas uses [airspeed velocity](https://asv.readthedocs.io/en/stable/)
 to monitor for performance regressions. ASV itself is a fabulous tool,
@@ -154,29 +197,3 @@ We'd like to fund improvements and maintenance of these tools to
     <https://pyperf.readthedocs.io/en/latest/system.html>
 -   Build a GitHub bot to request ASV runs *before* a PR is merged.
     Currently, the benchmarks are only run nightly.
-
-## Roadmap Evolution
-
-Pandas continues to evolve. The direction is primarily determined by
-community interest. Everyone is welcome to review existing items on the
-roadmap and to propose a new item.
-
-Each item on the roadmap should be a short summary of a larger design
-proposal. The proposal should include
-
-1.  Short summary of the changes, which would be appropriate for
-    inclusion in the roadmap if accepted.
-2.  Motivation for the changes.
-3.  An explanation of why the change is in scope for pandas.
-4.  Detailed design: Preferably with example-usage (even if not
-    implemented yet) and API documentation
-5.  API Change: Any API changes that may result from the proposal.
-
-That proposal may then be submitted as a GitHub issue, where the pandas
-maintainers can review and comment on the design. The [pandas mailing
-list](https://mail.python.org/mailman/listinfo/pandas-dev) should be
-notified of the proposal.
-
-When there's agreement that an implementation would be welcome, the
-roadmap should be updated to include the summary and a link to the
-discussion issue.
