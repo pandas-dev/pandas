@@ -544,3 +544,24 @@ def test_union_duplicates(index, request):
 
     result = mi2.union(mi1)
     tm.assert_index_equal(result, mi2.sort_values())
+
+
+@pytest.mark.parametrize(
+    "levels1, levels2, codes1, codes2, names",
+    [
+        (
+            [["a", "b", "c"], [0, ""]],
+            [["c", "d", "b"], [""]],
+            [[0, 1, 2], [1, 1, 1]],
+            [[0, 1, 2], [0, 0, 0]],
+            ["name1", "name2"],
+        ),
+    ],
+)
+def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
+    # GH#25169
+    mi1 = MultiIndex(levels=levels1, codes=codes1, names=names)
+    mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
+    mi_int = mi1.intersection(mi2)
+
+    assert mi_int.lexsort_depth == 0
