@@ -413,11 +413,21 @@ class _EtreeFrameParser(_XMLFrameParser):
                     row = {}
 
             if row is not None:
-                for col in self.iterparse[row_node]:
-                    if curr_elem == col:
-                        row[col] = elem.text.strip() if elem.text else None
-                    if col in elem.attrib:
-                        row[col] = elem.attrib[col]
+                if self.names:
+                    for col, nm in zip(self.iterparse[row_node], self.names):
+                        if curr_elem == col:
+                            elem_val = elem.text.strip() if elem.text else None
+                            if elem_val not in row.values() and nm not in row:
+                                row[nm] = elem_val
+                        if col in elem.attrib:
+                            if elem.attrib[col] not in row.values() and nm not in row:
+                                row[nm] = elem.attrib[col]
+                else:
+                    for col in self.iterparse[row_node]:
+                        if curr_elem == col:
+                            row[col] = elem.text.strip() if elem.text else None
+                        if col in elem.attrib:
+                            row[col] = elem.attrib[col]
 
             if event == "end":
                 if curr_elem == row_node and row is not None:
@@ -661,11 +671,21 @@ class _LxmlFrameParser(_XMLFrameParser):
                     row = {}
 
             if row is not None:
-                for col in self.iterparse[row_node]:
-                    if curr_elem == col:
-                        row[col] = elem.text.strip() if elem.text else None
-                    if col in elem.attrib:
-                        row[col] = elem.attrib[col]
+                if self.names:
+                    for col, nm in zip(self.iterparse[row_node], self.names):
+                        if curr_elem == col:
+                            elem_val = elem.text.strip() if elem.text else None
+                            if elem_val not in row.values() and nm not in row:
+                                row[nm] = elem_val
+                        if col in elem.attrib:
+                            if elem.attrib[col] not in row.values() and nm not in row:
+                                row[nm] = elem.attrib[col]
+                else:
+                    for col in self.iterparse[row_node]:
+                        if curr_elem == col:
+                            row[col] = elem.text.strip() if elem.text else None
+                        if col in elem.attrib:
+                            row[col] = elem.attrib[col]
 
             if event == "end":
                 if curr_elem == row_node and row is not None:
@@ -1020,7 +1040,8 @@ def read_xml(
 
     names :  list-like, optional
         Column names for DataFrame of parsed XML data. Use this parameter to
-        rename original element names and distinguish same named elements.
+        rename original element names and distinguish same named elements and
+        attributes.
 
     dtype : Type name or dict of column -> type, optional
         Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
