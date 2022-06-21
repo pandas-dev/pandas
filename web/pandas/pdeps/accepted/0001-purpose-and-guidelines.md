@@ -1,6 +1,6 @@
 # PDEP-1: Purpose and guidelines
 
-- Date 21 June 2022
+- Date: 21 June 2022
 - Status: Accepted
 - Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
 - Author: [Marc Garcia](https://github.com/datapythonista)
@@ -41,7 +41,7 @@ consider when writing a PDEP are:
 
 Anyone can propose a PDEP, but in most cases developers of pandas itself and related
 projects are expected to author PDEPs. If you are unsure if you should be opening
-an issue or creating a PDEP, it's probably save to start by
+an issue or creating a PDEP, it's probably safe to start by
 [opening an issue](https://github.com/pandas-dev/pandas/issues/new/choose), which can
 be eventually moved to a PDEP.
 
@@ -64,7 +64,7 @@ once the decision is made. Please make sure you select the option
 A PDEP will be accepted by the core development team, and decisions will be made
 based on the [pandas governance document](https://github.com/pandas-dev/pandas-governance/blob/master/governance.md).
 
-Once a PDEP is accepted, it is unclear how the implementation will happen. The
+Once a PDEP is accepted, any contributions can be made toward the implementing the PDEP with an open-ended completion timeline . The
 pandas project development, with a mix of volunteers and developers paid from
 different sources, and development priorities are difficult to understand or
 forecast. For companies, institutions or individuals with interest in seeing a
