@@ -266,8 +266,13 @@ class TestFillNA:
         tm.assert_equal(result, obj)
 
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
-    def test_fillna_dictlike_value_duplicate_colnames(self, columns):
+    def test_fillna_dictlike_value_duplicate_colnames(
+        self, columns, using_array_manager
+    ):
         # GH#43476
+        if using_array_manager and columns == ["A", "A", "B"]:
+            pytest.mark.xfail("Setting on duplicate columns not allowed")
+
         df = DataFrame(np.nan, index=[0, 1], columns=columns)
         with tm.assert_produces_warning(None):
             result = df.fillna({"A": 0})
