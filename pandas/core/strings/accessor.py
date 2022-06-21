@@ -18,7 +18,10 @@ from pandas._typing import (
     DtypeObj,
     F,
 )
-from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
