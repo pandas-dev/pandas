@@ -1720,7 +1720,7 @@ class DataFrame(NDFrame, OpsMixin):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
-            raise ValueError("only recognize index or columns for orient")
+            raise ValueError("only recognize 'index', 'columns', or 'tight' for orient")
 
         if orient != "tight":
             return cls(data, index=index, columns=columns, dtype=dtype)
