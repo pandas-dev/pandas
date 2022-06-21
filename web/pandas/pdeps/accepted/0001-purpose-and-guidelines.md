@@ -64,7 +64,7 @@ once the decision is made. Please make sure you select the option
 A PDEP will be accepted by the core development team, and decisions will be made
 based on the [pandas governance document](https://github.com/pandas-dev/pandas-governance/blob/master/governance.md).
 
-Once a PDEP is accepted, it is unclear how the implementation will happen. The
+Once a PDEP is accepted, any contributions can be made toward the implementing the PDEP with an open-ended completion timeline . The
 pandas project development, with a mix of volunteers and developers paid from
 different sources, and development priorities are difficult to understand or
 forecast. For companies, institutions or individuals with interest in seeing a
