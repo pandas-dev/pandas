@@ -42,6 +42,9 @@ global-exclude *~
 global-exclude .DS_Store
 global-exclude .git*
 global-exclude \#*
+recursive-exclude **/CMakeFiles *
+global-exclude *.cmake
+global-exclude CMakeCache.txt
 
 global-exclude *.c
 global-exclude *.cpp
