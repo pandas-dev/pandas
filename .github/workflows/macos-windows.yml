@@ -15,7 +15,6 @@ on:
 env:
   PANDAS_CI: 1
   PYTEST_TARGET: pandas
-  PYTEST_WORKERS: auto
   PATTERN: "not slow and not db and not network and not single_cpu"
 
 
@@ -36,6 +35,9 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.os }}
       cancel-in-progress: true
+    env:
+      # GH 47443: PYTEST_WORKERS > 1 crashes Windows builds with memory related errors
+      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '1' }}
 
     steps:
     - name: Checkout
