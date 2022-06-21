@@ -674,7 +674,7 @@ class TestFillNA:
         df.fillna(axis=1, value=100, limit=1, inplace=True)
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_not_yet_implemented
+    @td.skip_array_manager_invalid_test
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
     def test_inplace_dict_update_view(self, val):
         # GH#47188
