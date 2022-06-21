@@ -1105,8 +1105,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return DatetimeArray(result)
 
         i8 = self.asi8
-        result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
-        result = self._maybe_mask_results(result)
+        # Incompatible types in assignment (expression has type "ndarray[Any,
+        # dtype[signedinteger[_64Bit]]]", variable has type
+        # "ndarray[Any, dtype[datetime64]]")
+        result = checked_add_with_arr(  # type: ignore[assignment]
+            i8, other.value, arr_mask=self._isnan
+        )
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
@@ -1147,7 +1151,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
-        result = self._maybe_mask_results(result)
         return result.view("timedelta64[ns]")
 
     @final
@@ -1169,14 +1172,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        arr_mask = self._isnan | other._isnan
-        new_values = checked_add_with_arr(self_i8, -other_i8, arr_mask=arr_mask)
-        if self._hasna or other._hasna:
-            np.putmask(new_values, arr_mask, iNaT)
+        new_values = checked_add_with_arr(
+            self_i8, -other_i8, arr_mask=self._isnan, b_mask=other._isnan
+        )
         return new_values.view("timedelta64[ns]")
 
     @final
-    def _sub_period(self, other: Period):
+    def _sub_period(self, other: Period) -> npt.NDArray[np.object_]:
         if not is_period_dtype(self.dtype):
             raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
@@ -1184,8 +1186,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
         asi8 = self.asi8
-        new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq.base * x for x in new_data])
+        new_i8_data = asi8 - other.ordinal  # TODO: checked_add_with_arr
+        new_data = np.array([self.freq.base * x for x in new_i8_data])
 
         if self._hasna:
             new_data[self._isnan] = NaT
@@ -1193,7 +1195,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_data
 
     @final
-    def _add_period(self, other: Period):
+    def _add_period(self, other: Period) -> PeriodArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(f"cannot add Period to a {type(self).__name__}")
 
@@ -1226,8 +1228,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         inc = delta_to_nanoseconds(other, reso=self._reso)  # type: ignore[attr-defined]
 
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
-        new_values = new_values.view("i8")
-        new_values = self._maybe_mask_results(new_values)
         new_values = new_values.view(self._ndarray.dtype)
 
         new_freq = None
@@ -1263,10 +1263,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = checked_add_with_arr(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
-        if self._hasna or other._hasna:
-            mask = self._isnan | other._isnan
-            np.putmask(new_values, mask, iNaT)
-
         return type(self)(new_values, dtype=self.dtype)
 
     @final
@@ -1310,11 +1306,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("PeriodArray", self)
         self._require_matching_freq(other)
 
-        new_values = checked_add_with_arr(
+        new_i8_values = checked_add_with_arr(
             self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
         )
 
-        new_values = np.array([self.freq.base * x for x in new_values])
+        new_values = np.array([self.freq.base * x for x in new_i8_values])
         if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             new_values[mask] = NaT

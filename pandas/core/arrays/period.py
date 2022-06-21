@@ -734,8 +734,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         if op is operator.sub:
             other = -other
         res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
-        res_values = res_values.view("i8")
-        np.putmask(res_values, self._isnan, iNaT)
         return type(self)(res_values, freq=self.freq)
 
     def _add_offset(self, other: BaseOffset):
