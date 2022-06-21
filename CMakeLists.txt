@@ -10,15 +10,17 @@ project(pandas)
 
 if(WIN32)
   if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set(CMAKE_BUILD_TYPE
+        Release
+        CACHE STRING "Build type" FORCE)
   endif()
   find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "")
   link_directories(${Python3_LIBRARY_DIRS})
-else ()
+else()
   # we only choose Development.Module to support virtual environments where
-  # libpython may not be available
-  # see https://github.com/pypa/manylinux/issues/484
+  # libpython may not be available see
+  # https://github.com/pypa/manylinux/issues/484
   find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 endif()
 
