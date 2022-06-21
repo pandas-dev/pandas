@@ -515,7 +515,12 @@ class StylerRenderer:
 
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple | list, max_cols: int, col_lengths: dict):
+    def _generate_index_names_row(
+        self,
+        iter: tuple | list,
+        max_cols: int,
+        col_lengths: dict,
+    ):
         """
         Generate the row containing index names
 
