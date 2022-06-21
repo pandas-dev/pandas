@@ -41,7 +41,7 @@ consider when writing a PDEP are:
 
 Anyone can propose a PDEP, but in most cases developers of pandas itself and related
 projects are expected to author PDEPs. If you are unsure if you should be opening
-an issue or creating a PDEP, it's probably save to start by
+an issue or creating a PDEP, it's probably safe to start by
 [opening an issue](https://github.com/pandas-dev/pandas/issues/new/choose), which can
 be eventually moved to a PDEP.
 
