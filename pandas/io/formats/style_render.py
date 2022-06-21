@@ -515,7 +515,7 @@ class StylerRenderer:
 
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_index_names_row(self, iter: tuple | list, max_cols: int, col_lengths: dict):
         """
         Generate the row containing index names
 
@@ -525,7 +525,7 @@ class StylerRenderer:
 
         Parameters
         ----------
-        iter : tuple
+        iter : tuple or list
             Looping variables from outer scope
         max_cols : int
             Permissible number of columns

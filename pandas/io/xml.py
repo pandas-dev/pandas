@@ -408,9 +408,8 @@ class _EtreeFrameParser(_XMLFrameParser):
         for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
             curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
-            if event == "start":
-                if curr_elem == row_node:
-                    row = {}
+            if event == "start" and curr_elem == row_node:
+                row = {}
 
             if row is not None:
                 for col in self.iterparse[row_node]:
@@ -656,9 +655,8 @@ class _LxmlFrameParser(_XMLFrameParser):
         for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
             curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
-            if event == "start":
-                if curr_elem == row_node:
-                    row = {}
+            if event == "start" and curr_elem == row_node:
+                row = {}
 
             if row is not None:
                 for col in self.iterparse[row_node]:

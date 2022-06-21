@@ -4536,9 +4536,8 @@ class DataFrame(NDFrame, OpsMixin):
                 if not dtype_predicate(dtype, include):
                     return False
 
-            if exclude:
-                if dtype_predicate(dtype, exclude):
-                    return False
+            if exclude and dtype_predicate(dtype, exclude): 
+                return False
 
             return True
 
