@@ -7833,7 +7833,7 @@ Keep all original rows and columns and also all original values
             if y.name not in self.columns:
                 return y_values
 
-            values = self._mgr.where(y_values, mask, align=True, axis=1)
+            values = self._mgr.where(y_values, mask, align=True)
 
             return self._constructor(data=values)
 
