@@ -18,7 +18,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.to_csv` raising error when :class:`DataFrame` contains extension dtype categorical column (:issue:`46297`, :issue:`46812`)
 - Fixed regression in representation of ``dtypes`` attribute of :class:`MultiIndex` (:issue:`46900`)
 - Fixed regression when setting values with :meth:`DataFrame.loc` updating :class:`RangeIndex` when index was set as new column and column was updated afterwards (:issue:`47128`)
-- Fixed regression in :meth:`DataFrame.fillna` creating a copy when a dictionary was given as a fill value (:issue:`47188`)
+- Fixed regression in :meth:`DataFrame.fillna`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` creating a copy when updating inplace (:issue:`47188`)
 - Fixed regression in :meth:`DataFrame.nsmallest` led to wrong results when ``np.nan`` in the sorting column (:issue:`46589`)
 - Fixed regression in :func:`read_fwf` raising ``ValueError`` when ``widths`` was specified with ``usecols`` (:issue:`46580`)
 - Fixed regression in :func:`concat` not sorting columns for mixed column names (:issue:`47127`)
