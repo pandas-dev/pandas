@@ -2,7 +2,7 @@
 
 - Date 21 June 2022
 - Status: Accepted
-- Discussion: [#XXXXX](https://github.com/pandas-dev/pandas/pull/XXXXX)
+- Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
 - Author: [Marc Garcia](https://github.com/datapythonista)
 
 ## PDEP definition, purpose and scope
