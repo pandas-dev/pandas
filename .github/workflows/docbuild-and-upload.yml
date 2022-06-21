@@ -16,7 +16,6 @@ env:
 
 jobs:
   web_and_docs:
-    if: false
     name: Doc Build and Upload
     runs-on: ubuntu-latest
 

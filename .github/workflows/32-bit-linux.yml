@@ -14,7 +14,6 @@ on:
 
 jobs:
   pytest:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
