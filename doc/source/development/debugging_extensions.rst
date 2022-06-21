@@ -8,11 +8,12 @@ Debugging C extensions
 
 Pandas uses select C extensions for high performance IO operations. In case you need to debug segfaults or general issues with those extensions, the following steps may be helpful.
 
-First, be sure to compile the extensions with the appropriate flags to generate debug symbols and remove optimizations. This can be achieved as follows:
+First, be sure to compile the extensions with the appropriate flags to generate debug symbols and remove optimizations. This can be achieved on Unix-like systems as follows:
 
 .. code-block:: sh
 
-   python setup.py build_ext --inplace -j4 --with-debugging-symbols
+   cmake . -DCMAKE_BUILD_TYPE=Debug
+   cmake --build . --parallel
 
 Using a debugger
 ================

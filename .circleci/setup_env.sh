@@ -98,9 +98,10 @@ if [ "$(conda list -f qt --json)" != [] ]; then
 fi
 
 echo "Build extensions"
-python setup.py build_ext -q -j3
+cmake .
+cmake --build . --config Release --parallel
 
 echo "Install pandas"
-python -m pip install --no-build-isolation --no-use-pep517 -e .
+python -m pip install --no-build-isolation -e .
 
 echo "done"

@@ -28,7 +28,8 @@ except ImportError as _err:  # pragma: no cover
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --force' to build the C extensions first."
+        "'cmake . && cmake --build . --config Release --parallel' "
+        "to build the C extensions first."
     ) from _err
 else:
     del _tslib, _lib, _hashtable

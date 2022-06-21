@@ -42,7 +42,8 @@ Run Container::
     If you bind your local repo for the first time, you have to build the C extensions afterwards.
     Run the following command inside the container::
 
-        python setup.py build_ext -j 4
+        cmake .
+        cmake --build . --config Release --parallel
 
     You need to rebuild the C extensions anytime the Cython code in ``pandas/_libs`` changes.
     This most frequently occurs when changing or merging branches.
@@ -169,7 +170,8 @@ We'll now kick off a three-step process:
    source activate pandas-dev
 
    # Build and install pandas
-   python setup.py build_ext -j 4
+   cmake .
+   cmake --build . --config Release --parallel
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
@@ -216,7 +218,8 @@ You also need to have ``setuptools`` 51.0.0 or later to build pandas.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext -j 4
+   cmake .
+   cmake --build . --config Release --parallel
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Unix**/**macOS with pyenv**
@@ -240,7 +243,8 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext -j 4
+   cmake .
+   cmake --build . --config Release --parallel
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
@@ -266,5 +270,6 @@ should already exist.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext -j 4
+   cmake .
+   cmake --build . --config Release --parallel
    python -m pip install -e . --no-build-isolation --no-use-pep517
