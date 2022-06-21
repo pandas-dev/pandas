@@ -874,7 +874,6 @@ I/O
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 - Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
 - Bug in :meth:`DataFrame.to_excel` when writing an empty dataframe with :class:`MultiIndex` (:issue:`19543`)
-- Bug in :func:`read_xml` when reading XML with duplicate element and attribute names (:issue:`47343`)
 
 Period
 ^^^^^^
