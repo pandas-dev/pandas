@@ -447,7 +447,6 @@ if include_api:
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-        "statsmodels": ("https://www.statsmodels.org/devel/", None),
         "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
