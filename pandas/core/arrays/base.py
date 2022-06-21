@@ -1541,7 +1541,7 @@ class ExtensionArray:
     def _values_for_rank(self) -> np.ndarray:
         """
         Return values for ranking
-        
+
         Returns
         -------
         ndarray
