@@ -441,7 +441,7 @@ def test_outer():
         np.subtract.outer(s, o)
 
 
-def test_npmul():
+def test_np_matmul():
     # GH26650
     df1 = pd.DataFrame(data=[[-1, 1, 10]])
     df2 = pd.DataFrame(data=[-1, 1, 10])
