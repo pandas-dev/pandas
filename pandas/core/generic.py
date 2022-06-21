@@ -6482,7 +6482,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if k not in result:
                         continue
                     downcast_k = downcast if not is_dict else downcast.get(k)
-                    result[k] = result[k].fillna(v, limit=limit, downcast=downcast_k)
+                    result.loc[:, k] = result[k].fillna(
+                        v, limit=limit, downcast=downcast_k
+                    )
                 return result if not inplace else None
 
             elif not is_list_like(value):
