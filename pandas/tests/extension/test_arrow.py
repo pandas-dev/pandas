@@ -307,6 +307,12 @@ class TestBaseMissing(base.BaseMissingTests):
     pass
 
 
+class TestBaseSetitemTests(base.BaseSetitemTests):
+    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    def test_setitem_preserves_views(self, data):
+        super().test_setitem_preserves_views(data)
+
+
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
