@@ -1697,9 +1697,6 @@ def construct_1d_arraylike_from_scalar(
     else:
 
         if is_integer_dtype(dtype) and isna(value):
-            if not length:
-                # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
-                return np.array([], dtype=dtype)
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
         elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
@@ -1712,7 +1709,9 @@ def construct_1d_arraylike_from_scalar(
             value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
-        subarr.fill(value)
+        if length:
+            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+            subarr.fill(value)
 
     return subarr
 
