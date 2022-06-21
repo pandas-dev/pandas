@@ -1017,10 +1017,10 @@ def rank(
 
 def checked_add_with_arr(
     arr: npt.NDArray[np.int64],
-    b,
+    b: int | npt.NDArray[np.int64],
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.int64]:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -1098,7 +1098,12 @@ def checked_add_with_arr(
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
-    return arr + b
+
+    result = arr + b
+    if arr_mask is not None or b2_mask is not None:
+        np.putmask(result, ~not_nan, iNaT)
+
+    return result
 
 
 # --------------- #
@@ -1771,9 +1776,12 @@ def safe_sort(
 def _sort_mixed(values) -> np.ndarray:
     """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos])
+    none_pos = np.array([x is None for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos & ~none_pos])
     strs = np.sort(values[str_pos])
-    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+    return np.concatenate(
+        [nums, np.asarray(strs, dtype=object), np.array(values[none_pos])]
+    )
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:

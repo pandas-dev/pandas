@@ -148,31 +148,42 @@ class TestTimestampUnaryOps:
         result = func(freq)
         assert result == expected
 
-    def test_ceil(self):
-        dt = Timestamp("20130101 09:10:11")
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_ceil(self, unit):
+        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
         result = dt.ceil("D")
         expected = Timestamp("20130102")
         assert result == expected
+        assert result._reso == dt._reso
 
-    def test_floor(self):
-        dt = Timestamp("20130101 09:10:11")
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_floor(self, unit):
+        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
         result = dt.floor("D")
         expected = Timestamp("20130101")
         assert result == expected
+        assert result._reso == dt._reso
 
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
-    def test_round_dst_border_ambiguous(self, method):
+    @pytest.mark.parametrize(
+        "unit",
+        ["ns", "us", "ms", "s"],
+    )
+    def test_round_dst_border_ambiguous(self, method, unit):
         # GH 18946 round near "fall back" DST
         ts = Timestamp("2017-10-29 00:00:00", tz="UTC").tz_convert("Europe/Madrid")
+        ts = ts._as_unit(unit)
         #
         result = getattr(ts, method)("H", ambiguous=True)
         assert result == ts
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)("H", ambiguous=False)
         expected = Timestamp("2017-10-29 01:00:00", tz="UTC").tz_convert(
             "Europe/Madrid"
         )
         assert result == expected
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)("H", ambiguous="NaT")
         assert result is NaT
@@ -189,12 +200,17 @@ class TestTimestampUnaryOps:
             ["floor", "2018-03-11 03:01:00-0500", "2H"],
         ],
     )
-    def test_round_dst_border_nonexistent(self, method, ts_str, freq):
+    @pytest.mark.parametrize(
+        "unit",
+        ["ns", "us", "ms", "s"],
+    )
+    def test_round_dst_border_nonexistent(self, method, ts_str, freq, unit):
         # GH 23324 round near "spring forward" DST
-        ts = Timestamp(ts_str, tz="America/Chicago")
+        ts = Timestamp(ts_str, tz="America/Chicago")._as_unit(unit)
         result = getattr(ts, method)(freq, nonexistent="shift_forward")
         expected = Timestamp("2018-03-11 03:00:00", tz="America/Chicago")
         assert result == expected
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
         result = getattr(ts, method)(freq, nonexistent="NaT")
         assert result is NaT
@@ -466,35 +482,41 @@ class TestTimestampUnaryOps:
         ts2b = normalize(ts2)
         assert ts2 == ts2b
 
-    def test_replace_dst_border(self):
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_replace_dst_border(self, unit):
         # Gh 7825
-        t = Timestamp("2013-11-3", tz="America/Chicago")
+        t = Timestamp("2013-11-3", tz="America/Chicago")._as_unit(unit)
         result = t.replace(hour=3)
         expected = Timestamp("2013-11-3 03:00:00", tz="America/Chicago")
         assert result == expected
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
-    def test_replace_dst_fold(self, fold, tz):
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_replace_dst_fold(self, fold, tz, unit):
         # GH 25017
         d = datetime(2019, 10, 27, 2, 30)
-        ts = Timestamp(d, tz=tz)
+        ts = Timestamp(d, tz=tz)._as_unit(unit)
         result = ts.replace(hour=1, fold=fold)
         expected = Timestamp(datetime(2019, 10, 27, 1, 30)).tz_localize(
             tz, ambiguous=not fold
         )
         assert result == expected
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     # --------------------------------------------------------------
     # Timestamp.normalize
 
     @pytest.mark.parametrize("arg", ["2013-11-30", "2013-11-30 12:00:00"])
-    def test_normalize(self, tz_naive_fixture, arg):
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_normalize(self, tz_naive_fixture, arg, unit):
         tz = tz_naive_fixture
-        ts = Timestamp(arg, tz=tz)
+        ts = Timestamp(arg, tz=tz)._as_unit(unit)
         result = ts.normalize()
         expected = Timestamp("2013-11-30", tz=tz)
         assert result == expected
+        assert result._reso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     def test_normalize_pre_epoch_dates(self):
         # GH: 36294
