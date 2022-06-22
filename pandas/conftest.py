@@ -83,7 +83,7 @@ if pd.compat.PY39:
     # "not available" without tzdata/IANA tz data.
     # We will set zoneinfo to not found in this case
     try:
-        utc_zoneinfo = ZoneInfo("UTC")
+        utc_zoneinfo = zoneinfo.ZoneInfo("UTC")
     except zoneinfo.ZoneInfoNotFoundError:
         zoneinfo = None
 
