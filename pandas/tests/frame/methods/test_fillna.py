@@ -265,6 +265,7 @@ class TestFillNA:
         result = obj.fillna("", downcast=False)
         tm.assert_equal(result, obj)
 
+    @td.skip_array_manager_invalid_test
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476
@@ -653,6 +654,17 @@ class TestFillNA:
 
         df.fillna(axis=1, value=100, limit=1, inplace=True)
         tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_invalid_test
+    @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
+    def test_inplace_dict_update_view(self, val):
+        # GH#47188
+        df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
+        result_view = df[:]
+        df.fillna(val, inplace=True)
+        expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(result_view, expected)
 
 
 def test_fillna_nonconsolidated_frame():
