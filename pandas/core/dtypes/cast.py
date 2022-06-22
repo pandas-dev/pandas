@@ -2220,7 +2220,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
                     #  We do something similar in putmask_smart
-                    casted = element.astype(dtype)
+                    
+                    # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
+                    with np.errstate(invalid="ignore"):
+                        casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
                         return element
