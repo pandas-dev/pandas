@@ -556,7 +556,10 @@ def sanitize_array(
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
             try:
-                subarr = _try_cast(data, dtype, copy, True)
+                # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
+                # casting aligning with IntCastingNaNError below
+                with np.errstate(invalid="ignore"):
+                    subarr = _try_cast(data, dtype, copy, True)
             except IntCastingNaNError:
                 warnings.warn(
                     "In a future version, passing float-dtype values containing NaN "
