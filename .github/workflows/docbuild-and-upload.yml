@@ -40,11 +40,18 @@ jobs:
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
+    - name: Install build dependencies
+      run: |
+        python -m pip install -r web/pandas/requirements.txt
+
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
+
+    - name: Check the interactive terminal assets have been generated
+      run: stat web/build/lite/build/
 
     - name: Install ssh key
       run: |

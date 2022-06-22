@@ -1,0 +1,2 @@
+jupyterlab~=3.4.3
+jupyterlite==0.1.0b9
