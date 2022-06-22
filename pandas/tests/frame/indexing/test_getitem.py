@@ -357,6 +357,21 @@ class TestGetitemBooleanMask:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
+    def test_getitem_returns_view_when_column_is_unique_in_df(self):
+        # GH#45316
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
+        view = df["b"]
+        view.loc[:] = 100
+        expected = DataFrame([[1, 2, 100], [4, 5, 100]], columns=["a", "a", "b"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_getitem_frozenset_unique_in_column(self):
+        # GH#41062
+        df = DataFrame([[1, 2, 3, 4]], columns=[frozenset(["KEY"]), "B", "C", "C"])
+        result = df[frozenset(["KEY"])]
+        expected = Series([1], name=frozenset(["KEY"]))
+        tm.assert_series_equal(result, expected)
+
 
 class TestGetitemSlice:
     def test_getitem_slice_float64(self, frame_or_series):
