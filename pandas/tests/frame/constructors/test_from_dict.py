@@ -193,4 +193,4 @@ class TestFromDict:
     def test_from_dict_orient_invalid(self):
         msg = "only recognize 'index', 'columns', or 'tight' for orient"
         with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient='abc')
+            DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
