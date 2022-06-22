@@ -19,7 +19,7 @@ df
 ```
 
 <iframe
-  src="./lite/repl/index.html?toolbar=1&kernel=python&code=import pandas as pd"
+  src="./lite/repl/index.html?toolbar=1&kernel=python&code=import%20pandas%20as%20pd&code=df%20=%20pd.DataFrame(%7B'num_legs':%20%5B2,%204%5D,%20'num_wings':%20%5B2,%200%5D%7D,%20index=%5B'falcon',%20'dog'%5D)"
   width="100%"
   height="500px"
 ></iframe>
