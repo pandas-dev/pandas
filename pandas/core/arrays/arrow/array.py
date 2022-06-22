@@ -496,7 +496,7 @@ class ArrowExtensionArray(ExtensionArray):
         if isinstance(key, slice):
             indices = np.arange(n)[key]
         elif is_integer(key):
-            indices = np.arange(n)[[key]]  # type: ignore[index]
+            indices = np.arange(n)[[key]]
         elif is_bool_dtype(key):
             key = np.asarray(key)
             if len(key) != n:

@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
+
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
@@ -30,7 +32,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 

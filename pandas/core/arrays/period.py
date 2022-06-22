@@ -22,6 +22,7 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
+    get_unit_from_dtype,
     iNaT,
     parsing,
     period as libperiod,
@@ -733,8 +734,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         if op is operator.sub:
             other = -other
         res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
-        res_values = res_values.view("i8")
-        np.putmask(res_values, self._isnan, iNaT)
         return type(self)(res_values, freq=self.freq)
 
     def _add_offset(self, other: BaseOffset):
@@ -1024,7 +1023,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         used.
 
     """
-    if data.dtype != np.dtype("M8[ns]"):
+    if not isinstance(data.dtype, np.dtype) or data.dtype.kind != "M":
         raise ValueError(f"Wrong dtype: {data.dtype}")
 
     if freq is None:
@@ -1036,9 +1035,10 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
 
+    reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
-    return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
+    return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):

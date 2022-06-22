@@ -43,6 +43,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    QuantileInterpolation,
     Renamer,
     SingleManager,
     SortKind,
@@ -2023,9 +2024,7 @@ Name: Max Speed, dtype: float64
             lev = lev.insert(cnt, lev._na_value)
 
         obs = level_codes[notna(self._values)]
-        # Argument "minlength" to "bincount" has incompatible type "Optional[int]";
-        # expected "SupportsIndex"  [arg-type]
-        out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
+        out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev, dtype="int64").__finalize__(
             self, method="count"
         )
@@ -2479,7 +2478,33 @@ Name: Max Speed, dtype: float64
 
         return result
 
-    def quantile(self, q=0.5, interpolation="linear"):
+    @overload
+    def quantile(
+        self, q: float = ..., interpolation: QuantileInterpolation = ...
+    ) -> float:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: Sequence[float] | AnyArrayLike,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> float | Series:
+        ...
+
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = 0.5,
+        interpolation: QuantileInterpolation = "linear",
+    ) -> float | Series:
         """
         Return value at the given quantile.
 

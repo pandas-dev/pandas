@@ -1879,11 +1879,11 @@ def _get_plot_backend(backend: str | None = None):
     -----
     Modifies `_backends` with imported backend as a side effect.
     """
-    backend = backend or get_option("plotting.backend")
+    backend_str: str = backend or get_option("plotting.backend")
 
-    if backend in _backends:
-        return _backends[backend]
+    if backend_str in _backends:
+        return _backends[backend_str]
 
-    module = _load_backend(backend)
-    _backends[backend] = module
+    module = _load_backend(backend_str)
+    _backends[backend_str] = module
     return module
