@@ -925,15 +925,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            # Invalid index type "Tuple[Union[int, ellipsis], ...]" for
-            # "ndarray[Any, Any]"; expected type "Union[SupportsIndex,
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]], _NestedSequence[_Su
-            # pportsArray[dtype[Union[bool_, integer[Any]]]]],
-            # _NestedSequence[Union[bool, int]], Tuple[Union[SupportsIndex,
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]],
-            # _NestedSequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]], _N
-            # estedSequence[Union[bool, int]]], ...]]"  [index]
-            data_slice = self.to_dense()[key]  # type: ignore[index]
+            data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
 
             # Avoid densifying when handling contiguous slices
@@ -1173,9 +1165,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             data = np.concatenate(values)
             indices_arr = np.concatenate(indices)
-            # Argument 2 to "IntIndex" has incompatible type "ndarray[Any,
-            # dtype[signedinteger[_32Bit]]]"; expected "Sequence[int]"
-            sp_index = IntIndex(length, indices_arr)  # type: ignore[arg-type]
+            sp_index = IntIndex(length, indices_arr)
 
         else:
             # when concatenating block indices, we don't claim that you'll
@@ -1353,8 +1343,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
             nd_state, (fill_value, sp_index) = state
-            # Need type annotation for "sparse_values"  [var-annotated]
-            sparse_values = np.array([])  # type: ignore[var-annotated]
+            sparse_values = np.array([])
             sparse_values.__setstate__(nd_state)
 
             self._sparse_values = sparse_values

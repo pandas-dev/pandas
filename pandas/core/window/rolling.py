@@ -354,7 +354,10 @@ class BaseWindow(SelectionMixin):
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        return values
+        # error: Incompatible return value type
+        # (got "Union[ExtensionArray, ndarray[Any, Any],
+        # ndarray[Any, dtype[floating[_64Bit]]]]", expected "ndarray[Any, Any]")
+        return values  # type: ignore[return-value]
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into

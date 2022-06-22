@@ -184,5 +184,8 @@ def _nanpercentile(
         return result
     else:
         return np.percentile(
-            values, qs, axis=1, **{np_percentile_argname: interpolation}
+            values,
+            qs,
+            axis=1,
+            **{np_percentile_argname: interpolation},
         )
