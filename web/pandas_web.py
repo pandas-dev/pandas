@@ -30,6 +30,7 @@ import operator
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 import typing
@@ -258,6 +259,21 @@ def extend_base_template(content: str, base_template: str) -> str:
     return result
 
 
+def build_interactive_terminal(source_path: str, target_path: str) -> int:
+    build_cmd = [
+        "jupyter",
+        "lite",
+        "build",
+        "--lite-dir",
+        os.path.join(source_path, "interactive_terminal"),
+        "--output-dir",
+        os.path.join(target_path, "lite"),
+        "--debug",
+    ]
+    rc = subprocess.run(build_cmd, check=True)
+    return rc
+
+
 def main(
     source_path: str, target_path: str, base_url: str, ignore_io_errors: bool
 ) -> int:
@@ -304,6 +320,8 @@ def main(
             shutil.copy(
                 os.path.join(source_path, fname), os.path.join(target_path, dirname)
             )
+
+    build_interactive_terminal(source_path, target_path)
 
 
 if __name__ == "__main__":
