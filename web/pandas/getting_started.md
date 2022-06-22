@@ -1,8 +1,8 @@
 # Getting started
 
-## Try it online
+## Try it in your browser
 
-You can try `pandas` online with the following interactive shell
+You can try `pandas` in your browser with the following interactive shell
 without installing anything on your computer.
 
 For example you can use the following code snippet to interact with the `iris`
