@@ -323,7 +323,7 @@ PyDatastream is a Python interface to the
 REST API to return indexed pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
-`pandasdmx <https://pandasdmx.readthedocs.io/en/v1.0/>`__
+`Pandasdmx <https://pandasdmx.readthedocs.io/en/v1.0/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pandaSDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
