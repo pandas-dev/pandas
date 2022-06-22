@@ -93,18 +93,6 @@ def data_missing(data):
     return type(data)._from_sequence([None, data[0]])
 
 
-@pytest.fixture(params=["data", "data_missing"])
-def all_data(request, data, data_missing):
-    """Parametrized fixture returning 'data' or 'data_missing' integer arrays.
-
-    Used to test dtype conversion with and without missing values.
-    """
-    if request.param == "data":
-        return data
-    elif request.param == "data_missing":
-        return data_missing
-
-
 @pytest.fixture
 def na_value():
     """The scalar missing value for this type. Default 'None'"""
@@ -281,36 +269,6 @@ class TestBaseDtype(base.BaseDtypeTests):
 
 class TestBaseIndex(base.BaseIndexTests):
     pass
-
-
-class TestBaseInterface(base.BaseInterfaceTests):
-    def test_contains(self, data, data_missing, request):
-        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
-        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
-        if pa_version_under2p0 and tz not in (None, "UTC") and unit == "us":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(
-                        f"Not supported by pyarrow < 2.0 "
-                        f"with timestamp type {tz} and {unit}"
-                    )
-                )
-            )
-        super().test_contains(data, data_missing)
-
-    @pytest.mark.xfail(reason="pyarrow.ChunkedArray does not support views.")
-    def test_view(self, data):
-        super().test_view(data)
-
-
-class TestBaseMissing(base.BaseMissingTests):
-    pass
-
-
-class TestBaseSetitemTests(base.BaseSetitemTests):
-    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
-    def test_setitem_preserves_views(self, data):
-        super().test_setitem_preserves_views(data)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
