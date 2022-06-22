@@ -123,6 +123,6 @@ doc/tmp.sv
 env/
 doc/source/savefig/
 
-# Interactive terminal generate files #
-#######################################
+# Interactive terminal generated files #
+########################################
 .jupyterlite.doit.db
