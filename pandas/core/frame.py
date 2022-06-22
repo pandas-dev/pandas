@@ -2481,9 +2481,7 @@ class DataFrame(NDFrame, OpsMixin):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                # Argument 1 to "append" of "list" has incompatible type
-                # "Union[type, dtype[Any], str]"; expected "dtype[_SCT]"  [arg-type]
-                formats.append(dtype_mapping)  # type: ignore[arg-type]
+                formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
@@ -3612,11 +3610,18 @@ class DataFrame(NDFrame, OpsMixin):
         if is_hashable(key) and not is_iterator(key):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
-            if self.columns.is_unique and key in self.columns:
-                if isinstance(self.columns, MultiIndex):
-                    return self._getitem_multilevel(key)
+            is_mi = isinstance(self.columns, MultiIndex)
+            # GH#45316 Return view if key is not duplicated
+            # Only use drop_duplicates with duplicates for performance
+            if not is_mi and (
+                self.columns.is_unique
+                and key in self.columns
+                or key in self.columns.drop_duplicates(keep=False)
+            ):
                 return self._get_item_cache(key)
 
+            elif is_mi and self.columns.is_unique and key in self.columns:
+                return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
@@ -8000,7 +8005,7 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that)
+            self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
