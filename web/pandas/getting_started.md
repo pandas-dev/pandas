@@ -19,7 +19,7 @@ df
 ```
 
 <iframe
-  src="https://jtpio.github.io/pandas-repl/repl/index.html?toolbar=1&kernel=python&code=import pandas as pd"
+  src="./lite/repl/index.html?toolbar=1&kernel=python&code=import pandas as pd"
   width="100%"
   height="500px"
 ></iframe>
