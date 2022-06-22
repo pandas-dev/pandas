@@ -36,6 +36,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
+    is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -662,7 +663,7 @@ def to_sql(
     -------
     None or int
         Number of rows affected by to_sql. None is returned if the callable
-        passed into ``method`` does not return the number of rows.
+        passed into ``method`` does not return an integer number of rows.
 
         .. versionadded:: 1.4.0
 
@@ -937,7 +938,8 @@ class SQLTable(PandasObject):
 
                 chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 num_inserted = exec_insert(conn, keys, chunk_iter)
-                if num_inserted is None:
+                # GH 46891
+                if not is_integer(num_inserted):
                     total_inserted = None
                 else:
                     total_inserted += num_inserted
