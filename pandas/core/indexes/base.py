@@ -5357,7 +5357,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # error: Item "ndarray[Any, Any]" of
                 # "Union[ExtensionArray, ndarray[Any, Any]]"
                 # has no attribute "_ndarray"
-                return result._ndarray  # type ignore[union-attr]
+                return result._ndarray  # type: ignore[union-attr]
             return result
 
         # NB: Using _constructor._simple_new would break if MultiIndex
