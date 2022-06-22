@@ -81,7 +81,6 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
     get_datetime64_unit,
@@ -214,6 +213,11 @@ cdef class _Timestamp(ABCTimestamp):
 
         if value == NPY_NAT:
             return NaT
+
+        if reso < NPY_DATETIMEUNIT.NPY_FR_s or reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+            raise NotImplementedError(
+                "Only resolutions 's', 'ms', 'us', 'ns' are supported."
+            )
 
         obj.value = value
         pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
@@ -2259,15 +2263,11 @@ default 'raise'
                       'fold': fold}
             ts_input = datetime(**kwargs)
 
-        ts = convert_datetime_to_tsobject(ts_input, tzobj, nanos=0, reso=self._reso)
-        # TODO: passing nanos=dts.ps // 1000 causes a RecursionError in
-        #  TestTimestampConstructors.test_constructor; not clear why
-        value = ts.value + (dts.ps // 1000)
-        if value != NPY_NAT:
-            check_dts_bounds(&dts, self._reso)
-
+        ts = convert_datetime_to_tsobject(
+            ts_input, tzobj, nanos=dts.ps // 1000, reso=self._reso
+        )
         return create_timestamp_from_ts(
-            value, dts, tzobj, self._freq, fold, reso=self._reso
+            ts.value, dts, tzobj, self._freq, fold, reso=self._reso
         )
 
     def to_julian_date(self) -> np.float64:
