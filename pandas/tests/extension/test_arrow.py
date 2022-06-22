@@ -18,6 +18,7 @@ from datetime import (
     timedelta,
 )
 
+import numpy as np
 import pytest
 
 from pandas.compat import (
@@ -308,6 +309,234 @@ class TestBaseMissing(base.BaseMissingTests):
 
 
 class TestBaseSetitemTests(base.BaseSetitemTests):
+    def test_setitem_scalar_series(self, data, box_in_series, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_scalar_series(data, box_in_series)
+
+    def test_setitem_sequence(self, data, box_in_series, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_sequence(data, box_in_series)
+
+    def test_setitem_sequence_broadcasts(self, data, box_in_series, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_sequence_broadcasts(data, box_in_series)
+
+    @pytest.mark.parametrize("setter", ["loc", "iloc"])
+    def test_setitem_scalar(self, data, setter, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_scalar(data, setter)
+
+    def test_setitem_loc_scalar_mixed(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_loc_scalar_mixed(data)
+
+    def test_setitem_loc_scalar_single(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_loc_scalar_single(data)
+
+    def test_setitem_loc_scalar_multiple_homogoneous(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_loc_scalar_multiple_homogoneous(data)
+
+    def test_setitem_iloc_scalar_mixed(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_iloc_scalar_mixed(data)
+
+    def test_setitem_iloc_scalar_single(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_iloc_scalar_single(data)
+
+    def test_setitem_iloc_scalar_multiple_homogoneous(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
+
+    @pytest.mark.parametrize(
+        "mask",
+        [
+            np.array([True, True, True, False, False]),
+            pd.array([True, True, True, False, False], dtype="boolean"),
+            pd.array([True, True, True, pd.NA, pd.NA], dtype="boolean"),
+        ],
+        ids=["numpy-array", "boolean-array", "boolean-array-na"],
+    )
+    def test_setitem_mask(self, data, mask, box_in_series, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_mask(data, mask, box_in_series)
+
+    def test_setitem_mask_boolean_array_with_na(self, data, box_in_series, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_mask_boolean_array_with_na(data, box_in_series)
+
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_setitem_integer_array(self, data, idx, box_in_series, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_integer_array(data, idx, box_in_series)
+
+    @pytest.mark.parametrize("as_callable", [True, False])
+    @pytest.mark.parametrize("setter", ["loc", None])
+    def test_setitem_mask_aligned(self, data, as_callable, setter, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_mask_aligned(data, as_callable, setter)
+
+    @pytest.mark.parametrize("setter", ["loc", None])
+    def test_setitem_mask_broadcast(self, data, setter, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_mask_broadcast(data, setter)
+
+    def test_setitem_tuple_index(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_tuple_index(data)
+
+    def test_setitem_slice(self, data, box_in_series, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_slice(data, box_in_series)
+
+    def test_setitem_loc_iloc_slice(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_loc_iloc_slice(data)
+
+    def test_setitem_slice_array(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_slice_array(data)
+
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_with_expansion_dataframe_column(data, full_indexer)
+
+    def test_setitem_frame_2d_values(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        super().test_setitem_frame_2d_values(data)
+
     @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
     def test_setitem_preserves_views(self, data):
         super().test_setitem_preserves_views(data)
