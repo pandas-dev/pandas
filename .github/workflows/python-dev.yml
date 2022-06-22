@@ -46,7 +46,6 @@ jobs:
         python-version: '3.11-dev'
 
     - name: Install dependencies
-      shell: bash -el {0}
       run: |
         python --version
         python -m pip install --upgrade pip setuptools wheel
