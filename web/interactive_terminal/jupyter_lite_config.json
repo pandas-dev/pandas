@@ -1,7 +1,6 @@
 {
     "LiteBuildConfig": {
       "apps": ["repl"],
-      "contents": ["content"],
       "no_unused_shared_packages": true,
       "output_dir": "../build/lite"
     }
