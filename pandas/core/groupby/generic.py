@@ -442,9 +442,13 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = False, axis: int = 0, **kwargs
     ):
         assert axis == 0  # handled by caller
+        if numeric_only:
+            raise NotImplementedError(
+                f"{type(self).__name__}.{how} does not implement numeric_only=True"
+            )
 
         obj = self._selected_obj
 
@@ -1610,17 +1614,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only_arg = numeric_only
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmax,
-                "argmax",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only_arg,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            with warnings.catch_warnings():
+                # Suppress numeric_only warnings here, will warn below
+                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmax")
+                res = df._reduce(
+                    nanops.nanargmax,
+                    "argmax",
+                    axis=axis,
+                    skipna=skipna,
+                    numeric_only=numeric_only_arg,
+                )
+                indices = res._values
+                index = df._get_axis(axis)
+                result = [index[i] if i >= 0 else np.nan for i in indices]
+                return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmax"
         result = self._python_apply_general(func, self._obj_with_exclusions)
@@ -1646,17 +1653,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only_arg = numeric_only
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmin,
-                "argmin",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only_arg,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            with warnings.catch_warnings():
+                # Suppress numeric_only warnings here, will warn below
+                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmin")
+                res = df._reduce(
+                    nanops.nanargmin,
+                    "argmin",
+                    axis=axis,
+                    skipna=skipna,
+                    numeric_only=numeric_only_arg,
+                )
+                indices = res._values
+                index = df._get_axis(axis)
+                result = [index[i] if i >= 0 else np.nan for i in indices]
+                return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmin"
         result = self._python_apply_general(func, self._obj_with_exclusions)
