@@ -10,6 +10,8 @@ from warnings import (
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_min
+from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -31,7 +33,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
 
 # We pass through the error message from numpy
@@ -1198,6 +1199,7 @@ class TestiLocBaseIndependent:
         arr[2] = arr[-1]
         assert ser[0] == arr[-1]
 
+    @pytest.mark.xfail(is_numpy_min, reason="Column A gets coerced to integer type")
     def test_iloc_setitem_multicolumn_to_datetime(self, using_array_manager):
 
         # GH#20511

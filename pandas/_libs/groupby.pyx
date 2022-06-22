@@ -1011,7 +1011,7 @@ cdef numeric_t _get_na_val(numeric_t val, bint is_datetimelike):
     elif numeric_t is int64_t and is_datetimelike:
         na_val = NPY_NAT
     else:
-        # Will not be used, but define to avoid unitialized warning.
+        # Will not be used, but define to avoid uninitialized warning.
         na_val = 0
     return na_val
 

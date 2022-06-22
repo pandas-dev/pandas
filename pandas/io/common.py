@@ -590,7 +590,6 @@ def check_parent_directory(path: Path | str) -> None:
     ----------
     path: Path or str
         Path to check parent directory of
-
     """
     parent = Path(path).parent
     if not parent.is_dir():
@@ -624,6 +623,21 @@ def get_handle(
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
 ) -> IOHandles[str]:
+    ...
+
+
+@overload
+def get_handle(
+    path_or_buf: FilePath | BaseBuffer,
+    mode: str,
+    *,
+    encoding: str | None = ...,
+    compression: CompressionOptions = ...,
+    memory_map: bool = ...,
+    is_text: bool = ...,
+    errors: str | None = ...,
+    storage_options: StorageOptions = ...,
+) -> IOHandles[str] | IOHandles[bytes]:
     ...
 
 

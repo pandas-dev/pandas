@@ -367,8 +367,8 @@ def assert_index_equal(
 
     # If order doesn't matter then sort the index entries
     if not check_order:
-        left = Index(safe_sort(left))
-        right = Index(safe_sort(right))
+        left = Index(safe_sort(left), dtype=left.dtype)
+        right = Index(safe_sort(right), dtype=right.dtype)
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -879,6 +879,7 @@ def assert_series_equal(
     obj="Series",
     *,
     check_index=True,
+    check_like=False,
 ):
     """
     Check that left and right Series are equal.
@@ -944,6 +945,11 @@ def assert_series_equal(
         Whether to check index equivalence. If False, then compare only values.
 
         .. versionadded:: 1.3.0
+    check_like : bool, default False
+        If True, ignore the order of the index. Must be False if check_index is False.
+        Note: same labels must be with the same data.
+
+        .. versionadded:: 1.5.0
 
     Examples
     --------
@@ -953,6 +959,9 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
+
+    if not check_index and check_like:
+        raise ValueError("check_like must be False if check_index is False")
 
     if check_less_precise is not no_default:
         warnings.warn(
@@ -988,10 +997,14 @@ def assert_series_equal(
             check_names=check_names,
             check_exact=check_exact,
             check_categorical=check_categorical,
+            check_order=not check_like,
             rtol=rtol,
             atol=atol,
             obj=f"{obj}.index",
         )
+
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
         lidx = left.index
