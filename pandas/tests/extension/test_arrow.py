@@ -106,6 +106,53 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
+def data_for_grouping(dtype):
+    """
+    Data for factorization, grouping, and unique tests.
+
+    Expected to be like [B, B, NA, NA, A, A, B, C]
+
+    Where A < B < C and NA is missing
+    """
+    pa_dtype = dtype.pyarrow_dtype
+    if pa.types.is_boolean(pa_dtype):
+        A = False
+        B = True
+        C = True
+    elif pa.types.is_floating(pa_dtype):
+        A = -1.1
+        B = 0.0
+        C = 1.1
+    elif pa.types.is_signed_integer(pa_dtype):
+        A = -1
+        B = 0
+        C = 1
+    elif pa.types.is_unsigned_integer(pa_dtype):
+        A = 0
+        B = 1
+        C = 10
+    elif pa.types.is_date(pa_dtype):
+        A = date(1999, 12, 31)
+        B = date(2010, 1, 1)
+        C = date(2022, 1, 1)
+    elif pa.types.is_timestamp(pa_dtype):
+        A = datetime(1999, 1, 1, 1, 1, 1, 1)
+        B = datetime(2020, 1, 1)
+        C = datetime(2020, 1, 1, 1)
+    elif pa.types.is_duration(pa_dtype):
+        A = timedelta(-1)
+        B = timedelta(0)
+        C = timedelta(1, 4)
+    elif pa.types.is_time(pa_dtype):
+        A = time(0, 0)
+        B = time(0, 12)
+        C = time(12, 12)
+    else:
+        raise NotImplementedError
+    return pd.array([B, B, None, None, A, A, B, C], dtype=dtype)
+
+
+@pytest.fixture
 def na_value():
     """The scalar missing value for this type. Default 'None'"""
     return pd.NA
@@ -216,6 +263,37 @@ class TestGetitemTests(base.BaseGetitemTests):
                 )
             )
         super().test_loc_iloc_frame_single_dtype(data)
+
+
+class TestBaseGroupby(base.BaseGroupbyTests):
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=ValueError,
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
+                )
+            )
+        elif as_index is True and (
+            pa.types.is_date(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class TestBaseDtype(base.BaseDtypeTests):
