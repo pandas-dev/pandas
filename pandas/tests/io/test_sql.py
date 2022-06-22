@@ -658,13 +658,6 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.db
-@pytest.mark.parametrize("conn", postgresql_connectable)
-def test_to_sql_callable_method_count_only_if_return_int(conn, request):
-    # GH 46891
-    pass
-
-
 class MixInBase:
     def teardown_method(self):
         # if setup fails, there may not be a connection to close.
