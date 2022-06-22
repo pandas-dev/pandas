@@ -271,6 +271,9 @@ the given ``dayfirst`` value when the value is a delimited date string (e.g.
 Ignoring dtypes in concat with empty or all-NA columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note::
+    This behaviour change has been reverted in pandas 1.4.3.
+
 When using :func:`concat` to concatenate two or more :class:`DataFrame` objects,
 if one of the DataFrames was empty or had all-NA values, its dtype was
 *sometimes* ignored when finding the concatenated dtype.  These are now
@@ -301,9 +304,15 @@ object, the ``np.nan`` is retained.
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    res
+    In [4]: res
+    Out[4]:
+                       bar
+    0  2013-01-01 00:00:00
+    1                  NaN
+
+
 
 .. _whatsnew_140.notable_bug_fixes.value_counts_and_mode_do_not_coerce_to_nan:
 
