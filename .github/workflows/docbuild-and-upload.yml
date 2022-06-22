@@ -46,8 +46,8 @@ jobs:
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
 
-    - name: Check the interactive terminal assets have been generated
-      run: stat web/build/lite/build/
+    - name: Build the interactive terminal
+      run: jupyter lite build --lite-dir web/interactive_terminal --output-dir web/build/lite
 
     - name: Install ssh key
       run: |
