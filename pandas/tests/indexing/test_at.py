@@ -10,6 +10,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    MultiIndex,
     Series,
     Timestamp,
 )
@@ -94,6 +95,18 @@ class TestAtSetItem:
             dtype=CategoricalDtype(["foo", "bar"]),
         )
 
+        tm.assert_frame_equal(df, expected)
+
+    def test_at_setitem_multiindex(self):
+        df = DataFrame(
+            np.zeros((3, 2), dtype="int64"),
+            columns=MultiIndex.from_tuples([("a", 0), ("a", 1)]),
+        )
+        df.at[0, "a"] = 10
+        expected = DataFrame(
+            [[10, 10], [0, 0], [0, 0]],
+            columns=MultiIndex.from_tuples([("a", 0), ("a", 1)]),
+        )
         tm.assert_frame_equal(df, expected)
 
 

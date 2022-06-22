@@ -25,7 +25,11 @@ def test_contains(any_string_dtype):
     values = Series(values, dtype=any_string_dtype)
     pat = "mmm[_]+"
 
-    result = values.str.contains(pat)
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = values.str.contains(pat)
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(
         np.array([False, np.nan, True, True, False], dtype=np.object_),
@@ -88,7 +92,11 @@ def test_contains(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = values.str.contains(pat, na=False)
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = values.str.contains(pat, na=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series(np.array([False, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -181,7 +189,11 @@ def test_contains_moar(any_string_dtype):
         dtype=any_string_dtype,
     )
 
-    result = s.str.contains("a")
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = s.str.contains("a")
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(
         [False, False, False, True, True, False, np.nan, False, False, True],
@@ -619,7 +631,11 @@ def test_replace_moar(any_string_dtype):
         dtype=any_string_dtype,
     )
 
-    result = ser.str.replace("A", "YYY")
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+    ):
+        result = ser.str.replace("A", "YYY")
     expected = Series(
         ["YYY", "B", "C", "YYYaba", "Baca", "", np.nan, "CYYYBYYY", "dog", "cat"],
         dtype=any_string_dtype,
@@ -727,7 +743,11 @@ def test_replace_regex_single_character(regex, any_string_dtype):
         ):
             result = s.str.replace(".", "a", regex=regex)
     else:
-        result = s.str.replace(".", "a", regex=regex)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            any_string_dtype == "string[pyarrow]" and pa_version_under4p0,
+        ):
+            result = s.str.replace(".", "a", regex=regex)
 
     expected = Series(["aab", "a", "b", np.nan, ""], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)

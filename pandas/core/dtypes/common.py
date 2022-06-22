@@ -479,7 +479,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype([1, 2, 3])
     False
     >>>
-    >>> interval = pd.Interval(1, 2, closed="right")
+    >>> interval = pd.Interval(1, 2, inclusive="right")
     >>> is_interval_dtype(interval)
     False
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
@@ -534,7 +534,9 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
     Faster alternative to is_string_dtype, assumes we have a np.dtype object.
     """
-    return dtype == object or dtype.kind in "SU"
+    # error: Non-overlapping equality check (left operand type:
+    # "dtype[Any]", right operand type: "Type[object]")
+    return dtype == object or dtype.kind in "SU"  # type: ignore[comparison-overlap]
 
 
 def is_string_dtype(arr_or_dtype) -> bool:

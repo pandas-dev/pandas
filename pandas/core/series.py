@@ -33,6 +33,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyArrayLike,
     ArrayLike,
     Axis,
     Dtype,
@@ -42,6 +43,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    QuantileInterpolation,
     Renamer,
     SingleManager,
     SortKind,
@@ -553,7 +555,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
         """
         Override generic, we want to set the _typ here.
 
@@ -2022,9 +2024,7 @@ Name: Max Speed, dtype: float64
             lev = lev.insert(cnt, lev._na_value)
 
         obs = level_codes[notna(self._values)]
-        # Argument "minlength" to "bincount" has incompatible type "Optional[int]";
-        # expected "SupportsIndex"  [arg-type]
-        out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
+        out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev, dtype="int64").__finalize__(
             self, method="count"
         )
@@ -2073,6 +2073,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
+        Series.drop_duplicates : Return Series with duplicate values removed.
         unique : Top-level unique method for any 1-d array-like object.
         Index.unique : Return Index with unique values from an Index object.
 
@@ -2163,6 +2164,7 @@ Name: Max Speed, dtype: float64
         DataFrame.drop_duplicates : Equivalent method on DataFrame.
         Series.duplicated : Related method on Series, indicating duplicate
             Series values.
+        Series.unique : Return unique values as an array.
 
         Examples
         --------
@@ -2476,7 +2478,33 @@ Name: Max Speed, dtype: float64
 
         return result
 
-    def quantile(self, q=0.5, interpolation="linear"):
+    @overload
+    def quantile(
+        self, q: float = ..., interpolation: QuantileInterpolation = ...
+    ) -> float:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: Sequence[float] | AnyArrayLike,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> float | Series:
+        ...
+
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = 0.5,
+        interpolation: QuantileInterpolation = "linear",
+    ) -> float | Series:
         """
         Return value at the given quantile.
 
@@ -5811,7 +5839,7 @@ Keep all original rows and also all original values
     _info_axis_number = 0
     _info_axis_name = "index"
 
-    index: Index = properties.AxisProperty(
+    index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
 

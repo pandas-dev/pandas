@@ -30,11 +30,13 @@ Exceptions and warnings
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError
+   errors.IndexingError
    errors.InvalidIndexError
    errors.IntCastingNaNError
    errors.MergeError
    errors.NullFrequencyError
    errors.NumbaUtilError
+   errors.NumExprClobberingError
    errors.OptionError
    errors.OutOfBoundsDatetime
    errors.OutOfBoundsTimedelta
@@ -42,7 +44,9 @@ Exceptions and warnings
    errors.ParserWarning
    errors.PerformanceWarning
    errors.SettingWithCopyError
+   errors.SettingWithCopyWarning
    errors.SpecificationError
+   errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
 

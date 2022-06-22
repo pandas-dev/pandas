@@ -25,6 +25,7 @@ from pandas._typing import (
     FilePath,
     IndexLabel,
     Level,
+    QuantileInterpolation,
     Scalar,
     WriteBuffer,
 )
@@ -3467,7 +3468,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         q_left: float = 0.0,
         q_right: float = 1.0,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
@@ -3539,13 +3540,17 @@ class Styler(StylerRenderer):
 
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
-        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
+        quantiles = [q_left, q_right]
         if axis is None:
-            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
+            q = Series(data.to_numpy().ravel()).quantile(
+                q=quantiles, interpolation=interpolation
+            )
             axis_apply: int | None = None
         else:
             axis = self.data._get_axis_number(axis)
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            q = data.quantile(
+                axis=axis, numeric_only=False, q=quantiles, interpolation=interpolation
+            )
             axis_apply = 1 - axis
 
         if props is None:
@@ -3855,10 +3860,24 @@ def _highlight_between(
     Return an array of css props based on condition of data values within given range.
     """
     if np.iterable(left) and not isinstance(left, str):
-        left = _validate_apply_axis_arg(left, "left", None, data)
+        # error: Argument 1 to "_validate_apply_axis_arg"
+        # has incompatible type "Union[str, float, Period,
+        # Timedelta, Interval[Any], datetime64, timedelta64,
+        # datetime, Sequence[Any], ndarray[Any, Any], NDFrame, None]";
+        # expected "Union[NDFrame, Sequence[Any], ndarray[Any, Any]]"
+        left = _validate_apply_axis_arg(
+            left, "left", None, data  # type: ignore[arg-type]
+        )
 
     if np.iterable(right) and not isinstance(right, str):
-        right = _validate_apply_axis_arg(right, "right", None, data)
+        # error: Argument 1 to "_validate_apply_axis_arg"
+        # has incompatible type "Union[str, float, Period,
+        # Timedelta, Interval[Any], datetime64, timedelta64,
+        # datetime, Sequence[Any], ndarray[Any, Any], NDFrame, None]";
+        # expected "Union[NDFrame, Sequence[Any], ndarray[Any, Any]]"
+        right = _validate_apply_axis_arg(
+            right, "right", None, data  # type: ignore[arg-type]
+        )
 
     # get ops with correct boundary attribution
     if inclusive == "both":

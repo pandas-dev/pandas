@@ -606,7 +606,7 @@ indices_dict = {
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100),
+    "interval": tm.makeIntervalIndex(100, inclusive="right"),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -934,8 +934,14 @@ def rand_series_with_duplicate_datetimeindex():
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
-        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
+        (
+            Interval(left=0, right=5, inclusive="right"),
+            IntervalDtype("int64", inclusive="right"),
+        ),
+        (
+            Interval(left=0.1, right=0.5, inclusive="right"),
+            IntervalDtype("float64", inclusive="right"),
+        ),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (

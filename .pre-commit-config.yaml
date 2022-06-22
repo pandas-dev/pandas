@@ -11,7 +11,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.3'
+    rev: 'v2.4'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -26,7 +26,6 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
-        files: ^(pandas|doc)/
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.2.0
     hooks:
@@ -60,7 +59,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.32.0
+    rev: v2.32.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -75,7 +74,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.4.1
+    rev: v0.6
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
@@ -93,7 +92,19 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-        additional_dependencies: ['pyright@1.1.248']
+        additional_dependencies: &pyright_dependencies
+        - pyright@1.1.253
+-   repo: local
+    hooks:
+    -   id: pyright_reportGeneralTypeIssues
+        name: pyright reportGeneralTypeIssues
+        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        # note: assumes python env is setup and activated
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        additional_dependencies: *pyright_dependencies
 -   repo: local
     hooks:
     -   id: mypy

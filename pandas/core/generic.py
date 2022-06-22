@@ -37,6 +37,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     Axis,
     CompressionOptions,
@@ -70,6 +71,7 @@ from pandas.errors import (
     AbstractMethodError,
     InvalidIndexError,
     SettingWithCopyError,
+    SettingWithCopyWarning,
 )
 from pandas.util._decorators import (
     deprecate_kwarg,
@@ -756,7 +758,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis: int, labels: Index) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
@@ -2628,6 +2630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         read_hdf : Read from HDF file.
+        DataFrame.to_orc : Write a DataFrame to the binary orc format.
         DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
         DataFrame.to_sql : Write to a SQL table.
         DataFrame.to_feather : Write out feather-format for DataFrames.
@@ -3299,7 +3302,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         sep: str = ",",
         na_rep: str = "",
-        float_format: str | None = None,
+        float_format: str | Callable | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool_t | list[str] = True,
         index: bool_t = True,
@@ -3338,8 +3341,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             String of length 1. Field delimiter for the output file.
         na_rep : str, default ''
             Missing data representation.
-        float_format : str, default None
-            Format string for floating point numbers.
+        float_format : str, Callable, default None
+            Format string for floating point numbers. If a Callable is given, it takes
+            precedence over other numeric formatting parameters, like decimal.
         columns : sequence, optional
             Columns to write.
         header : bool or list of str, default True
@@ -3952,7 +3956,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if value == "raise":
             raise SettingWithCopyError(t)
         elif value == "warn":
-            warnings.warn(t, com.SettingWithCopyWarning, stacklevel=find_stack_level())
+            warnings.warn(t, SettingWithCopyWarning, stacklevel=find_stack_level())
 
     def __delitem__(self, key) -> None:
         """
@@ -5182,7 +5186,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         has the right type of data in it.
 
         For negative values of `n`, this function returns all rows except
-        the last `n` rows, equivalent to ``df[:-n]``.
+        the last `|n|` rows, equivalent to ``df[:n]``.
 
         If n is larger than the number of rows, this function returns all rows.
 
@@ -5257,7 +5261,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         after sorting or appending rows.
 
         For negative values of `n`, this function returns all rows except
-        the first `n` rows, equivalent to ``df[n:]``.
+        the first `|n|` rows, equivalent to ``df[|n|:]``.
 
         If n is larger than the number of rows, this function returns all rows.
 
@@ -5724,7 +5728,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return True
 
     @final
-    def _get_numeric_data(self):
+    def _get_numeric_data(self: NDFrameT) -> NDFrameT:
         return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
     @final
@@ -6519,7 +6523,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if k not in result:
                         continue
                     downcast_k = downcast if not is_dict else downcast.get(k)
-                    result[k] = result[k].fillna(v, limit=limit, downcast=downcast_k)
+                    result.loc[:, k] = result[k].fillna(
+                        v, limit=limit, downcast=downcast_k
+                    )
                 return result if not inplace else None
 
             elif not is_list_like(value):
@@ -10951,7 +10957,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         data = self._get_numeric_data()
         if axis == 0:
-            demeaned = data - data.mean(axis=0)
+            # error: Unsupported operand types for - ("NDFrame" and "float")
+            demeaned = data - data.mean(axis=0)  # type: ignore[operator]
         else:
             demeaned = data.sub(data.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
@@ -11287,8 +11294,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         setattr(cls, "median", median)
 
-        # error: Untyped decorator makes function "max" untyped
-        @doc(  # type: ignore[misc]
+        @doc(
             _num_doc,
             desc="Return the maximum of the values over the requested axis.\n\n"
             "If you want the *index* of the maximum, use ``idxmax``. This is "
@@ -11312,8 +11318,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         setattr(cls, "max", max)
 
-        # error: Untyped decorator makes function "max" untyped
-        @doc(  # type: ignore[misc]
+        @doc(
             _num_doc,
             desc="Return the minimum of the values over the requested axis.\n\n"
             "If you want the *index* of the minimum, use ``idxmin``. This is "
@@ -11757,14 +11762,14 @@ Create a dataframe from a dictionary.
 0  True   True
 1  True  False
 
-Default behaviour checks if column-wise values all return True.
+Default behaviour checks if values in each column all return True.
 
 >>> df.all()
 col1     True
 col2    False
 dtype: bool
 
-Specify ``axis='columns'`` to check if row-wise values all return True.
+Specify ``axis='columns'`` to check if values in each row all return True.
 
 >>> df.all(axis='columns')
 0     True
@@ -12215,11 +12220,11 @@ empty series identically.
 >>> pd.Series([np.nan]).sum(min_count=1)
 nan"""
 
-_max_examples = _shared_docs["stat_func_example"].format(
+_max_examples: str = _shared_docs["stat_func_example"].format(
     stat_func="max", verb="Max", default_output=8, level_output_0=4, level_output_1=8
 )
 
-_min_examples = _shared_docs["stat_func_example"].format(
+_min_examples: str = _shared_docs["stat_func_example"].format(
     stat_func="min", verb="Min", default_output=0, level_output_0=2, level_output_1=0
 )
 
