@@ -565,8 +565,8 @@ retained by specifying ``group_keys=False``.
 .. _whatsnew_150.deprecations.setitem_column_try_inplace:
    _ see also _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
 
-Inplace operation when setting values with ``iloc``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Inplace operation when setting values with ``loc`` and ``iloc``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Most of the time setting values with ``frame.iloc`` attempts to set values
 inplace, only falling back to inserting a new array if necessary. There are
 some cases where this rule is not followed, for example when setting an entire
