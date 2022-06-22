@@ -363,7 +363,7 @@ class TestBaseMissing(base.BaseMissingTests):
         super().test_fillna_frame(data_missing)
 
 
-class TestBaseSetitemTests(base.BaseSetitemTests):
+class TestBaseSetitem(base.BaseSetitemTests):
     def test_setitem_scalar_series(self, data, box_in_series, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC"):
@@ -560,7 +560,15 @@ class TestBaseSetitemTests(base.BaseSetitemTests):
     def test_setitem_mask_boolean_array_with_na(
         self, data, box_in_series, using_array_manager, request
     ):
-        if using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        unit = getattr(data.dtype.pyarrow_dtype, "unit", None)
+        if pa_version_under2p0 and tz not in (None, "UTC") and unit == "us":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
@@ -699,6 +707,24 @@ class TestBaseSetitemTests(base.BaseSetitemTests):
                 )
             )
         super().test_setitem_with_expansion_dataframe_column(data, full_indexer)
+
+    def test_setitem_with_expansion_row(
+        self, data, na_value, using_array_manager, request
+    ):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Checking ndim when using arraymanager with duration type"
+                )
+            )
+        super().test_setitem_with_expansion_row(data, na_value)
 
     def test_setitem_frame_2d_values(self, data, using_array_manager, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
