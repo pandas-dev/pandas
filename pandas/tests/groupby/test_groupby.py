@@ -1922,23 +1922,17 @@ def test_pivot_table_values_key_error():
 )
 @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
-def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
+def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
     override_dtype = None
 
     if (
         isinstance(values, Categorical)
         and not isinstance(columns, list)
-        and op in ["sum", "prod", "skew", "mad"]
+        and op in ["sum", "prod"]
     ):
         # handled below GH#41291
-
-        if using_array_manager and op == "mad":
-            right_msg = "Cannot interpret 'CategoricalDtype.* as a data type"
-            msg = "Regex pattern \"'Categorical' does not implement.*" + right_msg
-            mark = pytest.mark.xfail(raises=AssertionError, match=msg)
-            request.node.add_marker(mark)
-
+        pass
     elif (
         isinstance(values, Categorical)
         and len(keys) == 1
@@ -1957,7 +1951,11 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             raises=TypeError, match="'Categorical' does not implement"
         )
         request.node.add_marker(mark)
-    elif isinstance(values, Categorical) and len(keys) == 1 and op in ["sum", "prod"]:
+    elif (
+        isinstance(values, Categorical)
+        and len(keys) == 1
+        and op in ["mad", "min", "max", "sum", "prod", "skew"]
+    ):
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
@@ -1971,20 +1969,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
         request.node.add_marker(mark)
-
-    elif (
-        op == "mad"
-        and not isinstance(columns, list)
-        and isinstance(values, pd.DatetimeIndex)
-        and values.tz is not None
-        and using_array_manager
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError,
-            match=r"Cannot interpret 'datetime64\[ns, US/Eastern\]' as a data type",
-        )
-        request.node.add_marker(mark)
-
     elif isinstance(values, BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
         override_dtype = "Int64"
@@ -2015,29 +1999,19 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
 
     if columns == "C":
         # i.e. SeriesGroupBy
-        if op in ["prod", "sum", "skew"]:
+        if op in ["prod", "sum"]:
             # ops that require more than just ordered-ness
             if df.dtypes[0].kind == "M":
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
-                if op == "skew":
-                    msg = "does not support reduction 'skew'"
-                else:
-                    msg = "datetime64 type does not support"
+                msg = "datetime64 type does not support"
                 with pytest.raises(TypeError, match=msg):
                     get_result()
 
                 return
-        if op in ["prod", "sum", "skew", "mad"]:
-            if isinstance(values, Categorical):
+            elif isinstance(values, Categorical):
                 # GH#41291
-                if op == "mad":
-                    # mad calls mean, which Categorical doesn't implement
-                    msg = "does not support reduction 'mean'"
-                elif op == "skew":
-                    msg = f"does not support reduction '{op}'"
-                else:
-                    msg = "category type does not support"
+                msg = "category type does not support"
                 with pytest.raises(TypeError, match=msg):
                     get_result()
 
@@ -2083,34 +2057,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 expected = df.set_index(keys)[[]]
                 tm.assert_equal(result, expected)
                 return
-
-        if (
-            op in ["mad", "min", "max", "skew"]
-            and isinstance(values, Categorical)
-            and len(keys) == 1
-        ):
-            # Categorical doesn't implement, so with numeric_only=True
-            #  these are dropped and we get an empty DataFrame back
-            result = get_result()
-            expected = df.set_index(keys)[[]]
-
-            # with numeric_only=True, these are dropped, and we get
-            # an empty DataFrame back
-            if len(keys) != 1:
-                # Categorical is special without 'observed=True'
-                lev = Categorical([0], dtype=values.dtype)
-                mi = MultiIndex.from_product([lev, lev], names=keys)
-                expected = DataFrame([], columns=[], index=mi)
-            else:
-                # all columns are dropped, but we end up with one row
-                # Categorical is special without 'observed=True'
-                lev = Categorical([0], dtype=values.dtype)
-                ci = Index(lev, name=keys[0])
-                expected = DataFrame([], columns=[], index=ci)
-            # expected = df.set_index(keys)[columns]
-
-            tm.assert_equal(result, expected)
-            return
 
     result = get_result()
     expected = df.set_index(keys)[columns]

@@ -1622,7 +1622,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
-        func.__name__ = "idxmax"
         result = self._python_apply_general(func, self._obj_with_exclusions)
         self._maybe_warn_numeric_only_depr("idxmax", result, numeric_only)
         return result
@@ -1658,7 +1657,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
-        func.__name__ = "idxmin"
         result = self._python_apply_general(func, self._obj_with_exclusions)
         self._maybe_warn_numeric_only_depr("idxmin", result, numeric_only)
         return result
