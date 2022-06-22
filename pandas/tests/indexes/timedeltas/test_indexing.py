@@ -14,6 +14,7 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     notna,
+    offsets,
     timedelta_range,
     to_timedelta,
 )
@@ -346,3 +347,14 @@ class TestContains:
         ):
             idx = TimedeltaIndex(vals)
             assert idx[0] in idx
+
+    def test_contains(self):
+        # Checking for any NaT-like objects
+        # GH#13603
+        td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
+        for v in [NaT, None, float("nan"), np.nan]:
+            assert not (v in td)
+
+        td = to_timedelta([NaT])
+        for v in [NaT, None, float("nan"), np.nan]:
+            assert v in td
