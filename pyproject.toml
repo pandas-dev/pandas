@@ -8,9 +8,9 @@ requires = [
     "Cython>=0.29.24,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=0.10"
 ]
-# uncomment to enable pep517 after versioneer problem is fixed.
-# https://github.com/python-versioneer/python-versioneer/issues/193
-# build-backend = "setuptools.build_meta"
+
+build-backend = "build_backend"
+backend-path = ["build_support"]
 
 [tool.black]
 target-version = ['py38', 'py39']

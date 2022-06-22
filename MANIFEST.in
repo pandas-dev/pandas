@@ -1,5 +1,6 @@
 include RELEASE.md
 include versioneer.py
+include CMakeLists.txt
 
 graft doc
 prune doc/build
@@ -7,6 +8,7 @@ prune doc/build
 graft LICENSES
 
 graft pandas
+graft build_support
 
 global-exclude *.bz2
 global-exclude *.csv
