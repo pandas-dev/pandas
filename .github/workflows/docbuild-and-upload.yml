@@ -47,7 +47,9 @@ jobs:
       run: doc/make.py --warnings-are-errors
 
     - name: Build the interactive terminal
-      run: jupyter lite build --lite-dir web/interactive_terminal --output-dir web/build/lite
+      run: |
+        cd web/interactive_terminal
+        jupyter lite build
 
     - name: Install ssh key
       run: |
