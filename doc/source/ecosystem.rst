@@ -87,7 +87,7 @@ Featuretools is a Python library for automated feature engineering built on top 
 
 Compose is a machine learning tool for labeling data and prediction engineering. It allows you to structure the labeling process by parameterizing prediction problems and transforming time-driven relational data into target values with cutoff times that can be used for supervised learning.
 
-`STUMPY <https://github.com/TDAmeritrade/stumpy>`__
+`Stumpy <https://github.com/TDAmeritrade/stumpy>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 STUMPY is a powerful and scalable Python library for modern time series analysis.
@@ -146,7 +146,7 @@ also goes beyond matplotlib and pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
-`plotnine <https://github.com/has2k1/plotnine/>`__
+`Plotnine <https://github.com/has2k1/plotnine/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
@@ -187,7 +187,7 @@ By printing out a dataframe, Lux automatically `recommends a set of visualizatio
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
-`D-Tale <https://github.com/man-group/dtale>`__
+`D-tale <https://github.com/man-group/dtale>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 D-Tale is a lightweight web client for visualizing pandas data structures. It
@@ -206,7 +206,7 @@ invoked with the following command
 D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/dtale/main/1>`__.
 
-`hvplot <https://hvplot.holoviz.org/index.html>`__
+`Hvplot <https://hvplot.holoviz.org/index.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 hvPlot is a high-level plotting API for the PyData ecosystem built on `HoloViews <https://holoviews.org/>`__.
@@ -218,7 +218,7 @@ It can be loaded as a native pandas plotting backend via
 
 .. _ecosystem.ide:
 
-IDE
+IdE
 ---
 
 `IPython <https://ipython.org/documentation.html>`__
@@ -323,7 +323,7 @@ PyDatastream is a Python interface to the
 REST API to return indexed pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
-`pandaSDMX <https://pandasdmx.readthedocs.io/en/v1.0/>`__
+`pandasdmx <https://pandasdmx.readthedocs.io/en/v1.0/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pandaSDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
