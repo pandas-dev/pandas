@@ -1006,6 +1006,11 @@ class TestNonNano:
             with pytest.raises(ValueError, match=msg):
                 other + ts2
 
+        msg = "Addition between Timestamp and Timedelta with mismatched resolutions"
+        with pytest.raises(ValueError, match=msg):
+            # With a mismatched td64 as opposed to Timedelta
+            ts + np.timedelta64(1, "ns")
+
 
 class TestAsUnit:
     def test_as_unit(self):
