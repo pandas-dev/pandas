@@ -113,7 +113,9 @@ def astype_nansafe(
         ).reshape(shape)
 
     elif is_datetime64_dtype(arr.dtype):
-        if dtype == np.int64:
+        # error: Non-overlapping equality check (left
+        # operand type: "dtype[Any]", right operand type: "Type[signedinteger[Any]]")
+        if dtype == np.int64:  # type: ignore[comparison-overlap]
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -125,7 +127,9 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr.dtype):
-        if dtype == np.int64:
+        # error: Non-overlapping equality check (left
+        # operand type: "dtype[Any]", right operand type: "Type[signedinteger[Any]]")
+        if dtype == np.int64:  # type: ignore[comparison-overlap]
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)

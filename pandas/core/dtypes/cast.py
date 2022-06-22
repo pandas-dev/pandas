@@ -305,7 +305,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
         result = cast(np.ndarray, result)
         result = array_to_timedelta64(result)
 
-    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+    elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
         return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result

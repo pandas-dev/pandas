@@ -31,8 +31,7 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
-  # TODO: uncomment after numba supports py310
-  #- numba
+  - numba
   - numexpr
   - openpyxl
   - odfpy

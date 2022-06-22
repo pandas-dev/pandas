@@ -171,7 +171,7 @@ class WrappedCythonOp:
         f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
-        elif dtype == object:
+        elif dtype == np.dtype(object):
             if how in ["median", "cumprod"]:
                 # no fused types -> no __signatures__
                 raise NotImplementedError(
