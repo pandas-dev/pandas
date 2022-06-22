@@ -739,6 +739,7 @@ Performance improvements
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 - Performance improvement in :func:`read_excel` when ``nrows`` argument provided (:issue:`32727`)
+- Performance improvement in :meth:`MultiIndex.is_monotonic_increasing`  (:issue:`47458`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
