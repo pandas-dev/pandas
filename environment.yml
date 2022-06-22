@@ -33,7 +33,7 @@ dependencies:
   - lxml
   - matplotlib
   - numba>=0.53.1
-  - numexpr>=2.8.0 # pin for "Run checks on imported code" job
+  - numexpr>=2.8.0  # pin for "Run checks on imported code" job
   - openpyxl
   - odfpy
   - pandas-gbq
@@ -55,7 +55,7 @@ dependencies:
   - zstandard
 
   # downstream packages
-  - aiobotocore<2.0.0 # GH#44311 pinned to fix docbuild
+  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - botocore
   - cftime
   - dask
@@ -85,22 +85,22 @@ dependencies:
   - black=22.3.0
   - cpplint
   - flake8=4.0.1
-  - flake8-bugbear=21.3.2 # used by flake8, find likely bugs
-  - flake8-comprehensions=3.7.0 # used by flake8, linting of unnecessary comprehensions
-  - isort>=5.2.1 # check that imports are in the right order
+  - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
+  - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
+  - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.960
   - pre-commit>=2.15.0
-  - pycodestyle # used by flake8
+  - pycodestyle  # used by flake8
   - pyupgrade
 
   # documentation
-  - gitpython # obtain contributors from git for whatsnew
+  - gitpython  # obtain contributors from git for whatsnew
   - gitdb
-  - natsort # DataFrame.sort_values doctest
+  - natsort  # DataFrame.sort_values doctest
   - numpydoc
   - pandas-dev-flaker=0.5.0
   - pydata-sphinx-theme=0.8.0
-  - pytest-cython # doctest
+  - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
   - types-python-dateutil
@@ -118,7 +118,7 @@ dependencies:
   - ipykernel
 
   # web
-  - jinja2 # in optional dependencies, but documented here as needed
+  - jinja2  # in optional dependencies, but documented here as needed
   - markdown
   - feedparser
   - pyyaml
