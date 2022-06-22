@@ -130,17 +130,18 @@ def test_rsplit_max_number(any_string_dtype):
     tm.assert_series_equal(result, exp)
 
 
-def test_rsplit_posargs_deprecation():
+@pytest.mark.parametrize("method", ["split", "rsplit"])
+def test_posargs_deprecation(method):
     # GH 47423; Deprecate passing n as positional.
     s = Series(["foo,bar,lorep"])
 
     msg = (
-        r"In a future version of pandas all arguments of StringMethods.rsplit "
-        r"except for the argument 'pat' will be keyword-only"
+        f"In a future version of pandas all arguments of StringMethods.{method} "
+        "except for the argument 'pat' will be keyword-only"
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.str.rsplit(",", 3)
+        result = getattr(s.str, method)(",", 3)
 
     expected = Series([["foo", "bar", "lorep"]])
     tm.assert_series_equal(result, expected)

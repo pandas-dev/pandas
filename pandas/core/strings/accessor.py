@@ -846,6 +846,7 @@ class StringMethods(NoNewAttributesMixin):
     """,
         }
     )
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
