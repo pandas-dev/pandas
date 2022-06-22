@@ -70,7 +70,7 @@ def get_dummies(
     See Also
     --------
     Series.str.get_dummies : Convert Series to dummy codes.
-    :func:`~pandas.from_dummies` : Convert dummy codes to categorical ``DataFrame``
+    :func:`~pandas.from_dummies` : Convert dummy codes to categorical ``DataFrame``.
 
     Notes
     -----
