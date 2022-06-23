@@ -1,0 +1,45 @@
+.. _whatsnew_144:
+
+What's new in 1.4.4 (July ??, 2022)
+-----------------------------------
+
+These are the changes in pandas 1.4.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.3..v1.4.4|HEAD
