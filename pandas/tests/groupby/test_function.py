@@ -1420,6 +1420,8 @@ def test_deprecate_numeric_only_series(groupby_func, request):
 
     try:
         method(*args, numeric_only=True)
+        # No method should allow numeric_only=True
+        assert False, groupby_func
     except (TypeError, NotImplementedError) as err:
         assert "got an unexpected keyword argument 'numeric_only'" in str(
             err
