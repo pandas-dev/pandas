@@ -156,6 +156,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
         Py_ssize_t n, nlevels
         int64_t k, cur, pre
         ndarray arr
+        bint result = True
 
     nlevels = len(list_of_arrays)
     n = len(list_of_arrays[0])
@@ -180,10 +181,9 @@ def is_lexsorted(list_of_arrays: list) -> bint:
                     result = False
                     break
             if not result:
-                free(vecs)
-                return False
+                break
     free(vecs)
-    return True
+    return result
 
 
 @cython.boundscheck(False)
