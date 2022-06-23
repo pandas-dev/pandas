@@ -364,17 +364,9 @@ class TestBaseMissing(base.BaseMissingTests):
 
 
 class TestBaseSetitem(base.BaseSetitemTests):
-    def test_setitem_scalar_series(self, data, box_in_series, request):
-        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
-        if pa_version_under2p0 and tz not in (None, "UTC"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
-                )
-            )
-        super().test_setitem_scalar_series(data, box_in_series)
-
-    def test_setitem_sequence(self, data, box_in_series, using_array_manager, request):
+    def test_setitem_scalar_series(
+        self, data, box_in_series, using_array_manager, request
+    ):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
@@ -388,12 +380,36 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason="Checking ndim when using arraymanager with duration type"
                 )
             )
+        super().test_setitem_scalar_series(data, box_in_series)
+
+    def test_setitem_sequence(self, data, box_in_series, using_array_manager, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                )
+            )
+        elif (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and box_in_series
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Checking ndim when using arraymanager with duration type"
+                )
+            )
         super().test_setitem_sequence(data, box_in_series)
 
     def test_setitem_empty_indexer(
         self, data, box_in_series, using_array_manager, request
     ):
-        if using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        if (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and box_in_series
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
@@ -411,7 +427,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
                 )
             )
-        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        elif (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and box_in_series
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
@@ -494,6 +514,12 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
                 )
             )
+        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Checking ndim when using arraymanager with duration type"
+                )
+            )
         super().test_setitem_iloc_scalar_mixed(data)
 
     def test_setitem_iloc_scalar_single(self, data, using_array_manager, request):
@@ -549,7 +575,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
                 )
             )
-        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        elif (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and box_in_series
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
@@ -568,7 +598,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
                 )
             )
-        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        elif (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and box_in_series
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
@@ -591,7 +625,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
                 )
             )
-        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        elif (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and box_in_series
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
@@ -654,7 +692,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
                 )
             )
-        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        elif (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and box_in_series
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
@@ -700,7 +742,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
                     reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
                 )
             )
-        elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
+        elif (
+            using_array_manager
+            and pa.types.is_duration(data.dtype.pyarrow_dtype)
+            and not is_null_slice
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Checking ndim when using arraymanager with duration type"
