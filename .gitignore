@@ -122,3 +122,7 @@ doc/build/html/index.html
 doc/tmp.sv
 env/
 doc/source/savefig/
+
+# Interactive terminal generated files #
+########################################
+.jupyterlite.doit.db

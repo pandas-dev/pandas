@@ -96,4 +96,6 @@ markdown
 feedparser
 pyyaml
 requests
+jupyterlab >=3.4,<4
+jupyterlite==0.1.0b9
 setuptools>=51.0.0

@@ -123,3 +123,8 @@ dependencies:
   - feedparser
   - pyyaml
   - requests
+
+  # build the interactive terminal
+  - jupyterlab >=3.4,<4
+  - pip:
+      - jupyterlite==0.1.0b9
