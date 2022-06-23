@@ -1716,8 +1716,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 kwd_name = "numeric_only"
                 if how in ["any", "all"]:
                     kwd_name = "bool_only"
+                kernel = "sum" if how == "add" else how
                 raise NotImplementedError(
-                    f"{type(self).__name__}.{how} does not implement {kwd_name}."
+                    f"{type(self).__name__}.{kernel} does not implement {kwd_name}."
                 )
             elif not is_ser:
                 data = data.get_numeric_data(copy=False)
@@ -2194,10 +2195,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
+            # Resolve numeric_only so that var doesn't warn
+            numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+            if numeric_only_bool and self.obj.ndim == 1:
+                raise NotImplementedError(
+                    f"{type(self).__name__}.std does not implement numeric_only."
+                )
             result = self._get_cythonized_result(
                 libgroupby.group_var,
                 cython_dtype=np.dtype(np.float64),
-                numeric_only=numeric_only,
+                numeric_only=numeric_only_bool,
                 needs_counts=True,
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
@@ -2296,7 +2303,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-        result = self.std(ddof=ddof, numeric_only=numeric_only)
+        # Reolve numeric_only so that std doesn't warn
+        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        if numeric_only_bool and self.obj.ndim == 1:
+            raise NotImplementedError(
+                f"{type(self).__name__}.sem does not implement numeric_only."
+            )
+        result = self.std(ddof=ddof, numeric_only=numeric_only_bool)
         self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
 
         if result.ndim == 1:
@@ -3167,6 +3180,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         b    3.0
         """
         numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        if numeric_only_bool and self.obj.ndim == 1:
+            raise NotImplementedError(
+                f"{type(self).__name__}.quantile does not implement numeric_only"
+            )
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
             if is_object_dtype(vals):
