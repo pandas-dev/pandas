@@ -442,16 +442,9 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = False, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
     ):
         assert axis == 0  # handled by caller
-        if numeric_only:
-            warnings.warn(
-                f"Passing `numeric_only=True` to {type(self).__name__}.{how} is "
-                f"deprecated and will raise in a future version of pandas.",
-                category=FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         obj = self._selected_obj
 
