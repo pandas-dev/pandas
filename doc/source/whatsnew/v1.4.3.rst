@@ -51,8 +51,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :func:`pandas.eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where passing empty ``local_dict`` or ``global_dict`` was treated as passing ``None`` (:issue:`47084`)
-- Most I/O methods no longer suppress ``OSError`` and ``ValueError`` when closing file handles (:issue:`47136`)- Added parameter ``tight`` in :meth:`DataFrame.from_dict` error message
-- Improving error message raised by :meth:`DataFrame.from_dict` when passing an invalid ``orient`` (:issue:`47450`)
+- Most I/O methods no longer suppress ``OSError`` and ``ValueError`` when closing file handles (:issue:`47136`)
+- Improving error message raised by :meth:`DataFrame.from_dict` when passing an invalid ``orient`` parameter (:issue:`47450`)
 
 .. ---------------------------------------------------------------------------
 
