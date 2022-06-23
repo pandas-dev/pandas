@@ -1383,7 +1383,7 @@ def test_deprecate_numeric_only_series(groupby_func, request):
         args = (0.5,)
     else:
         args = ()
-    method = getattr(gb, groupby_func, None)
+    method = getattr(gb, groupby_func)
 
     try:
         _ = method(*args)
@@ -1418,14 +1418,13 @@ def test_deprecate_numeric_only_series(groupby_func, request):
             or "is not supported for object dtype" in str(err)
         ), str(err)
 
-    try:
-        method(*args, numeric_only=True)
-    except (NotImplementedError, TypeError) as err:
-        assert (
-            "got an unexpected keyword argument 'numeric_only'" in str(err)
-            or f"{groupby_func} does not implement numeric_only" in str(err)
-            or str(err) == f"{groupby_func} is not supported for object dtype"
-        ), str(err)
+    msgs = (
+        "got an unexpected keyword argument 'numeric_only'",
+        f"{groupby_func} does not implement numeric_only",
+        f"{groupby_func} is not supported for object dtype",
+    )
+    with pytest.raises((NotImplementedError, TypeError), match=f"({'|'.join(msgs)})"):
+        _ = method(*args, numeric_only=True)
 
 
 @pytest.mark.parametrize("dtype", [int, float, object])
