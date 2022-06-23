@@ -193,7 +193,7 @@ class TestFromDict:
     def test_from_dict_orient_invalid(self):
         msg = (
             "Expected 'index', 'columns' or 'tight' for orient parameter. "
-            "Got '{orient}' instead"
+            "Got 'abc' instead"
         )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
