@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in taking NULL :class:`objects` from a :class:`DataFrame` causing a segmentation violation. These NULL values are created by :meth:`numpy.empty_like` (:issue:`46848`)
 -
 
 .. ---------------------------------------------------------------------------
