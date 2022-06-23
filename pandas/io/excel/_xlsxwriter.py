@@ -165,9 +165,9 @@ class _XlsxStyler:
                 "doubleAccounting": 34,
             }[props["underline"]]
 
-        if isinstance(props.get("valign"), str):
-            if props["valign"] == "center":
-                props["valign"] = "vcenter"
+        # GH 30107 - xlsxwriter uses different name
+        if props.get("valign") == "center":
+            props["valign"] = "vcenter"
 
         return props
 
