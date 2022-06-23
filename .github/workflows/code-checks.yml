@@ -65,37 +65,39 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
 
+    # The following checks are independent of each other and should still be run if one fails
     - name: Check for no warnings when building single-page docs
       run: ci/code_checks.sh single-docs
-      if: ${{ steps.build.outcome == 'success' }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run checks on imported code
       run: ci/code_checks.sh code
-      if: ${{ steps.build.outcome == 'success' }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run doctests
       run: ci/code_checks.sh doctests
-      if: ${{ steps.build.outcome == 'success' }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation
       run: ci/code_checks.sh docstrings
-      if: ${{ steps.build.outcome == 'success' }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Use existing environment for type checking
       run: |
         echo $PATH >> $GITHUB_PATH
         echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Typing
       uses: pre-commit/action@v2.0.3
       with:
         extra_args: --hook-stage manual --all-files
-      if: ${{ steps.build.outcome == 'success' }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Run docstring validation script tests
       run: pytest scripts
-      if: ${{ steps.build.outcome == 'success' }}
+      if: ${{ steps.build.outcome == 'success' && always() }}
 
   asv-benchmarks:
     name: ASV Benchmarks
