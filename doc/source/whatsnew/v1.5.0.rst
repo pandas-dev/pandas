@@ -970,7 +970,7 @@ Other
 
 .. ***DO NOT USE THIS SECTION***
 
--
+- Bug in :func:`.assert_index_equal` with ``names=True`` and ``check_order=False`` not checking names (:issue:`47328`)
 -
 
 .. ---------------------------------------------------------------------------

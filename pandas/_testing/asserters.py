@@ -45,10 +45,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import (
-    safe_sort,
-    take_nd,
-)
+from pandas.core.algorithms import take_nd
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -58,6 +55,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.indexes.api import safe_sort_index
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -367,8 +365,8 @@ def assert_index_equal(
 
     # If order doesn't matter then sort the index entries
     if not check_order:
-        left = Index(safe_sort(left), dtype=left.dtype)
-        right = Index(safe_sort(right), dtype=right.dtype)
+        left = safe_sort_index(left)
+        right = safe_sort_index(right)
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
