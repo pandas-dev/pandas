@@ -2,6 +2,7 @@ import pytest
 
 from pandas.errors import (
     AbstractMethodError,
+    PyperclipWindowsException,
     UndefinedVariableError,
 )
 
@@ -28,6 +29,7 @@ import pandas as pd
         "SettingWithCopyWarning",
         "NumExprClobberingError",
         "IndexingError",
+        "PyperclipException",
     ],
 )
 def test_exception_importable(exc):
@@ -68,6 +70,13 @@ def test_catch_undefined_variable_error(is_local):
 
     with pytest.raises(UndefinedVariableError, match=msg):
         raise UndefinedVariableError(variable_name, is_local)
+
+
+@pytest.mark.usefixtures("mock_ctypes")
+def test_PyperclipWindowsException():
+    msg = "test \\(Window Error\\)"
+    with pytest.raises(PyperclipWindowsException, match=msg):
+        raise PyperclipWindowsException("test")
 
 
 class Foo:
