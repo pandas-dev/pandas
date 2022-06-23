@@ -687,21 +687,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, inclusive=self.inclusive)
-        # error: Argument 1 to "ndim" has incompatible type
-        # "Union[ndarray[Any, Any], ExtensionArray]"; expected
-        # "Union[Sequence[Sequence[Sequence[Sequence[Sequence[Any]]]]],
-        # Union[Union[_SupportsArray[dtype[Any]],
-        # Sequence[_SupportsArray[dtype[Any]]],
-        # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-        # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]],
-        # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]],
-        # Union[bool, int, float, complex, str, bytes,
-        # Sequence[Union[bool, int, float, complex, str, bytes]],
-        # Sequence[Sequence[Union[bool, int, float, complex, str, bytes]]],
-        # Sequence[Sequence[Sequence[Union[bool, int, float, complex, str, bytes]]]],
-        # Sequence[Sequence[Sequence[Sequence[Union[bool, int, float,
-        # complex, str, bytes]]]]]]]]"
-        if np.ndim(left) > 1:  # type: ignore[arg-type]
+        if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -1679,7 +1665,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                return np.in1d(left, right)
+                # error: Argument 1 to "in1d" has incompatible type
+                # "Union[ExtensionArray, ndarray[Any, Any],
+                # ndarray[Any, dtype[Any]]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
+                # int, float, complex, str, bytes, _NestedSequence[
+                # Union[bool, int, float, complex, str, bytes]]]"
+                return np.in1d(left, right)  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype
