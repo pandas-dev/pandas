@@ -2024,8 +2024,8 @@ Name: Max Speed, dtype: float64
             lev = lev.insert(cnt, lev._na_value)
 
         obs = level_codes[notna(self._values)]
-        # Argument "minlength" to "bincount" has incompatible type "Optional[int]";
-        # expected "SupportsIndex"  [arg-type]
+        # error: Argument "minlength" to "bincount" has incompatible type
+        # "Optional[int]"; expected "SupportsIndex"
         out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
         return self._constructor(out, index=lev, dtype="int64").__finalize__(
             self, method="count"
