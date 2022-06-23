@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Mapping,
     TypeVar,
 )
 
@@ -113,11 +114,11 @@ class NumericDtype(BaseMaskedDtype):
             return array_class._concat_same_type(results)
 
     @classmethod
-    def _str_to_dtype_mapping(cls):
+    def _str_to_dtype_mapping(cls) -> Mapping[str, NumericDtype]:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _standardize_dtype(cls, dtype) -> NumericDtype:
+    def _standardize_dtype(cls, dtype: NumericDtype | str | np.dtype) -> NumericDtype:
         """
         Convert a string representation or a numpy dtype to NumericDtype.
         """
@@ -126,7 +127,7 @@ class NumericDtype(BaseMaskedDtype):
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
 
-        if not issubclass(type(dtype), cls):
+        if not isinstance(dtype, NumericDtype):
             mapping = cls._str_to_dtype_mapping()
             try:
                 dtype = mapping[str(np.dtype(dtype))]
