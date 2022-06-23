@@ -1017,10 +1017,10 @@ def rank(
 
 def checked_add_with_arr(
     arr: npt.NDArray[np.int64],
-    b,
+    b: int | npt.NDArray[np.int64],
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.int64]:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -1064,11 +1064,12 @@ def checked_add_with_arr(
     elif arr_mask is not None:
         not_nan = np.logical_not(arr_mask)
     elif b_mask is not None:
-        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has incompatible type
-        # "Optional[ndarray[Any, dtype[bool_]]]"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[An
-        # y]]], bool, int, float, complex, str, bytes, _NestedSequence[Union[bool,
-        # int, float, complex, str, bytes]]]"  [arg-type]
+        # error: Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
+        # incompatible type "Optional[ndarray[Any, dtype[bool_]]]";
+        # expected "Union[_SupportsArray[dtype[Any]], _NestedSequence
+        # [_SupportsArray[dtype[Any]]], bool, int, float, complex, str
+        # , bytes, _NestedSequence[Union[bool, int, float, complex, str
+        # , bytes]]]"
         not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
     else:
         not_nan = np.empty(arr.shape, dtype=bool)
@@ -1098,7 +1099,12 @@ def checked_add_with_arr(
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
-    return arr + b
+
+    result = arr + b
+    if arr_mask is not None or b2_mask is not None:
+        np.putmask(result, ~not_nan, iNaT)
+
+    return result
 
 
 # --------------- #
