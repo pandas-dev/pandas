@@ -16,6 +16,7 @@ from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import (
     AbstractMethodError,
+    IndexingError,
     InvalidIndexError,
 )
 from pandas.util._decorators import doc
@@ -119,10 +120,6 @@ class _IndexSlice:
 
 
 IndexSlice = _IndexSlice()
-
-
-class IndexingError(Exception):
-    pass
 
 
 class IndexingMixin:

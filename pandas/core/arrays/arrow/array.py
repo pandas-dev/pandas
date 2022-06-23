@@ -264,6 +264,12 @@ class ArrowExtensionArray(ExtensionArray):
 
         return indices.values, uniques
 
+    def reshape(self, *args, **kwargs):
+        raise NotImplementedError(
+            f"{type(self)} does not support reshape "
+            f"as backed by a 1D pyarrow.ChunkedArray."
+        )
+
     def take(
         self,
         indices: TakeIndexer,
@@ -490,6 +496,14 @@ class ArrowExtensionArray(ExtensionArray):
         if isinstance(key, slice):
             indices = np.arange(n)[key]
         elif is_integer(key):
+            # error: Invalid index type "List[Union[int, ndarray[Any, Any]]]"
+            # for "ndarray[Any, dtype[signedinteger[Any]]]"; expected type
+            # "Union[SupportsIndex, _SupportsArray[dtype[Union[bool_,
+            # integer[Any]]]], _NestedSequence[_SupportsArray[dtype[Union
+            # [bool_, integer[Any]]]]], _NestedSequence[Union[bool, int]]
+            # , Tuple[Union[SupportsIndex, _SupportsArray[dtype[Union[bool_
+            # , integer[Any]]]], _NestedSequence[_SupportsArray[dtype[Union
+            # [bool_, integer[Any]]]]], _NestedSequence[Union[bool, int]]], ...]]"
             indices = np.arange(n)[[key]]  # type: ignore[index]
         elif is_bool_dtype(key):
             key = np.asarray(key)

@@ -37,6 +37,26 @@ class TestNonNano:
         else:
             return DatetimeTZDtype(unit=unit, tz=tz)
 
+    @pytest.fixture
+    def dta_dti(self, unit, dtype):
+        tz = getattr(dtype, "tz", None)
+
+        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz)
+        if tz is None:
+            arr = np.asarray(dti).astype(f"M8[{unit}]")
+        else:
+            arr = np.asarray(dti.tz_convert("UTC").tz_localize(None)).astype(
+                f"M8[{unit}]"
+            )
+
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        return dta, dti
+
+    @pytest.fixture
+    def dta(self, dta_dti):
+        dta, dti = dta_dti
+        return dta
+
     def test_non_nano(self, unit, reso, dtype):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
@@ -52,17 +72,8 @@ class TestNonNano:
     @pytest.mark.parametrize(
         "field", DatetimeArray._field_ops + DatetimeArray._bool_ops
     )
-    def test_fields(self, unit, reso, field, dtype):
-        tz = getattr(dtype, "tz", None)
-        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz)
-        if tz is None:
-            arr = np.asarray(dti).astype(f"M8[{unit}]")
-        else:
-            arr = np.asarray(dti.tz_convert("UTC").tz_localize(None)).astype(
-                f"M8[{unit}]"
-            )
-
-        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+    def test_fields(self, unit, reso, field, dtype, dta_dti):
+        dta, dti = dta_dti
 
         # FIXME: assert (dti == dta).all()
 
@@ -84,6 +95,79 @@ class TestNonNano:
 
         res = dta.normalize()
         tm.assert_extension_array_equal(res, expected)
+
+    def test_simple_new_requires_match(self, unit):
+        arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
+        dtype = DatetimeTZDtype(unit, "UTC")
+
+        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        assert dta.dtype == dtype
+
+        wrong = DatetimeTZDtype("ns", "UTC")
+        with pytest.raises(AssertionError, match=""):
+            DatetimeArray._simple_new(arr, dtype=wrong)
+
+    def test_std_non_nano(self, unit):
+        dti = pd.date_range("2016-01-01", periods=55, freq="D")
+        arr = np.asarray(dti).astype(f"M8[{unit}]")
+
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        # we should match the nano-reso std, but floored to our reso.
+        res = dta.std()
+        assert res._reso == dta._reso
+        assert res == dti.std().floor(unit)
+
+    @pytest.mark.filterwarnings("ignore:Converting to PeriodArray.*:UserWarning")
+    def test_to_period(self, dta_dti):
+        dta, dti = dta_dti
+        result = dta.to_period("D")
+        expected = dti._data.to_period("D")
+
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_iter(self, dta):
+        res = next(iter(dta))
+        expected = dta[0]
+
+        assert type(res) is pd.Timestamp
+        assert res.value == expected.value
+        assert res._reso == expected._reso
+        assert res == expected
+
+    def test_astype_object(self, dta):
+        result = dta.astype(object)
+        assert all(x._reso == dta._reso for x in result)
+        assert all(x == y for x, y in zip(result, dta))
+
+    def test_to_pydatetime(self, dta_dti):
+        dta, dti = dta_dti
+
+        result = dta.to_pydatetime()
+        expected = dti.to_pydatetime()
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("meth", ["time", "timetz", "date"])
+    def test_time_date(self, dta_dti, meth):
+        dta, dti = dta_dti
+
+        result = getattr(dta, meth)
+        expected = getattr(dti, meth)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_format_native_types(self, unit, reso, dtype, dta_dti):
+        # In this case we should get the same formatted values with our nano
+        #  version dti._data as we do with the non-nano dta
+        dta, dti = dta_dti
+
+        res = dta._format_native_types()
+        exp = dti._data._format_native_types()
+        tm.assert_numpy_array_equal(res, exp)
+
+    def test_repr(self, dta_dti, unit):
+        dta, dti = dta_dti
+
+        assert repr(dta) == repr(dti._data).replace("[ns", f"[{unit}")
 
 
 class TestDatetimeArrayComparisons:
