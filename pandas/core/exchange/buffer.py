@@ -57,8 +57,7 @@ class PandasBuffer(Buffer):
         Represent this structure as DLPack interface.
         """
         if _NUMPY_HAS_DLPACK:
-            # error: "ndarray[Any, Any]" has no attribute "__dlpack__"
-            return self._x.__dlpack__()  # type: ignore[attr-defined]
+            return self._x.__dlpack__()
         raise NotImplementedError("__dlpack__")
 
     def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
