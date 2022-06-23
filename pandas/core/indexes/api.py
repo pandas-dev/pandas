@@ -70,6 +70,7 @@ __all__ = [
     "get_unanimous_names",
     "all_indexes_same",
     "default_index",
+    "safe_sort_index",
 ]
 
 
@@ -157,19 +158,38 @@ def _get_combined_index(
         index = ensure_index(index)
 
     if sort:
-        try:
-            array_sorted = safe_sort(index)
-            array_sorted = cast(np.ndarray, array_sorted)
-            if isinstance(index, MultiIndex):
-                index = MultiIndex.from_tuples(array_sorted, names=index.names)
-            else:
-                index = Index(array_sorted, name=index.name)
-        except TypeError:
-            pass
-
+        index = safe_sort_index(index)
     # GH 29879
     if copy:
         index = index.copy()
+
+    return index
+
+
+def safe_sort_index(index: Index) -> Index:
+    """
+    Returns the sorted index
+
+    We keep the dtypes and the name attributes.
+
+    Parameters
+    ----------
+    index : an Index
+
+    Returns
+    -------
+    Index
+    """
+    try:
+        array_sorted = safe_sort(index)
+    except TypeError:
+        pass
+    else:
+        array_sorted = cast(np.ndarray, array_sorted)
+        if isinstance(index, MultiIndex):
+            index = MultiIndex.from_tuples(array_sorted, names=index.names)
+        else:
+            index = Index(array_sorted, name=index.name, dtype=index.dtype)
 
     return index
 
