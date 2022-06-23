@@ -446,8 +446,11 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
         assert axis == 0  # handled by caller
         if numeric_only:
-            raise NotImplementedError(
-                f"{type(self).__name__}.{how} does not implement numeric_only=True"
+            warnings.warn(
+                f"Passing `numeric_only=True` to {type(self).__name__}.{how} is "
+                f"deprecated and will raise in a future version of pandas.",
+                category=FutureWarning,
+                stacklevel=find_stack_level(),
             )
 
         obj = self._selected_obj

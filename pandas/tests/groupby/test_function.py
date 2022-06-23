@@ -1418,14 +1418,26 @@ def test_deprecate_numeric_only_series(groupby_func, request):
             or "is not supported for object dtype" in str(err)
         ), str(err)
 
-    try:
-        method(*args, numeric_only=True)
-        # No method should allow numeric_only=True
-        assert False, groupby_func
-    except (TypeError, NotImplementedError) as err:
-        assert "got an unexpected keyword argument 'numeric_only'" in str(
-            err
-        ) or f"{groupby_func} does not implement numeric_only" in str(err), str(err)
+    if groupby_func in ("cummax", "cummin", "cumprod", "cumsum"):
+        # kernels that did not always raise when passing numeric_only=True in 1.4
+        try:
+            msg = (
+                f"Passing `numeric_only=True` to SeriesGroupBy.{groupby_func} "
+                "is deprecated"
+            )
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                method(*args, numeric_only=True)
+        except TypeError as err:
+            assert str(err) == f"{groupby_func} is not supported for object dtype", str(
+                err
+            )
+    else:
+        try:
+            method(*args, numeric_only=True)
+        except (NotImplementedError, TypeError) as err:
+            assert "got an unexpected keyword argument 'numeric_only'" in str(
+                err
+            ) or f"{groupby_func} does not implement numeric_only" in str(err), str(err)
 
 
 @pytest.mark.parametrize("dtype", [int, float, object])
