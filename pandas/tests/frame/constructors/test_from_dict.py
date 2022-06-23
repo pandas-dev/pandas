@@ -191,6 +191,9 @@ class TestFromDict:
             DataFrame.from_dict(OrderedDict([("b", 8), ("a", 5), ("a", 6)]))
 
     def test_from_dict_orient_invalid(self):
-        msg = "only recognize 'index', 'columns', or 'tight' for orient"
+        msg = (
+            "Expected 'index', 'columns' or 'tight' for orient parameter. "
+            "Got '{orient}' instead"
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
