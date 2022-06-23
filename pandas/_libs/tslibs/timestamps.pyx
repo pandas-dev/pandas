@@ -103,6 +103,7 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 from pandas._libs.tslibs.timedeltas cimport (
+    _Timedelta,
     delta_to_nanoseconds,
     ensure_td64ns,
     is_any_td_scalar,
@@ -384,11 +385,36 @@ cdef class _Timestamp(ABCTimestamp):
                     # TODO: no tests get here
                     other = ensure_td64ns(other)
 
-            # TODO: what to do with mismatched resos?
-            # TODO: disallow round_ok
-            nanos = delta_to_nanoseconds(
-                other, reso=self._reso, round_ok=True
-            )
+            if isinstance(other, _Timedelta):
+                # TODO: share this with __sub__, Timedelta.__add__
+                # We allow silent casting to the lower resolution if and only
+                #  if it is lossless.  See also Timestamp.__sub__
+                #  and Timedelta.__add__
+                try:
+                    if self._reso < other._reso:
+                        other = (<_Timedelta>other)._as_reso(self._reso, round_ok=False)
+                    elif self._reso > other._reso:
+                        self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+                except ValueError as err:
+                    raise ValueError(
+                        "Timestamp addition with mismatched resolutions is not "
+                        "allowed when casting to the lower resolution would require "
+                        "lossy rounding."
+                    ) from err
+
+            try:
+                nanos = delta_to_nanoseconds(
+                    other, reso=self._reso, round_ok=False
+                )
+            except OutOfBoundsTimedelta:
+                raise
+            except ValueError as err:
+                raise ValueError(
+                    "Addition between Timestamp and Timedelta with mismatched "
+                    "resolutions is not allowed when casting to the lower "
+                    "resolution would require lossy rounding."
+                ) from err
+
             try:
                 new_value = self.value + nanos
             except OverflowError:
