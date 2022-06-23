@@ -1698,7 +1698,9 @@ def any_skipna_inferred_dtype(request):
 # ----------------------------------------------------------------
 @pytest.fixture
 def mock_ctypes(monkeypatch):
-    """ """
+    """
+    Mocks WinError to help with testing the clipboard.
+    """
 
     def _mock_win_error():
         return "Window Error"
