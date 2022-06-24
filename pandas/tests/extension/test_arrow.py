@@ -271,8 +271,8 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         self, data_for_grouping, groupby_apply_op, request
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        # Is there way to get the "Series" ID for groupby_apply_op?
-        is_series = isinstance(groupby_apply_op([]), pd.Series)
+        # Is there a better way to get the "series" ID for groupby_apply_op?
+        is_series = "series" in request.node.nodeid
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -849,8 +849,8 @@ class TestBaseSetitem(base.BaseSetitemTests):
     def test_setitem_with_expansion_dataframe_column(
         self, data, full_indexer, using_array_manager, request
     ):
-        # Is there a way to get the full_indexer id "null_slice"?
-        is_null_slice = full_indexer(pd.Series(dtype=object)) == slice(None)
+        # Is there a better way to get the full_indexer id "null_slice"?
+        is_null_slice = "null_slice" in request.node.nodeid
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC") and not is_null_slice:
             request.node.add_marker(
