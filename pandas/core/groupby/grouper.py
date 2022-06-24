@@ -835,10 +835,11 @@ def get_grouper(
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
-        if key is None:
-            return False
 
         if not _is_label_like(key):
+            if obj.ndim == 1:
+                return False
+
             # items -> .columns for DataFrame, .index for Series
             items = obj.axes[-1]
             try:
