@@ -1369,8 +1369,19 @@ class TextFileReader(abc.Iterator):
     """
     Passed dialect overrides any of the related parser options.
 
-    Only __enter__, __exit__ and __next__ are public. All other
-    attributes are considered private and can change.
+    Iterator class used to process to text files read via read_csv in
+    chunks.
+
+    An instance of this class is returned by `read_csv` when it is processed in
+    chunks, instead of returning a single `DataFrame`.
+
+    When iterating over `TextFileReader`, every item returned will be a DataFrame.
+
+    Examples
+    ---------
+    >>> with pandas.read_csv(..., iterator=True) as text_file_reader:
+    ...     for df in text_file_reader:
+    ...         ...
     """
 
     def __init__(
@@ -1423,6 +1434,7 @@ class TextFileReader(abc.Iterator):
         self._engine = self._make_engine(f, self.engine)
 
     def close(self) -> None:
+        """Closes the file handle."""
         if self.handles is not None:
             self.handles.close()
         self._engine.close()
@@ -1731,6 +1743,18 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows: int | None = None) -> DataFrame:
+        """
+        Reads the text file and stores the result in a DataFrame.
+
+        Parameters
+        ----------
+        nrows: int, optional, default None
+            The number of rows to read in one go.
+
+        Returns
+        -------
+        DataFrame
+        """
         if self.engine == "pyarrow":
             try:
                 # error: "ParserBase" has no attribute "read"

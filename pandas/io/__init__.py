@@ -5,8 +5,9 @@ if TYPE_CHECKING:
     from pandas.io import (
         formats,
         json,
+        parsers,
         stata,
     )
 
     # and mark only those modules as public
-    __all__ = ["formats", "json", "stata"]
+    __all__ = ["formats", "json", "parsers", "stata"]
