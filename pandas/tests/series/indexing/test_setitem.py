@@ -541,11 +541,23 @@ class TestSetitemWithExpansion:
         expected = Series([1, 2, 10], dtype=any_numeric_ea_dtype)
         tm.assert_series_equal(ser, expected)
 
-    def test_setitem_enlarge_with_na(self):
+    @pytest.mark.parametrize("indexer", [1, 2])
+    @pytest.mark.parametrize(
+        "na, target_na, dtype, target_dtype",
+        [
+            (NA, NA, "Int64", "Int64"),
+            (NA, np.nan, "int64", "float64"),
+            (NaT, NaT, "int64", "object"),
+            (np.nan, NA, "Int64", "Int64"),
+            (np.nan, NA, "Float64", "Float64"),
+        ],
+    )
+    def test_setitem_enlarge_with_na(self, na, target_na, dtype, target_dtype, indexer):
         # GH#32346
-        ser = Series([1, 2], dtype="Int64")
-        ser[2] = NA
-        expected = Series([1, 2, NA], dtype="Int64")
+        ser = Series([1, 2], dtype=dtype)
+        ser[indexer] = na
+        expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
+        expected = Series(expected_values, dtype=target_dtype)
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_enlarge_with_nan(self):

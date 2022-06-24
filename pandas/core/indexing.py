@@ -44,7 +44,9 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     infer_fill_value,
+    is_valid_na_for_dtype,
     isna,
+    na_value_for_dtype,
 )
 
 from pandas.core import algorithms as algos
@@ -2087,8 +2089,11 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value and of the object
-            if isna(value == value):
-                new_dtype = self.obj.dtype
+            if is_valid_na_for_dtype(value, self.obj.dtype):
+                value = na_value_for_dtype(self.obj.dtype, compat=False)
+                new_dtype = maybe_promote(self.obj.dtype, value)[0]
+            elif not is_valid_na_for_dtype(value, self.obj.dtype):
+                new_dtype = None
             elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
                 # We should not cast, if we have object dtype because we can
                 # set timedeltas into object series
@@ -2097,7 +2102,9 @@ class _iLocIndexer(_LocationIndexer):
                 new_dtype = maybe_promote(curr_dtype, value)[0]
             else:
                 new_dtype = None
+
             new_values = Series([value], dtype=new_dtype)._values
+
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
