@@ -49,8 +49,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
-    dt64_to_dtstruct,
-    dtstruct_to_dt64,
     get_timedelta64_value,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -813,7 +811,7 @@ cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogi
 
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, dts)
 
-    dt64_to_dtstruct(nanos, &dts2)
+    pandas_datetime_to_datetimestruct(nanos, NPY_DATETIMEUNIT.NPY_FR_ns, &dts2)
     dts.hour = dts2.hour
     dts.min = dts2.min
     dts.sec = dts2.sec
@@ -1149,7 +1147,7 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     get_date_info(ordinal, freq, &dts)
 
     check_dts_bounds(&dts)
-    return dtstruct_to_dt64(&dts)
+    return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):

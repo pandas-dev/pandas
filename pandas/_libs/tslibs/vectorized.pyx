@@ -30,7 +30,6 @@ from .nattype cimport (
 from .np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    dt64_to_dtstruct,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
 )
