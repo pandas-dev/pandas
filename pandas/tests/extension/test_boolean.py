@@ -177,7 +177,12 @@ class TestMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel):
         # override because we only have 2 unique values
-        labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        if na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
         expected_labels = np.array(
             [0, 0, na_sentinel, na_sentinel, 1, 1, 0], dtype=np.intp
         )
