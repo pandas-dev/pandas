@@ -15,7 +15,6 @@ Instead of splitting it was decided to define sections here:
 - Data sets/files
 - Time zones
 - Dtypes
-- Ctypes
 - Misc
 """
 
@@ -1691,22 +1690,6 @@ def any_skipna_inferred_dtype(request):
 
     # correctness of inference tested in tests/dtypes/test_inference.py
     return inferred_dtype, values
-
-
-# ----------------------------------------------------------------
-# Ctypes
-# ----------------------------------------------------------------
-@pytest.fixture
-def mock_ctypes(monkeypatch):
-    """
-    Mocks WinError to help with testing the clipboard.
-    """
-
-    def _mock_win_error():
-        return "Window Error"
-
-    # Set raising to False because WinError won't exist on non-windows platforms
-    monkeypatch.setattr("ctypes.WinError", _mock_win_error, raising=False)
 
 
 # ----------------------------------------------------------------

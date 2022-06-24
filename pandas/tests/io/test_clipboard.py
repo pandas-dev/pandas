@@ -117,6 +117,21 @@ def df(request):
         raise ValueError
 
 
+@pytest.fixture
+def mock_ctypes(monkeypatch):
+    """
+    Mocks WinError to help with testing the clipboard.
+    """
+
+    def _mock_win_error():
+        return "Window Error"
+
+    # Set raising to False because WinError won't exist on non-windows platforms
+    with monkeypatch.context() as m:
+        m.setattr("ctypes.WinError", _mock_win_error, raising=False)
+        yield
+
+
 @pytest.mark.usefixtures("mock_ctypes")
 def test_checked_call_with_bad_call(monkeypatch):
     """
@@ -165,7 +180,7 @@ def test_checked_call_with_valid_call(monkeypatch):
 def test_stringify_text(text):
     valid_types = (str, int, float, bool)
 
-    if type(text) in valid_types:
+    if isinstance(text, valid_types):
         result = _stringifyText(text)
         assert result == str(text)
     else:
