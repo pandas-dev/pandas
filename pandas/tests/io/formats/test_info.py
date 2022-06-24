@@ -499,6 +499,9 @@ def test_info_from_rec():
     buf = StringIO()
     df.info(buf=buf)
 
+
+def test_info_from_rec_with_itr():
+    # GH47285
     itr = [
         {"col_1": 3, "col_2": "a"},
         {"col_1": 2, "col_2": "b"},
@@ -506,4 +509,4 @@ def test_info_from_rec():
         {"col_1": 0, "col_2": "d"},
     ]
     with pytest.raises(KeyError, match="^'col_14'$"):
-        df = DataFrame.from_records(itr, index="col_14")
+        DataFrame.from_records(itr, index="col_14")
