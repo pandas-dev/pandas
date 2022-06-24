@@ -665,7 +665,7 @@ def test_first_categorical_and_datetime_data_nat():
     tm.assert_frame_equal(result, expected)
 
 
-def test_first_multi_key_groupbby_categorical():
+def test_first_multi_key_groupby_categorical():
     # GH 22512
     df = DataFrame(
         {

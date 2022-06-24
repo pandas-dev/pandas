@@ -624,13 +624,13 @@ average of ``3, NaN, 5`` would be calculated as
 
 .. math::
 
-	\frac{(1-\alpha)^2 \cdot 3 + 1 \cdot 5}{(1-\alpha)^2 + 1}.
+        \frac{(1-\alpha)^2 \cdot 3 + 1 \cdot 5}{(1-\alpha)^2 + 1}.
 
 Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
 .. math::
 
-	\frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
+        \frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
 
 The :meth:`~Ewm.var`, :meth:`~Ewm.std`, and :meth:`~Ewm.cov` functions have a ``bias`` argument,
 specifying whether the result should contain biased or unbiased statistics.

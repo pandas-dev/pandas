@@ -18,7 +18,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
         if not hasattr(data, "value_counts"):
-            pytest.skip("value_counts is not implemented")
+            pytest.skip(f"value_counts is not implemented for {type(data)}")
         sig = inspect.signature(data.value_counts)
         kwarg = sig.parameters["dropna"]
         assert kwarg.default is True
@@ -27,7 +27,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
-            other = np.array(all_data[~all_data.isna()])
+            other = all_data[~all_data.isna()]
         else:
             other = all_data
 
@@ -49,6 +49,10 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             expected = pd.Series(0.0, index=result.index)
             expected[result > 0] = 1 / len(values)
+
+        if isinstance(data.dtype, pd.core.dtypes.dtypes.BaseMaskedDtype):
+            # TODO(GH#44692): avoid special-casing
+            expected = expected.astype("Float64")
 
         self.assert_series_equal(result, expected)
 

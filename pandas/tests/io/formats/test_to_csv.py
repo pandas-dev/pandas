@@ -13,8 +13,7 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-
-import pandas.io.common as icom
+from pandas.tests.io.test_compression import _compression_to_extension
 
 
 class TestToCSV:
@@ -46,7 +45,7 @@ class TestToCSV:
             with open(path) as f:
                 assert f.read() == expected2
 
-    def test_to_csv_defualt_encoding(self):
+    def test_to_csv_default_encoding(self):
         # GH17097
         df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
@@ -555,7 +554,7 @@ z
 
         # We'll complete file extension subsequently.
         filename = "test."
-        filename += icom._compression_to_extension[compression]
+        filename += _compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 

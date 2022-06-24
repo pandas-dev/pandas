@@ -23,6 +23,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     NaT,
+    PeriodIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -945,9 +946,11 @@ class TestNumpyJSONTests:
 
 
 class TestPandasJSONTests:
-    def test_dataframe(self, orient, numpy):
+    def test_dataframe(self, request, orient, numpy):
         if orient == "records" and numpy:
-            pytest.skip("Not idiomatic pandas")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"Not idiomatic pandas if orient={orient}")
+            )
 
         dtype = get_int32_compat_dtype(numpy, orient)
 
@@ -1238,3 +1241,9 @@ class TestPandasJSONTests:
         expected = f'"{td.isoformat()}"'
 
         assert result == expected
+
+    def test_encode_periodindex(self):
+        # GH 46683
+        p = PeriodIndex(["2022-04-06", "2022-04-07"], freq="D")
+        df = DataFrame(index=p)
+        assert df.to_json() == "{}"

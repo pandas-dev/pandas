@@ -7,6 +7,7 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
+    Any,
     Callable,
     DefaultDict,
     Hashable,
@@ -31,6 +32,7 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
+    Scalar,
 )
 from pandas.errors import (
     ParserError,
@@ -80,7 +82,7 @@ class ParserBase:
     _implicit_index: bool = False
     _first_chunk: bool
 
-    def __init__(self, kwds):
+    def __init__(self, kwds) -> None:
 
         self.names = kwds.get("names")
         self.orig_names: list | None = None
@@ -88,7 +90,7 @@ class ParserBase:
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
-        self.index_names: list | None = None
+        self.index_names: Sequence[Hashable] | None = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -120,13 +122,7 @@ class ParserBase:
 
         # validate header options for mi
         self.header = kwds.get("header")
-        if isinstance(self.header, (list, tuple, np.ndarray)):
-            if not all(map(is_integer, self.header)):
-                raise ValueError("header must be integer or list of integers")
-            if any(i < 0 for i in self.header):
-                raise ValueError(
-                    "cannot specify multi-index header with negative integers"
-                )
+        if is_list_like(self.header, allow_sets=False):
             if kwds.get("usecols"):
                 raise ValueError(
                     "cannot specify usecols when specifying a multi-index header"
@@ -138,9 +134,8 @@ class ParserBase:
 
             # validate index_col that only contains integers
             if self.index_col is not None:
-                is_sequence = isinstance(self.index_col, (list, tuple, np.ndarray))
                 if not (
-                    is_sequence
+                    is_list_like(self.index_col, allow_sets=False)
                     and all(map(is_integer, self.index_col))
                     or is_integer(self.index_col)
                 ):
@@ -148,21 +143,11 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-        elif self.header is not None:
+        elif self.header is not None and self.prefix is not None:
             # GH 27394
-            if self.prefix is not None:
-                raise ValueError(
-                    "Argument prefix must be None if argument header is not None"
-                )
-            # GH 16338
-            elif not is_integer(self.header):
-                raise ValueError("header must be integer or list of integers")
-            # GH 27779
-            elif self.header < 0:
-                raise ValueError(
-                    "Passing negative integer to header is invalid. "
-                    "For no header, use header=None instead"
-                )
+            raise ValueError(
+                "Argument prefix must be None if argument header is not None"
+            )
 
         self._name_processed = False
 
@@ -381,7 +366,7 @@ class ParserBase:
 
     @final
     def _make_index(
-        self, data, alldata, columns, indexnamerow=False
+        self, data, alldata, columns, indexnamerow: list[Scalar] | None = None
     ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
         index: Index | None
         if not is_index_col(self.index_col) or not self.index_col:
@@ -466,12 +451,16 @@ class ParserBase:
         if not isinstance(mapping, dict):
             return mapping
         clean = {}
+        # for mypy
+        assert self.orig_names is not None
+
         for col, v in mapping.items():
-            # for mypy
-            assert self.orig_names is not None
             if isinstance(col, int) and col not in self.orig_names:
                 col = self.orig_names[col]
             clean[col] = v
+        if isinstance(mapping, defaultdict):
+            remaining_cols = set(self.orig_names) - set(clean.keys())
+            clean.update({col: mapping[col] for col in remaining_cols})
         return clean
 
     @final
@@ -855,9 +844,11 @@ class ParserBase:
         data: list of array-likes containing the data column-wise.
         """
         if not self.index_col and len(columns) != len(data) and columns:
-            if len(columns) == len(data) - 1 and np.all(
-                (is_object_dtype(data[-1]) and data[-1] == "") | isna(data[-1])
-            ):
+            empty_str = is_object_dtype(data[-1]) and data[-1] == ""
+            # error: No overload variant of "__ror__" of "ndarray" matches
+            # argument type "ExtensionArray"
+            empty_str_or_na = empty_str | isna(data[-1])  # type: ignore[operator]
+            if len(columns) == len(data) - 1 and np.all(empty_str_or_na):
                 return
             warnings.warn(
                 "Length of header or names does not match length of data. This leads "
@@ -1021,26 +1012,14 @@ class ParserBase:
         # Convert `dtype` to a defaultdict of some kind.
         # This will enable us to write `dtype[col_name]`
         # without worrying about KeyError issues later on.
+        dtype_dict: defaultdict[Hashable, Any]
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
             default_dtype = dtype or object
-            # error: Argument 1 to "defaultdict" has incompatible type "Callable[[],
-            # Union[ExtensionDtype, str, dtype[Any], Type[object], Dict[Hashable,
-            # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-            # Type[int], Type[complex], Type[bool], Type[object]]]]]"; expected
-            # "Optional[Callable[[], Union[ExtensionDtype, str, dtype[Any],
-            # Type[object]]]]"
-            # error: Incompatible return value type (got "Union[ExtensionDtype, str,
-            # dtype[Any], Type[object], Dict[Hashable, Union[ExtensionDtype, Union[str,
-            # dtype[Any]], Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]]]", expected "Union[ExtensionDtype, str, dtype[Any],
-            # Type[object]]")
-            dtype = defaultdict(
-                lambda: default_dtype  # type: ignore[arg-type, return-value]
-            )
+            dtype_dict = defaultdict(lambda: default_dtype)
         else:
             dtype = cast(dict, dtype)
-            dtype = defaultdict(
+            dtype_dict = defaultdict(
                 lambda: object,
                 {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
             )
@@ -1057,14 +1036,16 @@ class ParserBase:
         if (index_col is None or index_col is False) or index_names is None:
             index = Index([])
         else:
-            data = [Series([], dtype=dtype[name]) for name in index_names]
+            data = [Series([], dtype=dtype_dict[name]) for name in index_names]
             index = ensure_index_from_sequences(data, names=index_names)
             index_col.sort()
 
             for i, n in enumerate(index_col):
                 columns.pop(n - i)
 
-        col_dict = {col_name: Series([], dtype=dtype[col_name]) for col_name in columns}
+        col_dict = {
+            col_name: Series([], dtype=dtype_dict[col_name]) for col_name in columns
+        }
 
         return index, columns, col_dict
 

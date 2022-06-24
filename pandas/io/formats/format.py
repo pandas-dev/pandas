@@ -42,7 +42,9 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    get_unit_from_dtype,
     iNaT,
+    periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
@@ -204,7 +206,7 @@ class CategoricalFormatter:
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
-    ):
+    ) -> None:
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
@@ -274,7 +276,7 @@ class SeriesFormatter:
         dtype: bool = True,
         max_rows: int | None = None,
         min_rows: int | None = None,
-    ):
+    ) -> None:
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
@@ -421,7 +423,7 @@ class SeriesFormatter:
 
 
 class TextAdjustment:
-    def __init__(self):
+    def __init__(self) -> None:
         self.encoding = get_option("display.encoding")
 
     def len(self, text: str) -> int:
@@ -435,7 +437,7 @@ class TextAdjustment:
 
 
 class EastAsianTextAdjustment(TextAdjustment):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
             self.ambiguous_width = 2
@@ -578,7 +580,7 @@ class DataFrameFormatter:
         decimal: str = ".",
         bold_rows: bool = False,
         escape: bool = True,
-    ):
+    ) -> None:
         self.frame = frame
         self.columns = self._initialize_columns(columns)
         self.col_space = self._initialize_colspace(col_space)
@@ -1017,7 +1019,7 @@ class DataFrameRenderer:
         Formatter with the formatting options.
     """
 
-    def __init__(self, fmt: DataFrameFormatter):
+    def __init__(self, fmt: DataFrameFormatter) -> None:
         self.fmt = fmt
 
     def to_latex(
@@ -1058,7 +1060,7 @@ class DataFrameRenderer:
         encoding: str | None = None,
         classes: str | list | tuple | None = None,
         notebook: bool = False,
-        border: int | None = None,
+        border: int | bool | None = None,
         table_id: str | None = None,
         render_links: bool = False,
     ) -> str | None:
@@ -1294,7 +1296,7 @@ def format_array(
         fmt_klass = GenericArrayFormatter
 
     if space is None:
-        space = get_option("display.column_space")
+        space = 12
 
     if float_format is None:
         float_format = get_option("display.float_format")
@@ -1332,7 +1334,7 @@ class GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
-    ):
+    ) -> None:
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -1425,7 +1427,7 @@ class GenericArrayFormatter:
 
 
 class FloatArrayFormatter(GenericArrayFormatter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # float_format is expected to be a string
@@ -1614,7 +1616,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
@@ -1641,9 +1643,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
         formatter = self.formatter
         if formatter is None:
-            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
-            # no attribute "_formatter"
-            formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
+            formatter = values._formatter(boxed=True)
 
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1667,7 +1667,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | list[int | float] | list[float] | list[str | float]),
+    percentiles: (np.ndarray | Sequence[float]),
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.
@@ -1740,16 +1740,21 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
     if not isinstance(values, Index):
         values = values.ravel()
 
-    values = DatetimeIndex(values)
+    if not isinstance(values, (DatetimeArray, DatetimeIndex)):
+        values = DatetimeIndex(values)
+
     if values.tz is not None:
         return False
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 10**9
-    even_days = (
-        np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
-    )
+    # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+    reso = get_unit_from_dtype(values.dtype)  # type: ignore[arg-type]
+    ppd = periods_per_day(reso)
+
+    # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
+    even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
     if even_days:
         return True
     return False
@@ -1823,7 +1828,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         nat_rep: str = "NaT",
         box: bool = False,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.box = box
@@ -2023,7 +2028,9 @@ class EngFormatter:
         24: "Y",
     }
 
-    def __init__(self, accuracy: int | None = None, use_eng_prefix: bool = False):
+    def __init__(
+        self, accuracy: int | None = None, use_eng_prefix: bool = False
+    ) -> None:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
@@ -2099,7 +2106,6 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     See also EngFormatter.
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
-    set_option("display.column_space", max(12, accuracy + 9))
 
 
 def get_level_lengths(

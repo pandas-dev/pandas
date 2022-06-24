@@ -1,8 +1,7 @@
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
-import cython
-
+cimport cython
 from libc.stdlib cimport (
     free,
     malloc,
@@ -53,7 +52,7 @@ def hash_object_array(
     """
     cdef:
         Py_ssize_t i, n
-        uint64_t[:] result
+        uint64_t[::1] result
         bytes data, k
         uint8_t *kb
         uint64_t *lens

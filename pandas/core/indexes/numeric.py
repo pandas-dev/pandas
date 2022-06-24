@@ -222,6 +222,8 @@ class NumericIndex(Index):
         if is_float_dtype(self.dtype):
             assert kind in ["loc", "getitem"]
 
+            # TODO: can we write this as a condition based on
+            #  e.g. _should_fallback_to_positional?
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             return self.slice_indexer(key.start, key.stop, key.step)
@@ -276,7 +278,7 @@ class NumericIndex(Index):
 
     def _format_native_types(
         self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
-    ):
+    ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import FloatArrayFormatter
 
         if is_float_dtype(self.dtype):

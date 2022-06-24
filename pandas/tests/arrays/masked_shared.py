@@ -127,7 +127,7 @@ class NumericOps:
         assert isinstance(result, np.ndarray)
         assert result.all()
 
-        # result |= mask worked because mask could be cast lossslessly to
+        # result |= mask worked because mask could be cast losslessly to
         #  boolean ndarray. mask2 can't, so this raises
         result = np.zeros(3, dtype=bool)
         msg = "Specify an appropriate 'na_value' for this dtype"

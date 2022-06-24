@@ -741,11 +741,11 @@ generated/pandas.Index.values,../reference/api/pandas.Index.values
 generated/pandas.Index.view,../reference/api/pandas.Index.view
 generated/pandas.Index.where,../reference/api/pandas.Index.where
 generated/pandas.infer_freq,../reference/api/pandas.infer_freq
-generated/pandas.Interval.closed,../reference/api/pandas.Interval.closed
+generated/pandas.Interval.inclusive,../reference/api/pandas.Interval.inclusive
 generated/pandas.Interval.closed_left,../reference/api/pandas.Interval.closed_left
 generated/pandas.Interval.closed_right,../reference/api/pandas.Interval.closed_right
 generated/pandas.Interval,../reference/api/pandas.Interval
-generated/pandas.IntervalIndex.closed,../reference/api/pandas.IntervalIndex.closed
+generated/pandas.IntervalIndex.inclusive,../reference/api/pandas.IntervalIndex.inclusive
 generated/pandas.IntervalIndex.contains,../reference/api/pandas.IntervalIndex.contains
 generated/pandas.IntervalIndex.from_arrays,../reference/api/pandas.IntervalIndex.from_arrays
 generated/pandas.IntervalIndex.from_breaks,../reference/api/pandas.IntervalIndex.from_breaks

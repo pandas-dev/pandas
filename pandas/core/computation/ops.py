@@ -65,20 +65,6 @@ MATHOPS = _unary_math_ops + _binary_math_ops
 LOCAL_TAG = "__pd_eval_local_"
 
 
-class UndefinedVariableError(NameError):
-    """
-    NameError subclass for local variables.
-    """
-
-    def __init__(self, name: str, is_local: bool | None = None) -> None:
-        base_msg = f"{repr(name)} is not defined"
-        if is_local:
-            msg = f"local variable {base_msg}"
-        else:
-            msg = f"name {base_msg}"
-        super().__init__(msg)
-
-
 class Term:
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
@@ -580,7 +566,8 @@ class UnaryOp(Op):
 
     def __call__(self, env):
         operand = self.operand(env)
-        return self.func(operand)
+        # error: Cannot call function of unknown type
+        return self.func(operand)  # type: ignore[operator]
 
     def __repr__(self) -> str:
         return pprint_thing(f"{self.op}({self.operand})")

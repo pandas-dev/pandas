@@ -11,6 +11,7 @@ from typing import (
     IO,
     Any,
     Callable,
+    Hashable,
     Literal,
     NamedTuple,
     Sequence,
@@ -23,11 +24,11 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
-    ArrayLike,
     CompressionOptions,
     CSVEngine,
     DtypeArg,
     FilePath,
+    IndexLabel,
     ReadCsvBuffer,
     StorageOptions,
 )
@@ -168,6 +169,12 @@ dtype : Type name or dict of column -> type, optional
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
+
+    .. versionadded:: 1.5.0
+
+        Support for defaultdict was added. Specify a defaultdict as input where
+        the default determines the dtype of the columns which are not explicitly
+        listed.
 engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
     is currently more feature-complete. Multithreading is currently only supported by
@@ -515,7 +522,7 @@ def validate_integer(name, val, min_val=0):
     return val
 
 
-def _validate_names(names):
+def _validate_names(names: Sequence[Hashable] | None) -> None:
     """
     Raise ValueError if the `names` parameter contains duplicates or has an
     invalid data type.
@@ -590,8 +597,8 @@ def read_csv(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -629,7 +636,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -650,8 +657,8 @@ def read_csv(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -689,7 +696,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -710,8 +717,8 @@ def read_csv(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -749,7 +756,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -770,8 +777,8 @@ def read_csv(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -809,7 +816,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -840,8 +847,8 @@ def read_csv(
     delimiter: str | None | lib.NoDefault = None,
     # Column and Index Locations and Names
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names=lib.no_default,
-    index_col=None,
+    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
     squeeze: bool | None = None,
     prefix: str | lib.NoDefault = lib.no_default,
@@ -884,7 +891,7 @@ def read_csv(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect=None,
+    dialect: str | csv.Dialect | None = None,
     # Error Handling
     error_bad_lines: bool | None = None,
     warn_bad_lines: bool | None = None,
@@ -929,8 +936,8 @@ def read_table(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -968,7 +975,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -989,8 +996,8 @@ def read_table(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -1028,7 +1035,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -1049,8 +1056,8 @@ def read_table(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -1088,7 +1095,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -1109,8 +1116,8 @@ def read_table(
     sep: str | None | lib.NoDefault = ...,
     delimiter: str | None | lib.NoDefault = ...,
     header: int | Sequence[int] | None | Literal["infer"] = ...,
-    names=...,
-    index_col=...,
+    names: Sequence[Hashable] | None | lib.NoDefault = ...,
+    index_col: IndexLabel | Literal[False] | None = ...,
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
@@ -1148,7 +1155,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -1179,8 +1186,8 @@ def read_table(
     delimiter: str | None | lib.NoDefault = None,
     # Column and Index Locations and Names
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
-    names=lib.no_default,
-    index_col=None,
+    names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
+    index_col: IndexLabel | Literal[False] | None = None,
     usecols=None,
     squeeze: bool | None = None,
     prefix: str | lib.NoDefault = lib.no_default,
@@ -1223,7 +1230,7 @@ def read_table(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect=None,
+    dialect: str | csv.Dialect | None = None,
     # Error Handling
     error_bad_lines: bool | None = None,
     warn_bad_lines: bool | None = None,
@@ -1348,7 +1355,8 @@ def read_fwf(
                         len_index = 1
                     else:
                         len_index = len(index_col)
-            if len(names) + len_index != len(colspecs):
+            if kwds.get("usecols") is None and len(names) + len_index != len(colspecs):
+                # If usecols is used colspec may be longer than names
                 raise ValueError("Length of colspecs must match length of names")
 
     kwds["colspecs"] = colspecs
@@ -1370,7 +1378,7 @@ class TextFileReader(abc.Iterator):
         f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list,
         engine: CSVEngine | None = None,
         **kwds,
-    ):
+    ) -> None:
         if engine is not None:
             engine_specified = True
         else:
@@ -1695,10 +1703,7 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 is_text = False
                 mode = "rb"
-            # error: No overload variant of "get_handle" matches argument types
-            # "Union[str, PathLike[str], ReadCsvBuffer[bytes], ReadCsvBuffer[str]]"
-            # , "str", "bool", "Any", "Any", "Any", "Any", "Any"
-            self.handles = get_handle(  # type: ignore[call-overload]
+            self.handles = get_handle(
                 f,
                 mode,
                 encoding=self.options.get("encoding", None),
@@ -1710,6 +1715,10 @@ class TextFileReader(abc.Iterator):
             )
             assert self.handles is not None
             f = self.handles.handle
+
+        elif engine != "python":
+            msg = f"Invalid file path or buffer object type: {type(f)}"
+            raise ValueError(msg)
 
         try:
             return mapping[engine](f, **self.options)
@@ -1914,7 +1923,7 @@ def _stringify_na_values(na_values):
 
 
 def _refine_defaults_read(
-    dialect: str | csv.Dialect,
+    dialect: str | csv.Dialect | None,
     delimiter: str | None | lib.NoDefault,
     delim_whitespace: bool,
     engine: CSVEngine | None,
@@ -1922,7 +1931,7 @@ def _refine_defaults_read(
     error_bad_lines: bool | None,
     warn_bad_lines: bool | None,
     on_bad_lines: str | Callable | None,
-    names: ArrayLike | None | lib.NoDefault,
+    names: Sequence[Hashable] | None | lib.NoDefault,
     prefix: str | None | lib.NoDefault,
     defaults: dict[str, Any],
 ):

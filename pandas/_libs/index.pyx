@@ -1066,7 +1066,7 @@ cdef class ExtensionEngine(SharedEngine):
         try:
             return self.values == val
         except TypeError:
-            # e.g. if __eq__ returns a BooleanArray instead of ndarry[bool]
+            # e.g. if __eq__ returns a BooleanArray instead of ndarray[bool]
             try:
                 return (self.values == val).to_numpy(dtype=bool, na_value=False)
             except (TypeError, AttributeError) as err:

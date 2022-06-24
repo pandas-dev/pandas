@@ -18,16 +18,19 @@ from pandas.core.arrays.sparse import (
 
 @pytest.fixture
 def arr_data():
+    """Fixture returning numpy array with valid and missing entries"""
     return np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
 
 
 @pytest.fixture
 def arr(arr_data):
+    """Fixture returning SparseArray from 'arr_data'"""
     return SparseArray(arr_data)
 
 
 @pytest.fixture
 def zarr():
+    """Fixture returning SparseArray with integer entries and 'fill_value=0'"""
     return SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
 
@@ -126,10 +129,6 @@ class TestSparseArray:
 
         res = arr.to_dense()
         tm.assert_numpy_array_equal(res, vals)
-
-        res2 = arr._internal_get_values()
-
-        tm.assert_numpy_array_equal(res2, vals)
 
     @pytest.mark.parametrize("fix", ["arr", "zarr"])
     def test_pickle(self, fix, request):

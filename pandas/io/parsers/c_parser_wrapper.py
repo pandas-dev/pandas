@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import defaultdict
+from io import TextIOWrapper
 from typing import (
     Hashable,
     Mapping,
@@ -42,7 +44,7 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: ReadCsvBuffer[str], **kwds):
+    def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
         self.kwds = kwds
         kwds = kwds.copy()
@@ -60,6 +62,17 @@ class CParserWrapper(ParserBase):
 
         # Have to pass int, would break tests using TextReader directly otherwise :(
         kwds["on_bad_lines"] = self.on_bad_lines.value
+
+        # c-engine can cope with utf-8 bytes. Remove TextIOWrapper when its errors
+        # policy is the same as the one given to read_csv
+        if (
+            isinstance(src, TextIOWrapper)
+            and src.encoding == "utf-8"
+            and (src.errors or "strict") == kwds["encoding_errors"]
+        ):
+            # error: Incompatible types in assignment (expression has type "BinaryIO",
+            # variable has type "ReadCsvBuffer[str]")
+            src = src.buffer  # type: ignore[assignment]
 
         for key in (
             "storage_options",
@@ -370,7 +383,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            if common_type == object:
+            if common_type == np.dtype(object):
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
@@ -387,13 +400,14 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                     arrs  # type: ignore[arg-type]
                 )
             else:
-                # Argument 1 to "concatenate" has incompatible type
-                # "List[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
-                # "Union[_SupportsArray[dtype[Any]],
+                # error: Argument 1 to "concatenate" has incompatible
+                # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
+                # ; expected "Union[_SupportsArray[dtype[Any]],
                 # Sequence[_SupportsArray[dtype[Any]]],
                 # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]],
-                # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]]"
+                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
+                # , Sequence[Sequence[Sequence[Sequence[
+                # _SupportsArray[dtype[Any]]]]]]]"
                 result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
 
     if warning_columns:
@@ -415,7 +429,14 @@ def ensure_dtype_objs(
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.
     """
-    if isinstance(dtype, dict):
+    if isinstance(dtype, defaultdict):
+        # "None" not callable  [misc]
+        default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
+        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        for key in dtype.keys():
+            dtype_converted[key] = pandas_dtype(dtype[key])
+        return dtype_converted
+    elif isinstance(dtype, dict):
         return {k: pandas_dtype(dtype[k]) for k in dtype}
     elif dtype is not None:
         return pandas_dtype(dtype)

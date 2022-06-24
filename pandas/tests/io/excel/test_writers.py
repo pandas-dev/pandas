@@ -281,7 +281,10 @@ class TestRoundTrip:
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                    start=pd.Timestamp("2020-01-01"),
+                    periods=4,
+                    freq="6M",
+                    inclusive="right",
                 ),
             ]
         )
@@ -835,6 +838,19 @@ class TestExcelWriter:
         # Test that it is the same as the initial frame.
         tm.assert_frame_equal(frame1, frame3)
 
+    def test_to_excel_empty_multiindex(self, path):
+        # GH 19543.
+        expected = DataFrame([], columns=[0, 1, 2])
+
+        df = DataFrame([], index=MultiIndex.from_tuples([], names=[0, 1]), columns=[2])
+        df.to_excel(path, "test1")
+
+        with ExcelFile(path) as reader:
+            result = pd.read_excel(reader, sheet_name="test1")
+        tm.assert_frame_equal(
+            result, expected, check_index_type=False, check_dtype=False
+        )
+
     def test_to_excel_float_format(self, path):
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -1088,7 +1104,6 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_datetimes(self, path):
-
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
@@ -1106,11 +1121,6 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if path.endswith("xlsx") or path.endswith("xlsm"):
-            pytest.skip(
-                "Defaults to openpyxl and fails with floating point error on "
-                "datetimes; may be fixed on newer versions of openpyxl - GH #38644"
-            )
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
@@ -1313,8 +1323,8 @@ class TestExcelWriterEngineTests:
             called_save = False
             called_write_cells = False
             called_sheets = False
-            supported_extensions = ["xlsx", "xls"]
-            engine = "dummy"
+            _supported_extensions = ("xlsx", "xls")
+            _engine = "dummy"
 
             def book(self):
                 pass

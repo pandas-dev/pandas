@@ -132,9 +132,7 @@ The following methods are available only for ``SeriesGroupBy`` objects.
    SeriesGroupBy.hist
    SeriesGroupBy.nlargest
    SeriesGroupBy.nsmallest
-   SeriesGroupBy.nunique
    SeriesGroupBy.unique
-   SeriesGroupBy.value_counts
    SeriesGroupBy.is_monotonic_increasing
    SeriesGroupBy.is_monotonic_decreasing
 

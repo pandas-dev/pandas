@@ -90,7 +90,7 @@ class _Unstacker:
     unstacked : DataFrame
     """
 
-    def __init__(self, index: MultiIndex, level=-1, constructor=None):
+    def __init__(self, index: MultiIndex, level=-1, constructor=None) -> None:
 
         if constructor is None:
             constructor = DataFrame

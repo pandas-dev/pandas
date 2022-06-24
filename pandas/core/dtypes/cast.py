@@ -30,7 +30,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
-    conversion,
+    astype_overflowsafe,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -246,6 +246,16 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
         raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
+@overload
+def maybe_downcast_to_dtype(result: np.ndarray, dtype: str | np.dtype) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_to_dtype(result: ExtensionArray, dtype: str | np.dtype) -> ArrayLike:
+    ...
+
+
 def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
@@ -295,10 +305,24 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
         result = cast(np.ndarray, result)
         result = array_to_timedelta64(result)
 
-    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+    elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
         return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
+
+
+@overload
+def maybe_downcast_numeric(
+    result: np.ndarray, dtype: np.dtype, do_round: bool = False
+) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_numeric(
+    result: ExtensionArray, dtype: DtypeObj, do_round: bool = False
+) -> ArrayLike:
+    ...
 
 
 def maybe_downcast_numeric(
@@ -377,6 +401,13 @@ def maybe_downcast_numeric(
         # Check downcast float values are still equal within 7 digits when
         # converting from float64 to float32
         if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
+            return new_result
+
+    elif dtype.kind == result.dtype.kind == "c":
+        new_result = result.astype(dtype)
+
+        if array_equivalent(new_result, result):
+            # TODO: use tolerance like we do for float?
             return new_result
 
     return result
@@ -484,7 +515,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
         elif isinstance(dtype, IntervalDtype):
             # TODO(GH#45349): don't special-case IntervalDtype, allow
             #  overriding instead of returning object below.
-            return IntervalDtype(np.float64, closed=dtype.closed)
+            return IntervalDtype(np.float64, inclusive=dtype.inclusive)
         return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
@@ -803,7 +834,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = PeriodDtype(freq=val.freq)
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
+            dtype = IntervalDtype(subtype=subtype, inclusive=val.inclusive)
 
     return dtype, val
 
@@ -1388,10 +1419,10 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     """
     dtype = values.dtype
     if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-        values = conversion.ensure_datetime64ns(values)
+        values = astype_overflowsafe(values, dtype=DT64NS_DTYPE)
 
     elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        values = conversion.ensure_timedelta64ns(values)
+        values = astype_overflowsafe(values, dtype=TD64NS_DTYPE)
 
     elif copy:
         values = values.copy()
@@ -1678,7 +1709,9 @@ def construct_1d_arraylike_from_scalar(
             value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
-        subarr.fill(value)
+        if length:
+            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+            subarr.fill(value)
 
     return subarr
 

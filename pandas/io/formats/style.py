@@ -25,6 +25,7 @@ from pandas._typing import (
     FilePath,
     IndexLabel,
     Level,
+    QuantileInterpolation,
     Scalar,
     WriteBuffer,
 )
@@ -241,7 +242,7 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
-    ):
+    ) -> None:
         super().__init__(
             data=data,
             uuid=uuid,
@@ -1153,10 +1154,12 @@ class Styler(StylerRenderer):
             clines=clines,
         )
 
-        encoding = encoding or get_option("styler.render.encoding")
-        return save_to_buffer(
-            latex, buf=buf, encoding=None if buf is None else encoding
+        encoding = (
+            (encoding or get_option("styler.render.encoding"))
+            if isinstance(buf, str)  # i.e. a filepath
+            else encoding
         )
+        return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @Substitution(buf=buf, encoding=encoding)
     def to_html(
@@ -1273,7 +1276,6 @@ class Styler(StylerRenderer):
         if caption is not None:
             obj.set_caption(caption)
 
-        encoding = encoding or get_option("styler.render.encoding")
         # Build HTML string..
         html = obj._render_html(
             sparse_index=sparse_index,
@@ -1281,7 +1283,7 @@ class Styler(StylerRenderer):
             max_rows=max_rows,
             max_cols=max_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding,
+            encoding=encoding or get_option("styler.render.encoding"),
             doctype_html=doctype_html,
             **kwargs,
         )
@@ -2282,7 +2284,7 @@ class Styler(StylerRenderer):
         obj = self.data.index if axis == 0 else self.data.columns
         pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
-        props = "position:sticky; background-color:white;"
+        props = "position:sticky; background-color:inherit;"
         if not isinstance(obj, pd.MultiIndex):
             # handling MultiIndexes requires different CSS
 
@@ -2598,11 +2600,11 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis='index')`",
+            'this method is deprecated in favour of `Styler.hide(axis="index")`',
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self.hide(axis=0, level=level, subset=subset, names=names)
+        return self.hide(axis="index", level=level, subset=subset, names=names)
 
     def hide_columns(
         self,
@@ -2651,11 +2653,11 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis='columns')`",
+            'this method is deprecated in favour of `Styler.hide(axis="columns")`',
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self.hide(axis=1, level=level, subset=subset, names=names)
+        return self.hide(axis="columns", level=level, subset=subset, names=names)
 
     def hide(
         self,
@@ -3423,7 +3425,7 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/hbetw_basic.png
 
-        Using a range input sequnce along an ``axis``, in this case setting a ``left``
+        Using a range input sequence along an ``axis``, in this case setting a ``left``
         and ``right`` for each column individually
 
         >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
@@ -3466,7 +3468,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         q_left: float = 0.0,
         q_right: float = 1.0,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
@@ -3538,13 +3540,17 @@ class Styler(StylerRenderer):
 
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
-        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
+        quantiles = [q_left, q_right]
         if axis is None:
-            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
+            q = Series(data.to_numpy().ravel()).quantile(
+                q=quantiles, interpolation=interpolation
+            )
             axis_apply: int | None = None
         else:
             axis = self.data._get_axis_number(axis)
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            q = data.quantile(
+                axis=axis, numeric_only=False, q=quantiles, interpolation=interpolation
+            )
             axis_apply = 1 - axis
 
         if props is None:
@@ -3875,14 +3881,22 @@ def _highlight_between(
         )
 
     g_left = (
-        ops[0](data, left)
+        # error: Argument 2 to "ge" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[0](data, left)  # type: ignore[arg-type]
         if left is not None
         else np.full(data.shape, True, dtype=bool)
     )
     if isinstance(g_left, (DataFrame, Series)):
         g_left = g_left.where(pd.notna(g_left), False)
     l_right = (
-        ops[1](data, right)
+        # error: Argument 2 to "le" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[1](data, right)  # type: ignore[arg-type]
         if right is not None
         else np.full(data.shape, True, dtype=bool)
     )

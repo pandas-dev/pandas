@@ -361,7 +361,17 @@ with cf.config_prefix("display"):
         float_format_doc,
         validator=is_one_of_factory([None, is_callable]),
     )
-    cf.register_option("column_space", 12, validator=is_int)
+
+    def _deprecate_column_space(key):
+        warnings.warn(
+            "column_space is deprecated and will be removed "
+            "in a future version. Use df.to_string(col_space=...) "
+            "instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+    cf.register_option("column_space", 12, validator=is_int, cb=_deprecate_column_space)
     cf.register_option(
         "max_info_rows",
         1690785,

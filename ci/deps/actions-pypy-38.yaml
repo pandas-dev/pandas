@@ -8,9 +8,10 @@ dependencies:
   - python=3.8[build=*_pypy] # TODO: use this once pypy3.8 is available
 
   # tools
-  - cython>=0.29.24
+  - cython>=0.29.30
   - pytest>=6.0
   - pytest-cov
+  - pytest-asyncio
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
 

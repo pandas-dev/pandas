@@ -24,7 +24,7 @@ from pandas.api.extensions import (
 )
 from pandas.api.types import is_scalar
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import ArrowExtensionArray as _ArrowExtensionArray
+from pandas.core.arrays.arrow import ArrowExtensionArray as _ArrowExtensionArray
 from pandas.core.construction import extract_array
 
 
@@ -185,7 +185,7 @@ class ArrowBoolArray(ArrowExtensionArray):
 
         assert values.type == pa.bool_()
         self._data = values
-        self._dtype = ArrowBoolDtype()
+        self._dtype = ArrowBoolDtype()  # type: ignore[assignment]
 
 
 class ArrowStringArray(ArrowExtensionArray):
@@ -195,4 +195,4 @@ class ArrowStringArray(ArrowExtensionArray):
 
         assert values.type == pa.string()
         self._data = values
-        self._dtype = ArrowStringDtype()
+        self._dtype = ArrowStringDtype()  # type: ignore[assignment]

@@ -13,10 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat.numpy import (
-    np_version_under1p19,
-    np_version_under1p20,
-)
+from pandas.compat.numpy import np_version_under1p20
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -801,31 +798,6 @@ class TestSeriesConstructors:
         obj = frame_or_series(list(arr), dtype="i8")
         tm.assert_equal(obj, expected)
 
-    @td.skip_if_no("dask")
-    def test_construct_dask_float_array_int_dtype_match_ndarray(self):
-        # GH#40110 make sure we treat a float-dtype dask array with the same
-        #  rules we would for an ndarray
-        import dask.dataframe as dd
-
-        arr = np.array([1, 2.5, 3])
-        darr = dd.from_array(arr)
-
-        res = Series(darr)
-        expected = Series(arr)
-        tm.assert_series_equal(res, expected)
-
-        res = Series(darr, dtype="i8")
-        expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
-        msg = "In a future version, passing float-dtype values containing NaN"
-        arr[2] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = Series(darr, dtype="i8")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
     def test_constructor_coerce_float_fail(self, any_int_numpy_dtype):
         # see gh-15832
         # Updated: make sure we treat this list the same as we would treat
@@ -843,18 +815,11 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    def test_constructor_invalid_coerce_ints_with_float_nan(
-        self, any_int_numpy_dtype, request
-    ):
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
         # GH 22585
         # Updated: make sure we treat this list the same as we would treat the
-        #  equivalent ndarray
-        if np_version_under1p19 and np.dtype(any_int_numpy_dtype).kind == "u":
-            mark = pytest.mark.xfail(reason="Produces an extra RuntimeWarning")
-            request.node.add_marker(mark)
-
+        # equivalent ndarray
         vals = [1, 2, np.nan]
-
         msg = "In a future version, passing float-dtype values containing NaN"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = Series(vals, dtype=any_int_numpy_dtype)
@@ -1197,7 +1162,7 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize("interval_constructor", [IntervalIndex, IntervalArray])
     def test_construction_interval(self, interval_constructor):
         # construction from interval & array of intervals
-        intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
+        intervals = interval_constructor.from_breaks(np.arange(3), inclusive="right")
         result = Series(intervals)
         assert result.dtype == "interval[int64, right]"
         tm.assert_index_equal(Index(result.values), Index(intervals))
@@ -1207,7 +1172,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_infer_interval(self, data_constructor):
         # GH 23563: consistent closed results in interval dtype
-        data = [Interval(0, 1), Interval(0, 2), None]
+        data = [Interval(0, 1, "right"), Interval(0, 2, "right"), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
         assert result.dtype == "interval[float64, right]"
@@ -1218,7 +1183,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_interval_mixed_closed(self, data_constructor):
         # GH 23563: mixed closed results in object dtype (not interval dtype)
-        data = [Interval(0, 1, closed="both"), Interval(0, 2, closed="neither")]
+        data = [Interval(0, 1, inclusive="both"), Interval(0, 2, inclusive="neither")]
         result = Series(data_constructor(data))
         assert result.dtype == object
         assert result.tolist() == data
@@ -1983,15 +1948,6 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
         ({1: 1}, np.array([[1]], dtype=np.int64)),
     ],
 )
-@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
-
-
-@pytest.mark.skipif(
-    not np_version_under1p19, reason="check failure on numpy below 1.19"
-)
-def test_numpy_array_np_v1p19():
-    with pytest.raises(KeyError, match="0"):
-        np.array([Series({1: 1})])

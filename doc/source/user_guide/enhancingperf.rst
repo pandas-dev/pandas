@@ -350,6 +350,28 @@ a larger amount of data points (e.g. 1+ million).
    In [6]: %timeit roll.apply(f, engine='cython', raw=True)
    3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
+If your compute hardware contains multiple CPUs, the largest performance gain can be realized by setting ``parallel`` to ``True``
+to leverage more than 1 CPU. Internally, pandas leverages numba to parallelize computations over the columns of a :class:`DataFrame`;
+therefore, this performance benefit is only beneficial for a :class:`DataFrame` with a large number of columns.
+
+.. code-block:: ipython
+
+   In [1]: import numba
+
+   In [2]: numba.set_num_threads(1)
+
+   In [3]: df = pd.DataFrame(np.random.randn(10_000, 100))
+
+   In [4]: roll = df.rolling(100)
+
+   In [5]: %timeit roll.mean(engine="numba", engine_kwargs={"parallel": True})
+   347 ms ± 26 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [6]: numba.set_num_threads(2)
+
+   In [7]: %timeit roll.mean(engine="numba", engine_kwargs={"parallel": True})
+   201 ms ± 2.97 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
 Custom Function Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

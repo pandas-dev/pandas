@@ -453,30 +453,34 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     else:
         values = extract_array(values, extract_numpy=True, extract_range=True)
 
-    comps = _ensure_arraylike(comps)
-    comps = extract_array(comps, extract_numpy=True)
-    if not isinstance(comps, np.ndarray):
+    comps_array = _ensure_arraylike(comps)
+    comps_array = extract_array(comps_array, extract_numpy=True)
+    if not isinstance(comps_array, np.ndarray):
         # i.e. Extension Array
-        return comps.isin(values)
+        return comps_array.isin(values)
 
-    elif needs_i8_conversion(comps.dtype):
+    elif needs_i8_conversion(comps_array.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
-        return pd_array(comps).isin(values)
-    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
-        # e.g. comps are integers and values are datetime64s
-        return np.zeros(comps.shape, dtype=bool)
+        return pd_array(comps_array).isin(values)
+    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps_array.dtype):
+        # e.g. comps_array are integers and values are datetime64s
+        return np.zeros(comps_array.shape, dtype=bool)
         # TODO: not quite right ... Sparse/Categorical
     elif needs_i8_conversion(values.dtype):
-        return isin(comps, values.astype(object))
+        return isin(comps_array, values.astype(object))
 
     elif isinstance(values.dtype, ExtensionDtype):
-        return isin(np.asarray(comps), np.asarray(values))
+        return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
-    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
+    if (
+        len(comps_array) > 1_000_000
+        and len(values) <= 26
+        and not is_object_dtype(comps_array)
+    ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
@@ -488,19 +492,19 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        common = np.find_common_type([values.dtype, comps.dtype], [])
+        common = np.find_common_type([values.dtype, comps_array.dtype], [])
         values = values.astype(common, copy=False)
-        comps = comps.astype(common, copy=False)
+        comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
 
-    return f(comps, values)
+    return f(comps_array, values)
 
 
 def factorize_array(
     values: np.ndarray,
     na_sentinel: int = -1,
     size_hint: int | None = None,
-    na_value=None,
+    na_value: object = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
@@ -858,12 +862,15 @@ def value_counts(
 
 
 # Called once from SparseArray, otherwise could be private
-def value_counts_arraylike(values: np.ndarray, dropna: bool):
+def value_counts_arraylike(
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
+):
     """
     Parameters
     ----------
     values : np.ndarray
     dropna : bool
+    mask : np.ndarray[bool] or None, default None
 
     Returns
     -------
@@ -873,7 +880,7 @@ def value_counts_arraylike(values: np.ndarray, dropna: bool):
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna)
+    keys, counts = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -911,7 +918,9 @@ def duplicated(
     return htable.duplicated(values, keep=keep)
 
 
-def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
+def mode(
+    values: ArrayLike, dropna: bool = True, mask: npt.NDArray[np.bool_] | None = None
+) -> ArrayLike:
     """
     Returns the mode(s) of an array.
 
@@ -937,7 +946,7 @@ def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
 
     values = _ensure_data(values)
 
-    npresult = htable.mode(values, dropna=dropna)
+    npresult = htable.mode(values, dropna=dropna, mask=mask)
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
@@ -1008,10 +1017,10 @@ def rank(
 
 def checked_add_with_arr(
     arr: npt.NDArray[np.int64],
-    b,
+    b: int | npt.NDArray[np.int64],
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.int64]:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -1055,11 +1064,12 @@ def checked_add_with_arr(
     elif arr_mask is not None:
         not_nan = np.logical_not(arr_mask)
     elif b_mask is not None:
-        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has incompatible type
-        # "Optional[ndarray[Any, dtype[bool_]]]"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[An
-        # y]]], bool, int, float, complex, str, bytes, _NestedSequence[Union[bool,
-        # int, float, complex, str, bytes]]]"  [arg-type]
+        # error: Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
+        # incompatible type "Optional[ndarray[Any, dtype[bool_]]]";
+        # expected "Union[_SupportsArray[dtype[Any]], _NestedSequence
+        # [_SupportsArray[dtype[Any]]], bool, int, float, complex, str
+        # , bytes, _NestedSequence[Union[bool, int, float, complex, str
+        # , bytes]]]"
         not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
     else:
         not_nan = np.empty(arr.shape, dtype=bool)
@@ -1089,7 +1099,12 @@ def checked_add_with_arr(
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
-    return arr + b
+
+    result = arr + b
+    if arr_mask is not None or b2_mask is not None:
+        np.putmask(result, ~not_nan, iNaT)
+
+    return result
 
 
 # --------------- #
@@ -1098,7 +1113,7 @@ def checked_add_with_arr(
 
 
 class SelectN:
-    def __init__(self, obj, n: int, keep: str):
+    def __init__(self, obj, n: int, keep: str) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -1181,7 +1196,6 @@ class SelectNSeries(SelectN):
             arr = arr[::-1]
 
         nbase = n
-        findex = len(self.obj)
         narr = len(arr)
         n = min(n, narr)
 
@@ -1194,6 +1208,11 @@ class SelectNSeries(SelectN):
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        else:
+            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+                findex = len(nan_index) + len(inds)
+            else:
+                findex = len(inds)
 
         if self.keep == "last":
             # reverse indices
@@ -1218,7 +1237,7 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel):
+    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
@@ -1758,9 +1777,12 @@ def safe_sort(
 def _sort_mixed(values) -> np.ndarray:
     """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos])
+    none_pos = np.array([x is None for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos & ~none_pos])
     strs = np.sort(values[str_pos])
-    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+    return np.concatenate(
+        [nums, np.asarray(strs, dtype=object), np.array(values[none_pos])]
+    )
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:

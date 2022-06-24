@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -9,7 +10,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 
 def test_detect_chained_assignment():
@@ -30,7 +30,7 @@ def test_detect_chained_assignment():
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
     msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
+    with pytest.raises(SettingWithCopyError, match=msg):
         zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 

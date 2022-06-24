@@ -92,15 +92,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freqstr: str | None
     _resolution_obj: Resolution
 
-    # error: "Callable[[Any], Any]" has no attribute "fget"
-    hasnans = cast(
-        bool,
-        cache_readonly(
-            DatetimeLikeArrayMixin._hasna.fget  # type: ignore[attr-defined]
-        ),
-    )
-
     # ------------------------------------------------------------------------
+
+    @cache_readonly
+    def hasnans(self) -> bool:
+        return self._data._hasna
 
     def equals(self, other: Any) -> bool:
         """
@@ -214,8 +210,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
+    @final
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
-        raise NotImplementedError
+        # e.g. test_getitem_setitem_periodindex
+        # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
+        return reso > self._resolution_obj
+        # NB: for DTI/PI, not TDI
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError

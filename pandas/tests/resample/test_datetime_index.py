@@ -1856,15 +1856,11 @@ def test_resample_unsigned_int(any_unsigned_int_numpy_dtype):
     )
     df = df.loc[(df.index < "2000-01-02") | (df.index > "2000-01-03"), :]
 
-    if any_unsigned_int_numpy_dtype == "uint64":
-        with pytest.raises(RuntimeError, match="empty group with uint64_t"):
-            df.resample("D").max()
-    else:
-        result = df.resample("D").max()
+    result = df.resample("D").max()
 
-        expected = DataFrame(
-            [1, np.nan, 0],
-            columns=["x"],
-            index=date_range(start="2000-01-01", end="2000-01-03 23", freq="D"),
-        )
-        tm.assert_frame_equal(result, expected)
+    expected = DataFrame(
+        [1, np.nan, 0],
+        columns=["x"],
+        index=date_range(start="2000-01-01", end="2000-01-03 23", freq="D"),
+    )
+    tm.assert_frame_equal(result, expected)

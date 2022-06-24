@@ -41,7 +41,7 @@ class ODFReader(BaseExcelReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         import_optional_dependency("odf")
         super().__init__(filepath_or_buffer, storage_options=storage_options)
 
@@ -90,7 +90,7 @@ class ODFReader(BaseExcelReader):
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(
-        self, sheet, convert_float: bool
+        self, sheet, convert_float: bool, file_rows_needed: int | None = None
     ) -> list[list[Scalar | NaTType]]:
         """
         Parse an ODF Table into a list of lists
@@ -148,6 +148,8 @@ class ODFReader(BaseExcelReader):
                 empty_rows = 0
                 for _ in range(row_repeat):
                     table.append(table_row)
+            if file_rows_needed is not None and len(table) >= file_rows_needed:
+                break
 
         # Make our table square
         for row in table:
@@ -214,9 +216,7 @@ class ODFReader(BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            # cast needed because `pd.to_datetime can return NaTType,
-            # but we know this is a valid time
-            stamp = cast(pd.Timestamp, pd.to_datetime(str(cell)))
+            stamp = pd.to_datetime(str(cell))
             # cast needed here because Scalar doesn't include datetime.time
             return cast(Scalar, stamp.time())
         else:

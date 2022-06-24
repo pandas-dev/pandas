@@ -701,7 +701,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
             1.1,
             1 + 1j,
             True,
-            pd.Interval(1, 2, closed="left"),
+            pd.Interval(1, 2, inclusive="left"),
             pd.Timestamp("2012-01-01", tz="US/Eastern"),
             pd.Timestamp("2012-01-01"),
             pd.Timedelta(days=1),
@@ -709,7 +709,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
         ],
     )
     def test_fillna_interval(self, index_or_series, fill_val):
-        ii = pd.interval_range(1.0, 5.0, closed="right").insert(1, np.nan)
+        ii = pd.interval_range(1.0, 5.0, inclusive="right").insert(1, np.nan)
         assert isinstance(ii.dtype, pd.IntervalDtype)
         obj = index_or_series(ii)
 
@@ -745,7 +745,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
             1.1,
             1 + 1j,
             True,
-            pd.Interval(1, 2, closed="left"),
+            pd.Interval(1, 2, inclusive="left"),
             pd.Timestamp("2012-01-01", tz="US/Eastern"),
             pd.Timestamp("2012-01-01"),
             pd.Timedelta(days=1),

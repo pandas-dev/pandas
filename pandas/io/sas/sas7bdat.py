@@ -26,6 +26,7 @@ from typing import cast
 import numpy as np
 
 from pandas._typing import (
+    CompressionOptions,
     FilePath,
     ReadBuffer,
 )
@@ -92,7 +93,7 @@ class _SubheaderPointer:
     compression: int
     ptype: int
 
-    def __init__(self, offset: int, length: int, compression: int, ptype: int):
+    def __init__(self, offset: int, length: int, compression: int, ptype: int) -> None:
         self.offset = offset
         self.length = length
         self.compression = compression
@@ -116,7 +117,7 @@ class _Column:
         format: str | bytes,
         ctype: bytes,
         length: int,
-    ):
+    ) -> None:
         self.col_id = col_id
         self.name = name
         self.label = label
@@ -168,7 +169,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         encoding=None,
         convert_text=True,
         convert_header_text=True,
-    ):
+        compression: CompressionOptions = "infer",
+    ) -> None:
 
         self.index = index
         self.convert_dates = convert_dates
@@ -195,7 +197,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self.handles = get_handle(path_or_buf, "rb", is_text=False)
+        self.handles = get_handle(
+            path_or_buf, "rb", is_text=False, compression=compression
+        )
 
         self._path_or_buf = self.handles.handle
 
@@ -410,11 +414,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def _process_page_meta(self) -> bool:
         self._read_page_header()
-        pt = [const.page_meta_type, const.page_amd_type] + const.page_mix_types
+        pt = const.page_meta_types + [const.page_amd_type, const.page_mix_type]
         if self._current_page_type in pt:
             self._process_page_metadata()
-        is_data_page = self._current_page_type & const.page_data_type
-        is_mix_page = self._current_page_type in const.page_mix_types
+        is_data_page = self._current_page_type == const.page_data_type
+        is_mix_page = self._current_page_type == const.page_mix_type
         return bool(
             is_data_page
             or is_mix_page
@@ -424,7 +428,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _read_page_header(self):
         bit_offset = self._page_bit_offset
         tx = const.page_type_offset + bit_offset
-        self._current_page_type = self._read_int(tx, const.page_type_length)
+        self._current_page_type = (
+            self._read_int(tx, const.page_type_length) & const.page_type_mask2
+        )
         tx = const.block_count_offset + bit_offset
         self._current_page_block_count = self._read_int(tx, const.block_count_length)
         tx = const.subheader_count_offset + bit_offset
@@ -737,7 +743,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             self.close()
             raise EmptyDataError("No columns to parse from file")
 
-        if self._current_row_in_file_index >= self.row_count:
+        if nrows > 0 and self._current_row_in_file_index >= self.row_count:
             return None
 
         m = self.row_count - self._current_row_in_file_index
@@ -774,13 +780,13 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise ValueError(msg)
 
         self._read_page_header()
-        page_type = self._current_page_type
-        if page_type == const.page_meta_type:
+        if self._current_page_type in const.page_meta_types:
             self._process_page_metadata()
 
-        is_data_page = page_type & const.page_data_type
-        pt = [const.page_meta_type] + const.page_mix_types
-        if not is_data_page and self._current_page_type not in pt:
+        if self._current_page_type not in const.page_meta_types + [
+            const.page_data_type,
+            const.page_mix_type,
+        ]:
             return self._read_next_page()
 
         return False

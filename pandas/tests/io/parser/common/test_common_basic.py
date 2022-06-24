@@ -12,7 +12,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -676,11 +675,6 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    PY310,
-    reason="GH41935 This test is leaking only on Python 3.10,"
-    "causing other tests to fail with a cryptic error.",
-)
 @pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
 def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     # GH#41069
@@ -699,7 +693,7 @@ def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
 def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
-    data = '''\ufeff"Head1"	"Head2"	"Head3"'''
+    data = '''\ufeff"Head1"\t"Head2"\t"Head3"'''
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
@@ -710,7 +704,7 @@ def test_first_row_bom(all_parsers):
 def test_first_row_bom_unquoted(all_parsers):
     # see gh-36343
     parser = all_parsers
-    data = """\ufeffHead1	Head2	Head3"""
+    data = """\ufeffHead1\tHead2\tHead3"""
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
