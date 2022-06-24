@@ -84,15 +84,15 @@ class TestAsUnit:
 
     def test_as_unit_non_nano(self):
         # case where we are going neither to nor from nano
-        td = Timedelta(days=1)._as_unit("D")
+        td = Timedelta(days=1)._as_unit("ms")
         assert td.days == 1
-        assert td.value == 1
+        assert td.value == 86_400_000
         assert td.components.days == 1
         assert td._d == 1
         assert td.total_seconds() == 86400
 
-        res = td._as_unit("h")
-        assert res.value == 24
+        res = td._as_unit("us")
+        assert res.value == 86_400_000_000
         assert res.components.days == 1
         assert res.components.hours == 0
         assert res._d == 1
@@ -172,6 +172,99 @@ class TestNonNano:
                 assert res.dtype == "m8[ms]"
             elif unit == 9:
                 assert res.dtype == "m8[us]"
+
+    def test_truediv_timedeltalike(self, td):
+        assert td / td == 1
+        assert (2.5 * td) / td == 2.5
+
+        other = Timedelta(td.value)
+        msg = "with mismatched resolutions are not supported"
+        with pytest.raises(ValueError, match=msg):
+            td / other
+
+        with pytest.raises(ValueError, match=msg):
+            # __rtruediv__
+            other.to_pytimedelta() / td
+
+    def test_truediv_numeric(self, td):
+        assert td / np.nan is NaT
+
+        res = td / 2
+        assert res.value == td.value / 2
+        assert res._reso == td._reso
+
+        res = td / 2.0
+        assert res.value == td.value / 2
+        assert res._reso == td._reso
+
+    def test_floordiv_timedeltalike(self, td):
+        assert td // td == 1
+        assert (2.5 * td) // td == 2
+
+        other = Timedelta(td.value)
+        msg = "with mismatched resolutions are not supported"
+        with pytest.raises(ValueError, match=msg):
+            td // other
+
+        with pytest.raises(ValueError, match=msg):
+            # __rfloordiv__
+            other.to_pytimedelta() // td
+
+    def test_floordiv_numeric(self, td):
+        assert td // np.nan is NaT
+
+        res = td // 2
+        assert res.value == td.value // 2
+        assert res._reso == td._reso
+
+        res = td // 2.0
+        assert res.value == td.value // 2
+        assert res._reso == td._reso
+
+        assert td // np.array(np.nan) is NaT
+
+        res = td // np.array(2)
+        assert res.value == td.value // 2
+        assert res._reso == td._reso
+
+        res = td // np.array(2.0)
+        assert res.value == td.value // 2
+        assert res._reso == td._reso
+
+    def test_addsub_mismatched_reso(self, td):
+        other = Timedelta(days=1)  # can losslessly convert to other resos
+
+        result = td + other
+        assert result._reso == td._reso
+        assert result.days == td.days + 1
+
+        result = other + td
+        assert result._reso == td._reso
+        assert result.days == td.days + 1
+
+        result = td - other
+        assert result._reso == td._reso
+        assert result.days == td.days - 1
+
+        result = other - td
+        assert result._reso == td._reso
+        assert result.days == 1 - td.days
+
+        other2 = Timedelta(500)  # can't cast losslessly
+
+        msg = (
+            "Timedelta addition/subtraction with mismatched resolutions is "
+            "not allowed when casting to the lower resolution would require "
+            "lossy rounding"
+        )
+        with pytest.raises(ValueError, match=msg):
+            td + other2
+        with pytest.raises(ValueError, match=msg):
+            other2 + td
+        with pytest.raises(ValueError, match=msg):
+            td - other2
+        with pytest.raises(ValueError, match=msg):
+            other2 - td
 
 
 class TestTimedeltaUnaryOps:
@@ -603,16 +696,21 @@ class TestTimedeltas:
         assert np.abs((res - td).value) < nanos
         assert res.value % nanos == 0
 
-    def test_contains(self):
-        # Checking for any NaT-like objects
-        # GH 13603
-        td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
-        for v in [NaT, None, float("nan"), np.nan]:
-            assert not (v in td)
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_round_non_nano(self, unit):
+        td = Timedelta("1 days 02:34:57")._as_unit(unit)
 
-        td = to_timedelta([NaT])
-        for v in [NaT, None, float("nan"), np.nan]:
-            assert v in td
+        res = td.round("min")
+        assert res == Timedelta("1 days 02:35:00")
+        assert res._reso == td._reso
+
+        res = td.floor("min")
+        assert res == Timedelta("1 days 02:34:00")
+        assert res._reso == td._reso
+
+        res = td.ceil("min")
+        assert res == Timedelta("1 days 02:35:00")
+        assert res._reso == td._reso
 
     def test_identity(self):
 

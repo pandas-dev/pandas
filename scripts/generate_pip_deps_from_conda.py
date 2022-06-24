@@ -21,7 +21,7 @@ import toml
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-RENAME = {"pytables": "tables", "dask-core": "dask"}
+RENAME = {"pytables": "tables", "geopandas-base": "geopandas", "pytorch": "torch"}
 
 
 def conda_package_to_pip(package: str):
