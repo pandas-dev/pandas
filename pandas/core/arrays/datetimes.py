@@ -653,7 +653,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
                 converted = ints_to_pydatetime(
-                    data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
+                    data[start_i:end_i],
+                    tz=self.tz,
+                    freq=self.freq,
+                    box="timestamp",
+                    reso=self._reso,
                 )
                 yield from converted
 
@@ -683,7 +687,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Rendering Methods
 
-    @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
@@ -692,7 +695,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         fmt = get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
+            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._reso
         )
 
     # -----------------------------------------------------------------
@@ -1044,7 +1047,7 @@ default 'raise'
         -------
         datetimes : ndarray[object]
         """
-        return ints_to_pydatetime(self.asi8, tz=self.tz)
+        return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._reso)
 
     def normalize(self) -> DatetimeArray:
         """
@@ -1301,7 +1304,7 @@ default 'raise'
         # keeping their timezone and not using UTC
         timestamps = self._local_timestamps()
 
-        return ints_to_pydatetime(timestamps, box="time")
+        return ints_to_pydatetime(timestamps, box="time", reso=self._reso)
 
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
@@ -1311,7 +1314,7 @@ default 'raise'
 
         The time part of the Timestamps.
         """
-        return ints_to_pydatetime(self.asi8, self.tz, box="time")
+        return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._reso)
 
     @property
     def date(self) -> npt.NDArray[np.object_]:
@@ -1326,7 +1329,7 @@ default 'raise'
         # keeping their timezone and not using UTC
         timestamps = self._local_timestamps()
 
-        return ints_to_pydatetime(timestamps, box="date")
+        return ints_to_pydatetime(timestamps, box="date", reso=self._reso)
 
     def isocalendar(self) -> DataFrame:
         """

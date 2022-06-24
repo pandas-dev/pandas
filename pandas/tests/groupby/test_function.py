@@ -306,7 +306,7 @@ class TestGroupByNonCythonPaths:
         # non-cython calls should not include the grouper
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        msg = "The default value of numeric_only"
+        msg = "The default value of numeric_only in DataFrameGroupBy.idxmax"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = gb.idxmax()
         tm.assert_frame_equal(result, expected)
@@ -317,7 +317,7 @@ class TestGroupByNonCythonPaths:
         # non-cython calls should not include the grouper
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        msg = "The default value of numeric_only"
+        msg = "The default value of numeric_only in DataFrameGroupBy.idxmin"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = gb.idxmin()
         tm.assert_frame_equal(result, expected)
@@ -1354,6 +1354,77 @@ def test_deprecate_numeric_only(
         # Doesn't have numeric_only argument and fails on nuisance columns
         with pytest.raises(TypeError, match=r"unsupported operand type"):
             method(*args, **kwargs)
+
+
+def test_deprecate_numeric_only_series(groupby_func, request):
+    # GH#46560
+    if groupby_func in ("backfill", "mad", "pad", "tshift"):
+        pytest.skip("method is deprecated")
+    elif groupby_func == "corrwith":
+        msg = "corrwith is not implemented on SeriesGroupBy"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    ser = Series(list("xyz"))
+    gb = ser.groupby([0, 0, 1])
+
+    if groupby_func == "corrwith":
+        args = (ser,)
+    elif groupby_func == "corr":
+        args = (ser,)
+    elif groupby_func == "cov":
+        args = (ser,)
+    elif groupby_func == "nth":
+        args = (0,)
+    elif groupby_func == "fillna":
+        args = (True,)
+    elif groupby_func == "take":
+        args = ([0],)
+    elif groupby_func == "quantile":
+        args = (0.5,)
+    else:
+        args = ()
+    method = getattr(gb, groupby_func)
+
+    try:
+        _ = method(*args)
+    except (TypeError, ValueError) as err:
+        # ops that only work on numeric dtypes
+        assert groupby_func in (
+            "corr",
+            "cov",
+            "cummax",
+            "cummin",
+            "cumprod",
+            "cumsum",
+            "diff",
+            "idxmax",
+            "idxmin",
+            "mean",
+            "median",
+            "pct_change",
+            "prod",
+            "quantile",
+            "sem",
+            "skew",
+            "std",
+            "var",
+        )
+        assert (
+            "could not convert" in str(err).lower()
+            or "unsupported operand type" in str(err)
+            or "not allowed for this dtype" in str(err)
+            or "can't multiply sequence by non-int" in str(err)
+            or "cannot be performed against 'object' dtypes" in str(err)
+            or "is not supported for object dtype" in str(err)
+        ), str(err)
+
+    msgs = (
+        "got an unexpected keyword argument 'numeric_only'",
+        f"{groupby_func} does not implement numeric_only",
+        f"{groupby_func} is not supported for object dtype",
+    )
+    with pytest.raises((NotImplementedError, TypeError), match=f"({'|'.join(msgs)})"):
+        _ = method(*args, numeric_only=True)
 
 
 @pytest.mark.parametrize("dtype", [int, float, object])

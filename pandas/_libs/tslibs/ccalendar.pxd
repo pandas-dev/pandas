@@ -15,8 +15,6 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil
 cpdef int get_lastbday(int year, int month) nogil
 cpdef int get_firstbday(int year, int month) nogil
 
-cdef int64_t DAY_NANOS
-cdef int64_t HOUR_NANOS
 cdef dict c_MONTH_NUMBERS
 
 cdef int32_t* month_offset

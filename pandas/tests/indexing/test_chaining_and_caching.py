@@ -424,19 +424,6 @@ class TestChaining:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df.loc[0]["A"] = 111
 
-    def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
-        # xref gh-13017.
-        with option_context("chained_assignment", "warn"):
-            df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"])
-
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                df.c.loc[df.c > 0] = None
-
-            expected = DataFrame(
-                [[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"]
-            )
-            tm.assert_frame_equal(df, expected)
-
     @pytest.mark.parametrize("rhs", [3, DataFrame({0: [1, 2, 3, 4]})])
     def test_detect_chained_assignment_warning_stacklevel(self, rhs):
         # GH#42570
