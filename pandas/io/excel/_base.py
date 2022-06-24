@@ -791,6 +791,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             has_index_names = False
             if is_list_header and not is_len_one_list_header and index_col is not None:
                 index_col_list = index_col if is_list_like(index_col) else [index_col]
+                assert isinstance(index_col_list, Sequence)
                 # We have to handle mi without names. If any of the entries in the data
                 # columns are not empty, this is a regular row
                 if len(header) < len(data):
