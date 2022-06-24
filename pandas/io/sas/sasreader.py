@@ -38,17 +38,17 @@ class ReaderBase(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def read(self, nrows=None):
+    def read(self, nrows: int | None = None) -> DataFrame:
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def __enter__(self):
+    def __enter__(self) -> ReaderBase:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
 

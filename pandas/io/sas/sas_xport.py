@@ -280,7 +280,7 @@ class XportReader(ReaderBase, abc.Iterator):
             self.close()
             raise
 
-    def close(self):
+    def close(self) -> None:
         self.handles.close()
 
     def _get_row(self):
@@ -463,7 +463,7 @@ class XportReader(ReaderBase, abc.Iterator):
         return miss
 
     @Appender(_read_method_doc)
-    def read(self, nrows=None):
+    def read(self, nrows: int | None = None) -> pd.DataFrame:
 
         if nrows is None:
             nrows = self.nobs
