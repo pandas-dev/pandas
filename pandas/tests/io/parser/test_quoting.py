@@ -8,6 +8,7 @@ from io import StringIO
 
 import pytest
 
+from pandas.compat import PY311
 from pandas.errors import ParserError
 
 from pandas import DataFrame
@@ -79,6 +80,10 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
     parser = all_parsers
 
     if quoting != csv.QUOTE_NONE:
+        if quote_char == "" and PY311:
+            pytest.xfail(
+                "Python 3.11 raises TypeError: 'quotechar' must be a 1-character string here"
+            )
         # Sanity checking.
         msg = "quotechar must be set if quoting enabled"
 
