@@ -74,11 +74,7 @@ shared_style_params = [
         ["alignment", "vertical"],
         {"xlsxwriter": None, "openpyxl": "bottom"},  # xlsxwriter Fails
     ),
-    (
-        "vertical-align: middle;",
-        ["alignment", "vertical"],
-        {"xlsxwriter": "center", "openpyxl": "center"},
-    ),
+    ("vertical-align: middle;", ["alignment", "vertical"], "center"),
     # Border widths
     ("border-left: 2pt solid red", ["border", "left", "style"], "medium"),
     ("border-left: 1pt dotted red", ["border", "left", "style"], "dotted"),
@@ -119,31 +115,12 @@ shared_style_params = [
     ),
 ]
 
-# List of (engine, css) combinations which are expected to fail
-xfail_params: List[Tuple[str, str]] = []
-
-
-@pytest.fixture
-def xfail_selected_styles(request):
-    """Check to see if specific engine-parameter combinations are expected to fail"""
-    css = request.getfixturevalue("css")
-    expected = request.getfixturevalue("expected")
-    engine = request.getfixturevalue("engine")
-
-    if isinstance(expected, dict):
-        expected = expected[engine]
-
-    if (engine, css) in xfail_params:
-        mark = pytest.mark.xfail(reason=f"`{css}` not implemented on {engine} engine")
-        request.node.add_marker(mark)
-
 
 @pytest.mark.parametrize(
     "engine",
     ["xlsxwriter", "openpyxl"],
 )
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
-@pytest.mark.usefixtures("xfail_selected_styles")
 def test_styler_to_excel_basic(engine, css, attrs, expected):
     pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
@@ -176,7 +153,6 @@ def test_styler_to_excel_basic(engine, css, attrs, expected):
     ["xlsxwriter", "openpyxl"],
 )
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
-@pytest.mark.usefixtures("xfail_selected_styles")
 def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
     pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
