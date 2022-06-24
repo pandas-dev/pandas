@@ -180,6 +180,8 @@ def is_lexsorted(list_of_arrays: list) -> bint:
                 else:
                     result = False
                     break
+            if not result:
+                break
     free(vecs)
     return result
 
