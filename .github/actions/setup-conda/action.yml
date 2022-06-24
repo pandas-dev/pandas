@@ -33,3 +33,4 @@ runs:
         channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
         condarc-file: ci/condarc.yml
         cache-env: true
+        cache-downloads: true
