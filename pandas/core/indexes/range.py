@@ -517,7 +517,7 @@ class RangeIndex(NumericIndex):
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
         # resolve to emit warning if appropriate
-        _ = resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        resolve_na_sentinel(na_sentinel, use_na_sentinel)
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:

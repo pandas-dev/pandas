@@ -97,9 +97,9 @@ class TestFactorize:
         else:
             msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            _ = pd.factorize(index_or_series_obj, na_sentinel=na_sentinel)
+            pd.factorize(index_or_series_obj, na_sentinel=na_sentinel)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            _ = index_or_series_obj.factorize(na_sentinel=na_sentinel)
+            index_or_series_obj.factorize(na_sentinel=na_sentinel)
 
     def test_basic(self):
 
