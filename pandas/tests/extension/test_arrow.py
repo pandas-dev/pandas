@@ -254,6 +254,41 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
+    def test_groupby_extension_apply(
+        self, data_for_grouping, groupby_apply_op, request
+    ):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        # Is there way to get the "Series" ID for groupby_apply_op?
+        is_series = isinstance(groupby_apply_op([]), pd.Series)
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
+                )
+            )
+        elif not is_series and (
+            pa.types.is_date(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+
+    def test_in_numeric_groupby(self, data_for_grouping, request):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="ArrowExtensionArray doesn't support .sum() yet.",
+                )
+            )
+        super().test_in_numeric_groupby(data_for_grouping)
+
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
