@@ -17,11 +17,6 @@ class TestFromDict:
     # Note: these tests are specific to the from_dict method, not for
     #  passing dictionaries to DataFrame.__init__
 
-    def test_from_dict_scalars_requires_index(self):
-        msg = "If using all scalar values, you must pass an index"
-        with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict(OrderedDict([("b", 8), ("a", 5), ("a", 6)]))
-
     def test_constructor_list_of_odicts(self):
         data = [
             OrderedDict([["a", 1.5], ["b", 3], ["c", 4], ["d", 6]]),
@@ -189,3 +184,16 @@ class TestFromDict:
         # it works!
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
+
+    def test_from_dict_scalars_requires_index(self):
+        msg = "If using all scalar values, you must pass an index"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame.from_dict(OrderedDict([("b", 8), ("a", 5), ("a", 6)]))
+
+    def test_from_dict_orient_invalid(self):
+        msg = (
+            "Expected 'index', 'columns' or 'tight' for orient parameter. "
+            "Got 'abc' instead"
+        )
+        with pytest.raises(ValueError, match=msg):
+            DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
