@@ -364,7 +364,7 @@ upon serialization. (Related issue :issue:`12997`)
 .. ipython:: python
 
     a.to_json(date_format='iso')
-    # Round-tripping now works
+    # Roundtripping now works
     pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
 
 .. ---------------------------------------------------------------------------
