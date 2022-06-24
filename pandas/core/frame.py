@@ -2296,7 +2296,9 @@ class DataFrame(NDFrame, OpsMixin):
                     if index is not None:
                         if isinstance(index, str) or not hasattr(index, "__iter__"):
                             if index not in columns:
-                                result_index = [index]
+                                # error: Incompatible types in assignment
+                                # type "List[Any]"; expected "Optional[Index]"
+                                result_index = [index]  # type: ignore[assignment]
                                 index = None
 
             else:
