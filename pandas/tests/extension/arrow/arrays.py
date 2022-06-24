@@ -23,7 +23,6 @@ from pandas.api.extensions import (
     take,
 )
 from pandas.api.types import is_scalar
-from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray as _ArrowExtensionArray
 from pandas.core.construction import extract_array
 
@@ -72,7 +71,7 @@ class ArrowStringDtype(ExtensionDtype):
         return ArrowStringArray
 
 
-class ArrowExtensionArray(OpsMixin, _ArrowExtensionArray):
+class ArrowExtensionArray(_ArrowExtensionArray):
     _data: pa.ChunkedArray
 
     @classmethod
