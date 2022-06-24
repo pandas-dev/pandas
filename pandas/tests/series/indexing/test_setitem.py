@@ -550,6 +550,7 @@ class TestSetitemWithExpansion:
             (NaT, NaT, "int64", "object"),
             (np.nan, NA, "Int64", "Int64"),
             (np.nan, NA, "Float64", "Float64"),
+            (np.nan, np.nan, "int64", "float64"),
         ],
     )
     def test_setitem_enlarge_with_na(self, na, target_na, dtype, target_dtype, indexer):
@@ -558,13 +559,6 @@ class TestSetitemWithExpansion:
         ser[indexer] = na
         expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
         expected = Series(expected_values, dtype=target_dtype)
-        tm.assert_series_equal(ser, expected)
-
-    def test_setitem_enlarge_with_nan(self):
-        # GH#32346
-        ser = Series([1, 2])
-        ser[2] = np.nan
-        expected = Series([1, 2, np.nan])
         tm.assert_series_equal(ser, expected)
 
 

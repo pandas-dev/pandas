@@ -2092,7 +2092,7 @@ class _iLocIndexer(_LocationIndexer):
             if is_valid_na_for_dtype(value, self.obj.dtype):
                 value = na_value_for_dtype(self.obj.dtype, compat=False)
                 new_dtype = maybe_promote(self.obj.dtype, value)[0]
-            elif not is_valid_na_for_dtype(value, self.obj.dtype):
+            elif isna(value):
                 new_dtype = None
             elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
                 # We should not cast, if we have object dtype because we can
