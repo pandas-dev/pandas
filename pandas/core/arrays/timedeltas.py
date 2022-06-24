@@ -439,7 +439,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Arithmetic Methods
 
-    def _add_offset(self, other):
+    def _add_offset(self, other) -> None:
         assert not isinstance(other, Tick)
         raise TypeError(
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"

@@ -598,7 +598,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return cls.from_arrays(left, right, inclusive, copy=False, dtype=dtype)
 
-    def _validate(self):
+    def _validate(self) -> None:
         """
         Verify that the IntervalArray is valid.
 
@@ -692,7 +692,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
 

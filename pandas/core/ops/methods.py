@@ -43,7 +43,7 @@ def _get_method_wrappers(cls):
     return arith_flex, comp_flex
 
 
-def add_flex_arithmetic_methods(cls):
+def add_flex_arithmetic_methods(cls) -> None:
     """
     Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
     to the class.
@@ -117,6 +117,6 @@ def _create_methods(cls, arith_method, comp_method):
     return new_methods
 
 
-def _add_methods(cls, new_methods):
+def _add_methods(cls, new_methods) -> None:
     for name, method in new_methods.items():
         setattr(cls, name, method)

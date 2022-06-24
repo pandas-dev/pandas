@@ -162,7 +162,7 @@ class _Unstacker:
         sorted_values = algos.take_nd(values, indexer, axis=0)
         return sorted_values
 
-    def _make_selectors(self):
+    def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
 
         # make the mask

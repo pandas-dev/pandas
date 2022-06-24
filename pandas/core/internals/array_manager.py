@@ -176,7 +176,7 @@ class BaseArrayManager(DataManager):
     def __getstate__(self):
         return self.arrays, self._axes
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         self.arrays = state[0]
         self._axes = state[1]
 
@@ -812,7 +812,7 @@ class ArrayManager(BaseArrayManager):
 
     def iset(
         self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
-    ):
+    ) -> None:
         """
         Set new column(s).
 
@@ -1331,7 +1331,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         else:
             return self.make_empty()
 
-    def set_values(self, values: ArrayLike):
+    def set_values(self, values: ArrayLike) -> None:
         """
         Set (replace) the values of the SingleArrayManager in place.
 

@@ -1154,7 +1154,7 @@ class Window(BaseWindow):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         if not isinstance(self.win_type, str):
@@ -1817,7 +1817,7 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         # we allow rolling on a datetimelike index
@@ -1862,7 +1862,7 @@ class Rolling(RollingAndExpandingMixin):
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate self._on is monotonic (increasing or decreasing) and has
         no NaT values for frequency windows.
@@ -1872,7 +1872,7 @@ class Rolling(RollingAndExpandingMixin):
         if not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing):
             self._raise_monotonic_error("values must be monotonic")
 
-    def _raise_monotonic_error(self, msg: str):
+    def _raise_monotonic_error(self, msg: str) -> None:
         on = self.on
         if on is None:
             if self.axis == 0:
@@ -2865,7 +2865,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         )
         return window_indexer
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate that each group in self._on is monotonic
         """

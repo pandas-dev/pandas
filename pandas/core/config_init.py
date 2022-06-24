@@ -37,7 +37,7 @@ use_bottleneck_doc = """
 """
 
 
-def use_bottleneck_cb(key):
+def use_bottleneck_cb(key) -> None:
     from pandas.core import nanops
 
     nanops.set_use_bottleneck(cf.get_option(key))
@@ -51,7 +51,7 @@ use_numexpr_doc = """
 """
 
 
-def use_numexpr_cb(key):
+def use_numexpr_cb(key) -> None:
     from pandas.core.computation import expressions
 
     expressions.set_use_numexpr(cf.get_option(key))
@@ -65,7 +65,7 @@ use_numba_doc = """
 """
 
 
-def use_numba_cb(key):
+def use_numba_cb(key) -> None:
     from pandas.core.util import numba_
 
     numba_.set_use_numba(cf.get_option(key))
@@ -329,7 +329,7 @@ pc_latex_multirow = """
 """
 
 
-def table_schema_cb(key):
+def table_schema_cb(key) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
 
     enable_data_resource_formatter(cf.get_option(key))
@@ -362,7 +362,7 @@ with cf.config_prefix("display"):
         validator=is_one_of_factory([None, is_callable]),
     )
 
-    def _deprecate_column_space(key):
+    def _deprecate_column_space(key) -> None:
         warnings.warn(
             "column_space is deprecated and will be removed "
             "in a future version. Use df.to_string(col_space=...) "
@@ -387,7 +387,7 @@ with cf.config_prefix("display"):
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
-    def _deprecate_negative_int_max_colwidth(key):
+    def _deprecate_negative_int_max_colwidth(key) -> None:
         value = cf.get_option(key)
         if value is not None and value < 0:
             warnings.warn(
@@ -500,7 +500,7 @@ use_inf_as_na_doc = """
 # or we'll hit circular deps.
 
 
-def use_inf_as_na_cb(key):
+def use_inf_as_na_cb(key) -> None:
     from pandas.core.dtypes.missing import _use_inf_as_na
 
     _use_inf_as_na(key)
@@ -720,7 +720,7 @@ plotting_backend_doc = """
 """
 
 
-def register_plotting_backend_cb(key):
+def register_plotting_backend_cb(key) -> None:
     if key == "matplotlib":
         # We defer matplotlib validation, since it's the default
         return
@@ -746,7 +746,7 @@ register_converter_doc = """
 """
 
 
-def register_converter_cb(key):
+def register_converter_cb(key) -> None:
     from pandas.plotting import (
         deregister_matplotlib_converters,
         register_matplotlib_converters,

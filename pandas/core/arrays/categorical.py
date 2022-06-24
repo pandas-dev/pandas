@@ -738,7 +738,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self.dtype.categories
 
     @categories.setter
-    def categories(self, categories):
+    def categories(self, categories) -> None:
         new_dtype = CategoricalDtype(categories, ordered=self.ordered)
         if self.dtype.categories is not None and len(self.dtype.categories) != len(
             new_dtype.categories
@@ -776,7 +776,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         v.flags.writeable = False
         return v
 
-    def _set_categories(self, categories, fastpath=False):
+    def _set_categories(self, categories, fastpath=False) -> None:
         """
         Sets new categories inplace
 
@@ -1700,7 +1700,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
 
-    def check_for_ordered(self, op):
+    def check_for_ordered(self, op) -> None:
         """assert that we are ordered"""
         if not self.ordered:
             raise TypeError(
@@ -1931,7 +1931,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._ndarray
 
     @_codes.setter
-    def _codes(self, value: np.ndarray):
+    def _codes(self, value: np.ndarray) -> None:
         warn(
             "Setting the codes on a Categorical is deprecated and will raise in "
             "a future version. Create a new Categorical object instead",
@@ -1985,7 +1985,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
+    def _formatter(self, boxed: bool = False) -> None:
         # Defer to CategoricalFormatter's formatter.
         return None
 
@@ -2713,7 +2713,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         self._freeze()
 
     @staticmethod
-    def _validate(data):
+    def _validate(data) -> None:
         if not is_categorical_dtype(data.dtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 

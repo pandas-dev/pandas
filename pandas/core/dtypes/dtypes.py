@@ -970,7 +970,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         # for pickle compat. __getstate__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -1249,7 +1249,7 @@ class IntervalDtype(PandasExtensionDtype):
 
             return is_dtype_equal(self.subtype, other.subtype)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)

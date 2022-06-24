@@ -48,7 +48,7 @@ def make_invalid_op(name: str):
     invalid_op : function
     """
 
-    def invalid_op(self, other=None):
+    def invalid_op(self, other=None) -> None:
         typ = type(self).__name__
         raise TypeError(f"cannot perform {name} with this index type: {typ}")
 

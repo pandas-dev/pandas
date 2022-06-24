@@ -222,7 +222,7 @@ class WrappedCythonOp:
         return values
 
     # TODO: general case implementation overridable by EAs.
-    def _disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
+    def _disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False) -> None:
         """
         Check if we can do this operation with our cython functions.
 

@@ -304,7 +304,7 @@ class StringArray(BaseStringArray, PandasArray):
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
-    def _validate(self):
+    def _validate(self) -> None:
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
@@ -379,7 +379,7 @@ class StringArray(BaseStringArray, PandasArray):
         arr[mask] = -1
         return arr, -1
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
             # extract_array doesn't extract PandasArray subclasses

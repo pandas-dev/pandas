@@ -217,7 +217,7 @@ class RangeIndex(NumericIndex):
             attrs.append(("name", ibase.default_pprint(self.name)))
         return attrs
 
-    def _format_data(self, name=None):
+    def _format_data(self, name=None) -> None:
         # we are formatting thru the attributes
         return None
 

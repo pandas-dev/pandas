@@ -67,7 +67,7 @@ def compare_or_regex_search(
 
     def _check_comparison_types(
         result: ArrayLike | bool, a: ArrayLike, b: Scalar | Pattern
-    ):
+    ) -> None:
         """
         Raises an error if the two arrays (a,b) cannot be compared.
         Otherwise, returns the comparison result as expected.

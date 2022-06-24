@@ -605,7 +605,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         out[self.sp_index.indices] = self.sp_values
         return out
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         # I suppose we could allow setting of non-fill_value elements.
         # TODO(SparseArray.__setitem__): remove special cases in
         # ExtensionBlock.where
@@ -657,7 +657,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.dtype.fill_value
 
     @fill_value.setter
-    def fill_value(self, value):
+    def fill_value(self, value) -> None:
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
@@ -1381,7 +1381,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # ------------------------------------------------------------------------
     # IO
     # ------------------------------------------------------------------------
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         """Necessary for making this object picklable"""
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
@@ -1795,7 +1795,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         pp_index = printing.pprint_thing(self.sp_index)
         return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed=False) -> None:
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None

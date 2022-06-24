@@ -1773,7 +1773,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         self._post_setstate()
 
-    def _post_setstate(self):
+    def _post_setstate(self) -> None:
         pass
 
     @cache_readonly
@@ -1781,12 +1781,12 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         return self.blocks[0]
 
     @property
-    def _blknos(self):
+    def _blknos(self) -> None:
         """compat with BlockManager"""
         return None
 
     @property
-    def _blklocs(self):
+    def _blklocs(self) -> None:
         """compat with BlockManager"""
         return None
 
@@ -1870,7 +1870,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def set_values(self, values: ArrayLike):
+    def set_values(self, values: ArrayLike) -> None:
         """
         Set the values of the single block in place.
 

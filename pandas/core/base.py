@@ -154,14 +154,14 @@ class NoNewAttributesMixin:
     `object.__setattr__(self, key, value)`.
     """
 
-    def _freeze(self):
+    def _freeze(self) -> None:
         """
         Prevents setting additional attributes.
         """
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key: str, value):
+    def __setattr__(self, key: str, value) -> None:
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because

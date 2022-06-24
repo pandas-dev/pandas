@@ -948,7 +948,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         else:
             raise ValueError("'numba' is the only supported engine")
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state captured by `update` calls.
         """

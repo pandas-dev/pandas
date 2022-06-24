@@ -410,7 +410,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         self._maybe_clear_freq()
 
-    def _maybe_clear_freq(self):
+    def _maybe_clear_freq(self) -> None:
         # inplace operations like __setitem__ may invalidate the freq of
         # DatetimeArray and TimedeltaArray
         pass
@@ -924,7 +924,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._freq
 
     @freq.setter
-    def freq(self, value):
+    def freq(self, value) -> None:
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
@@ -976,7 +976,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._resolution_obj.attrname  # type: ignore[union-attr]
 
     @classmethod
-    def _validate_frequency(cls, index, freq, **kwargs):
+    def _validate_frequency(cls, index, freq, **kwargs) -> None:
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index

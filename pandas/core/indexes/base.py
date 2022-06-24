@@ -661,7 +661,7 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     @property
-    def asi8(self):
+    def asi8(self) -> None:
         """
         Integer representation of the values.
 
@@ -1726,7 +1726,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._name
 
     @name.setter
-    def name(self, value: Hashable):
+    def name(self, value: Hashable) -> None:
         if self._no_setting_name:
             # Used in MultiIndex.levels to avoid silently ignoring name updates.
             raise RuntimeError(
@@ -3192,7 +3192,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     @final
-    def _validate_sort_keyword(self, sort):
+    def _validate_sort_keyword(self, sort) -> None:
         if sort not in [None, False]:
             raise ValueError(
                 "The 'sort' keyword only takes the values of "
@@ -3200,7 +3200,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     @final
-    def _deprecate_dti_setop(self, other: Index, setop: str_t):
+    def _deprecate_dti_setop(self, other: Index, setop: str_t) -> None:
         """
         Deprecate setop behavior between timezone-aware DatetimeIndexes with
         mismatched timezones.
@@ -5929,7 +5929,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._get_values_for_loc(series, loc, key)
 
-    def _check_indexing_error(self, key):
+    def _check_indexing_error(self, key) -> None:
         if not is_scalar(key):
             # if key is not a scalar, directly raise an error (the code below
             # would convert to numpy arrays and raise later any way) - GH29926
@@ -5957,7 +5957,7 @@ class Index(IndexOpsMixin, PandasObject):
         return series.iloc[loc]
 
     @final
-    def set_value(self, arr, key, value):
+    def set_value(self, arr, key, value) -> None:
         """
         Fast lookup of value from 1-dimensional ndarray.
 
@@ -6590,7 +6590,7 @@ class Index(IndexOpsMixin, PandasObject):
         return ensure_index(target)
 
     @final
-    def _validate_indexer(self, form: str_t, key, kind: str_t):
+    def _validate_indexer(self, form: str_t, key, kind: str_t) -> None:
         """
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.

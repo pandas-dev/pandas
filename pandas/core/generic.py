@@ -2014,7 +2014,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         }
 
     @final
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         if isinstance(state, BlockManager):
             self._mgr = state
         elif isinstance(state, dict):
@@ -3887,7 +3887,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return False
 
     @final
-    def _check_setitem_copy(self, t="setting", force=False):
+    def _check_setitem_copy(self, t="setting", force=False) -> None:
         """
 
         Parameters
@@ -3999,7 +3999,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Unsorted
 
     @final
-    def _check_inplace_and_allows_duplicate_labels(self, inplace):
+    def _check_inplace_and_allows_duplicate_labels(self, inplace) -> None:
         if inplace and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'inplace=True' when "
@@ -5679,7 +5679,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _consolidate_inplace(self) -> None:
         """Consolidate data in place and return None"""
 
-        def f():
+        def f() -> None:
             self._mgr = self._mgr.consolidate()
 
         self._protect_consolidate(f)

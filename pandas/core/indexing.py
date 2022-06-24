@@ -754,7 +754,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return indexer, value
 
     @final
-    def _ensure_listlike_indexer(self, key, axis=None, value=None):
+    def _ensure_listlike_indexer(self, key, axis=None, value=None) -> None:
         """
         Ensure that a list-like of column labels are all present by adding them if
         they do not already exist.
@@ -790,7 +790,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)
 
     @final
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         check_deprecated_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
@@ -1092,7 +1092,7 @@ class _LocIndexer(_LocationIndexer):
     # Key Checks
 
     @doc(_LocationIndexer._validate_key)
-    def _validate_key(self, key, axis: int):
+    def _validate_key(self, key, axis: int) -> None:
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
@@ -1428,7 +1428,7 @@ class _iLocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # Key Checks
 
-    def _validate_key(self, key, axis: int):
+    def _validate_key(self, key, axis: int) -> None:
         if com.is_bool_indexer(key):
             if hasattr(key, "index") and isinstance(key.index, Index):
                 if key.index.inferred_type == "integer":
@@ -1638,7 +1638,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value, name="iloc"):
+    def _setitem_with_indexer(self, indexer, value, name="iloc") -> None:
         """
         _setitem_with_indexer is for setting values on a Series/DataFrame
         using positional indexers.
@@ -1868,7 +1868,7 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 self._setitem_single_column(loc, value, pi)
 
-    def _setitem_with_indexer_2d_value(self, indexer, value):
+    def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
         # We get here with np.ndim(value) == 2, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
@@ -1886,7 +1886,9 @@ class _iLocIndexer(_LocationIndexer):
             # setting with a list, re-coerces
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
+    def _setitem_with_indexer_frame_value(
+        self, indexer, value: DataFrame, name: str
+    ) -> None:
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -1935,7 +1937,7 @@ class _iLocIndexer(_LocationIndexer):
 
                 self._setitem_single_column(loc, val, pi)
 
-    def _setitem_single_column(self, loc: int, value, plane_indexer):
+    def _setitem_single_column(self, loc: int, value, plane_indexer) -> None:
         """
 
         Parameters
@@ -2009,7 +2011,7 @@ class _iLocIndexer(_LocationIndexer):
                 # TODO: what if we got here indirectly via loc?
         return
 
-    def _setitem_single_block(self, indexer, value, name: str):
+    def _setitem_single_block(self, indexer, value, name: str) -> None:
         """
         _setitem_with_indexer for the case when we have a single Block.
         """
@@ -2335,7 +2337,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
         key = self._convert_key(key)
         return self.obj._get_value(*key, takeable=self._takeable)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:

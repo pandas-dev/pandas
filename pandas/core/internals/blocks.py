@@ -215,7 +215,7 @@ class Block(PandasObject):
         return self._mgr_locs
 
     @mgr_locs.setter
-    def mgr_locs(self, new_mgr_locs: BlockPlacement):
+    def mgr_locs(self, new_mgr_locs: BlockPlacement) -> None:
         self._mgr_locs = new_mgr_locs
 
     @final
@@ -2156,7 +2156,7 @@ def new_block(values, placement, *, ndim: int) -> Block:
     return klass(values, ndim=ndim, placement=placement)
 
 
-def check_ndim(values, placement: BlockPlacement, ndim: int):
+def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
     """
     ndim inference and validation.
 

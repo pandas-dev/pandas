@@ -14,7 +14,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.arrays.interval import VALID_CLOSED
 
 
-def fallback_performancewarning(version: str | None = None):
+def fallback_performancewarning(version: str | None = None) -> None:
     """
     Raise a PerformanceWarning for falling back to ExtensionArray's
     non-pyarrow method

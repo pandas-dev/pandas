@@ -107,7 +107,7 @@ class Term:
             )
         return res
 
-    def update(self, value):
+    def update(self, value) -> None:
         """
         search order for local (i.e., @variable) variables:
 
@@ -162,7 +162,7 @@ class Term:
         return self._value
 
     @value.setter
-    def value(self, new_value):
+    def value(self, new_value) -> None:
         self._value = new_value
 
     @property
@@ -321,7 +321,7 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast_inplace(terms, acceptable_dtypes, dtype):
+def _cast_inplace(terms, acceptable_dtypes, dtype) -> None:
     """
     Cast an expression inplace.
 
@@ -480,7 +480,7 @@ class BinOp(Op):
                 v = v.tz_convert("UTC")
             self.lhs.update(v)
 
-    def _disallow_scalar_only_bool_ops(self):
+    def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs
         lhs = self.lhs
 

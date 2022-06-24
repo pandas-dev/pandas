@@ -231,7 +231,7 @@ def _maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     return value
 
 
-def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
+def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
     """
     numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
     vice-versa, but we do not want to allow this, so we need to
@@ -978,7 +978,7 @@ def maybe_upcast(
     return upcast_values, fill_value  # type: ignore[return-value]
 
 
-def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
+def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
     """
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
