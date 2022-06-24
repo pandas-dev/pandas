@@ -384,8 +384,8 @@ class PythonParser(ParserBase):
                     ):
                         # If no rows we want to raise a different message and if
                         # we have mi columns, the last line is not part of the header
-                        msg = list(map(str, header[:-1] if have_mi_columns else header))
-                        msg = f"[{','.join(msg)}], len of {len(msg)}, "
+                        joi = list(map(str, header[:-1] if have_mi_columns else header))
+                        msg = f"[{','.join(joi)}], len of {len(joi)}, "
                         raise ValueError(
                             f"Passed header={msg}"
                             f"but only {self.line_pos} lines in file"
