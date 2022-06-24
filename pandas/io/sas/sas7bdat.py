@@ -163,12 +163,12 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self,
         path_or_buf: FilePath | ReadBuffer[bytes],
         index=None,
-        convert_dates=True,
-        blank_missing=True,
-        chunksize=None,
-        encoding=None,
-        convert_text=True,
-        convert_header_text=True,
+        convert_dates: bool = True,
+        blank_missing: bool = True,
+        chunksize: int | None = None,
+        encoding: str | None = None,
+        convert_text: bool = True,
+        convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
     ) -> None:
 
@@ -361,9 +361,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                     self.encoding or self.default_encoding
                 )
 
-    def __next__(self):
+    def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
-        if da is None:
+        if da.empty:
             self.close()
             raise StopIteration
         return da
@@ -732,7 +732,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.column_formats.append(column_format)
         self.columns.append(col)
 
-    def read(self, nrows: int | None = None) -> DataFrame | None:
+    def read(self, nrows: int | None = None) -> DataFrame:
 
         if (nrows is None) and (self.chunksize is not None):
             nrows = self.chunksize
@@ -744,7 +744,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise EmptyDataError("No columns to parse from file")
 
         if nrows > 0 and self._current_row_in_file_index >= self.row_count:
-            return None
+            return DataFrame()
 
         m = self.row_count - self._current_row_in_file_index
         if nrows > m:
