@@ -966,6 +966,51 @@ class TestNonNano:
             with pytest.raises(ValueError, match=msg):
                 other - ts2
 
+    def test_sub_timedeltalike_mismatched_reso(self, ts_tz):
+        # case with non-lossy rounding
+        ts = ts_tz
+
+        # choose a unit for `other` that doesn't match ts_tz's;
+        #  this construction ensures we get cases with other._reso < ts._reso
+        #  and cases with other._reso > ts._reso
+        unit = {
+            NpyDatetimeUnit.NPY_FR_us.value: "ms",
+            NpyDatetimeUnit.NPY_FR_ms.value: "s",
+            NpyDatetimeUnit.NPY_FR_s.value: "us",
+        }[ts._reso]
+        other = Timedelta(0)._as_unit(unit)
+        assert other._reso != ts._reso
+
+        result = ts + other
+        assert isinstance(result, Timestamp)
+        assert result == ts
+        assert result._reso == min(ts._reso, other._reso)
+
+        result = other + ts
+        assert isinstance(result, Timestamp)
+        assert result == ts
+        assert result._reso == min(ts._reso, other._reso)
+
+        msg = "Timestamp addition with mismatched resolutions"
+        if ts._reso < other._reso:
+            # Case where rounding is lossy
+            other2 = other + Timedelta._from_value_and_reso(1, other._reso)
+            with pytest.raises(ValueError, match=msg):
+                ts + other2
+            with pytest.raises(ValueError, match=msg):
+                other2 + ts
+        else:
+            ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
+            with pytest.raises(ValueError, match=msg):
+                ts2 + other
+            with pytest.raises(ValueError, match=msg):
+                other + ts2
+
+        msg = "Addition between Timestamp and Timedelta with mismatched resolutions"
+        with pytest.raises(ValueError, match=msg):
+            # With a mismatched td64 as opposed to Timedelta
+            ts + np.timedelta64(1, "ns")
+
 
 class TestAsUnit:
     def test_as_unit(self):
