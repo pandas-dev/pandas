@@ -318,7 +318,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def ndim(self) -> int:
+    def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
         """

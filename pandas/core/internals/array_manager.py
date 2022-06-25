@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     TypeVar,
 )
 
@@ -704,7 +705,9 @@ class BaseArrayManager(DataManager):
 
 
 class ArrayManager(BaseArrayManager):
-    ndim = 2
+    @property
+    def ndim(self) -> Literal[2]:
+        return 2
 
     def __init__(
         self,
@@ -1191,7 +1194,9 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     arrays: list[np.ndarray | ExtensionArray]
     _axes: list[Index]
 
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     def __init__(
         self,

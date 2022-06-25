@@ -61,7 +61,6 @@
         "pandas/core/indexing.py",
         "pandas/core/internals/api.py",
         "pandas/core/internals/array_manager.py",
-        "pandas/core/internals/base.py",
         "pandas/core/internals/blocks.py",
         "pandas/core/internals/concat.py",
         "pandas/core/internals/construction.py",
