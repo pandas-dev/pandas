@@ -110,13 +110,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
     ) -> None:
         # values is supposed to already be validated in the subclass
-        if not (
-            isinstance(mask, np.ndarray)
-            and
-            # error: Non-overlapping equality check
-            # (left operand type: "dtype[bool_]", right operand type: "Type[bool_]")
-            mask.dtype == np.bool_  # type: ignore[comparison-overlap]
-        ):
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
             raise TypeError(
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
@@ -875,7 +869,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        resolved_na_sentinel = algos.resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        if resolved_na_sentinel is None:
+            raise NotImplementedError("Encoding NaN values is not yet implemented")
+        else:
+            na_sentinel = resolved_na_sentinel
         arr = self._data
         mask = self._mask
 
@@ -1157,7 +1160,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self._falsey_value)
+        # error: Argument 3 to "putmask" has incompatible type "object";
+        # expected "Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]],
+        # bool, int, float, complex, str, bytes,
+        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
+        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
         result = values.any()
         if skipna:
             return result
@@ -1233,7 +1241,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self._truthy_value)
+        # error: Argument 3 to "putmask" has incompatible type "object";
+        # expected "Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]],
+        # bool, int, float, complex, str, bytes,
+        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
+        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
         result = values.all()
 
         if skipna:

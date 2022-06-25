@@ -848,13 +848,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Still override this for hash_pandas_object
         return np.asarray(self), self.fill_value
 
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, SparseArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, SparseArray]:
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
         # ExtensionArray.factorize -> Tuple[EA, EA]
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
-        codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
+        codes, uniques = algos.factorize(
+            np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+        )
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
@@ -944,7 +950,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            data_slice = self.to_dense()[key]
+            # error: Invalid index type "Tuple[Union[int, ellipsis], ...]"
+            # for "ndarray[Any, Any]"; expected type
+            # "Union[SupportsIndex, _SupportsArray[dtype[Union[bool_,
+            # integer[Any]]]], _NestedSequence[_SupportsArray[dtype[
+            # Union[bool_, integer[Any]]]]], _NestedSequence[Union[
+            # bool, int]], Tuple[Union[SupportsIndex, _SupportsArray[
+            # dtype[Union[bool_, integer[Any]]]], _NestedSequence[
+            # _SupportsArray[dtype[Union[bool_, integer[Any]]]]],
+            # _NestedSequence[Union[bool, int]]], ...]]"
+            data_slice = self.to_dense()[key]  # type: ignore[index]
         elif isinstance(key, slice):
 
             # Avoid densifying when handling contiguous slices
@@ -1184,7 +1199,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             data = np.concatenate(values)
             indices_arr = np.concatenate(indices)
-            sp_index = IntIndex(length, indices_arr)
+            # error: Argument 2 to "IntIndex" has incompatible type
+            # "ndarray[Any, dtype[signedinteger[_32Bit]]]";
+            # expected "Sequence[int]"
+            sp_index = IntIndex(length, indices_arr)  # type: ignore[arg-type]
 
         else:
             # when concatenating block indices, we don't claim that you'll
@@ -1374,7 +1392,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
             nd_state, (fill_value, sp_index) = state
-            sparse_values = np.array([])
+            # error: Need type annotation for "sparse_values"
+            sparse_values = np.array([])  # type: ignore[var-annotated]
             sparse_values.__setstate__(nd_state)
 
             self._sparse_values = sparse_values
