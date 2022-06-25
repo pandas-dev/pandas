@@ -72,6 +72,7 @@ def test_quote_char_various(all_parsers, quote_char):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(PY311, reason="raises TypeError Python 3.11")
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 @pytest.mark.parametrize("quote_char", ["", None])
 def test_null_quote_char(all_parsers, quoting, quote_char):
@@ -80,10 +81,6 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
     parser = all_parsers
 
     if quoting != csv.QUOTE_NONE:
-        if quote_char == "" and PY311:
-            pytest.xfail(
-                "Python 3.11 raises TypeError: 'quotechar' must be a 1-character string here"
-            )
         # Sanity checking.
         msg = "quotechar must be set if quoting enabled"
 

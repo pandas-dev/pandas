@@ -315,7 +315,7 @@ def test_overlap_public_nat_methods(klass, expected):
     assert _get_overlap_public_nat_methods(klass) == expected
 
 
-@pytest.mark.skipif(PY311, reason="error in Python 3.11")
+@pytest.mark.xfail(PY311, reason="error in Python 3.11", raises=TypeError)
 @pytest.mark.parametrize(
     "compare",
     (
