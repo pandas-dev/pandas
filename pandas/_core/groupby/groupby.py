@@ -3,7 +3,7 @@ Provide the groupby split-apply-combine paradigm. Define the GroupBy
 class providing the base-class of operations.
 
 The SeriesGroupBy and DataFrameGroupBy sub-class
-(defined in pandas.core.groupby.generic)
+(defined in pandas._core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
@@ -82,6 +82,15 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas._core.groupby import (
+    base,
+    numba_,
+    ops,
+)
+from pandas._core.groupby.indexing import (
+    GroupByIndexingMixin,
+    GroupByNthSelector,
+)
 from pandas.core import nanops
 from pandas.core._numba import executor
 import pandas.core.algorithms as algorithms
@@ -98,15 +107,6 @@ from pandas.core.base import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import (
-    base,
-    numba_,
-    ops,
-)
-from pandas.core.groupby.indexing import (
-    GroupByIndexingMixin,
-    GroupByNthSelector,
-)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -932,7 +932,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.dropna = dropna
 
         if grouper is None:
-            from pandas.core.groupby.grouper import get_grouper
+            from pandas._core.groupby.grouper import get_grouper
 
             grouper, exclusions, obj = get_grouper(
                 obj,
@@ -2465,9 +2465,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.last : Compute the last non-null entry of each
+        DataFrame._core.groupby.GroupBy.last : Compute the last non-null entry of each
             column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        DataFrame._core.groupby.GroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -2537,9 +2537,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.first : Compute the first non-null entry of each
+        DataFrame._core.groupby.GroupBy.first : Compute the first non-null entry of each
             column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        DataFrame._core.groupby.GroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3104,7 +3104,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             # create a grouper with the original parameters, but on dropped
             # object
-            from pandas.core.groupby.grouper import get_grouper
+            from pandas._core.groupby.grouper import get_grouper
 
             grouper, _, _ = get_grouper(
                 dropped,
@@ -4239,11 +4239,11 @@ def get_groupby(
 
     klass: type[GroupBy]
     if isinstance(obj, Series):
-        from pandas.core.groupby.generic import SeriesGroupBy
+        from pandas._core.groupby.generic import SeriesGroupBy
 
         klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
-        from pandas.core.groupby.generic import DataFrameGroupBy
+        from pandas._core.groupby.generic import DataFrameGroupBy
 
         klass = DataFrameGroupBy
     else:  # pragma: no cover

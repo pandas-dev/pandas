@@ -59,6 +59,15 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas._core.groupby import base
+from pandas._core.groupby.groupby import (
+    GroupBy,
+    _agg_template,
+    _apply_docs,
+    _transform_template,
+    warn_dropping_nuisance_columns_deprecated,
+)
+from pandas._core.groupby.grouper import get_grouper
 from pandas.core import (
     algorithms,
     nanops,
@@ -73,15 +82,6 @@ import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
-from pandas.core.groupby.groupby import (
-    GroupBy,
-    _agg_template,
-    _apply_docs,
-    _transform_template,
-    warn_dropping_nuisance_columns_deprecated,
-)
-from pandas.core.groupby.grouper import get_grouper
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,

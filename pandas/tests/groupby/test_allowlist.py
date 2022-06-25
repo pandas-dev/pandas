@@ -13,12 +13,12 @@ from pandas import (
     Series,
     date_range,
 )
-import pandas._testing as tm
-from pandas.core.groupby.base import (
+from pandas._core.groupby.base import (
     groupby_other_methods,
     reduction_kernels,
     transformation_kernels,
 )
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -429,11 +429,11 @@ There are uncategorized methods defined on the Grouper class:
 Was a new method recently added?
 
 Every public method On Grouper must appear in exactly one the
-following three lists defined in pandas.core.groupby.base:
+following three lists defined in pandas._core.groupby.base:
 - `reduction_kernels`
 - `transformation_kernels`
 - `groupby_other_methods`
-see the comments in pandas/core/groupby/base.py for guidance on
+see the comments in pandas/_core.groupby/base.py for guidance on
 how to fix this test.
         """
         raise AssertionError(msg)
@@ -448,7 +448,7 @@ Some methods which are supposed to be on the Grouper class
 are missing:
 {all_categorized - names}.
 
-They're still defined in one of the lists that live in pandas/core/groupby/base.py.
+They're still defined in one of the lists that live in pandas/_core.groupby/base.py.
 If you removed a method, you should update them
 """
         raise AssertionError(msg)

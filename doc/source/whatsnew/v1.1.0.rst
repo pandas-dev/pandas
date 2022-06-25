@@ -306,9 +306,9 @@ Other enhancements
 - :meth:`melt` has gained an ``ignore_index`` (default ``True``) argument that, if set to ``False``, prevents the method from dropping the index (:issue:`17440`).
 - :meth:`Series.update` now accepts objects that can be coerced to a :class:`Series`,
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
-- :meth:`~pandas.core.groupby.DataFrameGroupBy.transform` and :meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` have gained ``engine`` and ``engine_kwargs`` arguments that support executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
+- :meth:`~pandas._core.groupby.DataFrameGroupBy.transform` and :meth:`~pandas._core.groupby.DataFrameGroupBy.aggregate` have gained ``engine`` and ``engine_kwargs`` arguments that support executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
-- :class:`~pandas.core.groupby.DataFrameGroupBy` and :class:`~pandas.core.groupby.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
+- :class:`~pandas._core.groupby.DataFrameGroupBy` and :class:`~pandas._core.groupby.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
 - :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
 - Added :class:`api.extension.ExtensionArray.equals` to the extension array interface, similar to :meth:`Series.equals` (:issue:`27081`)
 - The minimum supported dta version has increased to 105 in :func:`read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
@@ -323,9 +323,9 @@ Other enhancements
 - Made :class:`pandas.core.window.rolling.Rolling` and :class:`pandas.core.window.expanding.Expanding` iterable（:issue:`11704`)
 - Made ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
-- :meth:`~pandas.core.groupby.DataFrameGroupBy.groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
+- :meth:`~pandas._core.groupby.DataFrameGroupBy.groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :func:`read_json` now accepts an ``nrows`` parameter. (:issue:`33916`).
-- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
+- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`_core.groupby.DataFrameGroupBy.hist`, and :meth:`_core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
 - :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
   combining a nullable integer column with a numpy integer column will no longer
   result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`, :issue:`34095`).
@@ -622,7 +622,7 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 
    df.groupby("a", as_index=False).nunique()
 
-The method :meth:`~pandas.core.groupby.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a :class:`DataFrame` instead of a :class:`Series`. (:issue:`32599`)
+The method :meth:`~pandas._core.groupby.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a :class:`DataFrame` instead of a :class:`Series`. (:issue:`32599`)
 
 *Previous behavior*:
 
@@ -643,10 +643,10 @@ The method :meth:`~pandas.core.groupby.DataFrameGroupBy.size` would previously i
 
 .. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
 
-:meth:`~pandas.core.groupby.DataFrameGroupby.agg` lost results with ``as_index=False`` when relabeling columns
+:meth:`~pandas._core.groupby.DataFrameGroupby.agg` lost results with ``as_index=False`` when relabeling columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously :meth:`~pandas.core.groupby.DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
+Previously :meth:`~pandas._core.groupby.DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
 set to ``False`` and the result columns were relabeled. In this case the result values were replaced with
 the previous index (:issue:`32240`).
 
@@ -871,14 +871,14 @@ Performance improvements
   sparse values from ``scipy.sparse`` matrices using the
   :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
   :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
-- Performance improvement for groupby methods :meth:`~pandas.core.groupby.groupby.Groupby.first`
-  and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
+- Performance improvement for groupby methods :meth:`~pandas._core.groupby.groupby.Groupby.first`
+  and :meth:`~pandas._core.groupby.groupby.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and Boolean) dtypes (:issue:`33064`).
 - Performance improvement when constructing :class:`Categorical` objects (:issue:`33921`)
 - Fixed performance regression in :func:`pandas.qcut` and :func:`pandas.cut` (:issue:`33921`)
 - Performance improvement in reductions (``sum``, ``prod``, ``min``, ``max``) for nullable (integer and Boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
-- Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
+- Performance improvement in :class:`pandas._core.groupby.RollingGroupby` (:issue:`34052`)
 - Performance improvement in arithmetic operations (``sub``, ``add``, ``mul``, ``div``) for :class:`MultiIndex` (:issue:`34297`)
 - Performance improvement in ``DataFrame[bool_indexer]`` when ``bool_indexer`` is a ``list`` (:issue:`33924`)
 - Significant performance improvement of :meth:`io.formats.style.Styler.render` with styles added with various ways such as :meth:`io.formats.style.Styler.apply`, :meth:`io.formats.style.Styler.applymap` or :meth:`io.formats.style.Styler.bar` (:issue:`19917`)
@@ -1140,8 +1140,8 @@ GroupBy/resample/rolling
 - Bug in :meth:`DataFrame.groupby` lost the name of the :class:`Index` when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)
 - Bug in :meth:`DataFrame.ewm.cov` was throwing ``AssertionError`` for :class:`MultiIndex` inputs (:issue:`34440`)
-- Bug in :meth:`core.groupby.DataFrameGroupBy.quantile` raised ``TypeError`` for non-numeric types rather than dropping the columns (:issue:`27892`)
-- Bug in :meth:`core.groupby.DataFrameGroupBy.transform` when ``func='nunique'`` and columns are of type ``datetime64``, the result would also be of type ``datetime64`` instead of ``int64`` (:issue:`35109`)
+- Bug in :meth:`_core.groupby.DataFrameGroupBy.quantile` raised ``TypeError`` for non-numeric types rather than dropping the columns (:issue:`27892`)
+- Bug in :meth:`_core.groupby.DataFrameGroupBy.transform` when ``func='nunique'`` and columns are of type ``datetime64``, the result would also be of type ``datetime64`` instead of ``int64`` (:issue:`35109`)
 - Bug in :meth:`DataFrame.groupby` raising an ``AttributeError`` when selecting a column and aggregating with ``as_index=False`` (:issue:`35246`).
 - Bug in :meth:`DataFrameGroupBy.first` and :meth:`DataFrameGroupBy.last` that would raise an unnecessary ``ValueError`` when grouping on multiple ``Categoricals`` (:issue:`34951`)
 

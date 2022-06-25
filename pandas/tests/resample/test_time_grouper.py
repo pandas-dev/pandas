@@ -10,8 +10,8 @@ from pandas import (
     Series,
     Timestamp,
 )
+from pandas._core.groupby.grouper import Grouper
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 
 test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))

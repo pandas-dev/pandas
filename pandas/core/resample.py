@@ -51,6 +51,15 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas._core.groupby.generic import SeriesGroupBy
+from pandas._core.groupby.groupby import (
+    BaseGroupBy,
+    GroupBy,
+    _pipe_template,
+    get_groupby,
+)
+from pandas._core.groupby.grouper import Grouper
+from pandas._core.groupby.ops import BinGrouper
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import PandasObject
@@ -59,15 +68,6 @@ from pandas.core.generic import (
     NDFrame,
     _shared_docs,
 )
-from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import (
-    BaseGroupBy,
-    GroupBy,
-    _pipe_template,
-    get_groupby,
-)
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,

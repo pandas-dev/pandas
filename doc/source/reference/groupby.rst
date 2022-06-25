@@ -5,7 +5,7 @@
 =======
 GroupBy
 =======
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas._core.groupby
 
 GroupBy objects are returned by groupby calls: :func:`pandas.DataFrame.groupby`, :func:`pandas.Series.groupby`, etc.
 
@@ -27,7 +27,7 @@ Indexing, iteration
 
    Grouper
 
-.. currentmodule:: pandas.core.groupby
+.. currentmodule:: pandas._core.groupby
 
 Function application
 --------------------

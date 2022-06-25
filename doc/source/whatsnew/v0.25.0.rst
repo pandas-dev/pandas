@@ -89,7 +89,7 @@ GroupBy aggregation with multiple lambdas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now provide multiple lambda functions to a list-like aggregation in
-:class:`pandas.core.groupby.GroupBy.agg` (:issue:`26430`).
+:class:`pandas._core.groupby.GroupBy.agg` (:issue:`26430`).
 
 .. ipython:: python
 
@@ -311,7 +311,7 @@ would be reassigned as -1. (:issue:`19387`)
 ``GroupBy.apply`` on ``DataFrame`` evaluates first group only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
+The implementation of :meth:`DataFrameGroupBy.apply() <pandas._core.groupby.DataFrameGroupBy.apply>`
 previously evaluated the supplied function consistently twice on the first group
 to infer if it is safe to use a fast code path. Particularly for functions with
 side effects, this was an undesired behavior and may have led to surprises. (:issue:`2936`, :issue:`2656`, :issue:`7739`, :issue:`10519`, :issue:`12155`, :issue:`20084`, :issue:`21417`)
@@ -494,7 +494,7 @@ values are coerced to floating point, which may result in loss of precision. See
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The methods ``ffill``, ``bfill``, ``pad`` and ``backfill`` of
-:class:`DataFrameGroupBy <pandas.core.groupby.DataFrameGroupBy>`
+:class:`DataFrameGroupBy <pandas._core.groupby.DataFrameGroupBy>`
 previously included the group labels in the return value, which was
 inconsistent with other groupby transforms. Now only the filled values
 are returned. (:issue:`21521`)
@@ -886,7 +886,7 @@ Other API changes
 - :meth:`Timestamp.strptime` will now rise a ``NotImplementedError`` (:issue:`25016`)
 - Comparing :class:`Timestamp` with unsupported objects now returns :py:obj:`NotImplemented` instead of raising ``TypeError``. This implies that unsupported rich comparisons are delegated to the other object, and are now consistent with Python 3 behavior for ``datetime`` objects (:issue:`24011`)
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
-- The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
+- The ``arg`` argument in :meth:`pandas._core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
 - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
 - Most pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
@@ -993,7 +993,7 @@ Performance improvements
 - :meth:`DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
-- Improved performance of :meth:`pandas.core.groupby.GroupBy.quantile` (:issue:`20405`)
+- Improved performance of :meth:`pandas._core.groupby.GroupBy.quantile` (:issue:`20405`)
 - Improved performance of slicing and other selected operation on a :class:`RangeIndex` (:issue:`26565`, :issue:`26617`, :issue:`26722`)
 - :class:`RangeIndex` now performs standard lookup without instantiating an actual hashtable, hence saving memory (:issue:`16685`)
 - Improved performance of :meth:`read_csv` by faster tokenizing and faster parsing of small float numbers (:issue:`25784`)
@@ -1193,22 +1193,22 @@ GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`pandas.core.resample.Resampler.agg` with a timezone aware index where ``OverflowError`` would raise when passing a list of functions (:issue:`22660`)
-- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
-- Bug in :func:`pandas.core.groupby.GroupBy.agg` when applying an aggregation function to timezone aware data (:issue:`23683`)
-- Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
-- Bug in :func:`pandas.core.groupby.GroupBy.size` when grouping only NA values (:issue:`23050`)
+- Bug in :meth:`pandas._core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`)
+- Bug in :func:`pandas._core.groupby.GroupBy.agg` when applying an aggregation function to timezone aware data (:issue:`23683`)
+- Bug in :func:`pandas._core.groupby.GroupBy.first` and :func:`pandas._core.groupby.GroupBy.last` where timezone information would be dropped (:issue:`21603`)
+- Bug in :func:`pandas._core.groupby.GroupBy.size` when grouping only NA values (:issue:`23050`)
 - Bug in :func:`Series.groupby` where ``observed`` kwarg was previously ignored (:issue:`24880`)
 - Bug in :func:`Series.groupby` where using ``groupby`` with a :class:`MultiIndex` Series with a list of labels equal to the length of the series caused incorrect grouping (:issue:`25704`)
 - Ensured that ordering of outputs in ``groupby`` aggregation functions is consistent across all versions of Python (:issue:`25692`)
 - Ensured that result group order is correct when grouping on an ordered ``Categorical`` and specifying ``observed=True`` (:issue:`25871`, :issue:`25167`)
 - Bug in :meth:`pandas.core.window.Rolling.min` and :meth:`pandas.core.window.Rolling.max` that caused a memory leak (:issue:`25893`)
 - Bug in :meth:`pandas.core.window.Rolling.count` and ``pandas.core.window.Expanding.count`` was previously ignoring the ``axis`` keyword (:issue:`13503`)
-- Bug in :meth:`pandas.core.groupby.GroupBy.idxmax` and :meth:`pandas.core.groupby.GroupBy.idxmin` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
-- Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
-- Bug in :meth:`pandas.core.groupby.GroupBy.nth` where NA values in the grouping would return incorrect results (:issue:`26011`)
-- Bug in :meth:`pandas.core.groupby.SeriesGroupBy.transform` where transforming an empty group would raise a ``ValueError`` (:issue:`26208`)
-- Bug in :meth:`pandas.core.frame.DataFrame.groupby` where passing a :class:`pandas.core.groupby.grouper.Grouper` would return incorrect groups when using the ``.groups`` accessor (:issue:`26326`)
-- Bug in :meth:`pandas.core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
+- Bug in :meth:`pandas._core.groupby.GroupBy.idxmax` and :meth:`pandas._core.groupby.GroupBy.idxmin` with datetime column would return incorrect dtype (:issue:`25444`, :issue:`15306`)
+- Bug in :meth:`pandas._core.groupby.GroupBy.cumsum`, :meth:`pandas._core.groupby.GroupBy.cumprod`, :meth:`pandas._core.groupby.GroupBy.cummin` and :meth:`pandas._core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
+- Bug in :meth:`pandas._core.groupby.GroupBy.nth` where NA values in the grouping would return incorrect results (:issue:`26011`)
+- Bug in :meth:`pandas._core.groupby.SeriesGroupBy.transform` where transforming an empty group would raise a ``ValueError`` (:issue:`26208`)
+- Bug in :meth:`pandas.core.frame.DataFrame.groupby` where passing a :class:`pandas._core.groupby.grouper.Grouper` would return incorrect groups when using the ``.groups`` accessor (:issue:`26326`)
+- Bug in :meth:`pandas._core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where MemoryError is raised with empty window (:issue:`26005`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where incorrect results are returned with ``closed='left'`` and ``closed='neither'`` (:issue:`26005`)
 - Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.ExponentialMovingWindow` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)

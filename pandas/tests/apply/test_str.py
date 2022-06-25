@@ -11,8 +11,8 @@ from pandas import (
     Index,
     Series,
 )
+from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.apply.common import (
     frame_transform_kernels,
     series_transform_kernels,

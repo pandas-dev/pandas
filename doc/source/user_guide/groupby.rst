@@ -448,7 +448,7 @@ Selecting a group
 -----------------
 
 A single group can be selected using
-:meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`:
+:meth:`~pandas._core.groupby.DataFrameGroupBy.get_group`:
 
 .. ipython:: python
 
@@ -471,8 +471,8 @@ perform a computation on the grouped data. These operations are similar to the
 and :ref:`resample API <timeseries.aggregate>`.
 
 An obvious one is aggregation via the
-:meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` or equivalently
-:meth:`~pandas.core.groupby.DataFrameGroupBy.agg` method:
+:meth:`~pandas._core.groupby.DataFrameGroupBy.aggregate` or equivalently
+:meth:`~pandas._core.groupby.DataFrameGroupBy.agg` method:
 
 .. ipython:: python
 
@@ -539,25 +539,25 @@ Some common aggregating functions are tabulated below:
     :widths: 20, 80
     :delim: ;
 
-        :meth:`~pd.core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
-        :meth:`~pd.core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
-        :meth:`~pd.core.groupby.DataFrameGroupBy.size`;Compute group sizes
-        :meth:`~pd.core.groupby.DataFrameGroupBy.count`;Compute count of group
-        :meth:`~pd.core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
-        :meth:`~pd.core.groupby.DataFrameGroupBy.var`;Compute variance of groups
-        :meth:`~pd.core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
-        :meth:`~pd.core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
-        :meth:`~pd.core.groupby.DataFrameGroupBy.first`;Compute first of group values
-        :meth:`~pd.core.groupby.DataFrameGroupBy.last`;Compute last of group values
-        :meth:`~pd.core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
-        :meth:`~pd.core.groupby.DataFrameGroupBy.min`;Compute min of group values
-        :meth:`~pd.core.groupby.DataFrameGroupBy.max`;Compute max of group values
+        :meth:`~pd._core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
+        :meth:`~pd._core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
+        :meth:`~pd._core.groupby.DataFrameGroupBy.size`;Compute group sizes
+        :meth:`~pd._core.groupby.DataFrameGroupBy.count`;Compute count of group
+        :meth:`~pd._core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
+        :meth:`~pd._core.groupby.DataFrameGroupBy.var`;Compute variance of groups
+        :meth:`~pd._core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
+        :meth:`~pd._core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
+        :meth:`~pd._core.groupby.DataFrameGroupBy.first`;Compute first of group values
+        :meth:`~pd._core.groupby.DataFrameGroupBy.last`;Compute last of group values
+        :meth:`~pd._core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
+        :meth:`~pd._core.groupby.DataFrameGroupBy.min`;Compute min of group values
+        :meth:`~pd._core.groupby.DataFrameGroupBy.max`;Compute max of group values
 
 
 The aggregating functions above will exclude NA values. Any function which
 reduces a :class:`Series` to a scalar value is an aggregation function and will work,
 a trivial example is ``df.groupby('A').agg(lambda ser: 1)``. Note that
-:meth:`~pd.core.groupby.DataFrameGroupBy.nth` can act as a reducer *or* a
+:meth:`~pd._core.groupby.DataFrameGroupBy.nth` can act as a reducer *or* a
 filter, see :ref:`here <groupby.nth>`.
 
 .. _groupby.aggregate.multifunc:
@@ -1355,7 +1355,7 @@ Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To select from a DataFrame or Series the nth item, use
-:meth:`~pd.core.groupby.DataFrameGroupBy.nth`. This is a reduction method, and
+:meth:`~pd._core.groupby.DataFrameGroupBy.nth`. This is a reduction method, and
 will return a single row (or no row) per group if you pass an int for n:
 
 .. ipython:: python
@@ -1422,7 +1422,7 @@ Enumerate groups
 
 To see the ordering of the groups (as opposed to the order of rows
 within a group given by ``cumcount``) you can use
-:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`.
+:meth:`~pandas._core.groupby.DataFrameGroupBy.ngroup`.
 
 
 
@@ -1550,7 +1550,7 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 Multi-column factorization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By using :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`, we can extract
+By using :meth:`~pandas._core.groupby.DataFrameGroupBy.ngroup`, we can extract
 information about the groups in a way similar to :func:`factorize` (as described
 further in the :ref:`reshaping API <reshaping.factorize>`) but which applies
 naturally to multiple columns of mixed type and different

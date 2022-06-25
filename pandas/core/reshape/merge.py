@@ -73,7 +73,7 @@ from pandas import (
     MultiIndex,
     Series,
 )
-from pandas.core import groupby
+from pandas._core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray

@@ -21,6 +21,10 @@ from pandas.core.dtypes.missing import (
     notnull,
 )
 
+from pandas._core.groupby import (
+    Grouper,
+    NamedAgg,
+)
 from pandas.core.algorithms import (
     factorize,
     unique,
@@ -45,10 +49,6 @@ from pandas.core.arrays.integer import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import array
 from pandas.core.flags import Flags
-from pandas.core.groupby import (
-    Grouper,
-    NamedAgg,
-)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     DatetimeIndex,

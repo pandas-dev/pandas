@@ -68,7 +68,7 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.groupby import GroupBy
+    from pandas._core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 

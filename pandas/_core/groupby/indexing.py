@@ -25,7 +25,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-    from pandas.core.groupby import groupby
+    from pandas._core.groupby import groupby
 
 
 class GroupByIndexingMixin:

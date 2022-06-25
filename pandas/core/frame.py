@@ -220,8 +220,8 @@ import pandas.plotting
 
 if TYPE_CHECKING:
 
+    from pandas._core.groupby.generic import DataFrameGroupBy
     from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
-    from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
 
@@ -8131,7 +8131,7 @@ Parrot 2  Parrot       24.0
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
-        from pandas.core.groupby.generic import DataFrameGroupBy
+        from pandas._core.groupby.generic import DataFrameGroupBy
 
         if squeeze is not no_default:
             warnings.warn(
@@ -9017,7 +9017,7 @@ Parrot 2  Parrot       24.0
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    core.groupby.GroupBy : Perform operations over groups.
+    _core.groupby.GroupBy : Perform operations over groups.
     core.resample.Resampler : Perform operations over resampled bins.
     core.window.Rolling : Perform operations over rolling window.
     core.window.Expanding : Perform operations over expanding window.

@@ -44,14 +44,14 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
-    from pandas.core.arrays.base import ExtensionArray
-    from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame
-    from pandas.core.groupby.generic import (
+    from pandas._core.groupby.generic import (
         DataFrameGroupBy,
         GroupBy,
         SeriesGroupBy,
     )
+    from pandas.core.arrays.base import ExtensionArray
+    from pandas.core.frame import DataFrame
+    from pandas.core.generic import NDFrame
     from pandas.core.indexes.base import Index
     from pandas.core.internals import (
         ArrayManager,

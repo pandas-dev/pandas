@@ -162,8 +162,8 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
+    from pandas._core.groupby.generic import SeriesGroupBy
     from pandas.core.frame import DataFrame
-    from pandas.core.groupby.generic import SeriesGroupBy
     from pandas.core.resample import Resampler
 
 __all__ = ["Series"]
@@ -1935,7 +1935,7 @@ Name: Max Speed, dtype: float64
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
-        from pandas.core.groupby.generic import SeriesGroupBy
+        from pandas._core.groupby.generic import SeriesGroupBy
 
         if squeeze is not no_default:
             warnings.warn(

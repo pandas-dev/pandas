@@ -13,12 +13,12 @@ from pandas import (
     Timestamp,
     date_range,
 )
+from pandas._core.groupby.grouper import Grouping
 import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     Int64Index,
 )
-from pandas.core.groupby.grouper import Grouping
 
 # selection
 # --------------------------------

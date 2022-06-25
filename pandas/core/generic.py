@@ -8569,7 +8569,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        core.groupby.GroupBy.rank : Rank of values within each group.
+        _core.groupby.GroupBy.rank : Rank of values within each group.
 
         Examples
         --------

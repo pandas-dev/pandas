@@ -30,6 +30,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
+from pandas._core.groupby import ops
+from pandas._core.groupby.categorical import (
+    recode_for_groupby,
+    recode_from_groupby,
+)
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     Categorical,
@@ -37,11 +42,6 @@ from pandas.core.arrays import (
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import (
-    recode_for_groupby,
-    recode_from_groupby,
-)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -958,8 +958,8 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
     # properly since we need to raise the `base` and `loffset` deprecation
     # warning from three different cases:
     #   core/generic.py::NDFrame.resample
-    #   core/groupby/groupby.py::GroupBy.resample
-    #   core/groupby/grouper.py::Grouper
+    #   _core.groupby/groupby.py::GroupBy.resample
+    #   _core.groupby/grouper.py::Grouper
     # raising these warnings from TimeGrouper directly would fail the test:
     #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
 

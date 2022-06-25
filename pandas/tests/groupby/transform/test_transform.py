@@ -19,9 +19,9 @@ from pandas import (
     concat,
     date_range,
 )
+from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
+from pandas._core.groupby.generic import DataFrameGroupBy
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
-from pandas.core.groupby.generic import DataFrameGroupBy
 
 
 def assert_fp_equal(a, b):

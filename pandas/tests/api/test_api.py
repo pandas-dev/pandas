@@ -41,7 +41,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
+    private_lib = ["compat", "_core", "core", "pandas", "util"]
 
     # these are already deprecated; awaiting removal
     deprecated_modules: list[str] = ["np", "datetime"]

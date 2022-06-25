@@ -61,6 +61,7 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
+from pandas._core.groupby import grouper
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -78,7 +79,6 @@ from pandas.core.arrays.masked import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
