@@ -467,7 +467,7 @@ def from_dummies(
             f"Received 'sep' of type: {type(sep).__name__}"
         )
 
-    if default_category:
+    if default_category is not None:
         if isinstance(default_category, dict):
             if not len(default_category) == len(variables_slice):
                 len_msg = (
