@@ -143,7 +143,7 @@ ignore_errors = true
 [tool.isort]
 known_pre_libs = "pandas._config"
 known_pre_core = ["pandas._libs", "pandas._typing", "pandas.util._*", "pandas.compat", "pandas.errors"]
-known_dtypes = "pandas.core.dtypes"
+known_dtypes = "pandas._core.dtypes"
 known_post_core = ["pandas.tseries", "pandas.io", "pandas.plotting"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY" ,"PRE_LIBS" , "PRE_CORE", "DTYPES", "FIRSTPARTY", "POST_CORE", "LOCALFOLDER"]
 profile = "black"
