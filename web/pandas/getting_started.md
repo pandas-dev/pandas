@@ -1,5 +1,18 @@
 # Getting started
 
+## Try it in your browser
+
+You can try `pandas` in your browser with the following interactive shell
+without installing anything on your computer.
+
+*Note it can take up to 30 seconds before the shell finishes loading and is ready to run commands.*
+
+<iframe
+  src="./lite/repl/index.html?toolbar=1&kernel=python&code=import%20pandas%20as%20pd&code=df%20=%20pd.DataFrame(%7B'num_legs':%20%5B2,%204%5D,%20'num_wings':%20%5B2,%200%5D%7D,%20index=%5B'falcon',%20'dog'%5D)"
+  width="100%"
+  height="500px"
+></iframe>
+
 ## Installation instructions
 
 The next steps provides the easiest and recommended way to set up your
