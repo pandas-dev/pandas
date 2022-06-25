@@ -16,12 +16,12 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
 from pandas import Index
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.internals import BlockManager
+from pandas._core.internals import BlockManager
 
 if TYPE_CHECKING:
     from pandas import (
@@ -110,15 +110,18 @@ class _LoadSparseFrame:
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
-    ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
+    ("pandas._core.sparse.array", "SparseArray"): (
+        "pandas._core.arrays",
+        "SparseArray",
+    ),
     # 15477
-    ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
-    ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
-    ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
+    ("pandas._core.base", "FrozenNDArray"): ("numpy", "ndarray"),
+    ("pandas._core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
+    ("pandas._core.base", "FrozenList"): ("pandas._core.indexes.frozen", "FrozenList"),
     # 10890
-    ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
+    ("pandas._core.series", "TimeSeries"): ("pandas._core.series", "Series"),
     ("pandas.sparse.series", "SparseTimeSeries"): (
-        "pandas.core.sparse.series",
+        "pandas._core.sparse.series",
         "SparseSeries",
     ),
     # 12588, extensions moving
@@ -138,7 +141,7 @@ _class_locations_map = {
     ),
     # 15998 top-level dirs moving
     ("pandas.sparse.array", "SparseArray"): (
-        "pandas.core.arrays.sparse",
+        "pandas._core.arrays.sparse",
         "SparseArray",
     ),
     ("pandas.sparse.series", "SparseSeries"): (
@@ -146,45 +149,51 @@ _class_locations_map = {
         "_LoadSparseSeries",
     ),
     ("pandas.sparse.frame", "SparseDataFrame"): (
-        "pandas.core.sparse.frame",
+        "pandas._core.sparse.frame",
         "_LoadSparseFrame",
     ),
-    ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
-    ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
+    ("pandas.indexes.base", "_new_Index"): ("pandas._core.indexes.base", "_new_Index"),
+    ("pandas.indexes.base", "Index"): ("pandas._core.indexes.base", "Index"),
     ("pandas.indexes.numeric", "Int64Index"): (
-        "pandas.core.indexes.numeric",
+        "pandas._core.indexes.numeric",
         "Int64Index",
     ),
-    ("pandas.indexes.range", "RangeIndex"): ("pandas.core.indexes.range", "RangeIndex"),
-    ("pandas.indexes.multi", "MultiIndex"): ("pandas.core.indexes.multi", "MultiIndex"),
+    ("pandas.indexes.range", "RangeIndex"): (
+        "pandas._core.indexes.range",
+        "RangeIndex",
+    ),
+    ("pandas.indexes.multi", "MultiIndex"): (
+        "pandas._core.indexes.multi",
+        "MultiIndex",
+    ),
     ("pandas.tseries.index", "_new_DatetimeIndex"): (
-        "pandas.core.indexes.datetimes",
+        "pandas._core.indexes.datetimes",
         "_new_DatetimeIndex",
     ),
     ("pandas.tseries.index", "DatetimeIndex"): (
-        "pandas.core.indexes.datetimes",
+        "pandas._core.indexes.datetimes",
         "DatetimeIndex",
     ),
     ("pandas.tseries.period", "PeriodIndex"): (
-        "pandas.core.indexes.period",
+        "pandas._core.indexes.period",
         "PeriodIndex",
     ),
     # 19269, arrays moving
-    ("pandas.core.categorical", "Categorical"): ("pandas.core.arrays", "Categorical"),
+    ("pandas._core.categorical", "Categorical"): ("pandas._core.arrays", "Categorical"),
     # 19939, add timedeltaindex, float64index compat from 15998 move
     ("pandas.tseries.tdi", "TimedeltaIndex"): (
-        "pandas.core.indexes.timedeltas",
+        "pandas._core.indexes.timedeltas",
         "TimedeltaIndex",
     ),
     ("pandas.indexes.numeric", "Float64Index"): (
-        "pandas.core.indexes.numeric",
+        "pandas._core.indexes.numeric",
         "Float64Index",
     ),
-    ("pandas.core.sparse.series", "SparseSeries"): (
+    ("pandas._core.sparse.series", "SparseSeries"): (
         "pandas.compat.pickle_compat",
         "_LoadSparseSeries",
     ),
-    ("pandas.core.sparse.frame", "SparseDataFrame"): (
+    ("pandas._core.sparse.frame", "SparseDataFrame"): (
         "pandas.compat.pickle_compat",
         "_LoadSparseFrame",
     ),

@@ -14,8 +14,6 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_integer
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -29,6 +27,7 @@ from pandas import (
     isna,
     notna,
 )
+from pandas._core.dtypes.common import is_integer
 import pandas._testing as tm
 
 # We pass through a TypeError raised by numpy
@@ -1221,7 +1220,7 @@ class TestDataFrameIndexing:
         df.loc[:] = df.values[:, ::-1]
         tm.assert_frame_equal(df, orig)
 
-        df.loc[:] = pd.core.arrays.PandasArray(df.values[:, ::-1])
+        df.loc[:] = pd._core.arrays.PandasArray(df.values[:, ::-1])
         tm.assert_frame_equal(df, orig)
 
         df.iloc[:] = df.iloc[:, :]

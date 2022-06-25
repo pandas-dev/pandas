@@ -8,8 +8,8 @@ from pandas import (
     DataFrame,
     Series,
 )
+from pandas._core.indexes.timedeltas import timedelta_range
 import pandas._testing as tm
-from pandas.core.indexes.timedeltas import timedelta_range
 
 
 def test_asfreq_bug():

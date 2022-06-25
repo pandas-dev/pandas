@@ -1,16 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import (
+import pandas as pd
+from pandas._core.arrays import IntervalArray
+from pandas._core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PandasDtype,
     PeriodDtype,
 )
-
-import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -397,7 +396,7 @@ class BaseSetitemTests(BaseExtensionTests):
 
         # Avoiding using_array_manager fixture
         #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
-        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
+        using_array_manager = isinstance(df._mgr, pd._core.internals.ArrayManager)
 
         blk_data = df._mgr.arrays[0]
 

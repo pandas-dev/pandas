@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas._core.arrays.sparse import SparseArray
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray
 
 
 class TestSparseArrayConcat:

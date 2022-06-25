@@ -18,8 +18,10 @@ from pandas._typing import (
     JSONSerializable,
 )
 
-from pandas.core.dtypes.base import _registry as registry
-from pandas.core.dtypes.common import (
+from pandas import DataFrame
+import pandas._core.common as com
+from pandas._core.dtypes.base import _registry as registry
+from pandas._core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -31,14 +33,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
-from pandas import DataFrame
-import pandas.core.common as com
+from pandas._core.dtypes.dtypes import CategoricalDtype
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.core.indexes.multi import MultiIndex
+    from pandas._core.indexes.multi import MultiIndex
 
 loads = json.loads
 

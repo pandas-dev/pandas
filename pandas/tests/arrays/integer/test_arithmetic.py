@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas._core.arrays import FloatingArray
+import pandas._core.ops as ops
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray
-import pandas.core.ops as ops
 
 # Basic test for the arithmetic array ops
 # -----------------------------------------------------------------------------

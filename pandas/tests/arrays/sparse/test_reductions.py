@@ -6,7 +6,7 @@ from pandas import (
     Timestamp,
     isna,
 )
-from pandas.core.arrays.sparse import (
+from pandas._core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )

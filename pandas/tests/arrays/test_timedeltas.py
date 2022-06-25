@@ -5,8 +5,8 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 import pandas as pd
 from pandas import Timedelta
+from pandas._core.arrays import TimedeltaArray
 import pandas._testing as tm
-from pandas.core.arrays import TimedeltaArray
 
 
 class TestNonNano:

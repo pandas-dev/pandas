@@ -7,7 +7,7 @@ from pandas import (
     CategoricalIndex,
     date_range,
 )
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     Categorical,
     DatetimeArray,
     PandasArray,

@@ -17,11 +17,10 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.missing import isna
-
-from pandas.core.frame import DataFrame
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.dtypes.common import is_list_like
+from pandas._core.dtypes.missing import isna
+from pandas._core.frame import DataFrame
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 from pandas.io.xml import (

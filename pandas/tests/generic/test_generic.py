@@ -6,12 +6,11 @@ from copy import (
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_scalar
-
 from pandas import (
     DataFrame,
     Series,
 )
+from pandas._core.dtypes.common import is_scalar
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -364,7 +363,7 @@ class TestNDFrame:
         "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
     )
     def test_transpose_series(self, ser):
-        # calls implementation in pandas/core/base.py
+        # calls implementation in pandas._core/base.py
         tm.assert_series_equal(ser.transpose(), ser)
 
     def test_transpose_frame(self):

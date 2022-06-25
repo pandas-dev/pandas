@@ -2,8 +2,8 @@
 Public API for Rolling Window Indexers.
 """
 
-from pandas.core.indexers import check_array_indexer
-from pandas.core.indexers.objects import (
+from pandas._core.indexers import check_array_indexer
+from pandas._core.indexers.objects import (
     BaseIndexer,
     FixedForwardWindowIndexer,
     VariableOffsetWindowIndexer,

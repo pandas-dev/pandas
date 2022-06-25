@@ -1,6 +1,6 @@
 import pytest
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas._core.dtypes.cast import construct_1d_object_array_from_listlike
 
 
 @pytest.mark.parametrize("datum1", [1, 2.0, "3", (4, 5), [6, 7], None])

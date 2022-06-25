@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.floating import (
+from pandas._core.arrays.floating import (
     Float32Dtype,
     Float64Dtype,
 )

@@ -1,14 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.concat import union_categoricals
-
 import pandas as pd
 from pandas import (
     Categorical,
     CategoricalIndex,
     Series,
 )
+from pandas._core.dtypes.concat import union_categoricals
 import pandas._testing as tm
 
 

@@ -7,8 +7,8 @@ from pandas import (
     DataFrame,
     Series,
 )
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import period_range
+from pandas._core.indexes.datetimes import date_range
+from pandas._core.indexes.period import period_range
 
 # The various methods we support
 downsample_methods = [

@@ -4,8 +4,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -14,6 +12,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
+from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
 

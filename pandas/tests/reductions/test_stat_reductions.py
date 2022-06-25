@@ -13,12 +13,12 @@ from pandas import (
     DataFrame,
     Series,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
+import pandas._testing as tm
 
 
 class TestDatetimeLikeStatReductions:

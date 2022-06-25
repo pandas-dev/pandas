@@ -12,12 +12,12 @@ from pandas import (
     Index,
     Series,
 )
-import pandas._testing as tm
-from pandas.core.accessor import PandasDelegate
-from pandas.core.base import (
+from pandas._core.accessor import PandasDelegate
+from pandas._core.base import (
     NoNewAttributesMixin,
     PandasObject,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture(

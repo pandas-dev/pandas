@@ -17,12 +17,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.api.types import (
-    is_extension_array_dtype,
-    is_integer_dtype,
-)
-from pandas.core.arrays.integer import (
+from pandas._core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
@@ -31,6 +26,11 @@ from pandas.core.arrays.integer import (
     UInt16Dtype,
     UInt32Dtype,
     UInt64Dtype,
+)
+import pandas._testing as tm
+from pandas.api.types import (
+    is_extension_array_dtype,
+    is_integer_dtype,
 )
 from pandas.tests.extension import base
 

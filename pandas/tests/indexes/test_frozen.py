@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from pandas.core.indexes.frozen import FrozenList
+from pandas._core.indexes.frozen import FrozenList
 
 
 @pytest.fixture

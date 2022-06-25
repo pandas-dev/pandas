@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas import RangeIndex
+from pandas._core.api import Int64Index
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestGetIndexer:

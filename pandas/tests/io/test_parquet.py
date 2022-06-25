@@ -1003,9 +1003,9 @@ class TestParquetPyArrow(Base):
             df.to_parquet(path, pa)
             result = read_parquet(path, pa)
         if using_array_manager:
-            assert isinstance(result._mgr, pd.core.internals.ArrayManager)
+            assert isinstance(result._mgr, pd._core.internals.ArrayManager)
         else:
-            assert isinstance(result._mgr, pd.core.internals.BlockManager)
+            assert isinstance(result._mgr, pd._core.internals.BlockManager)
 
 
 class TestParquetFastParquet(Base):

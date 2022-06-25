@@ -7,9 +7,9 @@ import pytest
 
 import pandas as pd
 from pandas import Series
+from pandas._core import ops
+import pandas._core.common as com
 import pandas._testing as tm
-from pandas.core import ops
-import pandas.core.common as com
 from pandas.util.version import Version
 
 

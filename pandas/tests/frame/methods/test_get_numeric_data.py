@@ -8,8 +8,8 @@ from pandas import (
     Series,
     Timestamp,
 )
+from pandas._core.arrays import IntervalArray
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray
 
 
 class TestGetNumericData:

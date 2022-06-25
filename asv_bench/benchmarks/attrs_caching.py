@@ -4,7 +4,7 @@ import pandas as pd
 from pandas import DataFrame
 
 try:
-    from pandas.core.construction import extract_array
+    from pandas._core.construction import extract_array
 except ImportError:
     extract_array = None
 

@@ -18,8 +18,8 @@ from pandas import (
     Timestamp,
     date_range,
 )
+from pandas._core.api import Float64Index
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 
 
 class TestDatetimeIndexOps:

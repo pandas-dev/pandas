@@ -9,9 +9,8 @@ from pandas._libs.groupby import (
     group_var,
 )
 
-from pandas.core.dtypes.common import ensure_platform_int
-
 from pandas import isna
+from pandas._core.dtypes.common import ensure_platform_int
 import pandas._testing as tm
 
 

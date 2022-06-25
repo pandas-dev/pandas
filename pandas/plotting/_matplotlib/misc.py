@@ -10,7 +10,7 @@ import matplotlib.lines as mlines
 import matplotlib.patches as patches
 import numpy as np
 
-from pandas.core.dtypes.missing import notna
+from pandas._core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.style import get_standard_colors

@@ -10,8 +10,8 @@ from pandas import (
     Series,
     date_range,
 )
+from pandas._core.algorithms import safe_sort
 import pandas._testing as tm
-from pandas.core.algorithms import safe_sort
 
 
 @pytest.fixture(

@@ -15,11 +15,11 @@ from pandas.compat import (
 )
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
 )
+import pandas._testing as tm
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions

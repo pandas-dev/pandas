@@ -4,8 +4,8 @@ from pandas import (
     Index,
     RangeIndex,
 )
+from pandas._core.indexes.api import Int64Index
 import pandas._testing as tm
-from pandas.core.indexes.api import Int64Index
 
 
 class TestJoin:

@@ -12,8 +12,8 @@ from pandas import (
     TimedeltaIndex,
     timedelta_range,
 )
+from pandas._core.indexes.api import Int64Index
 import pandas._testing as tm
-from pandas.core.indexes.api import Int64Index
 from pandas.tests.indexes.datetimelike import DatetimeLike
 
 randn = np.random.randn

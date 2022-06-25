@@ -9,9 +9,9 @@ from pandas import (
     Series,
     Timestamp,
 )
+from pandas._core.reshape.concat import concat
+from pandas._core.reshape.merge import merge
 import pandas._testing as tm
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.merge import merge
 
 
 @pytest.fixture

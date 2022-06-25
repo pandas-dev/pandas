@@ -756,7 +756,7 @@ because its data contents are not [string] but [mixed] object dtype"""
         # series directly
         msg = re.escape(
             "cannot properly create the storer for: "
-            "[group->df,value-><class 'pandas.core.series.Series'>]"
+            "[group->df,value-><class 'pandas._core.series.Series'>]"
         )
         with pytest.raises(TypeError, match=msg):
             store.append("df", Series(np.arange(10)))

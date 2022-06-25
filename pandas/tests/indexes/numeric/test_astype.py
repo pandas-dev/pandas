@@ -3,15 +3,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import pandas_dtype
-
 from pandas import Index
-import pandas._testing as tm
-from pandas.core.indexes.api import (
+from pandas._core.dtypes.common import pandas_dtype
+from pandas._core.indexes.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
+import pandas._testing as tm
 
 
 class TestAstype:

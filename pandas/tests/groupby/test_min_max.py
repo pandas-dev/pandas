@@ -9,8 +9,8 @@ from pandas import (
     Index,
     Series,
 )
+from pandas._core.api import Int64Index
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_max_min_non_numeric():

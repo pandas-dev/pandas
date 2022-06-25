@@ -6,8 +6,8 @@ from pandas import (
     Index,
     Series,
 )
+import pandas._core.common as com
 import pandas._testing as tm
-import pandas.core.common as com
 
 
 class TestSample:

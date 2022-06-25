@@ -21,9 +21,9 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._core.common as com
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-import pandas.core.common as com
 
 
 class TestReindexSetIndex:

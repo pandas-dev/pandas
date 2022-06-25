@@ -18,7 +18,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
 
-from pandas.core.dtypes.generic import (
+from pandas._core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCPeriodIndex,
     ABCTimedeltaIndex,

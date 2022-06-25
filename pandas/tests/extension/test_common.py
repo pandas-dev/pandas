@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes import dtypes
-from pandas.core.dtypes.common import is_extension_array_dtype
-
 import pandas as pd
+from pandas._core.arrays import ExtensionArray
+from pandas._core.dtypes import dtypes
+from pandas._core.dtypes.common import is_extension_array_dtype
 import pandas._testing as tm
-from pandas.core.arrays import ExtensionArray
 
 
 class DummyDtype(dtypes.ExtensionDtype):

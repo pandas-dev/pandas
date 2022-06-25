@@ -11,12 +11,12 @@ from pandas import (
     TimedeltaIndex,
     timedelta_range,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
+import pandas._testing as tm
 
 
 class TestTimedeltaIndex:

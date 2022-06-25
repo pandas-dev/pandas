@@ -8,8 +8,8 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
+from pandas._core.arrays import IntervalArray
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray
 
 
 @pytest.fixture(params=[IntervalArray, IntervalIndex])

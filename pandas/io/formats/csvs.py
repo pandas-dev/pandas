@@ -28,15 +28,14 @@ from pandas._typing import (
 )
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.generic import (
+from pandas._core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
 )
-from pandas.core.dtypes.missing import notna
-
-from pandas.core.indexes.api import Index
+from pandas._core.dtypes.missing import notna
+from pandas._core.indexes.api import Index
 
 from pandas.io.common import get_handle
 

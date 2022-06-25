@@ -7,8 +7,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-
 import pandas as pd
 from pandas import (
     Index,
@@ -17,6 +15,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
+from pandas._core.dtypes.cast import construct_1d_object_array_from_listlike
 import pandas._testing as tm
 
 

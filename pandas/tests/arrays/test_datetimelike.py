@@ -19,15 +19,15 @@ from pandas import (
     PeriodIndex,
     TimedeltaIndex,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     PandasArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
+from pandas._core.arrays.datetimes import _sequence_to_dt64ns
+from pandas._core.arrays.timedeltas import sequence_to_td64ns
+import pandas._testing as tm
 
 
 # TODO: more freq variants

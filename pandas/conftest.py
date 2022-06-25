@@ -45,11 +45,6 @@ from pytz import (
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    IntervalDtype,
-)
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -59,12 +54,16 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
-import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.indexes.api import (
+from pandas._core import ops
+from pandas._core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
+from pandas._core.indexes.api import (
     Index,
     MultiIndex,
 )
+import pandas._testing as tm
 
 try:
     import pyarrow as pa
@@ -113,7 +112,7 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     item : pytest.Item
         pytest test item.
     path : str
-        Module path to Python object, e.g. "pandas.core.frame.DataFrame.append". A
+        Module path to Python object, e.g. "pandas._core.frame.DataFrame.append". A
         warning will be filtered when item.name ends with in given path. So it is
         sufficient to specify e.g. "DataFrame.append".
     message : str

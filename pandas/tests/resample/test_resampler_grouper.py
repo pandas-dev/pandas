@@ -14,9 +14,9 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
 )
+from pandas._core.api import Int64Index
+from pandas._core.indexes.datetimes import date_range
 import pandas._testing as tm
-from pandas.core.api import Int64Index
-from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(
     {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},

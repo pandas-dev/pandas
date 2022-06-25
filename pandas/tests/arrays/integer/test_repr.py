@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.integer import (
+from pandas._core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,

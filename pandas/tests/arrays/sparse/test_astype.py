@@ -4,11 +4,11 @@ import pytest
 from pandas._libs.sparse import IntIndex
 
 from pandas import Timestamp
-import pandas._testing as tm
-from pandas.core.arrays.sparse import (
+from pandas._core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
+import pandas._testing as tm
 
 
 class TestAstype:

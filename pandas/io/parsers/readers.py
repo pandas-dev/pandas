@@ -43,16 +43,15 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.common import (
+from pandas._core.dtypes.common import (
     is_file_like,
     is_float,
     is_integer,
     is_list_like,
 )
-
-from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import RangeIndex
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.frame import DataFrame
+from pandas._core.indexes.api import RangeIndex
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,

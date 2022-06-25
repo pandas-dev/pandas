@@ -13,12 +13,12 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
 )
-from pandas.core.groupby.grouper import Grouping
+from pandas._core.groupby.grouper import Grouping
+import pandas._testing as tm
 
 # selection
 # --------------------------------
@@ -446,7 +446,7 @@ class TestGrouping:
             ts.groupby(lambda key: key[0:6])
 
     def test_grouping_error_on_multidim_input(self, df):
-        msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
+        msg = "Grouper for '<class 'pandas._core.frame.DataFrame'>' not 1-dimensional"
         with pytest.raises(ValueError, match=msg):
             Grouping(df.index, df[["A", "A"]])
 

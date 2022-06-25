@@ -21,8 +21,8 @@ from pandas import (
     date_range,
     option_context,
 )
+from pandas._core.api import UInt64Index
 import pandas._testing as tm
-from pandas.core.api import UInt64Index
 
 
 def _check_cast(df, v):
@@ -759,7 +759,7 @@ class TestAstypeCategorical:
         tm.assert_frame_equal(result, expected)
 
 
-class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
+class IntegerArrayNoCopy(pd._core.arrays.IntegerArray):
     # GH 42501
 
     def copy(self):

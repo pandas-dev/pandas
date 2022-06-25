@@ -50,20 +50,6 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_categorical_dtype,
-    is_complex_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
-    is_list_like,
-    is_string_dtype,
-    is_timedelta64_dtype,
-    needs_i8_conversion,
-)
-from pandas.core.dtypes.missing import array_equivalent
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -75,20 +61,33 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.api import Int64Index
-from pandas.core.arrays import (
+from pandas._core.api import Int64Index
+from pandas._core.arrays import (
     Categorical,
     DatetimeArray,
     PeriodArray,
 )
-import pandas.core.common as com
-from pandas.core.computation.pytables import (
+import pandas._core.common as com
+from pandas._core.computation.pytables import (
     PyTablesExpr,
     maybe_expression,
 )
-from pandas.core.construction import extract_array
-from pandas.core.indexes.api import ensure_index
-from pandas.core.internals import (
+from pandas._core.construction import extract_array
+from pandas._core.dtypes.common import (
+    ensure_object,
+    is_categorical_dtype,
+    is_complex_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_extension_array_dtype,
+    is_list_like,
+    is_string_dtype,
+    is_timedelta64_dtype,
+    needs_i8_conversion,
+)
+from pandas._core.dtypes.missing import array_equivalent
+from pandas._core.indexes.api import ensure_index
+from pandas._core.internals import (
     ArrayManager,
     BlockManager,
 )
@@ -106,7 +105,7 @@ if TYPE_CHECKING:
         Node,
     )
 
-    from pandas.core.internals import Block
+    from pandas._core.internals import Block
 
 
 # versioning attribute

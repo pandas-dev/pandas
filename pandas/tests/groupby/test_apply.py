@@ -15,8 +15,8 @@ from pandas import (
     Series,
     bdate_range,
 )
+from pandas._core.api import Int64Index
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_apply_issues():

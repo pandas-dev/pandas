@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import PeriodDtype
-
 import pandas as pd
+from pandas._core.arrays import period_array
+from pandas._core.dtypes.dtypes import PeriodDtype
 import pandas._testing as tm
-from pandas.core.arrays import period_array
 
 
 @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])

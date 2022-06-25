@@ -3,15 +3,15 @@ import pytest
 from pandas.compat._optional import VERSIONS
 
 import pandas as pd
-from pandas.core.computation.engines import ENGINES
-import pandas.core.computation.expr as expr
+from pandas._core.computation.engines import ENGINES
+import pandas._core.computation.expr as expr
 from pandas.util.version import Version
 
 
 def test_compat():
     # test we have compat with our version of numexpr
 
-    from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from pandas._core.computation.check import NUMEXPR_INSTALLED
 
     ne = pytest.importorskip("numexpr")
 

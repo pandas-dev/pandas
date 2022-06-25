@@ -21,7 +21,7 @@ from pandas import (
     _testing as tm,
     concat,
 )
-from pandas.core.api import Int64Index
+from pandas._core.api import Int64Index
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,

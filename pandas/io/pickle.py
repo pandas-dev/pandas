@@ -15,7 +15,7 @@ from pandas._typing import (
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 
@@ -205,7 +205,7 @@ def read_pickle(
                     return pickle.load(handles.handle)
             except excs_to_catch:
                 # e.g.
-                #  "No module named 'pandas.core.sparse.series'"
+                #  "No module named 'pandas._core.sparse.series'"
                 #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
                 return pc.load(handles.handle, encoding=None)
         except UnicodeDecodeError:

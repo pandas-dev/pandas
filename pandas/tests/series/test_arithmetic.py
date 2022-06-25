@@ -7,11 +7,6 @@ import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -22,12 +17,16 @@ from pandas import (
     date_range,
     isna,
 )
-import pandas._testing as tm
-from pandas.core import (
+from pandas._core import (
     nanops,
     ops,
 )
-from pandas.core.computation import expressions as expr
+from pandas._core.computation import expressions as expr
+from pandas._core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
+import pandas._testing as tm
 
 
 @pytest.fixture(

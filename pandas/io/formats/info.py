@@ -21,13 +21,13 @@ from pandas._typing import (
     WriteBuffer,
 )
 
-from pandas.core.indexes.api import Index
+from pandas._core.indexes.api import Index
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import (
+    from pandas._core.frame import (
         DataFrame,
         Series,
     )
@@ -567,7 +567,7 @@ class SeriesInfo(BaseInfo):
 
     @property
     def dtype_counts(self):
-        from pandas.core.frame import DataFrame
+        from pandas._core.frame import DataFrame
 
         return _get_dataframe_dtype_counts(DataFrame(self.data))
 

@@ -4,9 +4,8 @@ import string
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_dtype_equal
-
 import pandas as pd
+from pandas._core.dtypes.common import is_dtype_equal
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 
@@ -283,7 +282,7 @@ class TestNumpyReductions:
         with tm.assert_produces_warning(warn, match=msg):
             obj = box(values)
 
-        if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
+        if isinstance(values, pd._core.arrays.SparseArray) and box is not pd.Index:
             mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
             request.node.add_marker(mark)
 

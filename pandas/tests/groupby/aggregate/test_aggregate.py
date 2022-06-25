@@ -11,8 +11,6 @@ import pytest
 
 from pandas.errors import SpecificationError
 
-from pandas.core.dtypes.common import is_integer_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -22,8 +20,9 @@ from pandas import (
     concat,
     to_datetime,
 )
+from pandas._core.dtypes.common import is_integer_dtype
+from pandas._core.groupby.grouper import Grouping
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouping
 
 
 def test_groupby_agg_no_extra_calls():

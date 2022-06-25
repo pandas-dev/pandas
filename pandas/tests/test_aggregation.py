@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.core.apply import (
+from pandas._core.apply import (
     _make_unique_kwarg_list,
     maybe_mangle_lambdas,
 )

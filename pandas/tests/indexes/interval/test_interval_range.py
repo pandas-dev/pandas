@@ -3,8 +3,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_integer
-
 from pandas import (
     DateOffset,
     Interval,
@@ -15,6 +13,7 @@ from pandas import (
     interval_range,
     timedelta_range,
 )
+from pandas._core.dtypes.common import is_integer
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Day

@@ -16,8 +16,8 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._core.nanops as nanops
 import pandas._testing as tm
-import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td
 
 

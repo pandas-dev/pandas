@@ -7,16 +7,15 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_integer_dtype
-
 import pandas as pd
 from pandas import (
     Series,
     isna,
 )
+from pandas._core.arrays import DatetimeArray
+from pandas._core.dtypes.common import is_integer_dtype
+import pandas._core.nanops as nanops
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
-import pandas.core.nanops as nanops
 
 use_bn = nanops._USE_BOTTLENECK
 

@@ -9,12 +9,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_object_dtype,
-)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -28,18 +22,23 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.merge import (
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype
+from pandas._core.reshape.concat import concat
+from pandas._core.reshape.merge import (
     MergeError,
     merge,
 )
+import pandas._testing as tm
+from pandas.api.types import CategoricalDtype as CDT
 
 N = 50
 NGROUPS = 8

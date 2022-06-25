@@ -27,9 +27,9 @@ from pandas import (
     concat,
     date_range,
 )
+from pandas._core.arrays import SparseArray
+from pandas._core.construction import create_series_with_explicit_dtype
 import pandas._testing as tm
-from pandas.core.arrays import SparseArray
-from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
 
 

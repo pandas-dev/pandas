@@ -25,18 +25,18 @@ from pandas import (
     isna,
     to_datetime,
 )
-import pandas._testing as tm
-from pandas.core.indexes.datetimes import (
+from pandas._core.indexes.datetimes import (
     DatetimeIndex,
     bdate_range,
     date_range,
 )
-from pandas.core.indexes.period import (
+from pandas._core.indexes.period import (
     Period,
     PeriodIndex,
     period_range,
 )
-from pandas.core.indexes.timedeltas import timedelta_range
+from pandas._core.indexes.timedeltas import timedelta_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
 
 from pandas.tseries.offsets import WeekOfMonth

@@ -20,11 +20,11 @@ from pandas import (
     date_range,
     option_context,
 )
-import pandas._testing as tm
-from pandas.core.internals import (
+from pandas._core.internals import (
     NumericBlock,
     ObjectBlock,
 )
+import pandas._testing as tm
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure

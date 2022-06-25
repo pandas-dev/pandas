@@ -35,13 +35,12 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import is_integer
-from pandas.core.dtypes.inference import is_dict_like
-
 from pandas import (
     Index,
     MultiIndex,
 )
+from pandas._core.dtypes.common import is_integer
+from pandas._core.dtypes.inference import is_dict_like
 
 from pandas.io.parsers.base_parser import (
     ParserBase,

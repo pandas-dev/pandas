@@ -5,8 +5,8 @@ from pandas import (
     DataFrame,
     Index,
 )
+from pandas._core.api import Int64Index
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_pipe():

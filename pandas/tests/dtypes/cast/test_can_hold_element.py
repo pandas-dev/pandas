@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas._core.dtypes.cast import can_hold_element
 
 
 def test_can_hold_element_range(any_int_numpy_dtype):

@@ -21,7 +21,7 @@ try:
     )
 except ImportError:
     # For compatibility with older versions
-    from pandas.core.datetools import (
+    from pandas._core.datetools import (
         Hour,
         Nano,
     )

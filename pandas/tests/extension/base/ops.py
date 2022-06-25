@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas._core import ops
 import pandas._testing as tm
-from pandas.core import ops
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 

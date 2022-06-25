@@ -5,7 +5,7 @@ from scripts.use_pd_array_in_core import use_pd_array
 BAD_FILE_0 = "import pandas as pd\npd.array"
 BAD_FILE_1 = "\nfrom pandas import array"
 GOOD_FILE_0 = "from pandas import array as pd_array"
-GOOD_FILE_1 = "from pandas.core.construction import array as pd_array"
+GOOD_FILE_1 = "from pandas._core.construction import array as pd_array"
 PATH = "t.py"
 
 

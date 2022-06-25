@@ -32,7 +32,7 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
-from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
+from pandas._core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)

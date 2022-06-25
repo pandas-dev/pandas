@@ -8,8 +8,8 @@ from pandas import (
     date_range,
     period_range,
 )
+from pandas._core.api import UInt64Index
 import pandas._testing as tm
-from pandas.core.api import UInt64Index
 
 
 def test_shift(idx):

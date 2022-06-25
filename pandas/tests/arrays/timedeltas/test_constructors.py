@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.core.arrays import TimedeltaArray
+from pandas._core.arrays import TimedeltaArray
 
 
 class TestTimedeltaArrayConstructor:

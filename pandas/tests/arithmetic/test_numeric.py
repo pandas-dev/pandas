@@ -20,14 +20,14 @@ from pandas import (
     TimedeltaIndex,
     array,
 )
-import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.api import (
+from pandas._core import ops
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
-from pandas.core.computation import expressions as expr
+from pandas._core.computation import expressions as expr
+import pandas._testing as tm
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

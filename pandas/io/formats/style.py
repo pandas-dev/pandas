@@ -41,13 +41,13 @@ from pandas import (
     IndexSlice,
     RangeIndex,
 )
-import pandas.core.common as com
-from pandas.core.frame import (
+import pandas._core.common as com
+from pandas._core.frame import (
     DataFrame,
     Series,
 )
-from pandas.core.generic import NDFrame
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.generic import NDFrame
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
 

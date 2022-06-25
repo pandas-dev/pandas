@@ -3,7 +3,7 @@ All of pandas' ExtensionArrays.
 
 See :ref:`extending.extension-types` for more.
 """
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     ArrowStringArray,
     BooleanArray,
     Categorical,

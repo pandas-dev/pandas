@@ -4,12 +4,12 @@ import pytest
 from pandas.compat import np_version_under1p20
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.arrays import FloatingArray
-from pandas.core.arrays.floating import (
+from pandas._core.arrays import FloatingArray
+from pandas._core.arrays.floating import (
     Float32Dtype,
     Float64Dtype,
 )
+import pandas._testing as tm
 
 
 def test_uses_pandas_na():

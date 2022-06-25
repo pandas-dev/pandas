@@ -25,10 +25,10 @@ from pandas import (
     date_range,
     to_datetime,
 )
+from pandas._core.arrays import BooleanArray
+import pandas._core.common as com
+from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
 import pandas._testing as tm
-from pandas.core.arrays import BooleanArray
-import pandas.core.common as com
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 def test_repr():

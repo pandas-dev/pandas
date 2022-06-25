@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-
 import pandas as pd
+from pandas._core.arrays import DatetimeArray
+from pandas._core.arrays.datetimes import _sequence_to_dt64ns
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
 
 
 class TestDatetimeArrayConstructor:

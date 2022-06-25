@@ -3,8 +3,8 @@ import contextlib
 import pytest
 
 import pandas as pd
+from pandas._core import accessor
 import pandas._testing as tm
-from pandas.core import accessor
 
 
 def test_dirname_mixin():

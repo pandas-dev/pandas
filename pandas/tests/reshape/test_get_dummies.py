@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_integer_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -13,11 +11,12 @@ from pandas import (
     Series,
     get_dummies,
 )
-import pandas._testing as tm
-from pandas.core.arrays.sparse import (
+from pandas._core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
+from pandas._core.dtypes.common import is_integer_dtype
+import pandas._testing as tm
 
 
 class TestGetDummies:

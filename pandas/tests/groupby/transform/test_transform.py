@@ -4,11 +4,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
-)
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -19,9 +14,13 @@ from pandas import (
     concat,
     date_range,
 )
+from pandas._core.dtypes.common import (
+    ensure_platform_int,
+    is_timedelta64_dtype,
+)
+from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
+from pandas._core.groupby.generic import DataFrameGroupBy
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
-from pandas.core.groupby.generic import DataFrameGroupBy
 
 
 def assert_fp_equal(a, b):

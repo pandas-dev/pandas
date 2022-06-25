@@ -9,11 +9,11 @@ from pandas import (
     date_range,
     to_datetime,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
 )
+import pandas._testing as tm
 
 
 class TestMultiIndexPartial:

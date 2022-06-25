@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_integer_dtype
-
 import pandas as pd
+from pandas._core.dtypes.common import is_integer_dtype
 import pandas._testing as tm
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]

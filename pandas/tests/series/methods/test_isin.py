@@ -6,8 +6,8 @@ from pandas import (
     Series,
     date_range,
 )
+from pandas._core.arrays import PeriodArray
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
 
 
 class TestSeriesIsIn:
@@ -109,7 +109,7 @@ class TestSeriesIsIn:
         res = ser.isin(comps)
         tm.assert_series_equal(res, Series(expected))
 
-        res = pd.core.algorithms.isin(ser, comps)
+        res = pd._core.algorithms.isin(ser, comps)
         tm.assert_numpy_array_equal(res, expected)
 
     def test_isin_tzawareness_mismatch(self):
@@ -125,7 +125,7 @@ class TestSeriesIsIn:
         res = ser.isin(other)
         tm.assert_series_equal(res, Series(expected))
 
-        res = pd.core.algorithms.isin(ser, other)
+        res = pd._core.algorithms.isin(ser, other)
         tm.assert_numpy_array_equal(res, expected)
 
     def test_isin_period_freq_mismatch(self):
@@ -145,7 +145,7 @@ class TestSeriesIsIn:
         res = ser.isin(other)
         tm.assert_series_equal(res, Series(expected))
 
-        res = pd.core.algorithms.isin(ser, other)
+        res = pd._core.algorithms.isin(ser, other)
         tm.assert_numpy_array_equal(res, expected)
 
     @pytest.mark.parametrize("values", [[-9.0, 0.0], [-9, 0]])

@@ -13,14 +13,13 @@ import numpy as np
 
 from pandas._typing import type_t
 
-from pandas.core.dtypes.base import ExtensionDtype
-
 import pandas as pd
+from pandas._core.arrays import ExtensionArray
+from pandas._core.dtypes.base import ExtensionDtype
 from pandas.api.types import (
     is_object_dtype,
     is_string_dtype,
 )
-from pandas.core.arrays import ExtensionArray
 
 
 class ListDtype(ExtensionDtype):

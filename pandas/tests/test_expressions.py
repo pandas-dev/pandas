@@ -6,13 +6,13 @@ import numpy as np
 import pytest
 
 from pandas import option_context
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     DataFrame,
     Index,
     Series,
 )
-from pandas.core.computation import expressions as expr
+from pandas._core.computation import expressions as expr
+import pandas._testing as tm
 
 _frame = DataFrame(np.random.randn(10001, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")

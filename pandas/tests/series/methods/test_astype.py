@@ -512,7 +512,7 @@ class TestAstypeCategorical:
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
         msg = (
-            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
+            "dtype '<class 'pandas._core.arrays.categorical.Categorical'>' "
             "not understood"
         )
         with pytest.raises(TypeError, match=msg):

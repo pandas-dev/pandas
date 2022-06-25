@@ -17,7 +17,7 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas.core.dtypes.inference import is_sequence
+from pandas._core.dtypes.inference import is_sequence
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 _KT = TypeVar("_KT")

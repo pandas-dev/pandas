@@ -25,20 +25,20 @@ from pandas import (
     date_range,
     period_range,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     NumericIndex,
     UInt64Index,
 )
-from pandas.core.indexes.api import (
+from pandas._core.indexes.api import (
     Index,
     MultiIndex,
     _get_combined_index,
     ensure_index,
     ensure_index_from_sequences,
 )
+import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
 

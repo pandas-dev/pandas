@@ -9,8 +9,8 @@ from pandas import (
     MultiIndex,
     Series,
 )
+from pandas._core.construction import create_series_with_explicit_dtype
 import pandas._testing as tm
-from pandas.core.construction import create_series_with_explicit_dtype
 
 
 class TestFromDict:

@@ -7,18 +7,17 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.astype import astype_nansafe
-import pandas.core.dtypes.common as com
-from pandas.core.dtypes.dtypes import (
+import pandas as pd
+from pandas._core.dtypes.astype import astype_nansafe
+import pandas._core.dtypes.common as com
+from pandas._core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.missing import isna
-
-import pandas as pd
+from pandas._core.dtypes.missing import isna
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
@@ -157,7 +156,7 @@ def test_dtype_equal_strict(dtype1, dtype2):
 
 def get_is_dtype_funcs():
     """
-    Get all functions in pandas.core.dtypes.common that
+    Get all functions in pandas._core.dtypes.common that
     begin with 'is_' and end with 'dtype'
 
     """

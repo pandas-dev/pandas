@@ -97,7 +97,7 @@ class TestReduceBoolean(base.BaseBooleanReduceTests):
 
 def test_is_bool_dtype(data):
     assert is_bool_dtype(data)
-    assert pd.core.common.is_bool_indexer(data)
+    assert pd._core.common.is_bool_indexer(data)
     s = pd.Series(range(len(data)))
     result = s[data]
     expected = s[np.asarray(data)]

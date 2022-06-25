@@ -18,14 +18,14 @@ from pandas import (
     Series,
     Timestamp,
 )
-import pandas._testing as tm
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import (
+from pandas._core.indexes.datetimes import date_range
+from pandas._core.indexes.period import (
     Period,
     PeriodIndex,
     period_range,
 )
-from pandas.core.resample import _get_period_range_edges
+from pandas._core.resample import _get_period_range_edges
+import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
 

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -12,6 +10,7 @@ from pandas import (
     Series,
     crosstab,
 )
+from pandas._core.dtypes.common import is_categorical_dtype
 import pandas._testing as tm
 
 

@@ -15,8 +15,8 @@ from pandas import (
     date_range,
     offsets,
 )
+from pandas._core.arrays import DatetimeArray
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
 
 
 class TestDatetime64:

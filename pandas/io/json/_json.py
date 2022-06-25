@@ -32,11 +32,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.common import (
-    ensure_str,
-    is_period_dtype,
-)
-
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -45,10 +40,14 @@ from pandas import (
     notna,
     to_datetime,
 )
-from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.generic import NDFrame
-from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.construction import create_series_with_explicit_dtype
+from pandas._core.dtypes.common import (
+    ensure_str,
+    is_period_dtype,
+)
+from pandas._core.generic import NDFrame
+from pandas._core.reshape.concat import concat
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,

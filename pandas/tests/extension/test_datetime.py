@@ -16,10 +16,9 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-
 import pandas as pd
-from pandas.core.arrays import DatetimeArray
+from pandas._core.arrays import DatetimeArray
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
 from pandas.tests.extension import base
 
 

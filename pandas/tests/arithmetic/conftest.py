@@ -3,13 +3,13 @@ import pytest
 
 import pandas as pd
 from pandas import RangeIndex
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
-from pandas.core.computation import expressions as expr
+from pandas._core.computation import expressions as expr
+import pandas._testing as tm
 
 
 @pytest.fixture(

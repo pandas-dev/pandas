@@ -11,8 +11,8 @@ from pandas import (
     NamedAgg,
     Series,
 )
+from pandas._core.indexes.datetimes import date_range
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import date_range
 
 dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
 

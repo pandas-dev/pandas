@@ -9,13 +9,13 @@ from pandas import (
     TimedeltaIndex,
     isna,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     NumericIndex,
 )
-from pandas.core.arrays import BooleanArray
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas._core.arrays import BooleanArray
+from pandas._core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas._testing as tm
 
 
 def test_numpy_ufuncs_out(index):

@@ -4,20 +4,19 @@ Public API for extending pandas objects.
 
 from pandas._libs.lib import no_default
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    register_extension_dtype,
-)
-
-from pandas.core.accessor import (
+from pandas._core.accessor import (
     register_dataframe_accessor,
     register_index_accessor,
     register_series_accessor,
 )
-from pandas.core.algorithms import take
-from pandas.core.arrays import (
+from pandas._core.algorithms import take
+from pandas._core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
+)
+from pandas._core.dtypes.base import (
+    ExtensionDtype,
+    register_extension_dtype,
 )
 
 __all__ = [

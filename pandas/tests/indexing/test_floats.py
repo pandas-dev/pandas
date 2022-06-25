@@ -7,11 +7,11 @@ from pandas import (
     RangeIndex,
     Series,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
 )
+import pandas._testing as tm
 
 
 def gen_obj(klass, index):

@@ -22,11 +22,11 @@ from pandas import (
     notna,
     period_range,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
 )
+import pandas._testing as tm
 
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]

@@ -34,17 +34,16 @@ from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
+from pandas._core.algorithms import unique
+from pandas._core.dtypes.common import (
     is_datetime64_dtype,
     is_period_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import (
+from pandas._core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
-
-from pandas.core.algorithms import unique
 
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
@@ -154,7 +153,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
     >>> pd.infer_freq(idx)
     'D'
     """
-    from pandas.core.api import (
+    from pandas._core.api import (
         DatetimeIndex,
         Float64Index,
         Index,

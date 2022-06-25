@@ -15,8 +15,6 @@ from pandas._libs.tslibs import (
     timezones,
 )
 
-from pandas.core.dtypes.common import is_scalar
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -29,8 +27,9 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+from pandas._core.dtypes.common import is_scalar
+from pandas._core.indexing import IndexingError
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 

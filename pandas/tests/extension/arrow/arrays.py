@@ -17,14 +17,14 @@ import pyarrow as pa
 from pandas._typing import type_t
 
 import pandas as pd
+from pandas._core.arrays.arrow import ArrowExtensionArray as _ArrowExtensionArray
+from pandas._core.construction import extract_array
 from pandas.api.extensions import (
     ExtensionDtype,
     register_extension_dtype,
     take,
 )
 from pandas.api.types import is_scalar
-from pandas.core.arrays.arrow import ArrowExtensionArray as _ArrowExtensionArray
-from pandas.core.construction import extract_array
 
 
 @register_extension_dtype

@@ -11,8 +11,6 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_scalar
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -25,22 +23,23 @@ from pandas import (
     Timestamp,
     period_range,
 )
-import pandas._testing as tm
-import pandas.core.algorithms as algos
-from pandas.core.arrays import (
+import pandas._core.algorithms as algos
+from pandas._core.arrays import (
     DatetimeArray,
     SparseArray,
     TimedeltaArray,
 )
-from pandas.core.internals import (
+from pandas._core.dtypes.common import is_scalar
+from pandas._core.internals import (
     BlockManager,
     SingleBlockManager,
     make_block,
 )
-from pandas.core.internals.blocks import (
+from pandas._core.internals.blocks import (
     ensure_block_shape,
     new_block,
 )
+import pandas._testing as tm
 
 # this file contains BlockManager specific tests
 # TODO(ArrayManager) factor out interleave_dtype tests

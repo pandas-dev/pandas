@@ -1,6 +1,1 @@
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
-
-__all__ = ["SparseArray", "SparseDtype"]
+from pandas._core.sparse.api import *

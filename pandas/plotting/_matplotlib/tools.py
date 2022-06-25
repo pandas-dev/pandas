@@ -15,8 +15,8 @@ import numpy as np
 
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import (
+from pandas._core.dtypes.common import is_list_like
+from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
     ABCSeries,

@@ -11,9 +11,9 @@ from pandas import (
     DataFrame,
     array,
 )
-from pandas.core.arrays.integer import Int64Dtype
-from pandas.core.arrays.string_ import StringDtype
-from pandas.core.series import Series
+from pandas._core.arrays.integer import Int64Dtype
+from pandas._core.arrays.string_ import StringDtype
+from pandas._core.series import Series
 from pandas.tests.extension.date import (
     DateArray,
     DateDtype,

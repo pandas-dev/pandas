@@ -5,9 +5,8 @@ import pytest
 
 from pandas._libs.missing import NA
 
-from pandas.core.dtypes.common import is_scalar
-
 import pandas as pd
+from pandas._core.dtypes.common import is_scalar
 import pandas._testing as tm
 
 

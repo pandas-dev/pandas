@@ -22,9 +22,9 @@ from pandas import (
     TimedeltaIndex,
     period_range,
 )
+from pandas._core import ops
+from pandas._core.arrays import TimedeltaArray
 import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.arrays import TimedeltaArray
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

@@ -3,8 +3,6 @@ import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
-from pandas.core.dtypes.dtypes import PeriodDtype
-
 from pandas import (
     Index,
     NaT,
@@ -15,8 +13,9 @@ from pandas import (
     offsets,
     period_range,
 )
+from pandas._core.arrays import PeriodArray
+from pandas._core.dtypes.dtypes import PeriodDtype
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
 
 
 class TestPeriodIndex:

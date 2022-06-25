@@ -26,11 +26,11 @@ from pandas import (
     offsets,
     to_datetime,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     period_array,
 )
+import pandas._testing as tm
 
 if PY39:
     import zoneinfo

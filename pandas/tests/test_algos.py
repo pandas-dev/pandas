@@ -11,15 +11,6 @@ from pandas._libs import (
 )
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_complex_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-)
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -40,10 +31,18 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._core.algorithms as algos
+from pandas._core.arrays import DatetimeArray
+import pandas._core.common as com
+from pandas._core.dtypes.common import (
+    is_bool_dtype,
+    is_complex_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype as CDT
 import pandas._testing as tm
-import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
-import pandas.core.common as com
 
 
 class TestFactorize:
@@ -1119,7 +1118,7 @@ class TestIsin:
 class TestValueCounts:
     def test_value_counts(self):
         np.random.seed(1234)
-        from pandas.core.reshape.tile import cut
+        from pandas._core.reshape.tile import cut
 
         arr = np.random.randn(4)
         factor = cut(arr, 4)

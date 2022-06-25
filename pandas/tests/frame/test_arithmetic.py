@@ -17,13 +17,13 @@ from pandas import (
     MultiIndex,
     Series,
 )
-import pandas._testing as tm
-import pandas.core.common as com
-from pandas.core.computation import expressions as expr
-from pandas.core.computation.expressions import (
+import pandas._core.common as com
+from pandas._core.computation import expressions as expr
+from pandas._core.computation.expressions import (
     _MIN_ELEMENTS,
     NUMEXPR_INSTALLED,
 )
+import pandas._testing as tm
 from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
@@ -1783,7 +1783,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops.align_method_FRAME
+        align = pd._core.ops.align_method_FRAME
 
         expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
         tm.assert_frame_equal(align(df, val, "index")[1], expected)
@@ -1799,7 +1799,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops.align_method_FRAME
+        align = pd._core.ops.align_method_FRAME
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
         with pytest.raises(ValueError, match=msg):
@@ -1813,7 +1813,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops.align_method_FRAME
+        align = pd._core.ops.align_method_FRAME
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         tm.assert_frame_equal(
             align(df, val, "index")[1],

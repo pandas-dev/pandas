@@ -10,11 +10,11 @@ from pandas import (
     timedelta_range,
     to_timedelta,
 )
-import pandas._testing as tm
-from pandas.core.arrays.timedeltas import (
+from pandas._core.arrays.timedeltas import (
     TimedeltaArray,
     sequence_to_td64ns,
 )
+import pandas._testing as tm
 
 
 class TestTimedeltaIndex:

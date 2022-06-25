@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas._core.arrays import SparseArray
 import pandas._testing as tm
-from pandas.core.arrays import SparseArray
 
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])

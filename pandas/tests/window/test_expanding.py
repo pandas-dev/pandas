@@ -12,8 +12,8 @@ from pandas import (
     isna,
     notna,
 )
+from pandas._core.window import Expanding
 import pandas._testing as tm
-from pandas.core.window import Expanding
 
 
 def test_doc_string():

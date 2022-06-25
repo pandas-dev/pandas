@@ -9,11 +9,11 @@ from pandas import (
     Series,
     date_range,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     UInt64Index,
 )
+import pandas._testing as tm
 
 
 def _mklbl(prefix, n):

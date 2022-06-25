@@ -12,15 +12,14 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.frame import (
+from pandas._core.dtypes.common import is_categorical_dtype
+from pandas._core.frame import (
     DataFrame,
     Series,
 )
-from pandas.core.indexes.api import ensure_index
+from pandas._core.indexes.api import ensure_index
+import pandas._testing as tm
 from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.parsers import read_csv

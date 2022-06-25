@@ -8,15 +8,15 @@ from pandas import (
     concat,
     date_range,
 )
+from pandas._core.indexers.objects import (
+    ExpandingIndexer,
+    FixedWindowIndexer,
+    VariableOffsetWindowIndexer,
+)
 import pandas._testing as tm
 from pandas.api.indexers import (
     BaseIndexer,
     FixedForwardWindowIndexer,
-)
-from pandas.core.indexers.objects import (
-    ExpandingIndexer,
-    FixedWindowIndexer,
-    VariableOffsetWindowIndexer,
 )
 
 from pandas.tseries.offsets import BusinessDay

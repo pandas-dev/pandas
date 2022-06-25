@@ -1,12 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-)
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -15,8 +9,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     IntervalArray,
     PandasArray,
@@ -24,6 +17,12 @@ from pandas.core.arrays import (
     SparseArray,
     TimedeltaArray,
 )
+from pandas._core.dtypes.common import (
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+)
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
+import pandas._testing as tm
 
 
 class TestToIterable:
@@ -190,7 +189,7 @@ class TestToIterable:
         (
             pd.PeriodIndex([2018, 2019], freq="A"),
             PeriodArray,
-            pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
+            pd._core.dtypes.dtypes.PeriodDtype("A-DEC"),
         ),
         (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval"),
         (
@@ -237,7 +236,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     "arr, attr",
     [
         (pd.Categorical(["a", "b"]), "_codes"),
-        (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
+        (pd._core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
         (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
@@ -285,7 +284,7 @@ def test_array_multiindex_raises():
         (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64)),
         (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object)),
         (
-            pd.core.arrays.period_array(["2000", "2001"], freq="D"),
+            pd._core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
         (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),

@@ -33,27 +33,26 @@ from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import F
 
-from pandas.core.dtypes.common import (
+from pandas import (
+    Index,
+    Series,
+    get_option,
+)
+import pandas._core.common as com
+from pandas._core.dtypes.common import (
     is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_nested_list_like,
 )
-
-from pandas import (
-    Index,
-    Series,
-    get_option,
-)
-import pandas.core.common as com
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import (
+from pandas._core.indexes.datetimes import date_range
+from pandas._core.indexes.period import (
     Period,
     PeriodIndex,
     period_range,
 )
-import pandas.core.tools.datetimes as tools
+import pandas._core.tools.datetimes as tools
 
 # constants
 HOURS_PER_DAY = 24.0

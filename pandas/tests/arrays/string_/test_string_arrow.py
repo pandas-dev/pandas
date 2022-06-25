@@ -6,12 +6,12 @@ import pytest
 from pandas.compat import pa_version_under1p01
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.arrays.string_ import (
+from pandas._core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas._core.arrays.string_arrow import ArrowStringArray
+import pandas._testing as tm
 
 skip_if_no_pyarrow = pytest.mark.skipif(
     pa_version_under1p01,

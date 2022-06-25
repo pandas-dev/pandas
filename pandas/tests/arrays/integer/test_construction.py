@@ -2,14 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.api.types import is_integer
-from pandas.core.arrays import IntegerArray
-from pandas.core.arrays.integer import (
+from pandas._core.arrays import IntegerArray
+from pandas._core.arrays.integer import (
     Int8Dtype,
     Int32Dtype,
     Int64Dtype,
 )
+import pandas._testing as tm
+from pandas.api.types import is_integer
 
 
 @pytest.fixture(params=[pd.array, IntegerArray._from_sequence])

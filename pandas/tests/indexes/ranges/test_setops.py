@@ -11,13 +11,13 @@ from hypothesis import (
 import numpy as np
 import pytest
 
-import pandas._testing as tm
-from pandas.core.indexes.api import (
+from pandas._core.indexes.api import (
     Index,
     Int64Index,
     RangeIndex,
     UInt64Index,
 )
+import pandas._testing as tm
 
 
 class TestRangeIndexSetOps:

@@ -6,12 +6,12 @@ import pytest
 from pandas.compat import np_version_under1p20
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.arrays.sparse import (
+from pandas._core import ops
+from pandas._core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -418,7 +418,9 @@ class TestSparseArrayArithmetics:
         s = SparseArray([True, True, False, False])
         t = SparseArray([True, False, True, False])
         result = s ^ t
-        sp_index = pd.core.arrays.sparse.IntIndex(4, np.array([0, 1, 2], dtype="int32"))
+        sp_index = pd._core.arrays.sparse.IntIndex(
+            4, np.array([0, 1, 2], dtype="int32")
+        )
         expected = SparseArray([False, True, True], sparse_index=sp_index)
         tm.assert_sp_array_equal(result, expected)
 

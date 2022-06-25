@@ -27,8 +27,6 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_datetime64_ns_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -41,10 +39,11 @@ from pandas import (
     isna,
     to_datetime,
 )
+from pandas._core.arrays import DatetimeArray
+from pandas._core.dtypes.common import is_datetime64_ns_dtype
+from pandas._core.tools import datetimes as tools
+from pandas._core.tools.datetimes import start_caching_at
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
-from pandas.core.tools import datetimes as tools
-from pandas.core.tools.datetimes import start_caching_at
 from pandas.util.version import Version
 
 

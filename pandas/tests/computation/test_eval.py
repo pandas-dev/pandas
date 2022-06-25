@@ -16,39 +16,38 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_bool,
-    is_float,
-    is_list_like,
-    is_scalar,
-)
-
 import pandas as pd
 from pandas import (
     DataFrame,
     Series,
     date_range,
 )
-import pandas._testing as tm
-from pandas.core.computation import pytables
-from pandas.core.computation.engines import ENGINES
-import pandas.core.computation.expr as expr
-from pandas.core.computation.expr import (
+from pandas._core.computation import pytables
+from pandas._core.computation.engines import ENGINES
+import pandas._core.computation.expr as expr
+from pandas._core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
     PythonExprVisitor,
 )
-from pandas.core.computation.expressions import (
+from pandas._core.computation.expressions import (
     NUMEXPR_INSTALLED,
     USE_NUMEXPR,
 )
-from pandas.core.computation.ops import (
+from pandas._core.computation.ops import (
     ARITH_OPS_SYMS,
     SPECIAL_CASE_ARITH_OPS_SYMS,
     _binary_math_ops,
     _binary_ops_dict,
     _unary_math_ops,
 )
+from pandas._core.dtypes.common import (
+    is_bool,
+    is_float,
+    is_list_like,
+    is_scalar,
+)
+import pandas._testing as tm
 
 
 @pytest.fixture(
@@ -1704,7 +1703,7 @@ def test_invalid_engine():
 )
 def test_numexpr_option_respected(use_numexpr, expected):
     # GH 32556
-    from pandas.core.computation.eval import _check_engine
+    from pandas._core.computation.eval import _check_engine
 
     with pd.option_context("compute.use_numexpr", use_numexpr):
         result = _check_engine(None)

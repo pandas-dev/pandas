@@ -20,14 +20,6 @@ import pytz
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    IntervalDtype,
-    PandasDtype,
-    PeriodDtype,
-)
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -46,6 +38,14 @@ from pandas import (
     date_range,
     isna,
 )
+from pandas._core.api import Int64Index
+from pandas._core.dtypes.common import is_integer_dtype
+from pandas._core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PandasDtype,
+    PeriodDtype,
+)
 import pandas._testing as tm
 from pandas.arrays import (
     DatetimeArray,
@@ -54,7 +54,6 @@ from pandas.arrays import (
     SparseArray,
     TimedeltaArray,
 )
-from pandas.core.api import Int64Index
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [

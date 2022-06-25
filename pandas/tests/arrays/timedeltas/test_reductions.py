@@ -3,9 +3,9 @@ import pytest
 
 import pandas as pd
 from pandas import Timedelta
+from pandas._core import nanops
+from pandas._core.arrays import TimedeltaArray
 import pandas._testing as tm
-from pandas.core import nanops
-from pandas.core.arrays import TimedeltaArray
 
 
 class TestReductions:

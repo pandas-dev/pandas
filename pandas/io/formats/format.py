@@ -61,7 +61,15 @@ from pandas._typing import (
 )
 from pandas.util._decorators import deprecate_kwarg
 
-from pandas.core.dtypes.common import (
+from pandas._core.arrays import (
+    Categorical,
+    DatetimeArray,
+    TimedeltaArray,
+)
+from pandas._core.base import PandasObject
+import pandas._core.common as com
+from pandas._core.construction import extract_array
+from pandas._core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -76,28 +84,19 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.missing import (
+from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
-
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    TimedeltaArray,
-)
-from pandas.core.base import PandasObject
-import pandas.core.common as com
-from pandas.core.construction import extract_array
-from pandas.core.indexes.api import (
+from pandas._core.indexes.api import (
     Index,
     MultiIndex,
     PeriodIndex,
     ensure_index,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.reshape.concat import concat
+from pandas._core.indexes.datetimes import DatetimeIndex
+from pandas._core.indexes.timedeltas import TimedeltaIndex
+from pandas._core.reshape.concat import concat
 
 from pandas.io.common import (
     check_parent_directory,
@@ -912,7 +911,7 @@ class DataFrameFormatter:
             return self.formatters.get(i, None)
 
     def _get_formatted_column_labels(self, frame: DataFrame) -> list[list[str]]:
-        from pandas.core.indexes.multi import sparsify_labels
+        from pandas._core.indexes.multi import sparsify_labels
 
         columns = frame.columns
 

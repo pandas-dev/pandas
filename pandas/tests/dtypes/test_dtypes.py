@@ -6,8 +6,21 @@ import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
-from pandas.core.dtypes.base import _registry as registry
-from pandas.core.dtypes.common import (
+import pandas as pd
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DatetimeIndex,
+    IntervalIndex,
+    Series,
+    date_range,
+)
+from pandas._core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
+from pandas._core.dtypes.base import _registry as registry
+from pandas._core.dtypes.common import (
     is_bool_dtype,
     is_categorical,
     is_categorical_dtype,
@@ -20,27 +33,13 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_string_dtype,
 )
-from pandas.core.dtypes.dtypes import (
+from pandas._core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
 )
-
-import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DatetimeIndex,
-    IntervalIndex,
-    Series,
-    date_range,
-)
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
 
 
 class Base:

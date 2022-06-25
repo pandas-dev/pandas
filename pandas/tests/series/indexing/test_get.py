@@ -3,8 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import Series
+from pandas._core.api import Float64Index
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 
 
 def test_get():

@@ -7,8 +7,8 @@ from pandas import (
     MultiIndex,
     Series,
 )
+from pandas._core.indexing import IndexingError
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 # ----------------------------------------------------------------------------
 # test indexing of Series with multi-level Index

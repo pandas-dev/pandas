@@ -10,11 +10,11 @@ from pandas import (
     Series,
     array,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     BooleanArray,
     PandasArray,
 )
+import pandas._testing as tm
 
 
 def assert_cannot_add(left, right, msg="cannot add"):

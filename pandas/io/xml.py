@@ -30,10 +30,9 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.common import is_list_like
-
-from pandas.core.frame import DataFrame
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.dtypes.common import is_list_like
+from pandas._core.frame import DataFrame
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     file_exists,

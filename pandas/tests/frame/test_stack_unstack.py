@@ -17,8 +17,8 @@ from pandas import (
     Timedelta,
     date_range,
 )
+from pandas._core.reshape import reshape as reshape_lib
 import pandas._testing as tm
-from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:

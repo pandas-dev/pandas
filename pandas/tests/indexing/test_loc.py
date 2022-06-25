@@ -35,10 +35,10 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas._core.api import Float64Index
+from pandas._core.indexing import _one_ellipsis_message
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-from pandas.core.api import Float64Index
-from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import Base
 
 

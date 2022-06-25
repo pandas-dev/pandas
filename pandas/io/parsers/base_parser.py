@@ -40,8 +40,11 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_nansafe
-from pandas.core.dtypes.common import (
+from pandas import DataFrame
+from pandas._core import algorithms
+from pandas._core.arrays import Categorical
+from pandas._core.dtypes.astype import astype_nansafe
+from pandas._core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
@@ -56,19 +59,15 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import isna
-
-from pandas import DataFrame
-from pandas.core import algorithms
-from pandas.core.arrays import Categorical
-from pandas.core.indexes.api import (
+from pandas._core.dtypes.dtypes import CategoricalDtype
+from pandas._core.dtypes.missing import isna
+from pandas._core.indexes.api import (
     Index,
     MultiIndex,
     ensure_index_from_sequences,
 )
-from pandas.core.series import Series
-from pandas.core.tools import datetimes as tools
+from pandas._core.series import Series
+from pandas._core.tools import datetimes as tools
 
 from pandas.io.date_converters import generic_parser
 

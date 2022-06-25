@@ -9,20 +9,19 @@ import numpy as np
 
 from pandas._typing import PlottingOrientation
 
-from pandas.core.dtypes.common import (
+from pandas._core.dtypes.common import (
     is_integer,
     is_list_like,
 )
-from pandas.core.dtypes.generic import (
+from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
 )
-from pandas.core.dtypes.missing import (
+from pandas._core.dtypes.missing import (
     isna,
     remove_na_arraylike,
 )
-
-from pandas.core.frame import DataFrame
+from pandas._core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (

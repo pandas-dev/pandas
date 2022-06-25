@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 try:
-    import pandas.core.computation.expressions as expr
+    import pandas._core.computation.expressions as expr
 except ImportError:
     import pandas.computation.expressions as expr
 

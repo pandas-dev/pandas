@@ -22,7 +22,7 @@ import pandas as pd
 )
 @pytest.mark.filterwarnings(
     # fastparquet
-    "ignore:pandas.core.index is deprecated:FutureWarning"
+    "ignore:pandas._core.index is deprecated:FutureWarning"
 )
 @pytest.mark.filterwarnings(
     # pandas_datareader

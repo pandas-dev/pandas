@@ -16,7 +16,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
+from pandas._core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,
     is_period_dtype,

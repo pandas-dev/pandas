@@ -8,8 +8,8 @@ from pandas import (
     Index,
     Series,
 )
+from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 @pytest.mark.parametrize(

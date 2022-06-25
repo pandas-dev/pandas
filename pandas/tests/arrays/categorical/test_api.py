@@ -10,8 +10,8 @@ from pandas import (
     Index,
     Series,
 )
+from pandas._core.arrays.categorical import recode_for_categories
 import pandas._testing as tm
-from pandas.core.arrays.categorical import recode_for_categories
 
 
 class TestCategoricalAPI:

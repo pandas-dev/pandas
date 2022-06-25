@@ -25,12 +25,12 @@ from pandas import (
     offsets,
     timedelta_range,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
+import pandas._testing as tm
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

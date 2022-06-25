@@ -17,8 +17,8 @@ from pandas import (
     get_dummies,
     period_range,
 )
+from pandas._core.arrays import SparseArray
 import pandas._testing as tm
-from pandas.core.arrays import SparseArray
 
 
 class TestGetitem:

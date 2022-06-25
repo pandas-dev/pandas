@@ -4,11 +4,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_bool_dtype
-
 import pandas as pd
+from pandas._core.dtypes.common import is_bool_dtype
+from pandas._core.sorting import nargsort
 import pandas._testing as tm
-from pandas.core.sorting import nargsort
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -50,7 +49,7 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = pd.Series(0.0, index=result.index)
             expected[result > 0] = 1 / len(values)
 
-        if isinstance(data.dtype, pd.core.dtypes.dtypes.BaseMaskedDtype):
+        if isinstance(data.dtype, pd._core.dtypes.dtypes.BaseMaskedDtype):
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
 

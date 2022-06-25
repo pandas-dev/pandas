@@ -8,13 +8,13 @@ from pandas import (
     Index,
     Series,
 )
-import pandas._testing as tm
-from pandas.core.indexes.api import (
+from pandas._core.indexes.api import (
     Float64Index,
     Int64Index,
     NumericIndex,
     UInt64Index,
 )
+import pandas._testing as tm
 from pandas.tests.indexes.common import NumericBase
 
 

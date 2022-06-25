@@ -7,7 +7,7 @@ import pytest
 from pandas._libs.missing import is_matching_na
 
 import pandas as pd
-from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+from pandas._core.arrays.integer import INT_STR_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 

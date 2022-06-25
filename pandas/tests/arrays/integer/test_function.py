@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas._core.arrays import FloatingArray
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])

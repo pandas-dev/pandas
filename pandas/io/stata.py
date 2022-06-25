@@ -45,13 +45,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_numeric_dtype,
-)
-
 from pandas import (
     Categorical,
     DatetimeIndex,
@@ -61,12 +54,18 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.integer import IntegerDtype
-from pandas.core.frame import DataFrame
-from pandas.core.indexes.base import Index
-from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.arrays.boolean import BooleanDtype
+from pandas._core.arrays.integer import IntegerDtype
+from pandas._core.dtypes.common import (
+    ensure_object,
+    is_categorical_dtype,
+    is_datetime64_dtype,
+    is_numeric_dtype,
+)
+from pandas._core.frame import DataFrame
+from pandas._core.indexes.base import Index
+from pandas._core.series import Series
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 

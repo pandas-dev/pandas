@@ -12,8 +12,8 @@ from pandas import (
     read_csv,
     to_datetime,
 )
+from pandas._core.reshape.merge import MergeError
 import pandas._testing as tm
-from pandas.core.reshape.merge import MergeError
 
 
 class TestAsOfMerge:

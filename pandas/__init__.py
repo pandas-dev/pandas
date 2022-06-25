@@ -43,9 +43,9 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init
+import pandas._core.config_init
 
-from pandas.core.api import (
+from pandas._core.api import (
     # dtype
     Int8Dtype,
     Int16Dtype,
@@ -109,14 +109,14 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
+from pandas._core.arrays.sparse import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
 
-from pandas.core.computation.api import eval
+from pandas._core.computation.api import eval
 
-from pandas.core.reshape.api import (
+from pandas._core.reshape.api import (
     concat,
     lreshape,
     melt,
@@ -202,7 +202,7 @@ def __getattr__(name):
             FutureWarning,
             stacklevel=2,
         )
-        from pandas.core.api import Float64Index, Int64Index, UInt64Index
+        from pandas._core.api import Float64Index, Int64Index, UInt64Index
 
         return {
             "Float64Index": Float64Index,
@@ -254,7 +254,7 @@ def __getattr__(name):
             FutureWarning,
             stacklevel=2,
         )
-        from pandas.core.arrays.sparse import SparseArray as _SparseArray
+        from pandas._core.arrays.sparse import SparseArray as _SparseArray
 
         return _SparseArray
 

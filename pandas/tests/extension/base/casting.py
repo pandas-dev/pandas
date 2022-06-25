@@ -5,7 +5,7 @@ from pandas.compat import np_version_under1p20
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.core.internals import ObjectBlock
+from pandas._core.internals import ObjectBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 

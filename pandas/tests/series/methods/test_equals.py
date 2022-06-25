@@ -6,13 +6,12 @@ import pytest
 
 from pandas._libs.missing import is_matching_na
 
-from pandas.core.dtypes.common import is_float
-
 from pandas import (
     Index,
     MultiIndex,
     Series,
 )
+from pandas._core.dtypes.common import is_float
 import pandas._testing as tm
 
 

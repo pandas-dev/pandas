@@ -42,7 +42,7 @@ from pandas.compat import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.computation.expressions import (
+from pandas._core.computation.expressions import (
     NUMEXPR_INSTALLED,
     USE_NUMEXPR,
 )

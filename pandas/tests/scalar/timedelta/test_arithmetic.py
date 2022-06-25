@@ -19,8 +19,8 @@ from pandas import (
     Timestamp,
     offsets,
 )
+from pandas._core import ops
 import pandas._testing as tm
-from pandas.core import ops
 
 
 class TestTimedeltaAdditionSubtraction:

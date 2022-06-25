@@ -21,10 +21,10 @@ from pandas import (
     concat,
     date_range,
 )
+from pandas._core.reshape import reshape as reshape_lib
+from pandas._core.reshape.pivot import pivot_table
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.reshape import reshape as reshape_lib
-from pandas.core.reshape.pivot import pivot_table
 
 
 @pytest.fixture(params=[True, False])

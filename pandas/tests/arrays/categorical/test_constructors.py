@@ -11,12 +11,6 @@ from pandas.compat import (
     is_platform_windows,
 )
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -33,8 +27,13 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+from pandas._core.api import Int64Index
+from pandas._core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:

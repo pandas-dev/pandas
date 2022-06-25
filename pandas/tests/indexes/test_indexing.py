@@ -30,12 +30,12 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
+import pandas._testing as tm
 
 
 class TestTake:

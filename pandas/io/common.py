@@ -59,14 +59,13 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
+from pandas._core.dtypes.common import (
     is_bool,
     is_file_like,
     is_integer,
     is_list_like,
 )
-
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")

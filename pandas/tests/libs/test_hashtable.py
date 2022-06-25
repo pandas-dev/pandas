@@ -8,8 +8,8 @@ import pytest
 from pandas._libs import hashtable as ht
 
 import pandas as pd
+from pandas._core.algorithms import isin
 import pandas._testing as tm
-from pandas.core.algorithms import isin
 
 
 @contextmanager

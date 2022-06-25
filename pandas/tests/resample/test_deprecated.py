@@ -11,13 +11,13 @@ from pandas import (
     DataFrame,
     Series,
 )
-import pandas._testing as tm
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import (
+from pandas._core.indexes.datetimes import date_range
+from pandas._core.indexes.period import (
     PeriodIndex,
     period_range,
 )
-from pandas.core.indexes.timedeltas import timedelta_range
+from pandas._core.indexes.timedeltas import timedelta_range
+import pandas._testing as tm
 
 from pandas.tseries.offsets import (
     BDay,

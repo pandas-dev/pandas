@@ -4,15 +4,14 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes import generic as gt
-
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.api import (
+from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
+from pandas._core.dtypes import generic as gt
+import pandas._testing as tm
 
 
 class TestABCClasses:
@@ -25,8 +24,8 @@ class TestABCClasses:
     categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
     df = pd.DataFrame({"names": ["a", "b", "c"]}, index=multi_index)
     sparse_array = pd.arrays.SparseArray(np.random.randn(10))
-    datetime_array = pd.core.arrays.DatetimeArray(datetime_index)
-    timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
+    datetime_array = pd._core.arrays.DatetimeArray(datetime_index)
+    timedelta_array = pd._core.arrays.TimedeltaArray(timedelta_index)
 
     abc_pairs = [
         ("ABCInt64Index", Int64Index([1, 2, 3])),

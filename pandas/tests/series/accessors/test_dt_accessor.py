@@ -14,11 +14,6 @@ import pytz
 from pandas._libs.tslibs.timezones import maybe_get_tz
 from pandas.errors import SettingWithCopyError
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_list_like,
-)
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -32,12 +27,16 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
+from pandas._core.dtypes.common import (
+    is_integer_dtype,
+    is_list_like,
+)
+import pandas._testing as tm
 
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
@@ -654,7 +653,7 @@ class TestSeriesDatetimeValues:
 
     def test_dt_accessor_api(self):
         # GH 9322
-        from pandas.core.indexes.accessors import (
+        from pandas._core.indexes.accessors import (
             CombinedDatetimelikeProperties,
             DatetimeProperties,
         )

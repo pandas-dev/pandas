@@ -15,8 +15,8 @@ from pandas import (
     MultiIndex,
     RangeIndex,
 )
+from pandas._core.indexes.frozen import FrozenList
 import pandas._testing as tm
-from pandas.core.indexes.frozen import FrozenList
 
 
 def test_sortlevel(idx):
@@ -84,7 +84,7 @@ def test_numpy_argsort(idx):
     # pandas compatibility input validation - the
     # rest already perform separate (or no) such
     # validation via their 'values' attribute as
-    # defined in pandas.core.indexes/base.py - they
+    # defined in pandas._core.indexes/base.py - they
     # cannot be changed at the moment due to
     # backwards compatibility concerns
     if isinstance(type(idx), (CategoricalIndex, RangeIndex)):

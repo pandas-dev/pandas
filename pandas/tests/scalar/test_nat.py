@@ -10,8 +10,6 @@ import pytz
 
 from pandas._libs.tslibs import iNaT
 
-from pandas.core.dtypes.common import is_datetime64_any_dtype
-
 from pandas import (
     DatetimeIndex,
     DatetimeTZDtype,
@@ -25,13 +23,14 @@ from pandas import (
     isna,
     offsets,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.ops import roperator
+from pandas._core.dtypes.common import is_datetime64_any_dtype
+from pandas._core.ops import roperator
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

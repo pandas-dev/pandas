@@ -196,7 +196,7 @@ def with_csv_dialect(name, **kwargs):
 
 @contextmanager
 def use_numexpr(use, min_elements=None):
-    from pandas.core.computation import expressions as expr
+    from pandas._core.computation import expressions as expr
 
     if min_elements is None:
         min_elements = expr._MIN_ELEMENTS

@@ -1,11 +1,10 @@
 import numpy as np
 
-from pandas.core.dtypes.common import is_float_dtype
-
 from pandas import (
     DataFrame,
     isna,
 )
+from pandas._core.dtypes.common import is_float_dtype
 
 
 class TestSetValue:

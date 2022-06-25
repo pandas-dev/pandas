@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Series
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas._core.construction import create_series_with_explicit_dtype
 
 
 @pytest.mark.parametrize(

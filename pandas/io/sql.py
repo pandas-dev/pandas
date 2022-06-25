@@ -33,22 +33,21 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
+from pandas import get_option
+from pandas._core.api import (
+    DataFrame,
+    Series,
+)
+from pandas._core.base import PandasObject
+import pandas._core.common as com
+from pandas._core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
     is_list_like,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
-
-from pandas import get_option
-from pandas.core.api import (
-    DataFrame,
-    Series,
-)
-from pandas.core.base import PandasObject
-import pandas.core.common as com
-from pandas.core.tools.datetimes import to_datetime
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
+from pandas._core.dtypes.missing import isna
+from pandas._core.tools.datetimes import to_datetime
 
 
 class DatabaseError(OSError):

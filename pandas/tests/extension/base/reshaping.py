@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas._core.internals.blocks import EABackedBlock
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
-from pandas.core.internals.blocks import EABackedBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 

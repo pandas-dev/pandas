@@ -14,8 +14,8 @@ from pandas import (
     Series,
     date_range,
 )
+from pandas._core.computation.check import NUMEXPR_INSTALLED
 import pandas._testing as tm
-from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
 @pytest.fixture(params=["python", "pandas"], ids=lambda x: x)

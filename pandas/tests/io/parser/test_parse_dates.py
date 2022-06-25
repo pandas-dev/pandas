@@ -32,9 +32,9 @@ from pandas import (
     Series,
     Timestamp,
 )
+from pandas._core.indexes.datetimes import date_range
 import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
-from pandas.core.indexes.datetimes import date_range
 
 import pandas.io.date_converters as conv
 from pandas.io.parsers import read_csv

@@ -8,12 +8,12 @@ from pandas._libs.sparse import IntIndex
 
 import pandas as pd
 from pandas import isna
-import pandas._testing as tm
-from pandas.core.api import Int64Index
-from pandas.core.arrays.sparse import (
+from pandas._core.api import Int64Index
+from pandas._core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture

@@ -5,12 +5,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.exchange.dataframe_protocol import (
+from pandas._core.exchange.dataframe_protocol import (
     ColumnNullType,
     DtypeKind,
 )
-from pandas.core.exchange.from_dataframe import from_dataframe
+from pandas._core.exchange.from_dataframe import from_dataframe
+import pandas._testing as tm
 
 test_data_categorical = {
     "ordered": pd.Categorical(list("testdata") * 30, ordered=True),

@@ -9,8 +9,8 @@ from pandas import (
     Series,
     date_range,
 )
+from pandas._core.window import ExponentialMovingWindow
 import pandas._testing as tm
-from pandas.core.window import ExponentialMovingWindow
 
 
 def test_doc_string():

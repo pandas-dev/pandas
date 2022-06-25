@@ -33,12 +33,12 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     TimedeltaArray,
 )
-from pandas.core.ops import roperator
+from pandas._core.ops import roperator
+import pandas._testing as tm
 from pandas.tests.arithmetic.common import (
     assert_cannot_add,
     assert_invalid_addsub_type,
@@ -1108,7 +1108,7 @@ class TestDatetime64Arithmetic:
         assert_invalid_addsub_type(obj, pd.array(other), msg)
         assert_invalid_addsub_type(obj, pd.Categorical(other), msg)
         assert_invalid_addsub_type(obj, pd.Index(other), msg)
-        assert_invalid_addsub_type(obj, pd.core.indexes.api.NumericIndex(other), msg)
+        assert_invalid_addsub_type(obj, pd._core.indexes.api.NumericIndex(other), msg)
         assert_invalid_addsub_type(obj, Series(other), msg)
 
     @pytest.mark.parametrize(

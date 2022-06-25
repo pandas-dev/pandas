@@ -1,4 +1,4 @@
-from pandas.core.groupby.base import transformation_kernels
+from pandas._core.groupby.base import transformation_kernels
 
 # tshift only works on time index and is deprecated
 # There is no Series.cumcount or DataFrame.cumcount

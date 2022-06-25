@@ -3,17 +3,16 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    is_dtype_equal,
-)
-
 import pandas as pd
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
     Series,
+)
+from pandas._core.dtypes.cast import (
+    find_common_type,
+    is_dtype_equal,
 )
 import pandas._testing as tm
 

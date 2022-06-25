@@ -9,14 +9,20 @@ import numpy as np
 
 from pandas._typing import type_t
 
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import (
+import pandas as pd
+from pandas._core import arraylike
+from pandas._core.arraylike import OpsMixin
+from pandas._core.arrays import (
+    ExtensionArray,
+    ExtensionScalarOpsMixin,
+)
+from pandas._core.dtypes.base import ExtensionDtype
+from pandas._core.dtypes.common import (
     is_dtype_equal,
     is_float,
     pandas_dtype,
 )
-
-import pandas as pd
+from pandas._core.indexers import check_array_indexer
 from pandas.api.extensions import (
     no_default,
     register_extension_dtype,
@@ -25,13 +31,6 @@ from pandas.api.types import (
     is_list_like,
     is_scalar,
 )
-from pandas.core import arraylike
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import (
-    ExtensionArray,
-    ExtensionScalarOpsMixin,
-)
-from pandas.core.indexers import check_array_indexer
 
 
 @register_extension_dtype
@@ -272,7 +271,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return np.asarray(res, dtype=bool)
 
     def value_counts(self, dropna: bool = True):
-        from pandas.core.algorithms import value_counts
+        from pandas._core.algorithms import value_counts
 
         return value_counts(self.to_numpy(), dropna=dropna)
 

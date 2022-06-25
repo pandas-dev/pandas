@@ -21,12 +21,12 @@ from pandas import (
     date_range,
     period_range,
 )
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     DatetimeArray,
     TimedeltaArray,
 )
-from pandas.core.tools.datetimes import to_datetime
+from pandas._core.tools.datetimes import to_datetime
+import pandas._testing as tm
 
 import pandas.tseries.frequencies as frequencies
 import pandas.tseries.offsets as offsets

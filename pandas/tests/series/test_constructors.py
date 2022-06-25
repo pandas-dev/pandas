@@ -16,12 +16,6 @@ from pandas._libs import (
 from pandas.compat.numpy import np_version_under1p20
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype,
-)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -41,13 +35,18 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
-from pandas.core.api import Int64Index
-from pandas.core.arrays import (
+from pandas._core.api import Int64Index
+from pandas._core.arrays import (
     IntervalArray,
     period_array,
 )
-from pandas.core.internals.blocks import NumericBlock
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype
+from pandas._core.internals.blocks import NumericBlock
+import pandas._testing as tm
 
 
 class TestSeriesConstructors:

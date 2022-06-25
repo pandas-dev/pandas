@@ -18,16 +18,16 @@ from pandas import (
     concat,
     merge,
 )
-import pandas._testing as tm
-from pandas.core.algorithms import safe_sort
-import pandas.core.common as com
-from pandas.core.sorting import (
+from pandas._core.algorithms import safe_sort
+import pandas._core.common as com
+from pandas._core.sorting import (
     _decons_group_index,
     get_group_index,
     is_int64_overflow_possible,
     lexsort_indexer,
     nargsort,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture

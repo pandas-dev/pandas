@@ -15,8 +15,7 @@ from pandas._typing import (
     PositionalIndexer,
 )
 
-from pandas.core.dtypes.dtypes import register_extension_dtype
-
+from pandas._core.dtypes.dtypes import register_extension_dtype
 from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,

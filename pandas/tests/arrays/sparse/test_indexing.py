@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.arrays.sparse import (
+from pandas._core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
+import pandas._testing as tm
 
 arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
 arr = SparseArray(arr_data)

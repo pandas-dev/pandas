@@ -1,16 +1,15 @@
 """
 Testing interaction between the different managers (BlockManager, ArrayManager)
 """
-from pandas.core.dtypes.missing import array_equivalent
-
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.internals import (
+from pandas._core.dtypes.missing import array_equivalent
+from pandas._core.internals import (
     ArrayManager,
     BlockManager,
     SingleArrayManager,
     SingleBlockManager,
 )
+import pandas._testing as tm
 
 
 def test_dataframe_creation():

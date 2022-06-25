@@ -1,6 +1,5 @@
-from pandas.core.dtypes.common import is_scalar
-
 import pandas as pd
+from pandas._core.dtypes.common import is_scalar
 
 
 class TestSearchsorted:

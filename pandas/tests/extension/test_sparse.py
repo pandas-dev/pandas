@@ -20,10 +20,9 @@ import pytest
 from pandas.compat import np_version_under1p20
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_object_dtype
-
 import pandas as pd
 from pandas import SparseDtype
+from pandas._core.dtypes.common import is_object_dtype
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 from pandas.tests.extension import base

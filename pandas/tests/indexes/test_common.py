@@ -13,8 +13,6 @@ from pandas.compat import (
     pa_version_under2p0,
 )
 
-from pandas.core.dtypes.common import is_integer_dtype
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -24,8 +22,9 @@ from pandas import (
     RangeIndex,
     TimedeltaIndex,
 )
+from pandas._core.api import NumericIndex
+from pandas._core.dtypes.common import is_integer_dtype
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 class TestCommon:

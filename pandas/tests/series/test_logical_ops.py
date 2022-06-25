@@ -10,8 +10,8 @@ from pandas import (
     Series,
     bdate_range,
 )
+from pandas._core import ops
 import pandas._testing as tm
-from pandas.core import ops
 
 
 class TestSeriesLogicalOps:

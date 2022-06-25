@@ -24,10 +24,10 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas._core.indexers.objects import VariableOffsetWindowIndexer
+from pandas._core.window import Rolling
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
-from pandas.core.indexers.objects import VariableOffsetWindowIndexer
-from pandas.core.window import Rolling
 
 from pandas.tseries.offsets import BusinessDay
 

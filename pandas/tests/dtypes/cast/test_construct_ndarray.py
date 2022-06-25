@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._core.construction import sanitize_array
 import pandas._testing as tm
-from pandas.core.construction import sanitize_array
 
 
 @pytest.mark.parametrize(

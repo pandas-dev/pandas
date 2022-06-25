@@ -12,8 +12,6 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.api import is_list_like
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -23,6 +21,7 @@ from pandas import (
     bdate_range,
     date_range,
 )
+from pandas._core.dtypes.api import is_list_like
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,

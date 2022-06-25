@@ -8,8 +8,8 @@ from pandas import (
     MultiIndex,
     Series,
 )
+from pandas._core.util.hashing import hash_tuples
 import pandas._testing as tm
-from pandas.core.util.hashing import hash_tuples
 from pandas.util import (
     hash_array,
     hash_pandas_object,

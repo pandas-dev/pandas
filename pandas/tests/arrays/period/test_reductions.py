@@ -1,7 +1,7 @@
 import pytest
 
 import pandas as pd
-from pandas.core.arrays import period_array
+from pandas._core.arrays import period_array
 
 
 class TestReductions:

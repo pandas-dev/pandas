@@ -6,11 +6,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.arrays.sparse import (
+from pandas._core.arrays.sparse import (
     SparseArray,
     SparseDtype,
 )
+import pandas._testing as tm
 
 
 class TestSeriesAccessor:
@@ -233,4 +233,6 @@ class TestFrameAccessor:
     def test_with_column_named_sparse(self):
         # https://github.com/pandas-dev/pandas/issues/30758
         df = pd.DataFrame({"sparse": pd.arrays.SparseArray([1, 2])})
-        assert isinstance(df.sparse, pd.core.arrays.sparse.accessor.SparseFrameAccessor)
+        assert isinstance(
+            df.sparse, pd._core.arrays.sparse.accessor.SparseFrameAccessor
+        )

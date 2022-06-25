@@ -17,8 +17,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas._core.arrays.boolean import BooleanDtype
 import pandas._testing as tm
-from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
 
 

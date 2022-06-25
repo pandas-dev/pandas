@@ -41,27 +41,26 @@ if TYPE_CHECKING:
         Timestamp,
     )
 
-    from pandas.core.dtypes.dtypes import ExtensionDtype
-
     from pandas import Interval
-    from pandas.core.arrays.base import ExtensionArray
-    from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame
-    from pandas.core.groupby.generic import (
+    from pandas._core.arrays.base import ExtensionArray
+    from pandas._core.dtypes.dtypes import ExtensionDtype
+    from pandas._core.frame import DataFrame
+    from pandas._core.generic import NDFrame
+    from pandas._core.groupby.generic import (
         DataFrameGroupBy,
         GroupBy,
         SeriesGroupBy,
     )
-    from pandas.core.indexes.base import Index
-    from pandas.core.internals import (
+    from pandas._core.indexes.base import Index
+    from pandas._core.internals import (
         ArrayManager,
         BlockManager,
         SingleArrayManager,
         SingleBlockManager,
     )
-    from pandas.core.resample import Resampler
-    from pandas.core.series import Series
-    from pandas.core.window.rolling import BaseWindow
+    from pandas._core.resample import Resampler
+    from pandas._core.series import Series
+    from pandas._core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
     from pandas.tseries.offsets import DateOffset

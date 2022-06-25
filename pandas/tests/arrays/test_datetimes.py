@@ -7,11 +7,10 @@ import pytest
 from pandas._libs.tslibs import tz_compare
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-
 import pandas as pd
+from pandas._core.arrays import DatetimeArray
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
 
 
 class TestNonNano:

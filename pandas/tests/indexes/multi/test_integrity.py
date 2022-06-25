@@ -3,16 +3,15 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-
 import pandas as pd
 from pandas import (
     IntervalIndex,
     MultiIndex,
     RangeIndex,
 )
+from pandas._core.api import Int64Index
+from pandas._core.dtypes.cast import construct_1d_object_array_from_listlike
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 def test_labels_dtypes():

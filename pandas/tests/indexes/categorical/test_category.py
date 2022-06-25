@@ -9,11 +9,11 @@ from pandas import (
     Categorical,
     CategoricalDtype,
 )
-import pandas._testing as tm
-from pandas.core.indexes.api import (
+from pandas._core.indexes.api import (
     CategoricalIndex,
     Index,
 )
+import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
 

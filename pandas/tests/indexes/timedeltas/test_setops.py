@@ -6,8 +6,8 @@ from pandas import (
     TimedeltaIndex,
     timedelta_range,
 )
+from pandas._core.api import Int64Index
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 from pandas.tseries.offsets import Hour
 

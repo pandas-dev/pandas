@@ -15,12 +15,12 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas.core.api import (
+from pandas._core.api import (
     DataFrame,
     Int64Index,
     RangeIndex,
 )
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 

@@ -17,9 +17,9 @@ from pandas import (
     notna,
     timedelta_range,
 )
+from pandas._core.api import Float64Index
+import pandas._core.common as com
 import pandas._testing as tm
-from pandas.core.api import Float64Index
-import pandas.core.common as com
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])

@@ -13,8 +13,8 @@ from pandas import (
     date_range,
     period_range,
 )
+from pandas._core.reshape.concat import concat
 import pandas._testing as tm
-from pandas.core.reshape.concat import concat
 
 
 @pytest.fixture

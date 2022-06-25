@@ -14,7 +14,7 @@ import numpy as np
 
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
+from pandas._core.dtypes.common import (
     is_bool,
     is_integer,
 )
@@ -370,7 +370,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
     -------
     value, method : object
     """
-    from pandas.core.missing import clean_fill_method
+    from pandas._core.missing import clean_fill_method
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")

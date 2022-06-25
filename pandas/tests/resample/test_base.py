@@ -9,13 +9,13 @@ from pandas import (
     PeriodIndex,
     Series,
 )
+from pandas._core.groupby.groupby import DataError
+from pandas._core.groupby.grouper import Grouper
+from pandas._core.indexes.datetimes import date_range
+from pandas._core.indexes.period import period_range
+from pandas._core.indexes.timedeltas import timedelta_range
+from pandas._core.resample import _asfreq_compat
 import pandas._testing as tm
-from pandas.core.groupby.groupby import DataError
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import period_range
-from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import _asfreq_compat
 
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use

@@ -31,19 +31,18 @@ import numpy as np
 
 from pandas._typing import type_t
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import (
+import pandas as pd
+from pandas._core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas._core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     pandas_dtype,
 )
-
-import pandas as pd
+from pandas._core.indexers import unpack_tuple_and_ellipses
 from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.core.indexers import unpack_tuple_and_ellipses
 
 
 class JSONDtype(ExtensionDtype):
@@ -194,7 +193,7 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
-        from pandas.core.arrays.string_ import StringDtype
+        from pandas._core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
         # needed to add this check for the Series constructor

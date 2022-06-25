@@ -10,7 +10,7 @@ from pandas import (
     factorize,
     read_csv,
 )
-from pandas.core.algorithms import take_nd
+from pandas._core.algorithms import take_nd
 
 from .pandas_vb_common import tm
 

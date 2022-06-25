@@ -15,9 +15,8 @@ import matplotlib.cm as cm
 import matplotlib.colors
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
-
-import pandas.core.common as com
+import pandas._core.common as com
+from pandas._core.dtypes.common import is_list_like
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap

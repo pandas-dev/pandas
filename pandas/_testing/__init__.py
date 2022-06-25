@@ -28,14 +28,6 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._typing import Dtype
 from pandas.compat import pa_version_under1p01
 
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_sequence,
-    is_unsigned_integer_dtype,
-    pandas_dtype,
-)
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -48,6 +40,26 @@ from pandas import (
     RangeIndex,
     Series,
     bdate_range,
+)
+from pandas._core.api import (
+    Float64Index,
+    Int64Index,
+    NumericIndex,
+    UInt64Index,
+)
+from pandas._core.arrays import (
+    BaseMaskedArray,
+    ExtensionArray,
+    PandasArray,
+)
+from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas._core.construction import extract_array
+from pandas._core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+    is_sequence,
+    is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 from pandas._testing._io import (  # noqa:F401
     close,
@@ -105,19 +117,6 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    NumericIndex,
-    UInt64Index,
-)
-from pandas.core.arrays import (
-    BaseMaskedArray,
-    ExtensionArray,
-    PandasArray,
-)
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import (
@@ -893,7 +892,7 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)  # noqa: PDF010
 
 
-cython_table = pd.core.common._cython_table.items()
+cython_table = pd._core.common._cython_table.items()
 
 
 def get_cython_table_params(ndframe, func_names_and_expected):
@@ -999,9 +998,9 @@ def shares_memory(left, right) -> bool:
 
     if isinstance(left, NDArrayBackedExtensionArray):
         return shares_memory(left._ndarray, right)
-    if isinstance(left, pd.core.arrays.SparseArray):
+    if isinstance(left, pd._core.arrays.SparseArray):
         return shares_memory(left.sp_values, right)
-    if isinstance(left, pd.core.arrays.IntervalArray):
+    if isinstance(left, pd._core.arrays.IntervalArray):
         return shares_memory(left._left, right) or shares_memory(left._right, right)
 
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":

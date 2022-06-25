@@ -5,8 +5,8 @@ from pandas import (
     Index,
     date_range,
 )
+from pandas._core.reshape.util import cartesian_product
 import pandas._testing as tm
-from pandas.core.reshape.util import cartesian_product
 
 
 class TestCartesianProduct:

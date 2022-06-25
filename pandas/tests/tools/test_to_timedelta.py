@@ -15,8 +15,8 @@ from pandas import (
     isna,
     to_timedelta,
 )
+from pandas._core.arrays import TimedeltaArray
 import pandas._testing as tm
-from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:

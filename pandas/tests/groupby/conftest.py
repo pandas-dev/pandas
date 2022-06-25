@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
-import pandas._testing as tm
-from pandas.core.groupby.base import (
+from pandas._core.groupby.base import (
     reduction_kernels,
     transformation_kernels,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture(params=[True, False])

@@ -11,7 +11,7 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 

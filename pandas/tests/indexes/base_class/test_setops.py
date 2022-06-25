@@ -8,8 +8,8 @@ from pandas import (
     Index,
     Series,
 )
+from pandas._core.algorithms import safe_sort
 import pandas._testing as tm
-from pandas.core.algorithms import safe_sort
 
 
 class TestIndexSetOps:

@@ -114,7 +114,7 @@ def test_diff():
     a = pd.array(
         [True, True, False, False, True, None, True, None, False], dtype="boolean"
     )
-    result = pd.core.algorithms.diff(a, 1)
+    result = pd._core.algorithms.diff(a, 1)
     expected = pd.array(
         [None, False, True, False, True, None, None, None, None], dtype="boolean"
     )

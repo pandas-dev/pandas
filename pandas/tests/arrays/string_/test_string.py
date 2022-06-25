@@ -9,11 +9,10 @@ from pandas.compat import pa_version_under2p0
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_dtype_equal
-
 import pandas as pd
+from pandas._core.arrays.string_arrow import ArrowStringArray
+from pandas._core.dtypes.common import is_dtype_equal
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
 @pytest.fixture

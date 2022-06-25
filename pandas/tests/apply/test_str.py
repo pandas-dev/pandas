@@ -4,15 +4,14 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_number
-
 from pandas import (
     DataFrame,
     Index,
     Series,
 )
+from pandas._core.dtypes.common import is_number
+from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
 import pandas._testing as tm
-from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.apply.common import (
     frame_transform_kernels,
     series_transform_kernels,
@@ -134,7 +133,7 @@ def test_apply_np_transformer(float_frame, op, how):
 def test_agg_cython_table_series(series, func, expected):
     # GH21224
     # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
+    # pandas._core.base.SelectionMixin._cython_table
     result = series.agg(func)
     if is_number(expected):
         assert np.isclose(result, expected, equal_nan=True)
@@ -167,7 +166,7 @@ def test_agg_cython_table_series(series, func, expected):
 def test_agg_cython_table_transform_series(series, func, expected):
     # GH21224
     # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+    # pandas._core.base.SelectionMixin._cython_table (cumprod, cumsum)
     result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
@@ -210,7 +209,7 @@ def test_agg_cython_table_transform_series(series, func, expected):
 def test_agg_cython_table_frame(df, func, expected, axis):
     # GH 21224
     # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
+    # pandas._core.base.SelectionMixin._cython_table
     result = df.agg(func, axis=axis)
     tm.assert_series_equal(result, expected)
 
@@ -233,7 +232,7 @@ def test_agg_cython_table_frame(df, func, expected, axis):
 def test_agg_cython_table_transform_frame(df, func, expected, axis):
     # GH 21224
     # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+    # pandas._core.base.SelectionMixin._cython_table (cumprod, cumsum)
     if axis == "columns" or axis == 1:
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")

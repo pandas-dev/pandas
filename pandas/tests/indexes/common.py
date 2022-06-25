@@ -8,12 +8,6 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -27,14 +21,19 @@ from pandas import (
     TimedeltaIndex,
     isna,
 )
-import pandas._testing as tm
-from pandas.core.api import (  # noqa:F401
+from pandas._core.api import (  # noqa:F401
     Float64Index,
     Int64Index,
     NumericIndex,
     UInt64Index,
 )
-from pandas.core.arrays import BaseMaskedArray
+from pandas._core.arrays import BaseMaskedArray
+from pandas._core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_integer_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype
+import pandas._testing as tm
 
 
 class Base:
@@ -307,7 +306,7 @@ class Base:
         # pandas compatibility input validation - the
         # rest already perform separate (or no) such
         # validation via their 'values' attribute as
-        # defined in pandas.core.indexes/base.py - they
+        # defined in pandas._core.indexes/base.py - they
         # cannot be changed at the moment due to
         # backwards compatibility concerns
         if isinstance(index, (CategoricalIndex, RangeIndex)):

@@ -9,12 +9,12 @@ from pandas import (
     Series,
     Timestamp,
 )
-import pandas._testing as tm
-from pandas.core.indexes.api import (
+from pandas._core.indexes.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture

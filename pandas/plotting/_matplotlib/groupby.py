@@ -7,14 +7,13 @@ from pandas._typing import (
     IndexLabel,
 )
 
-from pandas.core.dtypes.missing import remove_na_arraylike
-
 from pandas import (
     DataFrame,
     MultiIndex,
     Series,
     concat,
 )
+from pandas._core.dtypes.missing import remove_na_arraylike
 
 
 def create_iter_data_given_by(

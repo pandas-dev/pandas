@@ -21,7 +21,7 @@ from pandas import (
     MultiIndex,
     get_option,
 )
-from pandas.core.shared_docs import _shared_docs
+from pandas._core.shared_docs import _shared_docs
 from pandas.util.version import Version
 
 from pandas.io.common import (
@@ -151,7 +151,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow._arrow_utils  # noqa:F401
+        import pandas._core.arrays.arrow._arrow_utils  # noqa:F401
 
         self.api = pyarrow
 

@@ -1,6 +1,6 @@
 import pytest
 
-from pandas.core.frame import DataFrame
+from pandas._core.frame import DataFrame
 
 
 @pytest.fixture

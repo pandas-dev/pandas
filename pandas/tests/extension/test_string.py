@@ -22,9 +22,9 @@ from pandas.compat import pa_version_under6p0
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
+from pandas._core.arrays import ArrowStringArray
+from pandas._core.arrays.string_ import StringDtype
 import pandas._testing as tm
-from pandas.core.arrays import ArrowStringArray
-from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
 

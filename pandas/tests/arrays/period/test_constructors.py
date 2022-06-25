@@ -5,11 +5,11 @@ from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.arrays import (
+from pandas._core.arrays import (
     PeriodArray,
     period_array,
 )
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

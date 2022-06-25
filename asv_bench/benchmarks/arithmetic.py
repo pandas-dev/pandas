@@ -11,13 +11,13 @@ from pandas import (
     date_range,
     to_timedelta,
 )
+from pandas._core.algorithms import checked_add_with_arr
 import pandas._testing as tm
-from pandas.core.algorithms import checked_add_with_arr
 
 from .pandas_vb_common import numeric_dtypes
 
 try:
-    import pandas.core.computation.expressions as expr
+    import pandas._core.computation.expressions as expr
 except ImportError:
     import pandas.computation.expressions as expr
 try:

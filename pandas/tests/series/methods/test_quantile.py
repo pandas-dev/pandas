@@ -1,15 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_integer
-
 import pandas as pd
 from pandas import (
     Index,
     Series,
 )
+from pandas._core.dtypes.common import is_integer
+from pandas._core.indexes.datetimes import Timestamp
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import Timestamp
 
 
 class TestSeriesQuantile:
