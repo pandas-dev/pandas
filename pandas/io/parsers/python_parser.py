@@ -379,10 +379,16 @@ class PythonParser(ParserBase):
                         line = self._next_line()
 
                 except StopIteration as err:
-                    if self.line_pos < hr:
+                    if 0 < self.line_pos <= hr and (
+                        not have_mi_columns or hr != header[-1]
+                    ):
+                        # If no rows we want to raise a different message and if
+                        # we have mi columns, the last line is not part of the header
+                        joi = list(map(str, header[:-1] if have_mi_columns else header))
+                        msg = f"[{','.join(joi)}], len of {len(joi)}, "
                         raise ValueError(
-                            f"Passed header={hr} but only {self.line_pos + 1} lines in "
-                            "file"
+                            f"Passed header={msg}"
+                            f"but only {self.line_pos} lines in file"
                         ) from err
 
                     # We have an empty file, so check
@@ -933,7 +939,11 @@ class PythonParser(ParserBase):
                 implicit_first_cols = len(line) - self.num_original_columns
 
             # Case 0
-            if next_line is not None and self.header is not None:
+            if (
+                next_line is not None
+                and self.header is not None
+                and index_col is not False
+            ):
                 if len(next_line) == len(line) + self.num_original_columns:
                     # column and index names on diff rows
                     self.index_col = list(range(len(line)))
