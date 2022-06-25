@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -1217,20 +1218,21 @@ class ScatterPlot(PlanePlot):
         # ax.scatter to an err_kwds dict for use in the call to ax.errorbar
         ebarkeys = {
             param
-            for param in ax.errorbar.__dict__["__signature__"].parameters
-            if param not in ["self", "x", "xerr", "y", "yerr", "kwargs"]
+            for param in inspect.signature(ax.errorbar).parameters
+            if param not in ["x", "xerr", "y", "yerr", "kwargs"]
         }
-        # these errorbar kwargs are useful with the fmt parameter.  It may be
-        # better to just call matplotlib's errorbar directly instead of
-        # cherry picking kwargs
+        # These errorbar kwargs are useful with the fmt and errorrevery
+        # parameters.
         ebarkeys |= {
+            "markevery",
             "ms",
             "markersize",
             "mfc",
             "markerfacecolor",
             "mec",
             "markeredgecolor",
-            "markevery",
+            "mew",
+            "markeredgewidth",
         }
         err_kwds = {
             ebarkey: self.kwds.pop(ebarkey) for ebarkey in set(self.kwds) & ebarkeys
