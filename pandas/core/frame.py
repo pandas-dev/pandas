@@ -3558,7 +3558,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: int = 0):
+    def _ixs(self, i: int, axis: int = 0) -> Series:
         """
         Parameters
         ----------
