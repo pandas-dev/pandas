@@ -494,7 +494,7 @@ def from_dummies(
             cats = prefix_slice.copy()
         else:
             cats = [col[len(prefix + sep) :] for col in prefix_slice]
-        assigned = data_to_decode[prefix_slice].sum(axis=1)
+        assigned = data_to_decode.loc[:, prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
                 "Dummy DataFrame contains multi-assignment(s); "
@@ -508,9 +508,11 @@ def from_dummies(
                     "Dummy DataFrame contains unassigned value(s); "
                     f"First instance in row: {assigned.idxmin()}"
                 )
-            data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
+            data_slice = concat(
+                (data_to_decode.loc[:, prefix_slice], assigned == 0), axis=1
+            )
         else:
-            data_slice = data_to_decode[prefix_slice]
+            data_slice = data_to_decode.loc[:, prefix_slice]
         cats_array = np.array(cats, dtype="object")
         # get indices of True entries along axis=1
         cat_data[prefix] = cats_array[data_slice.to_numpy().nonzero()[1]]
