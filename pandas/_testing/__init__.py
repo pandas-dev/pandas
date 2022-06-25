@@ -28,6 +28,14 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._typing import Dtype
 from pandas.compat import pa_version_under1p01
 
+from pandas._core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+    is_sequence,
+    is_unsigned_integer_dtype,
+    pandas_dtype,
+)
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -54,13 +62,6 @@ from pandas._core.arrays import (
 )
 from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas._core.construction import extract_array
-from pandas._core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_sequence,
-    is_unsigned_integer_dtype,
-    pandas_dtype,
-)
 from pandas._testing._io import (  # noqa:F401
     close,
     network,

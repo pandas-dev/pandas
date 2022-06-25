@@ -18,6 +18,7 @@ from pandas._typing import (
 
 from pandas._core.dtypes.common import is_scalar
 from pandas._core.dtypes.missing import isna
+
 from pandas._core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:

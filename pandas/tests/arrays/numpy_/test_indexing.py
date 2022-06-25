@@ -1,7 +1,8 @@
 import numpy as np
 
-import pandas as pd
 from pandas._core.dtypes.common import is_scalar
+
+import pandas as pd
 import pandas._testing as tm
 
 

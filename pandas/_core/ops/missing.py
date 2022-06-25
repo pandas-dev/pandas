@@ -30,6 +30,7 @@ from pandas._core.dtypes.common import (
     is_integer_dtype,
     is_scalar,
 )
+
 from pandas._core.ops import roperator
 
 

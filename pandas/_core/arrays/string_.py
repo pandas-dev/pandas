@@ -19,17 +19,6 @@ from pandas._typing import (
 from pandas.compat import pa_version_under1p01
 from pandas.compat.numpy import function as nv
 
-from pandas._core import ops
-from pandas._core.array_algos import masked_reductions
-from pandas._core.arrays import (
-    ExtensionArray,
-    FloatingArray,
-    IntegerArray,
-)
-from pandas._core.arrays.floating import FloatingDtype
-from pandas._core.arrays.integer import IntegerDtype
-from pandas._core.arrays.numpy_ import PandasArray
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.base import (
     ExtensionDtype,
     StorageExtensionDtype,
@@ -44,6 +33,18 @@ from pandas._core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+
+from pandas._core import ops
+from pandas._core.array_algos import masked_reductions
+from pandas._core.arrays import (
+    ExtensionArray,
+    FloatingArray,
+    IntegerArray,
+)
+from pandas._core.arrays.floating import FloatingDtype
+from pandas._core.arrays.integer import IntegerDtype
+from pandas._core.arrays.numpy_ import PandasArray
+from pandas._core.construction import extract_array
 from pandas._core.indexers import check_array_indexer
 from pandas._core.missing import isna
 

@@ -10,6 +10,8 @@ import pytz
 
 from pandas._libs.tslibs import iNaT
 
+from pandas._core.dtypes.common import is_datetime64_any_dtype
+
 from pandas import (
     DatetimeIndex,
     DatetimeTZDtype,
@@ -28,7 +30,6 @@ from pandas._core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas._core.dtypes.common import is_datetime64_any_dtype
 from pandas._core.ops import roperator
 import pandas._testing as tm
 

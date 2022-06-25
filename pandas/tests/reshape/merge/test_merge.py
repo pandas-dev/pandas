@@ -9,6 +9,12 @@ import re
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -27,11 +33,6 @@ from pandas._core.api import (
     Int64Index,
     UInt64Index,
 )
-from pandas._core.dtypes.common import (
-    is_categorical_dtype,
-    is_object_dtype,
-)
-from pandas._core.dtypes.dtypes import CategoricalDtype
 from pandas._core.reshape.concat import concat
 from pandas._core.reshape.merge import (
     MergeError,

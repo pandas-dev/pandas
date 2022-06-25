@@ -36,39 +36,6 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-import pandas._core.algorithms as algos
-from pandas._core.array_algos.putmask import (
-    extract_bool_array,
-    putmask_inplace,
-    putmask_without_repeat,
-    setitem_datetimelike_compat,
-    validate_putmask,
-)
-from pandas._core.array_algos.quantile import quantile_compat
-from pandas._core.array_algos.replace import (
-    compare_or_regex_search,
-    replace_regex,
-    should_use_regex,
-)
-from pandas._core.array_algos.transforms import shift
-from pandas._core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    IntervalArray,
-    PandasArray,
-    PeriodArray,
-    TimedeltaArray,
-)
-from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas._core.arrays.sparse import SparseDtype
-from pandas._core.base import PandasObject
-import pandas._core.common as com
-import pandas._core.computation.expressions as expressions
-from pandas._core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
 from pandas._core.dtypes.astype import astype_array_safe
 from pandas._core.dtypes.cast import (
     LossySetitemError,
@@ -105,6 +72,40 @@ from pandas._core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
+)
+
+import pandas._core.algorithms as algos
+from pandas._core.array_algos.putmask import (
+    extract_bool_array,
+    putmask_inplace,
+    putmask_without_repeat,
+    setitem_datetimelike_compat,
+    validate_putmask,
+)
+from pandas._core.array_algos.quantile import quantile_compat
+from pandas._core.array_algos.replace import (
+    compare_or_regex_search,
+    replace_regex,
+    should_use_regex,
+)
+from pandas._core.array_algos.transforms import shift
+from pandas._core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    IntervalArray,
+    PandasArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas._core.arrays.sparse import SparseDtype
+from pandas._core.base import PandasObject
+import pandas._core.common as com
+import pandas._core.computation.expressions as expressions
+from pandas._core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
 )
 from pandas._core.indexers import check_setitem_lengths
 import pandas._core.missing as missing

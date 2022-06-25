@@ -23,14 +23,6 @@ from pandas.compat import (
     pa_version_under4p0,
 )
 
-from pandas._core.arrays.arrow import ArrowExtensionArray
-from pandas._core.arrays.boolean import BooleanDtype
-from pandas._core.arrays.integer import Int64Dtype
-from pandas._core.arrays.numeric import NumericDtype
-from pandas._core.arrays.string_ import (
-    BaseStringArray,
-    StringDtype,
-)
 from pandas._core.dtypes.common import (
     is_bool_dtype,
     is_dtype_equal,
@@ -41,6 +33,15 @@ from pandas._core.dtypes.common import (
     pandas_dtype,
 )
 from pandas._core.dtypes.missing import isna
+
+from pandas._core.arrays.arrow import ArrowExtensionArray
+from pandas._core.arrays.boolean import BooleanDtype
+from pandas._core.arrays.integer import Int64Dtype
+from pandas._core.arrays.numeric import NumericDtype
+from pandas._core.arrays.string_ import (
+    BaseStringArray,
+    StringDtype,
+)
 from pandas._core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under1p01:

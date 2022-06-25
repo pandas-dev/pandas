@@ -8,6 +8,7 @@ from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+
 from pandas._core.indexes.api import MultiIndex
 
 

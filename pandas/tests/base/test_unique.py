@@ -4,9 +4,10 @@ import pytest
 from pandas.compat import pa_version_under2p0
 from pandas.errors import PerformanceWarning
 
+from pandas._core.dtypes.common import is_datetime64tz_dtype
+
 import pandas as pd
 from pandas._core.api import NumericIndex
-from pandas._core.dtypes.common import is_datetime64tz_dtype
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 

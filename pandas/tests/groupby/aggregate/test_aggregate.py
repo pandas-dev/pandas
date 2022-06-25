@@ -11,6 +11,8 @@ import pytest
 
 from pandas.errors import SpecificationError
 
+from pandas._core.dtypes.common import is_integer_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -20,7 +22,6 @@ from pandas import (
     concat,
     to_datetime,
 )
-from pandas._core.dtypes.common import is_integer_dtype
 from pandas._core.groupby.grouper import Grouping
 import pandas._testing as tm
 

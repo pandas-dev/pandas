@@ -30,6 +30,24 @@ from pandas._libs import (
 )
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes import inference
+from pandas._core.dtypes.common import (
+    ensure_int32,
+    is_bool,
+    is_complex,
+    is_datetime64_any_dtype,
+    is_datetime64_dtype,
+    is_datetime64_ns_dtype,
+    is_datetime64tz_dtype,
+    is_float,
+    is_integer,
+    is_number,
+    is_scalar,
+    is_scipy_sparse,
+    is_timedelta64_dtype,
+    is_timedelta64_ns_dtype,
+)
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -49,23 +67,6 @@ from pandas._core.arrays import (
     BooleanArray,
     FloatingArray,
     IntegerArray,
-)
-from pandas._core.dtypes import inference
-from pandas._core.dtypes.common import (
-    ensure_int32,
-    is_bool,
-    is_complex,
-    is_datetime64_any_dtype,
-    is_datetime64_dtype,
-    is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
-    is_float,
-    is_integer,
-    is_number,
-    is_scalar,
-    is_scipy_sparse,
-    is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
 )
 import pandas._testing as tm
 

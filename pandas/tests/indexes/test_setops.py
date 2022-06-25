@@ -8,6 +8,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.cast import find_common_type
+
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
@@ -23,7 +25,6 @@ from pandas._core.api import (
     Int64Index,
     UInt64Index,
 )
-from pandas._core.dtypes.cast import find_common_type
 import pandas._testing as tm
 from pandas.api.types import (
     is_datetime64tz_dtype,

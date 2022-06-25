@@ -26,8 +26,9 @@ from pandas.errors import (
 )
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
-from pandas._core.construction import create_series_with_explicit_dtype
 from pandas._core.dtypes.common import is_list_like
+
+from pandas._core.construction import create_series_with_explicit_dtype
 from pandas._core.frame import DataFrame
 
 from pandas.io.common import (

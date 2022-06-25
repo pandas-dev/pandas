@@ -5,8 +5,6 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import npt
 
-import pandas as pd
-from pandas._core.arrays.numeric import NumericArray
 from pandas._core.dtypes.cast import maybe_downcast_numeric
 from pandas._core.dtypes.common import (
     ensure_object,
@@ -22,6 +20,9 @@ from pandas._core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
+
+import pandas as pd
+from pandas._core.arrays.numeric import NumericArray
 
 
 def to_numeric(arg, errors="raise", downcast=None):

@@ -5,8 +5,9 @@ from typing import Sequence
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas._core.api import DataFrame
 from pandas._core.dtypes.inference import is_list_like
+
+from pandas._core.api import DataFrame
 
 from pandas.io.common import stringify_path
 

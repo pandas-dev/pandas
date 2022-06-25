@@ -4,13 +4,14 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+from pandas._core.dtypes import generic as gt
+
 import pandas as pd
 from pandas._core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
 )
-from pandas._core.dtypes import generic as gt
 import pandas._testing as tm
 
 

@@ -23,10 +23,6 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas._core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
 from pandas._core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
@@ -34,6 +30,11 @@ from pandas._core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
     pandas_dtype,
+)
+
+from pandas._core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
 )
 
 if TYPE_CHECKING:

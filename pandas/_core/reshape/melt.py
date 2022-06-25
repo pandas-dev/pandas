@@ -12,15 +12,16 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-import pandas._core.algorithms as algos
-from pandas._core.arrays import Categorical
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
 )
 from pandas._core.dtypes.concat import concat_compat
 from pandas._core.dtypes.missing import notna
+
+import pandas._core.algorithms as algos
+from pandas._core.arrays import Categorical
+import pandas._core.common as com
 from pandas._core.indexes.api import (
     Index,
     MultiIndex,

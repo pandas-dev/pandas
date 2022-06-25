@@ -21,12 +21,13 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
 )
 
-from pandas._core.arrays.timedeltas import sequence_to_td64ns
 from pandas._core.dtypes.common import is_list_like
 from pandas._core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
+
+from pandas._core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import UnitChoices

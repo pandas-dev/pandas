@@ -26,6 +26,12 @@ from pandas._typing import (
 )
 from pandas.util._decorators import doc
 
+from pandas._core.dtypes import missing
+from pandas._core.dtypes.common import (
+    is_float,
+    is_scalar,
+)
+
 from pandas import (
     DataFrame,
     Index,
@@ -33,11 +39,6 @@ from pandas import (
     PeriodIndex,
 )
 import pandas._core.common as com
-from pandas._core.dtypes import missing
-from pandas._core.dtypes.common import (
-    is_float,
-    is_scalar,
-)
 from pandas._core.shared_docs import _shared_docs
 
 from pandas.io.formats._color_data import CSS4_COLORS

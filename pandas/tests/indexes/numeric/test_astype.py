@@ -3,8 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Index
 from pandas._core.dtypes.common import pandas_dtype
+
+from pandas import Index
 from pandas._core.indexes.api import (
     Float64Index,
     Int64Index,

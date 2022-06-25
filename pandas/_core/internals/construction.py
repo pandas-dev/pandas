@@ -25,22 +25,6 @@ from pandas._typing import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core import (
-    algorithms,
-    common as com,
-)
-from pandas._core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    TimedeltaArray,
-)
-from pandas._core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-    range_to_ndarray,
-    sanitize_array,
-)
 from pandas._core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     dict_compat,
@@ -62,6 +46,23 @@ from pandas._core.dtypes.common import (
 from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
+)
+
+from pandas._core import (
+    algorithms,
+    common as com,
+)
+from pandas._core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    TimedeltaArray,
+)
+from pandas._core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+    range_to_ndarray,
+    sanitize_array,
 )
 from pandas._core.indexes.api import (
     DatetimeIndex,

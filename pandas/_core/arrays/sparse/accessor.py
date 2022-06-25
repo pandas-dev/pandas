@@ -4,13 +4,14 @@ import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 
+from pandas._core.dtypes.cast import find_common_type
+
 from pandas._core.accessor import (
     PandasDelegate,
     delegate_names,
 )
 from pandas._core.arrays.sparse.array import SparseArray
 from pandas._core.arrays.sparse.dtype import SparseDtype
-from pandas._core.dtypes.cast import find_common_type
 
 
 class BaseAccessor:

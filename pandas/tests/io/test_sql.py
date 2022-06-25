@@ -33,6 +33,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -45,10 +50,6 @@ from pandas import (
     isna,
     to_datetime,
     to_timedelta,
-)
-from pandas._core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
 )
 import pandas._testing as tm
 

@@ -18,11 +18,12 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 
-from pandas._core.base import PandasObject
 from pandas._core.dtypes.cast import (
     find_common_type,
     np_can_hold_element,
 )
+
+from pandas._core.base import PandasObject
 from pandas._core.indexes.api import (
     Index,
     default_index,

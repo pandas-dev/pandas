@@ -36,21 +36,6 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas._core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    PeriodArray,
-    TimedeltaArray,
-)
-from pandas._core.arrays.boolean import BooleanDtype
-from pandas._core.arrays.floating import FloatingDtype
-from pandas._core.arrays.integer import IntegerDtype
-from pandas._core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
-from pandas._core.arrays.string_ import StringDtype
 from pandas._core.dtypes.cast import (
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
@@ -75,6 +60,22 @@ from pandas._core.dtypes.missing import (
     isna,
     maybe_fill,
 )
+
+from pandas._core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+from pandas._core.arrays.boolean import BooleanDtype
+from pandas._core.arrays.floating import FloatingDtype
+from pandas._core.arrays.integer import IntegerDtype
+from pandas._core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
+from pandas._core.arrays.string_ import StringDtype
 from pandas._core.frame import DataFrame
 from pandas._core.generic import NDFrame
 from pandas._core.groupby import grouper

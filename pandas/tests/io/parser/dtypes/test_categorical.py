@@ -8,13 +8,14 @@ import os
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
     Timestamp,
 )
-from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")

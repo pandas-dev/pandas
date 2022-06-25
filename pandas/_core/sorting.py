@@ -30,7 +30,6 @@ from pandas._typing import (
     npt,
 )
 
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -41,6 +40,8 @@ from pandas._core.dtypes.generic import (
     ABCRangeIndex,
 )
 from pandas._core.dtypes.missing import isna
+
+from pandas._core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex

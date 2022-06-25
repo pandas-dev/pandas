@@ -16,16 +16,17 @@ import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 
+from pandas._core.dtypes.common import (
+    is_list_like,
+    is_scalar,
+)
+
 import pandas._core.common as com
 from pandas._core.computation.common import (
     ensure_decoded,
     result_type_many,
 )
 from pandas._core.computation.scope import DEFAULT_GLOBALS
-from pandas._core.dtypes.common import (
-    is_list_like,
-    is_scalar,
-)
 
 from pandas.io.formats.printing import (
     pprint_thing,

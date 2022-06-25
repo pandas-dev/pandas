@@ -49,10 +49,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-import pandas._core.algorithms as algos
-from pandas._core.arrays import Categorical
-from pandas._core.arrays.categorical import factorize_from_iterables
-import pandas._core.common as com
 from pandas._core.dtypes.cast import coerce_indexer_dtype
 from pandas._core.dtypes.common import (
     ensure_int64,
@@ -76,6 +72,11 @@ from pandas._core.dtypes.missing import (
     array_equivalent,
     isna,
 )
+
+import pandas._core.algorithms as algos
+from pandas._core.arrays import Categorical
+from pandas._core.arrays.categorical import factorize_from_iterables
+import pandas._core.common as com
 import pandas._core.indexes.base as ibase
 from pandas._core.indexes.base import (
     Index,

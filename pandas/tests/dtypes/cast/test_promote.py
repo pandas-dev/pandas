@@ -10,7 +10,6 @@ import pytest
 
 from pandas._libs.tslibs import NaT
 
-import pandas as pd
 from pandas._core.dtypes.cast import maybe_promote
 from pandas._core.dtypes.common import (
     is_complex_dtype,
@@ -24,6 +23,8 @@ from pandas._core.dtypes.common import (
 )
 from pandas._core.dtypes.dtypes import DatetimeTZDtype
 from pandas._core.dtypes.missing import isna
+
+import pandas as pd
 import pandas._testing as tm
 
 

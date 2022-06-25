@@ -3,6 +3,8 @@ import collections
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -11,7 +13,6 @@ from pandas import (
     Series,
     isna,
 )
-from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
 
 

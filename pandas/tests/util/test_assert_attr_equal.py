@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from pandas._core.dtypes.common import is_float
+
 import pandas._testing as tm
 
 

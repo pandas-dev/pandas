@@ -13,13 +13,14 @@ import numpy as np
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import Dtype
 
-from pandas._core.arrays import DatetimeArray
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     is_datetime64tz_dtype,
     is_period_dtype,
     pandas_dtype,
 )
+
+from pandas._core.arrays import DatetimeArray
+from pandas._core.construction import extract_array
 from pandas._core.internals.blocks import (
     Block,
     DatetimeTZBlock,

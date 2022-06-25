@@ -33,12 +33,6 @@ from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import F
 
-from pandas import (
-    Index,
-    Series,
-    get_option,
-)
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     is_float,
     is_float_dtype,
@@ -46,6 +40,13 @@ from pandas._core.dtypes.common import (
     is_integer_dtype,
     is_nested_list_like,
 )
+
+from pandas import (
+    Index,
+    Series,
+    get_option,
+)
+import pandas._core.common as com
 from pandas._core.indexes.datetimes import date_range
 from pandas._core.indexes.period import (
     Period,

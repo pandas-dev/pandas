@@ -18,9 +18,10 @@ import pytest
 
 from pandas._libs import iNaT
 
+from pandas._core.dtypes.dtypes import PeriodDtype
+
 import pandas as pd
 from pandas._core.arrays import PeriodArray
-from pandas._core.dtypes.dtypes import PeriodDtype
 from pandas.tests.extension import base
 
 

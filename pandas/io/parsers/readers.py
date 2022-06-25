@@ -49,6 +49,7 @@ from pandas._core.dtypes.common import (
     is_integer,
     is_list_like,
 )
+
 from pandas._core.frame import DataFrame
 from pandas._core.indexes.api import RangeIndex
 from pandas._core.shared_docs import _shared_docs

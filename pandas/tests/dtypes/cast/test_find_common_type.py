@@ -1,16 +1,17 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    Index,
-)
 from pandas._core.dtypes.cast import find_common_type
 from pandas._core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
+)
+
+from pandas import (
+    Categorical,
+    Index,
 )
 
 

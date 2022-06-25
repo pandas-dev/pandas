@@ -48,14 +48,6 @@ from pandas.errors import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
-from pandas._core.arrays import (
-    ExtensionArray,
-    datetimelike as dtl,
-)
-from pandas._core.arrays._ranges import generate_regular_range
-from pandas._core.arrays.integer import IntegerArray
-import pandas._core.common as com
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.astype import astype_dt64_to_dt64tz
 from pandas._core.dtypes.common import (
     DT64NS_DTYPE,
@@ -79,6 +71,15 @@ from pandas._core.dtypes.common import (
 from pandas._core.dtypes.dtypes import DatetimeTZDtype
 from pandas._core.dtypes.generic import ABCMultiIndex
 from pandas._core.dtypes.missing import isna
+
+from pandas._core.arrays import (
+    ExtensionArray,
+    datetimelike as dtl,
+)
+from pandas._core.arrays._ranges import generate_regular_range
+from pandas._core.arrays.integer import IntegerArray
+import pandas._core.common as com
+from pandas._core.construction import extract_array
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (

@@ -32,7 +32,6 @@ from pandas._typing import (
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 
-import pandas._core.common as com
 from pandas._core.dtypes.base import (
     ExtensionDtype,
     _registry as registry,
@@ -68,6 +67,8 @@ from pandas._core.dtypes.generic import (
     ABCSeries,
 )
 from pandas._core.dtypes.missing import isna
+
+import pandas._core.common as com
 
 if TYPE_CHECKING:
     from pandas import (

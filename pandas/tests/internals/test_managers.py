@@ -1,8 +1,9 @@
 """
 Testing interaction between the different managers (BlockManager, ArrayManager)
 """
-import pandas as pd
 from pandas._core.dtypes.missing import array_equivalent
+
+import pandas as pd
 from pandas._core.internals import (
     ArrayManager,
     BlockManager,

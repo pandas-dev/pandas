@@ -7,7 +7,6 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-import pandas as pd
 from pandas._core.dtypes.astype import astype_nansafe
 import pandas._core.dtypes.common as com
 from pandas._core.dtypes.dtypes import (
@@ -18,6 +17,8 @@ from pandas._core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas._core.dtypes.missing import isna
+
+import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray

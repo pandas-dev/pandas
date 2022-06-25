@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
+
 import pandas as pd
 from pandas import NaT
 from pandas._core.arrays import DatetimeArray
-from pandas._core.dtypes.dtypes import DatetimeTZDtype
 import pandas._testing as tm
 
 

@@ -87,23 +87,6 @@ from pandas.util._validators import (
     validate_inclusive,
 )
 
-from pandas._core import (
-    algorithms as algos,
-    arraylike,
-    common as com,
-    indexing,
-    missing,
-    nanops,
-    sample,
-)
-from pandas._core.array_algos.replace import should_use_regex
-from pandas._core.arrays import ExtensionArray
-from pandas._core.base import PandasObject
-from pandas._core.construction import (
-    create_series_with_explicit_dtype,
-    extract_array,
-)
-from pandas._core.describe import describe_ndframe
 from pandas._core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -136,6 +119,24 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+from pandas._core import (
+    algorithms as algos,
+    arraylike,
+    common as com,
+    indexing,
+    missing,
+    nanops,
+    sample,
+)
+from pandas._core.array_algos.replace import should_use_regex
+from pandas._core.arrays import ExtensionArray
+from pandas._core.base import PandasObject
+from pandas._core.construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+)
+from pandas._core.describe import describe_ndframe
 from pandas._core.flags import Flags
 from pandas._core.indexes.api import (
     DatetimeIndex,

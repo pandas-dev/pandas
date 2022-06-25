@@ -16,6 +16,7 @@ from pandas._typing import (
 )
 
 from pandas._core.dtypes.dtypes import register_extension_dtype
+
 from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,

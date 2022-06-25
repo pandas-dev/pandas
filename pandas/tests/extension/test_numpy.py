@@ -18,13 +18,14 @@ will never be held in an Index.
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas._core.arrays.numpy_ import PandasArray
 from pandas._core.dtypes.cast import can_hold_element
 from pandas._core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
 )
+
+import pandas as pd
+from pandas._core.arrays.numpy_ import PandasArray
 from pandas._core.internals import blocks
 import pandas._testing as tm
 from pandas.tests.extension import base

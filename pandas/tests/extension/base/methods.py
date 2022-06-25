@@ -4,8 +4,9 @@ import operator
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas._core.dtypes.common import is_bool_dtype
+
+import pandas as pd
 from pandas._core.sorting import nargsort
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests

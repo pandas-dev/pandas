@@ -23,18 +23,19 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-import pandas._core.algorithms as algorithms
-from pandas._core.arrays import (
-    Categorical,
-    ExtensionArray,
-)
-import pandas._core.common as com
 from pandas._core.dtypes.cast import sanitize_to_nanoseconds
 from pandas._core.dtypes.common import (
     is_categorical_dtype,
     is_list_like,
     is_scalar,
 )
+
+import pandas._core.algorithms as algorithms
+from pandas._core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+import pandas._core.common as com
 from pandas._core.frame import DataFrame
 from pandas._core.groupby import ops
 from pandas._core.groupby.categorical import (

@@ -1,8 +1,9 @@
 import numpy as np
 
-import pandas as pd
 from pandas._core.dtypes.common import is_extension_array_dtype
 from pandas._core.dtypes.dtypes import ExtensionDtype
+
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
 

@@ -71,27 +71,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core import (
-    nanops,
-    ops,
-)
-from pandas._core.algorithms import (
-    checked_add_with_arr,
-    isin,
-    mode,
-    unique1d,
-)
-from pandas._core.arraylike import OpsMixin
-from pandas._core.arrays._mixins import (
-    NDArrayBackedExtensionArray,
-    ravel_compat,
-)
-import pandas._core.common as com
-from pandas._core.construction import (
-    array as pd_array,
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
 from pandas._core.dtypes.common import (
     DT64NS_DTYPE,
     is_all_strings,
@@ -118,6 +97,28 @@ from pandas._core.dtypes.dtypes import (
 from pandas._core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
+)
+
+from pandas._core import (
+    nanops,
+    ops,
+)
+from pandas._core.algorithms import (
+    checked_add_with_arr,
+    isin,
+    mode,
+    unique1d,
+)
+from pandas._core.arraylike import OpsMixin
+from pandas._core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+    ravel_compat,
+)
+import pandas._core.common as com
+from pandas._core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
 )
 from pandas._core.indexers import (
     check_array_indexer,

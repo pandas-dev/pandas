@@ -14,9 +14,10 @@ from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 from pandas.util._exceptions import find_stack_level
 
+from pandas._core.dtypes.generic import ABCNDFrame
+
 from pandas._core import roperator
 from pandas._core.construction import extract_array
-from pandas._core.dtypes.generic import ABCNDFrame
 from pandas._core.ops.common import unpack_zerodim_and_defer
 
 REDUCTION_ALIASES = {

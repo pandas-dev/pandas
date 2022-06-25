@@ -19,6 +19,7 @@ from pandas.util._decorators import doc
 
 from pandas._core.dtypes.common import is_list_like
 from pandas._core.dtypes.missing import isna
+
 from pandas._core.frame import DataFrame
 from pandas._core.shared_docs import _shared_docs
 

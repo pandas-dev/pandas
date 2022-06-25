@@ -65,20 +65,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core import nanops
-from pandas._core._numba import executor
-import pandas._core.algorithms as algorithms
-from pandas._core.arrays import (
-    BaseMaskedArray,
-    BooleanArray,
-    Categorical,
-    ExtensionArray,
-)
-from pandas._core.base import (
-    PandasObject,
-    SelectionMixin,
-)
-import pandas._core.common as com
 from pandas._core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas._core.dtypes.common import (
     is_bool_dtype,
@@ -95,6 +81,21 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+from pandas._core import nanops
+from pandas._core._numba import executor
+import pandas._core.algorithms as algorithms
+from pandas._core.arrays import (
+    BaseMaskedArray,
+    BooleanArray,
+    Categorical,
+    ExtensionArray,
+)
+from pandas._core.base import (
+    PandasObject,
+    SelectionMixin,
+)
+import pandas._core.common as com
 from pandas._core.frame import DataFrame
 from pandas._core.generic import NDFrame
 from pandas._core.groupby import (

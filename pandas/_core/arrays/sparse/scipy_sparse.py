@@ -18,8 +18,9 @@ from pandas._typing import (
     npt,
 )
 
-from pandas._core.algorithms import factorize
 from pandas._core.dtypes.missing import notna
+
+from pandas._core.algorithms import factorize
 from pandas._core.indexes.api import MultiIndex
 from pandas._core.series import Series
 

@@ -1,5 +1,7 @@
 import pytest
 
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -7,7 +9,6 @@ from pandas import (
     Series,
     Timestamp,
 )
-from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
 
 

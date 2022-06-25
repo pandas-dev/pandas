@@ -4,6 +4,7 @@ from pandas._typing import ReadBuffer
 from pandas.compat._optional import import_optional_dependency
 
 from pandas._core.dtypes.inference import is_integer
+
 from pandas._core.frame import DataFrame
 
 from pandas.io.parsers.base_parser import ParserBase

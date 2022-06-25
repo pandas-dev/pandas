@@ -65,6 +65,7 @@ from pandas._core.dtypes.common import (
     is_integer,
     is_list_like,
 )
+
 from pandas._core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)

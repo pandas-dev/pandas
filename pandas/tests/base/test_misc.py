@@ -8,15 +8,16 @@ from pandas.compat import (
     PYPY,
 )
 
-import pandas as pd
-from pandas import (
-    Index,
-    Series,
-)
 from pandas._core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
     is_object_dtype,
+)
+
+import pandas as pd
+from pandas import (
+    Index,
+    Series,
 )
 import pandas._testing as tm
 

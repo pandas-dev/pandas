@@ -7,6 +7,13 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.cast import (
+    infer_dtype_from,
+    infer_dtype_from_array,
+    infer_dtype_from_scalar,
+)
+from pandas._core.dtypes.common import is_dtype_equal
+
 from pandas import (
     Categorical,
     Interval,
@@ -16,12 +23,6 @@ from pandas import (
     Timestamp,
     date_range,
 )
-from pandas._core.dtypes.cast import (
-    infer_dtype_from,
-    infer_dtype_from_array,
-    infer_dtype_from_scalar,
-)
-from pandas._core.dtypes.common import is_dtype_equal
 
 
 @pytest.fixture(params=[True, False])

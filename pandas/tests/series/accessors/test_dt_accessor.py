@@ -14,6 +14,11 @@ import pytz
 from pandas._libs.tslibs.timezones import maybe_get_tz
 from pandas.errors import SettingWithCopyError
 
+from pandas._core.dtypes.common import (
+    is_integer_dtype,
+    is_list_like,
+)
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -31,10 +36,6 @@ from pandas._core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
-)
-from pandas._core.dtypes.common import (
-    is_integer_dtype,
-    is_list_like,
 )
 import pandas._testing as tm
 

@@ -54,20 +54,6 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas._core import (
-    arraylike,
-    missing,
-    roperator,
-)
-from pandas._core.algorithms import (
-    factorize_array,
-    isin,
-    mode,
-    rank,
-    resolve_na_sentinel,
-    unique,
-)
-from pandas._core.array_algos.quantile import quantile_with_mask
 from pandas._core.dtypes.cast import maybe_cast_to_extension_array
 from pandas._core.dtypes.common import (
     is_dtype_equal,
@@ -82,6 +68,21 @@ from pandas._core.dtypes.generic import (
     ABCSeries,
 )
 from pandas._core.dtypes.missing import isna
+
+from pandas._core import (
+    arraylike,
+    missing,
+    roperator,
+)
+from pandas._core.algorithms import (
+    factorize_array,
+    isin,
+    mode,
+    rank,
+    resolve_na_sentinel,
+    unique,
+)
+from pandas._core.array_algos.quantile import quantile_with_mask
 from pandas._core.sorting import (
     nargminmax,
     nargsort,

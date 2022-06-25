@@ -15,7 +15,6 @@ from pandas.util._decorators import (
     Substitution,
 )
 
-from pandas._core.base import PandasObject
 from pandas._core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -24,6 +23,8 @@ from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+
+from pandas._core.base import PandasObject
 
 if TYPE_CHECKING:
     from pandas import DataFrame

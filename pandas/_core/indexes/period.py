@@ -31,13 +31,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.arrays.period import (
-    PeriodArray,
-    period_array,
-    raise_on_incompatible,
-    validate_dtype_freq,
-)
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     is_datetime64_any_dtype,
     is_integer,
@@ -45,6 +38,14 @@ from pandas._core.dtypes.common import (
 )
 from pandas._core.dtypes.dtypes import PeriodDtype
 from pandas._core.dtypes.missing import is_valid_na_for_dtype
+
+from pandas._core.arrays.period import (
+    PeriodArray,
+    period_array,
+    raise_on_incompatible,
+    validate_dtype_freq,
+)
+import pandas._core.common as com
 import pandas._core.indexes.base as ibase
 from pandas._core.indexes.base import maybe_extract_name
 from pandas._core.indexes.datetimelike import DatetimeIndexOpsMixin

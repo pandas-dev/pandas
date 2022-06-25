@@ -37,12 +37,6 @@ from pandas.errors import DataError
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core._numba import executor
-from pandas._core.algorithms import factorize
-from pandas._core.apply import ResamplerWindowApply
-from pandas._core.arrays import ExtensionArray
-from pandas._core.base import SelectionMixin
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     ensure_float64,
     is_bool,
@@ -57,6 +51,13 @@ from pandas._core.dtypes.generic import (
     ABCSeries,
 )
 from pandas._core.dtypes.missing import notna
+
+from pandas._core._numba import executor
+from pandas._core.algorithms import factorize
+from pandas._core.apply import ResamplerWindowApply
+from pandas._core.arrays import ExtensionArray
+from pandas._core.base import SelectionMixin
+import pandas._core.common as com
 from pandas._core.indexers.objects import (
     BaseIndexer,
     FixedWindowIndexer,

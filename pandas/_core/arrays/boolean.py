@@ -18,17 +18,18 @@ from pandas._typing import (
     type_t,
 )
 
-from pandas._core import ops
-from pandas._core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
 from pandas._core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
 )
 from pandas._core.dtypes.dtypes import register_extension_dtype
 from pandas._core.dtypes.missing import isna
+
+from pandas._core import ops
+from pandas._core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow

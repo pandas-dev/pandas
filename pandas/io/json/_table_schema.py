@@ -18,8 +18,6 @@ from pandas._typing import (
     JSONSerializable,
 )
 
-from pandas import DataFrame
-import pandas._core.common as com
 from pandas._core.dtypes.base import _registry as registry
 from pandas._core.dtypes.common import (
     is_bool_dtype,
@@ -34,6 +32,9 @@ from pandas._core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas._core.dtypes.dtypes import CategoricalDtype
+
+from pandas import DataFrame
+import pandas._core.common as com
 
 if TYPE_CHECKING:
     from pandas import Series

@@ -61,14 +61,6 @@ from pandas._typing import (
 )
 from pandas.util._decorators import deprecate_kwarg
 
-from pandas._core.arrays import (
-    Categorical,
-    DatetimeArray,
-    TimedeltaArray,
-)
-from pandas._core.base import PandasObject
-import pandas._core.common as com
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
@@ -88,6 +80,15 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+from pandas._core.arrays import (
+    Categorical,
+    DatetimeArray,
+    TimedeltaArray,
+)
+from pandas._core.base import PandasObject
+import pandas._core.common as com
+from pandas._core.construction import extract_array
 from pandas._core.indexes.api import (
     Index,
     MultiIndex,

@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.cast import construct_1d_arraylike_from_scalar
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 from pandas import (
     Categorical,
     Timedelta,
 )
-from pandas._core.dtypes.cast import construct_1d_arraylike_from_scalar
-from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
 
 

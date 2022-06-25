@@ -7,13 +7,14 @@ import numpy as np
 from pandas._libs.sparse import IntIndex
 from pandas._typing import Dtype
 
-from pandas._core.arrays import SparseArray
-from pandas._core.arrays.categorical import factorize_from_iterable
 from pandas._core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
 )
+
+from pandas._core.arrays import SparseArray
+from pandas._core.arrays.categorical import factorize_from_iterable
 from pandas._core.frame import DataFrame
 from pandas._core.indexes.api import Index
 from pandas._core.series import Series

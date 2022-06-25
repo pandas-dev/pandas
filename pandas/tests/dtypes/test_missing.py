@@ -10,15 +10,6 @@ from pandas._config import config as cf
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
 
-import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    NaT,
-    Series,
-    TimedeltaIndex,
-    date_range,
-)
-from pandas._core.api import Float64Index
 from pandas._core.dtypes.common import (
     is_float,
     is_scalar,
@@ -38,6 +29,16 @@ from pandas._core.dtypes.missing import (
     notna,
     notnull,
 )
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex,
+    NaT,
+    Series,
+    TimedeltaIndex,
+    date_range,
+)
+from pandas._core.api import Float64Index
 import pandas._testing as tm
 
 fix_now = pd.Timestamp("2021-01-01")

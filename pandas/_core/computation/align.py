@@ -19,13 +19,14 @@ import numpy as np
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.base import PandasObject
-import pandas._core.common as com
-from pandas._core.computation.common import result_type_many
 from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+
+from pandas._core.base import PandasObject
+import pandas._core.common as com
+from pandas._core.computation.common import result_type_many
 
 if TYPE_CHECKING:
     from pandas._typing import F

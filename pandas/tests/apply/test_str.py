@@ -4,12 +4,13 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import is_number
+
 from pandas import (
     DataFrame,
     Index,
     Series,
 )
-from pandas._core.dtypes.common import is_number
 from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
 import pandas._testing as tm
 from pandas.tests.apply.common import (

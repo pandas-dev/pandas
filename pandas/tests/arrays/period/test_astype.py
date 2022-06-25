@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.dtypes import PeriodDtype
+
 import pandas as pd
 from pandas._core.arrays import period_array
-from pandas._core.dtypes.dtypes import PeriodDtype
 import pandas._testing as tm
 
 

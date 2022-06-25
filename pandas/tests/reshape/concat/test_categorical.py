@@ -1,12 +1,13 @@
 import numpy as np
 
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
     Series,
 )
-from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
 
 

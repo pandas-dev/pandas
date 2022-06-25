@@ -36,16 +36,6 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas._core import missing
-from pandas._core.algorithms import (
-    take,
-    unique,
-    value_counts,
-)
-from pandas._core.array_algos.quantile import quantile_with_mask
-from pandas._core.array_algos.transforms import shift
-from pandas._core.arrays.base import ExtensionArray
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
@@ -56,6 +46,17 @@ from pandas._core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas._core.dtypes.missing import array_equivalent
+
+from pandas._core import missing
+from pandas._core.algorithms import (
+    take,
+    unique,
+    value_counts,
+)
+from pandas._core.array_algos.quantile import quantile_with_mask
+from pandas._core.array_algos.transforms import shift
+from pandas._core.arrays.base import ExtensionArray
+from pandas._core.construction import extract_array
 from pandas._core.indexers import check_array_indexer
 from pandas._core.sorting import nargminmax
 

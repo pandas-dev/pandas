@@ -1,12 +1,13 @@
 import pytest
 
+from pandas._core.dtypes.common import is_extension_array_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
     Series,
 )
-from pandas._core.dtypes.common import is_extension_array_dtype
 import pandas._testing as tm
 
 

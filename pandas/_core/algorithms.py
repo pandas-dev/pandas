@@ -36,12 +36,6 @@ from pandas._typing import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.array_algos.take import take_nd
-from pandas._core.construction import (
-    array as pd_array,
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
 from pandas._core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
@@ -86,6 +80,13 @@ from pandas._core.dtypes.generic import (
 from pandas._core.dtypes.missing import (
     isna,
     na_value_for_dtype,
+)
+
+from pandas._core.array_algos.take import take_nd
+from pandas._core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
 )
 from pandas._core.indexers import validate_indices
 

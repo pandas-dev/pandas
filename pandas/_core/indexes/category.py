@@ -20,11 +20,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.arrays.categorical import (
-    Categorical,
-    contains,
-)
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
@@ -35,6 +30,12 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+from pandas._core.arrays.categorical import (
+    Categorical,
+    contains,
+)
+from pandas._core.construction import extract_array
 import pandas._core.indexes.base as ibase
 from pandas._core.indexes.base import (
     Index,

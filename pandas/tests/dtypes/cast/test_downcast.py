@@ -3,11 +3,12 @@ import decimal
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.cast import maybe_downcast_to_dtype
+
 from pandas import (
     Series,
     Timedelta,
 )
-from pandas._core.dtypes.cast import maybe_downcast_to_dtype
 import pandas._testing as tm
 
 

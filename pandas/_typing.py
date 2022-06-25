@@ -41,9 +41,10 @@ if TYPE_CHECKING:
         Timestamp,
     )
 
+    from pandas._core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Interval
     from pandas._core.arrays.base import ExtensionArray
-    from pandas._core.dtypes.dtypes import ExtensionDtype
     from pandas._core.frame import DataFrame
     from pandas._core.generic import NDFrame
     from pandas._core.groupby.generic import (

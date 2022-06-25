@@ -1,13 +1,14 @@
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.dtypes import ExtensionDtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
     Timestamp,
 )
 from pandas._core.arrays import ExtensionArray
-from pandas._core.dtypes.dtypes import ExtensionDtype
 import pandas._testing as tm
 
 

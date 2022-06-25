@@ -24,8 +24,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.base import NoNewAttributesMixin
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -42,6 +40,9 @@ from pandas._core.dtypes.generic import (
     ABCSeries,
 )
 from pandas._core.dtypes.missing import isna
+
+from pandas._core.base import NoNewAttributesMixin
+from pandas._core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import (

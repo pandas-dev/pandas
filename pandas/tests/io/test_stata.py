@@ -12,8 +12,9 @@ import zipfile
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas._core.dtypes.common import is_categorical_dtype
+
+import pandas as pd
 from pandas._core.frame import (
     DataFrame,
     Series,

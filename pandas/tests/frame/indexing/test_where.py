@@ -6,6 +6,8 @@ import pytest
 
 from pandas.compat import np_version_under1p20
 
+from pandas._core.dtypes.common import is_scalar
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -17,7 +19,6 @@ from pandas import (
     date_range,
     isna,
 )
-from pandas._core.dtypes.common import is_scalar
 import pandas._testing as tm
 from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 

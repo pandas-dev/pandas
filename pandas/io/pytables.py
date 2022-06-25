@@ -50,6 +50,20 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
+from pandas._core.dtypes.common import (
+    ensure_object,
+    is_categorical_dtype,
+    is_complex_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_extension_array_dtype,
+    is_list_like,
+    is_string_dtype,
+    is_timedelta64_dtype,
+    needs_i8_conversion,
+)
+from pandas._core.dtypes.missing import array_equivalent
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -73,19 +87,6 @@ from pandas._core.computation.pytables import (
     maybe_expression,
 )
 from pandas._core.construction import extract_array
-from pandas._core.dtypes.common import (
-    ensure_object,
-    is_categorical_dtype,
-    is_complex_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
-    is_list_like,
-    is_string_dtype,
-    is_timedelta64_dtype,
-    needs_i8_conversion,
-)
-from pandas._core.dtypes.missing import array_equivalent
 from pandas._core.indexes.api import ensure_index
 from pandas._core.internals import (
     ArrayManager,

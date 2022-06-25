@@ -4,6 +4,11 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import (
+    ensure_platform_int,
+    is_timedelta64_dtype,
+)
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -13,10 +18,6 @@ from pandas import (
     Timestamp,
     concat,
     date_range,
-)
-from pandas._core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
 )
 from pandas._core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas._core.groupby.generic import DataFrameGroupBy

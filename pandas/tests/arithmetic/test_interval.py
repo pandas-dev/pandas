@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import is_list_like
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -21,7 +23,6 @@ from pandas._core.arrays import (
     BooleanArray,
     IntervalArray,
 )
-from pandas._core.dtypes.common import is_list_like
 import pandas._testing as tm
 from pandas.tests.arithmetic.common import get_upcast_box
 

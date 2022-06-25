@@ -45,22 +45,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
 )
 
-from pandas._core.algorithms import (
-    isin,
-    take,
-    unique,
-    value_counts,
-)
-from pandas._core.arrays.base import (
-    ExtensionArray,
-    _extension_array_shared_docs,
-)
-import pandas._core.common as com
-from pandas._core.construction import (
-    array as pd_array,
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
 from pandas._core.dtypes.cast import LossySetitemError
 from pandas._core.dtypes.common import (
     is_categorical_dtype,
@@ -86,6 +70,23 @@ from pandas._core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     notna,
+)
+
+from pandas._core.algorithms import (
+    isin,
+    take,
+    unique,
+    value_counts,
+)
+from pandas._core.arrays.base import (
+    ExtensionArray,
+    _extension_array_shared_docs,
+)
+import pandas._core.common as com
+from pandas._core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
 )
 from pandas._core.indexers import check_array_indexer
 from pandas._core.indexes.base import ensure_index

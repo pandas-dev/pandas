@@ -6,11 +6,12 @@ from copy import (
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import is_scalar
+
 from pandas import (
     DataFrame,
     Series,
 )
-from pandas._core.dtypes.common import is_scalar
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------

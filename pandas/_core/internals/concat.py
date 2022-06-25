@@ -23,13 +23,6 @@ from pandas._typing import (
 )
 from pandas.util._decorators import cache_readonly
 
-import pandas._core.algorithms as algos
-from pandas._core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-)
-from pandas._core.arrays.sparse import SparseDtype
-from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     find_common_type,
@@ -51,6 +44,14 @@ from pandas._core.dtypes.missing import (
     isna,
     isna_all,
 )
+
+import pandas._core.algorithms as algos
+from pandas._core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+)
+from pandas._core.arrays.sparse import SparseDtype
+from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.internals.array_manager import (
     ArrayManager,
     NullArrayProxy,

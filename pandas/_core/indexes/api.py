@@ -11,8 +11,9 @@ from pandas._libs import (
 )
 from pandas.errors import InvalidIndexError
 
-from pandas._core.algorithms import safe_sort
 from pandas._core.dtypes.common import is_dtype_equal
+
+from pandas._core.algorithms import safe_sort
 from pandas._core.indexes.base import (
     Index,
     _new_Index,

@@ -11,6 +11,8 @@ from pandas._libs import lib
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.common import is_categorical_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -26,7 +28,6 @@ from pandas import (
     to_timedelta,
 )
 import pandas._core.algorithms as algorithms
-from pandas._core.dtypes.common import is_categorical_dtype
 import pandas._core.nanops as nanops
 import pandas._testing as tm
 

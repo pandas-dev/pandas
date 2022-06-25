@@ -31,10 +31,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core import ops
-from pandas._core.algorithms import resolve_na_sentinel
-import pandas._core.common as com
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -45,6 +41,11 @@ from pandas._core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas._core.dtypes.generic import ABCTimedeltaIndex
+
+from pandas._core import ops
+from pandas._core.algorithms import resolve_na_sentinel
+import pandas._core.common as com
+from pandas._core.construction import extract_array
 import pandas._core.indexes.base as ibase
 from pandas._core.indexes.base import maybe_extract_name
 from pandas._core.indexes.numeric import (

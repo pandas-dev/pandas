@@ -22,8 +22,6 @@ from pandas._typing import (
     Shape,
 )
 
-import pandas._core.computation.expressions as expressions
-from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
@@ -46,6 +44,9 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+import pandas._core.computation.expressions as expressions
+from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.ops import (
     missing,
     roperator,

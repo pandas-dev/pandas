@@ -5,6 +5,19 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.base import _registry as ea_registry
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_object_dtype,
+)
+from pandas._core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -25,18 +38,6 @@ from pandas import (
     period_range,
 )
 from pandas._core.arrays import SparseArray
-from pandas._core.dtypes.base import _registry as ea_registry
-from pandas._core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_object_dtype,
-)
-from pandas._core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay

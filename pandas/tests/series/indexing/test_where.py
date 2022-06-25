@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import is_integer
+
 import pandas as pd
 from pandas import (
     Series,
@@ -8,7 +10,6 @@ from pandas import (
     date_range,
     isna,
 )
-from pandas._core.dtypes.common import is_integer
 import pandas._testing as tm
 
 

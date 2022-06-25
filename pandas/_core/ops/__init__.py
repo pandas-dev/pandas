@@ -16,10 +16,6 @@ from pandas._typing import Level
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core import (
-    algorithms,
-    roperator,
-)
 from pandas._core.dtypes.common import (
     is_array_like,
     is_list_like,
@@ -29,6 +25,11 @@ from pandas._core.dtypes.generic import (
     ABCSeries,
 )
 from pandas._core.dtypes.missing import isna
+
+from pandas._core import (
+    algorithms,
+    roperator,
+)
 from pandas._core.ops.array_ops import (  # noqa:F401
     arithmetic_op,
     comp_method_OBJECT_ARRAY,

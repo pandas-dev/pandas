@@ -35,6 +35,7 @@ from pandas._core.dtypes.common import (
     is_numeric_dtype,
     is_timedelta64_dtype,
 )
+
 from pandas._core.reshape.concat import concat
 
 from pandas.io.formats.format import format_percentiles

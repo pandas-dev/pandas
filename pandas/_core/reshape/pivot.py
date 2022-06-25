@@ -21,7 +21,6 @@ from pandas.util._decorators import (
     Substitution,
 )
 
-import pandas._core.common as com
 from pandas._core.dtypes.cast import maybe_downcast_to_dtype
 from pandas._core.dtypes.common import (
     is_integer_dtype,
@@ -33,6 +32,8 @@ from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+
+import pandas._core.common as com
 from pandas._core.frame import _shared_docs
 from pandas._core.groupby import Grouper
 from pandas._core.indexes.api import (

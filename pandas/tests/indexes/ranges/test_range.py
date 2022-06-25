@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas._core.dtypes.common import ensure_platform_int
+
+import pandas as pd
 from pandas._core.indexes.api import (
     Float64Index,
     Index,

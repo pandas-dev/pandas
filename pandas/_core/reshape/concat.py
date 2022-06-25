@@ -28,11 +28,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.arrays.categorical import (
-    factorize_from_iterable,
-    factorize_from_iterables,
-)
-import pandas._core.common as com
 from pandas._core.dtypes.concat import concat_compat
 from pandas._core.dtypes.generic import (
     ABCDataFrame,
@@ -40,6 +35,12 @@ from pandas._core.dtypes.generic import (
 )
 from pandas._core.dtypes.inference import is_bool
 from pandas._core.dtypes.missing import isna
+
+from pandas._core.arrays.categorical import (
+    factorize_from_iterable,
+    factorize_from_iterables,
+)
+import pandas._core.common as com
 from pandas._core.indexes.api import (
     Index,
     MultiIndex,

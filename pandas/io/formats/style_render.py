@@ -25,6 +25,13 @@ from pandas._libs import lib
 from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
+from pandas._core.dtypes.common import (
+    is_complex,
+    is_float,
+    is_integer,
+)
+from pandas._core.dtypes.generic import ABCSeries
+
 from pandas import (
     DataFrame,
     Index,
@@ -34,12 +41,6 @@ from pandas import (
     isna,
 )
 import pandas._core.common as com
-from pandas._core.dtypes.common import (
-    is_complex,
-    is_float,
-    is_integer,
-)
-from pandas._core.dtypes.generic import ABCSeries
 from pandas.api.types import is_list_like
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")

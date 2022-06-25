@@ -11,6 +11,10 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 
+from pandas._core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas._core.dtypes.dtypes import PandasDtype
+from pandas._core.dtypes.missing import isna
+
 from pandas._core import (
     arraylike,
     nanops,
@@ -19,9 +23,6 @@ from pandas._core import (
 from pandas._core.arraylike import OpsMixin
 from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas._core.construction import ensure_wrapped_if_datetimelike
-from pandas._core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._core.dtypes.dtypes import PandasDtype
-from pandas._core.dtypes.missing import isna
 from pandas._core.strings.object_array import ObjectStringArrayMixin
 
 

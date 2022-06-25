@@ -9,18 +9,19 @@ import numpy as np
 
 from pandas._typing import type_t
 
+from pandas._core.dtypes.base import ExtensionDtype
+from pandas._core.dtypes.common import (
+    is_dtype_equal,
+    is_float,
+    pandas_dtype,
+)
+
 import pandas as pd
 from pandas._core import arraylike
 from pandas._core.arraylike import OpsMixin
 from pandas._core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
-)
-from pandas._core.dtypes.base import ExtensionDtype
-from pandas._core.dtypes.common import (
-    is_dtype_equal,
-    is_float,
-    pandas_dtype,
 )
 from pandas._core.indexers import check_array_indexer
 from pandas.api.extensions import (

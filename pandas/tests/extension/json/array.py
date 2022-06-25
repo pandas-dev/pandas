@@ -31,13 +31,14 @@ import numpy as np
 
 from pandas._typing import type_t
 
-import pandas as pd
 from pandas._core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas._core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     pandas_dtype,
 )
+
+import pandas as pd
 from pandas._core.indexers import unpack_tuple_and_ellipses
 from pandas.api.extensions import (
     ExtensionArray,

@@ -4,11 +4,12 @@ from __future__ import annotations
 from io import StringIO
 import warnings
 
+from pandas._core.dtypes.generic import ABCDataFrame
+
 from pandas import (
     get_option,
     option_context,
 )
-from pandas._core.dtypes.generic import ABCDataFrame
 
 
 def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover

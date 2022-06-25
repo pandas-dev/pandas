@@ -5,6 +5,11 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -14,10 +19,6 @@ from pandas import (
     Timedelta,
     Timestamp,
     bdate_range,
-)
-from pandas._core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
 )
 import pandas._testing as tm
 

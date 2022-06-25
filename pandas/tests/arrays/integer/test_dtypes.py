@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.generic import ABCIndex
+
 import pandas as pd
 from pandas._core.arrays.integer import (
     Int8Dtype,
     UInt32Dtype,
 )
-from pandas._core.dtypes.generic import ABCIndex
 import pandas._testing as tm
 
 

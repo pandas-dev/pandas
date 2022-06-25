@@ -38,15 +38,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas._core import nanops
-from pandas._core.arrays import (
-    ExtensionArray,
-    IntegerArray,
-    datetimelike as dtl,
-)
-from pandas._core.arrays._ranges import generate_regular_range
-import pandas._core.common as com
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.astype import astype_td64_unit_conversion
 from pandas._core.dtypes.common import (
     TD64NS_DTYPE,
@@ -64,6 +55,16 @@ from pandas._core.dtypes.generic import (
     ABCMultiIndex,
 )
 from pandas._core.dtypes.missing import isna
+
+from pandas._core import nanops
+from pandas._core.arrays import (
+    ExtensionArray,
+    IntegerArray,
+    datetimelike as dtl,
+)
+from pandas._core.arrays._ranges import generate_regular_range
+import pandas._core.common as com
+from pandas._core.construction import extract_array
 from pandas._core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:

@@ -16,6 +16,12 @@ from pandas._libs import (
 from pandas.compat.numpy import np_version_under1p20
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -40,11 +46,6 @@ from pandas._core.arrays import (
     IntervalArray,
     period_array,
 )
-from pandas._core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype,
-)
-from pandas._core.dtypes.dtypes import CategoricalDtype
 from pandas._core.internals.blocks import NumericBlock
 import pandas._testing as tm
 

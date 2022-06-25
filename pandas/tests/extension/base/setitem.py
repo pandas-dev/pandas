@@ -1,14 +1,15 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas._core.arrays import IntervalArray
 from pandas._core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PandasDtype,
     PeriodDtype,
 )
+
+import pandas as pd
+from pandas._core.arrays import IntervalArray
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
 

@@ -8,6 +8,8 @@ import pytest
 
 from pandas.errors import IndexingError
 
+from pandas._core.dtypes.common import is_list_like
+
 from pandas import (
     NA,
     Categorical,
@@ -29,7 +31,6 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-from pandas._core.dtypes.common import is_list_like
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay

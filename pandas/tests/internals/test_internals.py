@@ -11,6 +11,8 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.common import is_scalar
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -29,7 +31,6 @@ from pandas._core.arrays import (
     SparseArray,
     TimedeltaArray,
 )
-from pandas._core.dtypes.common import is_scalar
 from pandas._core.internals import (
     BlockManager,
     SingleBlockManager,

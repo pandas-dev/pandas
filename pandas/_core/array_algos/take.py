@@ -18,13 +18,14 @@ from pandas._typing import (
     npt,
 )
 
-from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.dtypes.cast import maybe_promote
 from pandas._core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_obj,
 )
 from pandas._core.dtypes.missing import na_value_for_dtype
+
+from pandas._core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     from pandas._core.arrays._mixins import NDArrayBackedExtensionArray

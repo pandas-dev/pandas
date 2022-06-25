@@ -68,25 +68,6 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
-from pandas._core import (
-    algorithms,
-    base,
-    common as com,
-    missing,
-    nanops,
-    ops,
-)
-from pandas._core.accessor import CachedAccessor
-from pandas._core.apply import SeriesApply
-from pandas._core.arrays import ExtensionArray
-from pandas._core.arrays.categorical import CategoricalAccessor
-from pandas._core.arrays.sparse import SparseAccessor
-from pandas._core.construction import (
-    create_series_with_explicit_dtype,
-    extract_array,
-    is_empty_data,
-    sanitize_array,
-)
 from pandas._core.dtypes.cast import (
     LossySetitemError,
     convert_dtypes,
@@ -111,6 +92,26 @@ from pandas._core.dtypes.missing import (
     na_value_for_dtype,
     notna,
     remove_na_arraylike,
+)
+
+from pandas._core import (
+    algorithms,
+    base,
+    common as com,
+    missing,
+    nanops,
+    ops,
+)
+from pandas._core.accessor import CachedAccessor
+from pandas._core.apply import SeriesApply
+from pandas._core.arrays import ExtensionArray
+from pandas._core.arrays.categorical import CategoricalAccessor
+from pandas._core.arrays.sparse import SparseAccessor
+from pandas._core.construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+    is_empty_data,
+    sanitize_array,
 )
 from pandas._core.generic import NDFrame
 from pandas._core.indexers import (

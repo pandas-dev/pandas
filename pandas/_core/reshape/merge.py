@@ -37,18 +37,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas import (
-    Categorical,
-    Index,
-    MultiIndex,
-    Series,
-)
-from pandas._core import groupby
-import pandas._core.algorithms as algos
-from pandas._core.arrays import ExtensionArray
-from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
-import pandas._core.common as com
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.cast import find_common_type
 from pandas._core.dtypes.common import (
     ensure_float64,
@@ -78,6 +66,19 @@ from pandas._core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
+
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    Series,
+)
+from pandas._core import groupby
+import pandas._core.algorithms as algos
+from pandas._core.arrays import ExtensionArray
+from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
+import pandas._core.common as com
+from pandas._core.construction import extract_array
 from pandas._core.frame import _merge_doc
 from pandas._core.internals import concatenate_managers
 from pandas._core.sorting import is_int64_overflow_possible

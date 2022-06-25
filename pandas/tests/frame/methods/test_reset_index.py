@@ -4,6 +4,11 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -18,10 +23,6 @@ from pandas import (
     Timestamp,
     cut,
     date_range,
-)
-from pandas._core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
 )
 import pandas._testing as tm
 

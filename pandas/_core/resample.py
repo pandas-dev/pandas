@@ -46,14 +46,15 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-import pandas._core.algorithms as algos
-from pandas._core.apply import ResamplerWindowApply
-from pandas._core.base import PandasObject
-import pandas._core.common as com
 from pandas._core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+
+import pandas._core.algorithms as algos
+from pandas._core.apply import ResamplerWindowApply
+from pandas._core.base import PandasObject
+import pandas._core.common as com
 from pandas._core.generic import (
     NDFrame,
     _shared_docs,

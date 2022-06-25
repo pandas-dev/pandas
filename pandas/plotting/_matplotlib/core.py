@@ -23,7 +23,6 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     is_categorical_dtype,
     is_extension_array_dtype,
@@ -48,6 +47,8 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+import pandas._core.common as com
 from pandas._core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing

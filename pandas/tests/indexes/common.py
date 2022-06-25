@@ -8,6 +8,12 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 
+from pandas._core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_integer_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -28,11 +34,6 @@ from pandas._core.api import (  # noqa:F401
     UInt64Index,
 )
 from pandas._core.arrays import BaseMaskedArray
-from pandas._core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-)
-from pandas._core.dtypes.dtypes import CategoricalDtype
 import pandas._testing as tm
 
 

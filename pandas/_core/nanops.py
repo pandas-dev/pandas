@@ -30,7 +30,6 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     is_any_int_dtype,
     is_bool_dtype,
@@ -53,6 +52,8 @@ from pandas._core.dtypes.missing import (
     na_value_for_dtype,
     notna,
 )
+
+from pandas._core.construction import extract_array
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None

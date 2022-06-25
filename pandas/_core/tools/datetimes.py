@@ -44,15 +44,6 @@ from pandas._typing import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core import algorithms
-from pandas._core.algorithms import unique
-from pandas._core.arrays.base import ExtensionArray
-from pandas._core.arrays.datetimes import (
-    maybe_convert_dtype,
-    objects_to_datetime64ns,
-    tz_to_dtype,
-)
-from pandas._core.construction import extract_array
 from pandas._core.dtypes.common import (
     ensure_object,
     is_datetime64_dtype,
@@ -70,6 +61,16 @@ from pandas._core.dtypes.generic import (
     ABCSeries,
 )
 from pandas._core.dtypes.missing import notna
+
+from pandas._core import algorithms
+from pandas._core.algorithms import unique
+from pandas._core.arrays.base import ExtensionArray
+from pandas._core.arrays.datetimes import (
+    maybe_convert_dtype,
+    objects_to_datetime64ns,
+    tz_to_dtype,
+)
+from pandas._core.construction import extract_array
 from pandas._core.indexes.base import Index
 from pandas._core.indexes.datetimes import DatetimeIndex
 from pandas.arrays import (

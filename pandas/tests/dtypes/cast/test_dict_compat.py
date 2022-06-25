@@ -1,7 +1,8 @@
 import numpy as np
 
-from pandas import Timestamp
 from pandas._core.dtypes.cast import dict_compat
+
+from pandas import Timestamp
 
 
 def test_dict_compat():

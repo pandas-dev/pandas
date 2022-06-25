@@ -31,13 +31,6 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-import pandas._core.algorithms as algos
-from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas._core.arrays.sparse import SparseDtype
-from pandas._core.construction import (
-    ensure_wrapped_if_datetimelike,
-    extract_array,
-)
 from pandas._core.dtypes.cast import infer_dtype_from_scalar
 from pandas._core.dtypes.common import (
     ensure_platform_int,
@@ -53,6 +46,14 @@ from pandas._core.dtypes.generic import (
 from pandas._core.dtypes.missing import (
     array_equals,
     isna,
+)
+
+import pandas._core.algorithms as algos
+from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas._core.arrays.sparse import SparseDtype
+from pandas._core.construction import (
+    ensure_wrapped_if_datetimelike,
+    extract_array,
 )
 from pandas._core.indexers import maybe_convert_indices
 from pandas._core.indexes.api import (

@@ -14,9 +14,10 @@ from pandas._typing import (
 )
 from pandas.compat import np_version_under1p20
 
-from pandas._core.arrays import ExtensionArray
 from pandas._core.dtypes.cast import infer_dtype_from
 from pandas._core.dtypes.common import is_list_like
+
+from pandas._core.arrays import ExtensionArray
 
 
 def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) -> None:

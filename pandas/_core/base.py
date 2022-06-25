@@ -38,6 +38,23 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_dict_like,
+    is_extension_array_dtype,
+    is_object_dtype,
+    is_scalar,
+)
+from pandas._core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
+from pandas._core.dtypes.missing import (
+    isna,
+    remove_na_arraylike,
+)
+
 from pandas._core import (
     algorithms,
     nanops,
@@ -55,22 +72,6 @@ from pandas._core.construction import (
     create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
-)
-from pandas._core.dtypes.common import (
-    is_categorical_dtype,
-    is_dict_like,
-    is_extension_array_dtype,
-    is_object_dtype,
-    is_scalar,
-)
-from pandas._core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndex,
-    ABCSeries,
-)
-from pandas._core.dtypes.missing import (
-    isna,
-    remove_na_arraylike,
 )
 
 if TYPE_CHECKING:

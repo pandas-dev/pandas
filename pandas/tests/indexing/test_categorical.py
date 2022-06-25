@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import is_categorical_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -14,7 +16,6 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
-from pandas._core.dtypes.common import is_categorical_dtype
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 

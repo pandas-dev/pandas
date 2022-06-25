@@ -1,8 +1,9 @@
 import pytest
 
+import pandas._core.dtypes.concat as _concat
+
 import pandas as pd
 from pandas import Series
-import pandas._core.dtypes.concat as _concat
 import pandas._testing as tm
 
 

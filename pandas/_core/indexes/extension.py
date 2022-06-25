@@ -19,9 +19,10 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas._core.dtypes.generic import ABCDataFrame
+
 from pandas._core.arrays import IntervalArray
 from pandas._core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas._core.dtypes.generic import ABCDataFrame
 from pandas._core.indexes.base import Index
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")

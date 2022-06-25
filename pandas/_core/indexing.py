@@ -22,12 +22,6 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core import algorithms as algos
-import pandas._core.common as com
-from pandas._core.construction import (
-    array as pd_array,
-    extract_array,
-)
 from pandas._core.dtypes.cast import can_hold_element
 from pandas._core.dtypes.common import (
     is_array_like,
@@ -49,6 +43,13 @@ from pandas._core.dtypes.generic import (
 from pandas._core.dtypes.missing import (
     infer_fill_value,
     isna,
+)
+
+from pandas._core import algorithms as algos
+import pandas._core.common as com
+from pandas._core.construction import (
+    array as pd_array,
+    extract_array,
 )
 from pandas._core.indexers import (
     check_array_indexer,

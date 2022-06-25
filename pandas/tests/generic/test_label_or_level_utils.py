@@ -1,7 +1,8 @@
 import pytest
 
-import pandas as pd
 from pandas._core.dtypes.missing import array_equivalent
+
+import pandas as pd
 
 
 # Fixtures

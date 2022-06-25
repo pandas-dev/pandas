@@ -40,9 +40,6 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas import DataFrame
-from pandas._core import algorithms
-from pandas._core.arrays import Categorical
 from pandas._core.dtypes.astype import astype_nansafe
 from pandas._core.dtypes.common import (
     ensure_object,
@@ -61,6 +58,10 @@ from pandas._core.dtypes.common import (
 )
 from pandas._core.dtypes.dtypes import CategoricalDtype
 from pandas._core.dtypes.missing import isna
+
+from pandas import DataFrame
+from pandas._core import algorithms
+from pandas._core.arrays import Categorical
 from pandas._core.indexes.api import (
     Index,
     MultiIndex,

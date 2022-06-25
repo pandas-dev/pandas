@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import numpy as np
 
+from pandas._core.dtypes.common import is_float_dtype
+from pandas._core.dtypes.dtypes import register_extension_dtype
+
 from pandas._core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas._core.dtypes.common import is_float_dtype
-from pandas._core.dtypes.dtypes import register_extension_dtype
 
 
 class FloatingDtype(NumericDtype):

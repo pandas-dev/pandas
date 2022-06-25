@@ -15,9 +15,10 @@ import numpy as np
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.api import is_list_like
+
 import pandas as pd
 from pandas import Series
-from pandas._core.dtypes.api import is_list_like
 import pandas._testing as tm
 
 if TYPE_CHECKING:

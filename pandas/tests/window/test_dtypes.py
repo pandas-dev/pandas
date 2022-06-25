@@ -3,12 +3,13 @@ import pytest
 
 from pandas.errors import DataError
 
+from pandas._core.dtypes.common import pandas_dtype
+
 from pandas import (
     NA,
     DataFrame,
     Series,
 )
-from pandas._core.dtypes.common import pandas_dtype
 import pandas._testing as tm
 
 # gh-12373 : rolling functions error on float32 data

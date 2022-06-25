@@ -1,6 +1,12 @@
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import (
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+)
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -17,11 +23,6 @@ from pandas._core.arrays import (
     SparseArray,
     TimedeltaArray,
 )
-from pandas._core.dtypes.common import (
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-)
-from pandas._core.dtypes.dtypes import DatetimeTZDtype
 import pandas._testing as tm
 
 

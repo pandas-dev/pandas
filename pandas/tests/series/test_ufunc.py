@@ -4,8 +4,9 @@ import string
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas._core.dtypes.common import is_dtype_equal
+
+import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 

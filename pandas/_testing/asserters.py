@@ -17,6 +17,21 @@ from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
 from pandas.util._exceptions import find_stack_level
 
+from pandas._core.dtypes.common import (
+    is_bool,
+    is_categorical_dtype,
+    is_extension_array_dtype,
+    is_interval_dtype,
+    is_number,
+    is_numeric_dtype,
+    needs_i8_conversion,
+)
+from pandas._core.dtypes.dtypes import (
+    CategoricalDtype,
+    PandasDtype,
+)
+from pandas._core.dtypes.missing import array_equivalent
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -40,20 +55,6 @@ from pandas._core.arrays import (
 )
 from pandas._core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas._core.arrays.string_ import StringDtype
-from pandas._core.dtypes.common import (
-    is_bool,
-    is_categorical_dtype,
-    is_extension_array_dtype,
-    is_interval_dtype,
-    is_number,
-    is_numeric_dtype,
-    needs_i8_conversion,
-)
-from pandas._core.dtypes.dtypes import (
-    CategoricalDtype,
-    PandasDtype,
-)
-from pandas._core.dtypes.missing import array_equivalent
 from pandas._core.indexes.api import safe_sort_index
 
 from pandas.io.formats.printing import pprint_thing

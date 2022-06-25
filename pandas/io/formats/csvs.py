@@ -35,6 +35,7 @@ from pandas._core.dtypes.generic import (
     ABCPeriodIndex,
 )
 from pandas._core.dtypes.missing import notna
+
 from pandas._core.indexes.api import Index
 
 from pandas.io.common import get_handle

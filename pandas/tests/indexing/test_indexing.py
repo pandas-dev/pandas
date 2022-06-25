@@ -9,6 +9,11 @@ import pytest
 
 from pandas.errors import IndexingError
 
+from pandas._core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -20,10 +25,6 @@ from pandas import (
     timedelta_range,
 )
 from pandas._core.api import Float64Index
-from pandas._core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-)
 import pandas._testing as tm
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj

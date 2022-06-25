@@ -40,12 +40,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import rewrite_exception
 
-from pandas._core.algorithms import unique
-from pandas._core.arrays.interval import (
-    IntervalArray,
-    _interval_shared_docs,
-)
-import pandas._core.common as com
 from pandas._core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
@@ -69,6 +63,13 @@ from pandas._core.dtypes.common import (
 )
 from pandas._core.dtypes.dtypes import IntervalDtype
 from pandas._core.dtypes.missing import is_valid_na_for_dtype
+
+from pandas._core.algorithms import unique
+from pandas._core.arrays.interval import (
+    IntervalArray,
+    _interval_shared_docs,
+)
+import pandas._core.common as com
 from pandas._core.indexers import is_valid_positional_slice
 import pandas._core.indexes.base as ibase
 from pandas._core.indexes.base import (

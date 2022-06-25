@@ -15,6 +15,8 @@ from pandas._typing import npt
 from pandas.compat.chainmap import DeepChainMap
 from pandas.errors import UndefinedVariableError
 
+from pandas._core.dtypes.common import is_list_like
+
 import pandas._core.common as com
 from pandas._core.computation import (
     expr,
@@ -25,7 +27,6 @@ from pandas._core.computation.common import ensure_decoded
 from pandas._core.computation.expr import BaseExprVisitor
 from pandas._core.computation.ops import is_term
 from pandas._core.construction import extract_array
-from pandas._core.dtypes.common import is_list_like
 from pandas._core.indexes.base import Index
 
 from pandas.io.formats.printing import (

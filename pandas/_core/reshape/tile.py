@@ -18,14 +18,6 @@ from pandas._libs import (
 from pandas._libs.lib import infer_dtype
 from pandas._typing import IntervalLeftRight
 
-from pandas import (
-    Categorical,
-    Index,
-    IntervalIndex,
-    to_datetime,
-    to_timedelta,
-)
-import pandas._core.algorithms as algos
 from pandas._core.dtypes.common import (
     DT64NS_DTYPE,
     ensure_platform_int,
@@ -43,6 +35,15 @@ from pandas._core.dtypes.common import (
 )
 from pandas._core.dtypes.generic import ABCSeries
 from pandas._core.dtypes.missing import isna
+
+from pandas import (
+    Categorical,
+    Index,
+    IntervalIndex,
+    to_datetime,
+    to_timedelta,
+)
+import pandas._core.algorithms as algos
 import pandas._core.nanops as nanops
 
 

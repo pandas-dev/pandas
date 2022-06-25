@@ -10,10 +10,11 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
-import pandas as pd
-import pandas._core.common as com
 from pandas._core.dtypes.common import is_dict_like
 from pandas._core.dtypes.missing import remove_na_arraylike
+
+import pandas as pd
+import pandas._core.common as com
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (

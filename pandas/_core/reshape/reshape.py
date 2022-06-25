@@ -11,9 +11,6 @@ from pandas._typing import npt
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
-import pandas._core.algorithms as algos
-from pandas._core.arrays.categorical import factorize_from_iterable
-from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.dtypes.cast import maybe_promote
 from pandas._core.dtypes.common import (
     ensure_platform_int,
@@ -24,6 +21,10 @@ from pandas._core.dtypes.common import (
 )
 from pandas._core.dtypes.dtypes import ExtensionDtype
 from pandas._core.dtypes.missing import notna
+
+import pandas._core.algorithms as algos
+from pandas._core.arrays.categorical import factorize_from_iterable
+from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.frame import DataFrame
 from pandas._core.indexes.api import (
     Index,

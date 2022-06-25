@@ -23,9 +23,6 @@ from pandas.compat import (
 )
 from pandas.util._decorators import doc
 
-from pandas._core.algorithms import resolve_na_sentinel
-from pandas._core.arraylike import OpsMixin
-from pandas._core.arrays.base import ExtensionArray
 from pandas._core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -34,6 +31,10 @@ from pandas._core.dtypes.common import (
     is_scalar,
 )
 from pandas._core.dtypes.missing import isna
+
+from pandas._core.algorithms import resolve_na_sentinel
+from pandas._core.arraylike import OpsMixin
+from pandas._core.arrays.base import ExtensionArray
 from pandas._core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,

@@ -26,12 +26,13 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-import pandas._core.common as common
 from pandas._core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_numeric_dtype,
 )
 from pandas._core.dtypes.missing import isna
+
+import pandas._core.common as common
 from pandas._core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,

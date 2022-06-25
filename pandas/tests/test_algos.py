@@ -11,6 +11,15 @@ from pandas._libs import (
 )
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.common import (
+    is_bool_dtype,
+    is_complex_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+)
+from pandas._core.dtypes.dtypes import CategoricalDtype as CDT
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -34,14 +43,6 @@ from pandas import (
 import pandas._core.algorithms as algos
 from pandas._core.arrays import DatetimeArray
 import pandas._core.common as com
-from pandas._core.dtypes.common import (
-    is_bool_dtype,
-    is_complex_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-)
-from pandas._core.dtypes.dtypes import CategoricalDtype as CDT
 import pandas._testing as tm
 
 

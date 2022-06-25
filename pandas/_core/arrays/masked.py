@@ -32,23 +32,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas._core import (
-    algorithms as algos,
-    arraylike,
-    missing,
-    nanops,
-    ops,
-)
-from pandas._core.algorithms import (
-    factorize_array,
-    isin,
-    take,
-)
-from pandas._core.array_algos import masked_reductions
-from pandas._core.array_algos.quantile import quantile_with_mask
-from pandas._core.arraylike import OpsMixin
-from pandas._core.arrays import ExtensionArray
-from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.dtypes.astype import astype_nansafe
 from pandas._core.dtypes.base import ExtensionDtype
 from pandas._core.dtypes.common import (
@@ -72,6 +55,24 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+from pandas._core import (
+    algorithms as algos,
+    arraylike,
+    missing,
+    nanops,
+    ops,
+)
+from pandas._core.algorithms import (
+    factorize_array,
+    isin,
+    take,
+)
+from pandas._core.array_algos import masked_reductions
+from pandas._core.array_algos.quantile import quantile_with_mask
+from pandas._core.arraylike import OpsMixin
+from pandas._core.arrays import ExtensionArray
+from pandas._core.construction import ensure_wrapped_if_datetimelike
 from pandas._core.indexers import check_array_indexer
 from pandas._core.ops import invalid_comparison
 

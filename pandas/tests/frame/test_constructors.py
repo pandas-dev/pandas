@@ -20,6 +20,14 @@ import pytz
 
 import pandas.util._test_decorators as td
 
+from pandas._core.dtypes.common import is_integer_dtype
+from pandas._core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PandasDtype,
+    PeriodDtype,
+)
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -39,13 +47,6 @@ from pandas import (
     isna,
 )
 from pandas._core.api import Int64Index
-from pandas._core.dtypes.common import is_integer_dtype
-from pandas._core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    IntervalDtype,
-    PandasDtype,
-    PeriodDtype,
-)
 import pandas._testing as tm
 from pandas.arrays import (
     DatetimeArray,

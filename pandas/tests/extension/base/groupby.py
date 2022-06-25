@@ -1,7 +1,8 @@
 import pytest
 
-import pandas as pd
 from pandas._core.dtypes.common import is_numeric_dtype
+
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
 

@@ -21,16 +21,17 @@ from pandas._typing import (
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
 
-from pandas import (
-    Index,
-    MultiIndex,
-)
 from pandas._core.dtypes.common import (
     is_categorical_dtype,
     pandas_dtype,
 )
 from pandas._core.dtypes.concat import union_categoricals
 from pandas._core.dtypes.dtypes import ExtensionDtype
+
+from pandas import (
+    Index,
+    MultiIndex,
+)
 from pandas._core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (

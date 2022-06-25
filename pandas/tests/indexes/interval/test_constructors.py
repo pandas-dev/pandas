@@ -3,6 +3,9 @@ from functools import partial
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import is_categorical_dtype
+from pandas._core.dtypes.dtypes import IntervalDtype
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -20,8 +23,6 @@ from pandas._core.api import (
 )
 from pandas._core.arrays import IntervalArray
 import pandas._core.common as com
-from pandas._core.dtypes.common import is_categorical_dtype
-from pandas._core.dtypes.dtypes import IntervalDtype
 import pandas._testing as tm
 
 

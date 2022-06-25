@@ -10,6 +10,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.common import is_unsigned_integer_dtype
+
 from pandas import (
     NA,
     Categorical,
@@ -33,7 +35,6 @@ from pandas._core.api import (
     Int64Index,
     UInt64Index,
 )
-from pandas._core.dtypes.common import is_unsigned_integer_dtype
 import pandas._testing as tm
 
 

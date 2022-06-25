@@ -34,7 +34,6 @@ from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.algorithms import unique
 from pandas._core.dtypes.common import (
     is_datetime64_dtype,
     is_period_dtype,
@@ -44,6 +43,8 @@ from pandas._core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
+
+from pandas._core.algorithms import unique
 
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions

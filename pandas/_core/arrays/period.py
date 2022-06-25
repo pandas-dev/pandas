@@ -52,10 +52,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-import pandas._core.algorithms as algos
-from pandas._core.arrays import datetimelike as dtl
-from pandas._core.arrays.base import ExtensionArray
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
@@ -78,6 +74,11 @@ from pandas._core.dtypes.missing import (
     isna,
     notna,
 )
+
+import pandas._core.algorithms as algos
+from pandas._core.arrays import datetimelike as dtl
+from pandas._core.arrays.base import ExtensionArray
+import pandas._core.common as com
 
 if TYPE_CHECKING:
 

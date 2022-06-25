@@ -48,34 +48,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas._core import (
-    arraylike,
-    ops,
-)
-from pandas._core.accessor import (
-    PandasDelegate,
-    delegate_names,
-)
-import pandas._core.algorithms as algorithms
-from pandas._core.algorithms import (
-    factorize,
-    take_nd,
-    unique1d,
-)
-from pandas._core.arrays._mixins import (
-    NDArrayBackedExtensionArray,
-    ravel_compat,
-)
-from pandas._core.base import (
-    ExtensionArray,
-    NoNewAttributesMixin,
-    PandasObject,
-)
-import pandas._core.common as com
-from pandas._core.construction import (
-    extract_array,
-    sanitize_array,
-)
 from pandas._core.dtypes.cast import coerce_indexer_dtype
 from pandas._core.dtypes.common import (
     ensure_int64,
@@ -105,6 +77,35 @@ from pandas._core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     notna,
+)
+
+from pandas._core import (
+    arraylike,
+    ops,
+)
+from pandas._core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
+import pandas._core.algorithms as algorithms
+from pandas._core.algorithms import (
+    factorize,
+    take_nd,
+    unique1d,
+)
+from pandas._core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+    ravel_compat,
+)
+from pandas._core.base import (
+    ExtensionArray,
+    NoNewAttributesMixin,
+    PandasObject,
+)
+import pandas._core.common as com
+from pandas._core.construction import (
+    extract_array,
+    sanitize_array,
 )
 from pandas._core.ops.common import unpack_zerodim_and_defer
 from pandas._core.sorting import nargsort

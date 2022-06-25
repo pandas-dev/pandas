@@ -10,6 +10,17 @@ import numpy as np
 
 from pandas.util._exceptions import find_stack_level
 
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_integer_dtype,
+    is_list_like,
+    is_period_dtype,
+    is_timedelta64_dtype,
+)
+from pandas._core.dtypes.generic import ABCSeries
+
 from pandas._core.accessor import (
     PandasDelegate,
     delegate_names,
@@ -23,16 +34,6 @@ from pandas._core.base import (
     NoNewAttributesMixin,
     PandasObject,
 )
-from pandas._core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_list_like,
-    is_period_dtype,
-    is_timedelta64_dtype,
-)
-from pandas._core.dtypes.generic import ABCSeries
 from pandas._core.indexes.datetimes import DatetimeIndex
 from pandas._core.indexes.timedeltas import TimedeltaIndex
 

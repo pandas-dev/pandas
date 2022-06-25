@@ -2,6 +2,8 @@ from datetime import timedelta
 
 import numpy as np
 
+from pandas._core.dtypes.dtypes import DatetimeTZDtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -9,7 +11,6 @@ from pandas import (
     date_range,
     option_context,
 )
-from pandas._core.dtypes.dtypes import DatetimeTZDtype
 import pandas._testing as tm
 
 

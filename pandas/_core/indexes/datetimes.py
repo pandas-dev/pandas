@@ -43,11 +43,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas._core.arrays.datetimes import (
-    DatetimeArray,
-    tz_to_dtype,
-)
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     DT64NS_DTYPE,
     is_datetime64_dtype,
@@ -55,6 +50,12 @@ from pandas._core.dtypes.common import (
     is_scalar,
 )
 from pandas._core.dtypes.missing import is_valid_na_for_dtype
+
+from pandas._core.arrays.datetimes import (
+    DatetimeArray,
+    tz_to_dtype,
+)
+import pandas._core.common as com
 from pandas._core.indexes.base import (
     Index,
     get_unanimous_names,

@@ -3,6 +3,11 @@ import re
 import numpy as np
 import pytest
 
+from pandas._core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+)
+
 from pandas import (
     CategoricalIndex,
     Index,
@@ -11,10 +16,6 @@ from pandas import (
     Timedelta,
     Timestamp,
     interval_range,
-)
-from pandas._core.dtypes.dtypes import (
-    CategoricalDtype,
-    IntervalDtype,
 )
 import pandas._testing as tm
 

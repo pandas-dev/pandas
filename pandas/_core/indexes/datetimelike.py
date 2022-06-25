@@ -37,6 +37,14 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas._core.dtypes.common import (
+    is_categorical_dtype,
+    is_dtype_equal,
+    is_integer,
+    is_list_like,
+)
+from pandas._core.dtypes.concat import concat_compat
+
 from pandas._core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -45,13 +53,6 @@ from pandas._core.arrays import (
 )
 from pandas._core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas._core.common as com
-from pandas._core.dtypes.common import (
-    is_categorical_dtype,
-    is_dtype_equal,
-    is_integer,
-    is_list_like,
-)
-from pandas._core.dtypes.concat import concat_compat
 import pandas._core.indexes.base as ibase
 from pandas._core.indexes.base import (
     Index,

@@ -21,6 +21,7 @@ from pandas._core.dtypes.missing import (
     isna,
     remove_na_arraylike,
 )
+
 from pandas._core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing

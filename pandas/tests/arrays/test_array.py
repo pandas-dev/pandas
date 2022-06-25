@@ -5,12 +5,13 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._core.dtypes.base import _registry as registry
+
 import pandas as pd
 from pandas._core.arrays import (
     PandasArray,
     period_array,
 )
-from pandas._core.dtypes.base import _registry as registry
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
 from pandas.arrays import (

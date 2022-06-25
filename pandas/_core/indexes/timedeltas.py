@@ -11,14 +11,15 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import DtypeObj
 
-from pandas._core.arrays import datetimelike as dtl
-from pandas._core.arrays.timedeltas import TimedeltaArray
-import pandas._core.common as com
 from pandas._core.dtypes.common import (
     TD64NS_DTYPE,
     is_scalar,
     is_timedelta64_dtype,
 )
+
+from pandas._core.arrays import datetimelike as dtl
+from pandas._core.arrays.timedeltas import TimedeltaArray
+import pandas._core.common as com
 from pandas._core.indexes.base import (
     Index,
     maybe_extract_name,
