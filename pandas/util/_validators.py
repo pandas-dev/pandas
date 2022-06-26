@@ -7,6 +7,8 @@ from __future__ import annotations
 from typing import (
     Iterable,
     Sequence,
+    TypeVar,
+    overload,
 )
 import warnings
 
@@ -18,6 +20,9 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
 )
+
+BoolishT = TypeVar("BoolishT", bool, int)
+BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
@@ -217,7 +222,9 @@ def validate_args_and_kwargs(
     validate_kwargs(fname, kwargs, compat_args)
 
 
-def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
+def validate_bool_kwarg(
+    value: BoolishNoneT, arg_name, none_allowed=True, int_allowed=False
+) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
 
@@ -426,12 +433,22 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     return q_arr
 
 
+@overload
+def validate_ascending(ascending: BoolishT) -> BoolishT:
+    ...
+
+
+@overload
+def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
+    ...
+
+
 def validate_ascending(
-    ascending: bool | int | Sequence[bool | int] = True,
-):
+    ascending: bool | int | Sequence[BoolishT],
+) -> bool | int | list[BoolishT]:
     """Validate ``ascending`` kwargs for ``sort_index`` method."""
     kwargs = {"none_allowed": False, "int_allowed": True}
-    if not isinstance(ascending, (list, tuple)):
+    if not isinstance(ascending, Sequence):
         return validate_bool_kwarg(ascending, "ascending", **kwargs)
 
     return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]

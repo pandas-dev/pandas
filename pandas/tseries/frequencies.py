@@ -331,7 +331,7 @@ class _FrequencyInferer:
     def rep_stamp(self) -> Timestamp:
         return Timestamp(self.i8values[0])
 
-    def month_position_check(self):
+    def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
@@ -394,7 +394,11 @@ class _FrequencyInferer:
             return None
 
         pos_check = self.month_position_check()
-        return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
+        #  error: Argument 1 to "get" of "dict" has incompatible type
+        # "Optional[str]"; expected "str"
+        return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(
+            pos_check  # type: ignore[arg-type]
+        )
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -404,13 +408,21 @@ class _FrequencyInferer:
             return None
 
         pos_check = self.month_position_check()
-        return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
+        # error: Argument 1 to "get" of "dict" has incompatible type
+        # "Optional[str]"; expected "str"
+        return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(
+            pos_check  # type: ignore[arg-type]
+        )
 
     def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
-        return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
+        # error: Argument 1 to "get" of "dict" has incompatible type
+        # "Optional[str]"; expected "str"
+        return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(
+            pos_check  # type: ignore[arg-type]
+        )
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily
