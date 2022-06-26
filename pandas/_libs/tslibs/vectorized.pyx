@@ -19,7 +19,6 @@ cnp.import_array()
 
 from .dtypes import Resolution
 
-from .ccalendar cimport DAY_NANOS
 from .dtypes cimport (
     c_Resolution,
     periods_per_day,
@@ -31,7 +30,6 @@ from .nattype cimport (
 from .np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    dt64_to_dtstruct,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
 )
@@ -100,7 +98,8 @@ def ints_to_pydatetime(
     tzinfo tz=None,
     BaseOffset freq=None,
     bint fold=False,
-    str box="datetime"
+    str box="datetime",
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     # stamps is int64, arbitrary ndim
     """
@@ -126,12 +125,14 @@ def ints_to_pydatetime(
         * If time, convert to datetime.time
         * If Timestamp, convert to pandas.Timestamp
 
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
+
     Returns
     -------
     ndarray[object] of type specified by box
     """
     cdef:
-        Localizer info = Localizer(tz, reso=NPY_FR_ns)
+        Localizer info = Localizer(tz, reso=reso)
         int64_t utc_val, local_val
         Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
@@ -179,10 +180,12 @@ def ints_to_pydatetime(
                 # find right representation of dst etc in pytz timezone
                 new_tz = tz._tzinfos[tz._transition_info[pos]]
 
-            dt64_to_dtstruct(local_val, &dts)
+            pandas_datetime_to_datetimestruct(local_val, reso, &dts)
 
             if use_ts:
-                res_val = create_timestamp_from_ts(utc_val, dts, new_tz, freq, fold)
+                res_val = create_timestamp_from_ts(
+                    utc_val, dts, new_tz, freq, fold, reso=reso
+                )
             elif use_pydt:
                 res_val = datetime(
                     dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us,
