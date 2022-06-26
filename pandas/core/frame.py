@@ -5545,7 +5545,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
