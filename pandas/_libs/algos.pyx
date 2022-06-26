@@ -186,6 +186,47 @@ def is_lexsorted(list_of_arrays: list) -> bint:
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def lexsort_depth(list_of_arrays: list) -> int:
+    cdef:
+        Py_ssize_t i, depth
+        Py_ssize_t n, nlevels
+        int64_t k, cur, pre
+        ndarray arr
+
+    nlevels = len(list_of_arrays)
+    n = len(list_of_arrays[0])
+
+    cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
+    for i in range(nlevels):
+        arr = list_of_arrays[i]
+        assert arr.dtype.name == 'int64'
+        vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
+
+    # Assume uniqueness??
+    with nogil:
+        depth = nlevels
+        for i in range(1, n):
+            for k in range(nlevels):
+                if k >= depth:
+                    # No need to check levels for which we know input isn't lexsorted.
+                    break
+                cur = vecs[k][i]
+                pre = vecs[k][i -1]
+                if cur == pre:
+                    continue
+                elif cur > pre:
+                    break
+                else:
+                    depth = min(k, depth)
+            if depth == 0:
+                # Depth can't increase, so if we've reached 0, break outer loop.
+                break
+    free(vecs)
+    return depth
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):

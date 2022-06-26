@@ -34,6 +34,7 @@ def unique_deltas(
     arr: np.ndarray,  # const int64_t[:]
 ) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=1]
 def is_lexsorted(list_of_arrays: list[npt.NDArray[np.int64]]) -> bool: ...
+def lexsort_depth(list_of_arrays: list[npt.NDArray[np.int64]]) -> int: ...
 def groupsort_indexer(
     index: np.ndarray,  # const int64_t[:]
     ngroups: int,
