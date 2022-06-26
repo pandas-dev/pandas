@@ -78,7 +78,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
             )
 
 
-def validate_args(fname, args, max_fname_arg_count, compat_args):
+def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     """
     Checks whether the length of the `*args` argument passed into a function
     has at most `len(compat_args)` arguments and whether or not all of these
@@ -132,7 +132,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
-def validate_kwargs(fname, kwargs, compat_args):
+def validate_kwargs(fname, kwargs, compat_args) -> None:
     """
     Checks whether parameters passed to the **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
@@ -159,7 +159,9 @@ def validate_kwargs(fname, kwargs, compat_args):
     _check_for_default_values(fname, kwds, compat_args)
 
 
-def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_args):
+def validate_args_and_kwargs(
+    fname, args, kwargs, max_fname_arg_count, compat_args
+) -> None:
     """
     Checks whether parameters passed to the *args and **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`

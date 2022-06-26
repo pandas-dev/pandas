@@ -314,12 +314,12 @@ class _FrequencyInferer:
             return _maybe_add_count("N", delta)
 
     @cache_readonly
-    def day_deltas(self):
+    def day_deltas(self) -> list[int]:
         ppd = periods_per_day(self._reso)
         return [x / ppd for x in self.deltas]
 
     @cache_readonly
-    def hour_deltas(self):
+    def hour_deltas(self) -> list[int]:
         pph = periods_per_day(self._reso) // 24
         return [x / pph for x in self.deltas]
 
@@ -328,7 +328,7 @@ class _FrequencyInferer:
         return build_field_sarray(self.i8values, reso=self._reso)
 
     @cache_readonly
-    def rep_stamp(self):
+    def rep_stamp(self) -> Timestamp:
         return Timestamp(self.i8values[0])
 
     def month_position_check(self):

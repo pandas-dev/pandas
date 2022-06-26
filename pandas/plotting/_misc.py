@@ -1,6 +1,17 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
+from typing import (
+    TYPE_CHECKING,
+    Iterator,
+)
 
 from pandas.plotting._core import _get_plot_backend
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+    import numpy as np
 
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
@@ -27,7 +38,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     )
 
 
-def register():
+def register() -> None:
     """
     Register pandas formatters and converters with matplotlib.
 
@@ -49,7 +60,7 @@ def register():
     plot_backend.register()
 
 
-def deregister():
+def deregister() -> None:
     """
     Remove pandas formatters and converters.
 
@@ -81,7 +92,7 @@ def scatter_matrix(
     hist_kwds=None,
     range_padding=0.05,
     **kwargs,
-):
+) -> np.ndarray:
     """
     Draw a matrix of scatter plots.
 
@@ -156,7 +167,7 @@ def scatter_matrix(
     )
 
 
-def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
+def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds) -> Axes:
     """
     Plot a multidimensional dataset in 2D.
 
@@ -239,7 +250,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
 def andrews_curves(
     frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
-):
+) -> Axes:
     """
     Generate a matplotlib plot of Andrews curves, for visualising clusters of
     multivariate data.
@@ -297,7 +308,7 @@ def andrews_curves(
     )
 
 
-def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
+def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds) -> Figure:
     """
     Bootstrap plot on mean, median and mid-range statistics.
 
@@ -364,7 +375,7 @@ def parallel_coordinates(
     axvlines_kwds=None,
     sort_labels=False,
     **kwargs,
-):
+) -> Axes:
     """
     Parallel coordinates plotting.
 
@@ -430,7 +441,7 @@ def parallel_coordinates(
     )
 
 
-def lag_plot(series, lag=1, ax=None, **kwds):
+def lag_plot(series, lag=1, ax=None, **kwds) -> Axes:
     """
     Lag plot for time series.
 
@@ -474,7 +485,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
-def autocorrelation_plot(series, ax=None, **kwargs):
+def autocorrelation_plot(series, ax=None, **kwargs) -> Axes:
     """
     Autocorrelation plot for time series.
 
@@ -531,21 +542,21 @@ class _Options(dict):
             raise ValueError(f"{key} is not a valid pandas plotting option")
         return super().__getitem__(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         key = self._get_canonical_key(key)
-        return super().__setitem__(key, value)
+        super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
             raise ValueError(f"Cannot remove default parameter {key}")
-        return super().__delitem__(key)
+        super().__delitem__(key)
 
     def __contains__(self, key) -> bool:
         key = self._get_canonical_key(key)
         return super().__contains__(key)
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the option store to its initial state
 
@@ -560,7 +571,7 @@ class _Options(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value):
+    def use(self, key, value) -> Iterator[_Options]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.
