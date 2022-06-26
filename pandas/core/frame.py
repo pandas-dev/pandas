@@ -1036,7 +1036,8 @@ class DataFrame(NDFrame, OpsMixin):
         value = buf.getvalue()
         repr_width = max(len(line) for line in value.split("\n"))
 
-        return repr_width < width
+        # error: Unsupported operand types for < ("int" and "None")
+        return repr_width < width  # type: ignore[operator]
 
     def _info_repr(self) -> bool:
         """

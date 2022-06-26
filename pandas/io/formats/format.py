@@ -22,10 +22,12 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Sequence,
     cast,
+    overload,
 )
 from unicodedata import east_asian_width
 
@@ -1203,12 +1205,15 @@ def save_to_buffer(
     with get_buffer(buf, encoding=encoding) as f:
         f.write(string)
         if buf is None:
-            return f.getvalue()
+            # error: "WriteBuffer[str]" has no attribute "getvalue"
+            return f.getvalue()  # type: ignore[attr-defined]
         return None
 
 
 @contextmanager
-def get_buffer(buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None):
+def get_buffer(
+    buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
+) -> Iterator[WriteBuffer[str]] | Iterator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
