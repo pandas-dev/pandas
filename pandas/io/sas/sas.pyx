@@ -77,8 +77,7 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
                 ipos += 1
         elif control_byte == 0x40:
             # not documented
-            nbytes = end_of_first_byte * 16
-            nbytes += <int>(buf_get(inbuff, ipos))
+            nbytes = (inbuff[ipos] & 0xFF) + 18 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
                 buf_set(outbuff, rpos, buf_get(inbuff, ipos))
