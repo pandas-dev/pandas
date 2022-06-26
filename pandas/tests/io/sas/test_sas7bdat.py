@@ -383,6 +383,15 @@ def test_exception_propagation_rle_decompress(tmp_path, datapath):
         pd.read_sas(tmp_file)
 
 
+def test_0x40_control_byte(datapath):
+    # GH 31243
+    fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
+    df = pd.read_sas(fname, encoding="ascii")
+    fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
+    df0 = pd.read_csv(fname, dtype="object")
+    tm.assert_frame_equal(df, df0)
+
+
 def test_0x00_control_byte(datapath):
     # GH 47099
     fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
