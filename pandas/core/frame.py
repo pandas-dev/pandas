@@ -3565,9 +3565,9 @@ class DataFrame(NDFrame, OpsMixin):
         i : int
         axis : int
 
-        Notes
-        -----
-        If slice passed, the resulting data will be a view.
+        Returns
+        -------
+        Series
         """
         # irow
         if axis == 0:
