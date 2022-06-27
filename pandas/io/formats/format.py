@@ -27,7 +27,6 @@ from typing import (
     Mapping,
     Sequence,
     cast,
-    overload,
 )
 from unicodedata import east_asian_width
 
