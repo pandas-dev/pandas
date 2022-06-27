@@ -33,7 +33,6 @@ from numpy cimport (
 
 
 cdef extern from "numpy/arrayobject.h":
-    PyTypeObject PyUnsignedIntegerArrType_Type
     PyTypeObject PyFloatingArrType_Type
 
 cdef extern from "numpy/ndarrayobject.h":
@@ -55,22 +54,6 @@ cdef inline int64_t get_nat():
 
 # --------------------------------------------------------------------
 # Type Checking
-
-cdef inline bint is_uinteger_object(object obj) nogil:
-    """
-    Cython equivalent of
-
-    `isinstance(val, np.unsignedinteger)`
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_uinteger : bool
-    """
-    return PyObject_TypeCheck(obj, &PyUnsignedIntegerArrType_Type)
 
 cdef inline bint is_integer_object(object obj) nogil:
     """

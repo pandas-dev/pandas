@@ -78,6 +78,7 @@ cdef extern from "numpy/arrayobject.h":
             tuple names
 
     PyTypeObject PySignedIntegerArrType_Type
+    PyTypeObject PyUnsignedIntegerArrType_Type
 
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
@@ -1310,7 +1311,7 @@ cdef class Seen:
         self.uint_ = (
             self.uint_
             or (oINT64_MAX < val <= oUINT64_MAX)
-            or util.is_uinteger_object(val)
+            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
         )
 
     @property
