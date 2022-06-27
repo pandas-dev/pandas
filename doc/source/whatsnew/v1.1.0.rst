@@ -644,7 +644,7 @@ The method :meth:`~pandas._core.groupby.DataFrameGroupBy.size` would previously 
 .. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
 
 :meth:`~pandas._core.groupby.DataFrameGroupby.agg` lost results with ``as_index=False`` when relabeling columns
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously :meth:`~pandas._core.groupby.DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
 set to ``False`` and the result columns were relabeled. In this case the result values were replaced with

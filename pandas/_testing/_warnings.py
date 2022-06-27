@@ -21,7 +21,7 @@ def assert_produces_warning(
     filter_level: Literal[
         "error", "ignore", "always", "default", "module", "once"
     ] = "always",
-    check_stacklevel: bool = True,
+    check_stacklevel: bool | str = True,
     raise_on_extra_warnings: bool = True,
     match: str | None = None,
 ):
@@ -51,10 +51,12 @@ def assert_produces_warning(
           from each module
         * "once" - print the warning the first time it is generated
 
-    check_stacklevel : bool, default True
-        If True, displays the line that called the function containing
-        the warning to show were the function is called. Otherwise, the
-        line that implements the function is displayed.
+    check_stacklevel : bool or string, default True
+        If True, checks that the stacklevel of the raised warning
+        is the same as the file that originated the call. When
+        check_stacklevel is a string, this argument will be used
+        as the file name to check. This is useful if the stacklevel
+        is expected to differ from the file where the call was originated.
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
@@ -118,7 +120,7 @@ def _assert_caught_expected_warning(
     caught_warnings: Sequence[warnings.WarningMessage],
     expected_warning: type[Warning],
     match: str | None,
-    check_stacklevel: bool,
+    check_stacklevel: bool | str,
 ) -> None:
     """Assert that there was the expected warning among the caught warnings."""
     saw_warning = False
@@ -132,7 +134,7 @@ def _assert_caught_expected_warning(
             if check_stacklevel and issubclass(
                 actual_warning.category, (FutureWarning, DeprecationWarning)
             ):
-                _assert_raised_with_correct_stacklevel(actual_warning)
+                _assert_raised_with_correct_stacklevel(actual_warning, check_stacklevel)
 
             if match is not None:
                 if re.search(match, str(actual_warning.message)):
@@ -205,17 +207,22 @@ def _is_unexpected_warning(
 
 
 def _assert_raised_with_correct_stacklevel(
-    actual_warning: warnings.WarningMessage,
+    actual_warning: warnings.WarningMessage, check_stacklevel: bool | str
 ) -> None:
     from inspect import (
         getframeinfo,
         stack,
     )
 
-    caller = getframeinfo(stack()[4][0])
+    if isinstance(check_stacklevel, str):
+        filename = check_stacklevel
+    else:
+        caller = getframeinfo(stack()[4][0])
+        filename = caller.filename
+
     msg = (
         "Warning not set with correct stacklevel. "
         f"File where warning is raised: {actual_warning.filename} != "
-        f"{caller.filename}. Warning message: {actual_warning.message}"
+        f"{filename}. Warning message: {actual_warning.message}"
     )
-    assert actual_warning.filename == caller.filename, msg
+    assert actual_warning.filename == filename, msg

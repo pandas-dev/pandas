@@ -476,6 +476,14 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
+.. _whatsnew_150.deprecations.pandas_core:
+
+pandas.core
+^^^^^^^^^^^
+
+Although the submodule :ref:`pandas.core has long been documented as private <api>`, it does not follow the naming convention of beginning with an underscore to indicate it as such. Now, ``pandas.core`` has been moved to ``pandas._core`` and importing ``pandas.core`` or from any submodules of ``pandas.core`` will raise a ``DeprecationWarning``.  The submodule ``pandas.core`` will be removed in a future version of pandas (:issue:`27522`).
+
+
 .. _whatsnew_150.deprecations.int_slicing_series:
 
 Label-based integer slicing on a Series with an Int64Index or RangeIndex
