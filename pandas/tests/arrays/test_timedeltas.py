@@ -33,7 +33,7 @@ class TestNonNano:
         assert tda[0]._reso == reso
 
     @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
-    def test_fields(self, unit, reso, field):
+    def test_fields(self, unit, field):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
 
@@ -42,6 +42,28 @@ class TestNonNano:
 
         result = getattr(tda, field)
         expected = getattr(tda_nano, field)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_pytimedelta(self, unit):
+        arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
+        tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
+
+        as_nano = arr.astype("m8[ns]")
+        tda_nano = TimedeltaArray._simple_new(as_nano, dtype=as_nano.dtype)
+
+        result = tda.to_pytimedelta()
+        expected = tda_nano.to_pytimedelta()
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_total_seconds(self, unit):
+        arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
+        tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
+
+        as_nano = arr.astype("m8[ns]")
+        tda_nano = TimedeltaArray._simple_new(as_nano, dtype=as_nano.dtype)
+
+        result = tda.total_seconds()
+        expected = tda_nano.total_seconds()
         tm.assert_numpy_array_equal(result, expected)
 
 

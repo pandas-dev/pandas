@@ -6,6 +6,7 @@ _attrname_to_abbrevs: dict[str, str]
 _period_code_map: dict[str, int]
 
 def periods_per_day(reso: int) -> int: ...
+def periods_per_second(reso: int) -> int: ...
 
 class PeriodDtypeBase:
     _dtype_code: int  # PeriodDtypeCode
