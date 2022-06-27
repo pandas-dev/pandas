@@ -268,7 +268,7 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 class TestBaseGroupby(base.BaseGroupbyTests):
     def test_groupby_agg_extension(self, data_for_grouping, request):
-        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        tz = getattr(data_for_grouping.dtype.pyarrow_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
