@@ -324,6 +324,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
