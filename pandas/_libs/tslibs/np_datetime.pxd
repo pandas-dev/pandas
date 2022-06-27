@@ -76,7 +76,6 @@ cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil
-cdef void dt64_to_dtstruct(int64_t dt64, npy_datetimestruct* out) nogil
 
 cdef int64_t pydatetime_to_dt64(datetime val, npy_datetimestruct *dts)
 cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts)
