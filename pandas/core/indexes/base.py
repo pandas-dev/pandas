@@ -661,7 +661,7 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     @property
-    def asi8(self) -> None:
+    def asi8(self) -> npt.NDArray[np.int64] | None:
         """
         Integer representation of the values.
 
