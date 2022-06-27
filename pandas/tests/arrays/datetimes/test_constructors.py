@@ -87,9 +87,8 @@ class TestDatetimeArrayConstructor:
     def test_bool_dtype_raises(self):
         arr = np.array([1, 2, 3], dtype="bool")
 
-        with pytest.raises(
-            ValueError, match="The dtype of 'values' is incorrect.*bool"
-        ):
+        msg = "Unexpected value for 'dtype': 'bool'. Must be"
+        with pytest.raises(ValueError, match=msg):
             DatetimeArray(arr)
 
         msg = r"dtype bool cannot be converted to datetime64\[ns\]"

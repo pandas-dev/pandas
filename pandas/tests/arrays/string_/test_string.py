@@ -18,11 +18,13 @@ from pandas.core.arrays.string_arrow import ArrowStringArray
 
 @pytest.fixture
 def dtype(string_storage):
+    """Fixture giving StringDtype from parametrized 'string_storage'"""
     return pd.StringDtype(storage=string_storage)
 
 
 @pytest.fixture
 def cls(dtype):
+    """Fixture giving array type from parametrized 'dtype'"""
     return dtype.construct_array_type()
 
 
@@ -260,7 +262,7 @@ def test_constructor_raises(cls):
     if cls is pd.arrays.StringArray:
         msg = "StringArray requires a sequence of strings or pandas.NA"
     else:
-        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
+        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
 
     with pytest.raises(ValueError, match=msg):
         cls(np.array(["a", "b"], dtype="S1"))

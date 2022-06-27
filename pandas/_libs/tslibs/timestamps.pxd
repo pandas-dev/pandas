@@ -37,3 +37,4 @@ cdef class _Timestamp(ABCTimestamp):
     cpdef void _set_freq(self, freq)
     cdef _warn_on_field_deprecation(_Timestamp self, freq, str field)
     cdef bint _compare_mismatched_resos(_Timestamp self, _Timestamp other, int op)
+    cdef _Timestamp _as_reso(_Timestamp self, NPY_DATETIMEUNIT reso, bint round_ok=*)

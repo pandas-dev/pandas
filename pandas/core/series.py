@@ -33,6 +33,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyArrayLike,
     ArrayLike,
     Axis,
     Dtype,
@@ -42,6 +43,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    QuantileInterpolation,
     Renamer,
     SingleManager,
     SortKind,
@@ -171,7 +173,7 @@ _shared_doc_kwargs = {
     "klass": "Series",
     "axes_single_arg": "{0 or 'index'}",
     "axis": """axis : {0 or 'index'}
-        Parameter needed for compatibility with DataFrame.""",
+        Unused. Parameter needed for compatibility with DataFrame.""",
     "inplace": """inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "unique": "np.ndarray",
@@ -553,7 +555,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
         """
         Override generic, we want to set the _typ here.
 
@@ -1322,8 +1324,7 @@ class Series(base.IndexOpsMixin, NDFrame):
             non-negative integer. Repeating 0 times will return an empty
             Series.
         axis : None
-            Must be ``None``. Has no effect but is accepted for compatibility
-            with numpy.
+            Unused. Parameter needed for compatibility with DataFrame.
 
         Returns
         -------
@@ -1952,8 +1953,6 @@ Name: Max Speed, dtype: float64
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # error: Argument "squeeze" to "SeriesGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return SeriesGroupBy(
             obj=self,
             keys=by,
@@ -1962,7 +1961,7 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -2025,8 +2024,8 @@ Name: Max Speed, dtype: float64
             lev = lev.insert(cnt, lev._na_value)
 
         obs = level_codes[notna(self._values)]
-        # Argument "minlength" to "bincount" has incompatible type "Optional[int]";
-        # expected "SupportsIndex"  [arg-type]
+        # error: Argument "minlength" to "bincount" has incompatible type
+        # "Optional[int]"; expected "SupportsIndex"
         out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
         return self._constructor(out, index=lev, dtype="int64").__finalize__(
             self, method="count"
@@ -2076,6 +2075,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
+        Series.drop_duplicates : Return Series with duplicate values removed.
         unique : Top-level unique method for any 1-d array-like object.
         Index.unique : Return Index with unique values from an Index object.
 
@@ -2166,6 +2166,7 @@ Name: Max Speed, dtype: float64
         DataFrame.drop_duplicates : Equivalent method on DataFrame.
         Series.duplicated : Related method on Series, indicating duplicate
             Series values.
+        Series.unique : Return unique values as an array.
 
         Examples
         --------
@@ -2311,9 +2312,8 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int, default 0
-            For compatibility with DataFrame.idxmin. Redundant for application
-            on Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
@@ -2380,9 +2380,8 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int, default 0
-            For compatibility with DataFrame.idxmax. Redundant for application
-            on Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
@@ -2481,7 +2480,33 @@ Name: Max Speed, dtype: float64
 
         return result
 
-    def quantile(self, q=0.5, interpolation="linear"):
+    @overload
+    def quantile(
+        self, q: float = ..., interpolation: QuantileInterpolation = ...
+    ) -> float:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: Sequence[float] | AnyArrayLike,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> float | Series:
+        ...
+
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = 0.5,
+        interpolation: QuantileInterpolation = "linear",
+    ) -> float | Series:
         """
         Return value at the given quantile.
 
@@ -2543,6 +2568,8 @@ Name: Max Speed, dtype: float64
     def corr(self, other, method="pearson", min_periods=None) -> float:
         """
         Compute correlation with `other` Series, excluding missing values.
+        The two `Series` objects are not required to be the same length and will be
+        aligned internally before the correlation function is applied.
 
         Parameters
         ----------
@@ -2615,6 +2642,8 @@ Name: Max Speed, dtype: float64
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.
+        The two `Series` objects are not required to be the same length and
+        will be aligned internally before the covariance is calculated.
 
         Parameters
         ----------
@@ -3389,9 +3418,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or 'index'}, default 0
-            Axis to direct sorting. The value 'index' is accepted for
-            compatibility with DataFrame.sort_values.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         ascending : bool or list of bools, default True
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
@@ -3650,8 +3678,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : int, default 0
-            Axis to direct sorting. This can only be 0 for Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         level : int, optional
             If not None, sort on values in specified index level(s).
         ascending : bool or list-like of bools, default True
@@ -3798,8 +3826,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or "index"}
-            Has no effect but is accepted for compatibility with numpy.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
@@ -4716,8 +4744,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or "index"}
-            Unused. Accepted for compatibility with DataFrame method only.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
@@ -4914,8 +4942,8 @@ Keep all original rows and also all original values
         ----------
         labels : single label or list-like
             Index labels to drop.
-        axis : 0, default 0
-            Redundant for application on Series.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         index : single label or list-like
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
@@ -5529,8 +5557,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or 'index'}, default 0
-            There is only one axis to drop values from.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         inplace : bool, default False
             If True, do operation inplace and return None.
         how : str, optional
@@ -5813,7 +5841,7 @@ Keep all original rows and also all original values
     _info_axis_number = 0
     _info_axis_name = "index"
 
-    index: Index = properties.AxisProperty(
+    index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
 

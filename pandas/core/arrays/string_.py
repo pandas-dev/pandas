@@ -64,9 +64,6 @@ class StringDtype(StorageExtensionDtype):
        StringDtype is considered experimental. The implementation and
        parts of the API may change without warning.
 
-       In particular, StringDtype.na_value may change to no longer be
-       ``pd.NA``.
-
     Parameters
     ----------
     storage : {"python", "pyarrow"}, optional

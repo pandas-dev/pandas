@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
+
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
@@ -30,7 +32,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
@@ -781,7 +782,12 @@ class SetitemCastingEquivalents:
             #  cast to IntervalDtype[float]
             Series(interval_range(1, 5, inclusive="right")),
             Series(
-                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
+                [
+                    Interval(1, 2, "right"),
+                    np.nan,
+                    Interval(3, 4, "right"),
+                    Interval(4, 5, "right"),
+                ],
                 dtype="interval[float64]",
             ),
             1,
@@ -1052,9 +1058,9 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
     def test_setitem_example(self):
         # Just a case here to make obvious what this test class is aimed at
-        idx = IntervalIndex.from_breaks(range(4))
+        idx = IntervalIndex.from_breaks(range(4), inclusive="right")
         obj = Series(idx)
-        val = Interval(0.5, 1.5)
+        val = Interval(0.5, 1.5, "right")
 
         obj[0] = val
         assert obj.dtype == "Interval[float64, right]"
@@ -1124,7 +1130,7 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, val):
         if val[0] == 2:
-            # NB: this condition is based on currently-harcoded "val" cases
+            # NB: this condition is based on currently-hardcoded "val" cases
             dtype = np.int64
         else:
             dtype = np.float64
@@ -1348,7 +1354,7 @@ class TestCoercionTimedelta64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, closed="both")]
+    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, inclusive="both")]
 )
 @pytest.mark.parametrize("exp_dtype", [object])
 class TestPeriodIntervalCoercion(CoercionTest):
@@ -1547,7 +1553,7 @@ def test_setitem_int_as_positional_fallback_deprecation():
     # Once the deprecation is enforced, we will have
     #  expected = Series([1, 2, 3, 4, 5], index=[1.1, 2.1, 3.0, 4.1, 5.0])
 
-    ii = IntervalIndex.from_breaks(range(10))[::2]
+    ii = IntervalIndex.from_breaks(range(10), inclusive="right")[::2]
     ser2 = Series(range(len(ii)), index=ii)
     expected2 = ser2.copy()
     expected2.iloc[-1] = 9

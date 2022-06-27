@@ -457,3 +457,26 @@ def test_on_bad_lines_index_col_inferred(python_parser_only):
     result = parser.read_csv(bad_sio, on_bad_lines=lambda x: ["99", "99"])
     expected = DataFrame({"a": [2, 5], "b": [3, 6]}, index=[1, 4])
     tm.assert_frame_equal(result, expected)
+
+
+def test_index_col_false_and_header_none(python_parser_only):
+    # GH#46955
+    parser = python_parser_only
+    data = """
+0.5,0.03
+0.1,0.2,0.3,2
+"""
+    with tm.assert_produces_warning(ParserWarning, match="Length of header"):
+        result = parser.read_csv(StringIO(data), sep=",", header=None, index_col=False)
+    expected = DataFrame({0: [0.5, 0.1], 1: [0.03, 0.2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parser_only):
+    # GH#46569
+    parser = python_parser_only
+    data = StringIO("a\na,b\nc,d,e\nf,g,h")
+    with tm.assert_produces_warning(ParserWarning, match="Length of header"):
+        result = parser.read_csv(data, engine="python", index_col=False)
+    expected = DataFrame({"a": ["a", "c", "f"]})
+    tm.assert_frame_equal(result, expected)
