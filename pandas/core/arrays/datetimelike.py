@@ -1996,7 +1996,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
 
-    def factorize(self, na_sentinel=-1, sort: bool = False):
+    # GH#46910 - Keep old signature to test we don't break things for EA library authors
+    def factorize(  # type:ignore[override]
+        self,
+        na_sentinel: int = -1,
+        sort: bool = False,
+    ):
         if self.freq is not None:
             # We must be unique, so can short-circuit (and retain freq)
             codes = np.arange(len(self), dtype=np.intp)
