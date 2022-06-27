@@ -693,7 +693,7 @@ class _LxmlFrameParser(_XMLFrameParser):
                     row = None
 
                 elem.clear()
-                while elem.getprevious() is not None:
+                while elem.getprevious() is not None and elem.getparent() is not None:
                     del elem.getparent()[0]
 
         if dicts == []:
