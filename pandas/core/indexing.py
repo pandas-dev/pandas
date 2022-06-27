@@ -522,9 +522,8 @@ class IndexingMixin:
                    mark ii          1       4
         viper      mark ii          7       1
 
-        For more details and explanations on advanced indexing, 
-        please visit the following link:
-        https://pandas.pydata.org/docs/user_guide/advanced.html#advanced-indexing-with-hierarchical-index
+        Please see the :ref:`user guide<advanced.advanced_hierarchical>`
+        for more details and explanations of advanced indexing.
         """
         return _LocIndexer("loc", self)
 
