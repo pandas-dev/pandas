@@ -7,6 +7,7 @@ import re
 from typing import (
     Callable,
     Generator,
+    Iterator,
 )
 import warnings
 
@@ -369,7 +370,7 @@ class CSSResolver:
     expand_margin = _side_expander("margin-{:s}")
     expand_padding = _side_expander("padding-{:s}")
 
-    def parse(self, declarations_str: str):
+    def parse(self, declarations_str: str) -> Iterator[tuple[str, str]]:
         """
         Generates (prop, value) pairs from declarations.
 

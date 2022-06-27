@@ -197,7 +197,7 @@ class CSSToExcelConverter:
 
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
-        def remove_none(d: dict[str, str]) -> None:
+        def remove_none(d: dict[str, str | None]) -> None:
             """Remove key where value is None, through nested dicts"""
             for k, v in list(d.items()):
                 if v is None:
@@ -528,7 +528,7 @@ class ExcelFormatter:
         self.inf_rep = inf_rep
 
     @property
-    def header_style(self):
+    def header_style(self) -> dict[str, dict[str, str | bool]]:
         return {
             "font": {"bold": True},
             "borders": {
@@ -850,7 +850,7 @@ class ExcelFormatter:
         freeze_panes=None,
         engine=None,
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         """
         writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter

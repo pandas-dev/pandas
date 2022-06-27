@@ -12,6 +12,7 @@ from typing import (
     Callable,
     Hashable,
     Sequence,
+    overload,
 )
 import warnings
 
@@ -591,6 +592,52 @@ class Styler(StylerRenderer):
             engine=engine,
         )
 
+    @overload
+    def to_latex(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        column_format: str | None = ...,
+        position: str | None = ...,
+        position_float: str | None = ...,
+        hrules: bool | None = ...,
+        clines: str | None = ...,
+        label: str | None = ...,
+        caption: str | tuple | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        multirow_align: str | None = ...,
+        multicol_align: str | None = ...,
+        siunitx: bool = ...,
+        environment: str | None = ...,
+        encoding: str | None = ...,
+        convert_css: bool = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def to_latex(
+        self,
+        buf: None = ...,
+        *,
+        column_format: str | None = ...,
+        position: str | None = ...,
+        position_float: str | None = ...,
+        hrules: bool | None = ...,
+        clines: str | None = ...,
+        label: str | None = ...,
+        caption: str | tuple | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        multirow_align: str | None = ...,
+        multicol_align: str | None = ...,
+        siunitx: bool = ...,
+        environment: str | None = ...,
+        encoding: str | None = ...,
+        convert_css: bool = ...,
+    ) -> str:
+        ...
+
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -610,7 +657,7 @@ class Styler(StylerRenderer):
         environment: str | None = None,
         encoding: str | None = None,
         convert_css: bool = False,
-    ):
+    ) -> str | None:
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
@@ -1161,6 +1208,46 @@ class Styler(StylerRenderer):
         )
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
+    @overload
+    def to_html(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        table_uuid: str | None = ...,
+        table_attributes: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        bold_headers: bool = ...,
+        caption: str | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        encoding: str | None = ...,
+        doctype_html: bool = ...,
+        exclude_styles: bool = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def to_html(
+        self,
+        buf: None = ...,
+        *,
+        table_uuid: str | None = ...,
+        table_attributes: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        bold_headers: bool = ...,
+        caption: str | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        encoding: str | None = ...,
+        doctype_html: bool = ...,
+        exclude_styles: bool = ...,
+        **kwargs,
+    ) -> str:
+        ...
+
     @Substitution(buf=buf, encoding=encoding)
     def to_html(
         self,
@@ -1178,7 +1265,7 @@ class Styler(StylerRenderer):
         doctype_html: bool = False,
         exclude_styles: bool = False,
         **kwargs,
-    ):
+    ) -> str | None:
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
 
@@ -1292,10 +1379,38 @@ class Styler(StylerRenderer):
             html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
+    @overload
+    def to_string(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        encoding=...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        delimiter: str = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def to_string(
+        self,
+        buf: None = ...,
+        *,
+        encoding=...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        delimiter: str = ...,
+    ) -> str:
+        ...
+
     @Substitution(buf=buf, encoding=encoding)
     def to_string(
         self,
-        buf=None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         *,
         encoding=None,
         sparse_index: bool | None = None,
@@ -1303,7 +1418,7 @@ class Styler(StylerRenderer):
         max_rows: int | None = None,
         max_columns: int | None = None,
         delimiter: str = " ",
-    ):
+    ) -> str | None:
         """
         Write Styler to a file, buffer or string in text format.
 

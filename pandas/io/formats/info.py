@@ -566,7 +566,7 @@ class SeriesInfo(BaseInfo):
         return [self.data.dtypes]
 
     @property
-    def dtype_counts(self):
+    def dtype_counts(self) -> Mapping[str, int]:
         from pandas.core.frame import DataFrame
 
         return _get_dataframe_dtype_counts(DataFrame(self.data))
@@ -1087,7 +1087,7 @@ class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
         if self.display_memory_usage:
             self.add_memory_usage_line()
 
-    def add_series_name_line(self):
+    def add_series_name_line(self) -> None:
         self._lines.append(f"Series name: {self.data.name}")
 
     @property

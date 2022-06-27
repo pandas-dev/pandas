@@ -89,7 +89,7 @@ class HTMLFormatter:
         return self.elements
 
     @property
-    def should_show_dimensions(self):
+    def should_show_dimensions(self) -> bool:
         return self.fmt.should_show_dimensions
 
     @property
