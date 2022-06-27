@@ -1971,6 +1971,10 @@ class DataFrame(NDFrame, OpsMixin):
             elif orient.startswith("i"):
                 orient = "index"
 
+        if orient == "series":
+            # GH46470 Return quickly if orient series to avoid creating dtype objects
+            return into_c((k, v) for k, v in self.items())
+
         object_dtype_indices = [
             i
             for i, col_dtype in enumerate(self.dtypes.values)
@@ -2020,9 +2024,6 @@ class DataFrame(NDFrame, OpsMixin):
                     ("column_names", list(self.columns.names)),
                 )
             )
-
-        elif orient == "series":
-            return into_c((k, v) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
