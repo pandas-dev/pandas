@@ -272,7 +272,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}.")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}."
                 )
             )
         super().test_groupby_agg_extension(data_for_grouping)
