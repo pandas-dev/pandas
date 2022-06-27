@@ -751,7 +751,7 @@ class TestCategoricalConstructors:
 
     @pytest.mark.xfail(
         not IS64 or is_platform_windows(),
-        reason="Incorrectly raising in ensure_datetime64ns",
+        reason="Incorrectly raising in astype_overflowsafe",
     )
     def test_constructor_datetime64_non_nano(self):
         categories = np.arange(10).view("M8[D]")

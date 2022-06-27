@@ -12,7 +12,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -676,11 +675,6 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    PY310,
-    reason="GH41935 This test is leaking only on Python 3.10,"
-    "causing other tests to fail with a cryptic error.",
-)
 @pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
 def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     # GH#41069
@@ -812,8 +806,7 @@ def test_read_csv_posargs_deprecation(all_parsers):
         "In a future version of pandas all arguments of read_csv "
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        parser.read_csv(f, " ")
+    parser.read_csv_check_warnings(FutureWarning, msg, f, " ")
 
 
 @pytest.mark.parametrize("delimiter", [",", "\t"])

@@ -176,14 +176,6 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class DataError(Exception):
-    pass
-
-
-class SpecificationError(Exception):
-    pass
-
-
 class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
@@ -326,7 +318,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def ndim(self) -> int:
+    def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
         """
@@ -433,7 +425,7 @@ class IndexOpsMixin(OpsMixin):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -603,7 +595,7 @@ class IndexOpsMixin(OpsMixin):
         Parameters
         ----------
         axis : {{None}}
-            Dummy argument for consistency with Series.
+            Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
         *args, **kwargs
@@ -842,6 +834,12 @@ class IndexOpsMixin(OpsMixin):
                 )
 
         if isinstance(mapper, ABCSeries):
+            if na_action not in (None, "ignore"):
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
             if is_categorical_dtype(self.dtype):
@@ -1138,8 +1136,15 @@ class IndexOpsMixin(OpsMixin):
             """
         ),
     )
-    def factorize(self, sort: bool = False, na_sentinel: int | None = -1):
-        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
+    def factorize(
+        self,
+        sort: bool = False,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ):
+        return algorithms.factorize(
+            self, sort=sort, na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+        )
 
     _shared_docs[
         "searchsorted"

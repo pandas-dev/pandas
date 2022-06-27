@@ -3,7 +3,6 @@ from __future__ import annotations
 import collections
 from datetime import datetime
 from decimal import Decimal
-from functools import wraps
 import operator
 import os
 import re
@@ -27,6 +26,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 from pandas._typing import Dtype
+from pandas.compat import pa_version_under1p01
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -55,16 +55,17 @@ from pandas._testing._io import (  # noqa:F401
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
-    with_connectivity_check,
     write_to_compressed,
 )
 from pandas._testing._random import (  # noqa:F401
     randbool,
     rands,
     rands_array,
-    randu_array,
 )
-from pandas._testing._warnings import assert_produces_warning  # noqa:F401
+from pandas._testing._warnings import (  # noqa:F401
+    assert_produces_warning,
+    maybe_produces_warning,
+)
 from pandas._testing.asserters import (  # noqa:F401
     assert_almost_equal,
     assert_attr_equal,
@@ -192,6 +193,45 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
+if not pa_version_under1p01:
+    import pyarrow as pa
+
+    UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
+    SIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.int16(), pa.int32(), pa.uint64()]
+    ALL_INT_PYARROW_DTYPES = UNSIGNED_INT_PYARROW_DTYPES + SIGNED_INT_PYARROW_DTYPES
+
+    FLOAT_PYARROW_DTYPES = [pa.float32(), pa.float64()]
+    STRING_PYARROW_DTYPES = [pa.string(), pa.utf8()]
+
+    TIME_PYARROW_DTYPES = [
+        pa.time32("s"),
+        pa.time32("ms"),
+        pa.time64("us"),
+        pa.time64("ns"),
+    ]
+    DATE_PYARROW_DTYPES = [pa.date32(), pa.date64()]
+    DATETIME_PYARROW_DTYPES = [
+        pa.timestamp(unit=unit, tz=tz)
+        for unit in ["s", "ms", "us", "ns"]
+        for tz in [None, "UTC", "US/Pacific", "US/Eastern"]
+    ]
+    TIMEDELTA_PYARROW_DTYPES = [pa.duration(unit) for unit in ["s", "ms", "us", "ns"]]
+
+    BOOL_PYARROW_DTYPES = [pa.bool_()]
+
+    # TODO: Add container like pyarrow types:
+    #  https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions
+    ALL_PYARROW_DTYPES = (
+        ALL_INT_PYARROW_DTYPES
+        + FLOAT_PYARROW_DTYPES
+        + TIME_PYARROW_DTYPES
+        + DATE_PYARROW_DTYPES
+        + DATETIME_PYARROW_DTYPES
+        + TIMEDELTA_PYARROW_DTYPES
+        + BOOL_PYARROW_DTYPES
+    )
+
+
 EMPTY_STRING_PATTERN = re.compile("^$")
 
 # set testing_mode
@@ -300,10 +340,6 @@ def getCols(k):
 # make index
 def makeStringIndex(k=10, name=None):
     return Index(rands_array(nchars=10, size=k), name=name)
-
-
-def makeUnicodeIndex(k=10, name=None):
-    return Index(randu_array(nchars=10, size=k), name=name)
 
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
@@ -518,10 +554,10 @@ def makeCustomIndex(
        label will repeated at the corresponding level, you can specify just
        the first few, the rest will use the default ndupe_l of 1.
        len(ndupe_l) <= nlevels.
-    idx_type - "i"/"f"/"s"/"u"/"dt"/"p"/"td".
+    idx_type - "i"/"f"/"s"/"dt"/"p"/"td".
        If idx_type is not None, `idx_nlevels` must be 1.
        "i"/"f" creates an integer/float index,
-       "s"/"u" creates a string/unicode index
+       "s" creates a string
        "dt" create a datetime index.
        "td" create a datetime index.
 
@@ -551,7 +587,6 @@ def makeCustomIndex(
         "i": makeIntIndex,
         "f": makeFloatIndex,
         "s": makeStringIndex,
-        "u": makeUnicodeIndex,
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
@@ -566,7 +601,7 @@ def makeCustomIndex(
     elif idx_type is not None:
         raise ValueError(
             f"{repr(idx_type)} is not a legal value for `idx_type`, "
-            "use  'i'/'f'/'s'/'u'/'dt'/'p'/'td'."
+            "use  'i'/'f'/'s'/'dt'/'p'/'td'."
         )
 
     if len(ndupe_l) < nlevels:
@@ -648,10 +683,10 @@ def makeCustomDataframe(
             nrows/ncol, the last label might have lower multiplicity.
     dtype - passed to the DataFrame constructor as is, in case you wish to
             have more control in conjunction with a custom `data_gen_f`
-    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
+    r_idx_type, c_idx_type -  "i"/"f"/"s"/"dt"/"td".
         If idx_type is not None, `idx_nlevels` must be 1.
         "i"/"f" creates an integer/float index,
-        "s"/"u" creates a string/unicode index
+        "s" creates a string index
         "dt" create a datetime index.
         "td" create a timedelta index.
 
@@ -686,10 +721,10 @@ def makeCustomDataframe(
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or (
-        r_idx_type in ("i", "f", "s", "u", "dt", "p", "td") and r_idx_nlevels == 1
+        r_idx_type in ("i", "f", "s", "dt", "p", "td") and r_idx_nlevels == 1
     )
     assert c_idx_type is None or (
-        c_idx_type in ("i", "f", "s", "u", "dt", "p", "td") and c_idx_nlevels == 1
+        c_idx_type in ("i", "f", "s", "dt", "p", "td") and c_idx_nlevels == 1
     )
 
     columns = makeCustomIndex(
@@ -750,55 +785,6 @@ def makeMissingDataframe(density=0.9, random_state=None):
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
     df.values[i, j] = np.nan
     return df
-
-
-def test_parallel(num_threads=2, kwargs_list=None):
-    """
-    Decorator to run the same function multiple times in parallel.
-
-    Parameters
-    ----------
-    num_threads : int, optional
-        The number of times the function is run in parallel.
-    kwargs_list : list of dicts, optional
-        The list of kwargs to update original
-        function kwargs on different threads.
-
-    Notes
-    -----
-    This decorator does not pass the return value of the decorated function.
-
-    Original from scikit-image:
-
-    https://github.com/scikit-image/scikit-image/pull/1519
-
-    """
-    assert num_threads > 0
-    has_kwargs_list = kwargs_list is not None
-    if has_kwargs_list:
-        assert len(kwargs_list) == num_threads
-    import threading
-
-    def wrapper(func):
-        @wraps(func)
-        def inner(*args, **kwargs):
-            if has_kwargs_list:
-                update_kwargs = lambda i: dict(kwargs, **kwargs_list[i])
-            else:
-                update_kwargs = lambda i: kwargs
-            threads = []
-            for i in range(num_threads):
-                updated_kwargs = update_kwargs(i)
-                thread = threading.Thread(target=func, args=args, kwargs=updated_kwargs)
-                threads.append(thread)
-            for thread in threads:
-                thread.start()
-            for thread in threads:
-                thread.join()
-
-        return inner
-
-    return wrapper
 
 
 class SubclassedSeries(Series):

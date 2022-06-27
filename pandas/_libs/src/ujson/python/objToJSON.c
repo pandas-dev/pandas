@@ -30,7 +30,7 @@ https://github.com/client9/stringencoders
 Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights
 reserved.
 
-Numeric decoder derived from from TCL library
+Numeric decoder derived from TCL library
 https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1988-1993 The Regents of the University of California.
 * Copyright (c) 1994 Sun Microsystems, Inc.
@@ -221,15 +221,27 @@ static PyObject *get_values(PyObject *obj) {
         // The special cases to worry about are dt64tz and category[dt64tz].
         //  In both cases we want the UTC-localized datetime64 ndarray,
         //  without going through and object array of Timestamps.
+        if (PyObject_HasAttrString(obj, "tz")) {
+            PyObject *tz = PyObject_GetAttrString(obj, "tz");
+            if (tz != Py_None) {
+                // Go through object array if we have dt64tz, since tz info will
+                // be lost if values is used directly.
+                Py_DECREF(tz);
+                values = PyObject_CallMethod(obj, "__array__", NULL);
+                return values;
+            }
+            Py_DECREF(tz);
+        }
         values = PyObject_GetAttrString(obj, "values");
-
         if (values == NULL) {
             // Clear so we can subsequently try another method
             PyErr_Clear();
         } else if (PyObject_HasAttrString(values, "__array__")) {
             // We may have gotten a Categorical or Sparse array so call np.array
+            PyObject *array_values = PyObject_CallMethod(values, "__array__",
+                                                         NULL);
             Py_DECREF(values);
-            values = PyObject_CallMethod(values, "__array__", NULL);
+            values = array_values;
         } else if (!PyArray_CheckExact(values)) {
             // Didn't get a numpy array, so keep trying
             Py_DECREF(values);

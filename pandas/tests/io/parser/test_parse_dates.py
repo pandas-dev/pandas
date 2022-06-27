@@ -1538,7 +1538,12 @@ date,time,prn,rxstatus
 """
 
     def date_parser(dt, time):
-        return np.array(dt + "T" + time, dtype="datetime64[s]")
+        try:
+            arr = dt + "T" + time
+        except TypeError:
+            # dt & time are date/time objects
+            arr = [datetime.combine(d, t) for d, t in zip(dt, time)]
+        return np.array(arr, dtype="datetime64[s]")
 
     result = parser.read_csv(
         StringIO(data),

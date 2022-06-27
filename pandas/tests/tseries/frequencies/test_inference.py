@@ -22,6 +22,10 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.tseries.frequencies as frequencies
@@ -369,15 +373,14 @@ def test_invalid_index_types(idx):
 
 
 @pytest.mark.skipif(is_platform_windows(), reason="see gh-10822: Windows issue")
-@pytest.mark.parametrize("idx", [tm.makeStringIndex(10), tm.makeUnicodeIndex(10)])
-def test_invalid_index_types_unicode(idx):
+def test_invalid_index_types_unicode():
     # see gh-10822
     #
     # Odd error message on conversions to datetime for unicode.
     msg = "Unknown string format"
 
     with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(idx)
+        frequencies.infer_freq(tm.makeStringIndex(10))
 
 
 def test_string_datetime_like_compat():
@@ -507,3 +510,15 @@ def test_ms_vs_capital_ms():
 def test_infer_freq_warn_deprecated():
     with tm.assert_produces_warning(FutureWarning):
         frequencies.infer_freq(date_range(2022, periods=3), warn=False)
+
+
+def test_infer_freq_non_nano():
+    arr = np.arange(10).astype(np.int64).view("M8[s]")
+    dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+    res = frequencies.infer_freq(dta)
+    assert res == "S"
+
+    arr2 = arr.view("m8[ms]")
+    tda = TimedeltaArray._simple_new(arr2, dtype=arr2.dtype)
+    res2 = frequencies.infer_freq(tda)
+    assert res2 == "L"

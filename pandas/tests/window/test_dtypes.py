@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import DataError
+
 from pandas.core.dtypes.common import pandas_dtype
 
 from pandas import (
@@ -9,7 +11,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.base import DataError
 
 # gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes

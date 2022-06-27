@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     TypeVar,
 )
 
@@ -36,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_integer,
     is_numeric_dtype,
     is_object_dtype,
     is_timedelta64_ns_dtype,
@@ -703,7 +705,9 @@ class BaseArrayManager(DataManager):
 
 
 class ArrayManager(BaseArrayManager):
-    ndim = 2
+    @property
+    def ndim(self) -> Literal[2]:
+        return 2
 
     def __init__(
         self,
@@ -749,7 +753,7 @@ class ArrayManager(BaseArrayManager):
     # --------------------------------------------------------------------
     # Indexing
 
-    def fast_xs(self, loc: int) -> ArrayLike:
+    def fast_xs(self, loc: int) -> SingleArrayManager:
         """
         Return the array corresponding to `frame.iloc[loc]`.
 
@@ -773,7 +777,7 @@ class ArrayManager(BaseArrayManager):
             result = TimedeltaArray._from_sequence(values, dtype=dtype)._data
         else:
             result = np.array(values, dtype=dtype)
-        return result
+        return SingleArrayManager([result], [self._axes[1]])
 
     def get_slice(self, slobj: slice, axis: int = 0) -> ArrayManager:
         axis = self._normalize_axis(axis)
@@ -868,6 +872,21 @@ class ArrayManager(BaseArrayManager):
             value_arr = value[:, value_idx]  # type: ignore[call-overload]
             self.arrays[mgr_idx] = value_arr
         return
+
+    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+        """
+        Set values ("setitem") into a single column (not setting the full column).
+
+        This is a method on the ArrayManager level, to avoid creating an
+        intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
+        """
+        if not is_integer(loc):
+            raise TypeError("The column index should be an integer")
+        arr = self.arrays[loc]
+        mgr = SingleArrayManager([arr], [self._axes[0]])
+        new_mgr = mgr.setitem((idx,), value)
+        # update existing ArrayManager in-place
+        self.arrays[loc] = new_mgr.arrays[0]
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
@@ -1175,7 +1194,9 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     arrays: list[np.ndarray | ExtensionArray]
     _axes: list[Index]
 
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     def __init__(
         self,
@@ -1261,7 +1282,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def is_single_block(self) -> bool:
         return True
 
-    def fast_xs(self, loc: int) -> ArrayLike:
+    def fast_xs(self, loc: int) -> SingleArrayManager:
         raise NotImplementedError("Use series._values[loc] instead")
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleArrayManager:

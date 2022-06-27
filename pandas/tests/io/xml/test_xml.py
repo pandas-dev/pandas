@@ -6,6 +6,7 @@ from io import (
 )
 from lzma import LZMAError
 import os
+from tarfile import ReadError
 from urllib.error import HTTPError
 from zipfile import BadZipFile
 
@@ -788,6 +789,41 @@ def test_names_option_output(datapath, parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
+def test_repeat_names(parser):
+    xml = """\
+<shapes>
+  <shape type="2D">
+    <name>circle</name>
+    <type>curved</type>
+  </shape>
+  <shape type="3D">
+    <name>sphere</name>
+    <type>curved</type>
+  </shape>
+</shapes>"""
+    df_xpath = read_xml(
+        xml, xpath=".//shape", parser=parser, names=["type_dim", "shape", "type_edge"]
+    )
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"shape": ["type", "name", "type"]},
+        names=["type_dim", "shape", "type_edge"],
+    )
+
+    df_expected = DataFrame(
+        {
+            "type_dim": ["2D", "3D"],
+            "shape": ["circle", "sphere"],
+            "type_edge": ["curved", "curved"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
 def test_names_option_wrong_length(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
@@ -1370,6 +1406,7 @@ def test_wrong_compression(parser, compression, compression_only):
         "bz2": (OSError, "Invalid data stream"),
         "gzip": (OSError, "Not a gzipped file"),
         "zip": (BadZipFile, "File is not a zip file"),
+        "tar": (ReadError, "file could not be opened successfully"),
     }
     zstd = import_optional_dependency("zstandard", errors="ignore")
     if zstd is not None:

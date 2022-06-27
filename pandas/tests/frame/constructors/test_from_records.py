@@ -229,7 +229,11 @@ class TestFromRecords:
     def test_from_records_series_categorical_index(self):
         # GH#32805
         index = CategoricalIndex(
-            [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
+            [
+                Interval(-20, -10, "right"),
+                Interval(-10, 0, "right"),
+                Interval(0, 10, "right"),
+            ]
         )
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = DataFrame.from_records(series_of_dicts, index=index)

@@ -227,8 +227,6 @@ def test_put_mixed_type(setup_path):
         ["fixed", tm.makeDateIndex],
         ["table", tm.makePeriodIndex],  # GH#7796
         ["fixed", tm.makePeriodIndex],
-        ["table", tm.makeUnicodeIndex],
-        ["fixed", tm.makeUnicodeIndex],
     ],
 )
 def test_store_index_types(setup_path, format, index):
