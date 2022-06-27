@@ -683,6 +683,13 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_setitem_ea_dtype_rhs_series(self):
+        # GH#47425
+        df = DataFrame({"a": [1, 2]})
+        df["a"] = Series([1, 2], dtype="Int64")
+        expected = DataFrame({"a": [1, 2]}, dtype="Int64")
+        tm.assert_frame_equal(df, expected)
+
     # TODO(ArrayManager) set column with 2d column array, see #44788
     @td.skip_array_manager_not_yet_implemented
     def test_setitem_npmatrix_2d(self):

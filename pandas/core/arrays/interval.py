@@ -8,6 +8,7 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Literal,
     Sequence,
     TypeVar,
     Union,
@@ -204,9 +205,12 @@ for more.
     }
 )
 class IntervalArray(IntervalMixin, ExtensionArray):
-    ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
+
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     # To make mypy recognize the fields
     _left: np.ndarray
