@@ -70,6 +70,7 @@ shared_style_params = [
         ["alignment", "vertical"],
         {"xlsxwriter": None, "openpyxl": "bottom"},  # xlsxwriter Fails
     ),
+    ("vertical-align: middle;", ["alignment", "vertical"], "center"),
     # Border widths
     ("border-left: 2pt solid red", ["border", "left", "style"], "medium"),
     ("border-left: 1pt dotted red", ["border", "left", "style"], "dotted"),
