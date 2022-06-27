@@ -17,6 +17,7 @@ from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
     PyObject_RichCompareBool,
+    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -54,6 +55,11 @@ from numpy cimport (
 
 cnp.import_array()
 
+cdef extern from "Python.h":
+    # Note: importing extern-style allows us to declare these as nogil
+    # functions, whereas `from cpython cimport` does not.
+    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
     # errors in issubclass(self.dtype.type, np.bool_), so we directly
@@ -70,6 +76,8 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
+
+    PyTypeObject PySignedIntegerArrType_Type
 
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
@@ -1297,7 +1305,7 @@ cdef class Seen:
         self.sint_ = (
             self.sint_
             or (oINT64_MIN <= val < 0)
-            or util.is_sinteger_object(val)
+            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
         )
         self.uint_ = (
             self.uint_
