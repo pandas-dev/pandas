@@ -1,9 +1,10 @@
 # PDEP-1: Purpose and guidelines
 
 - Date: 21 June 2022
-- Status: Accepted
+- Status: Under discussion
 - Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
 - Author: [Marc Garcia](https://github.com/datapythonista)
+- Revision: 1
 
 ## PDEP definition, purpose and scope
 
@@ -54,15 +55,18 @@ The file is a markdown file, you can use `web/pdeps/accepted/0001.md` as a refer
 for the expected format.
 
 By default, we expect a PDEP will be accepted, so the PR of a PDEP should be done
-in the `accepted` directory and contain `Status: Accepted`. If a PDEP is finally
-rejected, its status and directory will be updated by the core team before merging,
-once the decision is made. Please make sure you select the option
-`Allow edits and access to secrets by maintainers` when opening the PR.
+in the `accepted` but we will keep `Status: Under discussion` until it is ready to
+be merged. If a PDEP is finally rejected, its status and directory will be updated
+by the core team before merging, once the decision is made. Please make sure you
+select the option `Allow edits and access to secrets by maintainers` when opening the PR.
 
 #### Accepted PDEP
 
-A PDEP will be accepted by the core development team, and decisions will be made
-based on the [pandas governance document](https://github.com/pandas-dev/pandas-governance/blob/master/governance.md).
+A PDEP can only be accepted by the core development team, if the proposal is considered
+worth implementing. Decisions will be made based on the process detailed in the
+[pandas governance document](https://github.com/pandas-dev/pandas-governance/blob/master/governance.md).
+In general, more than one approval will be needed before the PR is merged. And
+there should not be any `Request changes` review at the time of merging.
 
 Once a PDEP is accepted, any contributions can be made toward the implementing the PDEP with an open-ended completion timeline . The
 pandas project development, with a mix of volunteers and developers paid from
@@ -98,12 +102,19 @@ discussion with the author, instead of merging them as rejected. This is to not
 add noise to the list of rejected PDEPs, which should contain documentation as
 good as an accepted PDEP, but where the final decision was to not implement the changes.
 
-## Evolution of this PDEP
+## Evolution of PDEPs
 
-While most PDEPs aren't expected to change after accepted, in some cases like this
-PDEP, they will be updated to contain its latest version, if things evolve. A log
-of the summary of the changes will be kept to make it easier to see if any change
-has happened.
+Most PDEPs aren't expected to change after accepted. Once there is agreement in the changes,
+and they are implemented, the PDEP will be only useful to understand why the development happened,
+and the details of the discussion.
+
+But in some cases, a PDEP can be updated. For example, a PDEP defining a procedure or
+a policy, like this one (PDEP-1). Or cases when after attempting the implementation,
+new knowledge is obtained that makes the original PDEP obsolete, and changes are
+required. When there are specific changes to be made to the original PDEP, this will
+be edited, its `Revision: X` label will be increased by one, and a note will be added
+to the `PDEP-N history` section. This will let readers understand that the PDEP has
+changed and avoid confusion.
 
 ### PDEP-1 History
 

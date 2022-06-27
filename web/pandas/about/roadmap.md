@@ -21,36 +21,18 @@ For more information about PDEPs, and how to submit one, please refer to
 
 ## PDEPs
 
-### PDEPs under discussion
+{% for pdep_type in ["under_discussion", "accepted", "implemented", "rejected"] %}
 
-{% for pdep in pdeps.under_discussion -%}
-- [{{ pdep.title }}]({{ pdep.url }})
+<h3 id="pdeps-{{pdep_type}}">{{ pdep_type.replace("_", " ").capitalize() }}</h3>
+
+<ul>
+{% for pdep in pdeps[pdep_type] %}
+    <li><a href="{{ pdep.url }}">{{ pdep.title }}</a></li>
 {% else %}
-There are currently no PEPs under discussion
+    <li>There are currently no PDEPs with this status</li>
 {% endfor %}
+</ul>
 
-### Accepted PDEPs
-
-{% for pdep in pdeps.accepted -%}
-- [{{ pdep.title }}]({{ pdep.url }})
-{% else %}
-There are currently no accepted PEPs
-{% endfor %}
-
-### Rejected PDEPs
-
-{% for pdep in pdeps.rejected -%}
-- [{{ pdep.title }}]({{ pdep.url }})
-{% else %}
-There are currently no rejected PEPs
-{% endfor %}
-
-### Implemented PDEPs
-
-{% for pdep in pdeps.implemented -%}
-- [{{ pdep.title }}]({{ pdep.url }})
-{% else %}
-There are currently no implemented PEPs
 {% endfor %}
 
 ## Roadmap points pending a PDEP

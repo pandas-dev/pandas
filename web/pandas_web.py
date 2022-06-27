@@ -208,7 +208,7 @@ class Preprocessors:
             status_dir = pdeps_path / status
             if not status_dir.is_dir():
                 continue
-            for pdep in status_dir.iterdir():
+            for pdep in sorted(status_dir.iterdir()):
                 if pdep.suffix != ".md":
                     continue
                 html_file = pdep.with_suffix(".html").name
