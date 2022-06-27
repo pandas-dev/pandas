@@ -167,12 +167,11 @@ def is_lexsorted(list_of_arrays: list) -> bint:
         assert arr.dtype.name == 'int64'
         vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
 
-    # Assume uniqueness??
     with nogil:
         for i in range(1, n):
             for k in range(nlevels):
                 cur = vecs[k][i]
-                pre = vecs[k][i -1]
+                pre = vecs[k][i-1]
                 if cur == pre:
                     continue
                 elif cur > pre:
@@ -189,6 +188,11 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def lexsort_depth(list_of_arrays: list) -> int:
+    """
+    Same as `is_lexsorted`, but keeps track of lexsort depth
+    as we iterate through the elements, and exits early if depth
+    is zero.
+    """
     cdef:
         Py_ssize_t i, depth
         Py_ssize_t n, nlevels
@@ -204,7 +208,6 @@ def lexsort_depth(list_of_arrays: list) -> int:
         assert arr.dtype.name == 'int64'
         vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
 
-    # Assume uniqueness??
     with nogil:
         depth = nlevels
         for i in range(1, n):
@@ -213,7 +216,7 @@ def lexsort_depth(list_of_arrays: list) -> int:
                     # No need to check levels for which we know input isn't lexsorted.
                     break
                 cur = vecs[k][i]
-                pre = vecs[k][i -1]
+                pre = vecs[k][i-1]
                 if cur == pre:
                     continue
                 elif cur > pre:
