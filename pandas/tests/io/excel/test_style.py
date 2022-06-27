@@ -1,8 +1,4 @@
 import contextlib
-from typing import (
-    List,
-    Tuple,
-)
 
 import numpy as np
 import pytest
