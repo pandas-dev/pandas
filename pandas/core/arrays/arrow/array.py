@@ -298,20 +298,20 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if pa_version_under4p0:
             encoded = self._data.dictionary_encode()
         else:
-            null_encoding = "mask" if resolved_na_sentinel else "encode"
+            null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
             encoded = self._data.dictionary_encode(null_encoding=null_encoding)
-
-        encoded = self._data.dictionary_encode()
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
         ).to_pandas()
         if indices.dtype.kind == "f":
-            indices[np.isnan(indices)] = na_sentinel if na_sentinel is not None else -1
+            indices[np.isnan(indices)] = (
+                resolved_na_sentinel if resolved_na_sentinel is not None else -1
+            )
         indices = indices.astype(np.int64, copy=False)
 
         if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
-            if not resolved_na_sentinel and pa_version_under4p0:
+            if resolved_na_sentinel is None and pa_version_under4p0:
                 # TODO: share logic with BaseMaskedArray.factorize
                 # Insert na with the proper code
                 na_mask = indices.values == -1

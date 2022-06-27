@@ -875,28 +875,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[np.ndarray, ExtensionArray]:
         resolved_na_sentinel = algos.resolve_na_sentinel(na_sentinel, use_na_sentinel)
-        if resolved_na_sentinel is None:
-            raise NotImplementedError("Encoding NaN values is not yet implemented")
-        else:
-            na_sentinel = resolved_na_sentinel
         arr = self._data
         mask = self._mask
 
         # Pass non-None na_sentinel; recode and add NA to uniques if necessary below
-        na_sentinel_arg = -1 if na_sentinel is None else na_sentinel
+        na_sentinel_arg = -1 if resolved_na_sentinel is None else resolved_na_sentinel
         codes, uniques = factorize_array(arr, na_sentinel=na_sentinel_arg, mask=mask)
 
         # check that factorize_array correctly preserves dtype.
         assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
 
         has_na = mask.any()
-        if na_sentinel is not None or not has_na:
+        if resolved_na_sentinel is not None or not has_na:
             size = len(uniques)
         else:
             # Make room for an NA value
             size = len(uniques) + 1
         uniques_mask = np.zeros(size, dtype=bool)
-        if na_sentinel is None and has_na:
+        if resolved_na_sentinel is None and has_na:
             na_index = mask.argmax()
             # Insert na with the proper code
             if na_index == 0:

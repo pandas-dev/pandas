@@ -522,10 +522,7 @@ def factorize_array(
     Parameters
     ----------
     values : ndarray
-    na_sentinel : int or None, default -1
-        Code to use for NA values. When None, no sentinel will be used. Instead, NA
-        values will be coded as a non-negative integer and the NA value will appear in
-        uniques.
+    na_sentinel : int, default -1
     size_hint : int, optional
         Passed through to the hashtable's 'get_labels' method
     na_value : object, optional
@@ -761,19 +758,19 @@ def factorize(
 
     elif not isinstance(values.dtype, np.dtype):
         if (
-            na_sentinel == -1
-            and "use_na_sentinel" in inspect.signature(values.factorize).parameters
-        ):
+            na_sentinel == -1 or na_sentinel is None
+        ) and "use_na_sentinel" in inspect.signature(values.factorize).parameters:
             # Avoid using catch_warnings when possible
             # GH#46910 - TimelikeOps has deprecated signature
             codes, uniques = values.factorize(  # type: ignore[call-arg]
-                use_na_sentinel=True
+                use_na_sentinel=na_sentinel is not None
             )
         else:
+            na_sentinel_arg = -1 if na_sentinel is None else na_sentinel
             with warnings.catch_warnings():
                 # We've already warned above
                 warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
-                codes, uniques = values.factorize(na_sentinel=na_sentinel)
+                codes, uniques = values.factorize(na_sentinel=na_sentinel_arg)
 
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
