@@ -267,22 +267,23 @@ class TestGetitemTests(base.BaseGetitemTests):
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
-    def test_groupby_extension_apply(
-        self, data_for_grouping, groupby_apply_op, request
-    ):
+    def test_groupby_extension_no_sort(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        # Is there a better way to get the "series" ID for groupby_apply_op?
-        is_series = "series" in request.node.nodeid
-        if pa.types.is_duration(pa_dtype):
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        elif not is_series and (
-            pa.types.is_date(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        elif pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -290,6 +291,56 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason="GH 34986",
                 )
             )
+        super().test_groupby_extension_no_sort(data_for_grouping)
+
+    def test_groupby_extension_transform(self, data_for_grouping, request):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
+                )
+            )
+        super().test_groupby_extension_transform(data_for_grouping)
+
+    def test_groupby_extension_apply(
+        self, data_for_grouping, groupby_apply_op, request
+    ):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        # Is there a better way to get the "series" ID for groupby_apply_op?
+        is_series = "series" in request.node.nodeid
+        is_object = "object" in request.node.nodeid
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
+                )
+            )
+        elif pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            if is_object:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=TypeError,
+                        reason="GH 47514: _concat_datetime expects axis arg.",
+                    )
+                )
+            elif not is_series:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=AttributeError,
+                        reason="GH 34986",
+                    )
+                )
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
     def test_in_numeric_groupby(self, data_for_grouping, request):
