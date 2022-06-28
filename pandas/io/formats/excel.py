@@ -14,7 +14,6 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
-    List,
     Mapping,
     Sequence,
     cast,
@@ -91,8 +90,7 @@ class CssExcelCell(ExcelCell):
         if css_styles and css_converter:
             # Use dict to get only one (case-insensitive) declaration per property
             declaration_dict = {
-                prop.lower(): val
-                for prop,val in css_styles[css_row, css_col]
+                prop.lower(): val for prop, val in css_styles[css_row, css_col]
             }
             # Convert to frozenset for order-invariant caching
             unique_declarations = frozenset(declaration_dict.items())

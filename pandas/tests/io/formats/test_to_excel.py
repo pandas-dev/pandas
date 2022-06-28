@@ -2,7 +2,6 @@
 
 ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
-import enum
 import string
 
 import pytest
@@ -345,88 +344,85 @@ def test_css_named_colors_from_mpl_present():
     for name, color in mpl_colors.items():
         assert name in pd_colors and pd_colors[name] == color[1:]
 
+
 @pytest.mark.parametrize(
     "styles,expected",
     [
         ([("color", "green"), ("color", "red")], "color: red;"),
         ([("font-weight", "bold"), ("font-weight", "normal")], "font-weight: normal;"),
         ([("text-align", "center"), ("TEXT-ALIGN", "right")], "text-align: right;"),
-    ]
+    ],
 )
-def test_css_excel_cell_precedence(styles,expected):
+def test_css_excel_cell_precedence(styles, expected):
     """It applies favors latter declarations over former declarations"""
     # See GH 47371
     converter = CSSToExcelConverter()
     converter.__call__.cache_clear()
-    css_styles = {
-        (0,0): styles
-    }
+    css_styles = {(0, 0): styles}
     cell = CssExcelCell(
-        row = 0,
-        col = 0,
-        val = "",
-        style = None,
-        css_styles = css_styles,
-        css_row = 0,
-        css_col = 0,
-        css_converter = converter,
+        row=0,
+        col=0,
+        val="",
+        style=None,
+        css_styles=css_styles,
+        css_row=0,
+        css_col=0,
+        css_converter=converter,
     )
     converter.__call__.cache_clear()
 
     assert cell.style == converter(expected)
 
+
 @pytest.mark.parametrize(
     "styles,cache_hits,cache_misses",
     [
-        (
-            [
-                [("color", "green"), ("color", "red"), ("color", "green")]
-            ], 0, 1
-        ),
+        ([[("color", "green"), ("color", "red"), ("color", "green")]], 0, 1),
         (
             [
                 [("font-weight", "bold")],
-                [("font-weight", "normal"), ("font-weight", "bold")]
-            ], 1, 1
+                [("font-weight", "normal"), ("font-weight", "bold")],
+            ],
+            1,
+            1,
         ),
+        ([[("text-align", "center")], [("TEXT-ALIGN", "center")]], 1, 1),
         (
             [
-                [("text-align", "center")],
-                [("TEXT-ALIGN", "center")]
-            ], 1, 1
+                [("font-weight", "bold"), ("text-align", "center")],
+                [("font-weight", "bold"), ("text-align", "left")],
+            ],
+            0,
+            2,
         ),
         (
             [
                 [("font-weight", "bold"), ("text-align", "center")],
                 [("font-weight", "bold"), ("text-align", "left")],
-            ], 0, 2
-        ),
-        (
-            [
                 [("font-weight", "bold"), ("text-align", "center")],
-                [("font-weight", "bold"), ("text-align", "left")],
-                [("font-weight", "bold"), ("text-align", "center")],
-            ], 1, 2
+            ],
+            1,
+            2,
         ),
-    ]
+    ],
 )
-def test_css_excel_cell_cache(styles,cache_hits,cache_misses):
+def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
     """It caches unique cell styles"""
     # See GH 47371
     converter = CSSToExcelConverter()
     converter.__call__.cache_clear()
 
-    css_styles = {(0,i): _style for i,_style in enumerate(styles)}
-    for css_row,css_col in css_styles:
-        cell = CssExcelCell(
-            row = 0,
-            col = 0,
-            val = "",
-            style = None,
-            css_styles = css_styles,
-            css_row = css_row,
-            css_col = css_col,
-            css_converter = converter,
+    css_styles = {(0, i): _style for i, _style in enumerate(styles)}
+    for css_row, css_col in css_styles:
+        CssExcelCell(
+            row=0,
+            col=0,
+            val="",
+            style=None,
+            css_styles=css_styles,
+            css_row=css_row,
+            css_col=css_col,
+            css_converter=converter,
         )
     cache_info = converter.__call__.cache_info()
     converter.__call__.cache_clear()
