@@ -457,7 +457,7 @@ def test_day_first_parse_dates(parser):
     )
 
     with tm.assert_produces_warning(
-        UserWarning, match="Parsing '31/12/2020' in DD/MM/YYYY format"
+        UserWarning, match="Parsing dates in DD/MM/YYYY format"
     ):
         df_result = read_xml(xml, parse_dates=["date"], parser=parser)
         df_iter = read_xml_iterparse(

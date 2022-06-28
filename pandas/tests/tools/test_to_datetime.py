@@ -1964,8 +1964,9 @@ class TestToDatetimeMisc:
     def test_dayfirst_warnings_valid_input(self):
         # GH 12585
         warning_msg_day_first = (
-            "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
-            "format or specify infer_datetime_format=True for consistent parsing."
+            r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) "
+            "was specified. This may lead to inconsistently parsed dates! Specify a "
+            "format to ensure consistent parsing."
         )
 
         # CASE 1: valid input
@@ -2001,12 +2002,14 @@ class TestToDatetimeMisc:
         # cannot consistently process with single format
         # warnings *always* raised
         warning_msg_day_first = (
-            "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
-            "format or specify infer_datetime_format=True for consistent parsing."
+            r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) "
+            "was specified. This may lead to inconsistently parsed dates! Specify a "
+            "format to ensure consistent parsing."
         )
         warning_msg_month_first = (
-            "Parsing '03/30/2011' in MM/DD/YYYY format. Provide "
-            "format or specify infer_datetime_format=True for consistent parsing."
+            r"Parsing dates in MM/DD/YYYY format when dayfirst=True "
+            "was specified. This may lead to inconsistently parsed dates! Specify a "
+            "format to ensure consistent parsing."
         )
 
         arr = ["31/12/2014", "03/30/2011"]
