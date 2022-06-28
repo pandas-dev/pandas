@@ -905,6 +905,7 @@ Period
 - Bug in constructing a :class:`Period` from a :class:`Timestamp` or ``np.datetime64`` object with non-zero nanoseconds and ``freq="ns"`` incorrectly truncating the nanoseconds (:issue:`46811`)
 - Bug in adding ``np.timedelta64("NaT", "ns")`` to a :class:`Period` with a timedelta-like freq incorrectly raising ``IncompatibleFrequency`` instead of returning ``NaT`` (:issue:`47196`)
 - Bug in adding an array of integers to an array with :class:`PeriodDtype` giving incorrect results when ``dtype.freq.n > 1`` (:issue:`47209`)
+- Bug in subtracting a :class:`Period` from an array with :class:`PeriodDtype` returning incorrect results instead of raising ``OverflowError`` when the operation overflows (:issue:`47538`)
 -
 
 Plotting
