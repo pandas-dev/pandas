@@ -6608,7 +6608,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         limit: int | None = None,
         regex=False,
-        method=lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         if not (
             is_scalar(to_replace)
