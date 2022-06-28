@@ -397,4 +397,4 @@ class TestMultiIndexConcat:
         expected = DataFrame({"a": [1, 2], "b": [1, 2]})
         tm.assert_frame_equal(result, expected)
         expected_index = pd.RangeIndex(0, 2)
-        tm.assert_index_equal(result.index, expected_index)
+        tm.assert_index_equal(result.index, expected_index, exact=True)
