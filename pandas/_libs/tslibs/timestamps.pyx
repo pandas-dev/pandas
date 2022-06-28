@@ -81,16 +81,15 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
-    dt64_to_dtstruct,
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
-    pydatetime_to_dt64,
+    pydatetime_to_dtstruct,
 )
 
 from pandas._libs.tslibs.np_datetime import (
@@ -104,6 +103,7 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 from pandas._libs.tslibs.timedeltas cimport (
+    _Timedelta,
     delta_to_nanoseconds,
     ensure_td64ns,
     is_any_td_scalar,
@@ -214,6 +214,11 @@ cdef class _Timestamp(ABCTimestamp):
 
         if value == NPY_NAT:
             return NaT
+
+        if reso < NPY_DATETIMEUNIT.NPY_FR_s or reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+            raise NotImplementedError(
+                "Only resolutions 's', 'ms', 'us', 'ns' are supported."
+            )
 
         obj.value = value
         pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
@@ -380,11 +385,36 @@ cdef class _Timestamp(ABCTimestamp):
                     # TODO: no tests get here
                     other = ensure_td64ns(other)
 
-            # TODO: what to do with mismatched resos?
-            # TODO: disallow round_ok
-            nanos = delta_to_nanoseconds(
-                other, reso=self._reso, round_ok=True
-            )
+            if isinstance(other, _Timedelta):
+                # TODO: share this with __sub__, Timedelta.__add__
+                # We allow silent casting to the lower resolution if and only
+                #  if it is lossless.  See also Timestamp.__sub__
+                #  and Timedelta.__add__
+                try:
+                    if self._reso < other._reso:
+                        other = (<_Timedelta>other)._as_reso(self._reso, round_ok=False)
+                    elif self._reso > other._reso:
+                        self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+                except ValueError as err:
+                    raise ValueError(
+                        "Timestamp addition with mismatched resolutions is not "
+                        "allowed when casting to the lower resolution would require "
+                        "lossy rounding."
+                    ) from err
+
+            try:
+                nanos = delta_to_nanoseconds(
+                    other, reso=self._reso, round_ok=False
+                )
+            except OutOfBoundsTimedelta:
+                raise
+            except ValueError as err:
+                raise ValueError(
+                    "Addition between Timestamp and Timedelta with mismatched "
+                    "resolutions is not allowed when casting to the lower "
+                    "resolution would require lossy rounding."
+                ) from err
+
             try:
                 new_value = self.value + nanos
             except OverflowError:
@@ -530,7 +560,8 @@ cdef class _Timestamp(ABCTimestamp):
             npy_datetimestruct dts
 
         if own_tz is not None and not is_utc(own_tz):
-            val = pydatetime_to_dt64(self, &dts) + self.nanosecond
+            pydatetime_to_dtstruct(self, &dts)
+            val = npy_datetimestruct_to_datetime(self._reso, &dts) + self.nanosecond
         else:
             val = self.value
         return val
@@ -1644,10 +1675,10 @@ class Timestamp(_Timestamp):
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
-            int64_t nanos = to_offset(freq).nanos
+            int64_t nanos
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
+        to_offset(freq).nanos  # raises on non-fixed freq
+        nanos = delta_to_nanoseconds(to_offset(freq), self._reso)
 
         if self.tz is not None:
             value = self.tz_localize(None).value
@@ -1658,7 +1689,7 @@ class Timestamp(_Timestamp):
 
         # Will only ever contain 1 element for timestamp
         r = round_nsint64(value, mode, nanos)[0]
-        result = Timestamp(r, unit='ns')
+        result = Timestamp._from_value_and_reso(r, self._reso, None)
         if self.tz is not None:
             result = result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent
@@ -2044,11 +2075,6 @@ default 'raise'
         >>> pd.NaT.tz_localize()
         NaT
         """
-        if self._reso != NPY_FR_ns:
-            if tz is None and self.tz is None:
-                return self
-            raise NotImplementedError(self._reso)
-
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
@@ -2077,7 +2103,7 @@ default 'raise'
                 "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
             )
 
-        out = Timestamp(value, tz=tz)
+        out = type(self)._from_value_and_reso(value, self._reso, tz=tz)
         if out is not NaT:
             out._set_freq(self._freq)  # avoid warning in constructor
         return out
@@ -2124,7 +2150,6 @@ default 'raise'
         >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
         NaT
         """
-
         if self.tzinfo is None:
             # tz naive, use tz_localize
             raise TypeError(
@@ -2264,15 +2289,11 @@ default 'raise'
                       'fold': fold}
             ts_input = datetime(**kwargs)
 
-        ts = convert_datetime_to_tsobject(ts_input, tzobj, nanos=0, reso=self._reso)
-        # TODO: passing nanos=dts.ps // 1000 causes a RecursionError in
-        #  TestTimestampConstructors.test_constructor; not clear why
-        value = ts.value + (dts.ps // 1000)
-        if value != NPY_NAT:
-            check_dts_bounds(&dts, self._reso)
-
+        ts = convert_datetime_to_tsobject(
+            ts_input, tzobj, nanos=dts.ps // 1000, reso=self._reso
+        )
         return create_timestamp_from_ts(
-            value, dts, tzobj, self._freq, fold, reso=self._reso
+            ts.value, dts, tzobj, self._freq, fold, reso=self._reso
         )
 
     def to_julian_date(self) -> np.float64:

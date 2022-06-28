@@ -636,7 +636,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -696,7 +696,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -756,7 +756,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -816,7 +816,7 @@ def read_csv(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -829,9 +829,7 @@ def read_csv(
     ...
 
 
-@deprecate_nonkeyword_arguments(
-    version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
-)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -891,7 +889,7 @@ def read_csv(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect=None,
+    dialect: str | csv.Dialect | None = None,
     # Error Handling
     error_bad_lines: bool | None = None,
     warn_bad_lines: bool | None = None,
@@ -975,7 +973,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -1035,7 +1033,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -1095,7 +1093,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -1155,7 +1153,7 @@ def read_table(
     comment: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
-    dialect=...,
+    dialect: str | csv.Dialect | None = ...,
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
@@ -1230,7 +1228,7 @@ def read_table(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect=None,
+    dialect: str | csv.Dialect | None = None,
     # Error Handling
     error_bad_lines: bool | None = None,
     warn_bad_lines: bool | None = None,
@@ -1702,10 +1700,7 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 is_text = False
                 mode = "rb"
-            # error: No overload variant of "get_handle" matches argument types
-            # "Union[str, PathLike[str], ReadCsvBuffer[bytes], ReadCsvBuffer[str]]"
-            # , "str", "bool", "Any", "Any", "Any", "Any", "Any"
-            self.handles = get_handle(  # type: ignore[call-overload]
+            self.handles = get_handle(
                 f,
                 mode,
                 encoding=self.options.get("encoding", None),
@@ -1925,7 +1920,7 @@ def _stringify_na_values(na_values):
 
 
 def _refine_defaults_read(
-    dialect: str | csv.Dialect,
+    dialect: str | csv.Dialect | None,
     delimiter: str | None | lib.NoDefault,
     delim_whitespace: bool,
     engine: CSVEngine | None,

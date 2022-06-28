@@ -21,6 +21,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     astype_overflowsafe,
     iNaT,
+    periods_per_second,
     to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
@@ -119,11 +120,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     """
 
     _typ = "timedeltaarray"
-    _scalar_type = Timedelta
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
     _is_recognized_dtype = is_timedelta64_dtype
     _infer_matches = ("timedelta", "timedelta64")
+
+    @property
+    def _scalar_type(self) -> type[Timedelta]:
+        return Timedelta
 
     __array_priority__ = 1000
     # define my properties & methods for delegation
@@ -815,10 +819,11 @@ class TimedeltaArray(dtl.TimelikeOps):
                        dtype='timedelta64[ns]', freq=None)
 
         >>> idx.total_seconds()
-        Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
+        Float64Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0],
                      dtype='float64')
         """
-        return self._maybe_mask_results(1e-9 * self.asi8, fill_value=None)
+        pps = periods_per_second(self._reso)
+        return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
@@ -829,7 +834,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         -------
         timedeltas : ndarray[object]
         """
-        return tslibs.ints_to_pytimedelta(self._ndarray)
+        return ints_to_pytimedelta(self._ndarray)
 
     days = _field_accessor("days", "days", "Number of days for each element.")
     seconds = _field_accessor(

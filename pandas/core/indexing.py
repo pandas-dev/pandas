@@ -16,6 +16,7 @@ from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import (
     AbstractMethodError,
+    IndexingError,
     InvalidIndexError,
 )
 from pandas.util._decorators import doc
@@ -119,10 +120,6 @@ class _IndexSlice:
 
 
 IndexSlice = _IndexSlice()
-
-
-class IndexingError(Exception):
-    pass
 
 
 class IndexingMixin:
@@ -524,6 +521,9 @@ class IndexingMixin:
         sidewinder mark i          10      20
                    mark ii          1       4
         viper      mark ii          7       1
+
+        Please see the :ref:`user guide<advanced.advanced_hierarchical>`
+        for more details and explanations of advanced indexing.
         """
         return _LocIndexer("loc", self)
 
@@ -1980,7 +1980,11 @@ class _iLocIndexer(_LocationIndexer):
         # We will not operate in-place, but will attempt to in the future.
         #  To determine whether we need to issue a FutureWarning, see if the
         #  setting in-place would work, i.e. behavior will change.
-        warn = can_hold_element(orig_values, value)
+        if isinstance(value, ABCSeries):
+            warn = can_hold_element(orig_values, value._values)
+        else:
+            warn = can_hold_element(orig_values, value)
+
         # Don't issue the warning yet, as we can still trim a few cases where
         #  behavior will not change.
 

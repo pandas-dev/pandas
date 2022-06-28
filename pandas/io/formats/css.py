@@ -8,6 +8,7 @@ from typing import (
     Callable,
     Generator,
     Iterable,
+    Iterator,
 )
 import warnings
 
@@ -376,7 +377,7 @@ class CSSResolver:
             else:
                 yield prop, value
 
-    def parse(self, declarations_str: str):
+    def parse(self, declarations_str: str) -> Iterator[tuple[str, str]]:
         """
         Generates (prop, value) pairs from declarations.
 

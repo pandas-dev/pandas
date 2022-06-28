@@ -30,6 +30,7 @@ Exceptions and warnings
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError
+   errors.IndexingError
    errors.InvalidIndexError
    errors.IntCastingNaNError
    errors.MergeError
@@ -42,6 +43,8 @@ Exceptions and warnings
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning
+   errors.PyperclipException
+   errors.PyperclipWindowsException
    errors.SettingWithCopyError
    errors.SettingWithCopyWarning
    errors.SpecificationError

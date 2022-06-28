@@ -38,8 +38,7 @@ cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff)
                 ipos += 1
         elif control_byte == 0x40:
             # not documented
-            nbytes = end_of_first_byte * 16
-            nbytes += <int>(inbuff[ipos])
+            nbytes = (inbuff[ipos] & 0xFF) + 18 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]

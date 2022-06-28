@@ -305,7 +305,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
         result = cast(np.ndarray, result)
         result = array_to_timedelta64(result)
 
-    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+    elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
         return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
@@ -1709,7 +1709,9 @@ def construct_1d_arraylike_from_scalar(
             value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
-        subarr.fill(value)
+        if length:
+            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+            subarr.fill(value)
 
     return subarr
 

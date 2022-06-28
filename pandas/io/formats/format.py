@@ -22,6 +22,7 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Sequence,
@@ -42,7 +43,9 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    get_unit_from_dtype,
     iNaT,
+    periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
@@ -1201,12 +1204,15 @@ def save_to_buffer(
     with get_buffer(buf, encoding=encoding) as f:
         f.write(string)
         if buf is None:
-            return f.getvalue()
+            # error: "WriteBuffer[str]" has no attribute "getvalue"
+            return f.getvalue()  # type: ignore[attr-defined]
         return None
 
 
 @contextmanager
-def get_buffer(buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None):
+def get_buffer(
+    buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
+) -> Iterator[WriteBuffer[str]] | Iterator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1738,16 +1744,21 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
     if not isinstance(values, Index):
         values = values.ravel()
 
-    values = DatetimeIndex(values)
+    if not isinstance(values, (DatetimeArray, DatetimeIndex)):
+        values = DatetimeIndex(values)
+
     if values.tz is not None:
         return False
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 10**9
-    even_days = (
-        np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
-    )
+    # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+    reso = get_unit_from_dtype(values.dtype)  # type: ignore[arg-type]
+    ppd = periods_per_day(reso)
+
+    # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
+    even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
     if even_days:
         return True
     return False
