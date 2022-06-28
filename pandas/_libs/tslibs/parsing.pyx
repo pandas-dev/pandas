@@ -87,7 +87,7 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
 PARSING_WARNING_MSG = (
     "Parsing dates in {format} format when dayfirst={dayfirst} was specified. "
     "This may lead to inconsistently-parsed dates! Specify a format "
-    "for consistent parsing."
+    "to ensure consistent parsing."
 )
 
 cdef:
@@ -196,8 +196,8 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
             warnings.warn(
                 PARSING_WARNING_MSG.format(
                     date_string=date_string,
-                    format='DD/MM/YYYY'
-                    dayfirst='False',
+                    format='DD/MM/YYYY',
+                    dayfirst='False (the default)',
                 ),
                 stacklevel=4,
             )

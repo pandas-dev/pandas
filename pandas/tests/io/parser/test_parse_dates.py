@@ -1677,9 +1677,7 @@ def test_parse_delimited_date_swap_with_warning(
 ):
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
-    warning_msg = (
-        "Provide format or specify infer_datetime_format=True for consistent parsing"
-    )
+    warning_msg = "Specify a format to ensure consistent parsing"
     with tm.assert_produces_warning(UserWarning, match=warning_msg):
         result = parser.read_csv(
             StringIO(date_string), header=None, dayfirst=dayfirst, parse_dates=[0]
