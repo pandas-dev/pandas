@@ -1087,7 +1087,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     __rdivmod__ = make_invalid_op("__rdivmod__")
 
     @final
-    def _add_datetimelike_scalar(self, other):
+    def _add_datetimelike_scalar(self, other) -> DatetimeArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
@@ -1102,16 +1102,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if other is NaT:
             # In this case we specifically interpret NaT as a datetime, not
             # the timedelta interpretation we would get by returning self + NaT
-            result = self.asi8.view("m8[ms]") + NaT.to_datetime64()
-            return DatetimeArray(result)
+            result = self._ndarray + NaT.to_datetime64().astype(f"M8[{self._unit}]")
+            # Preserve our resolution
+            return DatetimeArray._simple_new(result, dtype=result.dtype)
 
         i8 = self.asi8
-        # Incompatible types in assignment (expression has type "ndarray[Any,
-        # dtype[signedinteger[_64Bit]]]", variable has type
-        # "ndarray[Any, dtype[datetime64]]")
-        result = checked_add_with_arr(  # type: ignore[assignment]
-            i8, other.value, arr_mask=self._isnan
-        )
+        result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
@@ -1275,12 +1271,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(
                 f"Cannot add {type(self).__name__} and {type(NaT).__name__}"
             )
+        self = cast("TimedeltaArray | DatetimeArray", self)
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
-        return type(self)(result, dtype=self.dtype, freq=None)
+        result = result.view(self._ndarray.dtype)  # preserve reso
+        return type(self)._simple_new(result, dtype=self.dtype, freq=None)
 
     @final
     def _sub_nat(self):
@@ -1905,6 +1903,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _reso(self) -> int:
         return get_unit_from_dtype(self._ndarray.dtype)
 
+    @cache_readonly
+    def _unit(self) -> str:
+        # e.g. "ns", "us", "ms"
+        # error: Argument 1 to "dtype_to_unit" has incompatible type
+        # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
+        return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
+
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (
             ufunc in [np.isnan, np.isinf, np.isfinite]
@@ -2105,3 +2110,21 @@ def maybe_infer_freq(freq):
             freq_infer = True
             freq = None
     return freq, freq_infer
+
+
+def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:
+    """
+    Return the unit str corresponding to the dtype's resolution.
+
+    Parameters
+    ----------
+    dtype : DatetimeTZDtype or np.dtype
+        If np.dtype, we assume it is a datetime64 dtype.
+
+    Returns
+    -------
+    str
+    """
+    if isinstance(dtype, DatetimeTZDtype):
+        return dtype.unit
+    return np.datetime_data(dtype)[0]
