@@ -2025,6 +2025,7 @@ class DataFrame(NDFrame, OpsMixin):
         location: str | None = None,
         progress_bar: bool = True,
         credentials=None,
+        api_method: str | None = None,
     ) -> None:
         """
         Write a DataFrame to a Google BigQuery table.
@@ -2104,6 +2105,12 @@ class DataFrame(NDFrame, OpsMixin):
 
             *New in version 0.8.0 of pandas-gbq*.
 
+        api_method : str, optional
+            API method used to upload DataFrame to BigQuery.
+            One of "load_parquet", "load_csv".
+            Default "load_parquet" if pandas is version 1.1.0+, otherwise "load_csv".
+            *New in version 0.16.0 of pandas-gbq*.
+
         See Also
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
@@ -2123,6 +2130,7 @@ class DataFrame(NDFrame, OpsMixin):
             location=location,
             progress_bar=progress_bar,
             credentials=credentials,
+            api_method=api_method,
         )
 
     @classmethod

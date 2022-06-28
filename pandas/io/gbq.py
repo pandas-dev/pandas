@@ -213,6 +213,7 @@ def to_gbq(
     location: str | None = None,
     progress_bar: bool = True,
     credentials=None,
+    api_method=None,
 ) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(
@@ -227,4 +228,5 @@ def to_gbq(
         location=location,
         progress_bar=progress_bar,
         credentials=credentials,
+        api_method=api_method,
     )
