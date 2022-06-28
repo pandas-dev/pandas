@@ -4707,7 +4707,9 @@ class DataFrame(NDFrame, OpsMixin):
         self._ensure_valid_index(value)
 
         # We should never get here with DataFrame value
-        if is_dict_like(value):
+        if isinstance(value, Series):
+            return _reindex_for_setitem(value, self.index)
+        elif isinstance(value, dict):
             return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):
