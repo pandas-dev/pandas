@@ -1107,12 +1107,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
         i8 = self.asi8
-        # Incompatible types in assignment (expression has type "ndarray[Any,
-        # dtype[signedinteger[_64Bit]]]", variable has type
-        # "ndarray[Any, dtype[datetime64]]")
-        result = checked_add_with_arr(  # type: ignore[assignment]
-            i8, other.value, arr_mask=self._isnan
-        )
+        result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
@@ -1276,6 +1271,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(
                 f"Cannot add {type(self).__name__} and {type(NaT).__name__}"
             )
+        self = cast("TimedeltaArray | DatetimeArray", self)
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
@@ -1910,7 +1906,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     @cache_readonly
     def _unit(self) -> str:
         # e.g. "ns", "us", "ms"
-        return dtype_to_unit(self.dtype)
+        # error: Argument 1 to "dtype_to_unit" has incompatible type
+        # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
+        return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (
