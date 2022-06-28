@@ -63,7 +63,9 @@ if TYPE_CHECKING:
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
 
 
-def to_pyarrow_type(dtype: ArrowDtype | Dtype | None) -> pa.DataType | None:
+def to_pyarrow_type(
+    dtype: ArrowDtype | pa.DataType | Dtype | None,
+) -> pa.DataType | None:
     """
     Convert dtype to a pyarrow type instance.
     """
