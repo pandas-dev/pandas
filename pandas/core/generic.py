@@ -2189,6 +2189,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Once a workbook has been saved it is not possible to write further
         data without rewriting the whole workbook.
 
+        If you'd like to be more flexible with the output formatting,
+        we would suggest using the StyleFrame package.
+
         Examples
         --------
 
