@@ -1182,8 +1182,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # If the operation is well-defined, we return an object-dtype ndarray
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
-        asi8 = self.asi8
-        new_i8_data = asi8 - other.ordinal  # TODO: checked_add_with_arr
+        new_i8_data = checked_add_with_arr(
+            self.asi8, -other.ordinal, arr_mask=self._isnan
+        )
         new_data = np.array([self.freq.base * x for x in new_i8_data])
 
         if self._hasna:
