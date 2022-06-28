@@ -1690,7 +1690,10 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
     warning_msg = "Specify a format to ensure consistent parsing"
     with tm.assert_produces_warning(UserWarning, match=warning_msg) as record:
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
-    assert len(record) == 1
+    assert len(set(record)) == 1
+    # Using set(record) as repetitions of the same warning are suppressed
+    # https://docs.python.org/3/library/warnings.html
+    # and here we care to check that the warning is only shows once to users.
 
 
 def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
