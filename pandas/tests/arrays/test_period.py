@@ -116,6 +116,7 @@ def test_sub_period():
 
 
 def test_sub_period_overflow():
+    # GH#47538
     dti = pd.date_range("1677-09-22", periods=2, freq="D")
     pi = dti.to_period("ns")
 
