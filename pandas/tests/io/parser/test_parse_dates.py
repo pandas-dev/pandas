@@ -1690,7 +1690,7 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
     warning_msg = "Specify a format to ensure consistent parsing"
     with tm.assert_produces_warning(UserWarning, match=warning_msg) as record:
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
-    assert len(set(record)) == 1
+    assert len({str(warning.message) for warning in record}) == 1
     # Using set(record) as repetitions of the same warning are suppressed
     # https://docs.python.org/3/library/warnings.html
     # and here we care to check that the warning is only shows once to users.
@@ -1857,12 +1857,14 @@ def test_parse_dates_and_keep_orgin_column(all_parsers):
 def test_dayfirst_warnings():
     # GH 12585
     warning_msg_day_first = (
-        "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
-        "format or specify infer_datetime_format=True for consistent parsing."
+        r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) was "
+        r"specified. This may lead to inconsistently-parsed dates! Specify a format "
+        r"to ensure consistent parsing."
     )
     warning_msg_month_first = (
-        "Parsing '03/30/2011' in MM/DD/YYYY format. Provide "
-        "format or specify infer_datetime_format=True for consistent parsing."
+        "Parsing dates in MM/DD/YYYY format when dayfirst=True was "
+        "specified. This may lead to inconsistently-parsed dates! Specify a format "
+        "to ensure consistent parsing."
     )
 
     # CASE 1: valid input
