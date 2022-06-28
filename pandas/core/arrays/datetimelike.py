@@ -2127,4 +2127,4 @@ def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:
     """
     if isinstance(dtype, DatetimeTZDtype):
         return dtype.unit
-    return str(dtype).split("[")[-1][:-1]
+    return np.datetime_data(dtype)[0]
