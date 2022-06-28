@@ -1685,6 +1685,14 @@ def test_parse_delimited_date_swap_with_warning(
     tm.assert_frame_equal(result, expected)
 
 
+def test_parse_multiple_delimited_dates_with_swap_warnings():
+    # GH46210
+    warning_msg = "Specify a format to ensure consistent parsing"
+    with tm.assert_produces_warning(UserWarning, match=warning_msg) as record:
+        pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
+    assert len(record) == 1
+
+
 def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     msg, result = None, None
     try:
