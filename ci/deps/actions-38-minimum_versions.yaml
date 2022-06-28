@@ -37,7 +37,7 @@ dependencies:
   - numexpr=2.7.3
   - odfpy=1.4.1
   - openpyxl=3.0.7
-  - pandas-gbq=0.15.0
+  - pandas-gbq=0.16.0
   - psycopg2=2.8.6
   - pyarrow=1.0.1
   - pymysql=1.0.2

@@ -398,7 +398,7 @@ Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 fsspec                    0.7.4              Handling files aside from simple local and HTTP
 gcsfs                     0.6.0              Google Cloud Storage access
-pandas-gbq                0.14.0             Google Big Query access
+pandas-gbq                0.16.0             Google Big Query access
 s3fs                      0.4.0              Amazon S3 access
 ========================= ================== =============================================================
 
