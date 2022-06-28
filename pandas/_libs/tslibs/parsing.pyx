@@ -186,7 +186,6 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         if dayfirst and not swapped_day_and_month:
             warnings.warn(
                 PARSING_WARNING_MSG.format(
-                    date_string=date_string,
                     format='MM/DD/YYYY',
                     dayfirst='True',
                 ),
@@ -195,7 +194,6 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
                 PARSING_WARNING_MSG.format(
-                    date_string=date_string,
                     format='DD/MM/YYYY',
                     dayfirst='False (the default)',
                 ),
