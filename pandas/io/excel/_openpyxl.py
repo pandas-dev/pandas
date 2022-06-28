@@ -33,6 +33,7 @@ from pandas.io.excel._util import (
 
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
+    from openpyxl.workbook import Workbook
 
 
 class OpenpyxlWriter(ExcelWriter):
@@ -79,7 +80,7 @@ class OpenpyxlWriter(ExcelWriter):
                 self.book.remove(self.book.worksheets[0])
 
     @property
-    def book(self):
+    def book(self) -> Workbook:
         """
         Book instance of class openpyxl.workbook.Workbook.
 

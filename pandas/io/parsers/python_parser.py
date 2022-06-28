@@ -308,7 +308,11 @@ class PythonParser(ParserBase):
         }, names
 
     # legacy
-    def get_chunk(self, size=None):
+    def get_chunk(
+        self, size: int | None = None
+    ) -> tuple[
+        Index | None, Sequence[Hashable] | MultiIndex, Mapping[Hashable, ArrayLike]
+    ]:
         if size is None:
             # error: "PythonParser" has no attribute "chunksize"
             size = self.chunksize  # type: ignore[attr-defined]
