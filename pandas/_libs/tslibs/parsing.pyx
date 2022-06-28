@@ -86,7 +86,7 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
 
 PARSING_WARNING_MSG = (
     "Parsing dates in {format} format when dayfirst={dayfirst} was specified. "
-    "This may lead to inconsistently-parsed dates! Specify a format "
+    "This may lead to inconsistently parsed dates! Specify a format "
     "to ensure consistent parsing."
 )
 

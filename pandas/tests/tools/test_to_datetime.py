@@ -1965,7 +1965,7 @@ class TestToDatetimeMisc:
         # GH 12585
         warning_msg_day_first = (
             r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) "
-            "was specified. This may lead to inconsistently-parsed dates! Specify a "
+            "was specified. This may lead to inconsistently parsed dates! Specify a "
             "format to ensure consistent parsing."
         )
 

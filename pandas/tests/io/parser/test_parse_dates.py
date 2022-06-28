@@ -1858,12 +1858,12 @@ def test_dayfirst_warnings():
     # GH 12585
     warning_msg_day_first = (
         r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) was "
-        r"specified. This may lead to inconsistently-parsed dates! Specify a format "
+        r"specified. This may lead to inconsistently parsed dates! Specify a format "
         r"to ensure consistent parsing."
     )
     warning_msg_month_first = (
         "Parsing dates in MM/DD/YYYY format when dayfirst=True was "
-        "specified. This may lead to inconsistently-parsed dates! Specify a format "
+        "specified. This may lead to inconsistently parsed dates! Specify a format "
         "to ensure consistent parsing."
     )
 
