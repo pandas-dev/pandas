@@ -44,7 +44,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_scalar,
@@ -552,7 +551,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
+        dta = self._data.copy()
 
         for i, v in enumerate(self):
             s = v
@@ -563,9 +562,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t0
                 else:
                     s = t1
-            snapped[i] = s
+            dta[i] = s
 
-        dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------
