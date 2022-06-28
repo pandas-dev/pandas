@@ -9,6 +9,7 @@ from typing import (
 
 from pandas._typing import (
     Axis,
+    QuantileInterpolation,
     WindowingRankType,
 )
 
@@ -651,7 +652,7 @@ class Expanding(RollingAndExpandingMixin):
     def quantile(
         self,
         quantile: float,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
         **kwargs,
     ):
