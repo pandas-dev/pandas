@@ -191,7 +191,7 @@ class CSSResolver:
 
     CSS_EXPANSIONS = {
         **{
-            "-".join(filter(None, ["border", prop])): _border_expander(prop)
+            "-".join(["border", prop] if prop else ["border"]): _border_expander(prop)
             for prop in ["", "top", "right", "bottom", "left"]
         },
         **{
