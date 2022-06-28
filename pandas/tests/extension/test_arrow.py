@@ -780,7 +780,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
@@ -794,6 +794,10 @@ class TestBaseSetitem(base.BaseSetitemTests):
     @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
     def test_setitem_preserves_views(self, data):
         super().test_setitem_preserves_views(data)
+
+
+class TestBaseParsing(base.BaseParsingTests):
+    pass
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():

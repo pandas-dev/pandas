@@ -103,7 +103,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return cls(data)
         else:
             return cls(
-                pa.chunked_array(pa.array(scalars, type=pa_dtype, from_pandas=True))
+                pa.chunked_array(pa.array(scalars, from_pandas=True).cast(pa_dtype))
             )
 
     @classmethod
