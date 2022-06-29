@@ -2197,9 +2197,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             # Resolve numeric_only so that var doesn't warn
             numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
-            if numeric_only_bool and self.obj.ndim == 1:
-                raise NotImplementedError(
-                    f"{type(self).__name__}.std does not implement numeric_only."
+            if (
+                numeric_only_bool
+                and self.obj.ndim == 1
+                and not is_numeric_dtype(self.obj.dtype)
+            ):
+                raise TypeError(
+                    f"{type(self).__name__}.std called with "
+                    f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
             result = self._get_cythonized_result(
                 libgroupby.group_var,
@@ -2305,9 +2310,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         # Reolve numeric_only so that std doesn't warn
         numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
-        if numeric_only_bool and self.obj.ndim == 1:
-            raise NotImplementedError(
-                f"{type(self).__name__}.sem does not implement numeric_only."
+        if (
+            numeric_only_bool
+            and self.obj.ndim == 1
+            and not is_numeric_dtype(self.obj.dtype)
+        ):
+            raise TypeError(
+                f"{type(self).__name__}.sem called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
         result = self.std(ddof=ddof, numeric_only=numeric_only_bool)
         self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
@@ -3180,9 +3190,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         b    3.0
         """
         numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
-        if numeric_only_bool and self.obj.ndim == 1:
-            raise NotImplementedError(
-                f"{type(self).__name__}.quantile does not implement numeric_only"
+        if (
+            numeric_only_bool
+            and self.obj.ndim == 1
+            and not is_numeric_dtype(self.obj.dtype)
+        ):
+            raise TypeError(
+                f"{type(self).__name__}.quantile called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:

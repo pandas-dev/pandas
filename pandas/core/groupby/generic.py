@@ -52,6 +52,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
+    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import (
@@ -442,11 +443,17 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = False, axis: int = 0, **kwargs
     ):
         assert axis == 0  # handled by caller
 
         obj = self._selected_obj
+
+        if numeric_only and not is_numeric_dtype(obj):
+            raise TypeError(
+                f"{type(self).__name__}.{how} called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
+            )
 
         try:
             result = self.grouper._cython_operation(

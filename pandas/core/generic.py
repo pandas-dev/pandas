@@ -8689,6 +8689,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
 
         if numeric_only:
+            if self.ndim == 1 and not is_numeric_dtype(self.dtype):
+                # GH#47500
+                warnings.warn(
+                    f"Calling Series.rank with numeric_only={numeric_only} and dtype "
+                    f"{self.dtype} is deprecated and will raise a TypeError in a "
+                    "future version of pandas",
+                    category=FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             data = self._get_numeric_data()
         else:
             data = self
