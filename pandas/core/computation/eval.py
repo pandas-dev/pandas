@@ -6,6 +6,8 @@ from __future__ import annotations
 import tokenize
 import warnings
 
+import numpy as np
+
 from pandas._libs.lib import no_default
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -20,7 +22,6 @@ from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
-import numpy as np
 
 
 def _check_engine(engine: str | None) -> str:
@@ -385,7 +386,11 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    if inplace is True and hasattr(target, 'columns') and assigner in target.columns:
+                    if (
+                        inplace is True
+                        and hasattr(target, "columns")
+                        and assigner in target.columns
+                    ):
                         loc = target.columns.get_loc(assigner)
                         target._iset_item_mgr(loc, np.array(ret), inplace=inplace)
                     else:
