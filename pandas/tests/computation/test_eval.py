@@ -1890,6 +1890,14 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
+def test_set_inplace():
+    # GH 47449
+    df = DataFrame({"A": range(1, 6), "B": range(10, 0, -2), "C": range(11, 16)})
+    expected = Series([21, 20, 19, 18, 17], index=[0,1,2,3,4], name="A")
+    df.eval("A = B + C", inplace=True)
+    tm.assert_series_equal(df["A"], expected)
+
+
 class TestValidate:
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
