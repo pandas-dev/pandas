@@ -223,7 +223,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _parse_with_reso(self, label: str):
         # overridden by TimedeltaIndex
         try:
-            if self.freq is None or hasattr(self.freq, 'rule_code'):
+            if self.freq is None or hasattr(self.freq, "rule_code"):
                 freq = self.freq
         except NotImplementedError:
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
