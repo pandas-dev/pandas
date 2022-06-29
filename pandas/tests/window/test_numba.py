@@ -56,9 +56,7 @@ class TestEngine:
     @pytest.mark.parametrize("jit", [True, False])
     def test_numba_vs_cython_apply(self, jit, nogil, parallel, nopython, center, step):
         def f(x, *args):
-            arg_sum = 0
-            for arg in args:
-                arg_sum += arg
+            arg_sum = np.sum(args)
             return np.mean(x) + arg_sum
 
         if jit:
