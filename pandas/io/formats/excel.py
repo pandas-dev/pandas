@@ -172,7 +172,7 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    @lru_cache
+    @lru_cache(maxsize=None)
     def __call__(
         self, declarations: str | frozenset[tuple[str, str]]
     ) -> dict[str, dict[str, str]]:
