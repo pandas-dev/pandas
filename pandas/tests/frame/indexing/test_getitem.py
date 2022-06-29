@@ -8,16 +8,16 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     MultiIndex,
     Series,
     Timestamp,
     concat,
+    date_range,
     get_dummies,
     period_range,
-    date_range,
-    DateOffset
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
@@ -176,12 +176,19 @@ class TestGetitemListLike:
 
     def test_getitem_iloc_dateoffset_days(self):
         # GH 46671
-        df = DataFrame(list(range(10)), index=date_range('01-01-2022', periods=10))
+        df = DataFrame(list(range(10)), index=date_range("01-01-2022", periods=10))
         df = df.asfreq(DateOffset(days=1))
-        result = df.loc['2022-01-01': '2022-01-03']
-        expected = DataFrame([0, 1, 2], index=DatetimeIndex(['2022-01-01', '2022-01-02', '2022-01-03'],
-                                              dtype='datetime64[ns]', freq=DateOffset(days=1)))
+        result = df.loc["2022-01-01":"2022-01-03"]
+        expected = DataFrame(
+            [0, 1, 2],
+            index=DatetimeIndex(
+                ["2022-01-01", "2022-01-02", "2022-01-03"],
+                dtype="datetime64[ns]",
+                freq=DateOffset(days=1),
+            ),
+        )
         tm.assert_frame_equal(result, expected)
+
 
 class TestGetitemCallable:
     def test_getitem_callable(self, float_frame):
@@ -436,4 +443,3 @@ class TestGetitemDeprecatedIndexers:
         )
         with tm.assert_produces_warning(FutureWarning):
             df[key]
-
