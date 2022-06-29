@@ -14,8 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
--
+- Fixed regression when slicing with :meth:`DataFrame.loc` with :class:`DateOffset`-index (:issue:`46900`)
 
 .. ---------------------------------------------------------------------------
 
