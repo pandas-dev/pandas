@@ -754,11 +754,10 @@ def isna_all(arr: ArrayLike) -> bool:
     chunk_len = max(total_len // 40, 1000)
 
     dtype = arr.dtype
-    is_np_missing_value = na_value_for_dtype(dtype) is not libmissing.NA
-    if dtype.kind == "f" and is_np_missing_value:
+    if dtype.kind == "f" and isinstance(dtype, np.dtype):
         checker = nan_checker
 
-    elif (dtype.kind in ["m", "M"] or dtype.type is Period) and is_np_missing_value:
+    elif dtype.kind in ["m", "M"] or dtype.type is Period:
         # error: Incompatible types in assignment (expression has type
         # "Callable[[Any], Any]", variable has type "ufunc")
         checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
