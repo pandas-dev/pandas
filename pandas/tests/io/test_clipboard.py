@@ -3,6 +3,11 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas.errors import (
+    PyperclipException,
+    PyperclipWindowsException,
+)
+
 from pandas import (
     DataFrame,
     get_option,
@@ -11,6 +16,8 @@ from pandas import (
 import pandas._testing as tm
 
 from pandas.io.clipboard import (
+    CheckedCall,
+    _stringifyText,
     clipboard_get,
     clipboard_set,
 )
@@ -108,6 +115,81 @@ def df(request):
         )
     else:
         raise ValueError
+
+
+@pytest.fixture
+def mock_ctypes(monkeypatch):
+    """
+    Mocks WinError to help with testing the clipboard.
+    """
+
+    def _mock_win_error():
+        return "Window Error"
+
+    # Set raising to False because WinError won't exist on non-windows platforms
+    with monkeypatch.context() as m:
+        m.setattr("ctypes.WinError", _mock_win_error, raising=False)
+        yield
+
+
+@pytest.mark.usefixtures("mock_ctypes")
+def test_checked_call_with_bad_call(monkeypatch):
+    """
+    Give CheckCall a function that returns a falsey value and
+    mock get_errno so it returns false so an exception is raised.
+    """
+
+    def _return_false():
+        return False
+
+    monkeypatch.setattr("pandas.io.clipboard.get_errno", lambda: True)
+    msg = f"Error calling {_return_false.__name__} \\(Window Error\\)"
+
+    with pytest.raises(PyperclipWindowsException, match=msg):
+        CheckedCall(_return_false)()
+
+
+@pytest.mark.usefixtures("mock_ctypes")
+def test_checked_call_with_valid_call(monkeypatch):
+    """
+    Give CheckCall a function that returns a truthy value and
+    mock get_errno so it returns true so an exception is not raised.
+    The function should return the results from _return_true.
+    """
+
+    def _return_true():
+        return True
+
+    monkeypatch.setattr("pandas.io.clipboard.get_errno", lambda: False)
+
+    # Give CheckedCall a callable that returns a truthy value s
+    checked_call = CheckedCall(_return_true)
+    assert checked_call() is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "String_test",
+        True,
+        1,
+        1.0,
+        1j,
+    ],
+)
+def test_stringify_text(text):
+    valid_types = (str, int, float, bool)
+
+    if isinstance(text, valid_types):
+        result = _stringifyText(text)
+        assert result == str(text)
+    else:
+        msg = (
+            "only str, int, float, and bool values "
+            f"can be copied to the clipboard, not {type(text).__name__}"
+        )
+        with pytest.raises(PyperclipException, match=msg):
+            _stringifyText(text)
 
 
 @pytest.fixture

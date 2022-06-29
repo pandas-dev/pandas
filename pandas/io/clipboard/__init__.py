@@ -58,6 +58,11 @@ import subprocess
 import time
 import warnings
 
+from pandas.errors import (
+    PyperclipException,
+    PyperclipWindowsException,
+)
+
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
 # and not load PyQt4 if it is absent.
@@ -85,18 +90,6 @@ def _executable_exists(name):
         )
         == 0
     )
-
-
-# Exceptions
-class PyperclipException(RuntimeError):
-    pass
-
-
-class PyperclipWindowsException(PyperclipException):
-    def __init__(self, message) -> None:
-        # attr only exists on Windows, so typing fails on other platforms
-        message += f" ({ctypes.WinError()})"  # type: ignore[attr-defined]
-        super().__init__(message)
 
 
 def _stringifyText(text) -> str:
