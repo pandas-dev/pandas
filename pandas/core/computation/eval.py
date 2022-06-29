@@ -386,13 +386,8 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    if (
-                        inplace is True
-                        and hasattr(target, "columns")
-                        and assigner in target.columns
-                    ):
-                        loc = target.columns.get_loc(assigner)
-                        target.isetitem(loc, np.array(ret), inplace=inplace)
+                    if hasattr(target, 'loc'):
+                        target.loc[:, assigner] = ret
                     else:
                         target[assigner] = ret
             except (TypeError, IndexError) as err:
