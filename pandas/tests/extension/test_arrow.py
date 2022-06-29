@@ -712,7 +712,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
@@ -728,7 +728,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         super().test_setitem_slice_array(data)
@@ -742,7 +742,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC") and not is_null_slice:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         elif (
@@ -780,7 +780,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
@@ -794,6 +794,24 @@ class TestBaseSetitem(base.BaseSetitemTests):
     @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
     def test_setitem_preserves_views(self, data):
         super().test_setitem_preserves_views(data)
+
+
+class TestBaseParsing(base.BaseParsingTests):
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_EA_types(self, engine, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(raises=TypeError, reason="GH 47534")
+            )
+        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"Parameterized types with tz={pa_dtype.tz} not supported.",
+                )
+            )
+        super().test_EA_types(engine, data)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
