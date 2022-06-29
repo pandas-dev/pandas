@@ -2189,9 +2189,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Once a workbook has been saved it is not possible to write further
         data without rewriting the whole workbook.
 
-        There are ecosystem packages to help with ourput formatting.
-        :ref: `ecosystem.api`
-
         Examples
         --------
 

@@ -350,6 +350,9 @@ operations on pandas DataFrames. This is useful when migrating from a database t
 using pandas or for users more comfortable with SQL looking for a way to interface
 with pandas.
 
+`StyleFrame <https://github.com/DeepSpace2/StyleFrame>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+StyleFrame is a library that allows easier styling of pandas dataframes in excel.
 
 .. _ecosystem.domain:
 
