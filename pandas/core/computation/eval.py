@@ -384,7 +384,7 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    if hasattr(target, 'loc'):
+                    if hasattr(target, "loc"):
                         target.loc[:, assigner] = ret
                     else:
                         target[assigner] = ret
