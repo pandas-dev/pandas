@@ -392,7 +392,7 @@ def eval(
                         and assigner in target.columns
                     ):
                         loc = target.columns.get_loc(assigner)
-                        target._iset_item_mgr(loc, np.array(ret), inplace=inplace)
+                        target.isetitem(loc, np.array(ret), inplace=inplace)
                     else:
                         target[assigner] = ret
             except (TypeError, IndexError) as err:
