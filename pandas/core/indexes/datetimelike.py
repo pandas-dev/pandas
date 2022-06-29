@@ -222,7 +222,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     def _parse_with_reso(self, label: str):
         # overridden by TimedeltaIndex
-        # todo: here we changed self.freq to these two lines
         try:
             if self.freq is None or hasattr(self.freq, 'rule_code'):
                 freq = self.freq
