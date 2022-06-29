@@ -727,6 +727,7 @@ Other Deprecations
 - Deprecated the ``display.column_space`` global configuration option (:issue:`7576`)
 - Deprecated the argument ``na_sentinel`` in :func:`factorize`, :meth:`Index.factorize`, and :meth:`.ExtensionArray.factorize`; pass ``use_na_sentinel=True`` instead to use the sentinel ``-1`` for NaN values and ``use_na_sentinel=False`` instead of ``na_sentinel=None`` to encode NaN values (:issue:`46910`)
 - Deprecated :meth:`DataFrameGroupBy.transform` not aligning the result when the UDF returned DataFrame (:issue:`45648`)
+- Clarified warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument (:issue:`46210`)
 
 
 .. ---------------------------------------------------------------------------
@@ -751,6 +752,7 @@ Performance improvements
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 - Performance improvement in :func:`read_excel` when ``nrows`` argument provided (:issue:`32727`)
+- Performance improvement in :meth:`.Styler.to_excel` when applying repeated CSS formats (:issue:`47371`)
 - Performance improvement in :meth:`MultiIndex.is_monotonic_increasing`  (:issue:`47458`)
 
 .. ---------------------------------------------------------------------------
@@ -904,6 +906,7 @@ Period
 - Bug in constructing a :class:`Period` from a :class:`Timestamp` or ``np.datetime64`` object with non-zero nanoseconds and ``freq="ns"`` incorrectly truncating the nanoseconds (:issue:`46811`)
 - Bug in adding ``np.timedelta64("NaT", "ns")`` to a :class:`Period` with a timedelta-like freq incorrectly raising ``IncompatibleFrequency`` instead of returning ``NaT`` (:issue:`47196`)
 - Bug in adding an array of integers to an array with :class:`PeriodDtype` giving incorrect results when ``dtype.freq.n > 1`` (:issue:`47209`)
+- Bug in subtracting a :class:`Period` from an array with :class:`PeriodDtype` returning incorrect results instead of raising ``OverflowError`` when the operation overflows (:issue:`47538`)
 -
 
 Plotting
