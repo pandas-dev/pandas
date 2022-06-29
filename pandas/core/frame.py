@@ -3802,7 +3802,7 @@ class DataFrame(NDFrame, OpsMixin):
         `frame[frame.columns[i]] = value`.
         """
         arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike)
+        self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)

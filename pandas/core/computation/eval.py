@@ -6,8 +6,6 @@ from __future__ import annotations
 import tokenize
 import warnings
 
-import numpy as np
-
 from pandas._libs.lib import no_default
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
