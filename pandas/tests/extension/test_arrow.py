@@ -107,6 +107,77 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
+def data_for_grouping(dtype):
+    """
+    Data for factorization, grouping, and unique tests.
+    Expected to be like [B, B, NA, NA, A, A, B, C]
+    Where A < B < C and NA is missing
+    """
+    pa_dtype = dtype.pyarrow_dtype
+    if pa.types.is_boolean(pa_dtype):
+        A = False
+        B = True
+        C = True
+    elif pa.types.is_floating(pa_dtype):
+        A = -1.1
+        B = 0.0
+        C = 1.1
+    elif pa.types.is_signed_integer(pa_dtype):
+        A = -1
+        B = 0
+        C = 1
+    elif pa.types.is_unsigned_integer(pa_dtype):
+        A = 0
+        B = 1
+        C = 10
+    elif pa.types.is_date(pa_dtype):
+        A = date(1999, 12, 31)
+        B = date(2010, 1, 1)
+        C = date(2022, 1, 1)
+    elif pa.types.is_timestamp(pa_dtype):
+        A = datetime(1999, 1, 1, 1, 1, 1, 1)
+        B = datetime(2020, 1, 1)
+        C = datetime(2020, 1, 1, 1)
+    elif pa.types.is_duration(pa_dtype):
+        A = timedelta(-1)
+        B = timedelta(0)
+        C = timedelta(1, 4)
+    elif pa.types.is_time(pa_dtype):
+        A = time(0, 0)
+        B = time(0, 12)
+        C = time(12, 12)
+    else:
+        raise NotImplementedError
+    return pd.array([B, B, None, None, A, A, B, C], dtype=dtype)
+
+
+@pytest.fixture
+def data_for_sorting(data_for_grouping):
+    """
+    Length-3 array with a known sort order.
+
+    This should be three items [B, C, A] with
+    A < B < C
+    """
+    return type(data_for_grouping)._from_sequence(
+        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]]
+    )
+
+
+@pytest.fixture
+def data_missing_for_sorting(data_for_grouping):
+    """
+    Length-3 array with a known sort order.
+
+    This should be three items [B, NA, A] with
+    A < B and NA missing.
+    """
+    return type(data_for_grouping)._from_sequence(
+        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]]
+    )
+
+
+@pytest.fixture
 def na_value():
     """The scalar missing value for this type. Default 'None'"""
     return pd.NA
@@ -812,6 +883,183 @@ class TestBaseParsing(base.BaseParsingTests):
                 )
             )
         super().test_EA_types(engine, data)
+
+
+class TestBaseMethods(base.BaseMethodsTests):
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts(self, all_data, dropna, request):
+        pa_dtype = all_data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"value_count has no kernel for {pa_dtype}",
+                )
+            )
+        super().test_value_counts(all_data, dropna)
+
+    def test_value_counts_with_normalize(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"value_count has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        super().test_value_counts_with_normalize(data)
+
+    def test_argmin_argmax(
+        self, data_for_sorting, data_missing_for_sorting, na_value, request
+    ):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype) and not ascending:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"unique has no pyarrow kernel "
+                        f"for {pa_dtype} when ascending={ascending}"
+                    ),
+                )
+            )
+        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_frame(self, data_for_sorting, ascending, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"dictionary_encode has no pyarrow kernel "
+                        f"for {pa_dtype} when ascending={ascending}"
+                    ),
+                )
+            )
+        super().test_sort_values_frame(data_for_sorting, ascending)
+
+    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
+    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
+    def test_unique(self, data, box, method, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"unique has no pyarrow kernel for {pa_dtype}.",
+                )
+            )
+        super().test_unique(data, box, method)
+
+    @pytest.mark.parametrize("na_sentinel", [-1, -2])
+    def test_factorize(self, data_for_grouping, na_sentinel, request):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        elif pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        super().test_factorize(data_for_grouping, na_sentinel)
+
+    @pytest.mark.parametrize("na_sentinel", [-1, -2])
+    def test_factorize_equivalence(self, data_for_grouping, na_sentinel, request):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        super().test_factorize_equivalence(data_for_grouping, na_sentinel)
+
+    def test_factorize_empty(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        super().test_factorize_empty(data)
+
+    @pytest.mark.xfail(
+        reason="result dtype pyarrow[bool] better than expected dtype object"
+    )
+    def test_combine_le(self, data_repeated):
+        super().test_combine_le(data_repeated)
+
+    def test_combine_add(self, data_repeated, request):
+        pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
+        if pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=f"{pa_dtype} cannot be added to {pa_dtype}",
+                )
+            )
+        super().test_combine_add(data_repeated)
+
+    def test_searchsorted(self, data_for_sorting, as_series, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        super().test_searchsorted(data_for_sorting, as_series)
+
+    def test_where_series(self, data, na_value, as_frame, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"Unsupported cast from double to {pa_dtype}",
+                )
+            )
+        super().test_where_series(data, na_value, as_frame)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
