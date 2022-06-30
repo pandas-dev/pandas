@@ -551,7 +551,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
@@ -942,7 +942,7 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype) and not ascending:
+        if pa.types.is_duration(pa_dtype) and not ascending and not pa_version_under2p0:
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -973,7 +973,7 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
+        if pa.types.is_duration(pa_dtype) and not pa_version_under2p0:
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -1043,12 +1043,53 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_fillna_copy_series(data_missing)
 
+    def test_shift_fill_value(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_shift_fill_value(data)
+
+    @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
+    def test_repeat(self, data, repeats, as_series, use_numpy, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_repeat(data, repeats, as_series, use_numpy)
+
+    def test_insert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_insert(data)
+
     def test_combine_first(self, data, request, using_array_manager):
         pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
         if using_array_manager and pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        elif pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         super().test_combine_first(data)
@@ -1062,7 +1103,7 @@ class TestBaseMethods(base.BaseMethodsTests):
         self, data, frame, periods, indices, request, using_array_manager
     ):
         pa_dtype = data.dtype.pyarrow_dtype
-        if using_array_manager and pa.types.is_duration(pa_dtype) and periods == 2:
+        if using_array_manager and pa.types.is_duration(pa_dtype) and periods == -2:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=(
