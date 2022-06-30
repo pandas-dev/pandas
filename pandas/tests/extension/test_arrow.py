@@ -1023,6 +1023,56 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_factorize_empty(data)
 
+    def test_fillna_copy_frame(self, data_missing, request, using_array_manager):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        super().test_fillna_copy_frame(data_missing)
+
+    def test_fillna_copy_series(self, data_missing, request, using_array_manager):
+        pa_dtype = data_missing.dtype.pyarrow_dtype
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        super().test_fillna_copy_series(data_missing)
+
+    def test_combine_first(self, data, request, using_array_manager):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        super().test_combine_first(data)
+
+    @pytest.mark.parametrize("frame", [True, False])
+    @pytest.mark.parametrize(
+        "periods, indices",
+        [(-2, [2, 3, 4, -1, -1]), (0, [0, 1, 2, 3, 4]), (2, [-1, -1, 0, 1, 2])],
+    )
+    def test_container_shift(
+        self, data, frame, periods, indices, request, using_array_manager
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if using_array_manager and pa.types.is_duration(pa_dtype) and periods == 2:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"Checking ndim when using arraymanager with "
+                        f"{pa_dtype} and periods={periods}"
+                    )
+                )
+            )
+        super().test_container_shift(data, frame, periods, indices)
+
     @pytest.mark.xfail(
         reason="result dtype pyarrow[bool] better than expected dtype object"
     )
@@ -1050,9 +1100,15 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_searchsorted(data_for_sorting, as_series)
 
-    def test_where_series(self, data, na_value, as_frame, request):
+    def test_where_series(self, data, na_value, as_frame, request, using_array_manager):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype):
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        elif pa.types.is_temporal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
