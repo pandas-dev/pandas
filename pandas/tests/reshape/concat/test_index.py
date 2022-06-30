@@ -306,3 +306,14 @@ class TestMultiIndexConcat:
             result_df = concat((df1, df2), axis=1)
 
         tm.assert_frame_equal(expected_df, result_df)
+
+    def test_concat_range_index_result(self):
+        # GH#47501
+        df1 = DataFrame({"a": [1, 2]})
+        df2 = DataFrame({"b": [1, 2]})
+
+        result = concat([df1, df2], sort=True, axis=1)
+        expected = DataFrame({"a": [1, 2], "b": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+        expected_index = pd.RangeIndex(0, 2)
+        tm.assert_index_equal(result.index, expected_index, exact=True)
