@@ -1024,7 +1024,7 @@ class TestBaseMethods(base.BaseMethodsTests):
         super().test_factorize_empty(data)
 
     def test_fillna_copy_frame(self, data_missing, request, using_array_manager):
-        pa_dtype = data.dtype.pyarrow_dtype
+        pa_dtype = data_missing.dtype.pyarrow_dtype
         if using_array_manager and pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
