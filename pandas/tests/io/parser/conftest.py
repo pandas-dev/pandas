@@ -42,6 +42,16 @@ class BaseParser:
         kwargs = self.update_kwargs(kwargs)
         return read_table(*args, **kwargs)
 
+    def read_table_check_warnings(
+        self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
+    ):
+        # We need to check the stacklevel here instead of in the tests
+        # since this is where read_table is called and where the warning
+        # should point to.
+        kwargs = self.update_kwargs(kwargs)
+        with tm.assert_produces_warning(warn_type, match=warn_msg):
+            return read_table(*args, **kwargs)
+
 
 class CParser(BaseParser):
     engine = "c"

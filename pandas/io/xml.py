@@ -974,9 +974,7 @@ def _parse(
     )
 
 
-@deprecate_nonkeyword_arguments(
-    version=None, allowed_args=["path_or_buffer"], stacklevel=2
-)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["path_or_buffer"])
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
