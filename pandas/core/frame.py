@@ -1008,7 +1008,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # used by repr_html under IPython notebook or scripts ignore terminal
         # dims
-        if ignore_width or not console.in_interactive_session():
+        if ignore_width or width is None or not console.in_interactive_session():
             return True
 
         if get_option("display.width") is not None or console.in_ipython_frontend():
@@ -1720,7 +1720,10 @@ class DataFrame(NDFrame, OpsMixin):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
-            raise ValueError("only recognize index or columns for orient")
+            raise ValueError(
+                f"Expected 'index', 'columns' or 'tight' for orient parameter. "
+                f"Got '{orient}' instead"
+            )
 
         if orient != "tight":
             return cls(data, index=index, columns=columns, dtype=dtype)
@@ -1817,7 +1820,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        orient : str {'dict', 'list', 'series', 'split', 'records', 'index'}
+        orient : str {'dict', 'list', 'series', 'split', 'tight', 'records', 'index'}
             Determines the type of the values of the dictionary.
 
             - 'dict' (default) : dict like {column -> {index -> value}}
@@ -3555,16 +3558,16 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: int = 0):
+    def _ixs(self, i: int, axis: int = 0) -> Series:
         """
         Parameters
         ----------
         i : int
         axis : int
 
-        Notes
-        -----
-        If slice passed, the resulting data will be a view.
+        Returns
+        -------
+        Series
         """
         # irow
         if axis == 0:
@@ -4706,6 +4709,8 @@ class DataFrame(NDFrame, OpsMixin):
         # We should never get here with DataFrame value
         if isinstance(value, Series):
             return _reindex_for_setitem(value, self.index)
+        elif isinstance(value, dict):
+            return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
@@ -5542,7 +5547,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,

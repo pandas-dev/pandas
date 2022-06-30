@@ -217,14 +217,6 @@ cdef inline int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil:
     return npy_datetimestruct_to_datetime(NPY_FR_ns, dts)
 
 
-cdef inline void dt64_to_dtstruct(int64_t dt64,
-                                  npy_datetimestruct* out) nogil:
-    """Convenience function to call pandas_datetime_to_datetimestruct
-    with the by-far-most-common frequency NPY_FR_ns"""
-    pandas_datetime_to_datetimestruct(dt64, NPY_FR_ns, out)
-    return
-
-
 # just exposed for testing at the moment
 def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     cdef:

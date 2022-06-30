@@ -167,11 +167,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     # array priority higher than numpy scalars
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
-    _scalar_type = Period
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
     _is_recognized_dtype = is_period_dtype
     _infer_matches = ("period",)
+
+    @property
+    def _scalar_type(self) -> type[Period]:
+        return Period
 
     # Names others delegate to us
     _other_ops: list[str] = []
