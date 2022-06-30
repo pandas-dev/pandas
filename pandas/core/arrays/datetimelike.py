@@ -94,7 +94,10 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCCategorical,
+    ABCMultiIndex,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -2047,7 +2050,7 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
         # GH#24539 e.g. xarray, dask object
         data = np.asarray(data)
 
-    elif is_categorical_dtype(data.dtype):
+    elif isinstance(data, ABCCategorical):
         # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through maybe_convert_dtype,
         #  e.g. the categories are timedelta64s
