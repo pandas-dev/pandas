@@ -706,6 +706,30 @@ To choose another dtype, use the ``dtype`` argument:
 
     pd.get_dummies(df, dtype=bool).dtypes
 
+.. versionadded:: 1.5.0
+
+To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``,
+for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
+``DataFrame`` which has ``k`` distinct values using
+:func:`~pandas.from_dummies`:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
+   df
+
+   pd.from_dummies(df, sep="_")
+
+Dummy coded data only requires ``k - 1`` categories to be included, in this case
+the ``k`` th category is the default category, implied by not being assigned any of
+the other ``k - 1`` categories, can be passed via ``default_category``.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"prefix_a": [0, 1, 0]})
+   df
+
+   pd.from_dummies(df, sep="_", default_category="b")
 
 .. _reshaping.factorize:
 

@@ -1,7 +1,10 @@
 # flake8: noqa:F401
 
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.encoding import get_dummies
+from pandas.core.reshape.encoding import (
+    from_dummies,
+    get_dummies,
+)
 from pandas.core.reshape.melt import (
     lreshape,
     melt,
