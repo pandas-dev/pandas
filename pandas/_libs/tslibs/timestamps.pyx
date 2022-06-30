@@ -81,7 +81,6 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
     get_datetime64_unit,
@@ -104,6 +103,7 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 from pandas._libs.tslibs.timedeltas cimport (
+    _Timedelta,
     delta_to_nanoseconds,
     ensure_td64ns,
     is_any_td_scalar,
@@ -214,6 +214,11 @@ cdef class _Timestamp(ABCTimestamp):
 
         if value == NPY_NAT:
             return NaT
+
+        if reso < NPY_DATETIMEUNIT.NPY_FR_s or reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+            raise NotImplementedError(
+                "Only resolutions 's', 'ms', 'us', 'ns' are supported."
+            )
 
         obj.value = value
         pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
@@ -380,11 +385,36 @@ cdef class _Timestamp(ABCTimestamp):
                     # TODO: no tests get here
                     other = ensure_td64ns(other)
 
-            # TODO: what to do with mismatched resos?
-            # TODO: disallow round_ok
-            nanos = delta_to_nanoseconds(
-                other, reso=self._reso, round_ok=True
-            )
+            if isinstance(other, _Timedelta):
+                # TODO: share this with __sub__, Timedelta.__add__
+                # We allow silent casting to the lower resolution if and only
+                #  if it is lossless.  See also Timestamp.__sub__
+                #  and Timedelta.__add__
+                try:
+                    if self._reso < other._reso:
+                        other = (<_Timedelta>other)._as_reso(self._reso, round_ok=False)
+                    elif self._reso > other._reso:
+                        self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+                except ValueError as err:
+                    raise ValueError(
+                        "Timestamp addition with mismatched resolutions is not "
+                        "allowed when casting to the lower resolution would require "
+                        "lossy rounding."
+                    ) from err
+
+            try:
+                nanos = delta_to_nanoseconds(
+                    other, reso=self._reso, round_ok=False
+                )
+            except OutOfBoundsTimedelta:
+                raise
+            except ValueError as err:
+                raise ValueError(
+                    "Addition between Timestamp and Timedelta with mismatched "
+                    "resolutions is not allowed when casting to the lower "
+                    "resolution would require lossy rounding."
+                ) from err
+
             try:
                 new_value = self.value + nanos
             except OverflowError:
@@ -2259,15 +2289,11 @@ default 'raise'
                       'fold': fold}
             ts_input = datetime(**kwargs)
 
-        ts = convert_datetime_to_tsobject(ts_input, tzobj, nanos=0, reso=self._reso)
-        # TODO: passing nanos=dts.ps // 1000 causes a RecursionError in
-        #  TestTimestampConstructors.test_constructor; not clear why
-        value = ts.value + (dts.ps // 1000)
-        if value != NPY_NAT:
-            check_dts_bounds(&dts, self._reso)
-
+        ts = convert_datetime_to_tsobject(
+            ts_input, tzobj, nanos=dts.ps // 1000, reso=self._reso
+        )
         return create_timestamp_from_ts(
-            value, dts, tzobj, self._freq, fold, reso=self._reso
+            ts.value, dts, tzobj, self._freq, fold, reso=self._reso
         )
 
     def to_julian_date(self) -> np.float64:

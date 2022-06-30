@@ -1087,12 +1087,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     __rdivmod__ = make_invalid_op("__rdivmod__")
 
     @final
-    def _add_datetimelike_scalar(self, other):
-        # Overridden by TimedeltaArray
+    def _add_datetimelike_scalar(self, other) -> DatetimeArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
             )
+
+        self = cast("TimedeltaArray", self)
 
         from pandas.core.arrays import DatetimeArray
 
@@ -1101,17 +1102,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if other is NaT:
             # In this case we specifically interpret NaT as a datetime, not
             # the timedelta interpretation we would get by returning self + NaT
-            result = self.asi8.view("m8[ms]") + NaT.to_datetime64()
-            return DatetimeArray(result)
+            result = self._ndarray + NaT.to_datetime64().astype(f"M8[{self._unit}]")
+            # Preserve our resolution
+            return DatetimeArray._simple_new(result, dtype=result.dtype)
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
-        result = self._maybe_mask_results(result)
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
     @final
-    def _add_datetime_arraylike(self, other):
+    def _add_datetime_arraylike(self, other) -> DatetimeArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
                 f"cannot add {type(self).__name__} and {type(other).__name__}"
@@ -1147,7 +1148,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
-        result = self._maybe_mask_results(result)
         return result.view("timedelta64[ns]")
 
     @final
@@ -1169,23 +1169,23 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        arr_mask = self._isnan | other._isnan
-        new_values = checked_add_with_arr(self_i8, -other_i8, arr_mask=arr_mask)
-        if self._hasna or other._hasna:
-            np.putmask(new_values, arr_mask, iNaT)
+        new_values = checked_add_with_arr(
+            self_i8, -other_i8, arr_mask=self._isnan, b_mask=other._isnan
+        )
         return new_values.view("timedelta64[ns]")
 
     @final
-    def _sub_period(self, other: Period):
+    def _sub_period(self, other: Period) -> npt.NDArray[np.object_]:
         if not is_period_dtype(self.dtype):
             raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
         # If the operation is well-defined, we return an object-dtype ndarray
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
-        asi8 = self.asi8
-        new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq.base * x for x in new_data])
+        new_i8_data = checked_add_with_arr(
+            self.asi8, -other.ordinal, arr_mask=self._isnan
+        )
+        new_data = np.array([self.freq.base * x for x in new_i8_data])
 
         if self._hasna:
             new_data[self._isnan] = NaT
@@ -1193,7 +1193,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_data
 
     @final
-    def _add_period(self, other: Period):
+    def _add_period(self, other: Period) -> PeriodArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(f"cannot add Period to a {type(self).__name__}")
 
@@ -1226,8 +1226,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         inc = delta_to_nanoseconds(other, reso=self._reso)  # type: ignore[attr-defined]
 
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
-        new_values = new_values.view("i8")
-        new_values = self._maybe_mask_results(new_values)
         new_values = new_values.view(self._ndarray.dtype)
 
         new_freq = None
@@ -1263,10 +1261,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = checked_add_with_arr(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
-        if self._hasna or other._hasna:
-            mask = self._isnan | other._isnan
-            np.putmask(new_values, mask, iNaT)
-
         return type(self)(new_values, dtype=self.dtype)
 
     @final
@@ -1278,12 +1272,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(
                 f"Cannot add {type(self).__name__} and {type(NaT).__name__}"
             )
+        self = cast("TimedeltaArray | DatetimeArray", self)
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
-        return type(self)(result, dtype=self.dtype, freq=None)
+        result = result.view(self._ndarray.dtype)  # preserve reso
+        return type(self)._simple_new(result, dtype=self.dtype, freq=None)
 
     @final
     def _sub_nat(self):
@@ -1310,11 +1306,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("PeriodArray", self)
         self._require_matching_freq(other)
 
-        new_values = checked_add_with_arr(
+        new_i8_values = checked_add_with_arr(
             self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
         )
 
-        new_values = np.array([self.freq.base * x for x in new_values])
+        new_values = np.array([self.freq.base * x for x in new_i8_values])
         if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             new_values[mask] = NaT
@@ -1683,12 +1679,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._wrap_reduction_result(axis, result)
 
     def _mode(self, dropna: bool = True):
-        values = self
+        mask = None
         if dropna:
-            mask = values.isna()
-            values = values[~mask]
+            mask = self.isna()
 
-        i8modes = mode(values.view("i8"))
+        i8modes = mode(self.view("i8"), mask=mask)
         npmodes = i8modes.view(self._ndarray.dtype)
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
@@ -1909,6 +1904,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _reso(self) -> int:
         return get_unit_from_dtype(self._ndarray.dtype)
 
+    @cache_readonly
+    def _unit(self) -> str:
+        # e.g. "ns", "us", "ms"
+        # error: Argument 1 to "dtype_to_unit" has incompatible type
+        # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
+        return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
+
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if (
             ufunc in [np.isnan, np.isinf, np.isfinite]
@@ -2000,7 +2002,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
 
-    def factorize(self, na_sentinel=-1, sort: bool = False):
+    # GH#46910 - Keep old signature to test we don't break things for EA library authors
+    def factorize(  # type:ignore[override]
+        self,
+        na_sentinel: int = -1,
+        sort: bool = False,
+    ):
         if self.freq is not None:
             # We must be unique, so can short-circuit (and retain freq)
             codes = np.arange(len(self), dtype=np.intp)
@@ -2104,3 +2111,21 @@ def maybe_infer_freq(freq):
             freq_infer = True
             freq = None
     return freq, freq_infer
+
+
+def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:
+    """
+    Return the unit str corresponding to the dtype's resolution.
+
+    Parameters
+    ----------
+    dtype : DatetimeTZDtype or np.dtype
+        If np.dtype, we assume it is a datetime64 dtype.
+
+    Returns
+    -------
+    str
+    """
+    if isinstance(dtype, DatetimeTZDtype):
+        return dtype.unit
+    return np.datetime_data(dtype)[0]
