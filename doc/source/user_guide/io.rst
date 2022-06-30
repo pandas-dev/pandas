@@ -2559,16 +2559,29 @@ Let's look at a few examples.
 
 Read a URL with no options:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
-   dfs = pd.read_html(url)
-   dfs
+   In [320]: "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+   In [321]: pd.read_html(url)
+   Out[321]:
+   [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
+    0                    Almena State Bank             Almena      KS  ...                          Equity Bank    October 23, 2020    10538
+    1           First City Bank of Florida  Fort Walton Beach      FL  ...            United Fidelity Bank, fsb    October 16, 2020    10537
+    2                 The First State Bank      Barboursville      WV  ...                       MVB Bank, Inc.       April 3, 2020    10536
+    3                   Ericson State Bank            Ericson      NE  ...           Farmers and Merchants Bank   February 14, 2020    10535
+    4     City National Bank of New Jersey             Newark      NJ  ...                      Industrial Bank    November 1, 2019    10534
+    ..                                 ...                ...     ...  ...                                  ...                 ...      ...
+    558                 Superior Bank, FSB           Hinsdale      IL  ...                Superior Federal, FSB       July 27, 2001     6004
+    559                Malta National Bank              Malta      OH  ...                    North Valley Bank         May 3, 2001     4648
+    560    First Alliance Bank & Trust Co.         Manchester      NH  ...  Southern New Hampshire Bank & Trust    February 2, 2001     4647
+    561  National State Bank of Metropolis         Metropolis      IL  ...              Banterra Bank of Marion   December 14, 2000     4646
+    562                   Bank of Honolulu           Honolulu      HI  ...                   Bank of the Orient    October 13, 2000     4645
+
+    [563 rows x 7 columns]]
 
 .. note::
 
-   The data from the above URL changes every Monday so the resulting data above
-   and the data below may be slightly different.
+   The data from the above URL changes every Monday so the resulting data above may be slightly different.
 
 Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
