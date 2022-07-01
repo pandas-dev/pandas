@@ -100,6 +100,25 @@ as seen in the following example.
                1 2021-01-02 08:00:00  4
                2 2021-01-02 16:00:00  5
 
+.. _whatsnew_150.enhancements.from_dummies:
+
+from_dummies
+^^^^^^^^^^^^
+
+Added new function :func:`~pandas.from_dummies` to convert a dummy coded :class:`DataFrame` into a categorical :class:`DataFrame`.
+
+Example::
+
+.. ipython:: python
+
+    import pandas as pd
+
+    df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
+                       "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+                       "col2_c": [0, 0, 1]})
+
+    pd.from_dummies(df, sep="_")
+
 .. _whatsnew_150.enhancements.orc:
 
 Writing to ORC files
@@ -572,31 +591,37 @@ As ``group_keys=True`` is the default value of :meth:`DataFrame.groupby` and
 raise a ``FutureWarning``. This can be silenced and the previous behavior
 retained by specifying ``group_keys=False``.
 
-.. _whatsnew_150.notable_bug_fixes.setitem_column_try_inplace:
+.. _whatsnew_150.deprecations.setitem_column_try_inplace:
    _ see also _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
 
-Try operating inplace when setting values with ``loc`` and ``iloc``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Inplace operation when setting values with ``loc`` and ``iloc``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Most of the time setting values with ``frame.iloc`` attempts to set values
-in-place, only falling back to inserting a new array if necessary. In the past,
-setting entire columns has been an exception to this rule:
+inplace, only falling back to inserting a new array if necessary. There are
+some cases where this rule is not followed, for example when setting an entire
+column from an array with different dtype:
 
 .. ipython:: python
 
-   values = np.arange(4).reshape(2, 2)
-   df = pd.DataFrame(values)
-   ser = df[0]
+   df = pd.DataFrame({'price': [11.1, 12.2]}, index=['book1', 'book2'])
+   original_prices = df['price']
+   new_prices = np.array([98, 99])
 
 *Old behavior*:
 
 .. code-block:: ipython
 
-    In [3]: df.iloc[:, 0] = np.array([10, 11])
-    In [4]: ser
+    In [3]: df.iloc[:, 0] = new_prices
+    In [4]: df.iloc[:, 0]
     Out[4]:
-    0    0
-    1    2
-    Name: 0, dtype: int64
+    book1    98
+    book2    99
+    Name: price, dtype: int64
+    In [5]: original_prices
+    Out[5]:
+    book1    11.1
+    book2    12.2
+    Name: price, float: 64
 
 This behavior is deprecated. In a future version, setting an entire column with
 iloc will attempt to operate inplace.
@@ -605,39 +630,52 @@ iloc will attempt to operate inplace.
 
 .. code-block:: ipython
 
-    In [3]: df.iloc[:, 0] = np.array([10, 11])
-    In [4]: ser
+    In [3]: df.iloc[:, 0] = new_prices
+    In [4]: df.iloc[:, 0]
     Out[4]:
-    0    10
-    1    11
-    Name: 0, dtype: int64
+    book1    98.0
+    book2    99.0
+    Name: price, dtype: float64
+    In [5]: original_prices
+    Out[5]:
+    book1    98.0
+    book2    99.0
+    Name: price, dtype: float64
 
 To get the old behavior, use :meth:`DataFrame.__setitem__` directly:
 
-*Future behavior*:
+.. code-block:: ipython
+
+    In [3]: df[df.columns[0]] = new_prices
+    In [4]: df.iloc[:, 0]
+    Out[4]
+    book1    98
+    book2    99
+    Name: price, dtype: int64
+    In [5]: original_prices
+    Out[5]:
+    book1    11.1
+    book2    12.2
+    Name: price, dtype: float64
+
+To get the old behaviour when ``df.columns`` is not unique and you want to
+change a single column by index, you can use :meth:`DataFrame.isetitem`, which
+has been added in pandas 1.5:
 
 .. code-block:: ipython
 
-    In [5]: df[0] = np.array([21, 31])
-    In [4]: ser
+    In [3]: df_with_duplicated_cols = pd.concat([df, df], axis='columns')
+    In [3]: df_with_duplicated_cols.isetitem(0, new_prices)
+    In [4]: df_with_duplicated_cols.iloc[:, 0]
     Out[4]:
-    0    10
-    1    11
-    Name: 0, dtype: int64
-
-In the case where ``df.columns`` is not unique, use :meth:`DataFrame.isetitem`:
-
-*Future behavior*:
-
-.. code-block:: ipython
-
-    In [5]: df.columns = ["A", "A"]
-    In [5]: df.isetitem(0, np.array([21, 31]))
-    In [4]: ser
-    Out[4]:
-    0    10
-    1    11
-    Name: 0, dtype: int64
+    book1    98
+    book2    99
+    Name: price, dtype: int64
+    In [5]: original_prices
+    Out[5]:
+    book1    11.1
+    book2    12.2
+    Name: 0, dtype: float64
 
 .. _whatsnew_150.deprecations.numeric_only_default:
 
@@ -839,6 +877,7 @@ Indexing
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
+- Bug in :meth:`DataFrame.loc` when setting values to a column and right hand side is a dictionary (:issue:`47216`)
 - Bug in :meth:`Series.__setitem__` with ``datetime64[ns]`` dtype, an all-``False`` boolean mask, and an incompatible value incorrectly casting to ``object`` instead of retaining ``datetime64[ns]`` dtype (:issue:`45967`)
 - Bug in :meth:`Index.__getitem__`  raising ``ValueError`` when indexer is from boolean dtype with ``NA`` (:issue:`45806`)
 - Bug in :meth:`Series.mask` with ``inplace=True`` or setting values with a boolean mask with small integer dtypes incorrectly raising (:issue:`45750`)
