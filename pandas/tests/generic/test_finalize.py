@@ -247,7 +247,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("quantile", numeric_only=True),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -259,10 +258,16 @@ _all_methods = [
     pytest.param(
         (
             pd.DataFrame,
-            frame_data,
+            ({"A": [pd.Timedelta(days=1), pd.Timedelta(days=2)]},),
+            operator.methodcaller("quantile", numeric_only=False),
+        ),
+    ),
+    pytest.param(
+        (
+            pd.DataFrame,
+            ({"A": [np.datetime64("2022-01-01"), np.datetime64("2022-01-02")]},),
             operator.methodcaller("quantile", numeric_only=True),
         ),
-        marks=not_implemented_mark,
     ),
     (
         pd.DataFrame,

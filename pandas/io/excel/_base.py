@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import datetime
+from functools import partial
 from io import BytesIO
 import os
 from textwrap import fill
@@ -70,6 +71,7 @@ from pandas.io.excel._util import (
     pop_header_name,
 )
 from pandas.io.parsers import TextParser
+from pandas.io.parsers.readers import validate_integer
 
 _read_excel_doc = (
     """
@@ -563,7 +565,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float: bool):
+    def get_sheet_data(self, sheet, convert_float: bool, rows: int | None = None):
         pass
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -576,6 +578,99 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def raise_if_bad_sheet_by_name(self, name: str) -> None:
         if name not in self.sheet_names:
             raise ValueError(f"Worksheet named '{name}' not found")
+
+    def _check_skiprows_func(
+        self,
+        skiprows: Callable,
+        rows_to_use: int,
+    ) -> int:
+        """
+        Determine how many file rows are required to obtain `nrows` data
+        rows when `skiprows` is a function.
+
+        Parameters
+        ----------
+        skiprows : function
+            The function passed to read_excel by the user.
+        rows_to_use : int
+            The number of rows that will be needed for the header and
+            the data.
+
+        Returns
+        -------
+        int
+        """
+        i = 0
+        rows_used_so_far = 0
+        while rows_used_so_far < rows_to_use:
+            if not skiprows(i):
+                rows_used_so_far += 1
+            i += 1
+        return i
+
+    def _calc_rows(
+        self,
+        header: int | Sequence[int] | None,
+        index_col: int | Sequence[int] | None,
+        skiprows: Sequence[int] | int | Callable[[int], object] | None,
+        nrows: int | None,
+    ) -> int | None:
+        """
+        If nrows specified, find the number of rows needed from the
+        file, otherwise return None.
+
+
+        Parameters
+        ----------
+        header : int, list of int, or None
+            See read_excel docstring.
+        index_col : int, list of int, or None
+            See read_excel docstring.
+        skiprows : list-like, int, callable, or None
+            See read_excel docstring.
+        nrows : int or None
+            See read_excel docstring.
+
+        Returns
+        -------
+        int or None
+        """
+        if nrows is None:
+            return None
+        if header is None:
+            header_rows = 1
+        elif is_integer(header):
+            header = cast(int, header)
+            header_rows = 1 + header
+        else:
+            header = cast(Sequence, header)
+            header_rows = 1 + header[-1]
+        # If there is a MultiIndex header and an index then there is also
+        # a row containing just the index name(s)
+        if is_list_like(header) and index_col is not None:
+            header = cast(Sequence, header)
+            if len(header) > 1:
+                header_rows += 1
+        if skiprows is None:
+            return header_rows + nrows
+        if is_integer(skiprows):
+            skiprows = cast(int, skiprows)
+            return header_rows + nrows + skiprows
+        if is_list_like(skiprows):
+
+            def f(skiprows: Sequence, x: int) -> bool:
+                return x in skiprows
+
+            skiprows = cast(Sequence, skiprows)
+            return self._check_skiprows_func(partial(f, skiprows), header_rows + nrows)
+        if callable(skiprows):
+            return self._check_skiprows_func(
+                skiprows,
+                header_rows + nrows,
+            )
+        # else unexpected skiprows type: read_excel will not optimize
+        # the number of rows read from file
+        return None
 
     def parse(
         self,
@@ -613,6 +708,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             )
 
         validate_header_arg(header)
+        validate_integer("nrows", nrows)
 
         ret_dict = False
 
@@ -643,7 +739,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float)
+            file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
+            data = self.get_sheet_data(sheet, convert_float, file_rows_needed)
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
@@ -676,6 +773,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     if is_integer(skiprows):
                         assert isinstance(skiprows, int)
                         row += skiprows
+
+                    if row > len(data) - 1:
+                        raise ValueError(
+                            f"header index {row} exceeds maximum index "
+                            f"{len(data) - 1} of data.",
+                        )
 
                     data[row], control_row = fill_mi_header(data[row], control_row)
 
@@ -966,7 +1069,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     _supported_extensions: tuple[str, ...]
 
     def __new__(
-        cls,
+        cls: type[ExcelWriter],
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
         date_format: str | None = None,
@@ -976,7 +1079,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
         engine_kwargs: dict | None = None,
         **kwargs,
-    ):
+    ) -> ExcelWriter:
         if kwargs:
             if engine_kwargs is not None:
                 raise ValueError("Cannot use both engine_kwargs and **kwargs")
@@ -1222,7 +1325,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self._cur_sheet
 
     @property
-    def handles(self):
+    def handles(self) -> IOHandles[bytes]:
         """
         Handles to Excel sheets.
 
@@ -1241,7 +1344,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self._deprecate("path")
         return self._path
 
-    def __fspath__(self):
+    def __fspath__(self) -> str:
         return getattr(self._handles.handle, "name", "")
 
     def _get_sheet_name(self, sheet_name: str | None) -> str:
@@ -1299,10 +1402,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             return True
 
     # Allow use as a contextmanager
-    def __enter__(self):
+    def __enter__(self) -> ExcelWriter:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
     def close(self) -> None:
@@ -1596,13 +1699,13 @@ class ExcelFile:
         """close io if necessary"""
         self._reader.close()
 
-    def __enter__(self):
+    def __enter__(self) -> ExcelFile:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         # Ensure we don't leak file descriptors, but put in try/except in case
         # attributes are already deleted
         try:

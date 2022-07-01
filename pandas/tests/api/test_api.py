@@ -116,6 +116,7 @@ class TestPDApi(Base):
         "eval",
         "factorize",
         "get_dummies",
+        "from_dummies",
         "infer_freq",
         "isna",
         "isnull",
@@ -274,7 +275,7 @@ def test_np():
 
 
 class TestApi(Base):
-    allowed = ["types", "extensions", "indexers"]
+    allowed = ["types", "extensions", "indexers", "exchange"]
 
     def test_api(self):
         self.check(api, self.allowed)

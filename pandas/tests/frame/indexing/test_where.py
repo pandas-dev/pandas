@@ -4,7 +4,7 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p19
+from pandas.compat import np_version_under1p20
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -365,7 +365,7 @@ class TestDataFrameIndexingWhere:
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
-    def test_where_datetime(self):
+    def test_where_datetime(self, using_array_manager):
 
         # GH 3311
         df = DataFrame(
@@ -385,7 +385,11 @@ class TestDataFrameIndexingWhere:
 
         expected = df.copy()
         expected.loc[[0, 1], "A"] = np.nan
-        expected.loc[:, "C"] = np.nan
+
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected.loc[:, "C"] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_where_none(self):
@@ -513,7 +517,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_axis_multiple_dtypes(self):
+    def test_where_axis_multiple_dtypes(self, using_array_manager):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -569,7 +573,10 @@ class TestDataFrameIndexingWhere:
 
         d2 = df.copy().drop(1, axis=1)
         expected = df.copy()
-        expected.loc[:, 1] = np.nan
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected.loc[:, 1] = np.nan
 
         result = df.where(mask, d2)
         tm.assert_frame_equal(result, expected)
@@ -911,13 +918,6 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
             r"Cannot setitem on a Categorical with a new category \(NaT\), "
             "set the categories first"
         )
-        if np_version_under1p19:
-            mark = pytest.mark.xfail(
-                reason="When evaluating the f-string to generate the exception "
-                "message, numpy somehow ends up trying to cast None to int, so "
-                "ends up raising TypeError but with an unrelated message."
-            )
-            request.node.add_marker(mark)
     else:
         msg = "value should be a 'Period'"
 
@@ -1006,6 +1006,7 @@ def _check_where_equivalences(df, mask, other, expected):
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.xfail(np_version_under1p20, reason="failed on Numpy 1.19.5")
 def test_where_dt64_2d():
     dti = date_range("2016-01-01", periods=6)
     dta = dti._data.reshape(3, 2)

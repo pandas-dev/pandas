@@ -373,6 +373,7 @@ Serialization / IO / conversion
 
    DataFrame.from_dict
    DataFrame.from_records
+   DataFrame.to_orc
    DataFrame.to_parquet
    DataFrame.to_pickle
    DataFrame.to_csv
@@ -391,3 +392,4 @@ Serialization / IO / conversion
    DataFrame.to_clipboard
    DataFrame.to_markdown
    DataFrame.style
+   DataFrame.__dataframe__

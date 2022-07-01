@@ -751,7 +751,7 @@ class TestCategoricalConstructors:
 
     @pytest.mark.xfail(
         not IS64 or is_platform_windows(),
-        reason="Incorrectly raising in ensure_datetime64ns",
+        reason="Incorrectly raising in astype_overflowsafe",
     )
     def test_constructor_datetime64_non_nano(self):
         categories = np.arange(10).view("M8[D]")
@@ -759,3 +759,14 @@ class TestCategoricalConstructors:
 
         cat = Categorical(values, categories=categories)
         assert (cat == values).all()
+
+    def test_constructor_preserves_freq(self):
+        # GH33830 freq retention in categorical
+        dti = date_range("2016-01-01", periods=5)
+
+        expected = dti.freq
+
+        cat = Categorical(dti)
+        result = cat.categories.freq
+
+        assert expected == result

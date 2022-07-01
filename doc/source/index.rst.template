@@ -26,6 +26,7 @@ pandas documentation
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
+{% if not single_doc -%}
 .. panels::
     :card: + intro-card text-center
     :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
@@ -96,16 +97,22 @@ programming language.
             :text: To the development guide
             :classes: btn-block btn-secondary stretched-link
 
-
+{% endif %}
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
     :maxdepth: 3
     :titlesonly:
 
     {{ single_doc[:-4] }}
+{% elif single_doc and single_doc.count('.') <= 1 %}
+.. autosummary::
+    :toctree: reference/api/
+
+    {{ single_doc }}
 {% elif single_doc %}
 .. autosummary::
     :toctree: reference/api/
+    :template: autosummary/accessor_method.rst
 
     {{ single_doc }}
 {% else -%}

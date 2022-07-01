@@ -12,16 +12,7 @@ import sys
 import time
 import warnings
 
-from libc.stdlib cimport free
-from libc.string cimport (
-    strcasecmp,
-    strlen,
-    strncpy,
-)
-
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.bytes cimport (
     PyBytes_AsString,
     PyBytes_FromString,
@@ -39,6 +30,13 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+)
+from cython cimport Py_ssize_t
+from libc.stdlib cimport free
+from libc.string cimport (
+    strcasecmp,
+    strlen,
+    strncpy,
 )
 
 
@@ -1306,8 +1304,10 @@ cdef class TextReader:
             if self.header is not None:
                 j = i - self.leading_cols
                 # generate extra (bogus) headers if there are more columns than headers
+                # These should be strings, not integers, because otherwise we might get
+                # issues with callables as usecols GH#46997
                 if j >= len(self.header[0]):
-                    return j
+                    return str(j)
                 elif self.has_mi_columns:
                     return tuple(header_row[j] for header_row in self.header)
                 else:

@@ -1271,7 +1271,7 @@ class TestCanHoldElement:
 
         # Careful: to get the expected Series-inplace behavior we need
         # `elem` to not have the same length as `arr`
-        ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
+        ii2 = IntervalIndex.from_breaks(arr[:-1], inclusive="neither")
         elem = element(ii2)
         self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)

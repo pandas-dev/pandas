@@ -227,7 +227,10 @@ class TestDataFrameSetItem:
         "obj,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+            (
+                Interval(left=0, right=5, inclusive="right"),
+                IntervalDtype("int64", "right"),
+            ),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -399,10 +402,14 @@ class TestDataFrameSetItem:
 
     def test_setitem_frame_duplicate_columns(self, using_array_manager):
         # GH#15695
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
         df.loc[0, "A"] = (0, 3)
-        df.loc[:, "B"] = (1, 4)
+        with tm.assert_produces_warning(warn, match=msg):
+            df.loc[:, "B"] = (1, 4)
         df["C"] = (2, 5)
         expected = DataFrame(
             [
@@ -676,6 +683,13 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_setitem_ea_dtype_rhs_series(self):
+        # GH#47425
+        df = DataFrame({"a": [1, 2]})
+        df["a"] = Series([1, 2], dtype="Int64")
+        expected = DataFrame({"a": [1, 2]}, dtype="Int64")
+        tm.assert_frame_equal(df, expected)
+
     # TODO(ArrayManager) set column with 2d column array, see #44788
     @td.skip_array_manager_not_yet_implemented
     def test_setitem_npmatrix_2d(self):
@@ -693,6 +707,18 @@ class TestDataFrameSetItem:
         with tm.assert_produces_warning(PendingDeprecationWarning):
             df["np-matrix"] = np.matrix(a)
 
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("vals", [{}, {"d": "a"}])
+    def test_setitem_aligning_dict_with_index(self, vals):
+        # GH#47216
+        df = DataFrame({"a": [1, 2], "b": [3, 4], **vals})
+        df.loc[:, "a"] = {1: 100, 0: 200}
+        df.loc[:, "c"] = {0: 5, 1: 6}
+        df.loc[:, "e"] = {1: 5}
+        expected = DataFrame(
+            {"a": [200, 100], "b": [3, 4], **vals, "c": [5, 6], "e": [np.nan, 5]}
+        )
         tm.assert_frame_equal(df, expected)
 
 
@@ -769,7 +795,9 @@ class TestDataFrameSetItemWithExpansion:
     def test_setitem_empty_df_duplicate_columns(self):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
-        df.loc[:, "a"] = list(range(2))
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "a"] = list(range(2))
         expected = DataFrame(
             [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
         )
@@ -847,6 +875,15 @@ class TestDataFrameSetItemWithExpansion:
         ts = Timestamp(t)
         data[ts] = np.nan  # works, mostly a smoke-test
         assert np.isnan(data[ts]).all()
+
+    def test_frame_setitem_rangeindex_into_new_col(self):
+        # GH#47128
+        df = DataFrame({"a": ["a", "b"]})
+        df["b"] = df.index
+        df.loc[[False, True], "b"] = 100
+        result = df.loc[[1], :]
+        expected = DataFrame({"a": ["b"], "b": [100]}, index=[1])
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSetItemSlicing:
@@ -1081,8 +1118,6 @@ class TestDataFrameSetitemCopyViewSemantics:
         # check setting occurred in-place
         tm.assert_numpy_array_equal(zvals, expected.values)
         assert np.shares_memory(zvals, df["z"]._values)
-        if not consolidate:
-            assert df["z"]._values is zvals
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510

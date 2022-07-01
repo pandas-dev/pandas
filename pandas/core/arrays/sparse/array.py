@@ -75,6 +75,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import arraylike
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
@@ -847,13 +848,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Still override this for hash_pandas_object
         return np.asarray(self), self.fill_value
 
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, SparseArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, SparseArray]:
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
         # ExtensionArray.factorize -> Tuple[EA, EA]
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
-        codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
+        codes, uniques = algos.factorize(
+            np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+        )
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
@@ -890,10 +897,27 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return Series(counts, index=keys)
 
     def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str):
+
+        if self._null_fill_value or self.sp_index.ngaps == 0:
+            # We can avoid densifying
+            npvalues = self.sp_values
+            mask = np.zeros(npvalues.shape, dtype=bool)
+        else:
+            npvalues = self.to_numpy()
+            mask = self.isna()
+
+        fill_value = na_value_for_dtype(npvalues.dtype, compat=False)
+        res_values = quantile_with_mask(
+            npvalues,
+            mask,
+            fill_value,
+            qs,
+            interpolation,
+        )
+
         # Special case: the returned array isn't _really_ sparse, so we don't
         #  wrap it in a SparseArray
-        result = super()._quantile(qs, interpolation)
-        return np.asarray(result)
+        return res_values
 
     # --------
     # Indexing
@@ -926,14 +950,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            # Invalid index type "Tuple[Union[int, ellipsis], ...]" for
-            # "ndarray[Any, Any]"; expected type "Union[SupportsIndex,
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]], _NestedSequence[_Su
-            # pportsArray[dtype[Union[bool_, integer[Any]]]]],
-            # _NestedSequence[Union[bool, int]], Tuple[Union[SupportsIndex,
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]],
-            # _NestedSequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]], _N
-            # estedSequence[Union[bool, int]]], ...]]"  [index]
+            # error: Invalid index type "Tuple[Union[int, ellipsis], ...]"
+            # for "ndarray[Any, Any]"; expected type
+            # "Union[SupportsIndex, _SupportsArray[dtype[Union[bool_,
+            # integer[Any]]]], _NestedSequence[_SupportsArray[dtype[
+            # Union[bool_, integer[Any]]]]], _NestedSequence[Union[
+            # bool, int]], Tuple[Union[SupportsIndex, _SupportsArray[
+            # dtype[Union[bool_, integer[Any]]]], _NestedSequence[
+            # _SupportsArray[dtype[Union[bool_, integer[Any]]]]],
+            # _NestedSequence[Union[bool, int]]], ...]]"
             data_slice = self.to_dense()[key]  # type: ignore[index]
         elif isinstance(key, slice):
 
@@ -1174,8 +1199,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             data = np.concatenate(values)
             indices_arr = np.concatenate(indices)
-            # Argument 2 to "IntIndex" has incompatible type "ndarray[Any,
-            # dtype[signedinteger[_32Bit]]]"; expected "Sequence[int]"
+            # error: Argument 2 to "IntIndex" has incompatible type
+            # "ndarray[Any, dtype[signedinteger[_32Bit]]]";
+            # expected "Sequence[int]"
             sp_index = IntIndex(length, indices_arr)  # type: ignore[arg-type]
 
         else:
@@ -1235,7 +1261,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
-        >>> arr.astype(np.dtype('int32'))
+        >>> arr.astype(SparseDtype(np.dtype('int32')))
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
@@ -1244,19 +1270,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
 
-        >>> arr.astype(np.dtype('float64'))
-        ... # doctest: +NORMALIZE_WHITESPACE
-        [0.0, 0.0, 1.0, 2.0]
-        Fill: 0.0
-        IntIndex
-        Indices: array([2, 3], dtype=int32)
-
-        Use a SparseDtype if you wish to be change the fill value as well.
-
-        >>> arr.astype(SparseDtype("float64", fill_value=np.nan))
+        >>> arr.astype(SparseDtype(np.dtype('float64')))
         ... # doctest: +NORMALIZE_WHITESPACE
         [nan, nan, 1.0, 2.0]
         Fill: nan
+        IntIndex
+        Indices: array([2, 3], dtype=int32)
+
+        Using a SparseDtype, you can also change the fill value as well.
+
+        >>> arr.astype(SparseDtype("float64", fill_value=0.0))
+        ... # doctest: +NORMALIZE_WHITESPACE
+        [0.0, 0.0, 1.0, 2.0]
+        Fill: 0.0
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
@@ -1366,7 +1392,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
             nd_state, (fill_value, sp_index) = state
-            # Need type annotation for "sparse_values"  [var-annotated]
+            # error: Need type annotation for "sparse_values"
             sparse_values = np.array([])  # type: ignore[var-annotated]
             sparse_values.__setstate__(nd_state)
 

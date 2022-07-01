@@ -75,17 +75,31 @@ class TestFactorize:
         tm.assert_numpy_array_equal(result_codes, expected_codes)
         tm.assert_index_equal(result_uniques, expected_uniques, exact=True)
 
-    def test_series_factorize_na_sentinel_none(self):
+    def test_series_factorize_use_na_sentinel_false(self):
         # GH#35667
         values = np.array([1, 2, 1, np.nan])
         ser = Series(values)
-        codes, uniques = ser.factorize(na_sentinel=None)
+        codes, uniques = ser.factorize(use_na_sentinel=False)
 
         expected_codes = np.array([0, 1, 0, 2], dtype=np.intp)
         expected_uniques = Index([1.0, 2.0, np.nan])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_index_equal(uniques, expected_uniques)
+
+    @pytest.mark.parametrize("na_sentinel", [None, -1, -10])
+    def test_depr_na_sentinel(self, na_sentinel, index_or_series_obj):
+        # GH#46910
+        if na_sentinel is None:
+            msg = "Specifying `na_sentinel=None` is deprecated"
+        elif na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            pd.factorize(index_or_series_obj, na_sentinel=na_sentinel)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index_or_series_obj.factorize(na_sentinel=na_sentinel)
 
     def test_basic(self):
 
@@ -418,7 +432,12 @@ class TestFactorize:
         ids=["numpy_array", "extension_array"],
     )
     def test_factorize_na_sentinel(self, sort, na_sentinel, data, uniques):
-        codes, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
+        if na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            codes, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
         if sort:
             expected_codes = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
             expected_uniques = algos.safe_sort(uniques)
@@ -446,10 +465,10 @@ class TestFactorize:
             ),
         ],
     )
-    def test_object_factorize_na_sentinel_none(
+    def test_object_factorize_use_na_sentinel_false(
         self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, na_sentinel=None)
+        codes, uniques = algos.factorize(data, use_na_sentinel=False)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -469,10 +488,10 @@ class TestFactorize:
             ),
         ],
     )
-    def test_int_factorize_na_sentinel_none(
+    def test_int_factorize_use_na_sentinel_false(
         self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, na_sentinel=None)
+        codes, uniques = algos.factorize(data, use_na_sentinel=False)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -1089,6 +1108,13 @@ class TestIsin:
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
+    def test_isin_unsigned_dtype(self):
+        # GH#46485
+        ser = Series([1378774140726870442], dtype=np.uint64)
+        result = ser.isin([1378774140726870528])
+        expected = Series(False)
+        tm.assert_series_equal(result, expected)
+
 
 class TestValueCounts:
     def test_value_counts(self):
@@ -1101,19 +1127,26 @@ class TestValueCounts:
         # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
+        index = IntervalIndex.from_breaks(breaks, inclusive="right").astype(
+            CDT(ordered=True)
+        )
         expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)
-        expected = Series([4], index=IntervalIndex.from_tuples([(0.996, 4.0)]))
+        expected = Series(
+            [4], index=IntervalIndex.from_tuples([(0.996, 4.0)], inclusive="right")
+        )
         tm.assert_series_equal(result, expected)
 
         result = algos.value_counts(s, bins=2, sort=False)
         expected = Series(
-            [2, 2], index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)])
+            [2, 2],
+            index=IntervalIndex.from_tuples(
+                [(0.996, 2.5), (2.5, 4.0)], inclusive="right"
+            ),
         )
         tm.assert_series_equal(result, expected)
 
@@ -2281,6 +2314,13 @@ class TestMode:
         with pytest.raises(AttributeError, match="TimedeltaIndex"):
             # algos.mode expects Arraylike, does *not* unwrap TimedeltaIndex
             algos.mode(idx)
+
+    def test_ser_mode_with_name(self):
+        # GH 46737
+        ser = Series([1, 1, 3], name="foo")
+        result = ser.mode()
+        expected = Series([1], name="foo")
+        tm.assert_series_equal(result, expected)
 
 
 class TestDiff:
