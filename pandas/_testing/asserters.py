@@ -455,7 +455,7 @@ def assert_class_equal(left, right, exact: bool | str = True, obj="Input") -> No
     raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
-def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> bool:
+def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> None:
     """
     Check attributes are equal. Both objects must have attribute.
 
@@ -474,11 +474,9 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> bool:
     left_attr = getattr(left, attr)
     right_attr = getattr(right, attr)
 
-    if left_attr is right_attr:
-        return True
-    elif is_matching_na(left_attr, right_attr):
+    if left_attr is right_attr or is_matching_na(left_attr, right_attr):
         # e.g. both np.nan, both NaT, both pd.NA, ...
-        return True
+        return None
 
     try:
         result = left_attr == right_attr
@@ -490,14 +488,10 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> bool:
     elif not isinstance(result, bool):
         result = result.all()
 
-    if result:
-        return True
-    else:
+    if not result:
         msg = f'Attribute "{attr}" are different'
         raise_assert_detail(obj, msg, left_attr, right_attr)
-    # for mypy: raise_assert_detail raises, will never end up here
-    # error: Missing return statement  [return]
-    return False
+    return None
 
 
 def assert_is_valid_plot_return_object(objs) -> None:

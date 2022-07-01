@@ -587,10 +587,6 @@ def makeCustomIndex(
     if isinstance(names, str) and nlevels == 1:
         names = [names]
 
-    # error: Incompatible types in assignment (expression has type "Union[str,
-    # List[str], None]", variable has type "Optional[List[str]]")
-    name_list: list[str] | None = names  # type: ignore[assignment]
-
     # specific 1D index type requested?
     idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
@@ -604,8 +600,8 @@ def makeCustomIndex(
     if idx_func:
         idx = idx_func(nentries)
         # but we need to fill in the name
-        if name_list:
-            idx.name = name_list[0]
+        if names:
+            idx.name = names[0]
         return idx
     elif idx_type is not None:
         raise ValueError(
