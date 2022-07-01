@@ -68,7 +68,7 @@ def assert_almost_equal(
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     **kwargs,
-):
+) -> None:
     """
     Check that the left and right objects are approximately equal.
 
@@ -239,7 +239,7 @@ def _check_isinstance(left, right, cls):
         )
 
 
-def assert_dict_equal(left, right, compare_keys: bool = True):
+def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
 
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
@@ -428,7 +428,7 @@ def assert_index_equal(
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
-def assert_class_equal(left, right, exact: bool | str = True, obj="Input"):
+def assert_class_equal(left, right, exact: bool | str = True, obj="Input") -> None:
     """
     Checks classes are equal.
     """
@@ -455,7 +455,7 @@ def assert_class_equal(left, right, exact: bool | str = True, obj="Input"):
     raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
-def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
+def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> bool:
     """
     Check attributes are equal. Both objects must have attribute.
 
@@ -495,9 +495,12 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     else:
         msg = f'Attribute "{attr}" are different'
         raise_assert_detail(obj, msg, left_attr, right_attr)
+    # for mypy: raise_assert_detail raises, will never end up here
+    # error: Missing return statement  [return]
+    return False
 
 
-def assert_is_valid_plot_return_object(objs):
+def assert_is_valid_plot_return_object(objs) -> None:
     import matplotlib.pyplot as plt
 
     if isinstance(objs, (Series, np.ndarray)):
@@ -516,7 +519,7 @@ def assert_is_valid_plot_return_object(objs):
         assert isinstance(objs, (plt.Artist, tuple, dict)), msg
 
 
-def assert_is_sorted(seq):
+def assert_is_sorted(seq) -> None:
     """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
         seq = seq.values
@@ -526,7 +529,7 @@ def assert_is_sorted(seq):
 
 def assert_categorical_equal(
     left, right, check_dtype=True, check_category_order=True, obj="Categorical"
-):
+) -> None:
     """
     Test that Categoricals are equivalent.
 
@@ -581,7 +584,9 @@ def assert_categorical_equal(
     assert_attr_equal("ordered", left, right, obj=obj)
 
 
-def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray"):
+def assert_interval_array_equal(
+    left, right, exact="equiv", obj="IntervalArray"
+) -> None:
     """
     Test that two IntervalArrays are equivalent.
 
@@ -610,14 +615,16 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     assert_attr_equal("inclusive", left, right, obj=obj)
 
 
-def assert_period_array_equal(left, right, obj="PeriodArray"):
+def assert_period_array_equal(left, right, obj="PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def assert_datetime_array_equal(left, right, obj="DatetimeArray", check_freq=True):
+def assert_datetime_array_equal(
+    left, right, obj="DatetimeArray", check_freq=True
+) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
@@ -627,7 +634,9 @@ def assert_datetime_array_equal(left, right, obj="DatetimeArray", check_freq=Tru
     assert_attr_equal("tz", left, right, obj=obj)
 
 
-def assert_timedelta_array_equal(left, right, obj="TimedeltaArray", check_freq=True):
+def assert_timedelta_array_equal(
+    left, right, obj="TimedeltaArray", check_freq=True
+) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
@@ -682,7 +691,7 @@ def assert_numpy_array_equal(
     check_same=None,
     obj="numpy array",
     index_values=None,
-):
+) -> None:
     """
     Check that 'np.ndarray' is equivalent.
 
@@ -762,7 +771,7 @@ def assert_extension_array_equal(
     check_exact=False,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
-):
+) -> None:
     """
     Check that left and right ExtensionArrays are equal.
 
@@ -878,7 +887,7 @@ def assert_series_equal(
     *,
     check_index=True,
     check_like=False,
-):
+) -> None:
     """
     Check that left and right Series are equal.
 
@@ -1145,7 +1154,7 @@ def assert_frame_equal(
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
-):
+) -> None:
     """
     Check that left and right DataFrame are equal.
 
@@ -1352,7 +1361,7 @@ def assert_frame_equal(
             )
 
 
-def assert_equal(left, right, **kwargs):
+def assert_equal(left, right, **kwargs) -> None:
     """
     Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.
 
@@ -1393,7 +1402,7 @@ def assert_equal(left, right, **kwargs):
         assert_almost_equal(left, right)
 
 
-def assert_sp_array_equal(left, right):
+def assert_sp_array_equal(left, right) -> None:
     """
     Check that the left and right SparseArray are equal.
 
@@ -1426,12 +1435,12 @@ def assert_sp_array_equal(left, right):
     assert_numpy_array_equal(left.to_dense(), right.to_dense())
 
 
-def assert_contains_all(iterable, dic):
+def assert_contains_all(iterable, dic) -> None:
     for k in iterable:
         assert k in dic, f"Did not contain item: {repr(k)}"
 
 
-def assert_copy(iter1, iter2, **eql_kwargs):
+def assert_copy(iter1, iter2, **eql_kwargs) -> None:
     """
     iter1, iter2: iterables that produce elements
     comparable with assert_almost_equal
@@ -1463,7 +1472,7 @@ def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) ->
     return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
 
 
-def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice):
+def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice) -> None:
     """
     Check that ser.iloc[i_slc] matches ser.loc[l_slc] and, if applicable,
     ser[l_slc].
@@ -1477,7 +1486,7 @@ def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice):
         assert_series_equal(ser[l_slc], expected)
 
 
-def assert_metadata_equivalent(left, right):
+def assert_metadata_equivalent(left, right) -> None:
     """
     Check that ._metadata attributes are equivalent.
     """
