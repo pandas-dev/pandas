@@ -133,8 +133,8 @@ def melt(
         if is_extension_array_dtype(id_data):
             id_data = concat([id_data] * K, ignore_index=True)
         else:
-            # Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[Any]]", variable has type "Series")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[Any]]", variable has type "Series")
             id_data = np.tile(id_data._values, K)  # type: ignore[assignment]
         mdata[col] = id_data
 

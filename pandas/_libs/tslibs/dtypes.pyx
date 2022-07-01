@@ -313,6 +313,39 @@ cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
         raise NotImplementedError(unit)
 
 
+cdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
+    if abbrev == "Y":
+        return NPY_DATETIMEUNIT.NPY_FR_Y
+    elif abbrev == "M":
+        return NPY_DATETIMEUNIT.NPY_FR_M
+    elif abbrev == "W":
+        return NPY_DATETIMEUNIT.NPY_FR_W
+    elif abbrev == "D" or abbrev == "d":
+        return NPY_DATETIMEUNIT.NPY_FR_D
+    elif abbrev == "h":
+        return NPY_DATETIMEUNIT.NPY_FR_h
+    elif abbrev == "m":
+        return NPY_DATETIMEUNIT.NPY_FR_m
+    elif abbrev == "s":
+        return NPY_DATETIMEUNIT.NPY_FR_s
+    elif abbrev == "ms":
+        return NPY_DATETIMEUNIT.NPY_FR_ms
+    elif abbrev == "us":
+        return NPY_DATETIMEUNIT.NPY_FR_us
+    elif abbrev == "ns":
+        return NPY_DATETIMEUNIT.NPY_FR_ns
+    elif abbrev == "ps":
+        return NPY_DATETIMEUNIT.NPY_FR_ps
+    elif abbrev == "fs":
+        return NPY_DATETIMEUNIT.NPY_FR_fs
+    elif abbrev == "as":
+        return NPY_DATETIMEUNIT.NPY_FR_as
+    elif abbrev is None:
+        return NPY_DATETIMEUNIT.NPY_FR_GENERIC
+    else:
+        raise ValueError(f"Unrecognized unit {abbrev}")
+
+
 cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil:
     """
     Convert the freq to the corresponding NPY_DATETIMEUNIT to pass
@@ -370,7 +403,7 @@ cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) 
     return day_units
 
 
-cdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
+cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
     if reso == NPY_DATETIMEUNIT.NPY_FR_ns:
         return 1_000_000_000
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
