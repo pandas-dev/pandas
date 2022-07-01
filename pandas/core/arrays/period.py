@@ -646,11 +646,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         values = self.astype(object)
 
+        # Create the formatter function
         if date_format:
             formatter = lambda per: per.strftime(date_format)
         else:
+            # Uses `_Period.str` which in turn uses `format_period`
             formatter = lambda per: str(per)
 
+        # Apply the formatter to all values in the array, possibly with a mask
         if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
