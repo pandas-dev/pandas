@@ -435,6 +435,10 @@ class RangeIndex(NumericIndex):
 
         if values.dtype.kind == "f":
             return Float64Index(values, name=name)
+        unique_diffs = np.unique(np.diff(values))
+        if len(unique_diffs) == 1:
+            new_range = range(values[0], values[-1], unique_diffs[0])
+            return type(self)._simple_new(new_range, name=name)
         return Int64Index._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
