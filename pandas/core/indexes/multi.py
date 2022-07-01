@@ -581,7 +581,7 @@ class MultiIndex(Index):
         cls,
         iterables: Sequence[Iterable[Hashable]],
         sortorder: int | None = None,
-        names: Sequence[str | None] | lib.NoDefault = lib.no_default,
+        names: Sequence[Hashable] | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
         Make a MultiIndex from the cartesian product of multiple iterables.

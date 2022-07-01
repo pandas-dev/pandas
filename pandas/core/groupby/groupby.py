@@ -4050,12 +4050,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # "ndarray[Any, dtype[floating[_64Bit]]]"; expected "Index"
             levels_list.append(qs)  # type: ignore[arg-type]
             names = names + [None]
-        # error: Argument "names" to "from_product" of "MultiIndex" has
-        # incompatible type "List[Hashable]"; expected "Union[Sequence[
-        # Optional[str]], Literal[_NoDefault.no_default]]"
-        index, _ = MultiIndex.from_product(
-            levels_list, names=names  # type: ignore[arg-type]
-        ).sortlevel()
+        index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
 
         if self.as_index:
             # Always holds for SeriesGroupBy unless GH#36507 is implemented

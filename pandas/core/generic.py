@@ -1050,7 +1050,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result.__finalize__(self, method="rename")
 
     @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
-    def rename_axis(self, mapper: IndexLabel = lib.no_default, **kwargs):
+    def rename_axis(
+        self, mapper: IndexLabel | lib.NoDefault = lib.no_default, **kwargs
+    ):
         """
         Set the name of the axis for the index or columns.
 
