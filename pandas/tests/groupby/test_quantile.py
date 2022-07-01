@@ -344,49 +344,51 @@ def test_columns_groupby_quantile():
 
     tm.assert_frame_equal(result, expected)
 
+
 def test_timestamp_groupby_quantile():
     # GH 33168
     df = DataFrame(
         {
-            'timestamp': pd.date_range(start='2020-04-19 00:00:00', freq='1T', periods=200, tz='UTC').floor('1H'),
+            'timestamp': pd.date_range(start='2020-04-19 00:00:00',
+                                       freq='1T', periods=200, tz='UTC').floor('1H'),
             'category': list(range(1, 201)),
             'value': list(range(201, 401))
         }
     )
-            
+
     result = df.groupby('timestamp').quantile([0.1, 0.5, 0.9])
-    
+
     expected = DataFrame(
         [
-                {'category': 6.9, 'value': 206.9}, 
-                {'category': 30.5, 'value': 230.5}, 
-                {'category': 54.1, 'value': 254.1}, 
-                {'category': 66.9, 'value': 266.9}, 
-                {'category': 90.5, 'value': 290.5}, 
-                {'category': 114.1, 'value': 314.1}, 
-                {'category': 126.9, 'value': 326.9}, 
-                {'category': 150.5, 'value': 350.5}, 
-                {'category': 174.1, 'value': 374.1}, 
-                {'category': 182.9, 'value': 382.9}, 
-                {'category': 190.5, 'value': 390.5}, 
-                {'category': 198.1, 'value': 398.1}
-        ], 
+            {'category': 6.9, 'value': 206.9},
+            {'category': 30.5, 'value': 230.5},
+            {'category': 54.1, 'value': 254.1},
+            {'category': 66.9, 'value': 266.9},
+            {'category': 90.5, 'value': 290.5},
+            {'category': 114.1, 'value': 314.1},
+            {'category': 126.9, 'value': 326.9},
+            {'category': 150.5, 'value': 350.5},
+            {'category': 174.1, 'value': 374.1},
+            {'category': 182.9, 'value': 382.9},
+            {'category': 190.5, 'value': 390.5},
+            {'category': 198.1, 'value': 398.1}
+        ],
         index=pd.MultiIndex.from_tuples(
             [
-                ( pd.Timestamp('2020-04-19 00:00:00+00:00'), 0.1),
-                ( pd.Timestamp('2020-04-19 00:00:00+00:00'), 0.5),
-                ( pd.Timestamp('2020-04-19 00:00:00+00:00'), 0.9),
-                ( pd.Timestamp('2020-04-19 01:00:00+00:00'), 0.1),
-                ( pd.Timestamp('2020-04-19 01:00:00+00:00'), 0.5),
-                ( pd.Timestamp('2020-04-19 01:00:00+00:00'), 0.9),
-                ( pd.Timestamp('2020-04-19 02:00:00+00:00'), 0.1),
-                ( pd.Timestamp('2020-04-19 02:00:00+00:00'), 0.5),
-                ( pd.Timestamp('2020-04-19 02:00:00+00:00'), 0.9),
-                ( pd.Timestamp('2020-04-19 03:00:00+00:00'), 0.1),
-                ( pd.Timestamp('2020-04-19 03:00:00+00:00'), 0.5),
-                ( pd.Timestamp('2020-04-19 03:00:00+00:00'), 0.9)
+                (pd.Timestamp('2020-04-19 00:00:00+00:00'), 0.1),
+                (pd.Timestamp('2020-04-19 00:00:00+00:00'), 0.5),
+                (pd.Timestamp('2020-04-19 00:00:00+00:00'), 0.9),
+                (pd.Timestamp('2020-04-19 01:00:00+00:00'), 0.1),
+                (pd.Timestamp('2020-04-19 01:00:00+00:00'), 0.5),
+                (pd.Timestamp('2020-04-19 01:00:00+00:00'), 0.9),
+                (pd.Timestamp('2020-04-19 02:00:00+00:00'), 0.1),
+                (pd.Timestamp('2020-04-19 02:00:00+00:00'), 0.5),
+                (pd.Timestamp('2020-04-19 02:00:00+00:00'), 0.9),
+                (pd.Timestamp('2020-04-19 03:00:00+00:00'), 0.1),
+                (pd.Timestamp('2020-04-19 03:00:00+00:00'), 0.5),
+                (pd.Timestamp('2020-04-19 03:00:00+00:00'), 0.9)
             ], names=('timestamp', None)
         )
     )
-        
+
     tm.assert_frame_equal(result, expected)
