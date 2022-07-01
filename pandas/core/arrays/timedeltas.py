@@ -51,15 +51,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCCategorical,
-    ABCMultiIndex,
-)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.arrays import (
-    ExtensionArray,
     IntegerArray,
     datetimelike as dtl,
 )
@@ -435,6 +430,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_timedelta64
 
+        # Relies on TimeDelta._repr_base
         formatter = get_format_timedelta64(self._ndarray, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
@@ -936,26 +932,9 @@ def sequence_to_td64ns(
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
-    # Unwrap whatever we have into a np.ndarray
-    if not hasattr(data, "dtype"):
-        # e.g. list, tuple
-        if np.ndim(data) == 0:
-            # i.e. generator
-            data = list(data)
-        data = np.array(data, copy=False)
-    elif isinstance(data, ABCMultiIndex):
-        raise TypeError("Cannot create a TimedeltaArray from a MultiIndex.")
-    else:
-        data = extract_array(data, extract_numpy=True)
-
-    if isinstance(data, IntegerArray):
-        data = data.to_numpy("int64", na_value=iNaT)
-    elif not isinstance(data, (np.ndarray, ExtensionArray)):
-        # GH#24539 e.g. xarray, dask object
-        data = np.asarray(data)
-    elif isinstance(data, ABCCategorical):
-        data = data.categories.take(data.codes, fill_value=NaT)._values
-        copy = False
+    data, copy = dtl.ensure_arraylike_for_datetimelike(
+        data, copy, cls_name="TimedeltaArray"
+    )
 
     if isinstance(data, TimedeltaArray):
         inferred_freq = data.freq

@@ -1848,7 +1848,11 @@ class SQLiteTable(SQLTable):
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
-        sqlite3.register_adapter(time, lambda _: _.strftime("%H:%M:%S.%f"))
+        def _adapt_time(t):
+            # This is faster than strftime
+            return f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}.{t.microsecond:06d}"
+
+        sqlite3.register_adapter(time, _adapt_time)
         super().__init__(*args, **kwargs)
 
     def sql_schema(self) -> str:
