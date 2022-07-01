@@ -18,7 +18,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 22.3.0
+    rev: 22.6.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -27,7 +27,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.3.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
@@ -59,7 +59,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.32.1
+    rev: v2.34.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -74,7 +74,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.6
+    rev: v0.6.1
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
