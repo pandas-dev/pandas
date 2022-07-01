@@ -157,7 +157,7 @@ def _get_combined_index(
         index = union_indexes(indexes, sort=False)
         index = ensure_index(index)
 
-    if sort and not index.is_monotonic_increasing:
+    if sort:
         index = safe_sort_index(index)
     # GH 29879
     if copy:
@@ -180,6 +180,9 @@ def safe_sort_index(index: Index) -> Index:
     -------
     Index
     """
+    if index.is_monotonic_increasing:
+        return index
+
     try:
         array_sorted = safe_sort(index)
     except TypeError:
