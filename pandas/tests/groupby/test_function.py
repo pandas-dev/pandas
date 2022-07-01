@@ -1458,13 +1458,23 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype is object:
-        if groupby_func in ("quantile", "sem", "std") or groupby_func.startswith("cum"):
-            msg = f"SeriesGroupBy.{groupby_func} called with numeric_only=True"
-            with pytest.raises(TypeError, match=msg):
-                method(*args, numeric_only=True)
+        err_category = NotImplementedError
+        err_msg = f"{groupby_func} does not implement numeric_only"
+        if groupby_func.startswith("cum"):
+            # cum ops already exhibit future behavior
+            warn_category = None
+            warn_msg = ""
+            err_category = TypeError
+            err_msg = f"{groupby_func} is not supported for object dtype"
+        elif groupby_func == "skew":
+            warn_category = FutureWarning
+            warn_msg = "will raise a TypeError in the future"
         else:
-            msg = f"{groupby_func} does not implement numeric_only"
-            with pytest.raises(NotImplementedError, match=msg):
+            warn_category = FutureWarning
+            warn_msg = "This will raise a TypeError"
+
+        with tm.assert_produces_warning(warn_category, match=warn_msg):
+            with pytest.raises(err_category, match=err_msg):
                 method(*args, numeric_only=True)
     else:
         result = method(*args, numeric_only=True)
