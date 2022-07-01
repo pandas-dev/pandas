@@ -7,6 +7,7 @@ from __future__ import annotations
 import io
 from typing import (
     Any,
+    Callable,
     Sequence,
 )
 
@@ -177,7 +178,7 @@ class _XMLFrameParser:
 
         raise AbstractMethodError(self)
 
-    def _parse_nodes(self, elems) -> list[dict[str, str | None]]:
+    def _parse_nodes(self, elems: list[Any]) -> list[dict[str, str | None]]:
         """
         Parse xml nodes.
 
@@ -279,7 +280,7 @@ class _XMLFrameParser:
 
         return dicts
 
-    def _iterparse_nodes(self, iterparse) -> list[dict[str, str | None]]:
+    def _iterparse_nodes(self, iterparse: Callable) -> list[dict[str, str | None]]:
         """
         Iterparse xml nodes.
 
@@ -407,7 +408,9 @@ class _XMLFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _parse_doc(self, raw_doc) -> bytes:
+    def _parse_doc(
+        self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
+    ) -> bytes:
         """
         Build tree from path_or_buffer.
 
@@ -498,7 +501,9 @@ class _EtreeFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _parse_doc(self, raw_doc) -> bytes:
+    def _parse_doc(
+        self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
+    ) -> bytes:
         from xml.etree.ElementTree import (
             XMLParser,
             parse,
@@ -600,7 +605,9 @@ class _LxmlFrameParser(_XMLFrameParser):
                     f"{type(self.names).__name__} is not a valid type for names"
                 )
 
-    def _parse_doc(self, raw_doc) -> bytes:
+    def _parse_doc(
+        self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
+    ) -> bytes:
         from lxml.etree import (
             XMLParser,
             fromstring,
