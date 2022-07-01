@@ -1058,10 +1058,13 @@ class TestBaseMethods(base.BaseMethodsTests):
     def test_repeat(self, data, repeats, as_series, use_numpy, request):
         pa_dtype = data.dtype.pyarrow_dtype
         tz = getattr(pa_dtype, "tz", None)
-        if pa_version_under2p0 and tz not in (None, "UTC"):
+        if pa_version_under2p0 and tz not in (None, "UTC") and repeats != 0:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                    reason=(
+                        f"Not supported by pyarrow < 2.0 with "
+                        f"timestamp type {tz} when repeats={repeats}"
+                    )
                 )
             )
         super().test_repeat(data, repeats, as_series, use_numpy)
@@ -1103,7 +1106,11 @@ class TestBaseMethods(base.BaseMethodsTests):
         self, data, frame, periods, indices, request, using_array_manager
     ):
         pa_dtype = data.dtype.pyarrow_dtype
-        if using_array_manager and pa.types.is_duration(pa_dtype) and periods == -2:
+        if (
+            using_array_manager
+            and pa.types.is_duration(pa_dtype)
+            and periods in (-2, 2)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=(
