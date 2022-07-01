@@ -77,8 +77,15 @@ class TestDatetimeArrayConstructor:
             dtype=DatetimeTZDtype(tz="US/Central"),
         )
         dtype = DatetimeTZDtype(tz="US/Eastern")
-        with pytest.raises(TypeError, match="Timezone of the array"):
+        msg = r"dtype=datetime64\[ns.*\] does not match data dtype datetime64\[ns.*\]"
+        with pytest.raises(TypeError, match=msg):
             DatetimeArray(arr, dtype=dtype)
+
+        # also with mismatched tzawareness
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray(arr, dtype=np.dtype("M8[ns]"))
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray(arr.tz_localize(None), dtype=arr.dtype)
 
     def test_non_array_raises(self):
         with pytest.raises(ValueError, match="list"):

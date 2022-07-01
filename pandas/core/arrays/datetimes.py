@@ -256,7 +256,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _freq = None
 
     def __init__(
-        self, values, dtype=DT64NS_DTYPE, freq=lib.no_default, copy: bool = False
+        self, values, dtype=None, freq=lib.no_default, copy: bool = False
     ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
@@ -276,21 +276,18 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 freq = to_offset(freq)
                 freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
 
-            # validation
-            dtz = getattr(dtype, "tz", None)
-            if dtz and values.tz is None:
-                dtype = DatetimeTZDtype(tz=dtype.tz)
-            elif dtz and values.tz:
-                if not timezones.tz_compare(dtz, values.tz):
-                    msg = (
-                        "Timezone of the array and 'dtype' do not match. "
-                        f"'{dtz}' != '{values.tz}'"
+            if dtype is not None:
+                dtype = pandas_dtype(dtype)
+                if not is_dtype_equal(dtype, values.dtype):
+                    raise TypeError(
+                        f"dtype={dtype} does not match data dtype {values.dtype}"
                     )
-                    raise TypeError(msg)
-            elif values.tz:
-                dtype = values.dtype
 
+            dtype = values.dtype
             values = values._ndarray
+
+        elif dtype is None:
+            dtype = DT64NS_DTYPE
 
         if not isinstance(values, np.ndarray):
             raise ValueError(
