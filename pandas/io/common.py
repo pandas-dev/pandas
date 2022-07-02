@@ -626,6 +626,21 @@ def get_handle(
     ...
 
 
+@overload
+def get_handle(
+    path_or_buf: FilePath | BaseBuffer,
+    mode: str,
+    *,
+    encoding: str | None = ...,
+    compression: CompressionOptions = ...,
+    memory_map: bool = ...,
+    is_text: bool = ...,
+    errors: str | None = ...,
+    storage_options: StorageOptions = ...,
+) -> IOHandles[str] | IOHandles[bytes]:
+    ...
+
+
 @doc(compression_options=_shared_docs["compression_options"] % "path_or_buf")
 def get_handle(
     path_or_buf: FilePath | BaseBuffer,
@@ -910,7 +925,7 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     """
 
     @abstractmethod
-    def write_to_buffer(self):
+    def write_to_buffer(self) -> None:
         ...
 
     def close(self) -> None:

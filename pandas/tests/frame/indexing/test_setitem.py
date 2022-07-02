@@ -683,6 +683,13 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_setitem_ea_dtype_rhs_series(self):
+        # GH#47425
+        df = DataFrame({"a": [1, 2]})
+        df["a"] = Series([1, 2], dtype="Int64")
+        expected = DataFrame({"a": [1, 2]}, dtype="Int64")
+        tm.assert_frame_equal(df, expected)
+
     # TODO(ArrayManager) set column with 2d column array, see #44788
     @td.skip_array_manager_not_yet_implemented
     def test_setitem_npmatrix_2d(self):
@@ -700,6 +707,18 @@ class TestDataFrameSetItem:
         with tm.assert_produces_warning(PendingDeprecationWarning):
             df["np-matrix"] = np.matrix(a)
 
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("vals", [{}, {"d": "a"}])
+    def test_setitem_aligning_dict_with_index(self, vals):
+        # GH#47216
+        df = DataFrame({"a": [1, 2], "b": [3, 4], **vals})
+        df.loc[:, "a"] = {1: 100, 0: 200}
+        df.loc[:, "c"] = {0: 5, 1: 6}
+        df.loc[:, "e"] = {1: 5}
+        expected = DataFrame(
+            {"a": [200, 100], "b": [3, 4], **vals, "c": [5, 6], "e": [np.nan, 5]}
+        )
         tm.assert_frame_equal(df, expected)
 
 

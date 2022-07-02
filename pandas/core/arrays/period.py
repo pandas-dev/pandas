@@ -22,6 +22,7 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
+    get_unit_from_dtype,
     iNaT,
     parsing,
     period as libperiod,
@@ -166,11 +167,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     # array priority higher than numpy scalars
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
-    _scalar_type = Period
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
     _is_recognized_dtype = is_period_dtype
     _infer_matches = ("period",)
+
+    @property
+    def _scalar_type(self) -> type[Period]:
+        return Period
 
     # Names others delegate to us
     _other_ops: list[str] = []
@@ -642,11 +646,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         values = self.astype(object)
 
+        # Create the formatter function
         if date_format:
             formatter = lambda per: per.strftime(date_format)
         else:
+            # Uses `_Period.str` which in turn uses `format_period`
             formatter = lambda per: str(per)
 
+        # Apply the formatter to all values in the array, possibly with a mask
         if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
@@ -733,8 +740,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         if op is operator.sub:
             other = -other
         res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
-        res_values = res_values.view("i8")
-        np.putmask(res_values, self._isnan, iNaT)
         return type(self)(res_values, freq=self.freq)
 
     def _add_offset(self, other: BaseOffset):
@@ -1024,7 +1029,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         used.
 
     """
-    if data.dtype != np.dtype("M8[ns]"):
+    if not isinstance(data.dtype, np.dtype) or data.dtype.kind != "M":
         raise ValueError(f"Wrong dtype: {data.dtype}")
 
     if freq is None:
@@ -1036,9 +1041,10 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
 
+    reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
-    return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
+    return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):

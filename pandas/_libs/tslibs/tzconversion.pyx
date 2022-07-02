@@ -27,11 +27,10 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar cimport (
-    DAY_NANOS,
-    HOUR_NANOS,
+from pandas._libs.tslibs.dtypes cimport (
+    periods_per_day,
+    periods_per_second,
 )
-from pandas._libs.tslibs.dtypes cimport periods_per_second
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -153,6 +152,7 @@ cdef int64_t tz_localize_to_utc_single(
         return val
 
     elif is_utc(tz) or tz is None:
+        # TODO: test with non-nano
         return val
 
     elif is_tzlocal(tz) or is_zoneinfo(tz):
@@ -161,6 +161,15 @@ cdef int64_t tz_localize_to_utc_single(
     elif is_fixed_offset(tz):
         _, deltas, _ = get_dst_info(tz)
         delta = deltas[0]
+        # TODO: de-duplicate with Localizer.__init__
+        if reso != NPY_DATETIMEUNIT.NPY_FR_ns:
+            if reso == NPY_DATETIMEUNIT.NPY_FR_us:
+                delta = delta // 1000
+            elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+                delta = delta // 1_000_000
+            elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
+                delta = delta // 1_000_000_000
+
         return val - delta
 
     else:
@@ -229,6 +238,7 @@ timedelta-like}
         bint fill_nonexist = False
         str stamp
         Localizer info = Localizer(tz, reso=reso)
+        int64_t pph = periods_per_day(reso) // 24
 
     # Vectorized version of DstTzInfo.localize
     if info.use_utc:
@@ -242,7 +252,9 @@ timedelta-like}
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                result[i] = v - _tz_localize_using_tzinfo_api(v, tz, to_utc=True, reso=reso)
+                result[i] = v - _tz_localize_using_tzinfo_api(
+                    v, tz, to_utc=True, reso=reso
+                )
         return result.base  # to return underlying ndarray
 
     elif info.use_fixed:
@@ -283,7 +295,7 @@ timedelta-like}
         shift_backward = True
     elif PyDelta_Check(nonexistent):
         from .timedeltas import delta_to_nanoseconds
-        shift_delta = delta_to_nanoseconds(nonexistent)
+        shift_delta = delta_to_nanoseconds(nonexistent, reso=reso)
     elif nonexistent not in ('raise', None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
                "shift_backwards} or a timedelta object")
@@ -291,12 +303,14 @@ timedelta-like}
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
-    result_a, result_b =_get_utc_bounds(vals, info.tdata, info.ntrans, info.deltas)
+    result_a, result_b =_get_utc_bounds(
+        vals, info.tdata, info.ntrans, info.deltas, reso=reso
+    )
 
     # silence false-positive compiler warning
     dst_hours = np.empty(0, dtype=np.int64)
     if infer_dst:
-        dst_hours = _get_dst_hours(vals, result_a, result_b)
+        dst_hours = _get_dst_hours(vals, result_a, result_b, reso=reso)
 
     # Pre-compute delta_idx_offset that will be used if we go down non-existent
     #  paths.
@@ -316,12 +330,15 @@ timedelta-like}
         left = result_a[i]
         right = result_b[i]
         if val == NPY_NAT:
+            # TODO: test with non-nano
             result[i] = val
         elif left != NPY_NAT and right != NPY_NAT:
             if left == right:
+                # TODO: test with non-nano
                 result[i] = left
             else:
                 if infer_dst and dst_hours[i] != NPY_NAT:
+                    # TODO: test with non-nano
                     result[i] = dst_hours[i]
                 elif is_dst:
                     if ambiguous_array[i]:
@@ -329,9 +346,10 @@ timedelta-like}
                     else:
                         result[i] = right
                 elif fill:
+                    # TODO: test with non-nano; parametrize test_dt_round_tz_ambiguous
                     result[i] = NPY_NAT
                 else:
-                    stamp = _render_tstamp(val)
+                    stamp = _render_tstamp(val, reso=reso)
                     raise pytz.AmbiguousTimeError(
                         f"Cannot infer dst time from {stamp}, try using the "
                         "'ambiguous' argument"
@@ -339,23 +357,24 @@ timedelta-like}
         elif left != NPY_NAT:
             result[i] = left
         elif right != NPY_NAT:
+            # TODO: test with non-nano
             result[i] = right
         else:
             # Handle nonexistent times
             if shift_forward or shift_backward or shift_delta != 0:
                 # Shift the nonexistent time to the closest existing time
-                remaining_mins = val % HOUR_NANOS
+                remaining_mins = val % pph
                 if shift_delta != 0:
                     # Validate that we don't relocalize on another nonexistent
                     # time
-                    if -1 < shift_delta + remaining_mins < HOUR_NANOS:
+                    if -1 < shift_delta + remaining_mins < pph:
                         raise ValueError(
                             "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
                     new_local = val + shift_delta
                 elif shift_forward:
-                    new_local = val + (HOUR_NANOS - remaining_mins)
+                    new_local = val + (pph - remaining_mins)
                 else:
                     # Subtract 1 since the beginning hour is _inclusive_ of
                     # nonexistent times
@@ -368,7 +387,7 @@ timedelta-like}
             elif fill_nonexist:
                 result[i] = NPY_NAT
             else:
-                stamp = _render_tstamp(val)
+                stamp = _render_tstamp(val, reso=reso)
                 raise pytz.NonExistentTimeError(stamp)
 
     return result.base  # .base to get underlying ndarray
@@ -404,10 +423,11 @@ cdef inline Py_ssize_t bisect_right_i8(int64_t *data,
     return left
 
 
-cdef inline str _render_tstamp(int64_t val):
+cdef inline str _render_tstamp(int64_t val, NPY_DATETIMEUNIT reso):
     """ Helper function to render exception messages"""
     from pandas._libs.tslibs.timestamps import Timestamp
-    return str(Timestamp(val))
+    ts = Timestamp._from_value_and_reso(val, reso, None)
+    return str(ts)
 
 
 cdef _get_utc_bounds(
@@ -415,6 +435,7 @@ cdef _get_utc_bounds(
     int64_t* tdata,
     Py_ssize_t ntrans,
     const int64_t[::1] deltas,
+    NPY_DATETIMEUNIT reso,
 ):
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
@@ -424,6 +445,7 @@ cdef _get_utc_bounds(
         Py_ssize_t i, n = vals.size
         int64_t val, v_left, v_right
         Py_ssize_t isl, isr, pos_left, pos_right
+        int64_t ppd = periods_per_day(reso)
 
     result_a = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
     result_b = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
@@ -438,8 +460,8 @@ cdef _get_utc_bounds(
         if val == NPY_NAT:
             continue
 
-        # TODO: be careful of overflow in val-DAY_NANOS
-        isl = bisect_right_i8(tdata, val - DAY_NANOS, ntrans) - 1
+        # TODO: be careful of overflow in val-ppd
+        isl = bisect_right_i8(tdata, val - ppd, ntrans) - 1
         if isl < 0:
             isl = 0
 
@@ -449,8 +471,8 @@ cdef _get_utc_bounds(
         if v_left + deltas[pos_left] == val:
             result_a[i] = v_left
 
-        # TODO: be careful of overflow in val+DAY_NANOS
-        isr = bisect_right_i8(tdata, val + DAY_NANOS, ntrans) - 1
+        # TODO: be careful of overflow in val+ppd
+        isr = bisect_right_i8(tdata, val + ppd, ntrans) - 1
         if isr < 0:
             isr = 0
 
@@ -465,10 +487,11 @@ cdef _get_utc_bounds(
 
 @cython.boundscheck(False)
 cdef ndarray[int64_t] _get_dst_hours(
-    # vals only needed here to potential render an exception message
+    # vals, reso only needed here to potential render an exception message
     const int64_t[:] vals,
     ndarray[int64_t] result_a,
     ndarray[int64_t] result_b,
+    NPY_DATETIMEUNIT reso,
 ):
     cdef:
         Py_ssize_t i, n = vals.shape[0]
@@ -496,8 +519,8 @@ cdef ndarray[int64_t] _get_dst_hours(
     trans_idx = mismatch.nonzero()[0]
 
     if trans_idx.size == 1:
-        # TODO: not reached in tests 2022-05-02; possible?
-        stamp = _render_tstamp(vals[trans_idx[0]])
+        # see test_tz_localize_to_utc_ambiguous_infer
+        stamp = _render_tstamp(vals[trans_idx[0]], reso=reso)
         raise pytz.AmbiguousTimeError(
             f"Cannot infer dst time from {stamp} as there "
             "are no repeated times"
@@ -518,15 +541,15 @@ cdef ndarray[int64_t] _get_dst_hours(
 
             delta = np.diff(result_a[grp])
             if grp.size == 1 or np.all(delta > 0):
-                # TODO: not reached in tests 2022-05-02; possible?
-                stamp = _render_tstamp(vals[grp[0]])
+                # see test_tz_localize_to_utc_ambiguous_infer
+                stamp = _render_tstamp(vals[grp[0]], reso=reso)
                 raise pytz.AmbiguousTimeError(stamp)
 
             # Find the index for the switch and pull from a for dst and b
             # for standard
             switch_idxs = (delta <= 0).nonzero()[0]
             if switch_idxs.size > 1:
-                # TODO: not reached in tests 2022-05-02; possible?
+                # see test_tz_localize_to_utc_ambiguous_infer
                 raise pytz.AmbiguousTimeError(
                     f"There are {switch_idxs.size} dst switches when "
                     "there should only be 1."

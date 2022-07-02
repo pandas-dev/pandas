@@ -541,7 +541,7 @@ _shared_docs[
         string. Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
-    method : {{'pad', 'ffill', 'bfill', `None`}}
+    method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
 

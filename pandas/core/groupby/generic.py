@@ -814,6 +814,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     1    1    2
     2    3    4
 
+    User-defined function for aggregation
+
+    >>> df.groupby('A').agg(lambda x: sum(x) + 2)
+        B	       C
+    A
+    1	5	2.590715
+    2	9	2.704907
+
     Different aggregations per column
 
     >>> df.groupby('A').agg({'B': ['min', 'max'], 'C': 'sum'})
@@ -1602,17 +1610,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only_arg = numeric_only
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmax,
-                "argmax",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only_arg,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            with warnings.catch_warnings():
+                # Suppress numeric_only warnings here, will warn below
+                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmax")
+                res = df._reduce(
+                    nanops.nanargmax,
+                    "argmax",
+                    axis=axis,
+                    skipna=skipna,
+                    numeric_only=numeric_only_arg,
+                )
+                indices = res._values
+                index = df._get_axis(axis)
+                result = [index[i] if i >= 0 else np.nan for i in indices]
+                return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmax"
         result = self._python_apply_general(func, self._obj_with_exclusions)
@@ -1638,17 +1649,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only_arg = numeric_only
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmin,
-                "argmin",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only_arg,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            with warnings.catch_warnings():
+                # Suppress numeric_only warnings here, will warn below
+                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmin")
+                res = df._reduce(
+                    nanops.nanargmin,
+                    "argmin",
+                    axis=axis,
+                    skipna=skipna,
+                    numeric_only=numeric_only_arg,
+                )
+                indices = res._values
+                index = df._get_axis(axis)
+                result = [index[i] if i >= 0 else np.nan for i in indices]
+                return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmin"
         result = self._python_apply_general(func, self._obj_with_exclusions)

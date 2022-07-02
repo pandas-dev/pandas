@@ -1008,7 +1008,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # used by repr_html under IPython notebook or scripts ignore terminal
         # dims
-        if ignore_width or not console.in_interactive_session():
+        if ignore_width or width is None or not console.in_interactive_session():
             return True
 
         if get_option("display.width") is not None or console.in_ipython_frontend():
@@ -1720,7 +1720,10 @@ class DataFrame(NDFrame, OpsMixin):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
-            raise ValueError("only recognize index or columns for orient")
+            raise ValueError(
+                f"Expected 'index', 'columns' or 'tight' for orient parameter. "
+                f"Got '{orient}' instead"
+            )
 
         if orient != "tight":
             return cls(data, index=index, columns=columns, dtype=dtype)
@@ -1817,7 +1820,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        orient : str {'dict', 'list', 'series', 'split', 'records', 'index'}
+        orient : str {'dict', 'list', 'series', 'split', 'tight', 'records', 'index'}
             Determines the type of the values of the dictionary.
 
             - 'dict' (default) : dict like {column -> {index -> value}}
@@ -2481,8 +2484,8 @@ class DataFrame(NDFrame, OpsMixin):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                # Argument 1 to "append" of "list" has incompatible type
-                # "Union[type, dtype[Any], str]"; expected "dtype[_SCT]"  [arg-type]
+                # error: Argument 1 to "append" of "list" has incompatible
+                # type "Union[type, dtype[Any], str]"; expected "dtype[Any]"
                 formats.append(dtype_mapping)  # type: ignore[arg-type]
             else:
                 element = "row" if i < index_len else "column"
@@ -2854,6 +2857,7 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         read_parquet : Read a parquet file.
+        DataFrame.to_orc : Write an orc file.
         DataFrame.to_csv : Write a csv file.
         DataFrame.to_sql : Write to a sql table.
         DataFrame.to_hdf : Write to hdf.
@@ -2895,6 +2899,93 @@ class DataFrame(NDFrame, OpsMixin):
             partition_cols=partition_cols,
             storage_options=storage_options,
             **kwargs,
+        )
+
+    def to_orc(
+        self,
+        path: FilePath | WriteBuffer[bytes] | None = None,
+        *,
+        engine: Literal["pyarrow"] = "pyarrow",
+        index: bool | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
+    ) -> bytes | None:
+        """
+        Write a DataFrame to the ORC format.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        path : str, file-like object or None, default None
+            If a string, it will be used as Root Directory path
+            when writing a partitioned dataset. By file-like object,
+            we refer to objects with a write() method, such as a file handle
+            (e.g. via builtin open function). If path is None,
+            a bytes object is returned.
+        engine : str, default 'pyarrow'
+            ORC library to use. Pyarrow must be >= 7.0.0.
+        index : bool, optional
+            If ``True``, include the dataframe's index(es) in the file output.
+            If ``False``, they will not be written to the file.
+            If ``None``, similar to ``infer`` the dataframe's index(es)
+            will be saved. However, instead of being saved as values,
+            the RangeIndex will be stored as a range in the metadata so it
+            doesn't require much space and is faster. Other indexes will
+            be included as columns in the file output.
+        engine_kwargs : dict[str, Any] or None, default None
+            Additional keyword arguments passed to :func:`pyarrow.orc.write_table`.
+
+        Returns
+        -------
+        bytes if no path argument is provided else None
+
+        Raises
+        ------
+        NotImplementedError
+            Dtype of one or more columns is category, unsigned integers, interval,
+            period or sparse.
+        ValueError
+            engine is not pyarrow.
+
+        See Also
+        --------
+        read_orc : Read a ORC file.
+        DataFrame.to_parquet : Write a parquet file.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_hdf : Write to hdf.
+
+        Notes
+        -----
+        * Before using this function you should read the :ref:`user guide about
+          ORC <io.orc>` and :ref:`install optional dependencies <install.warn_orc>`.
+        * This function requires `pyarrow <https://arrow.apache.org/docs/python/>`_
+          library.
+        * For supported dtypes please refer to `supported ORC features in Arrow
+          <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
+        * Currently timezones in datetime columns are not preserved when a
+          dataframe is converted into ORC files.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [4, 3]})
+        >>> df.to_orc('df.orc')  # doctest: +SKIP
+        >>> pd.read_orc('df.orc')  # doctest: +SKIP
+           col1  col2
+        0     1     4
+        1     2     3
+
+        If you want to get a buffer to the orc content you can write it to io.BytesIO
+        >>> import io
+        >>> b = io.BytesIO(df.to_orc())  # doctest: +SKIP
+        >>> b.seek(0)  # doctest: +SKIP
+        0
+        >>> content = b.read()  # doctest: +SKIP
+        """
+        from pandas.io.orc import to_orc
+
+        return to_orc(
+            self, path, engine=engine, index=index, engine_kwargs=engine_kwargs
         )
 
     @Substitution(
@@ -3467,16 +3558,16 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: int = 0):
+    def _ixs(self, i: int, axis: int = 0) -> Series:
         """
         Parameters
         ----------
         i : int
         axis : int
 
-        Notes
-        -----
-        If slice passed, the resulting data will be a view.
+        Returns
+        -------
+        Series
         """
         # irow
         if axis == 0:
@@ -3524,11 +3615,18 @@ class DataFrame(NDFrame, OpsMixin):
         if is_hashable(key) and not is_iterator(key):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
-            if self.columns.is_unique and key in self.columns:
-                if isinstance(self.columns, MultiIndex):
-                    return self._getitem_multilevel(key)
+            is_mi = isinstance(self.columns, MultiIndex)
+            # GH#45316 Return view if key is not duplicated
+            # Only use drop_duplicates with duplicates for performance
+            if not is_mi and (
+                self.columns.is_unique
+                and key in self.columns
+                or key in self.columns.drop_duplicates(keep=False)
+            ):
                 return self._get_item_cache(key)
 
+            elif is_mi and self.columns.is_unique and key in self.columns:
+                return self._getitem_multilevel(key)
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
@@ -4611,6 +4709,8 @@ class DataFrame(NDFrame, OpsMixin):
         # We should never get here with DataFrame value
         if isinstance(value, Series):
             return _reindex_for_setitem(value, self.index)
+        elif isinstance(value, dict):
+            return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
@@ -5447,7 +5547,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -7912,7 +8012,7 @@ Keep all original rows and columns and also all original values
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that)
+            self.loc[:, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -8025,7 +8125,7 @@ Parrot 2  Parrot       24.0
         self,
         by=None,
         axis: Axis = 0,
-        level: Level | None = None,
+        level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,

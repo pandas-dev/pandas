@@ -109,7 +109,7 @@ NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
-Level = Union[Hashable, int]
+Level = Hashable
 Shape = Tuple[int, ...]
 Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
@@ -323,3 +323,9 @@ DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
+
+# quantile interpolation
+QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
+
+# plotting
+PlottingOrientation = Literal["horizontal", "vertical"]

@@ -43,6 +43,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    QuantileInterpolation,
     Renamer,
     SingleManager,
     SortKind,
@@ -931,7 +932,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self.take(indices=indices, axis=axis)
 
-    def _ixs(self, i: int, axis: int = 0):
+    def _ixs(self, i: int, axis: int = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
@@ -2023,8 +2024,8 @@ Name: Max Speed, dtype: float64
             lev = lev.insert(cnt, lev._na_value)
 
         obs = level_codes[notna(self._values)]
-        # Argument "minlength" to "bincount" has incompatible type "Optional[int]";
-        # expected "SupportsIndex"  [arg-type]
+        # error: Argument "minlength" to "bincount" has incompatible type
+        # "Optional[int]"; expected "SupportsIndex"
         out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
         return self._constructor(out, index=lev, dtype="int64").__finalize__(
             self, method="count"
@@ -2479,7 +2480,33 @@ Name: Max Speed, dtype: float64
 
         return result
 
-    def quantile(self, q=0.5, interpolation="linear"):
+    @overload
+    def quantile(
+        self, q: float = ..., interpolation: QuantileInterpolation = ...
+    ) -> float:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: Sequence[float] | AnyArrayLike,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> float | Series:
+        ...
+
+    def quantile(
+        self,
+        q: float | Sequence[float] | AnyArrayLike = 0.5,
+        interpolation: QuantileInterpolation = "linear",
+    ) -> float | Series:
         """
         Return value at the given quantile.
 
@@ -5177,7 +5204,7 @@ Keep all original rows and also all original values
         inplace=False,
         limit=None,
         regex=False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,

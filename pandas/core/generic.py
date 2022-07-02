@@ -2014,7 +2014,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         }
 
     @final
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         if isinstance(state, BlockManager):
             self._mgr = state
         elif isinstance(state, dict):
@@ -2047,7 +2047,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif len(state) == 2:
             raise NotImplementedError("Pre-0.12 pickles are no longer supported")
 
-        self._item_cache = {}
+        self._item_cache: dict[Hashable, Series] = {}
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -2630,6 +2630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         read_hdf : Read from HDF file.
+        DataFrame.to_orc : Write a DataFrame to the binary orc format.
         DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
         DataFrame.to_sql : Write to a SQL table.
         DataFrame.to_feather : Write out feather-format for DataFrames.
@@ -3301,7 +3302,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         sep: str = ",",
         na_rep: str = "",
-        float_format: str | None = None,
+        float_format: str | Callable | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool_t | list[str] = True,
         index: bool_t = True,
@@ -3340,8 +3341,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             String of length 1. Field delimiter for the output file.
         na_rep : str, default ''
             Missing data representation.
-        float_format : str, default None
-            Format string for floating point numbers.
+        float_format : str, Callable, default None
+            Format string for floating point numbers. If a Callable is given, it takes
+            precedence over other numeric formatting parameters, like decimal.
         columns : sequence, optional
             Columns to write.
         header : bool or list of str, default True
@@ -5726,7 +5728,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return True
 
     @final
-    def _get_numeric_data(self):
+    def _get_numeric_data(self: NDFrameT) -> NDFrameT:
         return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
     @final
@@ -6521,7 +6523,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if k not in result:
                         continue
                     downcast_k = downcast if not is_dict else downcast.get(k)
-                    result[k] = result[k].fillna(v, limit=limit, downcast=downcast_k)
+                    result.loc[:, k] = result[k].fillna(
+                        v, limit=limit, downcast=downcast_k
+                    )
                 return result if not inplace else None
 
             elif not is_list_like(value):
@@ -6604,7 +6608,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         limit: int | None = None,
         regex=False,
-        method=lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         if not (
             is_scalar(to_replace)
@@ -10953,7 +10957,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         data = self._get_numeric_data()
         if axis == 0:
-            demeaned = data - data.mean(axis=0)
+            # error: Unsupported operand types for - ("NDFrame" and "float")
+            demeaned = data - data.mean(axis=0)  # type: ignore[operator]
         else:
             demeaned = data.sub(data.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
@@ -10968,7 +10973,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @deprecate_nonkeyword_arguments(
             version=None,
             allowed_args=["self"],
-            stacklevel=find_stack_level() - 1,
             name="DataFrame.any and Series.any",
         )
         @doc(
