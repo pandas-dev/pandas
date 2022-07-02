@@ -1417,10 +1417,10 @@ def test_multi_axis_1_raises(func):
 
 def test_agg_of_list():
     # GH#25581
-    df1 = pd.DataFrame([[20, "A"], [20, "B"], [30, "C"]])
-    result = df1.groupby(0).agg(pd.Series.mode)
+    df1 = DataFrame([[20, "A"], [20, "B"], [30, "C"]])
+    result = df1.groupby(0).agg(Series.mode)
 
-    expected = pd.DataFrame({0: [20, 30], 1: [["A", "B"], "C"]})
+    expected = DataFrame({0: [20, 30], 1: [["A", "B"], "C"]})
     expected = expected.set_index(0)
 
     tm.assert_frame_equal(result, expected)
