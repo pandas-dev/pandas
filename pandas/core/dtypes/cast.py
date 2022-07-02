@@ -821,7 +821,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = np.array(val).dtype
 
     elif is_float(val):
-        if isinstance(val, np.floating):
+        if np.issubdtype(type(val), np.floating):
             dtype = np.dtype(type(val))
         else:
             dtype = np.dtype(np.float64)
