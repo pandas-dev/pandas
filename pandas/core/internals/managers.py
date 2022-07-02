@@ -820,18 +820,22 @@ class BaseBlockManager(DataManager):
             nb = NumpyBlock(vals, placement, ndim=2)
             return nb
 
+        dtype = None
         if fill_value is None:
             fill_value = np.nan
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-            if is_float_dtype(dtype):
-                # GH45857 avoid unnecessary upcasting
+            # GH45857 avoid unnecessary upcasting
+            idtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            if is_float_dtype(idtype):
+                dtype = idtype
                 dtype = cast(np.dtype, dtype)
                 fill_value = dtype.type(fill_value)
+
+        if dtype is None:
+            dtype, fill_value = infer_dtype_from_scalar(fill_value)
 
         block_shape = list(self.shape)
         block_shape[0] = len(placement)
 
-        dtype, fill_value = infer_dtype_from_scalar(fill_value)
         # error: Argument "dtype" to "empty" has incompatible type "Union[dtype,
         # ExtensionDtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
         # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
