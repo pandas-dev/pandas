@@ -8,6 +8,7 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Literal,
     Sequence,
     TypeVar,
     Union,
@@ -204,9 +205,12 @@ for more.
     }
 )
 class IntervalArray(IntervalMixin, ExtensionArray):
-    ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
+
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     # To make mypy recognize the fields
     _left: np.ndarray
@@ -1665,12 +1669,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                # Argument 1 to "in1d" has incompatible type "Union[ExtensionArray,
-                # ndarray[Any, Any], ndarray[Any, dtype[Any]]]"; expected
-                # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[
-                # dtype[Any]]], bool, int, float, complex, str, bytes,
-                # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-                # [arg-type]
+                # error: Argument 1 to "in1d" has incompatible type
+                # "Union[ExtensionArray, ndarray[Any, Any],
+                # ndarray[Any, dtype[Any]]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
+                # int, float, complex, str, bytes, _NestedSequence[
+                # Union[bool, int, float, complex, str, bytes]]]"
                 return np.in1d(left, right)  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(

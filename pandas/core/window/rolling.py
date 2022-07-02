@@ -29,6 +29,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     NDFrameT,
+    QuantileInterpolation,
     WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -1658,7 +1659,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def quantile(
         self,
         quantile: float,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
         **kwargs,
     ):
@@ -2553,7 +2554,7 @@ class Rolling(RollingAndExpandingMixin):
     def quantile(
         self,
         quantile: float,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
         **kwargs,
     ):
