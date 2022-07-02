@@ -8,7 +8,6 @@ from io import StringIO
 
 import pytest
 
-from pandas.compat import PY311
 from pandas.errors import ParserError
 
 from pandas import DataFrame
