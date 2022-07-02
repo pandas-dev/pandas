@@ -790,10 +790,17 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # a row containing just the index name(s)
             has_index_names = False
             if is_list_header and not is_len_one_list_header and index_col is not None:
-                index_col_list = index_col if is_list_like(index_col) else [index_col]
-                assert isinstance(index_col_list, Sequence)
+
+                index_col_list: Sequence[int]
+                if isinstance(index_col, int):
+                    index_col_list = [index_col]
+                else:
+                    assert isinstance(index_col, Sequence)
+                    index_col_list = index_col
+
                 # We have to handle mi without names. If any of the entries in the data
                 # columns are not empty, this is a regular row
+                assert isinstance(header, Sequence)
                 if len(header) < len(data):
                     potential_index_names = data[len(header)]
                     potential_data = [
