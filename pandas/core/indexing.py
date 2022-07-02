@@ -22,7 +22,10 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -42,7 +45,9 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     infer_fill_value,
+    is_valid_na_for_dtype,
     isna,
+    na_value_for_dtype,
 )
 
 from pandas.core import algorithms as algos
@@ -521,6 +526,9 @@ class IndexingMixin:
         sidewinder mark i          10      20
                    mark ii          1       4
         viper      mark ii          7       1
+
+        Please see the :ref:`user guide<advanced.advanced_hierarchical>`
+        for more details and explanations of advanced indexing.
         """
         return _LocIndexer("loc", self)
 
@@ -2084,8 +2092,23 @@ class _iLocIndexer(_LocationIndexer):
                     # We get only here with loc, so can hard code
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
-            # this preserves dtype of the value
-            new_values = Series([value])._values
+            # this preserves dtype of the value and of the object
+            if is_valid_na_for_dtype(value, self.obj.dtype):
+                value = na_value_for_dtype(self.obj.dtype, compat=False)
+                new_dtype = maybe_promote(self.obj.dtype, value)[0]
+            elif isna(value):
+                new_dtype = None
+            elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
+                # We should not cast, if we have object dtype because we can
+                # set timedeltas into object series
+                curr_dtype = self.obj.dtype
+                curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
+                new_dtype = maybe_promote(curr_dtype, value)[0]
+            else:
+                new_dtype = None
+
+            new_values = Series([value], dtype=new_dtype)._values
+
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly

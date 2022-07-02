@@ -63,6 +63,23 @@ if TYPE_CHECKING:
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
 
 
+def to_pyarrow_type(
+    dtype: ArrowDtype | pa.DataType | Dtype | None,
+) -> pa.DataType | None:
+    """
+    Convert dtype to a pyarrow type instance.
+    """
+    if isinstance(dtype, ArrowDtype):
+        pa_dtype = dtype.pyarrow_dtype
+    elif isinstance(dtype, pa.DataType):
+        pa_dtype = dtype
+    elif dtype:
+        pa_dtype = pa.from_numpy_dtype(dtype)
+    else:
+        pa_dtype = None
+    return pa_dtype
+
+
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
     """
     Base class for ExtensionArray backed by Arrow ChunkedArray.
@@ -89,13 +106,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
-        if isinstance(dtype, ArrowDtype):
-            pa_dtype = dtype.pyarrow_dtype
-        elif dtype:
-            pa_dtype = pa.from_numpy_dtype(dtype)
-        else:
-            pa_dtype = None
-
+        pa_dtype = to_pyarrow_type(dtype)
         if isinstance(scalars, cls):
             data = scalars._data
             if pa_dtype:
@@ -113,7 +124,40 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+        pa_type = to_pyarrow_type(dtype)
+        if pa.types.is_timestamp(pa_type):
+            from pandas.core.tools.datetimes import to_datetime
+
+            scalars = to_datetime(strings, errors="raise")
+        elif pa.types.is_date(pa_type):
+            from pandas.core.tools.datetimes import to_datetime
+
+            scalars = to_datetime(strings, errors="raise").date
+        elif pa.types.is_duration(pa_type):
+            from pandas.core.tools.timedeltas import to_timedelta
+
+            scalars = to_timedelta(strings, errors="raise")
+        elif pa.types.is_time(pa_type):
+            from pandas.core.tools.times import to_time
+
+            # "coerce" to allow "null times" (None) to not raise
+            scalars = to_time(strings, errors="coerce")
+        elif pa.types.is_boolean(pa_type):
+            from pandas.core.arrays import BooleanArray
+
+            scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
+        elif (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            from pandas.core.tools.numeric import to_numeric
+
+            scalars = to_numeric(strings, errors="raise")
+        else:
+            # Let pyarrow try to infer or raise
+            scalars = strings
+        return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
     def __getitem__(self, item: PositionalIndexer):
         """Select a subset of self.

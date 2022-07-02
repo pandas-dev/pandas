@@ -1008,7 +1008,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # used by repr_html under IPython notebook or scripts ignore terminal
         # dims
-        if ignore_width or not console.in_interactive_session():
+        if ignore_width or width is None or not console.in_interactive_session():
             return True
 
         if get_option("display.width") is not None or console.in_ipython_frontend():
@@ -4709,6 +4709,8 @@ class DataFrame(NDFrame, OpsMixin):
         # We should never get here with DataFrame value
         if isinstance(value, Series):
             return _reindex_for_setitem(value, self.index)
+        elif isinstance(value, dict):
+            return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
@@ -5545,7 +5547,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -8123,7 +8125,7 @@ Parrot 2  Parrot       24.0
         self,
         by=None,
         axis: Axis = 0,
-        level: Level | None = None,
+        level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,

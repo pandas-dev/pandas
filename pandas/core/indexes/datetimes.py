@@ -26,9 +26,11 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
+    periods_per_day,
     timezones,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
@@ -44,7 +46,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_scalar,
@@ -448,7 +449,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def _get_time_micros(self) -> np.ndarray:
+    def _get_time_micros(self) -> npt.NDArray[np.int64]:
         """
         Return the number of microseconds since midnight.
 
@@ -458,8 +459,20 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        nanos = values % (24 * 3600 * 1_000_000_000)
-        micros = nanos // 1000
+        reso = self._data._reso
+        ppd = periods_per_day(reso)
+
+        frac = values % ppd
+        if reso == NpyDatetimeUnit.NPY_FR_ns.value:
+            micros = frac // 1000
+        elif reso == NpyDatetimeUnit.NPY_FR_us.value:
+            micros = frac
+        elif reso == NpyDatetimeUnit.NPY_FR_ms.value:
+            micros = frac * 1000
+        elif reso == NpyDatetimeUnit.NPY_FR_s.value:
+            micros = frac * 1_000_000
+        else:  # pragma: no cover
+            raise NotImplementedError(reso)
 
         micros[self._isnan] = -1
         return micros
@@ -552,7 +565,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
+        dta = self._data.copy()
 
         for i, v in enumerate(self):
             s = v
@@ -563,9 +576,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t0
                 else:
                     s = t1
-            snapped[i] = s
+            dta[i] = s
 
-        dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------
