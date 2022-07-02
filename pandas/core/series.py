@@ -38,6 +38,7 @@ from pandas._typing import (
     Axis,
     Dtype,
     DtypeObj,
+    FilePath,
     FillnaOptions,
     IgnoreRaise,
     IndexKeyFunc,
@@ -51,6 +52,7 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
+    WriteBuffer,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -1368,15 +1370,39 @@ class Series(base.IndexOpsMixin, NDFrame):
             self, method="repeat"
         )
 
+    @overload
+    def reset_index(
+        self,
+        level: Level = ...,
+        *,
+        drop: bool = ...,
+        name: Level = ...,
+        inplace: Literal[False] = ...,
+        allow_duplicates: bool = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def reset_index(
+        self,
+        level: Level = ...,
+        *,
+        drop: bool = ...,
+        name: Level = ...,
+        inplace: Literal[True],
+        allow_duplicates: bool = ...,
+    ) -> None:
+        ...
+
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
-        level=None,
-        drop=False,
-        name=lib.no_default,
-        inplace=False,
+        level: Level = None,
+        drop: bool = False,
+        name: Level = lib.no_default,
+        inplace: bool = False,
         allow_duplicates: bool = False,
-    ):
+    ) -> Series | None:
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1493,10 +1519,10 @@ class Series(base.IndexOpsMixin, NDFrame):
             new_index = default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
-                    level = [level]
-                level = [self.index._get_level_number(lev) for lev in level]
-                if len(level) < self.index.nlevels:
-                    new_index = self.index.droplevel(level)
+                    level_list = [level]
+                level_list = [self.index._get_level_number(lev) for lev in level_list]
+                if len(level_list) < self.index.nlevels:
+                    new_index = self.index.droplevel(level_list)
 
             if inplace:
                 self.index = new_index
@@ -1518,9 +1544,12 @@ class Series(base.IndexOpsMixin, NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            return df.reset_index(
+            # error: Incompatible return value type (got "DataFrame", expected
+            # "Optional[Series]")
+            return df.reset_index(  # type: ignore[return-value]
                 level=level, drop=drop, allow_duplicates=allow_duplicates
             )
+        return None
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1532,19 +1561,51 @@ class Series(base.IndexOpsMixin, NDFrame):
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
+    @overload
     def to_string(
         self,
-        buf=None,
-        na_rep="NaN",
-        float_format=None,
-        header=True,
-        index=True,
+        buf: None = ...,
+        na_rep: str = ...,
+        float_format: str | None = ...,
+        header: bool = ...,
+        index: bool = ...,
+        length=...,
+        dtype=...,
+        name=...,
+        max_rows: int | None = ...,
+        min_rows: int | None = ...,
+    ) -> str:
+        ...
+
+    @overload
+    def to_string(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        na_rep: str = ...,
+        float_format: str | None = ...,
+        header: bool = ...,
+        index: bool = ...,
+        length=...,
+        dtype=...,
+        name=...,
+        max_rows: int | None = ...,
+        min_rows: int | None = ...,
+    ) -> None:
+        ...
+
+    def to_string(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        na_rep: str = "NaN",
+        float_format: str | None = None,
+        header: bool = True,
+        index: bool = True,
         length=False,
         dtype=False,
         name=False,
-        max_rows=None,
-        min_rows=None,
-    ):
+        max_rows: int | None = None,
+        min_rows: int | None = None,
+    ) -> str | None:
         """
         Render a string representation of the Series.
 
@@ -1603,11 +1664,17 @@ class Series(base.IndexOpsMixin, NDFrame):
         if buf is None:
             return result
         else:
-            try:
-                buf.write(result)
-            except AttributeError:
-                with open(buf, "w") as f:
+            if hasattr(buf, "write"):
+                # error: Item "str" of "Union[str, PathLike[str], WriteBuffer
+                # [str]]" has no attribute "write"
+                buf.write(result)  # type: ignore[union-attr]
+            else:
+                # error: Argument 1 to "open" has incompatible type "Union[str,
+                # PathLike[str], WriteBuffer[str]]"; expected "Union[Union[str,
+                # bytes, PathLike[str], PathLike[bytes]], int]"
+                with open(buf, "w") as f:  # type: ignore[arg-type]
                     f.write(result)
+        return None
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
@@ -2921,7 +2988,7 @@ Name: Max Speed, dtype: float64
 
     def append(
         self, to_append, ignore_index: bool = False, verify_integrity: bool = False
-    ):
+    ) -> Series:
         """
         Concatenate two or more Series.
 
@@ -3399,17 +3466,47 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
     def sort_values(
         self,
-        axis=0,
-        ascending: bool | int | Sequence[bool | int] = True,
+        *,
+        axis: Axis = ...,
+        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        inplace: Literal[False] = ...,
+        kind: str = ...,
+        na_position: str = ...,
+        ignore_index: bool = ...,
+        key: ValueKeyFunc = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        axis: Axis = ...,
+        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        inplace: Literal[True],
+        kind: str = ...,
+        na_position: str = ...,
+        ignore_index: bool = ...,
+        key: ValueKeyFunc = ...,
+    ) -> None:
+        ...
+
+    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def sort_values(  # type: ignore[override]
+        self,
+        axis: Axis = 0,
+        ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
-    ):
+    ) -> Series | None:
         """
         Sort by the values.
 
@@ -3603,10 +3700,10 @@ Keep all original rows and also all original values
         if ignore_index:
             result.index = default_index(len(sorted_index))
 
-        if inplace:
-            self._update_inplace(result)
-        else:
+        if not inplace:
             return result.__finalize__(self, method="sort_values")
+        self._update_inplace(result)
+        return None
 
     @overload
     def sort_index(
@@ -4811,22 +4908,21 @@ Keep all original rows and also all original values
 
     @overload
     def set_axis(
-        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+        self, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
     ) -> Series:
         ...
 
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
+    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
         ...
 
     @overload
-    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+    def set_axis(
+        self, labels, *, axis: Axis = ..., inplace: bool = ...
+    ) -> Series | None:
         ...
 
-    @overload
-    def set_axis(self, labels, axis: Axis = ..., inplace: bool = ...) -> Series | None:
-        ...
-
+    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
@@ -4853,7 +4949,9 @@ Keep all original rows and also all original values
         see_also_sub="",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
+    def set_axis(  # type: ignore[override]
+        self, labels, axis: Axis = 0, inplace: bool = False
+    ) -> Series | None:
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     # error: Cannot determine type of 'reindex'
@@ -5190,22 +5288,52 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
-    # error: Cannot determine type of 'replace'
+    # error: Signature of "replace" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def replace(
+        self,
+        to_replace=...,
+        value=...,
+        *,
+        inplace: Literal[False] = ...,
+        limit: int | None = ...,
+        regex=...,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
+    ) -> Series | None:
+        ...
+
+    @overload
+    def replace(
+        self,
+        to_replace=...,
+        value=...,
+        *,
+        inplace: Literal[True],
+        limit: int | None = ...,
+        regex=...,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
+    ) -> Series | None:
+        ...
+
+    # error: Signature of "replace" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "to_replace", "value"]
+    )
     @doc(
-        NDFrame.replace,  # type: ignore[has-type]
+        NDFrame.replace,
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
         replace_iloc=_shared_doc_kwargs["replace_iloc"],
     )
-    def replace(
+    def replace(  # type: ignore[override]
         self,
         to_replace=None,
         value=lib.no_default,
-        inplace=False,
-        limit=None,
+        inplace: bool = False,
+        limit: int | None = None,
         regex=False,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
-    ):
+    ) -> Series | None:
         return super().replace(
             to_replace=to_replace,
             value=value,
@@ -5522,8 +5650,10 @@ Keep all original rows and also all original values
         return result
 
     # error: Cannot determine type of 'isna'
+    # error: Return type "Series" of "isna" incompatible with return type "ndarray
+    # [Any, dtype[bool_]]" in supertype "IndexOpsMixin"
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
-    def isna(self) -> Series:
+    def isna(self) -> Series:  # type: ignore[override]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
@@ -5547,8 +5677,22 @@ Keep all original rows and also all original values
         """
         return super().notnull()
 
+    @overload
+    def dropna(
+        self, *, axis: Axis = ..., inplace: Literal[False] = ..., how: str | None = ...
+    ) -> Series:
+        ...
+
+    @overload
+    def dropna(
+        self, *, axis: Axis = ..., inplace: Literal[True], how: str | None = ...
+    ) -> None:
+        ...
+
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def dropna(self, axis=0, inplace=False, how=None):
+    def dropna(
+        self, axis: Axis = 0, inplace: bool = False, how: str | None = None
+    ) -> Series | None:
         """
         Return a new Series with missing values removed.
 
@@ -5635,6 +5779,7 @@ Keep all original rows and also all original values
                 pass
             else:
                 return self.copy()
+        return None
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods
@@ -5804,35 +5949,137 @@ Keep all original rows and also all original values
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
+    @overload
     def where(
         self,
         cond,
-        other=lib.no_default,
-        inplace=False,
-        axis=None,
-        level=None,
-        errors=lib.no_default,
-        try_cast=lib.no_default,
-    ):
-        return super().where(cond, other, inplace, axis, level, errors, try_cast)
+        other=...,
+        *,
+        inplace: Literal[False] = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> Series:
+        ...
 
+    @overload
+    def where(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: Literal[True],
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def where(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: bool = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> Series | None:
+        ...
+
+    # error: Signature of "where" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
+    def where(  # type: ignore[override]
+        self,
+        cond,
+        other=lib.no_default,
+        inplace: bool = False,
+        axis=None,
+        level=None,
+        errors: IgnoreRaise | lib.NoDefault = lib.no_default,
+        try_cast=lib.no_default,
+    ) -> Series | None:
+        return super().where(
+            cond,
+            other,
+            inplace=inplace,
+            axis=axis,
+            level=level,
+            errors=errors,
+            try_cast=try_cast,
+        )
+
+    @overload
     def mask(
         self,
         cond,
+        other=...,
+        *,
+        inplace: Literal[False] = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> Series:
+        ...
+
+    @overload
+    def mask(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: Literal[True],
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def mask(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: bool = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> Series | None:
+        ...
+
+    # error: Signature of "mask" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def mask(  # type: ignore[override]
+        self,
+        cond,
         other=np.nan,
-        inplace=False,
+        inplace: bool = False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors: IgnoreRaise | lib.NoDefault = lib.no_default,
         try_cast=lib.no_default,
-    ):
-        return super().mask(cond, other, inplace, axis, level, errors, try_cast)
+    ) -> Series | None:
+        return super().mask(
+            cond,
+            other,
+            inplace=inplace,
+            axis=axis,
+            level=level,
+            errors=errors,
+            try_cast=try_cast,
+        )
 
     # ----------------------------------------------------------------------
     # Add index
