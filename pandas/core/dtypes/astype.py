@@ -283,7 +283,10 @@ def astype_array_safe(
 
     if (
         is_datetime64_dtype(values.dtype)
-        and is_datetime64_dtype(dtype)
+        # need to do np.dtype check instead of is_datetime64_dtype
+        #  otherwise pyright complains
+        and isinstance(dtype, np.dtype)
+        and dtype.kind == "M"
         and not is_unitless(dtype)
         and not is_dtype_equal(dtype, values.dtype)
     ):
