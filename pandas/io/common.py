@@ -925,7 +925,7 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     """
 
     @abstractmethod
-    def write_to_buffer(self):
+    def write_to_buffer(self) -> None:
         ...
 
     def close(self) -> None:

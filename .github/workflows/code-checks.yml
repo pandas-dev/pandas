@@ -52,12 +52,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Cache conda
-      uses: actions/cache@v3
-      with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
-
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
 
@@ -116,12 +110,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-
-    - name: Cache conda
-      uses: actions/cache@v3
-      with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
