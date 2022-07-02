@@ -372,7 +372,7 @@ def test_timestamp_groupby_quantile():
             {"category": 174.1, "value": 374.1},
             {"category": 182.9, "value": 382.9},
             {"category": 190.5, "value": 390.5},
-            {"category": 198.1, "value": 398.1}
+            {"category": 198.1, "value": 398.1},
         ],
         index=pd.MultiIndex.from_tuples(
             [
@@ -387,9 +387,10 @@ def test_timestamp_groupby_quantile():
                 (pd.Timestamp("2020-04-19 02:00:00+00:00"), 0.9),
                 (pd.Timestamp("2020-04-19 03:00:00+00:00"), 0.1),
                 (pd.Timestamp("2020-04-19 03:00:00+00:00"), 0.5),
-                (pd.Timestamp("2020-04-19 03:00:00+00:00"), 0.9)
-            ], names=("timestamp", None)
-        )
+                (pd.Timestamp("2020-04-19 03:00:00+00:00"), 0.9),
+            ],
+            names=("timestamp", None),
+        ),
     )
 
     tm.assert_frame_equal(result, expected)
