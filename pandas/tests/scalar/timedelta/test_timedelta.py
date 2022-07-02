@@ -84,15 +84,15 @@ class TestAsUnit:
 
     def test_as_unit_non_nano(self):
         # case where we are going neither to nor from nano
-        td = Timedelta(days=1)._as_unit("D")
+        td = Timedelta(days=1)._as_unit("ms")
         assert td.days == 1
-        assert td.value == 1
+        assert td.value == 86_400_000
         assert td.components.days == 1
         assert td._d == 1
         assert td.total_seconds() == 86400
 
-        res = td._as_unit("h")
-        assert res.value == 24
+        res = td._as_unit("us")
+        assert res.value == 86_400_000_000
         assert res.components.days == 1
         assert res.components.hours == 0
         assert res._d == 1
@@ -230,6 +230,41 @@ class TestNonNano:
         res = td // np.array(2.0)
         assert res.value == td.value // 2
         assert res._reso == td._reso
+
+    def test_addsub_mismatched_reso(self, td):
+        other = Timedelta(days=1)  # can losslessly convert to other resos
+
+        result = td + other
+        assert result._reso == td._reso
+        assert result.days == td.days + 1
+
+        result = other + td
+        assert result._reso == td._reso
+        assert result.days == td.days + 1
+
+        result = td - other
+        assert result._reso == td._reso
+        assert result.days == td.days - 1
+
+        result = other - td
+        assert result._reso == td._reso
+        assert result.days == 1 - td.days
+
+        other2 = Timedelta(500)  # can't cast losslessly
+
+        msg = (
+            "Timedelta addition/subtraction with mismatched resolutions is "
+            "not allowed when casting to the lower resolution would require "
+            "lossy rounding"
+        )
+        with pytest.raises(ValueError, match=msg):
+            td + other2
+        with pytest.raises(ValueError, match=msg):
+            other2 + td
+        with pytest.raises(ValueError, match=msg):
+            td - other2
+        with pytest.raises(ValueError, match=msg):
+            other2 - td
 
 
 class TestTimedeltaUnaryOps:
@@ -676,17 +711,6 @@ class TestTimedeltas:
         res = td.ceil("min")
         assert res == Timedelta("1 days 02:35:00")
         assert res._reso == td._reso
-
-    def test_contains(self):
-        # Checking for any NaT-like objects
-        # GH 13603
-        td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
-        for v in [NaT, None, float("nan"), np.nan]:
-            assert not (v in td)
-
-        td = to_timedelta([NaT])
-        for v in [NaT, None, float("nan"), np.nan]:
-            assert v in td
 
     def test_identity(self):
 

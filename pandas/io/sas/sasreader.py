@@ -38,17 +38,17 @@ class ReaderBase(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def read(self, nrows=None):
+    def read(self, nrows: int | None = None) -> DataFrame:
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def __enter__(self):
+    def __enter__(self) -> ReaderBase:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
 
@@ -78,9 +78,7 @@ def read_sas(
     ...
 
 
-@deprecate_nonkeyword_arguments(
-    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
-)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @doc(decompression_options=_shared_docs["decompression_options"])
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
