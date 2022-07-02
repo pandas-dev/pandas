@@ -932,7 +932,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self.take(indices=indices, axis=axis)
 
-    def _ixs(self, i: int, axis: int = 0):
+    def _ixs(self, i: int, axis: int = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
@@ -5204,7 +5204,7 @@ Keep all original rows and also all original values
         inplace=False,
         limit=None,
         regex=False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,

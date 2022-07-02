@@ -180,6 +180,9 @@ def safe_sort_index(index: Index) -> Index:
     -------
     Index
     """
+    if index.is_monotonic_increasing:
+        return index
+
     try:
         array_sorted = safe_sort(index)
     except TypeError:

@@ -78,9 +78,7 @@ def read_sas(
     ...
 
 
-@deprecate_nonkeyword_arguments(
-    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
-)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @doc(decompression_options=_shared_docs["decompression_options"])
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],

@@ -62,9 +62,10 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
       with:
-        environment-file: ""
+        environment-file: false
         environment-name: pandas-sdist
-        python-version: ${{ matrix.python-version }}
+        extra-specs: |
+          python =${{ matrix.python-version }}
 
     - name: Install pandas from sdist
       run: |
