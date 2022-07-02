@@ -882,11 +882,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use :
-    * xlwt for xls
-    * xlsxwriter for xlsx if xlsxwriter is installed otherwise openpyxl
-    * odf for ods.
-    See DataFrame.to_excel for typical usage.
+    Default is to use:
+
+    * `xlwt <https://pypi.org/project/xlwt/>`__ for xls files
+    * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
+      is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
+    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+
+    See ``DataFrame.to_excel`` for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
     and close any opened file handles.
@@ -1080,7 +1083,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     _supported_extensions: tuple[str, ...]
 
     def __new__(
-        cls,
+        cls: type[ExcelWriter],
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
         date_format: str | None = None,
@@ -1090,7 +1093,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
         engine_kwargs: dict | None = None,
         **kwargs,
-    ):
+    ) -> ExcelWriter:
         if kwargs:
             if engine_kwargs is not None:
                 raise ValueError("Cannot use both engine_kwargs and **kwargs")
@@ -1336,7 +1339,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self._cur_sheet
 
     @property
-    def handles(self):
+    def handles(self) -> IOHandles[bytes]:
         """
         Handles to Excel sheets.
 
@@ -1355,7 +1358,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self._deprecate("path")
         return self._path
 
-    def __fspath__(self):
+    def __fspath__(self) -> str:
         return getattr(self._handles.handle, "name", "")
 
     def _get_sheet_name(self, sheet_name: str | None) -> str:
@@ -1413,10 +1416,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             return True
 
     # Allow use as a contextmanager
-    def __enter__(self):
+    def __enter__(self) -> ExcelWriter:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
     def close(self) -> None:
@@ -1710,13 +1713,13 @@ class ExcelFile:
         """close io if necessary"""
         self._reader.close()
 
-    def __enter__(self):
+    def __enter__(self) -> ExcelFile:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         # Ensure we don't leak file descriptors, but put in try/except in case
         # attributes are already deleted
         try:

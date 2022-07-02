@@ -6,7 +6,10 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 import pandas as pd
 from pandas import Timedelta
 import pandas._testing as tm
-from pandas.core.arrays import TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 
 
 class TestNonNano:
@@ -25,6 +28,11 @@ class TestNonNano:
         else:
             raise NotImplementedError(unit)
 
+    @pytest.fixture
+    def tda(self, unit):
+        arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
+        return TimedeltaArray._simple_new(arr, dtype=arr.dtype)
+
     def test_non_nano(self, unit, reso):
         arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
         tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
@@ -33,16 +41,54 @@ class TestNonNano:
         assert tda[0]._reso == reso
 
     @pytest.mark.parametrize("field", TimedeltaArray._field_ops)
-    def test_fields(self, unit, reso, field):
-        arr = np.arange(5, dtype=np.int64).view(f"m8[{unit}]")
-        tda = TimedeltaArray._simple_new(arr, dtype=arr.dtype)
-
-        as_nano = arr.astype("m8[ns]")
+    def test_fields(self, tda, field):
+        as_nano = tda._ndarray.astype("m8[ns]")
         tda_nano = TimedeltaArray._simple_new(as_nano, dtype=as_nano.dtype)
 
         result = getattr(tda, field)
         expected = getattr(tda_nano, field)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_pytimedelta(self, tda):
+        as_nano = tda._ndarray.astype("m8[ns]")
+        tda_nano = TimedeltaArray._simple_new(as_nano, dtype=as_nano.dtype)
+
+        result = tda.to_pytimedelta()
+        expected = tda_nano.to_pytimedelta()
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_total_seconds(self, unit, tda):
+        as_nano = tda._ndarray.astype("m8[ns]")
+        tda_nano = TimedeltaArray._simple_new(as_nano, dtype=as_nano.dtype)
+
+        result = tda.total_seconds()
+        expected = tda_nano.total_seconds()
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
+    )
+    def test_add_nat_datetimelike_scalar(self, nat, tda):
+        result = tda + nat
+        assert isinstance(result, DatetimeArray)
+        assert result._reso == tda._reso
+        assert result.isna().all()
+
+        result = nat + tda
+        assert isinstance(result, DatetimeArray)
+        assert result._reso == tda._reso
+        assert result.isna().all()
+
+    def test_add_pdnat(self, tda):
+        result = tda + pd.NaT
+        assert isinstance(result, TimedeltaArray)
+        assert result._reso == tda._reso
+        assert result.isna().all()
+
+        result = pd.NaT + tda
+        assert isinstance(result, TimedeltaArray)
+        assert result._reso == tda._reso
+        assert result.isna().all()
 
 
 class TestTimedeltaArray:

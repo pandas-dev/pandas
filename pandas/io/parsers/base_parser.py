@@ -220,7 +220,7 @@ class ParserBase:
             for col in cols_needed
         ]
 
-    def close(self):
+    def close(self) -> None:
         pass
 
     @final

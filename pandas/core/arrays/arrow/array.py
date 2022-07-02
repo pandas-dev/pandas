@@ -8,6 +8,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     PositionalIndexer,
@@ -31,6 +32,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.algorithms import resolve_na_sentinel
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
@@ -45,13 +48,39 @@ if not pa_version_under1p01:
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
     from pandas.core.arrays.arrow.dtype import ArrowDtype
 
+    ARROW_CMP_FUNCS = {
+        "eq": pc.equal,
+        "ne": pc.not_equal,
+        "lt": pc.less,
+        "gt": pc.greater,
+        "le": pc.less_equal,
+        "ge": pc.greater_equal,
+    }
+
 if TYPE_CHECKING:
     from pandas import Series
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
 
 
-class ArrowExtensionArray(ExtensionArray):
+def to_pyarrow_type(
+    dtype: ArrowDtype | pa.DataType | Dtype | None,
+) -> pa.DataType | None:
+    """
+    Convert dtype to a pyarrow type instance.
+    """
+    if isinstance(dtype, ArrowDtype):
+        pa_dtype = dtype.pyarrow_dtype
+    elif isinstance(dtype, pa.DataType):
+        pa_dtype = dtype
+    elif dtype:
+        pa_dtype = pa.from_numpy_dtype(dtype)
+    else:
+        pa_dtype = None
+    return pa_dtype
+
+
+class ArrowExtensionArray(OpsMixin, ExtensionArray):
     """
     Base class for ExtensionArray backed by Arrow ChunkedArray.
     """
@@ -77,13 +106,7 @@ class ArrowExtensionArray(ExtensionArray):
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
-        if isinstance(dtype, ArrowDtype):
-            pa_dtype = dtype.pyarrow_dtype
-        elif dtype:
-            pa_dtype = pa.from_numpy_dtype(dtype)
-        else:
-            pa_dtype = None
-
+        pa_dtype = to_pyarrow_type(dtype)
         if isinstance(scalars, cls):
             data = scalars._data
             if pa_dtype:
@@ -101,7 +124,40 @@ class ArrowExtensionArray(ExtensionArray):
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+        pa_type = to_pyarrow_type(dtype)
+        if pa.types.is_timestamp(pa_type):
+            from pandas.core.tools.datetimes import to_datetime
+
+            scalars = to_datetime(strings, errors="raise")
+        elif pa.types.is_date(pa_type):
+            from pandas.core.tools.datetimes import to_datetime
+
+            scalars = to_datetime(strings, errors="raise").date
+        elif pa.types.is_duration(pa_type):
+            from pandas.core.tools.timedeltas import to_timedelta
+
+            scalars = to_timedelta(strings, errors="raise")
+        elif pa.types.is_time(pa_type):
+            from pandas.core.tools.times import to_time
+
+            # "coerce" to allow "null times" (None) to not raise
+            scalars = to_time(strings, errors="coerce")
+        elif pa.types.is_boolean(pa_type):
+            from pandas.core.arrays import BooleanArray
+
+            scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
+        elif (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            from pandas.core.tools.numeric import to_numeric
+
+            scalars = to_numeric(strings, errors="raise")
+        else:
+            # Let pyarrow try to infer or raise
+            scalars = strings
+        return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
     def __getitem__(self, item: PositionalIndexer):
         """Select a subset of self.
@@ -179,6 +235,34 @@ class ArrowExtensionArray(ExtensionArray):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._data
 
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
+
+        pc_func = ARROW_CMP_FUNCS[op.__name__]
+        if isinstance(other, ArrowExtensionArray):
+            result = pc_func(self._data, other._data)
+        elif isinstance(other, (np.ndarray, list)):
+            result = pc_func(self._data, other)
+        elif is_scalar(other):
+            try:
+                result = pc_func(self._data, pa.scalar(other))
+            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                mask = isna(self) | isna(other)
+                valid = ~mask
+                result = np.zeros(len(self), dtype="bool")
+                result[valid] = op(np.array(self)[valid], other)
+                return BooleanArray(result, mask)
+        else:
+            return NotImplementedError(
+                f"{op.__name__} not implemented for {type(other)}"
+            )
+
+        if pa_version_under2p0:
+            result = result.to_pandas().values
+        else:
+            result = result.to_numpy()
+        return BooleanArray._from_sequence(result)
+
     def equals(self, other) -> bool:
         if not isinstance(other, ArrowExtensionArray):
             return False
@@ -248,7 +332,16 @@ class ArrowExtensionArray(ExtensionArray):
             return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
+        if resolved_na_sentinel is None:
+            raise NotImplementedError("Encoding NaN values is not yet implemented")
+        else:
+            na_sentinel = resolved_na_sentinel
         encoded = self._data.dictionary_encode()
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
@@ -589,7 +682,7 @@ class ArrowExtensionArray(ExtensionArray):
             # fast path for a contiguous set of indices
             arrays = [
                 chunk[:start],
-                pa.array(value, type=chunk.type),
+                pa.array(value, type=chunk.type, from_pandas=True),
                 chunk[stop + 1 :],
             ]
             arrays = [arr for arr in arrays if len(arr)]
