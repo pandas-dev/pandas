@@ -953,11 +953,6 @@ class TestDataFrameSelectReindex:
     def test_reindex_without_upcasting(self):
         # GH45857
         df = DataFrame(np.zeros((10, 10), dtype=np.float32))
-        fill_value = np.float32(np.nan)
-        result = df.reindex(columns=np.arange(5, 15), fill_value=fill_value)
-        assert result.dtypes.eq(np.float32).all()
-
-        df = DataFrame(np.zeros((10, 10), dtype=np.float32))
         result = df.reindex(columns=np.arange(5, 15))
         assert result.dtypes.eq(np.float32).all()
 

@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
     is_dtype_equal,
-    is_float_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -820,18 +819,14 @@ class BaseBlockManager(DataManager):
             nb = NumpyBlock(vals, placement, ndim=2)
             return nb
 
-        dtype = None
         if fill_value is None:
             fill_value = np.nan
             # GH45857 avoid unnecessary upcasting
-            idtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-            if is_float_dtype(idtype):
-                dtype = idtype
-                dtype = cast(np.dtype, dtype)
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            if dtype is not None and np.issubdtype(dtype.type, np.floating):
                 fill_value = dtype.type(fill_value)
 
-        if dtype is None:
-            dtype, fill_value = infer_dtype_from_scalar(fill_value)
+        dtype, fill_value = infer_dtype_from_scalar(fill_value)
 
         block_shape = list(self.shape)
         block_shape[0] = len(placement)
