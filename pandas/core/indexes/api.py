@@ -156,7 +156,7 @@ def _get_combined_index(
         index = union_indexes(indexes, sort=False)
         index = ensure_index(index)
 
-    if sort:
+    if sort and not index.is_monotonic_increasing:
         try:
             array_sorted = safe_sort(index)
             array_sorted = cast(np.ndarray, array_sorted)

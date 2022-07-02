@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
 -
 
 .. ---------------------------------------------------------------------------
