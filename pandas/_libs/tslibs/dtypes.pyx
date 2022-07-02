@@ -403,7 +403,7 @@ cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) 
     return day_units
 
 
-cdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
+cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
     if reso == NPY_DATETIMEUNIT.NPY_FR_ns:
         return 1_000_000_000
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:

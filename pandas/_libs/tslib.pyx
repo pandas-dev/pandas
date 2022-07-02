@@ -131,7 +131,7 @@ def format_array_from_datetime(
     cdef:
         int64_t val, ns, N = values.size
         bint show_ms = False, show_us = False, show_ns = False
-        bint basic_format = False
+        bint basic_format = False, basic_format_day = False
         _Timestamp ts
         object res
         npy_datetimestruct dts
@@ -147,14 +147,31 @@ def format_array_from_datetime(
     if na_rep is None:
         na_rep = 'NaT'
 
-    # if we don't have a format nor tz, then choose
-    # a format based on precision
-    basic_format = format is None and tz is None
-    if basic_format:
-        reso_obj = get_resolution(values, reso=reso)
-        show_ns = reso_obj == Resolution.RESO_NS
-        show_us = reso_obj == Resolution.RESO_US
-        show_ms = reso_obj == Resolution.RESO_MS
+    if tz is None:
+        # if we don't have a format nor tz, then choose
+        # a format based on precision
+        basic_format = format is None
+        if basic_format:
+            reso_obj = get_resolution(values, reso=reso)
+            show_ns = reso_obj == Resolution.RESO_NS
+            show_us = reso_obj == Resolution.RESO_US
+            show_ms = reso_obj == Resolution.RESO_MS
+
+        elif format == "%Y-%m-%d %H:%M:%S":
+            # Same format as default, but with hardcoded precision (s)
+            basic_format = True
+            show_ns = show_us = show_ms = False
+
+        elif format == "%Y-%m-%d %H:%M:%S.%f":
+            # Same format as default, but with hardcoded precision (us)
+            basic_format = show_us = True
+            show_ns = show_ms = False
+
+        elif format == "%Y-%m-%d":
+            # Default format for dates
+            basic_format_day = True
+
+    assert not (basic_format_day and basic_format)
 
     for i in range(N):
         # Analogous to: utc_val = values[i]
@@ -162,6 +179,11 @@ def format_array_from_datetime(
 
         if val == NPY_NAT:
             res = na_rep
+        elif basic_format_day:
+
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
+            res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
+
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
@@ -176,11 +198,11 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f'.{dts.us // 1000:03d}'
 
-
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
+                # Use datetime.str, that returns ts.isoformat(sep=' ')
                 res = str(ts)
             else:
 
@@ -190,6 +212,7 @@ def format_array_from_datetime(
                     # Note: dispatches to pydatetime
                     res = ts.strftime(format)
                 except ValueError:
+                    # Use datetime.str, that returns ts.isoformat(sep=' ')
                     res = str(ts)
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
