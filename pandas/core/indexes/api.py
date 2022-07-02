@@ -249,6 +249,15 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
             dtype=dtype,
         )
 
+    def _find_common_index_dtype(inds):
+        dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
+        if dtypes:
+            dtype = find_common_type(dtypes)
+        else:
+            dtype = None
+
+        return dtype
+
     if kind == "special":
         result = indexes[0]
         first = result
@@ -287,9 +296,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         return result
 
     elif kind == "array":
-        dtype = find_common_type(
-            [idx.dtype for idx in indexes if isinstance(idx, Index)]
-        )
+        dtype = _find_common_index_dtype(indexes)
         index = indexes[0]
         if not all(index.equals(other) for other in indexes[1:]):
             index = _unique_indices(indexes, dtype)
@@ -299,9 +306,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
             index = index.rename(name)
         return index
     else:  # kind='list'
-        dtype = find_common_type(
-            [idx.dtype for idx in indexes if isinstance(idx, Index)]
-        )
+        dtype = _find_common_index_dtype(indexes)
         return _unique_indices(indexes, dtype)
 
 
