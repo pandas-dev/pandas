@@ -250,6 +250,17 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         )
 
     def _find_common_index_dtype(inds):
+        """
+        Finds a common type for the indexes to pass through to resulting index.
+
+        Parameters
+        ----------
+        inds: list of Index or list objects
+
+        Returns
+        -------
+        The common type or None if no indexes were given
+        """
         dtypes = [idx.dtype for idx in indexes if isinstance(idx, Index)]
         if dtypes:
             dtype = find_common_type(dtypes)
