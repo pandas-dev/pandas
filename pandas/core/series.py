@@ -1518,8 +1518,11 @@ class Series(base.IndexOpsMixin, NDFrame):
         if drop:
             new_index = default_index(len(self))
             if level is not None:
+                level_list: Sequence[Hashable]
                 if not isinstance(level, (tuple, list)):
                     level_list = [level]
+                else:
+                    level_list = level
                 level_list = [self.index._get_level_number(lev) for lev in level_list]
                 if len(level_list) < self.index.nlevels:
                     new_index = self.index.droplevel(level_list)
