@@ -864,7 +864,7 @@ def assert_series_equal(
     check_dtype: bool | Literal["equiv"] = True,
     check_index_type="equiv",
     check_series_type=True,
-    check_less_precise=no_default,
+    check_less_precise: bool | int | NoDefault = no_default,
     check_names=True,
     check_exact=False,
     check_datetimelike_compat=False,
