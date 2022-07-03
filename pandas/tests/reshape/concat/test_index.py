@@ -398,3 +398,14 @@ class TestMultiIndexConcat:
         tm.assert_frame_equal(result, expected)
         expected_index = pd.RangeIndex(0, 2)
         tm.assert_index_equal(result.index, expected_index, exact=True)
+
+    @pytest.mark.parametrize("dtype", ["Int64", "object"])
+    def test_concat_index_keep_dtype(self, dtype):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype=dtype))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype=dtype)
+        )
+        tm.assert_frame_equal(result, expected)
