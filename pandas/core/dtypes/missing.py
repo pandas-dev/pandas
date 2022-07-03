@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
@@ -754,10 +755,14 @@ def isna_all(arr: ArrayLike) -> bool:
     chunk_len = max(total_len // 40, 1000)
 
     dtype = arr.dtype
-    if dtype.kind == "f":
+    if dtype.kind == "f" and isinstance(dtype, np.dtype):
         checker = nan_checker
 
-    elif dtype.kind in ["m", "M"] or dtype.type is Period:
+    elif (
+        (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"])
+        or isinstance(dtype, DatetimeTZDtype)
+        or dtype.type is Period
+    ):
         # error: Incompatible types in assignment (expression has type
         # "Callable[[Any], Any]", variable has type "ufunc")
         checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
