@@ -399,7 +399,7 @@ class PyperclipWindowsException(PyperclipException):
 
 class CSSWarning(UserWarning):
     """
-    Warning is raised when trying to convert styling to a css format and it failing.
+    Warning is raised when trying to convert styling to a css format and it fails.
     This can be due to the styling not having an equivalent value or because the
     styling isn't properly formatted.
 
