@@ -60,6 +60,7 @@ from typing import (
     Callable,
     Generic,
     Iterable,
+    Iterator,
     NamedTuple,
     cast,
 )
@@ -435,13 +436,13 @@ class option_context(ContextDecorator):
 
         self.ops = list(zip(args[::2], args[1::2]))
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.undo = [(pat, _get_option(pat, silent=True)) for pat, val in self.ops]
 
         for pat, val in self.ops:
             _set_option(pat, val, silent=True)
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:
         if self.undo:
             for pat, val in self.undo:
                 _set_option(pat, val, silent=True)
@@ -733,7 +734,7 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 
 
 @contextmanager
-def config_prefix(prefix):
+def config_prefix(prefix) -> Iterator[None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

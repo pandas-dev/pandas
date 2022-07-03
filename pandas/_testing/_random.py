@@ -14,7 +14,7 @@ RANDU_CHARS = np.array(
 )
 
 
-def rands_array(nchars, size, dtype="O", replace=True):
+def rands_array(nchars, size, dtype="O", replace=True) -> np.ndarray:
     """
     Generate an array of byte strings.
     """
@@ -26,7 +26,7 @@ def rands_array(nchars, size, dtype="O", replace=True):
     return retval.astype(dtype)
 
 
-def rands(nchars):
+def rands(nchars) -> str:
     """
     Generate one random byte string.
 
