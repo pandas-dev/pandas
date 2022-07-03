@@ -621,7 +621,8 @@ def test_read_procedure(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", postgresql_connectable)
-def test_copy_from_callable_insertion_method(conn, request):
+@pytest.mark.parametrize("expected_count", [2, "Success!"])
+def test_copy_from_callable_insertion_method(conn, expected_count, request):
     # GH 8953
     # Example in io.rst found under _io.sql.method
     # not available in sqlite, mysql
@@ -642,10 +643,18 @@ def test_copy_from_callable_insertion_method(conn, request):
 
             sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
             cur.copy_expert(sql=sql_query, file=s_buf)
+        return expected_count
 
     conn = request.getfixturevalue(conn)
     expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
-    expected.to_sql("test_frame", conn, index=False, method=psql_insert_copy)
+    result_count = expected.to_sql(
+        "test_frame", conn, index=False, method=psql_insert_copy
+    )
+    # GH 46891
+    if not isinstance(expected_count, int):
+        assert result_count is None
+    else:
+        assert result_count == expected_count
     result = sql.read_sql_table("test_frame", conn)
     tm.assert_frame_equal(result, expected)
 
