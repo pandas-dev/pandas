@@ -367,7 +367,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result = {}
+    result: dict = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.

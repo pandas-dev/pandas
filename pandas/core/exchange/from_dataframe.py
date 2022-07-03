@@ -1,6 +1,7 @@
 import ctypes
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     List,
@@ -24,6 +25,9 @@ from pandas.core.exchange.utils import (
     Endianness,
 )
 
+if TYPE_CHECKING:
+    from pandas import DataFrame
+
 _NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
     DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
     DtypeKind.UINT: {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64},
@@ -32,7 +36,7 @@ _NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
 }
 
 
-def from_dataframe(df, allow_copy=True):
+def from_dataframe(df, allow_copy=True) -> DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import (
     Any,
     Tuple,
@@ -214,7 +216,7 @@ class PandasColumn(Column):
         else:
             yield self
 
-    def get_buffers(self):
+    def get_buffers(self) -> ColumnBuffers:
         """
         Return a dictionary containing the underlying buffers.
         The returned dictionary has the following contents:
