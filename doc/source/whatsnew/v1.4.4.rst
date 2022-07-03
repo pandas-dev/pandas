@@ -24,7 +24,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - The :class:`errors.FutureWarning` raised when passing arguments (other than ``filepath_or_buffer``) as positional in :func:`read_csv` is now raised at the correct stacklevel (:issue:`47385`)
--
+- Bug in :meth:`DataFrame.to_sql` when ``method`` was a ``callable`` that did not return an ``int`` and would raise a ``TypeError`` (:issue:`46891`)
 
 .. ---------------------------------------------------------------------------
 
