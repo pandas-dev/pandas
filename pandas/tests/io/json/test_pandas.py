@@ -1908,3 +1908,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH41174
         result = data.to_json()
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "data", [{"col1": [13342205958987758245, 12388075603347835679]}]
+    )
+    @pytest.mark.parametrize(
+        "expected",
+        [
+            '{"columns":["col1"],"index":[0,1],'
+            '"data":[[13342205958987758245],[12388075603347835679]]}'
+        ],
+    )
+    @pytest.mark.parametrize("orient", ["split"])
+    def test_json_uint64(self, data, expected, orient):
+        # GH21073
+        df = DataFrame(data=data)
+        result = df.to_json(orient=orient)
+        assert result == expected
