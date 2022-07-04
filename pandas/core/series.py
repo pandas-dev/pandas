@@ -42,6 +42,7 @@ from pandas._typing import (
     FillnaOptions,
     IgnoreRaise,
     IndexKeyFunc,
+    IndexLabel,
     Level,
     NaPosition,
     QuantileInterpolation,
@@ -4980,11 +4981,11 @@ Keep all original rows and also all original values
     @overload
     def drop(
         self,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
@@ -4994,11 +4995,11 @@ Keep all original rows and also all original values
     @overload
     def drop(
         self,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
@@ -5008,11 +5009,11 @@ Keep all original rows and also all original values
     @overload
     def drop(
         self,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
@@ -5024,10 +5025,10 @@ Keep all original rows and also all original values
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(  # type: ignore[override]
         self,
-        labels: Hashable | list[Hashable] = None,
+        labels: IndexLabel = None,
         axis: Axis = 0,
-        index: Hashable | list[Hashable] = None,
-        columns: Hashable | list[Hashable] = None,
+        index: IndexLabel = None,
+        columns: IndexLabel = None,
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
@@ -5302,7 +5303,7 @@ Keep all original rows and also all original values
         limit: int | None = ...,
         regex=...,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> Series | None:
+    ) -> Series:
         ...
 
     @overload
@@ -5315,7 +5316,7 @@ Keep all original rows and also all original values
         limit: int | None = ...,
         regex=...,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> Series | None:
+    ) -> None:
         ...
 
     # error: Signature of "replace" incompatible with supertype "NDFrame"
@@ -5895,25 +5896,93 @@ Keep all original rows and also all original values
             self, method="to_period"
         )
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @overload
     def ffill(
-        self: Series,
-        axis: None | Axis = None,
-        inplace: bool = False,
-        limit: None | int = None,
-        downcast=None,
-    ) -> Series | None:
-        return super().ffill(axis, inplace, limit, downcast)
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> Series:
+        ...
 
+    @overload
+    def ffill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def ffill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: bool = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> Series | None:
+        ...
+
+    # error: Signature of "ffill" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def bfill(
-        self: Series,
+    def ffill(  # type: ignore[override]
+        self,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
         downcast=None,
     ) -> Series | None:
-        return super().bfill(axis, inplace, limit, downcast)
+        return super().ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
+
+    @overload
+    def bfill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> Series:
+        ...
+
+    @overload
+    def bfill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def bfill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: bool = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> Series | None:
+        ...
+
+    # error: Signature of "bfill" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def bfill(  # type: ignore[override]
+        self,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> Series | None:
+        return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "lower", "upper"]

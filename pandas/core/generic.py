@@ -1048,10 +1048,44 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="rename")
 
-    @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
+    @overload
     def rename_axis(
-        self, mapper: IndexLabel | lib.NoDefault = lib.no_default, **kwargs
-    ):
+        self: NDFrameT,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        inplace: Literal[False] = ...,
+        **kwargs,
+    ) -> NDFrameT:
+        ...
+
+    @overload
+    def rename_axis(
+        self: NDFrameT,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def rename_axis(
+        self: NDFrameT,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        inplace: bool_t = ...,
+        **kwargs,
+    ) -> NDFrameT | None:
+        ...
+
+    @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "mapper"])
+    def rename_axis(
+        self: NDFrameT,
+        mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        inplace: bool_t = False,
+        **kwargs,
+    ) -> NDFrameT | None:
         """
         Set the name of the axis for the index or columns.
 
@@ -1220,6 +1254,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 result._set_axis_name(newnames, axis=axis, inplace=True)
             if not inplace:
                 return result
+            return None
 
     @final
     def _set_axis_name(self, name, axis=0, inplace=False):
@@ -3301,6 +3336,60 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             position=position,
         )
 
+    @overload
+    def to_csv(
+        self,
+        path_or_buf: None = ...,
+        sep: str = ...,
+        na_rep: str = ...,
+        float_format: str | Callable | None = ...,
+        columns: Sequence[Hashable] | None = ...,
+        header: bool_t | list[str] = ...,
+        index: bool_t = ...,
+        index_label: IndexLabel | None = ...,
+        mode: str = ...,
+        encoding: str | None = ...,
+        compression: CompressionOptions = ...,
+        quoting: int | None = ...,
+        quotechar: str = ...,
+        lineterminator: str | None = ...,
+        chunksize: int | None = ...,
+        date_format: str | None = ...,
+        doublequote: bool_t = ...,
+        escapechar: str | None = ...,
+        decimal: str = ...,
+        errors: str = ...,
+        storage_options: StorageOptions = ...,
+    ) -> str:
+        ...
+
+    @overload
+    def to_csv(
+        self,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str],
+        sep: str = ...,
+        na_rep: str = ...,
+        float_format: str | Callable | None = ...,
+        columns: Sequence[Hashable] | None = ...,
+        header: bool_t | list[str] = ...,
+        index: bool_t = ...,
+        index_label: IndexLabel | None = ...,
+        mode: str = ...,
+        encoding: str | None = ...,
+        compression: CompressionOptions = ...,
+        quoting: int | None = ...,
+        quotechar: str = ...,
+        lineterminator: str | None = ...,
+        chunksize: int | None = ...,
+        date_format: str | None = ...,
+        doublequote: bool_t = ...,
+        escapechar: str | None = ...,
+        decimal: str = ...,
+        errors: str = ...,
+        storage_options: StorageOptions = ...,
+    ) -> None:
+        ...
+
     @final
     @doc(
         storage_options=_shared_docs["storage_options"],
@@ -4191,11 +4280,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
@@ -4205,11 +4294,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self: NDFrameT,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
@@ -4219,11 +4308,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self: NDFrameT,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: bool_t = ...,
         errors: IgnoreRaise = ...,
@@ -4233,10 +4322,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
         self: NDFrameT,
-        labels: Hashable | list[Hashable] = None,
+        labels: IndexLabel = None,
         axis: Axis = 0,
-        index: Hashable | list[Hashable] = None,
-        columns: Hashable | list[Hashable] = None,
+        index: IndexLabel = None,
+        columns: IndexLabel = None,
         level: Level | None = None,
         inplace: bool_t = False,
         errors: IgnoreRaise = "raise",
@@ -6606,6 +6695,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="fillna")
 
+    @overload
+    def ffill(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> NDFrameT:
+        ...
+
+    @overload
+    def ffill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def ffill(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = ...,
+        inplace: bool_t = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> NDFrameT | None:
+        ...
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
         self: NDFrameT,
@@ -6628,6 +6751,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     pad = ffill
 
+    @overload
+    def bfill(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> NDFrameT:
+        ...
+
+    @overload
+    def bfill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def bfill(
+        self: NDFrameT,
+        *,
+        axis: None | Axis = ...,
+        inplace: bool_t = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> NDFrameT | None:
+        ...
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: NDFrameT,
