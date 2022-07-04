@@ -4232,7 +4232,6 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
     def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
