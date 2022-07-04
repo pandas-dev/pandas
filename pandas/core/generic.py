@@ -1078,7 +1078,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
-    @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
+    @rewrite_axis_style_signature("mapper", [("copy", True)])
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "mapper"])
     def rename_axis(
         self: NDFrameT,
@@ -1209,6 +1209,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
         """
+        kwargs["inplace"] = inplace
         axes, kwargs = self._construct_axes_from_arguments(
             (), kwargs, sentinel=lib.no_default
         )
