@@ -4194,7 +4194,20 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
-    def query(self, expr: str, inplace: bool = False, **kwargs) -> None:
+    @overload
+    def query(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> DataFrame:
+        ...
+
+    @overload
+    def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
+        ...
+
+    @overload
+    def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
+        ...
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
+    def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
