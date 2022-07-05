@@ -282,7 +282,12 @@ def parse_datetime_string(
         pass
 
     try:
-        dt = du_parse(date_string, default=_DEFAULT_DATETIME,
+        if date_string == 'today':
+            dt = datetime.today()
+        elif date_string == 'now':
+            dt = datetime.now()
+        else:
+            dt = du_parse(date_string, default=_DEFAULT_DATETIME,
                       dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
     except TypeError:
         # following may be raised from dateutil
