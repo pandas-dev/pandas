@@ -67,9 +67,7 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
         ipos += 1
 
         if control_byte == 0x00:
-            if end_of_first_byte != 0:
-                raise ValueError("Unexpected non-zero end_of_first_byte")
-            nbytes = <int>(buf_get(inbuff, ipos)) + 64
+            nbytes = <int>(buf_get(inbuff, ipos)) + 64 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
                 buf_set(outbuff, rpos, buf_get(inbuff, ipos))

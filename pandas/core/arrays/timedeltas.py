@@ -12,7 +12,6 @@ from pandas._libs import (
     lib,
     tslibs,
 )
-from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -54,13 +53,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
-from pandas.core.arrays import (
-    IntegerArray,
-    datetimelike as dtl,
-)
+from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -171,64 +166,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Constructors
 
     _freq = None
+    _default_dtype = TD64NS_DTYPE  # used in TimeLikeOps.__init__
 
-    def __init__(
-        self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy: bool = False
-    ) -> None:
-        values = extract_array(values, extract_numpy=True)
-        if isinstance(values, IntegerArray):
-            values = values.to_numpy("int64", na_value=tslibs.iNaT)
-
-        inferred_freq = getattr(values, "_freq", None)
-        explicit_none = freq is None
-        freq = freq if freq is not lib.no_default else None
-
-        if isinstance(values, type(self)):
-            if explicit_none:
-                # don't inherit from values
-                pass
-            elif freq is None:
-                freq = values.freq
-            elif freq and values.freq:
-                freq = to_offset(freq)
-                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
-
-            values = values._ndarray
-
-        if not isinstance(values, np.ndarray):
-            raise ValueError(
-                f"Unexpected type '{type(values).__name__}'. 'values' must be a "
-                f"{type(self).__name__}, ndarray, or Series or Index "
-                "containing one of those."
-            )
-        if values.ndim not in [1, 2]:
-            raise ValueError("Only 1-dimensional input arrays are supported.")
-
-        if values.dtype == "i8":
-            # for compat with datetime/timedelta/period shared methods,
-            #  we can sometimes get here with int64 values.  These represent
-            #  nanosecond UTC (or tz-naive) unix timestamps
-            values = values.view(TD64NS_DTYPE)
-
+    @classmethod
+    def _validate_dtype(cls, values, dtype):
+        # used in TimeLikeOps.__init__
         _validate_td64_dtype(values.dtype)
         dtype = _validate_td64_dtype(dtype)
-
-        if freq == "infer":
-            raise ValueError(
-                f"Frequency inference not allowed in {type(self).__name__}.__init__. "
-                "Use 'pd.array()' instead."
-            )
-
-        if copy:
-            values = values.copy()
-        if freq:
-            freq = to_offset(freq)
-
-        NDArrayBacked.__init__(self, values=values, dtype=dtype)
-        self._freq = freq
-
-        if inferred_freq is None and freq is not None:
-            type(self)._validate_frequency(self, freq)
+        return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod

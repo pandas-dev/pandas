@@ -12,11 +12,7 @@ from typing import (
 )
 import warnings
 
-
-class CSSWarning(UserWarning):
-    """
-    This CSS syntax cannot currently be parsed.
-    """
+from pandas.errors import CSSWarning
 
 
 def _side_expander(prop_fmt: str) -> Callable:
