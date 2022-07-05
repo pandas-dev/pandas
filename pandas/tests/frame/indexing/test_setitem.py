@@ -709,6 +709,29 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("vals", [{}, {"d": "a"}])
+    def test_setitem_aligning_dict_with_index(self, vals):
+        # GH#47216
+        df = DataFrame({"a": [1, 2], "b": [3, 4], **vals})
+        df.loc[:, "a"] = {1: 100, 0: 200}
+        df.loc[:, "c"] = {0: 5, 1: 6}
+        df.loc[:, "e"] = {1: 5}
+        expected = DataFrame(
+            {"a": [200, 100], "b": [3, 4], **vals, "c": [5, 6], "e": [np.nan, 5]}
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_rhs_dataframe(self):
+        # GH#47578
+        df = DataFrame({"a": [1, 2]})
+        df["a"] = DataFrame({"a": [10, 11]}, index=[1, 2])
+        expected = DataFrame({"a": [np.nan, 10]})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame({"a": [1, 2]})
+        df.isetitem(0, DataFrame({"a": [10, 11]}, index=[1, 2]))
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture

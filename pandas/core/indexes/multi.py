@@ -578,7 +578,10 @@ class MultiIndex(Index):
 
     @classmethod
     def from_product(
-        cls, iterables, sortorder=None, names=lib.no_default
+        cls,
+        iterables: Sequence[Iterable[Hashable]],
+        sortorder: int | None = None,
+        names: Sequence[Hashable] | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
@@ -2643,7 +2646,10 @@ class MultiIndex(Index):
         return ci.get_indexer_for(target)
 
     def get_slice_bound(
-        self, label: Hashable | Sequence[Hashable], side: str, kind=lib.no_default
+        self,
+        label: Hashable | Sequence[Hashable],
+        side: Literal["left", "right"],
+        kind=lib.no_default,
     ) -> int:
         """
         For an ordered MultiIndex, compute slice bound
@@ -2758,7 +2764,7 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup: tuple, side="left"):
+    def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
