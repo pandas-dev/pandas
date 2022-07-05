@@ -563,6 +563,77 @@ class TestBaseMissing(base.BaseMissingTests):
         super().test_fillna_frame(data_missing)
 
 
+class TestBaseReshaping(base.BaseReshapingTests):
+    @pytest.mark.parametrize("in_frame", [True, False])
+    def test_concat(self, data, in_frame, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_concat(data, in_frame)
+
+    @pytest.mark.parametrize("in_frame", [True, False])
+    def test_concat_all_na_block(self, data_missing, in_frame, request):
+        pa_dtype = data_missing.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_concat_all_na_block(data_missing, in_frame)
+
+    def test_concat_with_reindex(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        elif pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_concat_with_reindex(data)
+
+    def test_merge_on_extension_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_merge_on_extension_array(data)
+
+    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    def test_transpose(self, data):
+        super().test_transpose(data)
+
+
 class TestBaseSetitem(base.BaseSetitemTests):
     def test_setitem_scalar_series(self, data, box_in_series, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
