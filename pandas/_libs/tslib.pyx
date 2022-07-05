@@ -664,11 +664,11 @@ cpdef array_to_datetime(
 
                         # Still raise OutOfBoundsDatetime,
                         # as error message is informative.
-                        raise
+                        raise OutOfBoundsDatetime(f"Cannot convert \"{val}\" at position {i} to datetime")
 
                     assert is_ignore
                     return values, tz_out
-                raise
+                raise OutOfBoundsDatetime(f"Cannot convert \"{val}\" at position {i} to datetime")
 
     except OutOfBoundsDatetime:
         if is_raise:
