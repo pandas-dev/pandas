@@ -1413,3 +1413,15 @@ def test_multi_axis_1_raises(func):
     gb = df.groupby("a", axis=1)
     with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
         gb.agg(func)
+
+
+def test_unique_agg_type():
+    # GH#22558
+    df1 = DataFrame({"a": [1, 2, 3], "b": [1, 1, 1]})
+    df2 = DataFrame({"a": [2, 2, 2], "b": [1, 1, 1]})
+    aggregation = {"a": "unique", "b": "unique"}
+
+    agg1 = df1.agg(aggregation)
+    agg2 = df2.agg(aggregation)
+
+    tm.assert_class_equal(agg1, agg2)
