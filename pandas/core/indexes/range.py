@@ -19,6 +19,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.algos import unique_deltas
 from pandas._libs.lib import no_default
 from pandas._typing import (
     Dtype,
@@ -435,7 +436,7 @@ class RangeIndex(NumericIndex):
 
         if values.dtype.kind == "f":
             return Float64Index(values, name=name)
-        unique_diffs = np.unique(np.diff(values))
+        unique_diffs = unique_deltas(values)
         if len(unique_diffs) == 1:
             new_range = range(values[0], values[-1], unique_diffs[0])
             return type(self)._simple_new(new_range, name=name)
