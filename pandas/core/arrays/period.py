@@ -1056,7 +1056,7 @@ def _get_ordinal_range(start, end, periods, freq):
 
     # If `freq` is passed, it will overwrite the freq of start and end, but
     # doesn't change it if it is None.
-    # `to_offset(None) == None`.
+    # Note: `to_offset(None) == None`.
     freq = to_offset(freq)
 
     # become NaT, in case of None

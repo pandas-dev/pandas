@@ -1255,7 +1255,6 @@ class TestSeriesConstructors:
 
     def test_constructor_periodindex_multiple(self):
         # GH47465
-        # converting a PeriodIndex when put in a Series
 
         p = Period("2020-01-01")
         pi = period_range(p, periods=5)
