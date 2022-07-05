@@ -596,6 +596,26 @@ class TestBaseReshaping(base.BaseReshapingTests):
             )
         super().test_concat_all_na_block(data_missing, in_frame)
 
+    def test_concat_columns(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_concat_columns(data, na_value)
+
+    def test_concat_extension_arrays_copy_false(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_concat_extension_arrays_copy_false(data, na_value)
+
     def test_concat_with_reindex(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_duration(pa_dtype):
@@ -616,6 +636,46 @@ class TestBaseReshaping(base.BaseReshapingTests):
             )
         super().test_concat_with_reindex(data)
 
+    def test_align(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align(data, na_value)
+
+    def test_align_frame(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align_frame(data, na_value)
+
+    def test_align_series_frame(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align_series_frame(data, na_value)
+
+    def test_merge(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_merge(data, na_value)
+
     def test_merge_on_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_date(pa_dtype) or (
@@ -629,9 +689,49 @@ class TestBaseReshaping(base.BaseReshapingTests):
             )
         super().test_merge_on_extension_array(data)
 
+    def test_merge_on_extension_array_duplicates(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        elif pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_merge_on_extension_array_duplicates(data)
+
+    def test_ravel(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_ravel(data)
+
     @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
     def test_transpose(self, data):
         super().test_transpose(data)
+
+    def test_transpose_frame(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_transpose_frame(data)
 
 
 class TestBaseSetitem(base.BaseSetitemTests):
@@ -640,7 +740,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         super().test_setitem_scalar_series(data, box_in_series)
