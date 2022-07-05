@@ -1356,7 +1356,8 @@ def test_deprecate_numeric_only(
             method(*args, **kwargs)
 
 
-def test_deprecate_numeric_only_series(groupby_func, request):
+@pytest.mark.parametrize("dtype", [bool, int, float, object])
+def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
     if groupby_func in ("backfill", "mad", "pad", "tshift"):
         pytest.skip("method is deprecated")
@@ -1364,8 +1365,15 @@ def test_deprecate_numeric_only_series(groupby_func, request):
         msg = "corrwith is not implemented on SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
-    ser = Series(list("xyz"))
-    gb = ser.groupby([0, 0, 1])
+    grouper = [0, 0, 1]
+
+    ser = Series([1, 0, 0], dtype=dtype)
+    gb = ser.groupby(grouper)
+    method = getattr(gb, groupby_func)
+
+    expected_ser = Series([1, 0, 0])
+    expected_gb = expected_ser.groupby(grouper)
+    expected_method = getattr(expected_gb, groupby_func)
 
     if groupby_func == "corrwith":
         args = (ser,)
@@ -1383,48 +1391,95 @@ def test_deprecate_numeric_only_series(groupby_func, request):
         args = (0.5,)
     else:
         args = ()
-    method = getattr(gb, groupby_func)
 
-    try:
-        _ = method(*args)
-    except (TypeError, ValueError) as err:
-        # ops that only work on numeric dtypes
-        assert groupby_func in (
-            "corr",
-            "cov",
-            "cummax",
-            "cummin",
-            "cumprod",
-            "cumsum",
-            "diff",
-            "idxmax",
-            "idxmin",
-            "mean",
-            "median",
-            "pct_change",
-            "prod",
-            "quantile",
-            "sem",
-            "skew",
-            "std",
-            "var",
-        )
-        assert (
-            "could not convert" in str(err).lower()
-            or "unsupported operand type" in str(err)
-            or "not allowed for this dtype" in str(err)
-            or "can't multiply sequence by non-int" in str(err)
-            or "cannot be performed against 'object' dtypes" in str(err)
-            or "is not supported for object dtype" in str(err)
-        ), str(err)
-
-    msgs = (
-        "got an unexpected keyword argument 'numeric_only'",
-        f"{groupby_func} does not implement numeric_only",
-        f"{groupby_func} is not supported for object dtype",
+    fails_on_numeric_object = (
+        "corr",
+        "cov",
+        "cummax",
+        "cummin",
+        "cumprod",
+        "cumsum",
+        "idxmax",
+        "idxmin",
+        "quantile",
     )
-    with pytest.raises((NotImplementedError, TypeError), match=f"({'|'.join(msgs)})"):
-        _ = method(*args, numeric_only=True)
+    # ops that give an object result on object input
+    obj_result = (
+        "first",
+        "last",
+        "nth",
+        "bfill",
+        "ffill",
+        "shift",
+        "sum",
+        "diff",
+        "pct_change",
+    )
+
+    # Test default behavior; kernels that fail may be enabled in the future but kernels
+    # that succeed should not be allowed to fail (without deprecation, at least)
+    if groupby_func in fails_on_numeric_object and dtype is object:
+        if groupby_func in ("idxmax", "idxmin"):
+            msg = "not allowed for this dtype"
+        elif groupby_func == "quantile":
+            msg = "cannot be performed against 'object' dtypes"
+        else:
+            msg = "is not supported for object dtype"
+        with pytest.raises(TypeError, match=msg):
+            method(*args)
+    elif dtype is object:
+        result = method(*args)
+        expected = expected_method(*args)
+        if groupby_func in obj_result:
+            expected = expected.astype(object)
+        tm.assert_series_equal(result, expected)
+
+    has_numeric_only = (
+        "first",
+        "last",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "prod",
+        "quantile",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+        "cummax",
+        "cummin",
+        "cumprod",
+        "cumsum",
+    )
+    if groupby_func not in has_numeric_only:
+        msg = "got an unexpected keyword argument 'numeric_only'"
+        with pytest.raises(TypeError, match=msg):
+            method(*args, numeric_only=True)
+    elif dtype is object:
+        err_category = NotImplementedError
+        err_msg = f"{groupby_func} does not implement numeric_only"
+        if groupby_func.startswith("cum"):
+            # cum ops already exhibit future behavior
+            warn_category = None
+            warn_msg = ""
+            err_category = TypeError
+            err_msg = f"{groupby_func} is not supported for object dtype"
+        elif groupby_func == "skew":
+            warn_category = FutureWarning
+            warn_msg = "will raise a TypeError in the future"
+        else:
+            warn_category = FutureWarning
+            warn_msg = "This will raise a TypeError"
+
+        with tm.assert_produces_warning(warn_category, match=warn_msg):
+            with pytest.raises(err_category, match=err_msg):
+                method(*args, numeric_only=True)
+    else:
+        result = method(*args, numeric_only=True)
+        expected = method(*args, numeric_only=False)
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", [int, float, object])

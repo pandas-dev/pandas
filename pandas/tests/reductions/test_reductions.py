@@ -935,13 +935,9 @@ class TestSeriesReductions:
             with tm.assert_produces_warning(FutureWarning):
                 s.all(bool_only=True, level=0)
 
-        # GH#38810 bool_only is not implemented alone.
-        msg = "Series.any does not implement bool_only"
-        with pytest.raises(NotImplementedError, match=msg):
-            s.any(bool_only=True)
-        msg = "Series.all does not implement bool_only."
-        with pytest.raises(NotImplementedError, match=msg):
-            s.all(bool_only=True)
+        # GH#47500 - test bool_only works
+        assert s.any(bool_only=True)
+        assert not s.all(bool_only=True)
 
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])

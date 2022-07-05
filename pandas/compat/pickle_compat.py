@@ -7,7 +7,10 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Iterator,
+)
 import warnings
 
 import numpy as np
@@ -291,7 +294,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle():
+def patch_pickle() -> Iterator[None]:
     """
     Temporarily patch pickle to use our unpickler.
     """
