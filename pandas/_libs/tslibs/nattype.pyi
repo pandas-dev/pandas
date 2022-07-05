@@ -3,10 +3,6 @@ from datetime import (
     timedelta,
     tzinfo as _tzinfo,
 )
-from typing import (
-    Any,
-    Union,
-)
 
 import numpy as np
 
@@ -18,7 +14,7 @@ nat_strings: set[str]
 
 def is_null_datetimelike(val: object, inat_is_null: bool = ...) -> bool: ...
 
-_NaTComparisonTypes = Union[datetime, timedelta, Period, np.datetime64, np.timedelta64]
+_NaTComparisonTypes = datetime | timedelta | Period | np.datetime64 | np.timedelta64
 
 class _NatComparison:
     def __call__(self, other: _NaTComparisonTypes) -> bool: ...
@@ -117,8 +113,8 @@ class NaTType:
     # inject Period properties
     @property
     def qyear(self) -> float: ...
-    def __eq__(self, other: Any) -> bool: ...
-    def __ne__(self, other: Any) -> bool: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
     __lt__: _NatComparison
     __le__: _NatComparison
     __gt__: _NatComparison

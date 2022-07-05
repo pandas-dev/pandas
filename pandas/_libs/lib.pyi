@@ -213,7 +213,7 @@ def count_level_2d(
 def get_level_sorter(
     label: np.ndarray,  # const int64_t[:]
     starts: np.ndarray,  # const intp_t[:]
-) -> np.ndarray: ...  #  np.ndarray[np.intp, ndim=1]
+) -> np.ndarray: ...  # np.ndarray[np.intp, ndim=1]
 def generate_bins_dt64(
     values: npt.NDArray[np.int64],
     binner: np.ndarray,  # const int64_t[:]
