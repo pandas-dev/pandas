@@ -29,6 +29,7 @@ import pandas as pd
         "NumExprClobberingError",
         "IndexingError",
         "PyperclipException",
+        "CSSWarning",
     ],
 )
 def test_exception_importable(exc):
