@@ -282,9 +282,9 @@ def parse_datetime_string(
         pass
 
     try:
-        if date_string == 'today':
+        if date_string == "today":
             dt = datetime.today()
-        elif date_string == 'now':
+        elif date_string == "now":
             dt = datetime.now()
         else:
             dt = du_parse(date_string, default=_DEFAULT_DATETIME,

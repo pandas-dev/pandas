@@ -595,7 +595,7 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data {val} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't match format specified"
                                 )
                             return values, tz_out
 
@@ -821,7 +821,7 @@ cdef _array_to_datetime_object(
                     oresult[i] = <object>NaT
                     continue
                 if is_raise:
-                    raise
+                    raise ValueError(f"Unable to parse string \"{val}\" at position {i}")
                 return values, None
         else:
             if is_raise:
