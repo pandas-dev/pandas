@@ -49,10 +49,13 @@ repos:
     rev: 4.0.1
     hooks:
     -   id: flake8
+        types: [text]  # overwrite types: [python]
+        types_or: [python, pyi]
         additional_dependencies: &flake8_dependencies
         - flake8==4.0.1
         - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
+        - flake8-pyi==22.5.1
         - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
@@ -229,11 +232,3 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
-    -   id: flake8-pyi
-        name: flake8-pyi
-        entry: flake8 --extend-ignore=E301,E302,E305,E701,E704
-        types: [pyi]
-        language: python
-        additional_dependencies:
-        - flake8==4.0.1
-        - flake8-pyi==22.5.1
