@@ -438,7 +438,8 @@ class RangeIndex(NumericIndex):
             return Float64Index(values, name=name)
         unique_diffs = unique_deltas(values)
         if len(unique_diffs) == 1:
-            new_range = range(values[0], values[-1], unique_diffs[0])
+            diff = unique_diffs[0]
+            new_range = range(values[0], values[-1] + diff, diff)
             return type(self)._simple_new(new_range, name=name)
         return Int64Index._simple_new(values, name=name)
 
