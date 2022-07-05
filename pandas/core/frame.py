@@ -4706,10 +4706,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         self._ensure_valid_index(value)
 
-        # We should never get here with DataFrame value
-        if isinstance(value, Series):
+        # We can get there through isetitem with a DataFrame
+        # or through loc single_block_path
+        if isinstance(value, DataFrame):
             return _reindex_for_setitem(value, self.index)
-        elif isinstance(value, dict):
+        elif is_dict_like(value):
             return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):
@@ -9523,7 +9524,6 @@ Parrot 2  Parrot       24.0
         verify_integrity: bool = False,
         sort: bool = False,
     ) -> DataFrame:
-        combined_columns = None
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
                 if not ignore_index:
@@ -9536,8 +9536,6 @@ Parrot 2  Parrot       24.0
                 )
 
             index = Index([other.name], name=self.index.name)
-            idx_diff = other.index.difference(self.columns)
-            combined_columns = self.columns.append(idx_diff)
             row_df = other.to_frame().T
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
@@ -9563,16 +9561,6 @@ Parrot 2  Parrot       24.0
             verify_integrity=verify_integrity,
             sort=sort,
         )
-        if (
-            combined_columns is not None
-            and not sort
-            and not combined_columns.equals(result.columns)
-        ):
-            # TODO: reindexing here is a kludge bc union_indexes does not
-            #  pass sort to index.union, xref #43375
-            # combined_columns.equals check is necessary for preserving dtype
-            #  in test_crosstab_normalize
-            result = result.reindex(combined_columns, axis=1)
         return result.__finalize__(self, method="append")
 
     def join(

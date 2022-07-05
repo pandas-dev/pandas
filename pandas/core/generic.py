@@ -1050,7 +1050,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result.__finalize__(self, method="rename")
 
     @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
-    def rename_axis(self, mapper=lib.no_default, **kwargs):
+    def rename_axis(
+        self, mapper: IndexLabel | lib.NoDefault = lib.no_default, **kwargs
+    ):
         """
         Set the name of the axis for the index or columns.
 
@@ -2752,7 +2754,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         None or int
             Number of rows affected by to_sql. None is returned if the callable
-            passed into ``method`` does not return the number of rows.
+            passed into ``method`` does not return an integer number of rows.
 
             The number of returned rows affected is the sum of the ``rowcount``
             attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not
