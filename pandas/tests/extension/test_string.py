@@ -167,9 +167,7 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.xfail(reason="returns nullable: GH 44692")
-    def test_value_counts_with_normalize(self, data):
-        super().test_value_counts_with_normalize(data)
+    pass
 
 
 class TestCasting(base.BaseCastingTests):
