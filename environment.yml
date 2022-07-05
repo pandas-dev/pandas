@@ -87,6 +87,7 @@ dependencies:
   - flake8=4.0.1
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
+  - flake8-pyi=22.5.1  # used by flake8, best practises for type stubs
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.960
   - pre-commit>=2.15.0
