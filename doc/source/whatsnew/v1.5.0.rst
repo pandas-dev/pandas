@@ -854,6 +854,7 @@ Conversion
 - Bug in metaclass of generic abstract dtypes causing :meth:`DataFrame.apply` and :meth:`Series.apply` to raise for the built-in function ``type`` (:issue:`46684`)
 - Bug in :meth:`DataFrame.to_records` returning inconsistent numpy types if the index was a :class:`MultiIndex` (:issue:`47263`)
 - Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
+- Bug in :meth:`DataFrame.apply` that returns a :class:`DataFrame` instead of a :class:`Series` when applied to an empty :class:`DataFrame` and ``axis=1`` (:issue:`39111`)
 
 Strings
 ^^^^^^^
