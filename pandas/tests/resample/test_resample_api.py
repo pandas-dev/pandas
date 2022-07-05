@@ -922,8 +922,11 @@ def test_series_downsample_method(method, numeric_only, expected_data):
 
     func = getattr(resampled, method)
     if numeric_only and numeric_only is not lib.no_default:
-        with pytest.raises(NotImplementedError, match="not implement numeric_only"):
-            func(numeric_only=numeric_only)
+        with tm.assert_produces_warning(
+            FutureWarning, match="This will raise a TypeError"
+        ):
+            with pytest.raises(NotImplementedError, match="not implement numeric_only"):
+                func(numeric_only=numeric_only)
     elif method == "prod":
         with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
             func(numeric_only=numeric_only)

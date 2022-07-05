@@ -80,6 +80,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -4616,10 +4617,17 @@ Keep all original rows and also all original values
 
         else:
             # dispatch to numpy arrays
-            if numeric_only:
+            if numeric_only and not is_numeric_dtype(self.dtype):
                 kwd_name = "numeric_only"
                 if name in ["any", "all"]:
                     kwd_name = "bool_only"
+                # GH#47500 - change to TypeError to match other methods
+                warnings.warn(
+                    f"Calling Series.{name} with {kwd_name}={numeric_only} and "
+                    f"dtype {self.dtype} will raise a TypeError in the future",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 raise NotImplementedError(
                     f"Series.{name} does not implement {kwd_name}."
                 )

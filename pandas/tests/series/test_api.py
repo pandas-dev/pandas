@@ -209,3 +209,97 @@ class TestSeriesMisc:
         ser = Series([1])
         with tm.assert_produces_warning(FutureWarning):
             next(ser.iteritems())
+
+    @pytest.mark.parametrize(
+        "kernel, has_numeric_only",
+        [
+            ("skew", True),
+            ("var", True),
+            ("all", False),
+            ("prod", True),
+            ("any", False),
+            ("idxmin", False),
+            ("quantile", False),
+            ("idxmax", False),
+            ("min", True),
+            ("sem", True),
+            ("mean", True),
+            ("nunique", False),
+            ("max", True),
+            ("sum", True),
+            ("count", False),
+            ("median", True),
+            ("std", True),
+            ("backfill", False),
+            ("rank", True),
+            ("pct_change", False),
+            ("cummax", False),
+            ("shift", False),
+            ("diff", False),
+            ("cumsum", False),
+            ("cummin", False),
+            ("cumprod", False),
+            ("fillna", False),
+            ("ffill", False),
+            ("pad", False),
+            ("bfill", False),
+            ("sample", False),
+            ("tail", False),
+            ("take", False),
+            ("head", False),
+            ("cov", False),
+            ("corr", False),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [bool, int, float, object])
+    def test_numeric_only(self, kernel, has_numeric_only, dtype):
+        # GH#47500
+        ser = Series([0, 1, 1], dtype=dtype)
+        if kernel == "corrwith":
+            args = (ser,)
+        elif kernel == "corr":
+            args = (ser,)
+        elif kernel == "cov":
+            args = (ser,)
+        elif kernel == "nth":
+            args = (0,)
+        elif kernel == "fillna":
+            args = (True,)
+        elif kernel == "fillna":
+            args = ("ffill",)
+        elif kernel == "take":
+            args = ([0],)
+        elif kernel == "quantile":
+            args = (0.5,)
+        else:
+            args = ()
+        method = getattr(ser, kernel)
+        if not has_numeric_only:
+            msg = (
+                "(got an unexpected keyword argument 'numeric_only'"
+                "|too many arguments passed in)"
+            )
+            with pytest.raises(TypeError, match=msg):
+                method(*args, numeric_only=True)
+        elif dtype is object:
+            if kernel == "rank":
+                msg = "Calling Series.rank with numeric_only=True and dtype object"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    method(*args, numeric_only=True)
+            else:
+                warn_msg = (
+                    f"Calling Series.{kernel} with numeric_only=True and dtype object"
+                )
+                err_msg = f"Series.{kernel} does not implement numeric_only"
+                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                    with pytest.raises(NotImplementedError, match=err_msg):
+                        method(*args, numeric_only=True)
+        else:
+            result = method(*args, numeric_only=True)
+            expected = method(*args, numeric_only=False)
+            if isinstance(expected, Series):
+                # transformer
+                tm.assert_series_equal(result, expected)
+            else:
+                # reducer
+                assert result == expected
