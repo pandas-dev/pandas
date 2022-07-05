@@ -6,11 +6,11 @@ import string
 
 import pytest
 
+from pandas.errors import CSSWarning
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
-from pandas.io.formats.css import CSSWarning
 from pandas.io.formats.excel import (
     CssExcelCell,
     CSSToExcelConverter,
