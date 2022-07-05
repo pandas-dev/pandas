@@ -1050,7 +1050,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result.__finalize__(self, method="rename")
 
     @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
-    def rename_axis(self, mapper=lib.no_default, **kwargs):
+    def rename_axis(
+        self, mapper: IndexLabel | lib.NoDefault = lib.no_default, **kwargs
+    ):
         """
         Set the name of the axis for the index or columns.
 
@@ -2752,7 +2754,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         None or int
             Number of rows affected by to_sql. None is returned if the callable
-            passed into ``method`` does not return the number of rows.
+            passed into ``method`` does not return an integer number of rows.
 
             The number of returned rows affected is the sum of the ``rowcount``
             attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not
@@ -8689,6 +8691,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
 
         if numeric_only:
+            if self.ndim == 1 and not is_numeric_dtype(self.dtype):
+                # GH#47500
+                warnings.warn(
+                    f"Calling Series.rank with numeric_only={numeric_only} and dtype "
+                    f"{self.dtype} is deprecated and will raise a TypeError in a "
+                    "future version of pandas",
+                    category=FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             data = self._get_numeric_data()
         else:
             data = self
