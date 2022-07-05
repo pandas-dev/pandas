@@ -55,6 +55,7 @@ def test_namespace():
         "get_unit_from_dtype",
         "periods_per_day",
         "periods_per_second",
+        "is_supported_unit",
     ]
 
     expected = set(submodules + api)

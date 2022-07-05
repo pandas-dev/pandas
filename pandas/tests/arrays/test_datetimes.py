@@ -207,6 +207,36 @@ class TestDatetimeArrayComparisons:
 
 
 class TestDatetimeArray:
+    def test_astype_non_nano_tznaive(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        res = dti.astype("M8[s]")
+        assert res.dtype == "M8[s]"
+
+        dta = dti._data
+        res = dta.astype("M8[s]")
+        assert res.dtype == "M8[s]"
+        assert isinstance(res, pd.core.arrays.DatetimeArray)  # used to be ndarray
+
+    def test_astype_non_nano_tzaware(self):
+        dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
+
+        res = dti.astype("M8[s, US/Pacific]")
+        assert res.dtype == "M8[s, US/Pacific]"
+
+        dta = dti._data
+        res = dta.astype("M8[s, US/Pacific]")
+        assert res.dtype == "M8[s, US/Pacific]"
+
+        # from non-nano to non-nano, preserving reso
+        res2 = res.astype("M8[s, UTC]")
+        assert res2.dtype == "M8[s, UTC]"
+        assert not tm.shares_memory(res2, res)
+
+        res3 = res.astype("M8[s, UTC]", copy=False)
+        assert res2.dtype == "M8[s, UTC]"
+        assert tm.shares_memory(res3, res)
+
     def test_astype_to_same(self):
         arr = DatetimeArray._from_sequence(
             ["2000"], dtype=DatetimeTZDtype(tz="US/Central")

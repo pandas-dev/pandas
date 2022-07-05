@@ -277,6 +277,15 @@ class NpyDatetimeUnit(Enum):
     NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
 
 
+def is_supported_unit(NPY_DATETIMEUNIT reso):
+    return (
+        reso == NPY_DATETIMEUNIT.NPY_FR_ns
+        or reso == NPY_DATETIMEUNIT.NPY_FR_us
+        or reso == NPY_DATETIMEUNIT.NPY_FR_ms
+        or reso == NPY_DATETIMEUNIT.NPY_FR_s
+    )
+
+
 cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # generic -> default to nanoseconds

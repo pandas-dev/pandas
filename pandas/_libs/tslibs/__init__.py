@@ -30,12 +30,14 @@ __all__ = [
     "get_unit_from_dtype",
     "periods_per_day",
     "periods_per_second",
+    "is_supported_unit",
 ]
 
 from pandas._libs.tslibs import dtypes
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.dtypes import (
     Resolution,
+    is_supported_unit,
     periods_per_day,
     periods_per_second,
 )
