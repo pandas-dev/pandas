@@ -1253,6 +1253,15 @@ class TestSeriesConstructors:
         expected = Series(pi.astype(object))
         tm.assert_series_equal(s, expected)
 
+    def test_constructor_periodindex_multiple(self):
+        # GH47465
+        # converting a PeriodIndex when put in a Series
+
+        p = Period("2020-01-01")
+        pi = period_range(p, periods=5)
+
+        assert pi[0] + 1 == pi[1]
+
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
 

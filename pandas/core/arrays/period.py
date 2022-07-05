@@ -1047,52 +1047,36 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 
-def _get_ordinal_range(start, end, periods, freq, mult=1):
+def _get_ordinal_range(start, end, periods, freq):
     if com.count_not_none(start, end, periods) != 2:
         raise ValueError(
             "Of the three parameters: start, end, and periods, "
             "exactly two must be specified"
         )
 
-    if freq is not None:
-        freq = to_offset(freq)
-        mult = freq.n
+    # If `freq` is passed, it will overwrite the freq of start and end, but
+    # doesn't change it if it is None.
+    # `to_offset(None) == None`.
+    freq = to_offset(freq)
 
-    if start is not None:
-        start = Period(start, freq)
-    if end is not None:
-        end = Period(end, freq)
+    # become NaT, in case of None
+    start = Period(start, freq)
+    end = Period(end, freq)
 
-    is_start_per = isinstance(start, Period)
-    is_end_per = isinstance(end, Period)
-
-    if is_start_per and is_end_per and start.freq != end.freq:
-        raise ValueError("start and end must have same freq")
-    if start is NaT or end is NaT:
+    if start is NaT and end is NaT:
         raise ValueError("start and end must not be NaT")
 
-    if freq is None:
-        if is_start_per:
-            freq = start.freq
-        elif is_end_per:
-            freq = end.freq
-        else:  # pragma: no cover
-            raise ValueError("Could not infer freq from start/end")
-
-    if periods is not None:
-        periods = periods * mult
-        if start is None:
-            data = np.arange(
-                end.ordinal - periods + mult, end.ordinal + 1, mult, dtype=np.int64
-            )
-        else:
-            data = np.arange(
-                start.ordinal, start.ordinal + periods, mult, dtype=np.int64
-            )
+    if start is not NaT and end is not NaT:
+        if start.freq != end.freq:
+            raise ValueError("start and end must have same freq")
+    elif start is NaT:
+        start = end - periods
     else:
-        data = np.arange(start.ordinal, end.ordinal + 1, mult, dtype=np.int64)
+        end = start + periods
 
-    return data, freq
+    data = np.arange(start.ordinal, end.ordinal + 1, start.freq.n, dtype=np.int64)
+
+    return data, start.freq
 
 
 def _range_from_fields(
