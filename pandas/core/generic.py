@@ -6907,7 +6907,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if inplace:
                         return None
                     return result
-                # self = cast("Series", self)
                 return self._replace_single(to_replace, method, inplace, limit)
 
             if not is_dict_like(to_replace):

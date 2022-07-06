@@ -5778,10 +5778,7 @@ Keep all original rows and also all original values
             else:
                 return result
         else:
-            if inplace:
-                # do nothing
-                pass
-            else:
+            if not inplace:
                 return self.copy()
         return None
 
