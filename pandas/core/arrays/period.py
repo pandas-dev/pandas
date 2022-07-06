@@ -1063,6 +1063,10 @@ def _get_ordinal_range(start, end, periods, freq):
     start = Period(start, freq)
     end = Period(end, freq)
 
+    if periods is not None:
+        # we decrease periods here, since we later do end + 1
+        periods -= 1
+
     if start is NaT and end is NaT:
         raise ValueError("start and end must not be NaT")
 
@@ -1074,7 +1078,7 @@ def _get_ordinal_range(start, end, periods, freq):
     else:
         end = start + periods
 
-    data = np.arange(start.ordinal, end.ordinal + 1, start.freq.n, dtype=np.int64)
+    data = np.arange(start.ordinal, (end + 1).ordinal, start.freq.n, dtype=np.int64)
 
     return data, start.freq
 
