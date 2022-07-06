@@ -1,6 +1,6 @@
 import numpy as np
-import pytest
 import pandas as pd
+import pytest
 from pandas.plotting._matplotlib import converter
 
 
