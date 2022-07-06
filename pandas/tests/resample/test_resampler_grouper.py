@@ -494,6 +494,6 @@ def test_groupby_resample_with_list_of_keys():
                 (1, Timestamp("2016-01-07")),
             ],
             name=("group", "date"),
-        )
+        ),
     )
     tm.assert_frame_equal(result, expected)
