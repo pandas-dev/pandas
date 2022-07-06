@@ -6,9 +6,8 @@ import warnings
 import numpy as np
 import pyarrow
 
-from pandas._libs import lib
-from pandas._libs.interval import _warning_interval
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.arrays.interval import VALID_CLOSED
@@ -105,15 +104,10 @@ pyarrow.register_extension_type(_period_type)
 
 
 class ArrowIntervalType(pyarrow.ExtensionType):
-    def __init__(
-        self,
-        subtype,
-        inclusive: str | None = None,
-        closed: None | lib.NoDefault = lib.no_default,
-    ) -> None:
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
+    def __init__(self, subtype, inclusive: str) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
-        inclusive, closed = _warning_interval(inclusive, closed)
         assert inclusive in VALID_CLOSED
         self._closed = inclusive
         if not isinstance(subtype, pyarrow.DataType):
@@ -129,6 +123,15 @@ class ArrowIntervalType(pyarrow.ExtensionType):
 
     @property
     def inclusive(self):
+        return self._closed
+
+    @property
+    def closed(self):
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._closed
 
     def __arrow_ext_serialize__(self):

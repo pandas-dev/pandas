@@ -304,6 +304,7 @@ Properties
    :toctree: api/
 
    Interval.inclusive
+   Interval.closed
    Interval.closed_left
    Interval.closed_right
    Interval.is_empty
