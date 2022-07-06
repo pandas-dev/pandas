@@ -1060,7 +1060,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @overload
     def rename_axis(
-        self: NDFrameT,
+        self,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
         inplace: Literal[True],
