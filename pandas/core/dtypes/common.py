@@ -966,7 +966,9 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
             tipo = get_dtype(arr_or_dtype.dtype)
         else:
             return False
-    return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
+    return tipo == DT64NS_DTYPE or (
+        isinstance(tipo, DatetimeTZDtype) and tipo._unit == "ns"
+    )
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
