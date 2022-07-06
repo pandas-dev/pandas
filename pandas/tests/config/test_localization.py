@@ -111,10 +111,7 @@ def test_get_locales_prefix():
     ],
 )
 def test_set_locale(lang, enc):
-    if all(x is None for x in _current_locale):
-        # Not sure why, but on some Travis runs with pytest,
-        #  getlocale() returned (None, None).
-        pytest.skip("Current locale is not set.")
+    before_locale = get_current_locale()
 
     enc = codecs.lookup(enc).name
     new_locale = lang, enc
@@ -134,9 +131,8 @@ def test_set_locale(lang, enc):
             assert normalized_locale == new_locale
 
     # Once we exit the "with" statement, locale should be back to what it was.
-    # current_locale = locale.getlocale() is wrong, see GH#46595
-    current_locale = locale.setlocale(locale.LC_ALL)
-    assert current_locale == _current_locale
+    after_locale = get_current_locale()
+    assert before_locale == after_locale
 
 
 def test_encoding_detected():
