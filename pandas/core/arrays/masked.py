@@ -945,9 +945,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         index = index.astype(self.dtype)
 
         mask = np.zeros(len(counts), dtype="bool")
-        counts = IntegerArray(counts, mask)
+        counts_array = IntegerArray(counts, mask)
 
-        return Series(counts, index=index)
+        return Series(counts_array, index=index)
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:

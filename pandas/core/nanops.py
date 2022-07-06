@@ -5,6 +5,7 @@ import itertools
 import operator
 from typing import (
     Any,
+    Callable,
     cast,
 )
 import warnings
@@ -1527,7 +1528,7 @@ def _zero_out_fperr(arg):
 @disallow("M8", "m8")
 def nancorr(
     a: np.ndarray, b: np.ndarray, *, method="pearson", min_periods: int | None = None
-):
+) -> float:
     """
     a, b: ndarrays
     """
@@ -1549,7 +1550,7 @@ def nancorr(
     return f(a, b)
 
 
-def get_corr_func(method):
+def get_corr_func(method) -> Callable[[np.ndarray, np.ndarray], float]:
     if method == "kendall":
         from scipy.stats import kendalltau
 
@@ -1586,7 +1587,7 @@ def nancov(
     *,
     min_periods: int | None = None,
     ddof: int | None = 1,
-):
+) -> float:
     if len(a) != len(b):
         raise AssertionError("Operands to nancov must have same size")
 

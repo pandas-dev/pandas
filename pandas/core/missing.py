@@ -104,7 +104,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     return mask
 
 
-def clean_fill_method(method, allow_nearest: bool = False):
+def clean_fill_method(method: str | None, allow_nearest: bool = False):
     # asfreq is compat for resampling
     if method in [None, "asfreq"]:
         return None
@@ -907,7 +907,7 @@ def get_fill_func(method, ndim: int = 1):
     return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
-def clean_reindex_fill_method(method):
+def clean_reindex_fill_method(method) -> str | None:
     return clean_fill_method(method, allow_nearest=True)
 
 

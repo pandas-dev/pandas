@@ -1601,7 +1601,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return self.dot(other)
 
-    def __rmatmul__(self, other):
+    def __rmatmul__(self, other) -> DataFrame:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
@@ -2791,6 +2791,32 @@ class DataFrame(NDFrame, OpsMixin):
             handles.handle.write(result)
         return None
 
+    @overload
+    def to_parquet(
+        self,
+        path: None = ...,
+        engine: str = ...,
+        compression: str | None = ...,
+        index: bool | None = ...,
+        partition_cols: list[str] | None = ...,
+        storage_options: StorageOptions = ...,
+        **kwargs,
+    ) -> bytes:
+        ...
+
+    @overload
+    def to_parquet(
+        self,
+        path: FilePath | WriteBuffer[bytes],
+        engine: str = ...,
+        compression: str | None = ...,
+        index: bool | None = ...,
+        partition_cols: list[str] | None = ...,
+        storage_options: StorageOptions = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
     @doc(storage_options=_shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
@@ -2988,6 +3014,64 @@ class DataFrame(NDFrame, OpsMixin):
             self, path, engine=engine, index=index, engine_kwargs=engine_kwargs
         )
 
+    @overload
+    def to_html(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        columns: Sequence[Level] | None = ...,
+        col_space: ColspaceArgType | None = ...,
+        header: bool | Sequence[str] = ...,
+        index: bool = ...,
+        na_rep: str = ...,
+        formatters: FormattersType | None = ...,
+        float_format: FloatFormatType | None = ...,
+        sparsify: bool | None = ...,
+        index_names: bool = ...,
+        justify: str | None = ...,
+        max_rows: int | None = ...,
+        max_cols: int | None = ...,
+        show_dimensions: bool | str = ...,
+        decimal: str = ...,
+        bold_rows: bool = ...,
+        classes: str | list | tuple | None = ...,
+        escape: bool = ...,
+        notebook: bool = ...,
+        border: int | bool | None = ...,
+        table_id: str | None = ...,
+        render_links: bool = ...,
+        encoding: str | None = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def to_html(
+        self,
+        buf: None = ...,
+        columns: Sequence[Level] | None = ...,
+        col_space: ColspaceArgType | None = ...,
+        header: bool | Sequence[str] = ...,
+        index: bool = ...,
+        na_rep: str = ...,
+        formatters: FormattersType | None = ...,
+        float_format: FloatFormatType | None = ...,
+        sparsify: bool | None = ...,
+        index_names: bool = ...,
+        justify: str | None = ...,
+        max_rows: int | None = ...,
+        max_cols: int | None = ...,
+        show_dimensions: bool | str = ...,
+        decimal: str = ...,
+        bold_rows: bool = ...,
+        classes: str | list | tuple | None = ...,
+        escape: bool = ...,
+        notebook: bool = ...,
+        border: int | bool | None = ...,
+        table_id: str | None = ...,
+        render_links: bool = ...,
+        encoding: str | None = ...,
+    ) -> str:
+        ...
+
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",
@@ -3001,7 +3085,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        columns: Sequence[str] | None = None,
+        columns: Sequence[Level] | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool | Sequence[str] = True,
         index: bool = True,
@@ -3023,7 +3107,7 @@ class DataFrame(NDFrame, OpsMixin):
         table_id: str | None = None,
         render_links: bool = False,
         encoding: str | None = None,
-    ):
+    ) -> str | None:
         """
         Render a DataFrame as an HTML table.
         %(shared_params)s
@@ -4136,7 +4220,20 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
-    def query(self, expr: str, inplace: bool = False, **kwargs):
+    @overload
+    def query(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> DataFrame:
+        ...
+
+    @overload
+    def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
+        ...
+
+    @overload
+    def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
+        ...
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
+    def query(self, expr: str, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4283,7 +4380,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
-        kwargs["level"] = kwargs.pop("level", 0) + 1
+        kwargs["level"] = kwargs.pop("level", 0) + 2
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
 
@@ -4300,7 +4397,16 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return result
 
-    def eval(self, expr: str, inplace: bool = False, **kwargs):
+    @overload
+    def eval(self, expr: str, *, inplace: Literal[False] = ..., **kwargs) -> Any:
+        ...
+
+    @overload
+    def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
+        ...
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "expr"])
+    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -4406,7 +4512,7 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs["level"] = kwargs.pop("level", 0) + 1
+        kwargs["level"] = kwargs.pop("level", 0) + 2
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -4903,21 +5009,17 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def set_axis(
-        self, labels, axis: Axis = ..., inplace: Literal[False] = ...
+        self, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
     ) -> DataFrame:
         ...
 
     @overload
-    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
-        ...
-
-    @overload
-    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
+    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
         ...
 
     @overload
     def set_axis(
-        self, labels, axis: Axis = ..., inplace: bool = ...
+        self, labels, *, axis: Axis = ..., inplace: bool = ...
     ) -> DataFrame | None:
         ...
 
@@ -4988,11 +5090,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
@@ -5002,11 +5104,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
@@ -5016,11 +5118,11 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def drop(
         self,
-        labels: Hashable | list[Hashable] = ...,
+        labels: IndexLabel = ...,
         *,
         axis: Axis = ...,
-        index: Hashable | list[Hashable] = ...,
-        columns: Hashable | list[Hashable] = ...,
+        index: IndexLabel = ...,
+        columns: IndexLabel = ...,
         level: Level | None = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
@@ -5032,10 +5134,10 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(  # type: ignore[override]
         self,
-        labels: Hashable | list[Hashable] = None,
+        labels: IndexLabel = None,
         axis: Axis = 0,
-        index: Hashable | list[Hashable] = None,
-        columns: Hashable | list[Hashable] = None,
+        index: IndexLabel = None,
+        columns: IndexLabel = None,
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
@@ -5540,16 +5642,47 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    @doc(NDFrame.replace, **_shared_doc_kwargs)
+    # error: Signature of "replace" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
     def replace(
+        self,
+        to_replace=...,
+        value=...,
+        *,
+        inplace: Literal[False] = ...,
+        limit: int | None = ...,
+        regex: bool = ...,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def replace(
+        self,
+        to_replace=...,
+        value=...,
+        *,
+        inplace: Literal[True],
+        limit: int | None = ...,
+        regex: bool = ...,
+        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
+    ) -> None:
+        ...
+
+    # error: Signature of "replace" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "to_replace", "value"]
+    )
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
+    def replace(  # type: ignore[override]
         self,
         to_replace=None,
         value=lib.no_default,
         inplace: bool = False,
-        limit=None,
+        limit: int | None = None,
         regex: bool = False,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
-    ):
+    ) -> DataFrame | None:
         return super().replace(
             to_replace=to_replace,
             value=value,
@@ -5681,6 +5814,30 @@ class DataFrame(NDFrame, OpsMixin):
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
 
+    @overload
+    def set_index(
+        self,
+        keys,
+        *,
+        drop: bool = ...,
+        append: bool = ...,
+        inplace: Literal[False] = ...,
+        verify_integrity: bool = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def set_index(
+        self,
+        keys,
+        *,
+        drop: bool = ...,
+        append: bool = ...,
+        inplace: Literal[True],
+        verify_integrity: bool = ...,
+    ) -> None:
+        ...
+
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "keys"])
     def set_index(
         self,
@@ -5689,7 +5846,7 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = False,
         inplace: bool = False,
         verify_integrity: bool = False,
-    ):
+    ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
 
@@ -5882,6 +6039,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not inplace:
             return frame
+        return None
 
     @overload
     def reset_index(
@@ -6232,6 +6390,30 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return ~self.isna()
 
+    @overload
+    def dropna(
+        self,
+        *,
+        axis: Axis = ...,
+        how: str | NoDefault = ...,
+        thresh: int | NoDefault = ...,
+        subset: IndexLabel = ...,
+        inplace: Literal[False] = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def dropna(
+        self,
+        *,
+        axis: Axis = ...,
+        how: str | NoDefault = ...,
+        thresh: int | NoDefault = ...,
+        subset: IndexLabel = ...,
+        inplace: Literal[True],
+    ) -> None:
+        ...
+
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
         self,
@@ -6240,7 +6422,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
-    ):
+    ) -> DataFrame | None:
         """
         Remove missing values.
 
@@ -6389,10 +6571,10 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             result = self.loc(axis=axis)[mask]
 
-        if inplace:
-            self._update_inplace(result)
-        else:
+        if not inplace:
             return result
+        self._update_inplace(result)
+        return None
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "subset"])
     def drop_duplicates(
@@ -6637,11 +6819,42 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Sorting
+    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
+    def sort_values(
+        self,
+        by,
+        *,
+        axis: Axis = ...,
+        ascending=...,
+        inplace: Literal[False] = ...,
+        kind: str = ...,
+        na_position: str = ...,
+        ignore_index: bool = ...,
+        key: ValueKeyFunc = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        by,
+        *,
+        axis: Axis = ...,
+        ascending=...,
+        inplace: Literal[True],
+        kind: str = ...,
+        na_position: str = ...,
+        ignore_index: bool = ...,
+        key: ValueKeyFunc = ...,
+    ) -> None:
+        ...
+
     # TODO: Just move the sort_values doc here.
+    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "by"])
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     def sort_values(  # type: ignore[override]
         self,
         by,
@@ -6652,7 +6865,7 @@ class DataFrame(NDFrame, OpsMixin):
         na_position: str = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
-    ):
+    ) -> DataFrame | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
         ascending = validate_ascending(ascending)
@@ -6884,7 +7097,7 @@ class DataFrame(NDFrame, OpsMixin):
         sort: bool = True,
         ascending: bool = False,
         dropna: bool = True,
-    ):
+    ) -> Series:
         """
         Return a Series containing counts of unique rows in the DataFrame.
 
@@ -11407,25 +11620,93 @@ Parrot 2  Parrot       24.0
         self._consolidate_inplace()
         return self._mgr.as_array()
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @overload
     def ffill(
-        self: DataFrame,
-        axis: None | Axis = None,
-        inplace: bool = False,
-        limit: None | int = None,
-        downcast=None,
-    ) -> DataFrame | None:
-        return super().ffill(axis, inplace, limit, downcast)
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> DataFrame:
+        ...
 
+    @overload
+    def ffill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def ffill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: bool = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> DataFrame | None:
+        ...
+
+    # error: Signature of "ffill" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def bfill(
-        self: DataFrame,
+    def ffill(  # type: ignore[override]
+        self,
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
         downcast=None,
     ) -> DataFrame | None:
-        return super().bfill(axis, inplace, limit, downcast)
+        return super().ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
+
+    @overload
+    def bfill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[False] = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def bfill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: Literal[True],
+        limit: None | int = ...,
+        downcast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def bfill(
+        self,
+        *,
+        axis: None | Axis = ...,
+        inplace: bool = ...,
+        limit: None | int = ...,
+        downcast=...,
+    ) -> DataFrame | None:
+        ...
+
+    # error: Signature of "bfill" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def bfill(  # type: ignore[override]
+        self,
+        axis: None | Axis = None,
+        inplace: bool = False,
+        limit: None | int = None,
+        downcast=None,
+    ) -> DataFrame | None:
+        return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "lower", "upper"]
@@ -11464,35 +11745,137 @@ Parrot 2  Parrot       24.0
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "cond", "other"]
-    )
+    @overload
     def where(
         self,
         cond,
-        other=lib.no_default,
-        inplace=False,
-        axis=None,
-        level=None,
-        errors: IgnoreRaise = "raise",
-        try_cast=lib.no_default,
-    ):
-        return super().where(cond, other, inplace, axis, level, errors, try_cast)
+        other=...,
+        *,
+        inplace: Literal[False] = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> DataFrame:
+        ...
 
+    @overload
+    def where(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: Literal[True],
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def where(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: bool = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> DataFrame | None:
+        ...
+
+    # error: Signature of "where" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
+    def where(  # type: ignore[override]
+        self,
+        cond,
+        other=lib.no_default,
+        inplace: bool = False,
+        axis=None,
+        level=None,
+        errors: IgnoreRaise | lib.NoDefault = "raise",
+        try_cast=lib.no_default,
+    ) -> DataFrame | None:
+        return super().where(
+            cond,
+            other,
+            inplace=inplace,
+            axis=axis,
+            level=level,
+            errors=errors,
+            try_cast=try_cast,
+        )
+
+    @overload
     def mask(
         self,
         cond,
+        other=...,
+        *,
+        inplace: Literal[False] = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def mask(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: Literal[True],
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> None:
+        ...
+
+    @overload
+    def mask(
+        self,
+        cond,
+        other=...,
+        *,
+        inplace: bool = ...,
+        axis=...,
+        level=...,
+        errors: IgnoreRaise | lib.NoDefault = ...,
+        try_cast=...,
+    ) -> DataFrame | None:
+        ...
+
+    # error: Signature of "mask" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "cond", "other"]
+    )
+    def mask(  # type: ignore[override]
+        self,
+        cond,
         other=np.nan,
-        inplace=False,
+        inplace: bool = False,
         axis=None,
         level=None,
-        errors: IgnoreRaise = "raise",
+        errors: IgnoreRaise | lib.NoDefault = "raise",
         try_cast=lib.no_default,
-    ):
-        return super().mask(cond, other, inplace, axis, level, errors, try_cast)
+    ) -> DataFrame | None:
+        return super().mask(
+            cond,
+            other,
+            inplace=inplace,
+            axis=axis,
+            level=level,
+            errors=errors,
+            try_cast=try_cast,
+        )
 
 
 DataFrame._add_numeric_operations()

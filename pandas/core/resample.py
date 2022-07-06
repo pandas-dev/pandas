@@ -1491,7 +1491,9 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
         return TimedeltaIndexResampler
 
 
-def get_resampler(obj, kind=None, **kwds):
+def get_resampler(
+    obj, kind=None, **kwds
+) -> DatetimeIndexResampler | PeriodIndexResampler | TimedeltaIndexResampler:
     """
     Create a TimeGrouper and return our resampler.
     """

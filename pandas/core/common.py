@@ -553,7 +553,7 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
         setattr(obj, attr, old_value)
 
 
-def require_length_match(data, index: Index):
+def require_length_match(data, index: Index) -> None:
     """
     Check the length of data matches the length of the index.
     """
@@ -665,7 +665,9 @@ def resolve_numeric_only(numeric_only: bool | None | lib.NoDefault) -> bool:
     return result
 
 
-def deprecate_numeric_only_default(cls: type, name: str, deprecate_none: bool = False):
+def deprecate_numeric_only_default(
+    cls: type, name: str, deprecate_none: bool = False
+) -> None:
     """Emit FutureWarning message for deprecation of numeric_only.
 
     See GH#46560 for details on the deprecation.

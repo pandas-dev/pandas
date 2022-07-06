@@ -481,6 +481,7 @@ def pivot(
 
     columns_listlike = com.convert_to_list_like(columns)
 
+    indexed: DataFrame | Series
     if values is None:
         if index is not None:
             cols = com.convert_to_list_like(index)
@@ -517,7 +518,10 @@ def pivot(
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
-    return indexed.unstack(columns_listlike)
+    # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
+    # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
+    # "Hashable"
+    return indexed.unstack(columns_listlike)  # type: ignore[arg-type]
 
 
 def crosstab(
