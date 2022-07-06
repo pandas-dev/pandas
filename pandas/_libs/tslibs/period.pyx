@@ -2553,7 +2553,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or freq._period_dtype_code == other.freq._period_dtype_code:
+            if freq is None:
                 ordinal = other.ordinal
                 freq = other.freq
             else:
