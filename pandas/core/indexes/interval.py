@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     Literal,
 )
+import warnings
 
 import numpy as np
 
@@ -19,7 +20,6 @@ from pandas._libs.interval import (
     Interval,
     IntervalMixin,
     IntervalTree,
-    _warning_interval,
 )
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -37,8 +37,12 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_kwarg,
 )
-from pandas.util._exceptions import rewrite_exception
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_exception,
+)
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -209,18 +213,16 @@ class IntervalIndex(ExtensionIndex):
     # --------------------------------------------------------------------
     # Constructors
 
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def __new__(
         cls,
         data,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
         verify_integrity: bool = True,
     ) -> IntervalIndex:
-
-        inclusive, closed = _warning_interval(inclusive, closed)
 
         name = maybe_extract_name(name, data, cls)
 
@@ -234,6 +236,15 @@ class IntervalIndex(ExtensionIndex):
             )
 
         return cls._simple_new(array, name)
+
+    @property
+    def closed(self):
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.inclusive
 
     @classmethod
     @Appender(
@@ -251,19 +262,18 @@ class IntervalIndex(ExtensionIndex):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_breaks(
         cls,
         breaks,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
 
-        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
@@ -287,20 +297,19 @@ class IntervalIndex(ExtensionIndex):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_arrays(
         cls,
         left,
         right,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
 
-        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
@@ -324,19 +333,18 @@ class IntervalIndex(ExtensionIndex):
             ),
         }
     )
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_tuples(
         cls,
         data,
         inclusive=None,
-        closed: None | lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
 
-        inclusive, closed = _warning_interval(inclusive, closed)
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(
@@ -974,13 +982,13 @@ def _is_type_compatible(a, b) -> bool:
     )
 
 
+@deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
 def interval_range(
     start=None,
     end=None,
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: IntervalClosedType | lib.NoDefault = lib.no_default,
     inclusive: IntervalClosedType | None = None,
 ) -> IntervalIndex:
     """
@@ -1000,6 +1008,10 @@ def interval_range(
         for numeric and 'D' for datetime-like.
     name : str, default None
         Name of the resulting IntervalIndex.
+    inclusive : {"both", "neither", "left", "right"}, default "both"
+        Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.5.0
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
@@ -1007,10 +1019,6 @@ def interval_range(
         .. deprecated:: 1.5.0
            Argument `closed` has been deprecated to standardize boundary inputs.
            Use `inclusive` instead, to set each bound as closed or open.
-    inclusive : {"both", "neither", "left", "right"}, default "both"
-        Include boundaries; Whether to set each bound as closed or open.
-
-        .. versionadded:: 1.5.0
 
     Returns
     -------
@@ -1077,9 +1085,8 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
-    inclusive, closed = _warning_interval(inclusive, closed)
     if inclusive is None:
-        inclusive = "both"
+        inclusive = "right"
 
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)

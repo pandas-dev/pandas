@@ -3296,7 +3296,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @doc(
         storage_options=_shared_docs["storage_options"],
-        compression_options=_shared_docs["compression_options"],
+        compression_options=_shared_docs["compression_options"] % "path_or_buf",
     )
     @deprecate_kwarg(old_arg_name="line_terminator", new_arg_name="lineterminator")
     def to_csv(
