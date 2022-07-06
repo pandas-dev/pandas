@@ -275,6 +275,13 @@ class TestRangeIndexSetOps:
                 Int64Index([1, 5, 6]),
                 Int64Index([1, 5, 6]),
             ),
+            # GH 43885
+            (
+                RangeIndex(0, 10),
+                RangeIndex(0, 5),
+                RangeIndex(0, 10),
+                RangeIndex(0, 10),
+            ),
         ],
     )
     def test_union_sorted(self, idx1, idx2, expected_sorted, expected_notsorted):
