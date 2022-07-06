@@ -616,7 +616,7 @@ class TestBaseReshaping(base.BaseReshapingTests):
             )
         super().test_concat_extension_arrays_copy_false(data, na_value)
 
-    def test_concat_with_reindex(self, data, request):
+    def test_concat_with_reindex(self, data, request, using_array_manager):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -630,7 +630,7 @@ class TestBaseReshaping(base.BaseReshapingTests):
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=AttributeError,
+                    raises=AttributeError if not using_array_manager else TypeError,
                     reason="GH 34986",
                 )
             )
@@ -691,7 +691,6 @@ class TestBaseReshaping(base.BaseReshapingTests):
 
     def test_merge_on_extension_array_duplicates(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        tz = getattr(pa_dtype, "tz", None)
         if pa.types.is_date(pa_dtype) or (
             pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
         ):
@@ -699,12 +698,6 @@ class TestBaseReshaping(base.BaseReshapingTests):
                 pytest.mark.xfail(
                     raises=AttributeError,
                     reason="GH 34986",
-                )
-            )
-        elif pa_version_under2p0 and tz not in (None, "UTC"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         super().test_merge_on_extension_array_duplicates(data)
