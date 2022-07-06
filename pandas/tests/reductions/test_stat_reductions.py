@@ -149,10 +149,9 @@ class TestSeriesStatReductions:
             with pytest.raises(ValueError, match=msg):
                 f(string_series_, axis=1)
 
-            # Unimplemented numeric_only parameter.
             if "numeric_only" in inspect.getfullargspec(f).args:
-                with pytest.raises(NotImplementedError, match=name):
-                    f(string_series_, numeric_only=True)
+                # only the index is string; dtype is float
+                f(string_series_, numeric_only=True)
 
     def test_sum(self):
         string_series = tm.makeStringSeries().rename("series")
