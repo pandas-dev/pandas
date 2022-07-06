@@ -12,6 +12,7 @@ from pandas.core.tools.times import to_time
 fails_on_non_english = pytest.mark.xfail(
     locale.getlocale()[0] in ("zh_CN", "it_IT"),
     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+    strict=False,
 )
 
 
