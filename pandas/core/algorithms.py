@@ -973,7 +973,7 @@ def value_counts(
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-):
+) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
     """
     Parameters
     ----------
