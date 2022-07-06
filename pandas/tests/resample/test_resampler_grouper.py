@@ -479,7 +479,6 @@ def test_groupby_resample_with_list_of_keys():
             "date": date_range(start="2016-01-01", periods=8),
             "group": [0, 0, 0, 0, 1, 1, 1, 1],
             "val": [1, 7, 5, 2, 3, 10, 5, 1],
-            
         }
     )
     result = df.groupby("group").resample("2D", on="date")[["val"]].mean()
