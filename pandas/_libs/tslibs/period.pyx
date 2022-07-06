@@ -2552,12 +2552,11 @@ class Period(_Period):
                                                hour, minute, second, freq)
 
         elif is_period_object(value):
-            other = value
-            if freq is None:
-                ordinal = other.ordinal
-                freq = other.freq
+            if freq is None or freq == value.freq:
+                ordinal = value.ordinal
+                freq = value.freq
             else:
-                converted = other.asfreq(freq)
+                converted = value.asfreq(freq, "S")
                 ordinal = converted.ordinal
 
         elif checknull_with_nat(value) or (isinstance(value, str) and
