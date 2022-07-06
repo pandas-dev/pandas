@@ -1,6 +1,8 @@
 """
 Utility functions related to concat.
 """
+from __future__ import annotations
+
 from typing import (
     TYPE_CHECKING,
     cast,
