@@ -10,6 +10,7 @@ from typing import (
     MutableMapping,
     cast,
 )
+import warnings
 
 import numpy as np
 import pytz
@@ -40,6 +41,7 @@ from pandas._typing import (
     npt,
     type_t,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -1174,6 +1176,15 @@ class IntervalDtype(PandasExtensionDtype):
 
     @property
     def inclusive(self):
+        return self._closed
+
+    @property
+    def closed(self):
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._closed
 
     @property

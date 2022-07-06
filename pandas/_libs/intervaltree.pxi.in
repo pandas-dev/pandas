@@ -69,7 +69,7 @@ cdef class IntervalTree(IntervalMixin):
         inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         if inclusive not in ['left', 'right', 'both', 'neither']:
             raise ValueError("invalid option for 'inclusive': %s" % inclusive)
