@@ -6,7 +6,9 @@ from pandas.plotting._matplotlib import converter
 
 
 @pytest.mark.parametrize("year_span", [11.25, 30, 80, 150, 300, 584.5])
-# valid ranges are from 11.25 to 584.5 years, limited at the bottom by if statements in the _quarterly_finder() function and at the top end by the Timestamp format
+# valid ranges are from 11.25 to 584.5 years, limited at the bottom by
+# if statements in the _quarterly_finder() function and at the top end
+# by the Timestamp format
 def test_quarterly_finder(year_span):
     # earliest start date given pd.Timestamp.min
     start_date = pd.to_datetime('1677Q4')
