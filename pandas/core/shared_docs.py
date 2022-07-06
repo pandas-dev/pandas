@@ -432,7 +432,7 @@ _shared_docs[
     to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
     key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
