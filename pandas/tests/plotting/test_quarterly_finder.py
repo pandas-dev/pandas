@@ -11,8 +11,7 @@ from pandas.plotting._matplotlib import converter
 def test_quarterly_finder(year_span):
     # earliest start date given pd.Timestamp.min
     start_date = pd.to_datetime("1677Q4")
-    daterange = pd.period_range(
-        start_date, periods=year_span * 4, freq="Q").asi8
+    daterange = pd.period_range(start_date, periods=year_span * 4, freq="Q").asi8
     vmin = daterange[0]
     vmax = daterange[-1]
     span = vmax - vmin + 1
