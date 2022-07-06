@@ -423,7 +423,7 @@ _shared_docs[
 _shared_docs[
     "compression_options"
 ] = """compression : str or dict, default 'infer'
-    For on-the-fly compression of the output data. If 'infer' and '%s'
+    For on-the-fly compression of the output data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
     (otherwise no compression).
