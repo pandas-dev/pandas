@@ -1145,7 +1145,7 @@ class _GroupByMixin(PandasObject):
         self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
-        self.key = None
+        self.key = key
 
         self._groupby = groupby
         self._groupby.mutated = True
