@@ -269,7 +269,7 @@ def test_is_interval_dtype():
 
     assert com.is_interval_dtype(IntervalDtype())
 
-    interval = pd.Interval(1, 2, closed="right")
+    interval = pd.Interval(1, 2, inclusive="right")
     assert not com.is_interval_dtype(interval)
     assert com.is_interval_dtype(pd.IntervalIndex([interval]))
 
@@ -473,6 +473,9 @@ def test_is_datetime64_ns_dtype():
     assert com.is_datetime64_ns_dtype(
         pd.DatetimeIndex([1, 2, 3], dtype=np.dtype("datetime64[ns]"))
     )
+
+    # non-nano dt64tz
+    assert not com.is_datetime64_ns_dtype(DatetimeTZDtype("us", "US/Eastern"))
 
 
 def test_is_timedelta64_ns_dtype():

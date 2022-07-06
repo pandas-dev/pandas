@@ -213,3 +213,12 @@ class TestMultiIndexBasic:
 
         tm.assert_series_equal(result[0], a_series_expected)
         tm.assert_series_equal(result[1], b_series_expected)
+
+    def test_multiindex_repeated_keys(self):
+        # GH19414
+        tm.assert_series_equal(
+            Series([1, 2], MultiIndex.from_arrays([["a", "b"]])).loc[
+                ["a", "a", "b", "b"]
+            ],
+            Series([1, 1, 2, 2], MultiIndex.from_arrays([["a", "a", "b", "b"]])),
+        )

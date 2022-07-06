@@ -26,14 +26,17 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
+    periods_per_day,
     timezones,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
     IntervalClosedType,
+    IntervalLeftRight,
     npt,
 )
 from pandas.util._decorators import (
@@ -43,9 +46,9 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_scalar,
 )
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -325,6 +328,30 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         name = maybe_extract_name(name, data, cls)
 
+        if (
+            isinstance(data, DatetimeArray)
+            and freq is lib.no_default
+            and tz is None
+            and dtype is None
+        ):
+            # fastpath, similar logic in TimedeltaIndex.__new__;
+            # Note in this particular case we retain non-nano.
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name)
+        elif (
+            isinstance(data, DatetimeArray)
+            and freq is lib.no_default
+            and tz is None
+            and is_dtype_equal(data.dtype, dtype)
+        ):
+            # Reached via Index.__new__ when we call .astype
+            # TODO(2.0): special casing can be removed once _from_sequence_not_strict
+            #  no longer chokes on non-nano
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name)
+
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
             dtype=dtype,
@@ -435,7 +462,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def _get_time_micros(self) -> np.ndarray:
+    def _get_time_micros(self) -> npt.NDArray[np.int64]:
         """
         Return the number of microseconds since midnight.
 
@@ -445,8 +472,20 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        nanos = values % (24 * 3600 * 1_000_000_000)
-        micros = nanos // 1000
+        reso = self._data._reso
+        ppd = periods_per_day(reso)
+
+        frac = values % ppd
+        if reso == NpyDatetimeUnit.NPY_FR_ns.value:
+            micros = frac // 1000
+        elif reso == NpyDatetimeUnit.NPY_FR_us.value:
+            micros = frac
+        elif reso == NpyDatetimeUnit.NPY_FR_ms.value:
+            micros = frac * 1000
+        elif reso == NpyDatetimeUnit.NPY_FR_s.value:
+            micros = frac * 1_000_000
+        else:  # pragma: no cover
+            raise NotImplementedError(reso)
 
         micros[self._isnan] = -1
         return micros
@@ -539,7 +578,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
+        dta = self._data.copy()
 
         for i, v in enumerate(self):
             s = v
@@ -550,9 +589,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t0
                 else:
                     s = t1
-            snapped[i] = s
+            dta[i] = s
 
-        dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------
@@ -1039,12 +1077,12 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
-    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+    if inclusive is not None and closed is not lib.no_default:
         raise ValueError(
             "Deprecated argument `closed` cannot be passed"
             "if argument `inclusive` is not None"
         )
-    elif not isinstance(closed, lib.NoDefault):
+    elif closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
@@ -1087,7 +1125,7 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    closed: lib.NoDefault = lib.no_default,
+    closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
     inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:

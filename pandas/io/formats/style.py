@@ -12,6 +12,7 @@ from typing import (
     Callable,
     Hashable,
     Sequence,
+    overload,
 )
 import warnings
 
@@ -25,6 +26,7 @@ from pandas._typing import (
     FilePath,
     IndexLabel,
     Level,
+    QuantileInterpolation,
     Scalar,
     StorageOptions,
     WriteBuffer,
@@ -594,6 +596,52 @@ class Styler(StylerRenderer):
             storage_options=storage_options,
         )
 
+    @overload
+    def to_latex(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        column_format: str | None = ...,
+        position: str | None = ...,
+        position_float: str | None = ...,
+        hrules: bool | None = ...,
+        clines: str | None = ...,
+        label: str | None = ...,
+        caption: str | tuple | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        multirow_align: str | None = ...,
+        multicol_align: str | None = ...,
+        siunitx: bool = ...,
+        environment: str | None = ...,
+        encoding: str | None = ...,
+        convert_css: bool = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def to_latex(
+        self,
+        buf: None = ...,
+        *,
+        column_format: str | None = ...,
+        position: str | None = ...,
+        position_float: str | None = ...,
+        hrules: bool | None = ...,
+        clines: str | None = ...,
+        label: str | None = ...,
+        caption: str | tuple | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        multirow_align: str | None = ...,
+        multicol_align: str | None = ...,
+        siunitx: bool = ...,
+        environment: str | None = ...,
+        encoding: str | None = ...,
+        convert_css: bool = ...,
+    ) -> str:
+        ...
+
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -613,7 +661,7 @@ class Styler(StylerRenderer):
         environment: str | None = None,
         encoding: str | None = None,
         convert_css: bool = False,
-    ):
+    ) -> str | None:
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
@@ -1164,6 +1212,46 @@ class Styler(StylerRenderer):
         )
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
+    @overload
+    def to_html(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        table_uuid: str | None = ...,
+        table_attributes: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        bold_headers: bool = ...,
+        caption: str | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        encoding: str | None = ...,
+        doctype_html: bool = ...,
+        exclude_styles: bool = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def to_html(
+        self,
+        buf: None = ...,
+        *,
+        table_uuid: str | None = ...,
+        table_attributes: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        bold_headers: bool = ...,
+        caption: str | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        encoding: str | None = ...,
+        doctype_html: bool = ...,
+        exclude_styles: bool = ...,
+        **kwargs,
+    ) -> str:
+        ...
+
     @Substitution(buf=buf, encoding=encoding)
     def to_html(
         self,
@@ -1181,7 +1269,7 @@ class Styler(StylerRenderer):
         doctype_html: bool = False,
         exclude_styles: bool = False,
         **kwargs,
-    ):
+    ) -> str | None:
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
 
@@ -1295,10 +1383,38 @@ class Styler(StylerRenderer):
             html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
+    @overload
+    def to_string(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        encoding=...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        delimiter: str = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def to_string(
+        self,
+        buf: None = ...,
+        *,
+        encoding=...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+        delimiter: str = ...,
+    ) -> str:
+        ...
+
     @Substitution(buf=buf, encoding=encoding)
     def to_string(
         self,
-        buf=None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         *,
         encoding=None,
         sparse_index: bool | None = None,
@@ -1306,7 +1422,7 @@ class Styler(StylerRenderer):
         max_rows: int | None = None,
         max_columns: int | None = None,
         delimiter: str = " ",
-    ):
+    ) -> str | None:
         """
         Write Styler to a file, buffer or string in text format.
 
@@ -2287,7 +2403,7 @@ class Styler(StylerRenderer):
         obj = self.data.index if axis == 0 else self.data.columns
         pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
-        props = "position:sticky; background-color:white;"
+        props = "position:sticky; background-color:inherit;"
         if not isinstance(obj, pd.MultiIndex):
             # handling MultiIndexes requires different CSS
 
@@ -3471,7 +3587,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         q_left: float = 0.0,
         q_right: float = 1.0,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         inclusive: str = "both",
         props: str | None = None,
     ) -> Styler:
@@ -3543,13 +3659,17 @@ class Styler(StylerRenderer):
 
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
-        kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
+        quantiles = [q_left, q_right]
         if axis is None:
-            q = Series(data.to_numpy().ravel()).quantile(**kwargs)
+            q = Series(data.to_numpy().ravel()).quantile(
+                q=quantiles, interpolation=interpolation
+            )
             axis_apply: int | None = None
         else:
             axis = self.data._get_axis_number(axis)
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            q = data.quantile(
+                axis=axis, numeric_only=False, q=quantiles, interpolation=interpolation
+            )
             axis_apply = 1 - axis
 
         if props is None:

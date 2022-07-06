@@ -1064,16 +1064,6 @@ class Index(IndexOpsMixin, PandasObject):
             # Ensure that self.astype(self.dtype) is self
             return self.copy() if copy else self
 
-        if (
-            self.dtype == np.dtype("M8[ns]")
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-            and dtype != np.dtype("M8[ns]")
-        ):
-            # For now DatetimeArray supports this by unwrapping ndarray,
-            #  but DatetimeIndex doesn't
-            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
-
         values = self._data
         if isinstance(values, ExtensionArray):
             with rewrite_exception(type(values).__name__, type(self).__name__):
@@ -2227,7 +2217,11 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     def _get_grouper_for_level(
-        self, mapper, *, level=None
+        self,
+        mapper,
+        *,
+        level=None,
+        dropna: bool = True,
     ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         """
         Get index grouper corresponding to an index level
@@ -2238,6 +2232,8 @@ class Index(IndexOpsMixin, PandasObject):
             Function mapping index values to groups
         level : int or None
             Index level, positional
+        dropna : bool
+            dropna from groupby
 
         Returns
         -------
@@ -4828,11 +4824,12 @@ class Index(IndexOpsMixin, PandasObject):
         right = other._values.take(right_idx)
 
         if isinstance(join_array, np.ndarray):
-            # Argument 3 to "putmask" has incompatible type "Union[ExtensionArray,
-            # ndarray[Any, Any]]"; expected "Union[_SupportsArray[dtype[Any]],
-            # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, f
-            # loat, complex, str, bytes, _NestedSequence[Union[bool, int, float,
-            # complex, str, bytes]]]"  [arg-type]
+            # error: Argument 3 to "putmask" has incompatible type
+            # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
+            # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
+            # _SupportsArray[dtype[Any]]], bool, int, float, complex,
+            # str, bytes, _NestedSequence[Union[bool, int, float,
+            # complex, str, bytes]]]"
             np.putmask(join_array, mask, right)  # type: ignore[arg-type]
         else:
             join_array._putmask(mask, right)
@@ -5345,10 +5342,11 @@ class Index(IndexOpsMixin, PandasObject):
         if result.ndim > 1:
             deprecate_ndim_indexing(result)
             if hasattr(result, "_ndarray"):
-                # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
-                # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
                 # i.e. NDArrayBackedExtensionArray
                 # Unpack to ndarray for MPL compat
+                # error: Item "ndarray[Any, Any]" of
+                # "Union[ExtensionArray, ndarray[Any, Any]]"
+                # has no attribute "_ndarray"
                 return result._ndarray  # type: ignore[union-attr]
             return result
 
@@ -6887,8 +6885,8 @@ class Index(IndexOpsMixin, PandasObject):
             new_values = np.insert(arr, loc, casted)
 
         else:
-            # No overload variant of "insert" matches argument types
-            # "ndarray[Any, Any]", "int", "None"  [call-overload]
+            # error: No overload variant of "insert" matches argument types
+            # "ndarray[Any, Any]", "int", "None"
             new_values = np.insert(arr, loc, None)  # type: ignore[call-overload]
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
@@ -6949,7 +6947,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # TODO: should set MultiIndex._can_hold_na = False?
                     arr[self.isna()] = False
                 return arr
-            elif op in {operator.ne, operator.lt, operator.gt}:
+            elif op is operator.ne:
                 arr = np.zeros(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     arr[self.isna()] = True

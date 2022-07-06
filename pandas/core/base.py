@@ -81,7 +81,10 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        Series,
+    )
 
 
 _shared_docs: dict[str, str] = {}
@@ -161,7 +164,7 @@ class NoNewAttributesMixin:
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key: str, value):
+    def __setattr__(self, key: str, value) -> None:
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
@@ -174,10 +177,6 @@ class NoNewAttributesMixin:
         ):
             raise AttributeError(f"You cannot add any new attribute '{key}'")
         object.__setattr__(self, key, value)
-
-
-class SpecificationError(Exception):
-    pass
 
 
 class SelectionMixin(Generic[NDFrameT]):
@@ -322,7 +321,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @property
-    def ndim(self) -> int:
+    def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
         """
@@ -599,7 +598,7 @@ class IndexOpsMixin(OpsMixin):
         Parameters
         ----------
         axis : {{None}}
-            Dummy argument for consistency with Series.
+            Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
         *args, **kwargs
@@ -769,7 +768,7 @@ class IndexOpsMixin(OpsMixin):
         # has no attribute "any"
         return bool(isna(self).any())  # type: ignore[union-attr]
 
-    def isna(self):
+    def isna(self) -> npt.NDArray[np.bool_]:
         return isna(self._values)
 
     def _reduce(
@@ -894,7 +893,7 @@ class IndexOpsMixin(OpsMixin):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-    ):
+    ) -> Series:
         """
         Return a Series containing counts of unique values.
 
@@ -987,10 +986,12 @@ class IndexOpsMixin(OpsMixin):
 
         if not isinstance(values, np.ndarray):
             result: ArrayLike = values.unique()
-            if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
-                # GH#31182 Series._values returns EA, unpack for backward-compat
-                if getattr(self.dtype, "tz", None) is None:
-                    result = np.asarray(result)
+            if (
+                isinstance(self.dtype, np.dtype) and self.dtype.kind in ["m", "M"]
+            ) and isinstance(self, ABCSeries):
+                # GH#31182 Series._values returns EA
+                # unpack numpy datetime for backward-compat
+                result = np.asarray(result)
         else:
             result = unique1d(values)
 
@@ -1140,8 +1141,15 @@ class IndexOpsMixin(OpsMixin):
             """
         ),
     )
-    def factorize(self, sort: bool = False, na_sentinel: int | None = -1):
-        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
+    def factorize(
+        self,
+        sort: bool = False,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ):
+        return algorithms.factorize(
+            self, sort=sort, na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+        )
 
     _shared_docs[
         "searchsorted"

@@ -6,7 +6,10 @@ import pytest
 
 from pandas._libs import lib
 from pandas.compat import IS64
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+    SpecificationError,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,7 +27,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
-from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
@@ -2774,3 +2776,22 @@ def test_by_column_values_with_same_starting_value():
     ).set_index("Name")
 
     tm.assert_frame_equal(result, expected_result)
+
+
+def test_groupby_none_in_first_mi_level():
+    # GH#47348
+    arr = [[None, 1, 0, 1], [2, 3, 2, 3]]
+    ser = Series(1, index=MultiIndex.from_arrays(arr, names=["a", "b"]))
+    result = ser.groupby(level=[0, 1]).sum()
+    expected = Series(
+        [1, 2], MultiIndex.from_tuples([(0.0, 2), (1.0, 3)], names=["a", "b"])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_none_column_name():
+    # GH#47348
+    df = DataFrame({None: [1, 1, 2, 2], "b": [1, 1, 2, 3], "c": [4, 5, 6, 7]})
+    result = df.groupby(by=[None]).sum()
+    expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=None))
+    tm.assert_frame_equal(result, expected)

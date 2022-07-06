@@ -4,6 +4,7 @@
 from typing import (
     Any,
     Callable,
+    Final,
     Generator,
     Hashable,
     Literal,
@@ -23,9 +24,11 @@ ndarray_obj_2d = np.ndarray
 
 from enum import Enum
 
-class NoDefault(Enum): ...
+class _NoDefault(Enum):
+    no_default = ...
 
-no_default: NoDefault
+no_default: Final = _NoDefault.no_default
+NoDefault = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int
@@ -210,7 +213,7 @@ def count_level_2d(
 def get_level_sorter(
     label: np.ndarray,  # const int64_t[:]
     starts: np.ndarray,  # const intp_t[:]
-) -> np.ndarray: ...  #  np.ndarray[np.intp, ndim=1]
+) -> np.ndarray: ...  # np.ndarray[np.intp, ndim=1]
 def generate_bins_dt64(
     values: npt.NDArray[np.int64],
     binner: np.ndarray,  # const int64_t[:]

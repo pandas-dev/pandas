@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
-    Type,
     TypeVar,
     overload,
 )
@@ -72,7 +71,11 @@ def array_to_timedelta64(
     errors: str = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
-def delta_to_nanoseconds(delta: np.timedelta64 | timedelta | Tick) -> int: ...
+def delta_to_nanoseconds(
+    delta: np.timedelta64 | timedelta | Tick,
+    reso: int = ...,  # NPY_DATETIMEUNIT
+    round_ok: bool = ...,
+) -> int: ...
 
 class Timedelta(timedelta):
     min: ClassVar[Timedelta]
@@ -80,7 +83,7 @@ class Timedelta(timedelta):
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
     def __new__(
-        cls: Type[_S],
+        cls: type[_S],
         value=...,
         unit: str = ...,
         **kwargs: int | float | np.integer | np.floating,
@@ -152,3 +155,4 @@ class Timedelta(timedelta):
     def freq(self) -> None: ...
     @property
     def is_populated(self) -> bool: ...
+    def _as_unit(self, unit: str, round_ok: bool = ...) -> Timedelta: ...

@@ -479,7 +479,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype([1, 2, 3])
     False
     >>>
-    >>> interval = pd.Interval(1, 2, closed="right")
+    >>> interval = pd.Interval(1, 2, inclusive="right")
     >>> is_interval_dtype(interval)
     False
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
@@ -966,7 +966,9 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
             tipo = get_dtype(arr_or_dtype.dtype)
         else:
             return False
-    return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
+    return tipo == DT64NS_DTYPE or (
+        isinstance(tipo, DatetimeTZDtype) and tipo._unit == "ns"
+    )
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:

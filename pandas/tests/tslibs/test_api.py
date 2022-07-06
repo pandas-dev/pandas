@@ -51,9 +51,13 @@ def test_namespace():
         "to_offset",
         "tz_compare",
         "is_unitless",
+        "astype_overflowsafe",
+        "get_unit_from_dtype",
+        "periods_per_day",
+        "periods_per_second",
+        "is_supported_unit",
     ]
 
     expected = set(submodules + api)
-    # exclude "ctime" bc it is not (yet) imported outside of tests
-    names = [x for x in dir(tslibs) if not x.startswith("__") and x != "ctime"]
+    names = [x for x in dir(tslibs) if not x.startswith("__")]
     assert set(names) == expected

@@ -5,6 +5,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -142,7 +143,10 @@ class BaseBlockManager(DataManager):
     blocks: tuple[Block, ...]
     axes: list[Index]
 
-    ndim: int
+    @property
+    def ndim(self) -> int:
+        raise NotImplementedError
+
     _known_consolidated: bool
     _is_consolidated: bool
 
@@ -1188,6 +1192,17 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self.blocks = new_blocks
         return
 
+    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+        """
+        Set values ("setitem") into a single column (not setting the full column).
+
+        This is a method on the BlockManager level, to avoid creating an
+        intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
+        """
+        col_mgr = self.iget(loc)
+        new_mgr = col_mgr.setitem((idx,), value)
+        self.iset(loc, new_mgr._block.values, inplace=True)
+
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
@@ -1667,7 +1682,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """manage a single block with"""
 
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
+
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
