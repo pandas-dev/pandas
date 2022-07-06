@@ -1291,7 +1291,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(
-        self, numeric_only: bool | lib.NoDefault, axis: int
+        self, how: str, numeric_only: bool | lib.NoDefault, axis: int
     ) -> bool:
         """
         Determine subclass-specific default value for 'numeric_only'.
@@ -1327,6 +1327,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             else:
                 numeric_only = False
+
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
+            # GH#47500
+            how = "sum" if how == "add" else how
+            warnings.warn(
+                f"{type(self).__name__}.{how} called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
+                "raise a TypeError in a future version of pandas",
+                category=FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            raise NotImplementedError(
+                f"{type(self).__name__}.{how} does not implement numeric_only"
+            )
 
         return numeric_only
 
@@ -1704,7 +1718,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis=0)
 
         data = self._get_data_to_aggregate()
         is_ser = data.ndim == 1
@@ -2100,7 +2114,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2    4.0
         Name: B, dtype: float64
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        numeric_only_bool = self._resolve_numeric_only("mean", numeric_only, axis=0)
 
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
@@ -2134,7 +2148,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        numeric_only_bool = self._resolve_numeric_only("median", numeric_only, axis=0)
 
         result = self._cython_agg_general(
             "median",
@@ -2196,10 +2210,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
             # Resolve numeric_only so that var doesn't warn
-            numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
-            if numeric_only_bool and self.obj.ndim == 1:
-                raise NotImplementedError(
-                    f"{type(self).__name__}.std does not implement numeric_only."
+            numeric_only_bool = self._resolve_numeric_only("std", numeric_only, axis=0)
+            if (
+                numeric_only_bool
+                and self.obj.ndim == 1
+                and not is_numeric_dtype(self.obj.dtype)
+            ):
+                raise TypeError(
+                    f"{type(self).__name__}.std called with "
+                    f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
                 )
             result = self._get_cythonized_result(
                 libgroupby.group_var,
@@ -2264,7 +2283,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
-            numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+            numeric_only_bool = self._resolve_numeric_only("var", numeric_only, axis=0)
             if ddof == 1:
                 return self._cython_agg_general(
                     "var",
@@ -2304,10 +2323,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Standard error of the mean of values within each group.
         """
         # Reolve numeric_only so that std doesn't warn
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
-        if numeric_only_bool and self.obj.ndim == 1:
-            raise NotImplementedError(
-                f"{type(self).__name__}.sem does not implement numeric_only."
+        numeric_only_bool = self._resolve_numeric_only("sem", numeric_only, axis=0)
+        if (
+            numeric_only_bool
+            and self.obj.ndim == 1
+            and not is_numeric_dtype(self.obj.dtype)
+        ):
+            raise TypeError(
+                f"{type(self).__name__}.sem called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
         result = self.std(ddof=ddof, numeric_only=numeric_only_bool)
         self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
@@ -3179,10 +3203,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
-        if numeric_only_bool and self.obj.ndim == 1:
-            raise NotImplementedError(
-                f"{type(self).__name__}.quantile does not implement numeric_only"
+        numeric_only_bool = self._resolve_numeric_only("quantile", numeric_only, axis=0)
+        if (
+            numeric_only_bool
+            and self.obj.ndim == 1
+            and not is_numeric_dtype(self.obj.dtype)
+        ):
+            raise TypeError(
+                f"{type(self).__name__}.quantile called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
@@ -3671,7 +3700,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         `Series` or `DataFrame`  with filled values
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        how = base_func.__name__
+        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis=0)
 
         if post_processing and not callable(post_processing):
             raise ValueError("'post_processing' must be a callable!")
@@ -3682,7 +3712,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         ids, _, ngroups = grouper.group_info
 
-        how = base_func.__name__
         base_func = partial(base_func, labels=ids)
 
         def blk_func(values: ArrayLike) -> ArrayLike:
