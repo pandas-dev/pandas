@@ -897,35 +897,31 @@ class TestIntervalIndex:
 
     def test_interval_index_error_and_warning(self):
         # GH 40245
-        msg = (
-            "Deprecated argument `closed` cannot "
-            "be passed if argument `inclusive` is not None"
-        )
-        with pytest.raises(ValueError, match=msg):
-            IntervalIndex.from_breaks(range(11), closed="both", inclusive="both")
+        msg = "Can only specify 'closed' or 'inclusive', not both."
+        msg_warn = "the 'closed'' keyword is deprecated, use 'inclusive' instead."
+        with pytest.raises(TypeError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+                IntervalIndex.from_breaks(range(11), closed="both", inclusive="both")
 
-        with pytest.raises(ValueError, match=msg):
-            IntervalIndex.from_arrays([0, 1], [1, 2], closed="both", inclusive="both")
+        with pytest.raises(TypeError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+                IntervalIndex.from_arrays(
+                    [0, 1], [1, 2], closed="both", inclusive="both"
+                )
 
-        with pytest.raises(ValueError, match=msg):
-            IntervalIndex.from_tuples(
-                [(0, 1), (0.5, 1.5)], closed="both", inclusive="both"
-            )
+        with pytest.raises(TypeError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+                IntervalIndex.from_tuples(
+                    [(0, 1), (0.5, 1.5)], closed="both", inclusive="both"
+                )
 
-        msg = "Argument `closed` is deprecated in favor of `inclusive`"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
             IntervalIndex.from_breaks(range(11), closed="both")
 
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
             IntervalIndex.from_arrays([0, 1], [1, 2], closed="both")
 
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
             IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)], closed="both")
 
 
@@ -955,3 +951,9 @@ def test_searchsorted_invalid_argument(arg):
     msg = "'<' not supported between instances of 'pandas._libs.interval.Interval' and "
     with pytest.raises(TypeError, match=msg):
         values.searchsorted(arg)
+
+
+def test_interval_range_deprecated_closed():
+    # GH#40245
+    with tm.assert_produces_warning(FutureWarning):
+        interval_range(start=0, end=5, closed="right")

@@ -61,6 +61,16 @@ class ConstructorTests:
         tm.assert_index_equal(result.left, Index(breaks[:-1]))
         tm.assert_index_equal(result.right, Index(breaks[1:]))
 
+    def test_constructor_inclusive_default(self, constructor, name):
+        result_kwargs = self.get_kwargs_from_breaks([3, 14, 15, 92, 653])
+        inclusive_in = result_kwargs.pop("inclusive", None)
+        result = constructor(name=name, **result_kwargs)
+
+        if inclusive_in is not None:
+            result_kwargs["inclusive"] = "right"
+        expected = constructor(name=name, **result_kwargs)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "breaks, subtype",
         [
@@ -78,7 +88,7 @@ class ConstructorTests:
         expected = constructor(**expected_kwargs)
 
         result_kwargs = self.get_kwargs_from_breaks(breaks)
-        iv_dtype = IntervalDtype(subtype, "both")
+        iv_dtype = IntervalDtype(subtype, "right")
         for dtype in (iv_dtype, str(iv_dtype)):
             result = constructor(dtype=dtype, **result_kwargs)
             tm.assert_index_equal(result, expected)
@@ -219,7 +229,7 @@ class TestFromArrays(ConstructorTests):
     def constructor(self):
         return IntervalIndex.from_arrays
 
-    def get_kwargs_from_breaks(self, breaks, inclusive="both"):
+    def get_kwargs_from_breaks(self, breaks, inclusive="right"):
         """
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_arrays
@@ -268,7 +278,7 @@ class TestFromBreaks(ConstructorTests):
     def constructor(self):
         return IntervalIndex.from_breaks
 
-    def get_kwargs_from_breaks(self, breaks, inclusive="both"):
+    def get_kwargs_from_breaks(self, breaks, inclusive="right"):
         """
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_breaks
@@ -306,7 +316,7 @@ class TestFromTuples(ConstructorTests):
     def constructor(self):
         return IntervalIndex.from_tuples
 
-    def get_kwargs_from_breaks(self, breaks, inclusive="both"):
+    def get_kwargs_from_breaks(self, breaks, inclusive="right"):
         """
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_tuples
@@ -356,7 +366,7 @@ class TestClassConstructors(ConstructorTests):
     def constructor(self, request):
         return request.param
 
-    def get_kwargs_from_breaks(self, breaks, inclusive="both"):
+    def get_kwargs_from_breaks(self, breaks, inclusive="right"):
         """
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by the IntervalIndex/Index constructors
