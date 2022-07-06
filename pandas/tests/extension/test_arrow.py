@@ -563,6 +563,38 @@ class TestBaseMissing(base.BaseMissingTests):
         super().test_fillna_frame(data_missing)
 
 
+class TestBasePrinting(base.BasePrintingTests):
+    def test_series_repr(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_series_repr(data)
+
+    def test_dataframe_repr(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_dataframe_repr(data)
+
+
 class TestBaseReshaping(base.BaseReshapingTests):
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat(self, data, in_frame, request):
