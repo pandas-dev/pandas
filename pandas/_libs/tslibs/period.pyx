@@ -2556,7 +2556,7 @@ class Period(_Period):
                 ordinal = value.ordinal
                 freq = value.freq
             else:
-                converted = value.asfreq(freq, "S")
+                converted = value.asfreq(freq)
                 ordinal = converted.ordinal
 
         elif checknull_with_nat(value) or (isinstance(value, str) and
