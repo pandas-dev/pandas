@@ -1064,16 +1064,6 @@ class Index(IndexOpsMixin, PandasObject):
             # Ensure that self.astype(self.dtype) is self
             return self.copy() if copy else self
 
-        if (
-            self.dtype == np.dtype("M8[ns]")
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-            and dtype != np.dtype("M8[ns]")
-        ):
-            # For now DatetimeArray supports this by unwrapping ndarray,
-            #  but DatetimeIndex doesn't
-            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
-
         values = self._data
         if isinstance(values, ExtensionArray):
             with rewrite_exception(type(values).__name__, type(self).__name__):
