@@ -1438,15 +1438,3 @@ def test_agg_of_mode_list(test, constant):
     expected = expected.set_index(0)
 
     tm.assert_frame_equal(result, expected)
-
-
-def test_unique_agg_type():
-    # GH#22558
-    df1 = DataFrame({"a": [1, 2, 3], "b": [1, 1, 1]})
-    df2 = DataFrame({"a": [2, 2, 2], "b": [1, 1, 1]})
-    aggregation = {"a": "unique", "b": "unique"}
-
-    agg1 = df1.agg(aggregation)
-    agg2 = df2.agg(aggregation)
-
-    tm.assert_class_equal(agg1, agg2)
