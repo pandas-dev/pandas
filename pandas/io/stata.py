@@ -140,7 +140,7 @@ filepath_or_buffer : str, path object or file-like object
 {_statafile_processing_params2}
 {_chunksize_params}
 {_iterator_params}
-{_shared_docs["decompression_options"]}
+{_shared_docs["decompression_options"] % "filepath_or_buffer"}
 {_shared_docs["storage_options"]}
 
 Returns
