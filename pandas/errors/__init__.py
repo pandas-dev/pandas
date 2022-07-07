@@ -413,3 +413,29 @@ class CSSWarning(UserWarning):
     ...         .to_excel('styled.xlsx') # doctest: +SKIP
     ... # CSSWarning: Too many tokens provided to "border" (expected 1-3)
     """
+
+
+class PossibleDataLossError(Exception):
+    """
+    Exception is raised when trying to open a HDFStore file when the file is already
+    opened.
+
+    Examples
+    --------
+    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
+    >>> store.open("w") # doctest: +SKIP
+    ... # PossibleDataLossError: Re-opening the file [my-store] with mode [a]...
+    """
+
+
+class ClosedFileError(Exception):
+    """
+    Exception is raised when trying to perform an operation on a closed HDFStore file.
+
+    Examples
+    --------
+    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
+    >>> store.close() # doctest: +SKIP
+    >>> store.keys() # doctest: +SKIP
+    ... # ClosedFileError: my-store file is not open!
+    """

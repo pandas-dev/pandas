@@ -26,6 +26,7 @@ Exceptions and warnings
 
    errors.AbstractMethodError
    errors.AccessorRegistrationWarning
+   errors.ClosedFileError
    errors.CSSWarning
    errors.DataError
    errors.DtypeWarning
@@ -44,6 +45,7 @@ Exceptions and warnings
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning
+   errors.PossibleDataLossError
    errors.PyperclipException
    errors.PyperclipWindowsException
    errors.SettingWithCopyError

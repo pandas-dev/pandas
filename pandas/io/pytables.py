@@ -48,7 +48,11 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    ClosedFileError,
+    PerformanceWarning,
+    PossibleDataLossError,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -167,14 +171,6 @@ def _ensure_term(where, scope_level: int):
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
     return where if where is None or len(where) else None
-
-
-class PossibleDataLossError(Exception):
-    pass
-
-
-class ClosedFileError(Exception):
-    pass
 
 
 class IncompatibilityWarning(Warning):
