@@ -948,7 +948,7 @@ I/O
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x40 control bytes (:issue:`31243`)
 - Bug in :func:`read_sas` that scrambled column names (:issue:`31243`)
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
--
+- Bug in :func:`read_parquet` with ``use_nullable_dtypes=True`` where ``float64`` dtype was returned instead of nullable ``Float64`` dtype (:issue:`45694`)
 
 Period
 ^^^^^^

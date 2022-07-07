@@ -626,6 +626,9 @@ class TestBasic(Base):
                 "d": pyarrow.array([True, False, True, None]),
                 # Test that nullable dtypes used even in absence of nulls
                 "e": pyarrow.array([1, 2, 3, 4], "int64"),
+                # GH 45694
+                "f": pyarrow.array([1.0, 2.0, 3.0, None], "float32"),
+                "g": pyarrow.array([1.0, 2.0, 3.0, None], "float64"),
             }
         )
         with tm.ensure_clean() as path:
@@ -642,6 +645,8 @@ class TestBasic(Base):
                 "c": pd.array(["a", "b", "c", None], dtype="string"),
                 "d": pd.array([True, False, True, None], dtype="boolean"),
                 "e": pd.array([1, 2, 3, 4], dtype="Int64"),
+                "f": pd.array([1.0, 2.0, 3.0, None], dtype="Float32"),
+                "g": pd.array([1.0, 2.0, 3.0, None], dtype="Float64"),
             }
         )
         if engine == "fastparquet":
@@ -672,7 +677,17 @@ class TestBasic(Base):
                 "value": pd.array([], dtype=dtype),
             }
         )
-        check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
+        # GH 45694
+        expected = None
+        if dtype == "float":
+            expected = pd.DataFrame(
+                {
+                    "value": pd.array([], dtype="Float64"),
+                }
+            )
+        check_round_trip(
+            df, pa, read_kwargs={"use_nullable_dtypes": True}, expected=expected
+        )
 
 
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")

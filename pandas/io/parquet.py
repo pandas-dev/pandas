@@ -231,6 +231,8 @@ class PyArrowImpl(BaseImpl):
                 self.api.uint64(): pd.UInt64Dtype(),
                 self.api.bool_(): pd.BooleanDtype(),
                 self.api.string(): pd.StringDtype(),
+                self.api.float32(): pd.Float32Dtype(),
+                self.api.float64(): pd.Float64Dtype(),
             }
             to_pandas_kwargs["types_mapper"] = mapping.get
         manager = get_option("mode.data_manager")
