@@ -60,12 +60,12 @@ class TestAttributes:
 
 
 class TestMethods:
-    @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
-    def test_set_closed(self, closed, new_closed):
+    @pytest.mark.parametrize("new_inclusive", ["left", "right", "both", "neither"])
+    def test_set_inclusive(self, closed, new_inclusive):
         # GH 21670
         array = IntervalArray.from_breaks(range(10), inclusive=closed)
-        result = array.set_closed(new_closed)
-        expected = IntervalArray.from_breaks(range(10), inclusive=new_closed)
+        result = array.set_closed(new_inclusive)
+        expected = IntervalArray.from_breaks(range(10), inclusive=new_inclusive)
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -134,7 +134,7 @@ class TestSetitem:
 
         tm.assert_extension_array_equal(result, expected)
 
-    def test_setitem_mismatched_closed(self):
+    def test_setitem_mismatched_inclusive(self):
         arr = IntervalArray.from_breaks(range(4), "right")
         orig = arr.copy()
         other = arr.set_closed("both")
