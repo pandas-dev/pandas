@@ -22,8 +22,8 @@ cdef struct Buffer:
     size_t length
 
 
-cdef inline uint8_t buf_get(Buffer buf, size_t offset) except? 0:
-    assert offset < buf.length, f"Out of bounds read"
+cdef inline uint8_t buf_get(Buffer buf, size_t offset) except? 255:
+    assert offset < buf.length, "Out of bounds read"
     return buf.data[offset]
 
 
