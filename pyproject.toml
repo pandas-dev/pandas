@@ -177,4 +177,3 @@ reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
 reportUnboundVariable = false
-reportUnsupportedDunderAll = false
