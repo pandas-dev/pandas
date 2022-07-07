@@ -2004,11 +2004,16 @@ class _iLocIndexer(_LocationIndexer):
             if (
                 isinstance(new_values, np.ndarray)
                 and isinstance(orig_values, np.ndarray)
-                and np.shares_memory(new_values, orig_values)
+                and (
+                    np.shares_memory(new_values, orig_values)
+                    or new_values.shape != orig_values.shape
+                )
             ):
                 # TODO: get something like tm.shares_memory working?
                 # The values were set inplace after all, no need to warn,
                 #  e.g. test_rename_nocopy
+                # In case of enlarging we can not set inplace, so need to
+                # warn either
                 pass
             else:
                 warnings.warn(
