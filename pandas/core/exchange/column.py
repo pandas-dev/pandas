@@ -1,7 +1,6 @@
-from typing import (
-    Any,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
@@ -126,7 +125,7 @@ class PandasColumn(Column):
         else:
             return self._dtype_from_pandasdtype(dtype)
 
-    def _dtype_from_pandasdtype(self, dtype) -> Tuple[DtypeKind, int, str, str]:
+    def _dtype_from_pandasdtype(self, dtype) -> tuple[DtypeKind, int, str, str]:
         """
         See `self.dtype` for details.
         """
@@ -214,7 +213,7 @@ class PandasColumn(Column):
         else:
             yield self
 
-    def get_buffers(self):
+    def get_buffers(self) -> ColumnBuffers:
         """
         Return a dictionary containing the underlying buffers.
         The returned dictionary has the following contents:
@@ -253,7 +252,7 @@ class PandasColumn(Column):
 
     def _get_data_buffer(
         self,
-    ) -> Tuple[PandasBuffer, Any]:  # Any is for self.dtype tuple
+    ) -> tuple[PandasBuffer, Any]:  # Any is for self.dtype tuple
         """
         Return the buffer containing the data and the buffer's associated dtype.
         """
@@ -296,7 +295,7 @@ class PandasColumn(Column):
 
         return buffer, dtype
 
-    def _get_validity_buffer(self) -> Tuple[PandasBuffer, Any]:
+    def _get_validity_buffer(self) -> tuple[PandasBuffer, Any]:
         """
         Return the buffer containing the mask values indicating missing data and
         the buffer's associated dtype.
@@ -334,7 +333,7 @@ class PandasColumn(Column):
 
         raise NoBufferPresent(msg)
 
-    def _get_offsets_buffer(self) -> Tuple[PandasBuffer, Any]:
+    def _get_offsets_buffer(self) -> tuple[PandasBuffer, Any]:
         """
         Return the buffer containing the offset values for variable-size binary
         data (e.g., variable-length strings) and the buffer's associated dtype.

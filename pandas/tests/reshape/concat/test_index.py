@@ -399,13 +399,36 @@ class TestMultiIndexConcat:
         expected_index = pd.RangeIndex(0, 2)
         tm.assert_index_equal(result.index, expected_index, exact=True)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "object"])
-    def test_concat_index_keep_dtype(self, dtype):
+    def test_concat_index_keep_dtype(self):
         # GH#47329
-        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
-        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype=dtype))
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype="object"))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="object"))
         result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
         expected = DataFrame(
-            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype=dtype)
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="object")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_index_keep_dtype_ea_numeric(self, any_numeric_ea_dtype):
+        # GH#47329
+        df1 = DataFrame(
+            [[0, 1, 1]], columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype)
+        )
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype=any_numeric_ea_dtype))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]],
+            columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int8", "Int16", "Int32"])
+    def test_concat_index_find_common(self, dtype):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="Int32"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="Int32")
         )
         tm.assert_frame_equal(result, expected)
