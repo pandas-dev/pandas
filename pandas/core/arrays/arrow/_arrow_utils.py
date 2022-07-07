@@ -10,7 +10,7 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.arrays.interval import VALID_CLOSED
+from pandas.core.arrays.interval import VALID_INCLUSIVE
 
 
 def fallback_performancewarning(version: str | None = None):
@@ -108,8 +108,8 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def __init__(self, subtype, inclusive: str) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
-        assert inclusive in VALID_CLOSED
-        self._closed = inclusive
+        assert inclusive in VALID_INCLUSIVE
+        self._inclusive = inclusive
         if not isinstance(subtype, pyarrow.DataType):
             subtype = pyarrow.type_for_alias(str(subtype))
         self._subtype = subtype
@@ -123,7 +123,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
 
     @property
     def inclusive(self):
-        return self._closed
+        return self._inclusive
 
     @property
     def closed(self):
@@ -132,7 +132,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self._closed
+        return self._inclusive
 
     def __arrow_ext_serialize__(self):
         metadata = {"subtype": str(self.subtype), "inclusive": self.inclusive}
