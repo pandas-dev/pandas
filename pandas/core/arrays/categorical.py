@@ -1475,8 +1475,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             fill_value = self._unbox_scalar(fill_value)
         else:
             raise TypeError( 
-                "Cannot setitem on a Categorical with a new " 
-                f"category ({fill_value}), set the categories first" 
+            "Cannot setitem on a Categorical with a new " 
+            f"category ({fill_value}), set the categories first" 
             ) from None
         return fill_value
 
