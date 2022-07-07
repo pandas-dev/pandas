@@ -32,7 +32,7 @@ _NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
 }
 
 
-def from_dataframe(df, allow_copy=True):
+def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 

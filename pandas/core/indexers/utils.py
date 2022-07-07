@@ -240,7 +240,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 # Indexer Conversion
 
 
-def maybe_convert_indices(indices, n: int, verify: bool = True):
+def maybe_convert_indices(indices, n: int, verify: bool = True) -> np.ndarray:
     """
     Attempt to convert indices into valid, positive indices.
 

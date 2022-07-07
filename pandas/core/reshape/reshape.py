@@ -152,7 +152,7 @@ class _Unstacker:
         return indexer, to_sort
 
     @cache_readonly
-    def sorted_labels(self):
+    def sorted_labels(self) -> list[np.ndarray]:
         indexer, to_sort = self._indexer_and_to_sort
         return [line.take(indexer) for line in to_sort]
 
@@ -199,7 +199,7 @@ class _Unstacker:
         return new_values, mask.any(0)
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
-    def get_result(self, values, value_columns, fill_value):
+    def get_result(self, values, value_columns, fill_value) -> DataFrame:
 
         if values.ndim == 1:
             values = values[:, np.newaxis]
@@ -346,7 +346,7 @@ class _Unstacker:
         return repeater
 
     @cache_readonly
-    def new_index(self):
+    def new_index(self) -> MultiIndex:
         # Does not depend on values or value_columns
         result_codes = [lab.take(self.compressor) for lab in self.sorted_labels[:-1]]
 

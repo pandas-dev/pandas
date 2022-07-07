@@ -1930,7 +1930,9 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    cat_data.categories = categories
+                    # error: Incompatible types in assignment (expression has
+                    # type "List[str]", variable has type "Index")
+                    cat_data.categories = categories  # type: ignore[assignment]
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])

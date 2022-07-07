@@ -308,7 +308,7 @@ class MultiIndex(Index):
         copy=False,
         name=None,
         verify_integrity: bool = True,
-    ):
+    ) -> MultiIndex:
 
         # compat with Index
         if name is not None:
@@ -503,7 +503,7 @@ class MultiIndex(Index):
         cls,
         tuples: Iterable[tuple[Hashable, ...]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | None = None,
+        names: Sequence[Hashable] | Hashable | None = None,
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
@@ -562,7 +562,9 @@ class MultiIndex(Index):
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
-            arrays = [[]] * len(names)
+            # error: Argument 1 to "len" has incompatible type "Hashable";
+            # expected "Sized"
+            arrays = [[]] * len(names)  # type: ignore[arg-type]
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = np.asarray(tuples._values)
@@ -1826,7 +1828,9 @@ class MultiIndex(Index):
             result.index = self
         return result
 
-    def to_flat_index(self) -> Index:
+    # error: Return type "Index" of "to_flat_index" incompatible with return type
+    # "MultiIndex" in supertype "Index"
+    def to_flat_index(self) -> Index:  # type: ignore[override]
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
 

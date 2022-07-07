@@ -993,8 +993,8 @@ class DataFrameFormatter:
         else:
             return adjoined
 
-    def _get_column_name_list(self) -> list[str]:
-        names: list[str] = []
+    def _get_column_name_list(self) -> list[Hashable]:
+        names: list[Hashable] = []
         columns = self.frame.columns
         if isinstance(columns, MultiIndex):
             names.extend("" if name is None else name for name in columns.names)

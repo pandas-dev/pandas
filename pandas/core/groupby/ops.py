@@ -735,7 +735,7 @@ class BaseGrouper:
     def shape(self) -> Shape:
         return tuple(ping.ngroups for ping in self.groupings)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Hashable]:
         return iter(self.indices)
 
     @property

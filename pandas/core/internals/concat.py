@@ -381,7 +381,7 @@ class JoinUnit:
         return False
 
     @cache_readonly
-    def dtype(self):
+    def dtype(self) -> DtypeObj:
         blk = self.block
         if blk.values.dtype.kind == "V":
             raise AssertionError("Block is None, no dtype")

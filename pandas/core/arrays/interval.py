@@ -99,7 +99,10 @@ from pandas.core.ops import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import (
+        Index,
+        Series,
+    )
 
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
@@ -708,7 +711,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
 
@@ -837,7 +840,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
 
-    def min(self, *, axis: int | None = None, skipna: bool = True):
+    def min(self, *, axis: int | None = None, skipna: bool = True) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -854,7 +857,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[0]
         return obj[indexer]
 
-    def max(self, *, axis: int | None = None, skipna: bool = True):
+    def max(self, *, axis: int | None = None, skipna: bool = True) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -1172,7 +1175,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return value_left, value_right
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Returns a Series containing counts of each interval.
 

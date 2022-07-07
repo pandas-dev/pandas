@@ -460,7 +460,7 @@ class ExtensionArray:
         """
         return ~(self == other)
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs) -> None:
         factorize = getattr(cls, "factorize")
         if (
             "use_na_sentinel" not in inspect.signature(factorize).parameters
@@ -770,11 +770,11 @@ class ExtensionArray:
         return nargminmax(self, "argmax")
 
     def fillna(
-        self,
+        self: ExtensionArrayT,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
-    ):
+    ) -> ExtensionArrayT:
         """
         Fill NA/NaN values using the specified method.
 
@@ -1139,7 +1139,9 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(self, repeats: int | Sequence[int], axis: int | None = None):
+    def repeat(
+        self: ExtensionArrayT, repeats: int | Sequence[int], axis: int | None = None
+    ) -> ExtensionArrayT:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)

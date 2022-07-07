@@ -112,6 +112,6 @@ class EWMMeanState:
         self.last_ewm = result[-1]
         return result
 
-    def reset(self):
+    def reset(self) -> None:
         self.old_wt = np.ones(self.shape[self.axis - 1])
         self.last_ewm = None

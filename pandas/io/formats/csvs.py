@@ -118,16 +118,16 @@ class CSVFormatter:
                 return [index_label]
         return index_label
 
-    def _get_index_label_from_obj(self) -> list[str]:
+    def _get_index_label_from_obj(self) -> Sequence[Hashable]:
         if isinstance(self.obj.index, ABCMultiIndex):
             return self._get_index_label_multiindex()
         else:
             return self._get_index_label_flat()
 
-    def _get_index_label_multiindex(self) -> list[str]:
+    def _get_index_label_multiindex(self) -> Sequence[Hashable]:
         return [name or "" for name in self.obj.index.names]
 
-    def _get_index_label_flat(self) -> list[str]:
+    def _get_index_label_flat(self) -> Sequence[Hashable]:
         index_label = self.obj.index.name
         return [""] if index_label is None else [index_label]
 

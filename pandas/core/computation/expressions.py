@@ -38,7 +38,7 @@ _ALLOWED_DTYPES = {
 _MIN_ELEMENTS = 1_000_000
 
 
-def set_use_numexpr(v=True):
+def set_use_numexpr(v=True) -> None:
     # set/unset to use numexpr
     global USE_NUMEXPR
     if NUMEXPR_INSTALLED:
@@ -51,7 +51,7 @@ def set_use_numexpr(v=True):
     _where = _where_numexpr if USE_NUMEXPR else _where_standard
 
 
-def set_numexpr_threads(n=None):
+def set_numexpr_threads(n=None) -> None:
     # if we are using numexpr, set the threads to n
     # otherwise reset
     if NUMEXPR_INSTALLED and USE_NUMEXPR:

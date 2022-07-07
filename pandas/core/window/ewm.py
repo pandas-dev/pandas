@@ -442,7 +442,9 @@ class ExponentialMovingWindow(BaseWindow):
         """
         return ExponentialMovingWindowIndexer()
 
-    def online(self, engine="numba", engine_kwargs=None):
+    def online(
+        self, engine="numba", engine_kwargs=None
+    ) -> OnlineExponentialMovingWindow:
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate
         exponentially moving window aggregations in an online method.
@@ -948,7 +950,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         else:
             raise ValueError("'numba' is the only supported engine")
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state captured by `update` calls.
         """

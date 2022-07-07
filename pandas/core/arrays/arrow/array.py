@@ -368,7 +368,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         indices: TakeIndexer,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ):
+    ) -> ArrowExtensionArray:
         """
         Take elements from an array.
 
