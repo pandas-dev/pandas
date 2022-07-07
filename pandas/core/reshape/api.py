@@ -27,6 +27,7 @@ __all__ = [
     "concat",
     "crosstab",
     "cut",
+    "from_dummies",
     "get_dummies",
     "lreshape",
     "melt",
