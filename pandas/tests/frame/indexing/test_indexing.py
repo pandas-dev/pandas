@@ -1307,7 +1307,7 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.nan, val]})
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_not_yet_implemented
+    @td.skip_array_manager_invalid_test
     def test_iloc_setitem_enlarge_no_warning(self):
         # GH#47381
         df = DataFrame(columns=["a", "b"])
