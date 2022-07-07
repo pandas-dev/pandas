@@ -13,7 +13,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.arrays.interval import VALID_CLOSED
 
 
-def fallback_performancewarning(version: str | None = None):
+def fallback_performancewarning(version: str | None = None) -> None:
     """
     Raise a PerformanceWarning for falling back to ExtensionArray's
     non-pyarrow method
@@ -24,7 +24,9 @@ def fallback_performancewarning(version: str | None = None):
     warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
 
 
-def pyarrow_array_to_numpy_and_mask(arr, dtype: np.dtype):
+def pyarrow_array_to_numpy_and_mask(
+    arr, dtype: np.dtype
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Convert a primitive pyarrow.Array to a numpy array and boolean mask based
     on the buffers of the Array.
@@ -74,12 +76,12 @@ class ArrowPeriodType(pyarrow.ExtensionType):
     def freq(self):
         return self._freq
 
-    def __arrow_ext_serialize__(self):
+    def __arrow_ext_serialize__(self) -> bytes:
         metadata = {"freq": self.freq}
         return json.dumps(metadata).encode()
 
     @classmethod
-    def __arrow_ext_deserialize__(cls, storage_type, serialized):
+    def __arrow_ext_deserialize__(cls, storage_type, serialized) -> ArrowPeriodType:
         metadata = json.loads(serialized.decode())
         return ArrowPeriodType(metadata["freq"])
 
@@ -122,7 +124,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         return self._subtype
 
     @property
-    def inclusive(self):
+    def inclusive(self) -> str:
         return self._closed
 
     @property
@@ -134,12 +136,12 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         )
         return self._closed
 
-    def __arrow_ext_serialize__(self):
+    def __arrow_ext_serialize__(self) -> bytes:
         metadata = {"subtype": str(self.subtype), "inclusive": self.inclusive}
         return json.dumps(metadata).encode()
 
     @classmethod
-    def __arrow_ext_deserialize__(cls, storage_type, serialized):
+    def __arrow_ext_deserialize__(cls, storage_type, serialized) -> ArrowIntervalType:
         metadata = json.loads(serialized.decode())
         subtype = pyarrow.type_for_alias(metadata["subtype"])
         inclusive = metadata["inclusive"]
