@@ -17,7 +17,7 @@ from typing import (
 from pandas._config.config import options
 
 
-def get_current_locale(lc_var: int = locale.LC_ALL):
+def get_current_locale(lc_var: int = locale.LC_ALL) -> str:
     """
     Return the current locale associated with category ``lc_var``.
     This is a convenience method to avoid misuses of ``getlocale``. Indeed the
@@ -31,11 +31,10 @@ def get_current_locale(lc_var: int = locale.LC_ALL):
 
     Returns
     -------
-
+    locale_str : str
+        A string representing the current locale for category ``lc_var``, that
+        can be used safely with ``setlocale`` for the same category.
     """
-    # `getlocale` does not always play well with `setLocale`, avoid using it
-    # return locale.getlocale()
-
     # Using `setlocale` with no second argument returns the current locale
     return locale.setlocale(lc_var)
 
