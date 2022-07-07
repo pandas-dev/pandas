@@ -548,13 +548,13 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Name(self, node, **kwargs):
         return self.term_type(node.id, self.env, **kwargs)
 
-    def visit_NameConstant(self, node, **kwargs):
+    def visit_NameConstant(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
-    def visit_Num(self, node, **kwargs):
+    def visit_Num(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
-    def visit_Constant(self, node, **kwargs):
+    def visit_Constant(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):

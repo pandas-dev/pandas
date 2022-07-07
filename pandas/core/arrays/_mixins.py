@@ -70,6 +70,8 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
+    from pandas import Series
+
 
 def ravel_compat(meth: F) -> F:
     """
@@ -259,7 +261,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         #  we can remove this and use validate_fill_value directly
         return self._validate_scalar(fill_value)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value
@@ -433,7 +435,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Return a Series containing counts of unique values.
 
