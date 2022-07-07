@@ -30,6 +30,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -2534,12 +2535,22 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         result = result.reindex(index)
         mask = isna(result._values)
         if mask.any():
-            raise IndexingError(
+
+            msg = (
                 "Unalignable boolean Series provided as "
                 "indexer (index of the boolean Series and of "
                 "the indexed object do not match)."
             )
-        return result.astype(bool)._values
+
+            if is_extension_array_dtype(key):
+                _, indexer = key.index.reindex(index)
+                if any(x == -1 for x in indexer):
+                    raise IndexingError(msg)
+
+            else:
+                raise IndexingError(msg)
+        else:
+            return result.astype(bool)._values
     if is_object_dtype(key):
         # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
