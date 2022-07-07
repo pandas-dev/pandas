@@ -1313,7 +1313,7 @@ class TestDataFrameIndexing:
         expected = df.copy()
         view = df[:]
         with tm.assert_produces_warning(None):
-            df.iloc[:, 0] = np.array([1], dtype=np.float64)
+            df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
 
 
