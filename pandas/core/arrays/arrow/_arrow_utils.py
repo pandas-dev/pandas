@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 import pyarrow
 
+from pandas._typing import IntervalInclusiveType
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
@@ -105,7 +106,7 @@ pyarrow.register_extension_type(_period_type)
 
 class ArrowIntervalType(pyarrow.ExtensionType):
     @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
-    def __init__(self, subtype, inclusive: str) -> None:
+    def __init__(self, subtype, inclusive: IntervalInclusiveType) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
         assert inclusive in VALID_CLOSED

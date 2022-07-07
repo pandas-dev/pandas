@@ -20,6 +20,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.interval import (
+    VALID_CLOSED,
     Interval,
     _warning_interval,
 )
@@ -37,6 +38,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalInclusiveType,
     Ordered,
     npt,
     type_t,
@@ -1088,7 +1090,7 @@ class IntervalDtype(PandasExtensionDtype):
     def __new__(
         cls,
         subtype=None,
-        inclusive: str_type | None = None,
+        inclusive: IntervalInclusiveType | None = None,
         closed: None | lib.NoDefault = lib.no_default,
     ):
         from pandas.core.dtypes.common import (
@@ -1098,12 +1100,7 @@ class IntervalDtype(PandasExtensionDtype):
 
         inclusive, closed = _warning_interval(inclusive, closed)
 
-        if inclusive is not None and inclusive not in {
-            "right",
-            "left",
-            "both",
-            "neither",
-        }:
+        if inclusive is not None and inclusive not in VALID_CLOSED:
             raise ValueError(
                 "inclusive must be one of 'right', 'left', 'both', 'neither'"
             )
