@@ -20,7 +20,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.interval import (
-    VALID_CLOSED,
     Interval,
     _warning_interval,
 )
@@ -1100,7 +1099,12 @@ class IntervalDtype(PandasExtensionDtype):
 
         inclusive, closed = _warning_interval(inclusive, closed)
 
-        if inclusive is not None and inclusive not in VALID_CLOSED:
+        if inclusive is not None and inclusive not in {
+            "right",
+            "left",
+            "both",
+            "neither",
+        }:
             raise ValueError(
                 "inclusive must be one of 'right', 'left', 'both', 'neither'"
             )
