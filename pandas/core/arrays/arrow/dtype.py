@@ -44,7 +44,7 @@ class ArrowDtype(StorageExtensionDtype):
         """
         A string identifying the data type.
         """
-        return str(self.pyarrow_dtype)
+        return f"{str(self.pyarrow_dtype)}[{self.storage}]"
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
@@ -77,7 +77,7 @@ class ArrowDtype(StorageExtensionDtype):
         return ArrowExtensionArray
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(cls, string: str) -> ArrowDtype:
         """
         Construct this type from a string.
 
@@ -92,10 +92,11 @@ class ArrowDtype(StorageExtensionDtype):
                 f"'construct_from_string' expects a string, got {type(string)}"
             )
         if not string.endswith("[pyarrow]"):
-            raise TypeError(f"string {string} must end with '[pyarrow]'")
+            raise TypeError(f"'{string}' must end with '[pyarrow]'")
         base_type = string.split("[pyarrow]")[0]
-        pa_dtype = getattr(pa, base_type, None)
-        if pa_dtype is None:
+        try:
+            pa_dtype = pa.type_for_alias(base_type)
+        except ValueError as err:
             has_parameters = re.search(r"\[.*\]", base_type)
             if has_parameters:
                 raise NotImplementedError(
@@ -103,9 +104,9 @@ class ArrowDtype(StorageExtensionDtype):
                     f"({has_parameters.group()}) in the string is not supported. "
                     "Please construct an ArrowDtype object with a pyarrow_dtype "
                     "instance with specific parameters."
-                )
-            raise TypeError(f"'{base_type}' is not a valid pyarrow data type.")
-        return cls(pa_dtype())
+                ) from err
+            raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
+        return cls(pa_dtype)
 
     @property
     def _is_numeric(self) -> bool:

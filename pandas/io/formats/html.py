@@ -6,6 +6,7 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import (
     Any,
+    Hashable,
     Iterable,
     Mapping,
     cast,
@@ -89,7 +90,7 @@ class HTMLFormatter:
         return self.elements
 
     @property
-    def should_show_dimensions(self):
+    def should_show_dimensions(self) -> bool:
         return self.fmt.should_show_dimensions
 
     @property
@@ -258,6 +259,7 @@ class HTMLFormatter:
         self.write("</table>", indent)
 
     def _write_col_header(self, indent: int) -> None:
+        row: list[Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'

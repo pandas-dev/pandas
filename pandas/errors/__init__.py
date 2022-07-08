@@ -3,6 +3,8 @@ Expose public exceptions & warnings
 """
 from __future__ import annotations
 
+import ctypes
+
 from pandas._config.config import OptionError  # noqa:F401
 
 from pandas._libs.tslibs import (  # noqa:F401
@@ -373,4 +375,41 @@ class IndexingError(Exception):
     ...               index = pd.MultiIndex.from_product([["a", "b"], ["c"]]))
     >>> s.loc["a", "c", "d"] # doctest: +SKIP
     ... # IndexingError: Too many indexers
+    """
+
+
+class PyperclipException(RuntimeError):
+    """
+    Exception is raised when trying to use methods like to_clipboard() and
+    read_clipboard() on an unsupported OS/platform.
+    """
+
+
+class PyperclipWindowsException(PyperclipException):
+    """
+    Exception is raised when pandas is unable to get access to the clipboard handle
+    due to some other window process is accessing it.
+    """
+
+    def __init__(self, message: str) -> None:
+        # attr only exists on Windows, so typing fails on other platforms
+        message += f" ({ctypes.WinError()})"  # type: ignore[attr-defined]
+        super().__init__(message)
+
+
+class CSSWarning(UserWarning):
+    """
+    Warning is raised when converting css styling fails.
+    This can be due to the styling not having an equivalent value or because the
+    styling isn't properly formatted.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df.style.applymap(lambda x: 'background-color: blueGreenRed;')
+    ...         .to_excel('styled.xlsx') # doctest: +SKIP
+    ... # CSSWarning: Unhandled color format: 'blueGreenRed'
+    >>> df.style.applymap(lambda x: 'border: 1px solid red red;')
+    ...         .to_excel('styled.xlsx') # doctest: +SKIP
+    ... # CSSWarning: Too many tokens provided to "border" (expected 1-3)
     """

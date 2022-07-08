@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
+    TypeVar,
     cast,
     final,
 )
@@ -22,7 +23,10 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -42,7 +46,9 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     infer_fill_value,
+    is_valid_na_for_dtype,
     isna,
+    na_value_for_dtype,
 )
 
 from pandas.core import algorithms as algos
@@ -68,6 +74,8 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+
+_LocationIndexerT = TypeVar("_LocationIndexerT", bound="_LocationIndexer")
 
 # "null slice"
 _NS = slice(None, None)
@@ -521,6 +529,9 @@ class IndexingMixin:
         sidewinder mark i          10      20
                    mark ii          1       4
         viper      mark ii          7       1
+
+        Please see the :ref:`user guide<advanced.advanced_hierarchical>`
+        for more details and explanations of advanced indexing.
         """
         return _LocIndexer("loc", self)
 
@@ -646,7 +657,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     _takeable: bool
 
     @final
-    def __call__(self, axis=None):
+    def __call__(self: _LocationIndexerT, axis=None) -> _LocationIndexerT:
         # we need to return a copy of ourselves
         new_self = type(self)(self.name, self.obj)
 
@@ -790,7 +801,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)
 
     @final
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         check_deprecated_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
@@ -1977,7 +1988,11 @@ class _iLocIndexer(_LocationIndexer):
         # We will not operate in-place, but will attempt to in the future.
         #  To determine whether we need to issue a FutureWarning, see if the
         #  setting in-place would work, i.e. behavior will change.
-        warn = can_hold_element(orig_values, value)
+        if isinstance(value, ABCSeries):
+            warn = can_hold_element(orig_values, value._values)
+        else:
+            warn = can_hold_element(orig_values, value)
+
         # Don't issue the warning yet, as we can still trim a few cases where
         #  behavior will not change.
 
@@ -1989,11 +2004,16 @@ class _iLocIndexer(_LocationIndexer):
             if (
                 isinstance(new_values, np.ndarray)
                 and isinstance(orig_values, np.ndarray)
-                and np.shares_memory(new_values, orig_values)
+                and (
+                    np.shares_memory(new_values, orig_values)
+                    or new_values.shape != orig_values.shape
+                )
             ):
                 # TODO: get something like tm.shares_memory working?
                 # The values were set inplace after all, no need to warn,
                 #  e.g. test_rename_nocopy
+                # In case of enlarging we can not set inplace, so need to
+                # warn either
                 pass
             else:
                 warnings.warn(
@@ -2080,8 +2100,23 @@ class _iLocIndexer(_LocationIndexer):
                     # We get only here with loc, so can hard code
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
-            # this preserves dtype of the value
-            new_values = Series([value])._values
+            # this preserves dtype of the value and of the object
+            if is_valid_na_for_dtype(value, self.obj.dtype):
+                value = na_value_for_dtype(self.obj.dtype, compat=False)
+                new_dtype = maybe_promote(self.obj.dtype, value)[0]
+            elif isna(value):
+                new_dtype = None
+            elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
+                # We should not cast, if we have object dtype because we can
+                # set timedeltas into object series
+                curr_dtype = self.obj.dtype
+                curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
+                new_dtype = maybe_promote(curr_dtype, value)[0]
+            else:
+                new_dtype = None
+
+            new_values = Series([value], dtype=new_dtype)._values
+
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
@@ -2335,7 +2370,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
         key = self._convert_key(key)
         return self.obj._get_value(*key, takeable=self._takeable)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:

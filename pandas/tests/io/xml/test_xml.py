@@ -789,6 +789,81 @@ def test_names_option_output(datapath, parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
+def test_repeat_names(parser):
+    xml = """\
+<shapes>
+  <shape type="2D">
+    <name>circle</name>
+    <type>curved</type>
+  </shape>
+  <shape type="3D">
+    <name>sphere</name>
+    <type>curved</type>
+  </shape>
+</shapes>"""
+    df_xpath = read_xml(
+        xml, xpath=".//shape", parser=parser, names=["type_dim", "shape", "type_edge"]
+    )
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"shape": ["type", "name", "type"]},
+        names=["type_dim", "shape", "type_edge"],
+    )
+
+    df_expected = DataFrame(
+        {
+            "type_dim": ["2D", "3D"],
+            "shape": ["circle", "sphere"],
+            "type_edge": ["curved", "curved"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+def test_repeat_values_new_names(parser):
+    xml = """\
+<shapes>
+  <shape>
+    <name>rectangle</name>
+    <family>rectangle</family>
+  </shape>
+  <shape>
+    <name>square</name>
+    <family>rectangle</family>
+  </shape>
+  <shape>
+    <name>ellipse</name>
+    <family>ellipse</family>
+  </shape>
+  <shape>
+    <name>circle</name>
+    <family>ellipse</family>
+  </shape>
+</shapes>"""
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser, names=["name", "group"])
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"shape": ["name", "family"]},
+        names=["name", "group"],
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["rectangle", "square", "ellipse", "circle"],
+            "group": ["rectangle", "rectangle", "ellipse", "ellipse"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
 def test_names_option_wrong_length(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
@@ -1236,7 +1311,7 @@ def test_wrong_dict_value(datapath, parser):
         read_xml(filename, parser=parser, iterparse={"book": "category"})
 
 
-def test_bad_xml(datapath, parser):
+def test_bad_xml(parser):
     bad_xml = """\
 <?xml version='1.0' encoding='utf-8'?>
   <row>
@@ -1275,6 +1350,113 @@ def test_bad_xml(datapath, parser):
                 parse_dates=["date"],
                 iterparse={"row": ["shape", "degrees", "sides", "date"]},
             )
+
+
+def test_comment(parser):
+    xml = """\
+<!-- comment before root -->
+<shapes>
+  <!-- comment within root -->
+  <shape>
+    <name>circle</name>
+    <type>2D</type>
+  </shape>
+  <shape>
+    <name>sphere</name>
+    <type>3D</type>
+    <!-- comment within child -->
+  </shape>
+  <!-- comment within root -->
+</shapes>
+<!-- comment after root -->"""
+
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+
+    df_iter = read_xml_iterparse(
+        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "sphere"],
+            "type": ["2D", "3D"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+def test_dtd(parser):
+    xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE non-profits [
+    <!ELEMENT shapes (shape*) >
+    <!ELEMENT shape ( name, type )>
+    <!ELEMENT name (#PCDATA)>
+]>
+<shapes>
+  <shape>
+    <name>circle</name>
+    <type>2D</type>
+  </shape>
+  <shape>
+    <name>sphere</name>
+    <type>3D</type>
+  </shape>
+</shapes>"""
+
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+
+    df_iter = read_xml_iterparse(
+        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "sphere"],
+            "type": ["2D", "3D"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+def test_processing_instruction(parser):
+    xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="style.xsl"?>
+<?display table-view?>
+<?sort alpha-ascending?>
+<?textinfo whitespace is allowed ?>
+<?elementnames <shape>, <name>, <type> ?>
+<shapes>
+  <shape>
+    <name>circle</name>
+    <type>2D</type>
+  </shape>
+  <shape>
+    <name>sphere</name>
+    <type>3D</type>
+  </shape>
+</shapes>"""
+
+    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+
+    df_iter = read_xml_iterparse(
+        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+    )
+
+    df_expected = DataFrame(
+        {
+            "name": ["circle", "sphere"],
+            "type": ["2D", "3D"],
+        }
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_no_result(datapath, parser):

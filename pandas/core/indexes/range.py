@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterator,
     List,
     cast,
 )
@@ -43,6 +44,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
+from pandas.core.algorithms import resolve_na_sentinel
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
@@ -425,7 +427,7 @@ class RangeIndex(NumericIndex):
         return list(self._range)
 
     @doc(Int64Index.__iter__)
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
@@ -510,8 +512,13 @@ class RangeIndex(NumericIndex):
         return result
 
     def factorize(
-        self, sort: bool = False, na_sentinel: int | None = -1
+        self,
+        sort: bool = False,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
+        # resolve to emit warning if appropriate
+        resolve_na_sentinel(na_sentinel, use_na_sentinel)
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:

@@ -171,7 +171,7 @@ class WrappedCythonOp:
         f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
-        elif dtype == object:
+        elif dtype == np.dtype(object):
             if how in ["median", "cumprod"]:
                 # no fused types -> no __signatures__
                 raise NotImplementedError(
@@ -735,7 +735,7 @@ class BaseGrouper:
     def shape(self) -> Shape:
         return tuple(ping.ngroups for ping in self.groupings)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Hashable]:
         return iter(self.indices)
 
     @property

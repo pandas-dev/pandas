@@ -821,7 +821,10 @@ def get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            handle = get_lzma_file()(handle, ioargs.mode)
+            # error: Argument 1 to "LZMAFile" has incompatible type "Union[str,
+            # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
+            # PathLike[bytes]], IO[bytes]]]"
+            handle = get_lzma_file()(handle, ioargs.mode)  # type: ignore[arg-type]
 
         # Zstd Compression
         elif compression == "zstd":
@@ -925,7 +928,7 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     """
 
     @abstractmethod
-    def write_to_buffer(self):
+    def write_to_buffer(self) -> None:
         ...
 
     def close(self) -> None:
