@@ -9644,7 +9644,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> s = pd.Series(range(5))
         >>> t = pd.Series([True, False])
-        >>> s.where(t,99)
+        >>> s.where(t, 99)
         0     0
         1    99
         2    99
