@@ -275,6 +275,9 @@ Other enhancements
 - :class:`.DataError`, :class:`.SpecificationError`, :class:`.SettingWithCopyError`, :class:`.SettingWithCopyWarning`, :class:`.NumExprClobberingError`, :class:`.UndefinedVariableError`, and :class:`.IndexingError` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
 - Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
+- :meth:`DatetimeIndex.astype` now supports casting timezone-naive indexes to ``datetime64[s]``, ``datetime64[ms]``, and ``datetime64[us]``, and timezone-aware indexes to the corresponding ``datetime64[unit, tzname]`` dtypes (:issue:`47579`)
+- :class:`Series` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) will now successfully operate when the dtype is numeric and ``numeric_only=True`` is provided; previously this would raise a ``NotImplementedError`` (:issue:`47500`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -766,7 +769,8 @@ Other Deprecations
 - Deprecated the argument ``na_sentinel`` in :func:`factorize`, :meth:`Index.factorize`, and :meth:`.ExtensionArray.factorize`; pass ``use_na_sentinel=True`` instead to use the sentinel ``-1`` for NaN values and ``use_na_sentinel=False`` instead of ``na_sentinel=None`` to encode NaN values (:issue:`46910`)
 - Deprecated :meth:`DataFrameGroupBy.transform` not aligning the result when the UDF returned DataFrame (:issue:`45648`)
 - Clarified warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument (:issue:`46210`)
-
+- Deprecated :class:`Series` and :class:`Resampler` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) raising a ``NotImplementedError`` when the dtype is non-numric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
+- Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -792,6 +796,10 @@ Performance improvements
 - Performance improvement in :func:`read_excel` when ``nrows`` argument provided (:issue:`32727`)
 - Performance improvement in :meth:`.Styler.to_excel` when applying repeated CSS formats (:issue:`47371`)
 - Performance improvement in :meth:`MultiIndex.is_monotonic_increasing`  (:issue:`47458`)
+- Performance improvement in :class:`BusinessHour` ``str`` and ``repr`` (:issue:`44764`)
+- Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
+- Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
@@ -848,6 +856,7 @@ Conversion
 - Bug in metaclass of generic abstract dtypes causing :meth:`DataFrame.apply` and :meth:`Series.apply` to raise for the built-in function ``type`` (:issue:`46684`)
 - Bug in :meth:`DataFrame.to_records` returning inconsistent numpy types if the index was a :class:`MultiIndex` (:issue:`47263`)
 - Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
+- Bug in :meth:`DataFrame.apply` that returns a :class:`DataFrame` instead of a :class:`Series` when applied to an empty :class:`DataFrame` and ``axis=1`` (:issue:`39111`)
 
 Strings
 ^^^^^^^
@@ -878,8 +887,10 @@ Indexing
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
 - Bug in :meth:`DataFrame.loc` when setting values to a column and right hand side is a dictionary (:issue:`47216`)
+- Bug in :meth:`DataFrame.loc` when setting a :class:`DataFrame` not aligning index in some cases (:issue:`47578`)
 - Bug in :meth:`Series.__setitem__` with ``datetime64[ns]`` dtype, an all-``False`` boolean mask, and an incompatible value incorrectly casting to ``object`` instead of retaining ``datetime64[ns]`` dtype (:issue:`45967`)
 - Bug in :meth:`Index.__getitem__`  raising ``ValueError`` when indexer is from boolean dtype with ``NA`` (:issue:`45806`)
+- Bug in :meth:`Series.__setitem__` losing precision when enlarging :class:`Series` with scalar (:issue:`32346`)
 - Bug in :meth:`Series.mask` with ``inplace=True`` or setting values with a boolean mask with small integer dtypes incorrectly raising (:issue:`45750`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` and ``ExtensionDtype`` columns incorrectly raising (:issue:`45577`)
 - Bug in getting a column from a DataFrame with an object-dtype row index with datetime-like values: the resulting Series now preserves the exact object-dtype Index from the parent DataFrame (:issue:`42950`)
@@ -929,13 +940,15 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 - :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 - Bug in :func:`read_sas` with certain types of compressed SAS7BDAT files (:issue:`35545`)
+- Bug in :func:`read_excel` not forward filling :class:`MultiIndex` when no names were given (:issue:`47487`)
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 - Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
 - Bug in :meth:`DataFrame.to_excel` when writing an empty dataframe with :class:`MultiIndex` (:issue:`19543`)
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x40 control bytes (:issue:`31243`)
 - Bug in :func:`read_sas` that scrambled column names (:issue:`31243`)
--
+- Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
+- Bug in :func:`read_parquet` with ``use_nullable_dtypes=True`` where ``float64`` dtype was returned instead of nullable ``Float64`` dtype (:issue:`45694`)
 
 Period
 ^^^^^^
@@ -990,6 +1003,7 @@ Reshaping
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
 - Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
 - Bug in concatenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
+- Bug in :func:`concat` losing dtype of columns when ``join="outer"`` and ``sort=True`` (:issue:`47329`)
 - Bug in :func:`concat` not sorting the column names when ``None`` is included (:issue:`47331`)
 - Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)

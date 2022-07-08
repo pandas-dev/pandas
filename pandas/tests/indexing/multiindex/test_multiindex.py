@@ -218,3 +218,12 @@ class TestMultiIndexBasic:
         # GH 34019
         n = DataFrame([[1, 2], [1, 2]]).set_index([0, 1]).index.nunique()
         assert n == 1
+
+    def test_multiindex_repeated_keys(self):
+        # GH19414
+        tm.assert_series_equal(
+            Series([1, 2], MultiIndex.from_arrays([["a", "b"]])).loc[
+                ["a", "a", "b", "b"]
+            ],
+            Series([1, 1, 2, 2], MultiIndex.from_arrays([["a", "a", "b", "b"]])),
+        )
