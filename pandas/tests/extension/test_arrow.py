@@ -1378,7 +1378,15 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     )
                 )
             )
-        super().test_arith_series_with_array(data, all_arithmetic_operators)
+        op_name = all_arithmetic_operators
+        ser = pd.Series(data)
+        # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
+        # since ser.iloc[0] is a python scalar
+        other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
+        if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
+            # BaseOpsUtil._combine upcasts results while ops maintain original type
+            pass
+        self.check_opname(ser, op_name, other, exc=self.series_array_exc)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
