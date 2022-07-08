@@ -7776,6 +7776,14 @@ Align the differences on columns
 0    a     c  NaN   NaN
 2  NaN   NaN  3.0   4.0
 
+Assign suffixes
+
+>>> df.compare(df2, suffixes=("left", "right"))
+  col1       col3
+  left right left right
+0    a     c  NaN   NaN
+2  NaN   NaN  3.0   4.0
+
 Stack the differences on rows
 
 >>> df.compare(df2, align_axis=0)
@@ -7823,12 +7831,14 @@ Keep all original rows and columns and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
+        suffixes: Suffixes = ("self", "other"),
     ) -> DataFrame:
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
+            suffixes=suffixes,
         )
 
     def combine(

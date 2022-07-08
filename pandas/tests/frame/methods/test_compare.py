@@ -180,3 +180,28 @@ def test_compare_unaligned_objects():
         df1 = pd.DataFrame(np.ones((3, 3)))
         df2 = pd.DataFrame(np.zeros((2, 1)))
         df1.compare(df2)
+
+
+def test_compare_suffixes():
+    # GH
+    df1 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
+        columns=["col1", "col2", "col3"],
+    )
+    df2 = df1.copy()
+    df2.loc[0, "col1"] = "c"
+    df2.loc[2, "col3"] = 4.0
+
+    suffixes = ["left", "right"]
+    comp = df1.compare(df2, suffixes=suffixes)
+    expected = pd.DataFrame(
+        {
+            ("col1", "left"): {0: "a", 2: np.nan},
+            ("col1", "right"): {0: "c", 2: np.nan},
+            ("col3", "left"): {0: np.nan, 2: 3.0},
+            ("col3", "right"): {0: np.nan, 2: np.nan},
+        }
+    )
+    tm.assert_frame_equal(comp, expected)
+    result_suffixes = comp.columns.get_level_values(1).unique()
+    assert result_suffixes.isin(suffixes).all(), "suffixes not equal"

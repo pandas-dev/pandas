@@ -58,6 +58,7 @@ from pandas._typing import (
     Renamer,
     SortKind,
     StorageOptions,
+    Suffixes,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -8965,6 +8966,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         align_axis: Axis = 1,
         keep_shape: bool_t = False,
         keep_equal: bool_t = False,
+        suffixes: Suffixes = ("self", "other"),
     ):
         from pandas.core.reshape.concat import concat
 
@@ -8975,7 +8977,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         mask = ~((self == other) | (self.isna() & other.isna()))
-        keys = ["self", "other"]
 
         if not keep_equal:
             self = self.where(mask)
@@ -8990,13 +8991,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 self = self[mask]
                 other = other[mask]
+        if not isinstance(suffixes, tuple):
+            warnings.warn(
+                f"Passing 'suffixes' as a {type(suffixes)}, is not supported and may give "
+                "unexpected results. Provide 'suffixes' as a tuple instead. In the "
+                "future a 'TypeError' will be raised.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         if align_axis in (1, "columns"):  # This is needed for Series
             axis = 1
         else:
             axis = self._get_axis_number(align_axis)
 
-        diff = concat([self, other], axis=axis, keys=keys)
+        diff = concat([self, other], axis=axis, keys=suffixes)
 
         if axis >= self.ndim:
             # No need to reorganize data if stacking on new axis
