@@ -8993,9 +8993,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 other = other[mask]
         if not isinstance(suffixes, tuple):
             warnings.warn(
-                f"Passing 'suffixes' as a {type(suffixes)}, is not supported and may give "
-                "unexpected results. Provide 'suffixes' as a tuple instead. In the "
-                "future a 'TypeError' will be raised.",
+                f"Passing 'suffixes' as a {type(suffixes)}, is not supported "
+                "and may give unexpected results. Provide 'suffixes' as a tuple "
+                "instead. In the future a 'TypeError' will be raised.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
