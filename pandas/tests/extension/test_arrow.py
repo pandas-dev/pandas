@@ -180,6 +180,16 @@ def data_missing_for_sorting(data_for_grouping):
 
 
 @pytest.fixture
+def data_for_twos(data):
+    """Length-100 array in which all the elements are two."""
+    pa_dtype = data.dtype.pyarrow_dtype
+    if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+        return pd.array([2] * 100, dtype=data.dtype)
+    # tests will be xfailed where 2 is not a valid scalar for pa_dtype
+    return data
+
+
+@pytest.fixture
 def na_value():
     """The scalar missing value for this type. Default 'None'"""
     return pd.NA
@@ -1492,6 +1502,9 @@ class TestBaseMethods(base.BaseMethodsTests):
 
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
+
+    divmod_exc = NotImplementedError
+
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if all_arithmetic_operators in {
@@ -1548,7 +1561,9 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             )
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+    def test_arith_series_with_array(
+        self, data, all_arithmetic_operators, request, monkeypatch
+    ):
         pa_dtype = data.dtype.pyarrow_dtype
         if all_arithmetic_operators in {
             "__truediv__",
@@ -1574,15 +1589,51 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     )
                 )
             )
+        elif all_arithmetic_operators in (
+            "__sub__",
+            "__rsub__",
+        ) and pa.types.is_unsigned_integer(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason=(
+                        f"Implemented pyarrow.compute.subtract_checked "
+                        f"which raises on overflow for {pa_dtype}"
+                    ),
+                )
+            )
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
         # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
         # since ser.iloc[0] is a python scalar
         other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
         if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
-            # BaseOpsUtil._combine upcasts results while ops maintain original type
-            pass
+            # BaseOpsUtil._combine can upcast expected dtype
+            # (because it generates expected on python scalars)
+            # while ArrowExtensionArray maintains original type
+            super_combine = TestBaseArithmeticOps._combine
+
+            def _patch_combine(self, obj, other, op):
+                expected = super_combine(self, obj, other, op)
+                if isinstance(expected, pd.Series):
+                    pa_array = pa.array(expected._values).cast(obj.dtype.pyarrow_dtype)
+                    pd_array = type(expected._values)(pa_array)
+                    expected = pd.Series(pd_array)
+                return expected
+
+            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", _patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
+
+    def test_add_series_with_extension_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"add_checked not implemented for {pa_dtype}",
+                )
+            )
+        super().test_add_series_with_extension_array(data)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
