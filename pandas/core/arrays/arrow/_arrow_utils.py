@@ -112,7 +112,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         # attributes need to be set first before calling
         # super init (as that calls serialize)
         assert inclusive in VALID_CLOSED
-        self._closed = inclusive
+        self._closed: IntervalInclusiveType = inclusive
         if not isinstance(subtype, pyarrow.DataType):
             subtype = pyarrow.type_for_alias(str(subtype))
         self._subtype = subtype
