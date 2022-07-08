@@ -9,9 +9,12 @@ import pandas._testing as tm
 from pandas.core.tools.datetimes import to_time as to_time_alias
 from pandas.core.tools.times import to_time
 
+# The tests marked with this are locale-dependent.
+# They pass, except when the machine locale is zh_CN or it_IT.
 fails_on_non_english = pytest.mark.xfail(
     locale.getlocale()[0] in ("zh_CN", "it_IT"),
     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+    strict=False,
 )
 
 
