@@ -190,9 +190,9 @@ def test_compare_suffixes():
     )
     df2 = df1.copy()
     df2.loc[0, "col1"] = "c"
-    df2.loc[2, "col3"] = 4.0
+    df2.loc[2, "col3"] = np.nan
 
-    suffixes = ["left", "right"]
+    suffixes = ("left", "right")
     comp = df1.compare(df2, suffixes=suffixes)
     expected = pd.DataFrame(
         {
