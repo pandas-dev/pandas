@@ -1296,8 +1296,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
-    series_scalar_exc = None
-
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if all_arithmetic_operators in {
@@ -1325,6 +1323,62 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 )
             )
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if all_arithmetic_operators in {
+            "__truediv__",
+            "__rtruediv__",
+            "__floordiv__",
+            "__rfloordiv__",
+            "__mod__",
+            "__rmod__",
+        }:
+            self.frame_scalar_exc = NotImplementedError
+        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+            self.frame_scalar_exc = pa.ArrowNotImplementedError
+        else:
+            self.frame_scalar_exc = None
+        if all_arithmetic_operators == "__rpow__" and (
+            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"GH 29997: 1**pandas.NA == 1 while 1**pyarrow.NA == NULL "
+                        f"for {pa_dtype}"
+                    )
+                )
+            )
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if all_arithmetic_operators in {
+            "__truediv__",
+            "__rtruediv__",
+            "__floordiv__",
+            "__rfloordiv__",
+            "__mod__",
+            "__rmod__",
+        }:
+            self.series_array_exc = NotImplementedError
+        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+            self.series_array_exc = pa.ArrowNotImplementedError
+        else:
+            self.series_array_exc = None
+        if all_arithmetic_operators == "__rpow__" and (
+            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"GH 29997: 1**pandas.NA == 1 while 1**pyarrow.NA == NULL "
+                        f"for {pa_dtype}"
+                    )
+                )
+            )
+        super().test_arith_series_with_array(data, all_arithmetic_operators)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
