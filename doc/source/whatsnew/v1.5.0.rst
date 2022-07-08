@@ -1,4 +1,3 @@
-
 .. _whatsnew_150:
 
 What's new in 1.5.0 (??)
