@@ -761,6 +761,7 @@ generated/pandas.IntervalIndex.mid,../reference/api/pandas.IntervalIndex.mid
 generated/pandas.IntervalIndex.overlaps,../reference/api/pandas.IntervalIndex.overlaps
 generated/pandas.IntervalIndex.right,../reference/api/pandas.IntervalIndex.right
 generated/pandas.IntervalIndex.set_closed,../reference/api/pandas.IntervalIndex.set_closed
+generated/pandas.IntervalIndex.set_inclusive,../reference/api/pandas.IntervalIndex.set_inclusive
 generated/pandas.IntervalIndex.to_tuples,../reference/api/pandas.IntervalIndex.to_tuples
 generated/pandas.IntervalIndex.values,../reference/api/pandas.IntervalIndex.values
 generated/pandas.Interval.left,../reference/api/pandas.Interval.left

@@ -871,21 +871,21 @@ class TestIntervalIndex:
         expected = 64  # 4 * 8 * 2
         assert result == expected
 
-    @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
-    def test_set_closed(self, name, closed, new_closed):
+    @pytest.mark.parametrize("new_inclusive", ["left", "right", "both", "neither"])
+    def test_set_inclusive(self, name, closed, new_inclusive):
         # GH 21670
         index = interval_range(0, 5, inclusive=closed, name=name)
-        result = index.set_closed(new_closed)
-        expected = interval_range(0, 5, inclusive=new_closed, name=name)
+        result = index.set_inclusive(new_inclusive)
+        expected = interval_range(0, 5, inclusive=new_inclusive, name=name)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("bad_inclusive", ["foo", 10, "LEFT", True, False])
-    def test_set_closed_errors(self, bad_inclusive):
+    def test_set_inclusive_errors(self, bad_inclusive):
         # GH 21670
         index = interval_range(0, 5)
         msg = f"invalid option for 'inclusive': {bad_inclusive}"
         with pytest.raises(ValueError, match=msg):
-            index.set_closed(bad_inclusive)
+            index.set_inclusive(bad_inclusive)
 
     def test_is_all_dates(self):
         # GH 23576

@@ -179,7 +179,7 @@ def _new_IntervalIndex(cls, d):
         ),
     }
 )
-@inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
+@inherit_names(["set_closed", "set_inclusive", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
     [
         "__array__",
