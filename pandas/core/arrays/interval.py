@@ -155,6 +155,7 @@ from_tuples
 from_breaks
 contains
 overlaps
+set_closed
 set_inclusive
 to_tuples
 %(extra_methods)s\
