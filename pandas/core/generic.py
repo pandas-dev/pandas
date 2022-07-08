@@ -9571,8 +9571,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool {klass}, array-like, or callable
             Where `cond` is {cond}, keep the original value. Where
             {cond_rev}, replace with corresponding value from `other`.
-            if `cond` {klass} is less in size than `other`, the default bool
-            for the missing value is {cond_rev}.
             If `cond` is callable, it is computed on the {klass} and
             should return boolean {klass} or array. The callable must
             not change input {klass} (though pandas doesn't check it).
