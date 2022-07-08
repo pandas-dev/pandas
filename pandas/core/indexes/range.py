@@ -437,6 +437,8 @@ class RangeIndex(NumericIndex):
 
         if values.dtype.kind == "f":
             return Float64Index(values, name=name)
+        # GH 46675 & 43885: If values is equally spaced, return a
+        # more memory-compact RangeIndex instead of Int64Index
         unique_diffs = unique_deltas(values)
         if len(unique_diffs) == 1 and unique_diffs[0] != 0:
             diff = unique_diffs[0]
