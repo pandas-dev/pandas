@@ -2532,18 +2532,20 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     """
     result = key
     if isinstance(key, ABCSeries) and not key.index.equals(index):
-        if is_extension_array_dtype(result):
-            result[result.values._mask] = False
-
-        result = result.reindex(index)
-        mask = isna(result._values)
-        if mask.any():
+        indexer = result.index.get_indexer_for(index)
+        if -1 in indexer:
             raise IndexingError(
                 "Unalignable boolean Series provided as "
                 "indexer (index of the boolean Series and of "
                 "the indexed object do not match)."
             )
-        return result.astype(bool)._values
+
+        result = result.take(indexer)
+
+        # fall through for boolean
+        if not is_extension_array_dtype(result.dtype):
+            return result.astype(bool)._values
+
     if is_object_dtype(key):
         # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
