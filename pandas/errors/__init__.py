@@ -439,3 +439,18 @@ class ClosedFileError(Exception):
     >>> store.keys() # doctest: +SKIP
     ... # ClosedFileError: my-store file is not open!
     """
+
+
+class IncompatibilityWarning(Warning):
+    """
+    Warning is raised when trying to use where criteria on an incompatible
+    HDF5 file.
+    """
+
+
+class AttributeConflictWarning(Warning):
+    """
+    Warning is raised when attempting to append an index with a different
+    name than the existing index on an HDFStore or attempting to append an index with a
+    dffierent frequency than the existing index on an HDFStore.
+    """

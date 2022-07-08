@@ -49,7 +49,9 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
+    AttributeConflictWarning,
     ClosedFileError,
+    IncompatibilityWarning,
     PerformanceWarning,
     PossibleDataLossError,
 )
@@ -173,33 +175,15 @@ def _ensure_term(where, scope_level: int):
     return where if where is None or len(where) else None
 
 
-class IncompatibilityWarning(Warning):
-    pass
-
-
 incompatibility_doc = """
 where criteria is being ignored as this version [%s] is too old (or
 not-defined), read the file in and write it out to a new file to upgrade (with
 the copy_to method)
 """
 
-
-class AttributeConflictWarning(Warning):
-    pass
-
-
 attribute_conflict_doc = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
 [%s], resetting the attribute to None
-"""
-
-
-class DuplicateWarning(Warning):
-    pass
-
-
-duplicate_doc = """
-duplicate entries in table, taking most recently appended
 """
 
 performance_doc = """
@@ -3546,7 +3530,7 @@ class Table(Fixed):
     def validate_version(self, where=None) -> None:
         """are we trying to operate on an old version?"""
         if where is not None:
-            if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
+            if self.is_old_version:
                 ws = incompatibility_doc % ".".join([str(x) for x in self.version])
                 warnings.warn(ws, IncompatibilityWarning)
 

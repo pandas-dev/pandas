@@ -32,6 +32,8 @@ import pandas as pd
         "CSSWarning",
         "ClosedFileError",
         "PossibleDataLossError",
+        "IncompatibilityWarning",
+        "AttributeConflictWarning",
     ],
 )
 def test_exception_importable(exc):

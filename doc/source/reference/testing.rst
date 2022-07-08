@@ -26,12 +26,14 @@ Exceptions and warnings
 
    errors.AbstractMethodError
    errors.AccessorRegistrationWarning
+   errors.AttributeConflictWarning
    errors.ClosedFileError
    errors.CSSWarning
    errors.DataError
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError
+   errors.IncompatibilityWarning
    errors.IndexingError
    errors.InvalidIndexError
    errors.IntCastingNaNError
