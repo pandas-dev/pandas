@@ -351,6 +351,7 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
       arrays.IntervalArray.from_breaks
       arrays.IntervalArray.contains
       arrays.IntervalArray.overlaps
+      arrays.IntervalArray.set_closed
       arrays.IntervalArray.set_inclusive
       arrays.IntervalArray.to_tuples
 
