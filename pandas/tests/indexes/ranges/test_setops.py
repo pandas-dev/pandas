@@ -283,6 +283,7 @@ class TestRangeIndexSetOps:
                 RangeIndex(0, 10),
             ),
         ],
+        ids=lambda x: repr(x) if isinstance(x, RangeIndex) else x,
     )
     def test_union_sorted(self, idx1, idx2, expected_sorted, expected_notsorted):
         res1 = idx1.union(idx2, sort=None)
