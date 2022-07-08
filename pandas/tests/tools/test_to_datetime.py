@@ -284,6 +284,8 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
+            # The 3 tests below are locale-dependent.
+            # They pass, except when the machine locale is zh_CN or it_IT .
             pytest.param(
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
