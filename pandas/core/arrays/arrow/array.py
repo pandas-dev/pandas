@@ -68,7 +68,7 @@ if not pa_version_under1p01:
 
     ARROW_ARITHMETIC_FUNCS = {
         "add": pc.add_checked,
-        "radd": lambda x, y: pc.add(y, x),
+        "radd": lambda x, y: pc.add_checked(y, x),
         "sub": pc.subtract_checked,
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
