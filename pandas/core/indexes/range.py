@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterator,
     List,
     cast,
 )
@@ -426,7 +427,7 @@ class RangeIndex(NumericIndex):
         return list(self._range)
 
     @doc(Int64Index.__iter__)
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
