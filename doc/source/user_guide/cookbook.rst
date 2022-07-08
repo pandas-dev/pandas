@@ -1171,9 +1171,9 @@ Option 2: read column names and then data
 .. ipython:: python
 
     pd.read_csv(StringIO(data), sep=";", header=10, nrows=10).columns
-    columns = pd.read_csv(StringIO(data), sep=";", header=10, nrows=10).columns
+    column_schema = pd.read_csv(StringIO(data), sep=";", header=10, nrows=10).columns
     pd.read_csv(
-        StringIO(data), sep=";", index_col=0, header=12, parse_dates=True, names=columns
+        StringIO(data), sep=";", index_col=0, header=12, parse_dates=True, names=column_schema
     )
 
 

@@ -1581,8 +1581,8 @@ The name, if set, will be shown in the console display:
 .. ipython:: python
 
    index = pd.Index(list(range(5)), name='rows')
-   columns = pd.Index(['A', 'B', 'C'], name='cols')
-   df = pd.DataFrame(np.random.randn(5, 3), index=index, columns=columns)
+   column_schema = pd.Index(['A', 'B', 'C'], name='cols')
+   df = pd.DataFrame(np.random.randn(5, 3), index=index, columns=column_schema)
    df
    df['A']
 

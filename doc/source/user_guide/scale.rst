@@ -73,15 +73,15 @@ Option 1 loads in all the data and then filters to what we need.
 
 .. ipython:: python
 
-   columns = ["id_0", "name_0", "x_0", "y_0"]
+   column_schema = ["id_0", "name_0", "x_0", "y_0"]
 
-   pd.read_parquet("timeseries_wide.parquet")[columns]
+   pd.read_parquet("timeseries_wide.parquet")[column_schema]
 
 Option 2 only loads the columns we request.
 
 .. ipython:: python
 
-   pd.read_parquet("timeseries_wide.parquet", columns=columns)
+   pd.read_parquet("timeseries_wide.parquet", columns=column_schema)
 
 .. ipython:: python
    :suppress:

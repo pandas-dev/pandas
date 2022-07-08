@@ -133,8 +133,8 @@ with a combination of the ``iloc`` indexer attribute and ``numpy.r_``.
 
    named = list("abcdefg")
    n = 30
-   columns = named + np.arange(len(named), n).tolist()
-   df = pd.DataFrame(np.random.randn(n, n), columns=columns)
+   column_schema = named + np.arange(len(named), n).tolist()
+   df = pd.DataFrame(np.random.randn(n, n), columns=column_schema)
 
    df.iloc[:, np.r_[:10, 24:30]]
 

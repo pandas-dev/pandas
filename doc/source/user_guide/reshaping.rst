@@ -179,7 +179,7 @@ processed individually.
 
 .. ipython:: python
 
-    columns = pd.MultiIndex.from_tuples(
+    column_schema = pd.MultiIndex.from_tuples(
         [
             ("A", "cat", "long"),
             ("B", "cat", "long"),
@@ -188,7 +188,7 @@ processed individually.
         ],
         names=["exp", "animal", "hair_length"],
     )
-    df = pd.DataFrame(np.random.randn(4, 4), columns=columns)
+    df = pd.DataFrame(np.random.randn(4, 4), columns=column_schema)
     df
 
     df.stack(level=["animal", "hair_length"])
@@ -212,7 +212,7 @@ calling :meth:`~DataFrame.sort_index`, of course). Here is a more complex exampl
 
 .. ipython:: python
 
-   columns = pd.MultiIndex.from_tuples(
+   column_schema = pd.MultiIndex.from_tuples(
        [
            ("A", "cat"),
            ("B", "dog"),
@@ -224,7 +224,7 @@ calling :meth:`~DataFrame.sort_index`, of course). Here is a more complex exampl
    index = pd.MultiIndex.from_product(
        [("bar", "baz", "foo", "qux"), ("one", "two")], names=["first", "second"]
    )
-   df = pd.DataFrame(np.random.randn(8, 4), index=index, columns=columns)
+   df = pd.DataFrame(np.random.randn(8, 4), index=index, columns=column_schema)
    df2 = df.iloc[[0, 1, 2, 4, 5, 7]]
    df2
 
