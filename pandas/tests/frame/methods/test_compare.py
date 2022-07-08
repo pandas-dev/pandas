@@ -183,7 +183,7 @@ def test_compare_unaligned_objects():
 
 
 def test_compare_suffixes():
-    #44354
+    # 44354
     df1 = pd.DataFrame(
         {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
     )
