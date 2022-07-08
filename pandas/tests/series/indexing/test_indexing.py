@@ -5,7 +5,10 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
+
 from pandas import (
+    NA,
     DataFrame,
     IndexSlice,
     MultiIndex,
@@ -328,6 +331,22 @@ def test_loc_setitem_all_false_indexer():
     rhs = Series([6, 7], index=["a", "b"])
     ser.loc[ser > 100] = rhs
     tm.assert_series_equal(ser, expected)
+
+
+def test_loc_boolean_indexer_non_matching_index():
+    # GH#46551
+    ser = Series([1])
+    result = ser.loc[Series([NA, False], dtype="boolean")]
+    expected = Series([], dtype="int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_boolean_indexer_miss_matching_index():
+    # GH#46551
+    ser = Series([1])
+    indexer = Series([NA, False], dtype="boolean", index=[1, 2])
+    with pytest.raises(IndexingError, match="Unalignable"):
+        ser.loc[indexer]
 
 
 class TestDeprecatedIndexers:
