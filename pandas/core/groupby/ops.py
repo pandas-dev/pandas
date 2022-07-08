@@ -800,14 +800,19 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter)
 
         for key, group in zipped:
-            object.__setattr__(group, "name", key)
+            # BUG 47350 if added by hamedgibago
+            if key in data.index:
+                object.__setattr__(group, "name", key)
 
-            # group might be modified
-            group_axes = group.axes
-            res = f(group)
-            if not mutated and not _is_indexed_like(res, group_axes, axis):
-                mutated = True
-            result_values.append(res)
+                # group might be modified
+                group_axes = group.axes
+                res = f(group)
+                if not mutated and not _is_indexed_like(res, group_axes, axis):
+                    mutated = True
+                result_values.append(res)
+            # BUG 47350 else added by hamedgibago
+            else:
+                result_values.append(np.nan)
 
         # getattr pattern for __name__ is needed for functools.partial objects
         if len(group_keys) == 0 and getattr(f, "__name__", None) not in [
