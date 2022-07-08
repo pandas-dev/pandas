@@ -164,6 +164,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
+        Suffixes,
     )
 
     from pandas.core.frame import DataFrame
@@ -3236,12 +3237,14 @@ Keep all original rows and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
+        suffixes: Suffixes = ("self", "other"),
     ) -> DataFrame | Series:
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
+            suffixes = suffixes,
         )
 
     def combine(self, other, func, fill_value=None) -> Series:
