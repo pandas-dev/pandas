@@ -101,18 +101,23 @@ class TestAsUnit:
 
 
 class TestNonNano:
-    @pytest.fixture(params=[7, 8, 9])
-    def unit(self, request):
-        # 7, 8, 9 correspond to second, millisecond, and microsecond, respectively
+    @pytest.fixture(params=["s", "ms", "us"])
+    def unit_str(self, request):
         return request.param
+
+    @pytest.fixture
+    def unit(self, unit_str):
+        # 7, 8, 9 correspond to second, millisecond, and microsecond, respectively
+        attr = f"NPY_FR_{unit_str}"
+        return getattr(NpyDatetimeUnit, attr).value
 
     @pytest.fixture
     def val(self, unit):
         # microsecond that would be just out of bounds for nano
         us = 9223372800000000
-        if unit == 9:
+        if unit == NpyDatetimeUnit.NPY_FR_us.value:
             value = us
-        elif unit == 8:
+        elif unit == NpyDatetimeUnit.NPY_FR_ms.value:
             value = us // 1000
         else:
             value = us // 1_000_000
@@ -166,11 +171,11 @@ class TestNonNano:
 
             assert isinstance(res, np.timedelta64)
             assert res.view("i8") == td.value
-            if unit == 7:
+            if unit == NpyDatetimeUnit.NPY_FR_s.value:
                 assert res.dtype == "m8[s]"
-            elif unit == 8:
+            elif unit == NpyDatetimeUnit.NPY_FR_ms.value:
                 assert res.dtype == "m8[ms]"
-            elif unit == 9:
+            elif unit == NpyDatetimeUnit.NPY_FR_us.value:
                 assert res.dtype == "m8[us]"
 
     def test_truediv_timedeltalike(self, td):
@@ -265,6 +270,35 @@ class TestNonNano:
             td - other2
         with pytest.raises(ValueError, match=msg):
             other2 - td
+
+    def test_min(self, td):
+        assert td.min <= td
+        assert td.min._reso == td._reso
+        assert td.min.value == NaT.value + 1
+
+    def test_max(self, td):
+        assert td.max >= td
+        assert td.max._reso == td._reso
+        assert td.max.value == np.iinfo(np.int64).max
+
+    def test_resolution(self, td):
+        expected = Timedelta._from_value_and_reso(1, td._reso)
+        result = td.resolution
+        assert result == expected
+        assert result._reso == expected._reso
+
+
+def test_timedelta_class_min_max_resolution():
+    # when accessed on the class (as opposed to an instance), we default
+    #  to nanoseconds
+    assert Timedelta.min == Timedelta(NaT.value + 1)
+    assert Timedelta.min._reso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    assert Timedelta.max == Timedelta(np.iinfo(np.int64).max)
+    assert Timedelta.max._reso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    assert Timedelta.resolution == Timedelta(1)
+    assert Timedelta.resolution._reso == NpyDatetimeUnit.NPY_FR_ns.value
 
 
 class TestTimedeltaUnaryOps:

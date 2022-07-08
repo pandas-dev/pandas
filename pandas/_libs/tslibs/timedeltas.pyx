@@ -950,14 +950,18 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
+    # For millisecond and second resos, we cannot actually pass int(value) because
+    #  many cases would fall outside of the pytimedelta implementation bounds.
+    #  We pass 0 instead, and override seconds, microseconds, days.
+    #  In principle we could pass 0 for ns and us too.
     if reso == NPY_FR_ns:
         td_base = _Timedelta.__new__(Timedelta, microseconds=int(value) // 1000)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(Timedelta, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        td_base = _Timedelta.__new__(Timedelta, milliseconds=int(value))
+        td_base = _Timedelta.__new__(Timedelta, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        td_base = _Timedelta.__new__(Timedelta, seconds=int(value))
+        td_base = _Timedelta.__new__(Timedelta, seconds=0)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
     #    td_base = _Timedelta.__new__(Timedelta, minutes=int(value))
@@ -977,6 +981,34 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
     return td_base
 
 
+class MinMaxReso:
+    """
+    We need to define min/max/resolution on both the Timedelta _instance_
+    and Timedelta class.  On an instance, these depend on the object's _reso.
+    On the class, we default to the values we would get with nanosecond _reso.
+    """
+    def __init__(self, name):
+        self._name = name
+
+    def __get__(self, obj, type=None):
+        if self._name == "min":
+            val = np.iinfo(np.int64).min + 1
+        elif self._name == "max":
+            val = np.iinfo(np.int64).max
+        else:
+            assert self._name == "resolution"
+            val = 1
+
+        if obj is None:
+            # i.e. this is on the class, default to nanos
+            return Timedelta(val)
+        else:
+            return Timedelta._from_value_and_reso(val, obj._reso)
+
+    def __set__(self, obj, value):
+        raise AttributeError(f"{self._name} is not settable.")
+
+
 # Similar to Timestamp/datetime, this is a construction requirement for
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
@@ -990,6 +1022,36 @@ cdef class _Timedelta(timedelta):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+    min = MinMaxReso("min")
+    max = MinMaxReso("max")
+    resolution = MinMaxReso("resolution")
+
+    @property
+    def days(self) -> int:  # TODO(cython3): make cdef property
+        # NB: using the python C-API PyDateTime_DELTA_GET_DAYS will fail
+        #  (or be incorrect)
+        self._ensure_components()
+        return self._d
+
+    @property
+    def seconds(self) -> int:  # TODO(cython3): make cdef property
+        # NB: using the python C-API PyDateTime_DELTA_GET_SECONDS will fail
+        #  (or be incorrect)
+        self._ensure_components()
+        return self._h * 3600 + self._m * 60 + self._s
+
+    @property
+    def microseconds(self) -> int:  # TODO(cython3): make cdef property
+        # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
+        #  (or be incorrect)
+        self._ensure_components()
+        return self._ms * 1000 + self._us
+
+    def total_seconds(self) -> float:
+        """Total seconds in the duration."""
+        # We need to override bc we overrided days/seconds/microseconds
+        # TODO: add nanos/1e9?
+        return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
 
     @property
     def freq(self) -> None:
@@ -1979,9 +2041,3 @@ cdef _broadcast_floordiv_td64(
         res = res.astype('f8')
         res[mask] = np.nan
     return res
-
-
-# resolution in ns
-Timedelta.min = Timedelta(np.iinfo(np.int64).min + 1)
-Timedelta.max = Timedelta(np.iinfo(np.int64).max)
-Timedelta.resolution = Timedelta(nanoseconds=1)
