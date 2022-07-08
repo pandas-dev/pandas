@@ -382,21 +382,3 @@ def test_assert_series_equal_identical_na(nulls_fixture):
     # while we're here do Index too
     idx = pd.Index(ser)
     tm.assert_index_equal(idx, idx.copy(deep=True))
-
-
-@pytest.mark.parametrize(
-    "test, constant",
-    [
-        ({"a": [1, 2, 3], "b": [1, 1, 1]}, {"a": [1, 2, 3], "b": 1}),
-        ({"a": [2, 2, 2], "b": [1, 1, 1]}, {"a": 2, "b": 1}),
-    ],
-)
-def test_unique_agg_type_is_series(test, constant):
-    # GH#22558
-    df1 = DataFrame(test)
-    expected = Series(data=constant, index=["a", "b"], dtype="object")
-    aggregation = {"a": "unique", "b": "unique"}
-
-    result = df1.agg(aggregation)
-
-    tm.assert_series_equal(result, expected)
