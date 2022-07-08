@@ -529,7 +529,7 @@ def getMixedTypeDict():
     return index, data
 
 
-def makeMixedDataFrame():
+def makeMixedDataFrame() -> DataFrame:
     return DataFrame(getMixedTypeDict()[1])
 
 
