@@ -9616,7 +9616,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The {name} method is an application of the if-then idiom. For each
         element in the calling DataFrame, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from the DataFrame
-        ``other`` is used.
+        ``other`` is used. If `cond` {klass} is less in size than `other`, the default bool
+        for the missing value is {cond_rev}.
 
         The signature for :func:`DataFrame.where` differs from
         :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
@@ -9642,6 +9643,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    NaN
         4    NaN
         dtype: float64
+
+        >>> s = pd.Series(range(5))
+        >>> t = pd.Series([True, False])
+        >>> s.where(t,99)
+        0     0
+        1    99
+        2    99
+        3    99
+        4    99
+        dtype: int64
+        >>> s.mask(t, 99)
+        0    99
+        1     1
+        2    99
+        3    99
+        4    99
+        dtype: int64
 
         >>> s.where(s > 1, 10)
         0    10
