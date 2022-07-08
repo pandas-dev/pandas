@@ -213,3 +213,8 @@ class TestMultiIndexBasic:
 
         tm.assert_series_equal(result[0], a_series_expected)
         tm.assert_series_equal(result[1], b_series_expected)
+
+    def test_nunique_raises_not_implemented_error(self):
+        # GH 34019
+        n = DataFrame([[1, 2], [1, 2]]).set_index([0, 1]).index.nunique()
+        assert n == 1
