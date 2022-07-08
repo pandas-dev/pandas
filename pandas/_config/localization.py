@@ -17,28 +17,6 @@ from typing import (
 from pandas._config.config import options
 
 
-def get_current_locale(lc_var: int = locale.LC_ALL) -> str:
-    """
-    Return the current locale associated with category ``lc_var``.
-    This is a convenience method to avoid misuses of ``getlocale``. Indeed the
-    result returned by ``getlocale`` can not always be used to set back the locale
-    using ``setlocale``. See GH#46595
-
-    Parameters
-    ----------
-    lc_var : int, default `locale.LC_ALL`
-        The category of the locale being set.
-
-    Returns
-    -------
-    locale_str : str
-        A string representing the current locale for category ``lc_var``, that
-        can be used safely with ``setlocale`` for the same category.
-    """
-    # Using `setlocale` with no second argument returns the current locale
-    return locale.setlocale(lc_var)
-
-
 @contextmanager
 def set_locale(
     new_locale: str | tuple[str, str], lc_var: int = locale.LC_ALL
@@ -61,8 +39,8 @@ def set_locale(
     particular locale, without globally setting the locale. This probably isn't
     thread-safe.
     """
-    # getlocale is not always compliant with setlocale, see GH#46595
-    current_locale = get_current_locale(lc_var=lc_var)
+    # getlocale is not always compliant with setlocale, use setlocale. GH#46595
+    current_locale = locale.setlocale(lc_var)
 
     try:
         locale.setlocale(lc_var, new_locale)

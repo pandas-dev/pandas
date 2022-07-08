@@ -21,7 +21,6 @@ import numpy as np
 
 from pandas._config.localization import (  # noqa:F401
     can_set_locale,
-    get_current_locale,
     get_locales,
     set_locale,
 )
