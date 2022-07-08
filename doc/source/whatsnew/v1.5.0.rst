@@ -277,7 +277,7 @@ Other enhancements
 - Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
 - :meth:`DatetimeIndex.astype` now supports casting timezone-naive indexes to ``datetime64[s]``, ``datetime64[ms]``, and ``datetime64[us]``, and timezone-aware indexes to the corresponding ``datetime64[unit, tzname]`` dtypes (:issue:`47579`)
 - :class:`Series` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) will now successfully operate when the dtype is numeric and ``numeric_only=True`` is provided; previously this would raise a ``NotImplementedError`` (:issue:`47500`)
-- :meth:`DataFrame.compare` now accepts a ``suffixes`` to allow the user to specify the suffixes of both left and right DataFrame which are being compared. This is by default ``self`` and ``other`` (:issue:`44354`)
+- :meth:`DataFrame.compare` now accepts a ``suffixes`` to allow the user to specify the suffixes of both left and right DataFrame which are being compared. This is by default ``'self'`` and ``'other'`` (:issue:`44354`)
 -
 
 .. ---------------------------------------------------------------------------

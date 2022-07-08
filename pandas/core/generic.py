@@ -8992,12 +8992,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 self = self[mask]
                 other = other[mask]
         if not isinstance(suffixes, tuple):
-            warnings.warn(
-                f"Passing 'suffixes' as a {type(suffixes)}, is not supported "
-                "and may give unexpected results. Provide 'suffixes' as a tuple "
-                "instead. In the future a 'TypeError' will be raised.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
+            raise TypeError(
+                f"Passing 'suffixes' as a {type(suffixes)}, is not "
+                "supported Provide 'suffixes' as a tuple instead."
             )
 
         if align_axis in (1, "columns"):  # This is needed for Series

@@ -186,14 +186,15 @@ def test_compare_suffixes():
     # GH
     df1 = pd.DataFrame(
         {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
-        columns=["col1", "col2", "col3"],
     )
-    df2 = df1.copy()
-    df2.loc[0, "col1"] = "c"
-    df2.loc[2, "col3"] = np.nan
-
-    suffixes = ("left", "right")
-    comp = df1.compare(df2, suffixes=suffixes)
+    df2 = pd.DataFrame(
+        {
+            "col1": ["c", "b", "c"],
+            "col2": [1.0, 2.0, np.nan],
+            "col3": [1.0, 2.0, np.nan],
+        },
+    )
+    result = df1.compare(df2, suffixes=("left", "right"))
     expected = pd.DataFrame(
         {
             ("col1", "left"): {0: "a", 2: np.nan},
@@ -202,6 +203,4 @@ def test_compare_suffixes():
             ("col3", "right"): {0: np.nan, 2: np.nan},
         }
     )
-    tm.assert_frame_equal(comp, expected)
-    result_suffixes = comp.columns.get_level_values(1).unique()
-    assert result_suffixes.isin(suffixes).all(), "suffixes not equal"
+    tm.assert_frame_equal(result, expected)

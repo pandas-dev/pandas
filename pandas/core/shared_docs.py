@@ -53,7 +53,7 @@ _shared_docs[
 ] = """
 Compare to another {klass} and show the differences.
 
-.. versionadded:: 1.5.0
+.. versionadded:: 1.1.0
 
 Parameters
 ----------
@@ -78,6 +78,8 @@ keep_equal : bool, default False
 
 suffixes : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
+
+    .. versionadded:: 1.5.0
 """
 
 _shared_docs[
