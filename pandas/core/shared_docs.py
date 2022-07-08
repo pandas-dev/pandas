@@ -78,7 +78,6 @@ keep_equal : bool, default False
 
 suffixes : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
-
 """
 
 _shared_docs[
