@@ -3244,7 +3244,7 @@ Keep all original rows and also all original values
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
-            suffixes = suffixes,
+            suffixes=suffixes,
         )
 
     def combine(self, other, func, fill_value=None) -> Series:
