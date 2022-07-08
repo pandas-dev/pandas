@@ -125,11 +125,11 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         return self._subtype
 
     @property
-    def inclusive(self) -> str:
+    def inclusive(self) -> IntervalInclusiveType:
         return self._closed
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalInclusiveType:
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,

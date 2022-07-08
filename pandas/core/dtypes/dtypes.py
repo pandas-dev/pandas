@@ -1141,7 +1141,11 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'inclusive' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        inclusive = gd["inclusive"]
+                        # Incompatible types in assignment (expression has type
+                        # "Union[str, Any]", variable has type
+                        # "Optional[Union[Literal['left', 'right'],
+                        # Literal['both', 'neither']]]")
+                        inclusive = gd["inclusive"]  # type: ignore[assignment]
 
             try:
                 subtype = pandas_dtype(subtype)
