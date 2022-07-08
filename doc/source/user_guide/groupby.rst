@@ -839,10 +839,10 @@ Alternatively, the built-in methods could be used to produce the same outputs.
 
 .. ipython:: python
 
-   max = ts.groupby(lambda x: x.year).transform("max")
-   min = ts.groupby(lambda x: x.year).transform("min")
+   max_ts = ts.groupby(lambda x: x.year).transform("max")
+   min_ts = ts.groupby(lambda x: x.year).transform("min")
 
-   max - min
+   max_ts - min_ts
 
 Another common data transform is to replace missing data with the group mean.
 
