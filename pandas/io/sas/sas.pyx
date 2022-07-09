@@ -1,13 +1,18 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
 from cython cimport Py_ssize_t
+from libc.stdint cimport (
+    int64_t,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
+
 import numpy as np
 
 import pandas.io.sas.sas_constants as const
 
-ctypedef signed long long   int64_t
-ctypedef unsigned char      uint8_t
-ctypedef unsigned short     uint16_t
 
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
@@ -194,7 +199,7 @@ cdef enum ColumnTypes:
     column_type_string = 2
 
 
-# type the page_data types
+# Const aliases
 assert len(const.page_meta_types) == 2
 cdef:
     int page_meta_types_0 = const.page_meta_types[0]
@@ -202,6 +207,53 @@ cdef:
     int page_mix_type = const.page_mix_type
     int page_data_type = const.page_data_type
     int subheader_pointers_offset = const.subheader_pointers_offset
+
+    # Copy of subheader_signature_to_index that allows for much faster lookups.
+    # Lookups are done in get_subheader_index. The C structures are initialized
+    # in _init_subheader_signatures().
+    uint32_t subheader_signatures_32bit[13]
+    int subheader_indices_32bit[13]
+    uint64_t subheader_signatures_64bit[17]
+    int subheader_indices_64bit[17]
+    int data_subheader_index = const.SASIndex.data_subheader_index
+
+
+def _init_subheader_signatures():
+    subheaders_32bit = [(sig, idx) for sig, idx in const.subheader_signature_to_index.items() if len(sig) == 4]
+    subheaders_64bit  = [(sig, idx) for sig, idx in const.subheader_signature_to_index.items() if len(sig) == 8]
+    assert len(subheaders_32bit) == 13
+    assert len(subheaders_64bit) == 17
+    assert len(const.subheader_signature_to_index) == 13 + 17
+    for i, (signature, idx) in enumerate(subheaders_32bit):
+        subheader_signatures_32bit[i] = (<uint32_t *><char *>signature)[0]
+        subheader_indices_32bit[i] = idx
+    for i, (signature, idx) in enumerate(subheaders_64bit):
+        subheader_signatures_64bit[i] = (<uint64_t *><char *>signature)[0]
+        subheader_indices_64bit[i] = idx
+
+
+_init_subheader_signatures()
+
+
+def get_subheader_index(bytes signature):
+    """Fast version of 'subheader_signature_to_index.get(signature)'."""
+    cdef:
+        uint32_t sig32
+        uint64_t sig64
+        size_t i
+    assert len(signature) in (4, 8)
+    if len(signature) == 4:
+        sig32 = (<uint32_t *><char *>signature)[0]
+        for i in range(len(subheader_signatures_32bit)):
+            if subheader_signatures_32bit[i] == sig32:
+                return subheader_indices_32bit[i]
+    else:
+        sig64 = (<uint64_t *><char *>signature)[0]
+        for i in range(len(subheader_signatures_64bit)):
+            if subheader_signatures_64bit[i] == sig64:
+                return subheader_indices_64bit[i]
+
+    return data_subheader_index
 
 
 cdef class Parser:
@@ -314,7 +366,7 @@ cdef class Parser:
     cdef bint readline(self) except? True:
 
         cdef:
-            int offset, bit_offset, align_correction
+            int offset, length, bit_offset, align_correction
             int subheader_pointer_length, mn
             bint done, flag
 
@@ -338,12 +390,10 @@ cdef class Parser:
                     if done:
                         return True
                     continue
-                current_subheader_pointer = (
-                    self.parser._current_page_data_subheader_pointers[
-                        self.current_row_on_page_index])
-                self.process_byte_array_with_data(
-                    current_subheader_pointer.offset,
-                    current_subheader_pointer.length)
+                offset, length = self.parser._current_page_data_subheader_pointers[
+                    self.current_row_on_page_index
+                ]
+                self.process_byte_array_with_data(offset, length)
                 return False
             elif self.current_page_type == page_mix_type:
                 align_correction = (

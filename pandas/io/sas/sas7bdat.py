@@ -42,7 +42,10 @@ from pandas import (
 )
 
 from pandas.io.common import get_handle
-from pandas.io.sas._sas import Parser
+from pandas.io.sas._sas import (
+    Parser,
+    get_subheader_index,
+)
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
 
@@ -85,19 +88,6 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
         s_series = cast(pd.Series, s_series)
         return s_series
-
-
-class _SubheaderPointer:
-    offset: int
-    length: int
-    compression: int
-    ptype: int
-
-    def __init__(self, offset: int, length: int, compression: int, ptype: int) -> None:
-        self.offset = offset
-        self.length = length
-        self.compression = compression
-        self.ptype = ptype
 
 
 class _Column:
@@ -187,7 +177,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.column_formats: list[str | bytes] = []
         self.columns: list[_Column] = []
 
-        self._current_page_data_subheader_pointers: list[_SubheaderPointer] = []
+        self._current_page_data_subheader_pointers: list[tuple[int, int]] = []
         self._cached_page = None
         self._column_data_lengths: list[int] = []
         self._column_data_offsets: list[int] = []
@@ -202,6 +192,19 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         )
 
         self._path_or_buf = self.handles.handle
+
+        # Same order as const.SASIndex
+        self._subheader_processors = [
+            self._process_rowsize_subheader,
+            self._process_columnsize_subheader,
+            self._process_subheader_counts,
+            self._process_columntext_subheader,
+            self._process_columnname_subheader,
+            self._process_columnattributes_subheader,
+            self._process_format_subheader,
+            self._process_columnlist_subheader,
+            None,  # Data
+        ]
 
         try:
             self._get_properties()
@@ -422,89 +425,47 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         bit_offset = self._page_bit_offset
 
         for i in range(self._current_page_subheaders_count):
-            pointer = self._process_subheader_pointers(
-                const.subheader_pointers_offset + bit_offset, i
-            )
-            if pointer.length == 0:
-                continue
-            if pointer.compression == const.truncated_subheader_id:
-                continue
-            subheader_signature = self._read_subheader_signature(pointer.offset)
-            subheader_index = self._get_subheader_index(
-                subheader_signature, pointer.compression, pointer.ptype
-            )
-            self._process_subheader(subheader_index, pointer)
+            offset = const.subheader_pointers_offset + bit_offset
+            total_offset = offset + self._subheader_pointer_length * i
 
-    def _get_subheader_index(self, signature: bytes, compression, ptype) -> int:
-        # TODO: return here could be made an enum
-        index = const.subheader_signature_to_index.get(signature)
-        if index is None:
-            f1 = (compression == const.compressed_subheader_id) or (compression == 0)
-            f2 = ptype == const.compressed_subheader_type
-            if (self.compression != b"") and f1 and f2:
-                index = const.SASIndex.data_subheader_index
+            subheader_offset = self._read_int(total_offset, self._int_length)
+            total_offset += self._int_length
+
+            subheader_length = self._read_int(total_offset, self._int_length)
+            total_offset += self._int_length
+
+            subheader_compression = self._read_int(total_offset, 1)
+            total_offset += 1
+
+            subheader_type = self._read_int(total_offset, 1)
+
+            if (
+                subheader_length == 0
+                or subheader_compression == const.truncated_subheader_id
+            ):
+                continue
+
+            subheader_signature = self._read_bytes(subheader_offset, self._int_length)
+            subheader_index = get_subheader_index(subheader_signature)
+            subheader_processor = self._subheader_processors[subheader_index]
+
+            if subheader_processor is None:
+                f1 = (
+                    subheader_compression == const.compressed_subheader_id
+                    or subheader_compression == 0
+                )
+                f2 = subheader_type == const.compressed_subheader_type
+                if self.compression and f1 and f2:
+                    self._current_page_data_subheader_pointers.append(
+                        (subheader_offset, subheader_length)
+                    )
+                else:
+                    self.close()
+                    raise ValueError(
+                        f"Unknown subheader signature {subheader_signature}"
+                    )
             else:
-                self.close()
-                raise ValueError("Unknown subheader signature")
-        return index
-
-    def _process_subheader_pointers(
-        self, offset: int, subheader_pointer_index: int
-    ) -> _SubheaderPointer:
-
-        subheader_pointer_length = self._subheader_pointer_length
-        total_offset = offset + subheader_pointer_length * subheader_pointer_index
-
-        subheader_offset = self._read_int(total_offset, self._int_length)
-        total_offset += self._int_length
-
-        subheader_length = self._read_int(total_offset, self._int_length)
-        total_offset += self._int_length
-
-        subheader_compression = self._read_int(total_offset, 1)
-        total_offset += 1
-
-        subheader_type = self._read_int(total_offset, 1)
-
-        x = _SubheaderPointer(
-            subheader_offset, subheader_length, subheader_compression, subheader_type
-        )
-
-        return x
-
-    def _read_subheader_signature(self, offset: int) -> bytes:
-        subheader_signature = self._read_bytes(offset, self._int_length)
-        return subheader_signature
-
-    def _process_subheader(
-        self, subheader_index: int, pointer: _SubheaderPointer
-    ) -> None:
-        offset = pointer.offset
-        length = pointer.length
-
-        if subheader_index == const.SASIndex.row_size_index:
-            processor = self._process_rowsize_subheader
-        elif subheader_index == const.SASIndex.column_size_index:
-            processor = self._process_columnsize_subheader
-        elif subheader_index == const.SASIndex.column_text_index:
-            processor = self._process_columntext_subheader
-        elif subheader_index == const.SASIndex.column_name_index:
-            processor = self._process_columnname_subheader
-        elif subheader_index == const.SASIndex.column_attributes_index:
-            processor = self._process_columnattributes_subheader
-        elif subheader_index == const.SASIndex.format_and_label_index:
-            processor = self._process_format_subheader
-        elif subheader_index == const.SASIndex.column_list_index:
-            processor = self._process_columnlist_subheader
-        elif subheader_index == const.SASIndex.subheader_counts_index:
-            processor = self._process_subheader_counts
-        elif subheader_index == const.SASIndex.data_subheader_index:
-            self._current_page_data_subheader_pointers.append(pointer)
-            return
-        else:
-            raise ValueError("unknown subheader index")
-
-        processor(offset, length)
+                subheader_processor(subheader_offset, subheader_length)
 
     def _process_rowsize_subheader(self, offset: int, length: int) -> None:
 
@@ -519,10 +480,12 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             lcp_offset += 378
 
         self.row_length = self._read_int(
-            offset + const.row_length_offset_multiplier * int_len, int_len
+            offset + const.row_length_offset_multiplier * int_len,
+            int_len,
         )
         self.row_count = self._read_int(
-            offset + const.row_count_offset_multiplier * int_len, int_len
+            offset + const.row_count_offset_multiplier * int_len,
+            int_len,
         )
         self.col_count_p1 = self._read_int(
             offset + const.col_count_p1_multiplier * int_len, int_len
