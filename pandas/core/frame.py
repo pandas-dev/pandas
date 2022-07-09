@@ -1811,7 +1811,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
-    def to_dict(self, orient: str = "dict", into=dict):
+    def to_dict(self, orient: str = "dict", into=dict, index=True):
         """
         Convert the DataFrame to a dictionary.
 
@@ -1846,6 +1846,11 @@ class DataFrame(NDFrame, OpsMixin):
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
+
+        index : bool, default True
+            When set to False, method returns a dict without an index key
+            (and index_names if using orient='tight'). Can only be False
+            when orient='split' or 'tight'.
 
         Returns
         -------
@@ -1958,36 +1963,66 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "split":
-            return into_c(
-                (
-                    ("index", self.index.tolist()),
-                    ("columns", self.columns.tolist()),
+
+            if not index:
+                return into_c(
                     (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                    )
                 )
-            )
+            else:
+                return into_c(
+                    (
+                        ("index", self.index.tolist()),
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                    )
+                )
 
         elif orient == "tight":
-            return into_c(
-                (
-                    ("index", self.index.tolist()),
-                    ("columns", self.columns.tolist()),
+            if not index:
+                return into_c(
                     (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
-                    ("index_names", list(self.index.names)),
-                    ("column_names", list(self.columns.names)),
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                        ("column_names", list(self.columns.names)),
+                    )
                 )
-            )
+            else:
+                return into_c(
+                    (
+                        ("index", self.index.tolist()),
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                        ("index_names", list(self.index.names)),
+                        ("column_names", list(self.columns.names)),
+                    )
+                )
 
         elif orient == "series":
             return into_c((k, v) for k, v in self.items())

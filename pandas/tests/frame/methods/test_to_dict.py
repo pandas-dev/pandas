@@ -421,3 +421,24 @@ class TestDataFrameToDict:
         for i, key, value in assertion_iterator:
             assert value == data[key][i]
             assert type(value) is expected_types[key][i]
+
+    def test_to_dict_index_orient_split(self):
+        # GH#46398
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["row1", "row2", "row3"])
+        result = df.to_dict(orient="split", index=False)
+        expected = {
+            "columns": ["A", "B"],
+            "data": [[1, 4], [2, 5], [3, 6]],
+        }
+        tm.assert_dict_equal(result, expected)
+
+    def test_to_dict_index_orient_tight(self):
+        # GH#46398
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["row1", "row2", "row3"])
+        result = df.to_dict(orient="tight", index=False)
+        expected = {
+            "columns": ["A", "B"],
+            "data": [[1, 4], [2, 5], [3, 6]],
+            "column_names": [None],
+        }
+        tm.assert_dict_equal(result, expected)
