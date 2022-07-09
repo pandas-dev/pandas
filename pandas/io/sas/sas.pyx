@@ -419,7 +419,7 @@ cdef class Parser:
 
         cdef:
             Py_ssize_t j
-            int k, m, jb, js, current_row, rpos
+            int s, k, m, jb, js, current_row, rpos
             int64_t lngt, start, ct
             Buffer source, decompressed_source
             int64_t[:] column_types
@@ -448,6 +448,7 @@ cdef class Parser:
         offsets = self.offsets
         byte_chunk = self.byte_chunk
         string_chunk = self.string_chunk
+        s = 8 * self.current_row_in_chunk_index
         js = 0
         jb = 0
         for j in range(self.column_count):
@@ -458,10 +459,10 @@ cdef class Parser:
             ct = column_types[j]
             if ct == column_type_decimal:
                 # decimal
-                assert lngt in (4, 8)
-                m = 8 * self.current_row_in_chunk_index
-                if lngt == 4 and self.is_little_endian:
-                    m += 4
+                if self.is_little_endian:
+                    m = s + 8 - lngt
+                else:
+                    m = s
                 for k in range(lngt):
                     byte_chunk[jb, m + k] = buf_get(source, start + k)
                 jb += 1
