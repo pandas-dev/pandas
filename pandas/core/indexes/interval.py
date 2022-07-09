@@ -30,7 +30,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    IntervalClosedType,
+    IntervalInclusiveType,
     npt,
 )
 from pandas.errors import InvalidIndexError
@@ -179,7 +179,7 @@ def _new_IntervalIndex(cls, d):
         ),
     }
 )
-@inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
+@inherit_names(["set_closed", "set_inclusive", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
     [
         "__array__",
@@ -198,7 +198,7 @@ class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 
     # annotate properties pinned via inherit_names
-    inclusive: IntervalClosedType
+    inclusive: IntervalInclusiveType
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
@@ -217,7 +217,7 @@ class IntervalIndex(ExtensionIndex):
     def __new__(
         cls,
         data,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
@@ -266,7 +266,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -302,7 +302,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -337,7 +337,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -989,7 +989,7 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    inclusive: IntervalClosedType | None = None,
+    inclusive: IntervalInclusiveType | None = None,
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.

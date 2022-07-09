@@ -1019,3 +1019,11 @@ def test_hdfstore_iteritems_deprecated(setup_path):
             hdf.put("table", df)
             with tm.assert_produces_warning(FutureWarning):
                 next(hdf.iteritems())
+
+
+def test_hdfstore_strides(setup_path):
+    # GH22073
+    df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+    with ensure_clean_store(setup_path) as store:
+        store.put("df", df)
+        assert df["a"].values.strides == store["df"]["a"].values.strides

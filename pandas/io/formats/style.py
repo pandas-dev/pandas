@@ -25,6 +25,7 @@ from pandas._typing import (
     Axis,
     FilePath,
     IndexLabel,
+    IntervalInclusiveType,
     Level,
     QuantileInterpolation,
     Scalar,
@@ -3479,7 +3480,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: str = "both",
+        inclusive: IntervalInclusiveType = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3584,7 +3585,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: QuantileInterpolation = "linear",
-        inclusive: str = "both",
+        inclusive: IntervalInclusiveType = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3969,7 +3970,7 @@ def _highlight_between(
     props: str,
     left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
     right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
-    inclusive: bool | str = True,
+    inclusive: bool | IntervalInclusiveType = True,
 ) -> np.ndarray:
     """
     Return an array of css props based on condition of data values within given range.
