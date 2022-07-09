@@ -441,36 +441,51 @@ cdef class Parser:
 
 # The following are faster versions of struct.unpack that avoid the overhead of
 # Python function calls.  They may be called up to (n_rows * n_cols) times.
-def read_float_with_byteswap(const uint8_t *data, bint byteswap):
-    cdef float res = (<float*>data)[0]
+def read_float_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
+    assert offset + 4 < len(data)
+    cdef:
+        const char *data_ptr = data
+        float res = (<float*>(data_ptr + offset))[0]
     if byteswap:
         res = _byteswap_float(res)
     return res
 
 
-def read_double_with_byteswap(const uint8_t *data, bint byteswap):
-    cdef double res = (<double*>data)[0]
+def read_double_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
+    assert offset + 8 < len(data)
+    cdef:
+        const char *data_ptr = data
+        double res = (<double*>(data_ptr + offset))[0]
     if byteswap:
         res = _byteswap_double(res)
     return res
 
 
-def read_uint16_with_byteswap(const uint8_t *data, bint byteswap):
-    cdef uint16_t res = (<uint16_t *>data)[0]
+def read_uint16_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
+    assert offset + 2 < len(data)
+    cdef:
+        const char *data_ptr = data
+        uint16_t res = (<uint16_t *>(data_ptr + offset))[0]
     if byteswap:
         res = _byteswap2(res)
     return res
 
 
-def read_uint32_with_byteswap(const uint8_t *data, bint byteswap):
-    cdef uint32_t res = (<uint32_t *>data)[0]
+def read_uint32_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
+    assert offset + 4 < len(data)
+    cdef:
+        const char *data_ptr = data
+        uint32_t res = (<uint32_t *>(data_ptr + offset))[0]
     if byteswap:
         res = _byteswap4(res)
     return res
 
 
-def read_uint64_with_byteswap(const uint8_t *data, bint byteswap):
-    cdef uint64_t res = (<uint64_t *>data)[0]
+def read_uint64_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
+    assert offset + 8 < len(data)
+    cdef:
+        const char *data_ptr = data
+        uint64_t res = (<uint64_t *>(data_ptr + offset))[0]
     if byteswap:
         res = _byteswap8(res)
     return res

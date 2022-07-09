@@ -356,11 +356,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _read_float(self, offset: int, width: int):
         if width == 4:
             return read_float_with_byteswap(
-                self._read_bytes(offset, 4), self.need_byteswap
+                self._cached_page, offset, self.need_byteswap
             )
         elif width == 8:
             return read_double_with_byteswap(
-                self._read_bytes(offset, 8), self.need_byteswap
+                self._cached_page, offset, self.need_byteswap
             )
         else:
             self.close()
@@ -372,34 +372,25 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             return self._read_bytes(offset, 1)[0]
         elif width == 2:
             return read_uint16_with_byteswap(
-                self._read_bytes(offset, 2), self.need_byteswap
+                self._cached_page, offset, self.need_byteswap
             )
         elif width == 4:
             return read_uint32_with_byteswap(
-                self._read_bytes(offset, 4), self.need_byteswap
+                self._cached_page, offset, self.need_byteswap
             )
         elif width == 8:
             return read_uint64_with_byteswap(
-                self._read_bytes(offset, 8), self.need_byteswap
+                self._cached_page, offset, self.need_byteswap
             )
         else:
             self.close()
             raise ValueError("invalid int width")
 
     def _read_bytes(self, offset: int, length: int):
-        if self._cached_page is None:
-            self._path_or_buf.seek(offset)
-            buf = self._path_or_buf.read(length)
-            if len(buf) < length:
-                self.close()
-                msg = f"Unable to read {length:d} bytes from file position {offset:d}."
-                raise ValueError(msg)
-            return buf
-        else:
-            if offset + length > len(self._cached_page):
-                self.close()
-                raise ValueError("The cached page is too small.")
-            return self._cached_page[offset : offset + length]
+        if offset + length > len(self._cached_page):
+            self.close()
+            raise ValueError("The cached page is too small.")
+        return self._cached_page[offset : offset + length]
 
     def _read_and_convert_header_text(self, offset: int, length: int) -> str | bytes:
         return self._convert_header_text(
