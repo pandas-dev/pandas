@@ -608,6 +608,24 @@ def test_map_dict_ignore_na(arg_func):
     tm.assert_series_equal(result, expected)
 
 
+def test_map_defaultdict_ignore_na():
+    # GH#47527
+    mapping = defaultdict(int, {1: 10, np.nan: 42})
+    ser = Series([1, np.nan, 2])
+    result = ser.map(mapping)
+    expected = Series([10, 0, 0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_categorical_na_ignore():
+    # GH#47527
+    values = pd.Categorical([1, np.nan, 2], categories=[10, 1])
+    ser = Series(values)
+    result = ser.map({1: 10, np.nan: 42})
+    expected = Series([10, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_dict_subclass_with_missing():
     """
     Test Series.map with a dictionary subclass that defines __missing__,
