@@ -187,16 +187,16 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def lexsort_depth(list_of_arrays: list) -> int:
+def lexsort_depth(list_of_arrays: list) -> Py_ssize_t:
     """
     Same as `is_lexsorted`, but keeps track of lexsort depth
     as we iterate through the elements, and exits early if depth
     is zero.
     """
     cdef:
-        Py_ssize_t i, depth
+        Py_ssize_t i, depth, k
         Py_ssize_t n, nlevels
-        int64_t k, cur, pre
+        int64_t cur, pre
         ndarray arr
 
     nlevels = len(list_of_arrays)
