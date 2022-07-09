@@ -439,6 +439,8 @@ cdef class Parser:
         self.current_row_in_file_index += 1
 
 
+# The following are faster versions of struct.unpack that avoid the overhead of
+# Python function calls.  They may be called up to (n_rows * n_cols) times.
 def read_float_with_byteswap(const uint8_t *data, bint byteswap):
     cdef float res = (<float*>data)[0]
     if byteswap:
