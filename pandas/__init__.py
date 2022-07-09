@@ -1,4 +1,5 @@
 # flake8: noqa
+from __future__ import annotations
 
 __docformat__ = "restructuredtext"
 
@@ -185,7 +186,7 @@ del get_versions, v
 __deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
 
 
-def __dir__():
+def __dir__() -> list[str]:
     # GH43028
     # Int64Index etc. are deprecated, but we still want them to be available in the dir.
     # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.

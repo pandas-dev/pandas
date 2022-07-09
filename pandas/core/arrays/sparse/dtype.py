@@ -179,7 +179,7 @@ class SparseDtype(ExtensionDtype):
         return is_bool_dtype(self.subtype)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The sparse kind. Either 'integer', or 'block'.
         """
@@ -194,7 +194,7 @@ class SparseDtype(ExtensionDtype):
         return self._dtype
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
 
     def __repr__(self) -> str:

@@ -16,7 +16,9 @@ class Base:
         # ignored ones
         # compare vs the expected
 
-        result = sorted(f for f in dir(namespace) if not f.startswith("__"))
+        result = sorted(
+            f for f in dir(namespace) if not f.startswith("__") and f != "annotations"
+        )
         if ignored is not None:
             result = sorted(set(result) - set(ignored))
 
