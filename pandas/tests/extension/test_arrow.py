@@ -1221,6 +1221,20 @@ class TestBaseParsing(base.BaseParsingTests):
 
 
 class TestBaseMethods(base.BaseMethodsTests):
+    @pytest.mark.parametrize("periods", [1, -2])
+    def test_diff(self, data, periods, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_unsigned_integer(pa_dtype) and periods == 1:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason=(
+                        f"diff with {pa_dtype} and periods={periods} will overflow"
+                    ),
+                )
+            )
+        super().test_diff(data, periods)
+
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
