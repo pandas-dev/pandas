@@ -29,6 +29,7 @@ from pandas._typing import (
     Level,
     QuantileInterpolation,
     Scalar,
+    StorageOptions,
     WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -550,6 +551,7 @@ class Styler(StylerRenderer):
         NDFrame.to_excel,
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
+        storage_options_versionadded="1.5.0",
     )
     def to_excel(
         self,
@@ -569,6 +571,7 @@ class Styler(StylerRenderer):
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
+        storage_options: StorageOptions = None,
     ) -> None:
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -591,6 +594,7 @@ class Styler(StylerRenderer):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+            storage_options=storage_options,
         )
 
     @overload

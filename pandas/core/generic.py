@@ -2132,7 +2132,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # I/O Methods
 
     @final
-    @doc(klass="object", storage_options=_shared_docs["storage_options"])
+    @doc(
+        klass="object",
+        storage_options=_shared_docs["storage_options"],
+        storage_options_versionadded="1.2.0",
+    )
     def to_excel(
         self,
         excel_writer,
@@ -2218,7 +2222,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             is to be frozen.
         {storage_options}
 
-            .. versionadded:: 1.2.0
+            .. versionadded:: {storage_options_versionadded}
 
         See Also
         --------
