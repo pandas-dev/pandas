@@ -266,7 +266,7 @@ def _box_as_indexlike(
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: Series,
-    name: str | None = None,
+    name: Hashable | None = None,
 ) -> Index:
     """
     Convert array of dates with a cache and wrap the result in an Index.

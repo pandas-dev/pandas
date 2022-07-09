@@ -1064,16 +1064,6 @@ class Index(IndexOpsMixin, PandasObject):
             # Ensure that self.astype(self.dtype) is self
             return self.copy() if copy else self
 
-        if (
-            self.dtype == np.dtype("M8[ns]")
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-            and dtype != np.dtype("M8[ns]")
-        ):
-            # For now DatetimeArray supports this by unwrapping ndarray,
-            #  but DatetimeIndex doesn't
-            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
-
         values = self._data
         if isinstance(values, ExtensionArray):
             with rewrite_exception(type(values).__name__, type(self).__name__):
@@ -1562,7 +1552,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Conversion Methods
 
-    def to_flat_index(self):
+    def to_flat_index(self: _IndexT) -> _IndexT:
         """
         Identity method.
 
@@ -1719,14 +1709,14 @@ class Index(IndexOpsMixin, PandasObject):
     # Name-Centric Methods
 
     @property
-    def name(self):
+    def name(self) -> Hashable:
         """
         Return Index or MultiIndex name.
         """
         return self._name
 
     @name.setter
-    def name(self, value: Hashable):
+    def name(self, value: Hashable) -> None:
         if self._no_setting_name:
             # Used in MultiIndex.levels to avoid silently ignoring name updates.
             raise RuntimeError(
@@ -5957,7 +5947,7 @@ class Index(IndexOpsMixin, PandasObject):
         return series.iloc[loc]
 
     @final
-    def set_value(self, arr, key, value):
+    def set_value(self, arr, key, value) -> None:
         """
         Fast lookup of value from 1-dimensional ndarray.
 
@@ -7018,16 +7008,16 @@ class Index(IndexOpsMixin, PandasObject):
         result = op(self._values)
         return Index(result, name=self.name)
 
-    def __abs__(self):
+    def __abs__(self) -> Index:
         return self._unary_method(operator.abs)
 
-    def __neg__(self):
+    def __neg__(self) -> Index:
         return self._unary_method(operator.neg)
 
-    def __pos__(self):
+    def __pos__(self) -> Index:
         return self._unary_method(operator.pos)
 
-    def __invert__(self):
+    def __invert__(self) -> Index:
         # GH#8875
         return self._unary_method(operator.inv)
 
@@ -7141,7 +7131,7 @@ class Index(IndexOpsMixin, PandasObject):
             make_invalid_op(opname)(self)
 
     @Appender(IndexOpsMixin.argmin.__doc__)
-    def argmin(self, axis=None, skipna=True, *args, **kwargs):
+    def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7153,7 +7143,7 @@ class Index(IndexOpsMixin, PandasObject):
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
-    def argmax(self, axis=None, skipna=True, *args, **kwargs):
+    def argmax(self, axis=None, skipna=True, *args, **kwargs) -> int:
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
 

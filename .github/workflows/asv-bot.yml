@@ -33,12 +33,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache conda
-        uses: actions/cache@v3
-        with:
-          path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
-
         # Although asv sets up its own env, deps are still needed
         # during discovery process
       - name: Set up Conda

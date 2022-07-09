@@ -1298,6 +1298,25 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("val", ["x", 1])
+    @pytest.mark.parametrize("idxr", ["a", ["a"]])
+    def test_loc_setitem_rhs_frame(self, idxr, val):
+        # GH#47578
+        df = DataFrame({"a": [1, 2]})
+        df.loc[:, "a"] = DataFrame({"a": [val, 11]}, index=[1, 2])
+        expected = DataFrame({"a": [np.nan, val]})
+        tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_invalid_test
+    def test_iloc_setitem_enlarge_no_warning(self):
+        # GH#47381
+        df = DataFrame(columns=["a", "b"])
+        expected = df.copy()
+        view = df[:]
+        with tm.assert_produces_warning(None):
+            df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
+        tm.assert_frame_equal(view, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):

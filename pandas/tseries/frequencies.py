@@ -314,12 +314,12 @@ class _FrequencyInferer:
             return _maybe_add_count("N", delta)
 
     @cache_readonly
-    def day_deltas(self):
+    def day_deltas(self) -> list[int]:
         ppd = periods_per_day(self._reso)
         return [x / ppd for x in self.deltas]
 
     @cache_readonly
-    def hour_deltas(self):
+    def hour_deltas(self) -> list[int]:
         pph = periods_per_day(self._reso) // 24
         return [x / pph for x in self.deltas]
 
@@ -328,10 +328,10 @@ class _FrequencyInferer:
         return build_field_sarray(self.i8values, reso=self._reso)
 
     @cache_readonly
-    def rep_stamp(self):
+    def rep_stamp(self) -> Timestamp:
         return Timestamp(self.i8values[0])
 
-    def month_position_check(self):
+    def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
@@ -394,7 +394,11 @@ class _FrequencyInferer:
             return None
 
         pos_check = self.month_position_check()
-        return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
+
+        if pos_check is None:
+            return None
+        else:
+            return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -404,13 +408,21 @@ class _FrequencyInferer:
             return None
 
         pos_check = self.month_position_check()
-        return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
+
+        if pos_check is None:
+            return None
+        else:
+            return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
 
     def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
-        return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
+
+        if pos_check is None:
+            return None
+        else:
+            return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily

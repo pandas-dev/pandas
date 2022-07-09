@@ -7,14 +7,12 @@ import re
 from typing import (
     Callable,
     Generator,
+    Iterable,
+    Iterator,
 )
 import warnings
 
-
-class CSSWarning(UserWarning):
-    """
-    This CSS syntax cannot currently be parsed.
-    """
+from pandas.errors import CSSWarning
 
 
 def _side_expander(prop_fmt: str) -> Callable:
@@ -187,9 +185,24 @@ class CSSResolver:
 
     SIDES = ("top", "right", "bottom", "left")
 
+    CSS_EXPANSIONS = {
+        **{
+            "-".join(["border", prop] if prop else ["border"]): _border_expander(prop)
+            for prop in ["", "top", "right", "bottom", "left"]
+        },
+        **{
+            "-".join(["border", prop]): _side_expander("border-{:s}-" + prop)
+            for prop in ["color", "style", "width"]
+        },
+        **{
+            "margin": _side_expander("margin-{:s}"),
+            "padding": _side_expander("padding-{:s}"),
+        },
+    }
+
     def __call__(
         self,
-        declarations_str: str,
+        declarations: str | Iterable[tuple[str, str]],
         inherited: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """
@@ -197,8 +210,10 @@ class CSSResolver:
 
         Parameters
         ----------
-        declarations_str : str
-            A list of CSS declarations
+        declarations_str : str | Iterable[tuple[str, str]]
+            A CSS string or set of CSS declaration tuples
+            e.g. "font-weight: bold; background: blue" or
+            {("font-weight", "bold"), ("background", "blue")}
         inherited : dict, optional
             Atomic properties indicating the inherited style context in which
             declarations_str is to be resolved. ``inherited`` should already
@@ -229,7 +244,9 @@ class CSSResolver:
          ('font-size', '24pt'),
          ('font-weight', 'bold')]
         """
-        props = dict(self.atomize(self.parse(declarations_str)))
+        if isinstance(declarations, str):
+            declarations = self.parse(declarations)
+        props = dict(self.atomize(declarations))
         if inherited is None:
             inherited = {}
 
@@ -346,30 +363,17 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations) -> Generator[tuple[str, str], None, None]:
+    def atomize(self, declarations: Iterable) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
-            attr = "expand_" + prop.replace("-", "_")
-            try:
-                expand = getattr(self, attr)
-            except AttributeError:
-                yield prop, value
+            prop = prop.lower()
+            value = value.lower()
+            if prop in self.CSS_EXPANSIONS:
+                expand = self.CSS_EXPANSIONS[prop]
+                yield from expand(self, prop, value)
             else:
-                for prop, value in expand(prop, value):
-                    yield prop, value
+                yield prop, value
 
-    expand_border = _border_expander()
-    expand_border_top = _border_expander("top")
-    expand_border_right = _border_expander("right")
-    expand_border_bottom = _border_expander("bottom")
-    expand_border_left = _border_expander("left")
-
-    expand_border_color = _side_expander("border-{:s}-color")
-    expand_border_style = _side_expander("border-{:s}-style")
-    expand_border_width = _side_expander("border-{:s}-width")
-    expand_margin = _side_expander("margin-{:s}")
-    expand_padding = _side_expander("padding-{:s}")
-
-    def parse(self, declarations_str: str):
+    def parse(self, declarations_str: str) -> Iterator[tuple[str, str]]:
         """
         Generates (prop, value) pairs from declarations.
 

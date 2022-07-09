@@ -966,7 +966,9 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
             tipo = get_dtype(arr_or_dtype.dtype)
         else:
             return False
-    return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
+    return tipo == DT64NS_DTYPE or (
+        isinstance(tipo, DatetimeTZDtype) and tipo._unit == "ns"
+    )
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
@@ -1039,7 +1041,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
-def is_numeric_v_string_like(a: ArrayLike, b):
+def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     """
     Check if we are comparing a string-like object to a numeric ndarray.
     NumPy doesn't like to compare such objects, especially numeric arrays
@@ -1088,7 +1090,7 @@ def is_numeric_v_string_like(a: ArrayLike, b):
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
-def is_datetimelike_v_numeric(a, b):
+def is_datetimelike_v_numeric(a, b) -> bool:
     """
     Check if we are comparing a datetime-like object to a numeric object.
     By "numeric," we mean an object that is either of an int or float dtype.
