@@ -8,8 +8,6 @@ import warnings
 from pandas._libs import lib
 from pandas._libs.algos import is_monotonic
 
-from pandas._libs.interval import _warning_interval
-
 ctypedef fused int_scalar_t:
     int64_t
     float64_t
@@ -42,18 +40,13 @@ cdef class IntervalTree(IntervalMixin):
         object _is_overlapping, _left_sorter, _right_sorter
         Py_ssize_t _na_count
 
-    def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default, leaf_size=100):
+    def __init__(self, left, right, inclusive: str | None = None, leaf_size=100):
         """
         Parameters
         ----------
         left, right : np.ndarray[ndim=1]
             Left and right bounds for each interval. Assumed to contain no
             NaNs.
-        closed : {'left', 'right', 'both', 'neither'}, optional
-            Whether the intervals are closed on the left-side, right-side, both
-            or neither. Defaults to 'right'.
-
-            .. deprecated:: 1.5.0
 
         inclusive : {"both", "neither", "left", "right"}, optional
             Whether the intervals are closed on the left-side, right-side, both
@@ -66,10 +59,8 @@ cdef class IntervalTree(IntervalMixin):
             to brute-force search. Tune this parameter to optimize query
             performance.
         """
-        inclusive, closed = _warning_interval(inclusive, closed)
-
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         if inclusive not in ['left', 'right', 'both', 'neither']:
             raise ValueError("invalid option for 'inclusive': %s" % inclusive)
@@ -119,7 +110,7 @@ cdef class IntervalTree(IntervalMixin):
         if self._is_overlapping is not None:
             return self._is_overlapping
 
-        # <= when both sides closed since endpoints can overlap
+        # <= when inclusive on both sides since endpoints can overlap
         op = le if self.inclusive == 'both' else lt
 
         # overlap if start of current interval < end of previous interval
@@ -263,7 +254,7 @@ cdef class IntervalNode:
 
 
 # we need specialized nodes and leaves to optimize for different dtype and
-# closed values
+# inclusive values
 
 {{py:
 

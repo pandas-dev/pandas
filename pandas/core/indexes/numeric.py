@@ -120,7 +120,9 @@ class NumericIndex(Index):
             "c": "complex",
         }[self.dtype.kind]
 
-    def __new__(cls, data=None, dtype: Dtype | None = None, copy=False, name=None):
+    def __new__(
+        cls, data=None, dtype: Dtype | None = None, copy=False, name=None
+    ) -> NumericIndex:
         name = maybe_extract_name(name, data, cls)
 
         subarr = cls._ensure_array(data, dtype, copy)
