@@ -360,13 +360,13 @@ class TestIntervalRange:
     def test_interval_range_error_and_warning(self):
         # GH 40245
 
-        msg = (
-            "Deprecated argument `closed` cannot "
-            "be passed if argument `inclusive` is not None"
-        )
-        with pytest.raises(ValueError, match=msg):
-            interval_range(end=5, periods=4, closed="both", inclusive="both")
+        msg = "Can only specify 'closed' or 'inclusive', not both."
+        msg_warn = "the 'closed'' keyword is deprecated, use 'inclusive' instead."
 
-        msg = "Argument `closed` is deprecated in favor of `inclusive`"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(TypeError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg_warn):
+                interval_range(end=5, periods=4, closed="both", inclusive="both")
+
+        msg = "the 'closed'' keyword is deprecated, use 'inclusive' instead."
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
             interval_range(end=5, periods=4, closed="right")

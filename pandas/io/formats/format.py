@@ -564,7 +564,7 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[str] | None = None,
+        columns: Sequence[Hashable] | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool | Sequence[str] = True,
         index: bool = True,
@@ -686,7 +686,7 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[str] | None) -> Index:
+    def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
         if columns is not None:
             cols = ensure_index(columns)
             self.frame = self.frame[cols]
@@ -993,8 +993,8 @@ class DataFrameFormatter:
         else:
             return adjoined
 
-    def _get_column_name_list(self) -> list[str]:
-        names: list[str] = []
+    def _get_column_name_list(self) -> list[Hashable]:
+        names: list[Hashable] = []
         columns = self.frame.columns
         if isinstance(columns, MultiIndex):
             names.extend("" if name is None else name for name in columns.names)

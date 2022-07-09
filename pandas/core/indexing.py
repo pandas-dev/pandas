@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
+    TypeVar,
     cast,
     final,
 )
@@ -29,6 +30,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -73,6 +75,8 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+
+_LocationIndexerT = TypeVar("_LocationIndexerT", bound="_LocationIndexer")
 
 # "null slice"
 _NS = slice(None, None)
@@ -654,7 +658,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     _takeable: bool
 
     @final
-    def __call__(self, axis=None):
+    def __call__(self: _LocationIndexerT, axis=None) -> _LocationIndexerT:
         # we need to return a copy of ourselves
         new_self = type(self)(self.name, self.obj)
 
@@ -798,7 +802,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)
 
     @final
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         check_deprecated_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
@@ -2001,11 +2005,16 @@ class _iLocIndexer(_LocationIndexer):
             if (
                 isinstance(new_values, np.ndarray)
                 and isinstance(orig_values, np.ndarray)
-                and np.shares_memory(new_values, orig_values)
+                and (
+                    np.shares_memory(new_values, orig_values)
+                    or new_values.shape != orig_values.shape
+                )
             ):
                 # TODO: get something like tm.shares_memory working?
                 # The values were set inplace after all, no need to warn,
                 #  e.g. test_rename_nocopy
+                # In case of enlarging we can not set inplace, so need to
+                # warn either
                 pass
             else:
                 warnings.warn(
@@ -2362,7 +2371,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
         key = self._convert_key(key)
         return self.obj._get_value(*key, takeable=self._takeable)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, tuple):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
@@ -2528,15 +2537,20 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     """
     result = key
     if isinstance(key, ABCSeries) and not key.index.equals(index):
-        result = result.reindex(index)
-        mask = isna(result._values)
-        if mask.any():
+        indexer = result.index.get_indexer_for(index)
+        if -1 in indexer:
             raise IndexingError(
                 "Unalignable boolean Series provided as "
                 "indexer (index of the boolean Series and of "
                 "the indexed object do not match)."
             )
-        return result.astype(bool)._values
+
+        result = result.take(indexer)
+
+        # fall through for boolean
+        if not is_extension_array_dtype(result.dtype):
+            return result.astype(bool)._values
+
     if is_object_dtype(key):
         # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)

@@ -9,6 +9,8 @@ from cpython.datetime cimport (
     import_datetime,
 )
 
+from pandas.util._exceptions import find_stack_level
+
 import_datetime()
 
 cimport cython
@@ -229,7 +231,7 @@ def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault
             stacklevel=2,
         )
         if closed is None:
-            inclusive = "both"
+            inclusive = "right"
         elif closed in ("both", "neither", "left", "right"):
             inclusive = closed
         else:
@@ -364,7 +366,7 @@ cdef class Interval(IntervalMixin):
         inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
         if inclusive not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'inclusive': {inclusive}")
@@ -378,6 +380,21 @@ cdef class Interval(IntervalMixin):
         self.left = left
         self.right = right
         self.inclusive = inclusive
+
+    @property
+    def closed(self):
+        """
+        Whether the interval is closed on the left-side, right-side, both or
+        neither.
+
+        .. deprecated:: 1.5.0
+        """
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.inclusive
 
     def _validate_endpoint(self, endpoint):
         # GH 23013

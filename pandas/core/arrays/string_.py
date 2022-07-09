@@ -51,6 +51,8 @@ from pandas.core.missing import isna
 if TYPE_CHECKING:
     import pyarrow
 
+    from pandas import Series
+
 
 @register_extension_dtype
 class StringDtype(StorageExtensionDtype):
@@ -461,7 +463,7 @@ class StringArray(BaseStringArray, PandasArray):
         )
         return self._wrap_reduction_result(axis, result)
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         from pandas import value_counts
 
         result = value_counts(self._ndarray, dropna=dropna).astype("Int64")

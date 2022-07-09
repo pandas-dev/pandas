@@ -23,7 +23,7 @@ jobs:
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
