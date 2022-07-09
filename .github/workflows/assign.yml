@@ -9,8 +9,8 @@ permissions:
 jobs:
   issue_assign:
     permissions:
-      issues: write  
-      pull-requests: write  
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
     - if: github.event.comment.body == 'take'
