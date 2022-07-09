@@ -322,13 +322,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
 
-    def __neg__(self):
+    def __neg__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(-self._data, self._mask.copy())
 
-    def __pos__(self):
+    def __pos__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return self.copy()
 
-    def __abs__(self):
+    def __abs__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(abs(self._data), self._mask.copy())
 
     # ------------------------------------------------------------------

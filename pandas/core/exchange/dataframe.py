@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 from collections import abc
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from pandas.core.exchange.column import PandasColumn
 from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class PandasDataFrameXchg(DataFrameXchg):
@@ -29,11 +35,13 @@ class PandasDataFrameXchg(DataFrameXchg):
         self._nan_as_null = nan_as_null
         self._allow_copy = allow_copy
 
-    def __dataframe__(self, nan_as_null: bool = False, allow_copy: bool = True):
+    def __dataframe__(
+        self, nan_as_null: bool = False, allow_copy: bool = True
+    ) -> PandasDataFrameXchg:
         return PandasDataFrameXchg(self._df, nan_as_null, allow_copy)
 
     @property
-    def metadata(self):
+    def metadata(self) -> dict[str, Index]:
         # `index` isn't a regular column, and the protocol doesn't support row
         # labels - so we export it as Pandas-specific metadata here.
         return {"pandas.index": self._df.index}
@@ -47,7 +55,7 @@ class PandasDataFrameXchg(DataFrameXchg):
     def num_chunks(self) -> int:
         return 1
 
-    def column_names(self):
+    def column_names(self) -> Index:
         return self._df.columns
 
     def get_column(self, i: int) -> PandasColumn:
@@ -56,13 +64,13 @@ class PandasDataFrameXchg(DataFrameXchg):
     def get_column_by_name(self, name: str) -> PandasColumn:
         return PandasColumn(self._df[name], allow_copy=self._allow_copy)
 
-    def get_columns(self):
+    def get_columns(self) -> list[PandasColumn]:
         return [
             PandasColumn(self._df[name], allow_copy=self._allow_copy)
             for name in self._df.columns
         ]
 
-    def select_columns(self, indices):
+    def select_columns(self, indices) -> PandasDataFrameXchg:
         if not isinstance(indices, abc.Sequence):
             raise ValueError("`indices` is not a sequence")
         if not isinstance(indices, list):
@@ -72,7 +80,7 @@ class PandasDataFrameXchg(DataFrameXchg):
             self._df.iloc[:, indices], self._nan_as_null, self._allow_copy
         )
 
-    def select_columns_by_name(self, names):
+    def select_columns_by_name(self, names) -> PandasDataFrameXchg:
         if not isinstance(names, abc.Sequence):
             raise ValueError("`names` is not a sequence")
         if not isinstance(names, list):
