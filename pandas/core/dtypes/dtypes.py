@@ -38,6 +38,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalInclusiveType,
     Ordered,
     npt,
     type_t,
@@ -1091,7 +1092,7 @@ class IntervalDtype(PandasExtensionDtype):
     def __new__(
         cls,
         subtype=None,
-        inclusive: str_type | None = None,
+        inclusive: IntervalInclusiveType | None = None,
         closed: None | lib.NoDefault = lib.no_default,
     ):
         from pandas.core.dtypes.common import (
@@ -1140,7 +1141,11 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'inclusive' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        inclusive = gd["inclusive"]
+                        # Incompatible types in assignment (expression has type
+                        # "Union[str, Any]", variable has type
+                        # "Optional[Union[Literal['left', 'right'],
+                        # Literal['both', 'neither']]]")
+                        inclusive = gd["inclusive"]  # type: ignore[assignment]
 
             try:
                 subtype = pandas_dtype(subtype)

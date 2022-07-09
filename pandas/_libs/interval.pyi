@@ -12,7 +12,7 @@ import numpy.typing as npt
 
 from pandas._libs import lib
 from pandas._typing import (
-    IntervalClosedType,
+    IntervalInclusiveType,
     Timedelta,
     Timestamp,
 )
@@ -56,7 +56,7 @@ class IntervalMixin:
 
 def _warning_interval(
     inclusive, closed
-) -> tuple[IntervalClosedType, lib.NoDefault]: ...
+) -> tuple[IntervalInclusiveType, lib.NoDefault]: ...
 
 class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
@@ -64,17 +64,17 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def inclusive(self) -> IntervalClosedType: ...
+    def inclusive(self) -> IntervalInclusiveType: ...
     @property
-    def closed(self) -> IntervalClosedType: ...
+    def closed(self) -> IntervalInclusiveType: ...
     mid: _MidDescriptor
     length: _LengthDescriptor
     def __init__(
         self,
         left: _OrderableT,
         right: _OrderableT,
-        inclusive: IntervalClosedType = ...,
-        closed: IntervalClosedType = ...,
+        inclusive: IntervalInclusiveType = ...,
+        closed: IntervalInclusiveType = ...,
     ) -> None: ...
     def __hash__(self) -> int: ...
     @overload
@@ -151,14 +151,14 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
 
 def intervals_to_interval_bounds(
     intervals: np.ndarray, validate_closed: bool = ...
-) -> tuple[np.ndarray, np.ndarray, str]: ...
+) -> tuple[np.ndarray, np.ndarray, IntervalInclusiveType]: ...
 
 class IntervalTree(IntervalMixin):
     def __init__(
         self,
         left: np.ndarray,
         right: np.ndarray,
-        inclusive: IntervalClosedType = ...,
+        inclusive: IntervalInclusiveType = ...,
         leaf_size: int = ...,
     ) -> None: ...
     @property
