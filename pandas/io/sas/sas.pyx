@@ -18,12 +18,10 @@ import pandas.io.sas.sas_constants as const
 
 
 cdef struct Buffer:
-    """Convenience wrapper for uint8_t data to allow fast and safe reads and writes.
-
-    We use this as a replacement for np.array(..., dtype=np.uint8) because it's
-    much slower to create NumPy arrays and we create Buffer instances many times
-    when reading a SAS7BDAT file (roughly once per row that is being read).
-    """
+    # Convenience wrapper for uint8_t data to allow fast and safe reads and writes.
+    # We use this as a replacement for np.array(..., dtype=np.uint8) because it's
+    # much slower to create NumPy arrays and we create Buffer instances many times
+    # when reading a SAS7BDAT file (roughly once per row that is being read).
     uint8_t *data
     size_t length
 
