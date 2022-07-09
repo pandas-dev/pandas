@@ -1849,8 +1849,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         index : bool, default True
             When set to False, method returns a dict without an index key
-            (and index_names if using orient='tight'). Can only be False
-            when orient='split' or 'tight'.
+            (and index_names if using orient='tight').
 
         Returns
         -------
