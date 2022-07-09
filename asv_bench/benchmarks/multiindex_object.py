@@ -24,6 +24,13 @@ class GetLoc:
         self.mi_small = MultiIndex.from_product(
             [np.arange(100), list("A"), list("A")], names=["one", "two", "three"]
         )
+        self.mi_wide = MultiIndex.from_tuples(
+            [
+                np.hstack([2, np.ones(99)]),
+                np.ones(100),
+                np.ones(100),
+            ],
+        )
 
     def time_large_get_loc(self):
         self.mi_large.get_loc((999, 19, "Z"))
@@ -31,6 +38,9 @@ class GetLoc:
     def time_large_get_loc_warm(self):
         for _ in range(1000):
             self.mi_large.get_loc((999, 19, "Z"))
+
+    def time_wide_get_loc(self):
+        self.mi_wide.get_loc((1, 1))
 
     def time_med_get_loc(self):
         self.mi_med.get_loc((999, 9, "A"))
