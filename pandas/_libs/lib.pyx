@@ -1306,11 +1306,13 @@ cdef class Seen:
         self.sint_ = (
             self.sint_
             or (oINT64_MIN <= val < 0)
+            # Cython equivalent of `isinstance(val, np.signedinteger)`
             or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
         )
         self.uint_ = (
             self.uint_
             or (oINT64_MAX < val <= oUINT64_MAX)
+            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
             or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
         )
 
