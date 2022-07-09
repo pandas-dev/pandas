@@ -931,7 +931,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._freq
 
     @freq.setter
-    def freq(self, value):
+    def freq(self, value) -> None:
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
@@ -1548,7 +1548,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # We get here with e.g. datetime objects
         return -(self - other)
 
-    def __iadd__(self, other):
+    def __iadd__(self: DatetimeLikeArrayT, other) -> DatetimeLikeArrayT:
         result = self + other
         self[:] = result[:]
 
@@ -1557,7 +1557,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             self._freq = result.freq
         return self
 
-    def __isub__(self, other):
+    def __isub__(self: DatetimeLikeArrayT, other) -> DatetimeLikeArrayT:
         result = self - other
         self[:] = result[:]
 
@@ -2041,11 +2041,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
     # Reductions
 
-    def any(self, *, axis: int | None = None, skipna: bool = True):
+    def any(self, *, axis: int | None = None, skipna: bool = True) -> bool:
         # GH#34479 discussion of desired behavior long-term
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
-    def all(self, *, axis: int | None = None, skipna: bool = True):
+    def all(self, *, axis: int | None = None, skipna: bool = True) -> bool:
         # GH#34479 discussion of desired behavior long-term
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 

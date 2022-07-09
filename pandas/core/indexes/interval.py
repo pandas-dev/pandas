@@ -179,7 +179,7 @@ def _new_IntervalIndex(cls, d):
         ),
     }
 )
-@inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
+@inherit_names(["set_closed", "set_inclusive", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
     [
         "__array__",
@@ -217,7 +217,7 @@ class IntervalIndex(ExtensionIndex):
     def __new__(
         cls,
         data,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
@@ -266,7 +266,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -302,7 +302,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -337,7 +337,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        inclusive=None,
+        inclusive: IntervalInclusiveType | None = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
