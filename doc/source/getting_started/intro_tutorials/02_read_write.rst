@@ -205,5 +205,4 @@ For a complete overview of the input and output possibilities from and to pandas
 
 .. raw:: html
 
-
     </div>
