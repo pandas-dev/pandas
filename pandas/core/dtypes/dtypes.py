@@ -10,6 +10,7 @@ from typing import (
     MutableMapping,
     cast,
 )
+import warnings
 
 import numpy as np
 import pytz
@@ -26,6 +27,7 @@ from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
+    NaTType,
     Period,
     Timestamp,
     dtypes,
@@ -36,10 +38,12 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalInclusiveType,
     Ordered,
     npt,
     type_t,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -943,7 +947,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         return f"period[{self.freq.freqstr}]"
 
     @property
-    def na_value(self):
+    def na_value(self) -> NaTType:
         return NaT
 
     def __hash__(self) -> int:
@@ -970,7 +974,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         # for pickle compat. __getstate__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
@@ -1032,7 +1036,9 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         for arr in chunks:
             data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=np.dtype(np.int64))
             parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
-            parr[~mask] = NaT
+            # error: Invalid index type "ndarray[Any, dtype[bool_]]" for "PeriodArray";
+            # expected type "Union[int, Sequence[int], Sequence[bool], slice]"
+            parr[~mask] = NaT  # type: ignore[index]
             results.append(parr)
 
         if not results:
@@ -1086,7 +1092,7 @@ class IntervalDtype(PandasExtensionDtype):
     def __new__(
         cls,
         subtype=None,
-        inclusive: str_type | None = None,
+        inclusive: IntervalInclusiveType | None = None,
         closed: None | lib.NoDefault = lib.no_default,
     ):
         from pandas.core.dtypes.common import (
@@ -1135,7 +1141,11 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'inclusive' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        inclusive = gd["inclusive"]
+                        # Incompatible types in assignment (expression has type
+                        # "Union[str, Any]", variable has type
+                        # "Optional[Union[Literal['left', 'right'],
+                        # Literal['both', 'neither']]]")
+                        inclusive = gd["inclusive"]  # type: ignore[assignment]
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1174,6 +1184,15 @@ class IntervalDtype(PandasExtensionDtype):
 
     @property
     def inclusive(self):
+        return self._closed
+
+    @property
+    def closed(self):
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._closed
 
     @property
@@ -1219,7 +1238,7 @@ class IntervalDtype(PandasExtensionDtype):
         raise TypeError(msg)
 
     @property
-    def type(self):
+    def type(self) -> type[Interval]:
         return Interval
 
     def __str__(self) -> str_type:
@@ -1249,7 +1268,7 @@ class IntervalDtype(PandasExtensionDtype):
 
             return is_dtype_equal(self.subtype, other.subtype)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)

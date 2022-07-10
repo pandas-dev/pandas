@@ -4,7 +4,6 @@ from typing import (
     Any,
     Generic,
     TypeVar,
-    Union,
     overload,
 )
 
@@ -13,7 +12,7 @@ import numpy.typing as npt
 
 from pandas._libs import lib
 from pandas._typing import (
-    IntervalClosedType,
+    IntervalInclusiveType,
     Timedelta,
     Timestamp,
 )
@@ -57,7 +56,7 @@ class IntervalMixin:
 
 def _warning_interval(
     inclusive, closed
-) -> tuple[IntervalClosedType, lib.NoDefault]: ...
+) -> tuple[IntervalInclusiveType, lib.NoDefault]: ...
 
 class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
@@ -65,15 +64,17 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def inclusive(self) -> IntervalClosedType: ...
+    def inclusive(self) -> IntervalInclusiveType: ...
+    @property
+    def closed(self) -> IntervalInclusiveType: ...
     mid: _MidDescriptor
     length: _LengthDescriptor
     def __init__(
         self,
         left: _OrderableT,
         right: _OrderableT,
-        inclusive: IntervalClosedType = ...,
-        closed: IntervalClosedType = ...,
+        inclusive: IntervalInclusiveType = ...,
+        closed: IntervalInclusiveType = ...,
     ) -> None: ...
     def __hash__(self) -> int: ...
     @overload
@@ -81,11 +82,7 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
         self: Interval[_OrderableTimesT], key: _OrderableTimesT
     ) -> bool: ...
     @overload
-    def __contains__(
-        self: Interval[_OrderableScalarT], key: Union[int, float]
-    ) -> bool: ...
-    def __repr__(self) -> str: ...
-    def __str__(self) -> str: ...
+    def __contains__(self: Interval[_OrderableScalarT], key: int | float) -> bool: ...
     @overload
     def __add__(
         self: Interval[_OrderableTimesT], y: Timedelta
@@ -95,7 +92,7 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __add__(self: Interval[float], y: Union[int, float]) -> Interval[float]: ...
+    def __add__(self: Interval[float], y: int | float) -> Interval[float]: ...
     @overload
     def __radd__(
         self: Interval[_OrderableTimesT], y: Timedelta
@@ -105,7 +102,7 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __radd__(self: Interval[float], y: Union[int, float]) -> Interval[float]: ...
+    def __radd__(self: Interval[float], y: int | float) -> Interval[float]: ...
     @overload
     def __sub__(
         self: Interval[_OrderableTimesT], y: Timedelta
@@ -115,7 +112,7 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __sub__(self: Interval[float], y: Union[int, float]) -> Interval[float]: ...
+    def __sub__(self: Interval[float], y: int | float) -> Interval[float]: ...
     @overload
     def __rsub__(
         self: Interval[_OrderableTimesT], y: Timedelta
@@ -125,45 +122,43 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __rsub__(self: Interval[float], y: Union[int, float]) -> Interval[float]: ...
+    def __rsub__(self: Interval[float], y: int | float) -> Interval[float]: ...
     @overload
     def __mul__(
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __mul__(self: Interval[float], y: Union[int, float]) -> Interval[float]: ...
+    def __mul__(self: Interval[float], y: int | float) -> Interval[float]: ...
     @overload
     def __rmul__(
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __rmul__(self: Interval[float], y: Union[int, float]) -> Interval[float]: ...
+    def __rmul__(self: Interval[float], y: int | float) -> Interval[float]: ...
     @overload
     def __truediv__(
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __truediv__(self: Interval[float], y: Union[int, float]) -> Interval[float]: ...
+    def __truediv__(self: Interval[float], y: int | float) -> Interval[float]: ...
     @overload
     def __floordiv__(
         self: Interval[int], y: _OrderableScalarT
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __floordiv__(
-        self: Interval[float], y: Union[int, float]
-    ) -> Interval[float]: ...
+    def __floordiv__(self: Interval[float], y: int | float) -> Interval[float]: ...
     def overlaps(self: Interval[_OrderableT], other: Interval[_OrderableT]) -> bool: ...
 
 def intervals_to_interval_bounds(
     intervals: np.ndarray, validate_closed: bool = ...
-) -> tuple[np.ndarray, np.ndarray, str]: ...
+) -> tuple[np.ndarray, np.ndarray, IntervalInclusiveType]: ...
 
 class IntervalTree(IntervalMixin):
     def __init__(
         self,
         left: np.ndarray,
         right: np.ndarray,
-        inclusive: IntervalClosedType = ...,
+        inclusive: IntervalInclusiveType = ...,
         leaf_size: int = ...,
     ) -> None: ...
     @property

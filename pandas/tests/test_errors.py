@@ -28,6 +28,8 @@ import pandas as pd
         "SettingWithCopyWarning",
         "NumExprClobberingError",
         "IndexingError",
+        "PyperclipException",
+        "CSSWarning",
     ],
 )
 def test_exception_importable(exc):

@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import is_unitless
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
@@ -279,6 +280,20 @@ def astype_array_safe(
     if isinstance(dtype, PandasDtype):
         # Ensure we don't end up with a PandasArray
         dtype = dtype.numpy_dtype
+
+    if (
+        is_datetime64_dtype(values.dtype)
+        # need to do np.dtype check instead of is_datetime64_dtype
+        #  otherwise pyright complains
+        and isinstance(dtype, np.dtype)
+        and dtype.kind == "M"
+        and not is_unitless(dtype)
+        and not is_dtype_equal(dtype, values.dtype)
+    ):
+        # unit conversion, we would re-cast to nanosecond, so this is
+        #  effectively just a copy (regardless of copy kwd)
+        # TODO(2.0): remove special-case
+        return values.copy()
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
