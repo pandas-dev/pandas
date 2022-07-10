@@ -1527,11 +1527,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             all_arithmetic_operators in ("__add__", "__radd__")
             and pa.types.is_duration(pa_dtype)
             or all_arithmetic_operators in ("__sub__", "__rsub__")
-            and (
-                pa.types.is_date(pa_dtype)
-                or pa.types.is_time(pa_dtype)
-                or pa.types.is_duration(pa_dtype)
-            )
+            and pa.types.is_temporal(pa_dtype)
         )
         if all_arithmetic_operators in {
             "__truediv__",
@@ -1542,6 +1538,8 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             "__rmod__",
         }:
             self.series_scalar_exc = NotImplementedError
+        elif arrow_temporal_supported:
+            self.series_scalar_exc = None
         elif not (
             pa.types.is_floating(pa_dtype)
             or pa.types.is_integer(pa_dtype)
@@ -1561,6 +1559,16 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     )
                 )
             )
+        elif arrow_temporal_supported:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        f"{all_arithmetic_operators} not supported between"
+                        f"pd.NA and {pa_dtype} Python scalar"
+                    ),
+                )
+            )
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
@@ -1570,11 +1578,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             all_arithmetic_operators in ("__add__", "__radd__")
             and pa.types.is_duration(pa_dtype)
             or all_arithmetic_operators in ("__sub__", "__rsub__")
-            and (
-                pa.types.is_date(pa_dtype)
-                or pa.types.is_time(pa_dtype)
-                or pa.types.is_duration(pa_dtype)
-            )
+            and pa.types.is_temporal(pa_dtype)
         )
         if all_arithmetic_operators in {
             "__truediv__",
@@ -1585,11 +1589,9 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             "__rmod__",
         }:
             self.frame_scalar_exc = NotImplementedError
-        elif not (
-            pa.types.is_floating(pa_dtype)
-            or pa.types.is_integer(pa_dtype)
-            or arrow_temporal_supported
-        ):
+        elif arrow_temporal_supported:
+            self.frame_scalar_exc = None
+        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
             self.frame_scalar_exc = pa.ArrowNotImplementedError
         else:
             self.frame_scalar_exc = None
@@ -1604,6 +1606,16 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     )
                 )
             )
+        elif arrow_temporal_supported:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        f"{all_arithmetic_operators} not supported between"
+                        f"pd.NA and {pa_dtype} Python scalar"
+                    ),
+                )
+            )
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(
@@ -1615,11 +1627,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             all_arithmetic_operators in ("__add__", "__radd__")
             and pa.types.is_duration(pa_dtype)
             or all_arithmetic_operators in ("__sub__", "__rsub__")
-            and (
-                pa.types.is_date(pa_dtype)
-                or pa.types.is_time(pa_dtype)
-                or pa.types.is_duration(pa_dtype)
-            )
+            and pa.types.is_temporal(pa_dtype)
         )
         if all_arithmetic_operators in {
             "__truediv__",
@@ -1630,11 +1638,9 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             "__rmod__",
         }:
             self.series_array_exc = NotImplementedError
-        elif not (
-            pa.types.is_floating(pa_dtype)
-            or pa.types.is_integer(pa_dtype)
-            or arrow_temporal_supported
-        ):
+        elif arrow_temporal_supported:
+            self.series_array_exc = None
+        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
             self.series_array_exc = pa.ArrowNotImplementedError
         else:
             self.series_array_exc = None
@@ -1659,6 +1665,16 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     reason=(
                         f"Implemented pyarrow.compute.subtract_checked "
                         f"which raises on overflow for {pa_dtype}"
+                    ),
+                )
+            )
+        elif arrow_temporal_supported:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        f"{all_arithmetic_operators} not supported between"
+                        f"pd.NA and {pa_dtype} Python scalar"
                     ),
                 )
             )
@@ -1689,7 +1705,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if not (
             pa.types.is_integer(pa_dtype)
             or pa.types.is_floating(pa_dtype)
-            or (not pa_version_under8p0 and pa.types.is_duration(pa_dtype)),
+            or (not pa_version_under8p0 and pa.types.is_duration(pa_dtype))
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
