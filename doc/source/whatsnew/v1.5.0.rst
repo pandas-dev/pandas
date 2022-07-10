@@ -279,7 +279,7 @@ Other enhancements
 - :class:`Series` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) will now successfully operate when the dtype is numeric and ``numeric_only=True`` is provided; previously this would raise a ``NotImplementedError`` (:issue:`47500`)
 - :meth:`RangeIndex.union` now can return a :class:`RangeIndex` instead of a :class:`Int64Index` if the resulting values are equally spaced (:issue:`47557`, :issue:`43885`)
 - :meth:`DataFrame.compare` now accepts an argument ``suffixes`` to allow the user to specify the suffixes of both left and right DataFrame which are being compared. This is by default ``'self'`` and ``'other'`` (:issue:`44354`)
--
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
 
@@ -800,6 +800,7 @@ Performance improvements
 - Performance improvement in :class:`BusinessHour` ``str`` and ``repr`` (:issue:`44764`)
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
+- Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47404`, :issue:`47405`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -858,10 +859,12 @@ Conversion
 - Bug in :meth:`DataFrame.to_records` returning inconsistent numpy types if the index was a :class:`MultiIndex` (:issue:`47263`)
 - Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
 - Bug in :meth:`DataFrame.apply` that returns a :class:`DataFrame` instead of a :class:`Series` when applied to an empty :class:`DataFrame` and ``axis=1`` (:issue:`39111`)
+- Bug when inferring the dtype from an iterable that is *not* a NumPy ``ndarray`` consisting of all NumPy unsigned integer scalars did not result in an unsigned integer dtype (:issue:`47294`)
 
 Strings
 ^^^^^^^
 - Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameter _pat_. Now raises ``TypeError`` (:issue:`3485`)
+- Bug in :meth:`Series.str.zfill` when strings contain leading signs, padding '0' before the sign character rather than after as ``str.zfill`` from standard library (:issue:`20868`)
 -
 
 Interval
