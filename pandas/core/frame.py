@@ -1851,6 +1851,8 @@ class DataFrame(NDFrame, OpsMixin):
             When set to False, method returns a dict without an index key
             (and index_names if using orient='tight').
 
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         dict, list or collections.abc.Mapping
