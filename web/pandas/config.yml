@@ -101,11 +101,11 @@ maintainers:
   - Camille Scott
   - Nathaniel Smith
   numfocus:
-  - Phillip Cloud
-  - Stephan Hoyer
   - Wes McKinney
   - Jeff Reback
   - Joris Van den Bossche
+  - Tom Augspurger
+  - Matthew Roeschke
 sponsors:
   active:
   - name: "NumFOCUS"
