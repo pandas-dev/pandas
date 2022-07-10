@@ -799,6 +799,7 @@ Performance improvements
 - Performance improvement in :class:`BusinessHour` ``str`` and ``repr`` (:issue:`44764`)
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
+- Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47404`, :issue:`47405`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -857,10 +858,12 @@ Conversion
 - Bug in :meth:`DataFrame.to_records` returning inconsistent numpy types if the index was a :class:`MultiIndex` (:issue:`47263`)
 - Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
 - Bug in :meth:`DataFrame.apply` that returns a :class:`DataFrame` instead of a :class:`Series` when applied to an empty :class:`DataFrame` and ``axis=1`` (:issue:`39111`)
+- Bug when inferring the dtype from an iterable that is *not* a NumPy ``ndarray`` consisting of all NumPy unsigned integer scalars did not result in an unsigned integer dtype (:issue:`47294`)
 
 Strings
 ^^^^^^^
 - Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameter _pat_. Now raises ``TypeError`` (:issue:`3485`)
+- Bug in :meth:`Series.str.zfill` when strings contain leading signs, padding '0' before the sign character rather than after as ``str.zfill`` from standard library (:issue:`20868`)
 -
 
 Interval
