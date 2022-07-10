@@ -166,6 +166,7 @@ reportPropertyTypeMismatch = true
 reportUntypedClassDecorator = true
 reportUntypedFunctionDecorator = true
 reportUntypedNamedTuple = true
+reportUnusedImport = true
 # disable subset of "basic"
 reportGeneralTypeIssues = false
 reportMissingModuleSource = false
@@ -176,4 +177,3 @@ reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
 reportUnboundVariable = false
-reportUnsupportedDunderAll = false

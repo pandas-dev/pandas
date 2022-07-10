@@ -108,7 +108,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
-    from pandas.core.internals import Block  # noqa:F401
 
 
 class BaseWindow(SelectionMixin):

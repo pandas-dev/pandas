@@ -1734,7 +1734,7 @@ def spmatrix(request):
     params=[
         getattr(pd.offsets, o)
         for o in pd.offsets.__all__
-        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick)
+        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick) and o != "Tick"
     ]
 )
 def tick_classes(request):

@@ -1,4 +1,3 @@
-# flake8: noqa
 from __future__ import annotations
 
 __docformat__ = "restructuredtext"
@@ -20,7 +19,7 @@ if _missing_dependencies:
 del _hard_dependencies, _dependency, _missing_dependencies
 
 # numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev
+from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
 
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
@@ -44,7 +43,7 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init
+import pandas.core.config_init  # pyright: ignore # noqa:F401
 
 from pandas.core.api import (
     # dtype
@@ -134,7 +133,8 @@ from pandas.core.reshape.api import (
     qcut,
 )
 
-from pandas import api, arrays, errors, io, plotting, testing, tseries
+from pandas import api, arrays, errors, io, plotting, tseries
+from pandas import testing  # noqa:PDF015
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
