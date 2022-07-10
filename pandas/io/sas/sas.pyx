@@ -424,8 +424,11 @@ cdef class Parser:
                 jb += 1
             elif column_types[j] == column_type_string:
                 # string
-                string_chunk[js, current_row] = np.array(source[start:(
-                    start + lngt)]).tobytes().rstrip(b"\x00 ")
+                # Skip trailing whitespace. This is equivalent to calling
+                # .rstrip(b"\x00 ") but without Python call overhead.
+                while lngt > 0 and source[start+lngt-1] in b"\x00 ":
+                    lngt -= 1
+                string_chunk[js, current_row] = (&source[start])[:lngt]
                 js += 1
 
         self.current_row_on_page_index += 1
