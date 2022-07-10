@@ -1,10 +1,13 @@
 """
 Expose public exceptions & warnings
 """
+from __future__ import annotations
 
-from pandas._config.config import OptionError  # noqa:F401
+import ctypes
 
-from pandas._libs.tslibs import (  # noqa:F401
+from pandas._config.config import OptionError
+
+from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
@@ -308,3 +311,137 @@ class SettingWithCopyWarning(Warning):
     >>> df.loc[0:3]['A'] = 'a' # doctest: +SKIP
     ... # SettingWithCopyWarning: A value is trying to be set on a copy of a...
     """
+
+
+class NumExprClobberingError(NameError):
+    """
+    Exception is raised when trying to use a built-in numexpr name as a variable name
+    in a method like query or eval. Eval will throw the error if the engine is set
+    to 'numexpr'. 'numexpr' is the default engine value for eval if the numexpr package
+    is installed.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'abs': [1, 1, 1]})
+    >>> df.query("abs > 2") # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(abs) > (2)" overlap...
+    >>> sin, a = 1, 2
+    >>> pd.eval("sin + a", engine='numexpr') # doctest: +SKIP
+    ... # NumExprClobberingError: Variables in expression "(sin) + (a)" overlap...
+    """
+
+
+class UndefinedVariableError(NameError):
+    """
+    Exception is raised when trying to use an undefined variable name in a method
+    like query or eval. It will also specific whether the undefined variable is
+    local or not.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df.query("A > x") # doctest: +SKIP
+    ... # UndefinedVariableError: name 'x' is not defined
+    >>> df.query("A > @y") # doctest: +SKIP
+    ... # UndefinedVariableError: local variable 'y' is not defined
+    >>> pd.eval('x + 1') # doctest: +SKIP
+    ... # UndefinedVariableError: name 'x' is not defined
+    """
+
+    def __init__(self, name: str, is_local: bool | None = None) -> None:
+        base_msg = f"{repr(name)} is not defined"
+        if is_local:
+            msg = f"local variable {base_msg}"
+        else:
+            msg = f"name {base_msg}"
+        super().__init__(msg)
+
+
+class IndexingError(Exception):
+    """
+    Exception is raised when trying to index and there is a mismatch in dimensions.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df.loc[..., ..., 'A'] # doctest: +SKIP
+    ... # IndexingError: indexer may only contain one '...' entry
+    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df.loc[1, ..., ...] # doctest: +SKIP
+    ... # IndexingError: Too many indexers
+    >>> df[pd.Series([True], dtype=bool)] # doctest: +SKIP
+    ... # IndexingError: Unalignable boolean Series provided as indexer...
+    >>> s = pd.Series(range(2),
+    ...               index = pd.MultiIndex.from_product([["a", "b"], ["c"]]))
+    >>> s.loc["a", "c", "d"] # doctest: +SKIP
+    ... # IndexingError: Too many indexers
+    """
+
+
+class PyperclipException(RuntimeError):
+    """
+    Exception is raised when trying to use methods like to_clipboard() and
+    read_clipboard() on an unsupported OS/platform.
+    """
+
+
+class PyperclipWindowsException(PyperclipException):
+    """
+    Exception is raised when pandas is unable to get access to the clipboard handle
+    due to some other window process is accessing it.
+    """
+
+    def __init__(self, message: str) -> None:
+        # attr only exists on Windows, so typing fails on other platforms
+        message += f" ({ctypes.WinError()})"  # type: ignore[attr-defined]
+        super().__init__(message)
+
+
+class CSSWarning(UserWarning):
+    """
+    Warning is raised when converting css styling fails.
+    This can be due to the styling not having an equivalent value or because the
+    styling isn't properly formatted.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 1, 1]})
+    >>> df.style.applymap(lambda x: 'background-color: blueGreenRed;')
+    ...         .to_excel('styled.xlsx') # doctest: +SKIP
+    ... # CSSWarning: Unhandled color format: 'blueGreenRed'
+    >>> df.style.applymap(lambda x: 'border: 1px solid red red;')
+    ...         .to_excel('styled.xlsx') # doctest: +SKIP
+    ... # CSSWarning: Too many tokens provided to "border" (expected 1-3)
+    """
+
+
+__all__ = [
+    "AbstractMethodError",
+    "AccessorRegistrationWarning",
+    "CSSWarning",
+    "DataError",
+    "DtypeWarning",
+    "DuplicateLabelError",
+    "EmptyDataError",
+    "IntCastingNaNError",
+    "InvalidIndexError",
+    "IndexingError",
+    "MergeError",
+    "NullFrequencyError",
+    "NumbaUtilError",
+    "NumExprClobberingError",
+    "OptionError",
+    "OutOfBoundsDatetime",
+    "OutOfBoundsTimedelta",
+    "ParserError",
+    "ParserWarning",
+    "PerformanceWarning",
+    "PyperclipException",
+    "PyperclipWindowsException",
+    "SettingWithCopyError",
+    "SettingWithCopyWarning",
+    "SpecificationError",
+    "UndefinedVariableError",
+    "UnsortedIndexError",
+    "UnsupportedFunctionCall",
+]

@@ -474,6 +474,9 @@ def test_is_datetime64_ns_dtype():
         pd.DatetimeIndex([1, 2, 3], dtype=np.dtype("datetime64[ns]"))
     )
 
+    # non-nano dt64tz
+    assert not com.is_datetime64_ns_dtype(DatetimeTZDtype("us", "US/Eastern"))
+
 
 def test_is_timedelta64_ns_dtype():
     assert not com.is_timedelta64_ns_dtype(np.dtype("m8[ps]"))

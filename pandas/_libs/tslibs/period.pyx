@@ -47,9 +47,8 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     NPY_FR_us,
+    astype_overflowsafe,
     check_dts_bounds,
-    dt64_to_dtstruct,
-    dtstruct_to_dt64,
     get_timedelta64_value,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -59,7 +58,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.ccalendar cimport (
-    c_MONTH_NUMBERS,
     dayofweek,
     get_day_of_year,
     get_days_in_month,
@@ -71,7 +69,7 @@ from pandas._libs.tslibs.timedeltas cimport (
     is_any_td_scalar,
 )
 
-from pandas._libs.tslibs.conversion import ensure_datetime64ns
+from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
@@ -813,7 +811,7 @@ cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogi
 
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, dts)
 
-    dt64_to_dtstruct(nanos, &dts2)
+    pandas_datetime_to_datetimestruct(nanos, NPY_DATETIMEUNIT.NPY_FR_ns, &dts2)
     dts.hour = dts2.hour
     dts.min = dts2.min
     dts.sec = dts2.sec
@@ -981,7 +979,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
             dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
             dta = periodarr.base.view("M8[D]")
-        return ensure_datetime64ns(dta)
+        return astype_overflowsafe(dta, dtype=DT64NS_DTYPE)
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
@@ -1149,7 +1147,7 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     get_date_info(ordinal, freq, &dts)
 
     check_dts_bounds(&dts)
-    return dtstruct_to_dt64(&dts)
+    return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
@@ -1727,10 +1725,12 @@ cdef class _Period(PeriodMixin):
         elif util.is_integer_object(other):
             ordinal = self.ordinal + other * self.freq.n
             return Period(ordinal=ordinal, freq=self.freq)
-        elif (PyDateTime_Check(other) or
-              is_period_object(other) or util.is_datetime64_object(other)):
+
+        elif is_period_object(other):
             # can't add datetime-like
-            # GH#17983
+            # GH#17983; can't just return NotImplemented bc we get a RecursionError
+            #  when called via np.add.reduce see TestNumpyReductions.test_add
+            #  in npdev build
             sname = type(self).__name__
             oname = type(other).__name__
             raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
@@ -1749,16 +1749,12 @@ cdef class _Period(PeriodMixin):
                 return NaT
             return NotImplemented
 
-        elif is_any_td_scalar(other):
-            neg_other = -other
-            return self + neg_other
-        elif is_offset_object(other):
-            # Non-Tick DateOffset
-            neg_other = -other
-            return self + neg_other
-        elif util.is_integer_object(other):
-            ordinal = self.ordinal - other * self.freq.n
-            return Period(ordinal=ordinal, freq=self.freq)
+        elif (
+            is_any_td_scalar(other)
+            or is_offset_object(other)
+            or util.is_integer_object(other)
+        ):
+            return self + (-other)
         elif is_period_object(other):
             self._require_matching_freq(other)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
@@ -2484,9 +2480,11 @@ class Period(_Period):
     Parameters
     ----------
     value : Period or str, default None
-        The time period represented (e.g., '4Q2005').
+        The time period represented (e.g., '4Q2005'). This represents neither
+        the start or the end of the period, but rather the entire period itself.
     freq : str, default None
-        One of pandas period strings or corresponding objects.
+        One of pandas period strings or corresponding objects. Accepted
+        strings are listed in the :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
@@ -2503,6 +2501,12 @@ class Period(_Period):
         Minute value of the period.
     second : int, default 0
         Second value of the period.
+
+    Examples
+    --------
+    >>> period = pd.Period('2012-1-1', freq='D')
+    >>> period
+    Period('2012-01-01', 'D')
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,

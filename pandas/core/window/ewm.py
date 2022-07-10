@@ -26,7 +26,10 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_ns_dtype,
+    is_numeric_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common  # noqa: PDF018
@@ -45,6 +48,7 @@ from pandas.core.window.doc import (
     args_compat,
     create_section_header,
     kwargs_compat,
+    kwargs_numeric_only,
     numba_notes,
     template_header,
     template_returns,
@@ -438,7 +442,9 @@ class ExponentialMovingWindow(BaseWindow):
         """
         return ExponentialMovingWindowIndexer()
 
-    def online(self, engine="numba", engine_kwargs=None):
+    def online(
+        self, engine="numba", engine_kwargs=None
+    ) -> OnlineExponentialMovingWindow:
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate
         exponentially moving window aggregations in an online method.
@@ -518,6 +524,7 @@ class ExponentialMovingWindow(BaseWindow):
     @doc(
         template_header,
         create_section_header("Parameters"),
+        kwargs_numeric_only,
         args_compat,
         window_agg_numba_parameters(),
         kwargs_compat,
@@ -531,7 +538,14 @@ class ExponentialMovingWindow(BaseWindow):
         aggregation_description="(exponential weighted moment) mean",
         agg_method="mean",
     )
-    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def mean(
+        self,
+        numeric_only: bool = False,
+        *args,
+        engine=None,
+        engine_kwargs=None,
+        **kwargs,
+    ):
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
@@ -545,7 +559,7 @@ class ExponentialMovingWindow(BaseWindow):
                 deltas=tuple(self._deltas),
                 normalize=True,
             )
-            return self._apply(ewm_func)
+            return self._apply(ewm_func, name="mean")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -560,13 +574,14 @@ class ExponentialMovingWindow(BaseWindow):
                 deltas=deltas,
                 normalize=True,
             )
-            return self._apply(window_func)
+            return self._apply(window_func, name="mean", numeric_only=numeric_only)
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
     @doc(
         template_header,
         create_section_header("Parameters"),
+        kwargs_numeric_only,
         args_compat,
         window_agg_numba_parameters(),
         kwargs_compat,
@@ -580,7 +595,14 @@ class ExponentialMovingWindow(BaseWindow):
         aggregation_description="(exponential weighted moment) sum",
         agg_method="sum",
     )
-    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def sum(
+        self,
+        numeric_only: bool = False,
+        *args,
+        engine=None,
+        engine_kwargs=None,
+        **kwargs,
+    ):
         if not self.adjust:
             raise NotImplementedError("sum is not implemented with adjust=False")
         if maybe_use_numba(engine):
@@ -596,7 +618,7 @@ class ExponentialMovingWindow(BaseWindow):
                 deltas=tuple(self._deltas),
                 normalize=False,
             )
-            return self._apply(ewm_func)
+            return self._apply(ewm_func, name="sum")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -611,7 +633,7 @@ class ExponentialMovingWindow(BaseWindow):
                 deltas=deltas,
                 normalize=False,
             )
-            return self._apply(window_func)
+            return self._apply(window_func, name="sum", numeric_only=numeric_only)
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
@@ -624,6 +646,7 @@ class ExponentialMovingWindow(BaseWindow):
             Use a standard estimation bias correction.
         """
         ).replace("\n", "", 1),
+        kwargs_numeric_only,
         args_compat,
         kwargs_compat,
         create_section_header("Returns"),
@@ -634,9 +657,18 @@ class ExponentialMovingWindow(BaseWindow):
         aggregation_description="(exponential weighted moment) standard deviation",
         agg_method="std",
     )
-    def std(self, bias: bool = False, *args, **kwargs):
+    def std(self, bias: bool = False, numeric_only: bool = False, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        return zsqrt(self.var(bias=bias, **kwargs))
+        if (
+            numeric_only
+            and self._selected_obj.ndim == 1
+            and not is_numeric_dtype(self._selected_obj.dtype)
+        ):
+            # Raise directly so error message says std instead of var
+            raise NotImplementedError(
+                f"{type(self).__name__}.std does not implement numeric_only"
+            )
+        return zsqrt(self.var(bias=bias, numeric_only=numeric_only, **kwargs))
 
     def vol(self, bias: bool = False, *args, **kwargs):
         warnings.warn(
@@ -658,6 +690,7 @@ class ExponentialMovingWindow(BaseWindow):
             Use a standard estimation bias correction.
         """
         ).replace("\n", "", 1),
+        kwargs_numeric_only,
         args_compat,
         kwargs_compat,
         create_section_header("Returns"),
@@ -668,7 +701,7 @@ class ExponentialMovingWindow(BaseWindow):
         aggregation_description="(exponential weighted moment) variance",
         agg_method="var",
     )
-    def var(self, bias: bool = False, *args, **kwargs):
+    def var(self, bias: bool = False, numeric_only: bool = False, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = window_aggregations.ewmcov
         wfunc = partial(
@@ -682,7 +715,7 @@ class ExponentialMovingWindow(BaseWindow):
         def var_func(values, begin, end, min_periods):
             return wfunc(values, begin, end, min_periods, values)
 
-        return self._apply(var_func)
+        return self._apply(var_func, name="var", numeric_only=numeric_only)
 
     @doc(
         template_header,
@@ -703,6 +736,7 @@ class ExponentialMovingWindow(BaseWindow):
             Use a standard estimation bias correction.
         """
         ).replace("\n", "", 1),
+        kwargs_numeric_only,
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -717,9 +751,12 @@ class ExponentialMovingWindow(BaseWindow):
         other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
+        numeric_only: bool = False,
         **kwargs,
     ):
         from pandas import Series
+
+        self._validate_numeric_only("cov", numeric_only)
 
         def cov_func(x, y):
             x_array = self._prep_values(x)
@@ -752,7 +789,9 @@ class ExponentialMovingWindow(BaseWindow):
             )
             return Series(result, index=x.index, name=x.name)
 
-        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
+        return self._apply_pairwise(
+            self._selected_obj, other, pairwise, cov_func, numeric_only
+        )
 
     @doc(
         template_header,
@@ -771,6 +810,7 @@ class ExponentialMovingWindow(BaseWindow):
             observations will be used.
         """
         ).replace("\n", "", 1),
+        kwargs_numeric_only,
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -784,9 +824,12 @@ class ExponentialMovingWindow(BaseWindow):
         self,
         other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
+        numeric_only: bool = False,
         **kwargs,
     ):
         from pandas import Series
+
+        self._validate_numeric_only("corr", numeric_only)
 
         def cov_func(x, y):
             x_array = self._prep_values(x)
@@ -825,7 +868,9 @@ class ExponentialMovingWindow(BaseWindow):
                 result = cov / zsqrt(x_var * y_var)
             return Series(result, index=x.index, name=x.name)
 
-        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
+        return self._apply_pairwise(
+            self._selected_obj, other, pairwise, cov_func, numeric_only
+        )
 
 
 class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
@@ -905,7 +950,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         else:
             raise ValueError("'numba' is the only supported engine")
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state captured by `update` calls.
         """
@@ -921,6 +966,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         self,
         other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
+        numeric_only: bool = False,
         **kwargs,
     ):
         return NotImplementedError
@@ -930,6 +976,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
+        numeric_only: bool = False,
         **kwargs,
     ):
         return NotImplementedError

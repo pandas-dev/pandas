@@ -395,26 +395,29 @@ class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""
 
     name: str
-    na_value = libmissing.NA
     _metadata = ("storage",)
 
     def __init__(self, storage=None) -> None:
         self.storage = storage
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.name}[{self.storage}]"
 
     def __str__(self):
         return self.name
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, self.type) and other == self.name:
+        if isinstance(other, str) and other == self.name:
             return True
         return super().__eq__(other)
 
     def __hash__(self) -> int:
         # custom __eq__ so have to override __hash__
         return super().__hash__()
+
+    @property
+    def na_value(self) -> libmissing.NAType:
+        return libmissing.NA
 
 
 def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
