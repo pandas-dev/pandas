@@ -66,8 +66,8 @@ if not pa_version_under1p01:
         "ror": NotImplemented
         if pa_version_under2p0
         else lambda x, y: pc.or_kleene(y, x),
-        "xor": pc.xor,
-        "rxor": lambda x, y: pc.xor(y, x),
+        "xor": NotImplemented if pa_version_under2p0 else pc.xor,
+        "rxor": NotImplemented if pa_version_under2p0 else lambda x, y: pc.xor(y, x),
     }
 
     def divide_compat(arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar):
