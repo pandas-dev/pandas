@@ -589,7 +589,6 @@ def test_store_series_name(setup_path):
         tm.assert_series_equal(recons, series)
 
 
-@pytest.mark.filterwarnings("ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning")
 def test_overwrite_node(setup_path):
 
     with ensure_clean_store(setup_path) as store:
