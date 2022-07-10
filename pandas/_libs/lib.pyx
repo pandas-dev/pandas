@@ -17,6 +17,7 @@ from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
     PyObject_RichCompareBool,
+    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -54,6 +55,11 @@ from numpy cimport (
 
 cnp.import_array()
 
+cdef extern from "Python.h":
+    # Note: importing extern-style allows us to declare these as nogil
+    # functions, whereas `from cpython cimport` does not.
+    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
     # errors in issubclass(self.dtype.type, np.bool_), so we directly
@@ -70,6 +76,9 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
+
+    PyTypeObject PySignedIntegerArrType_Type
+    PyTypeObject PyUnsignedIntegerArrType_Type
 
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
@@ -1283,9 +1292,9 @@ cdef class Seen:
         In addition to setting a flag that an integer was seen, we
         also set two flags depending on the type of integer seen:
 
-        1) sint_ : a negative (signed) number in the
+        1) sint_ : a signed numpy integer type or a negative (signed) number in the
                    range of [-2**63, 0) was encountered
-        2) uint_ : a positive number in the range of
+        2) uint_ : an unsigned numpy integer type or a positive number in the range of
                    [2**63, 2**64) was encountered
 
         Parameters
@@ -1294,8 +1303,18 @@ cdef class Seen:
             Value with which to set the flags.
         """
         self.int_ = True
-        self.sint_ = self.sint_ or (oINT64_MIN <= val < 0)
-        self.uint_ = self.uint_ or (oINT64_MAX < val <= oUINT64_MAX)
+        self.sint_ = (
+            self.sint_
+            or (oINT64_MIN <= val < 0)
+            # Cython equivalent of `isinstance(val, np.signedinteger)`
+            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
+        )
+        self.uint_ = (
+            self.uint_
+            or (oINT64_MAX < val <= oUINT64_MAX)
+            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
+            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
+        )
 
     @property
     def numeric_(self):
@@ -2542,7 +2561,6 @@ def maybe_convert_objects(ndarray[object] objects,
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
-                val = int(val)
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or

@@ -745,6 +745,25 @@ class TestSeriesConstructors:
         expected = Series([1, 200, 50], dtype="uint8")
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            np.array([1], dtype=np.uint16),
+            np.array([1], dtype=np.uint32),
+            np.array([1], dtype=np.uint64),
+            [np.uint16(1)],
+            [np.uint32(1)],
+            [np.uint64(1)],
+        ],
+    )
+    def test_constructor_numpy_uints(self, values):
+        # GH#47294
+        value = values[0]
+        result = Series(values)
+
+        assert result[0].dtype == value.dtype
+        assert result[0] == value
+
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"

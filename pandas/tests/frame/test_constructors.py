@@ -434,6 +434,25 @@ class TestDataFrameConstructors:
         assert result[0].dtype == object
         assert result[0][0] == value
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            np.array([1], dtype=np.uint16),
+            np.array([1], dtype=np.uint32),
+            np.array([1], dtype=np.uint64),
+            [np.uint16(1)],
+            [np.uint32(1)],
+            [np.uint64(1)],
+        ],
+    )
+    def test_constructor_numpy_uints(self, values):
+        # GH#47294
+        value = values[0]
+        result = DataFrame(values)
+
+        assert result[0].dtype == value.dtype
+        assert result[0][0] == value
+
     def test_constructor_ordereddict(self):
         import random
 

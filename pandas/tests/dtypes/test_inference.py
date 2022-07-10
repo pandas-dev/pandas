@@ -700,25 +700,32 @@ class TestInference:
         result = lib.maybe_convert_objects(arr)
         tm.assert_numpy_array_equal(arr, result)
 
-    def test_maybe_convert_objects_uint64(self):
-        # see gh-4471
-        arr = np.array([2**63], dtype=object)
-        exp = np.array([2**63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
-
-        # NumPy bug: can't compare uint64 to int64, as that
-        # results in both casting to float64, so we should
-        # make sure that this function is robust against it
-        arr = np.array([np.uint64(2**63)], dtype=object)
-        exp = np.array([2**63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
-
-        arr = np.array([2, -1], dtype=object)
-        exp = np.array([2, -1], dtype=np.int64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
-
-        arr = np.array([2**63, -1], dtype=object)
-        exp = np.array([2**63, -1], dtype=object)
+    @pytest.mark.parametrize(
+        "value, expected_dtype",
+        [
+            # see gh-4471
+            ([2**63], np.uint64),
+            # NumPy bug: can't compare uint64 to int64, as that
+            # results in both casting to float64, so we should
+            # make sure that this function is robust against it
+            ([np.uint64(2**63)], np.uint64),
+            ([2, -1], np.int64),
+            ([2**63, -1], object),
+            # GH#47294
+            ([np.uint8(1)], np.uint8),
+            ([np.uint16(1)], np.uint16),
+            ([np.uint32(1)], np.uint32),
+            ([np.uint64(1)], np.uint64),
+            ([np.uint8(2), np.uint16(1)], np.uint16),
+            ([np.uint32(2), np.uint16(1)], np.uint32),
+            ([np.uint32(2), -1], object),
+            ([np.uint32(2), 1], np.uint64),
+            ([np.uint32(2), np.int32(1)], object),
+        ],
+    )
+    def test_maybe_convert_objects_uint(self, value, expected_dtype):
+        arr = np.array(value, dtype=object)
+        exp = np.array(value, dtype=expected_dtype)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
     def test_maybe_convert_objects_datetime(self):

@@ -540,10 +540,18 @@ def test_union_duplicates(index, request):
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
     result = mi1.union(mi2)
-    tm.assert_index_equal(result, mi2.sort_values())
+    expected = mi2.sort_values()
+    if mi2.levels[0].dtype == np.uint64 and (mi2.get_level_values(0) < 2**63).all():
+        # GH#47294 - union uses lib.fast_zip, converting data to Python integers
+        # and loses type information. Result is then unsigned only when values are
+        # sufficiently large to require unsigned dtype.
+        expected = expected.set_levels(
+            [expected.levels[0].astype(int), expected.levels[1]]
+        )
+    tm.assert_index_equal(result, expected)
 
     result = mi2.union(mi1)
-    tm.assert_index_equal(result, mi2.sort_values())
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize(
