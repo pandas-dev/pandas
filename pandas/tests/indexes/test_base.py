@@ -1222,6 +1222,26 @@ class TestIndex(Base):
         expected = Index([5, 4, 3, 2, 1])
         result = index.sortlevel(ascending=False)
         tm.assert_index_equal(result[0], expected)
+    
+    def test_diff(self):
+        # GH#19708
+        index = Index([1, 2, 3, 4])
+
+        result = index.diff()
+        expected = Index([np.nan, 1, 1, 1])
+        tm.assert_index_equal(result, expected)
+
+        result = index.diff(periods=-1)
+        expected = Index([-1, -1, -1, np.nan])
+        tm.assert_index_equal(result, expected)
+
+    def test_round(self):
+        # GH#19708
+        value = 1.2345987654321
+
+        result = Index([value]).round(2)
+        expected = Index([1.23])
+        tm.assert_index_equal(result, expected)
 
 
 class TestMixedIntIndex(Base):

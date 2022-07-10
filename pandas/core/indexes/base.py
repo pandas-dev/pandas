@@ -6932,6 +6932,63 @@ class Index(IndexOpsMixin, PandasObject):
                 raise KeyError(f"{list(labels[mask])} not found in axis")
             indexer = indexer[~mask]
         return self.delete(indexer)
+    
+    def round(self, decimals=0, *args, kwargs) -> Index:
+        """
+        Round each value in the index.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+        *args, kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+
+        Returns
+        -------
+        Index
+            Rounded values of the Index.
+
+        See Also
+        --------
+        numpy.around : Round values of an np.array.
+        Series.round : Round values of a Series.
+        DataFrame.round : Round values of a DataFrame.
+
+        """
+
+        return Index(self.to_series().round(decimals, args, kwargs))
+
+    def diff(self, periods: int = 1) -> Index:
+        """
+        First discrete difference of element.
+
+        Calculates the difference of a Index element compared with another
+        element in the Index (default is element in previous row).
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for calculating difference, accepts negative
+            values.
+        Returns
+        -------
+        Index
+            First differences of the Index.
+
+        See Also
+        --------
+        Series.diff: First discrete difference for a Series.
+        DataFrame.diff: First discrete difference of object.
+
+        """
+        return Index(self.to_series().diff(periods))
 
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
