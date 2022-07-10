@@ -211,7 +211,7 @@ def lexsort_depth(list_of_arrays: list) -> Py_ssize_t:
     with nogil:
         depth = nlevels
         i = 0
-        while i < n and depth > 0:
+        while i < n and depth:
             k = 0
             while k < depth:
                 cur = vecs[k][i]
