@@ -1529,14 +1529,18 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or all_arithmetic_operators in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
         )
-        if all_arithmetic_operators in {
-            "__truediv__",
-            "__rtruediv__",
-            "__floordiv__",
-            "__rfloordiv__",
-            "__mod__",
-            "__rmod__",
-        }:
+        if (
+            all_arithmetic_operators
+            in {
+                "__truediv__",
+                "__rtruediv__",
+                "__floordiv__",
+                "__rfloordiv__",
+                "__mod__",
+                "__rmod__",
+            }
+            or pa_version_under2p0
+        ):
             self.series_scalar_exc = NotImplementedError
         elif arrow_temporal_supported:
             self.series_scalar_exc = None
@@ -1580,14 +1584,18 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or all_arithmetic_operators in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
         )
-        if all_arithmetic_operators in {
-            "__truediv__",
-            "__rtruediv__",
-            "__floordiv__",
-            "__rfloordiv__",
-            "__mod__",
-            "__rmod__",
-        }:
+        if (
+            all_arithmetic_operators
+            in {
+                "__truediv__",
+                "__rtruediv__",
+                "__floordiv__",
+                "__rfloordiv__",
+                "__mod__",
+                "__rmod__",
+            }
+            or pa_version_under2p0
+        ):
             self.frame_scalar_exc = NotImplementedError
         elif arrow_temporal_supported:
             self.frame_scalar_exc = None
@@ -1629,14 +1637,18 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or all_arithmetic_operators in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
         )
-        if all_arithmetic_operators in {
-            "__truediv__",
-            "__rtruediv__",
-            "__floordiv__",
-            "__rfloordiv__",
-            "__mod__",
-            "__rmod__",
-        }:
+        if (
+            all_arithmetic_operators
+            in {
+                "__truediv__",
+                "__rtruediv__",
+                "__floordiv__",
+                "__rfloordiv__",
+                "__mod__",
+                "__rmod__",
+            }
+            or pa_version_under2p0
+        ):
             self.series_array_exc = NotImplementedError
         elif arrow_temporal_supported:
             self.series_array_exc = None
@@ -1710,6 +1722,13 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
+                    reason=f"add_checked not implemented for {pa_dtype}",
+                )
+            )
+        elif pa_version_under2p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
                     reason=f"add_checked not implemented for {pa_dtype}",
                 )
             )
