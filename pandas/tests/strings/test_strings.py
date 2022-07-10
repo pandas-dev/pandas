@@ -803,3 +803,28 @@ def test_str_accessor_in_apply_func():
     expected = Series(["A/D", "B/E", "C/F"])
     result = df.apply(lambda f: "/".join(f.str.upper()), axis=1)
     tm.assert_series_equal(result, expected)
+
+
+def test_zfill():
+    # https://github.com/pandas-dev/pandas/issues/20868
+    value = Series(["-1", "1", "1000", 10, np.nan])
+    expected = Series(["-01", "001", "1000", np.nan, np.nan])
+    tm.assert_series_equal(value.str.zfill(3), expected)
+
+    value = Series(["-2", "+5"])
+    expected = Series(["-0002", "+0005"])
+    tm.assert_series_equal(value.str.zfill(5), expected)
+
+
+def test_zfill_with_non_integer_argument():
+    value = Series(["-2", "+5"])
+    wid = "a"
+    msg = f"width must be of integer type, not {type(wid).__name__}"
+    with pytest.raises(TypeError, match=msg):
+        value.str.zfill(wid)
+
+
+def test_zfill_with_leading_sign():
+    value = Series(["-cat", "-1", "+dog"])
+    expected = Series(["-0cat", "-0001", "+0dog"])
+    tm.assert_series_equal(value.str.zfill(5), expected)
