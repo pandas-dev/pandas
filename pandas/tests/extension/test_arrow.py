@@ -24,6 +24,7 @@ import pytest
 from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
+    pa_version_under8p0,
 )
 
 import pandas as pd
@@ -1521,6 +1522,17 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
+
+        arrow_temporal_supported = not pa_version_under8p0 and (
+            all_arithmetic_operators in ("__add__", "__radd__")
+            and pa.types.is_duration(pa_dtype)
+            or all_arithmetic_operators in ("__sub__", "__rsub__")
+            and (
+                pa.types.is_date(pa_dtype)
+                or pa.types.is_time(pa_dtype)
+                or pa.types.is_duration(pa_dtype)
+            )
+        )
         if all_arithmetic_operators in {
             "__truediv__",
             "__rtruediv__",
@@ -1530,7 +1542,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             "__rmod__",
         }:
             self.series_scalar_exc = NotImplementedError
-        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+        elif not (
+            pa.types.is_floating(pa_dtype)
+            or pa.types.is_integer(pa_dtype)
+            or arrow_temporal_supported
+        ):
             self.series_scalar_exc = pa.ArrowNotImplementedError
         else:
             self.series_scalar_exc = None
@@ -1549,6 +1565,17 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
+
+        arrow_temporal_supported = not pa_version_under8p0 and (
+            all_arithmetic_operators in ("__add__", "__radd__")
+            and pa.types.is_duration(pa_dtype)
+            or all_arithmetic_operators in ("__sub__", "__rsub__")
+            and (
+                pa.types.is_date(pa_dtype)
+                or pa.types.is_time(pa_dtype)
+                or pa.types.is_duration(pa_dtype)
+            )
+        )
         if all_arithmetic_operators in {
             "__truediv__",
             "__rtruediv__",
@@ -1558,7 +1585,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             "__rmod__",
         }:
             self.frame_scalar_exc = NotImplementedError
-        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+        elif not (
+            pa.types.is_floating(pa_dtype)
+            or pa.types.is_integer(pa_dtype)
+            or arrow_temporal_supported
+        ):
             self.frame_scalar_exc = pa.ArrowNotImplementedError
         else:
             self.frame_scalar_exc = None
@@ -1579,6 +1610,17 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         self, data, all_arithmetic_operators, request, monkeypatch
     ):
         pa_dtype = data.dtype.pyarrow_dtype
+
+        arrow_temporal_supported = not pa_version_under8p0 and (
+            all_arithmetic_operators in ("__add__", "__radd__")
+            and pa.types.is_duration(pa_dtype)
+            or all_arithmetic_operators in ("__sub__", "__rsub__")
+            and (
+                pa.types.is_date(pa_dtype)
+                or pa.types.is_time(pa_dtype)
+                or pa.types.is_duration(pa_dtype)
+            )
+        )
         if all_arithmetic_operators in {
             "__truediv__",
             "__rtruediv__",
@@ -1588,7 +1630,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             "__rmod__",
         }:
             self.series_array_exc = NotImplementedError
-        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+        elif not (
+            pa.types.is_floating(pa_dtype)
+            or pa.types.is_integer(pa_dtype)
+            or arrow_temporal_supported
+        ):
             self.series_array_exc = pa.ArrowNotImplementedError
         else:
             self.series_array_exc = None
@@ -1640,7 +1686,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
+        if not (
+            pa.types.is_integer(pa_dtype)
+            or pa.types.is_floating(pa_dtype)
+            or (not pa_version_under8p0 and pa.types.is_duration(pa_dtype)),
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
