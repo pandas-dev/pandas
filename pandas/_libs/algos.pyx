@@ -211,18 +211,18 @@ def lexsort_depth(list_of_arrays: list) -> Py_ssize_t:
     with nogil:
         depth = nlevels
         for i in range(1, n):
-            for k in range(nlevels):
-                if k >= depth:
-                    # No need to check levels for which we know input isn't lexsorted.
-                    break
+            k = 0
+            while k < depth:
                 cur = vecs[k][i]
                 pre = vecs[k][i-1]
                 if cur == pre:
+                    k += 1
                     continue
                 elif cur > pre:
                     break
                 else:
                     depth = min(k, depth)
+                k += 1
             if depth == 0:
                 # Depth can't increase, so if we've reached 0, break outer loop.
                 break
