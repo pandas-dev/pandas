@@ -448,7 +448,7 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ArrayLike, method: str, axis: int = 0):
+def nargminmax(values: ArrayLike, mask: np.ndarray, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -465,8 +465,6 @@ def nargminmax(values: ArrayLike, method: str, axis: int = 0):
     """
     assert method in {"argmax", "argmin"}
     func = np.argmax if method == "argmax" else np.argmin
-
-    mask = np.asarray(isna(values))
 
     if values.ndim > 1:
         if mask.any():

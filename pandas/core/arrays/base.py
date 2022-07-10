@@ -743,7 +743,8 @@ class ExtensionArray:
         if not skipna and self._hasna:
             raise NotImplementedError
         values = self._values_for_argsort()
-        return nargminmax(values, "argmin")
+        mask = np.asarray(isna(values))
+        return nargminmax(values, mask, "argmin")
 
     def argmax(self, skipna: bool = True) -> int:
         """
@@ -772,7 +773,8 @@ class ExtensionArray:
         if not skipna and self._hasna:
             raise NotImplementedError
         values = self._values_for_argsort()
-        return nargminmax(values, "argmax")
+        mask = np.asarray(isna(values))
+        return nargminmax(values, mask, "argmax")
 
     def fillna(
         self: ExtensionArrayT,

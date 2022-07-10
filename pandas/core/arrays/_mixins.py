@@ -45,7 +45,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import missing
 from pandas.core.algorithms import (
@@ -198,7 +198,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         if not skipna and self._hasna:
             raise NotImplementedError
         values = self._values_for_argsort()
-        return nargminmax(values, "argmin", axis=axis)
+        mask = np.asarray(isna(values))
+        return nargminmax(values, mask, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
     def argmax(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
@@ -207,7 +208,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         if not skipna and self._hasna:
             raise NotImplementedError
         values = self._values_for_argsort()
-        return nargminmax(values, "argmax", axis=axis)
+        mask = np.asarray(isna(values))
+        return nargminmax(values, mask, "argmax", axis=axis)
 
     def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = unique(self._ndarray)
