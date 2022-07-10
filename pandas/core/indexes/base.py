@@ -6933,7 +6933,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
-    def round(self, decimals=0, *args, kwargs) -> Index:
+    def round(self, decimals=0, *args, **kwargs) -> Index:
         """
         Round each value in the index.
 
