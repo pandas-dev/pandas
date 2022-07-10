@@ -456,6 +456,7 @@ def nargminmax(values: ArrayLike, mask: np.ndarray, method: str, axis: int = 0):
     Parameters
     ----------
     values : ArrayLike
+    mask: np.ndarray
     method : {"argmax", "argmin"}
     axis : int, default 0
 
