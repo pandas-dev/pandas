@@ -210,7 +210,8 @@ def lexsort_depth(list_of_arrays: list) -> Py_ssize_t:
 
     with nogil:
         depth = nlevels
-        for i in range(1, n):
+        i = 0
+        while i < n and depth > 0:
             k = 0
             while k < depth:
                 cur = vecs[k][i]
@@ -223,9 +224,7 @@ def lexsort_depth(list_of_arrays: list) -> Py_ssize_t:
                 else:
                     depth = min(k, depth)
                 k += 1
-            if depth == 0:
-                # Depth can't increase, so if we've reached 0, break outer loop.
-                break
+            i += 1
     free(vecs)
     return depth
 
