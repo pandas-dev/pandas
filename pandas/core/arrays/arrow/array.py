@@ -58,13 +58,26 @@ if not pa_version_under1p01:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": pc.and_kleene,
-        "rand": lambda x, y: pc.and_kleene(y, x),
-        "or": pc.or_kleene,
-        "ror": lambda x, y: pc.or_kleene(y, x),
+        "and": NotImplemented if pa_version_under2p0 else pc.and_kleene,
+        "rand": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.and_kleene(y, x),
+        "or": NotImplemented if pa_version_under2p0 else pc.or_kleene,
+        "ror": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.or_kleene(y, x),
         "xor": pc.xor,
         "rxor": lambda x, y: pc.xor(y, x),
     }
+
+    def divide_compat(arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar):
+        # https://github.com/pandas-dev/pandas/pull/47645#discussion_r917247366=
+        # Ensure int / int -> float to align with numpy & python
+        if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
+            pa_object.type
+        ):
+            arrow_array = arrow_array.cast(pa.float64())
+        return pc.divide_checked(arrow_array, pa_object)
 
     ARROW_ARITHMETIC_FUNCS = {
         "add": pc.add_checked,
@@ -299,7 +312,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if isinstance(other, ArrowExtensionArray):
             result = pc_func(self._data, other._data)
         elif isinstance(other, (np.ndarray, list)):
-            result = pc_func(self._data, other)
+            result = pc_func(self._data, pa.array(other, from_pandas=True))
         elif is_scalar(other):
             result = pc_func(self._data, pa.scalar(other))
         else:

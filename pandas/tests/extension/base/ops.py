@@ -67,10 +67,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     * divmod_exc = TypeError
     """
 
-    series_scalar_exc: type[TypeError] | None = TypeError
-    frame_scalar_exc: type[TypeError] | None = TypeError
-    series_array_exc: type[TypeError] | None = TypeError
-    divmod_exc: type[TypeError] | None = TypeError
+    series_scalar_exc: type[Exception] | None = TypeError
+    frame_scalar_exc: type[Exception] | None = TypeError
+    series_array_exc: type[Exception] | None = TypeError
+    divmod_exc: type[Exception] | None = TypeError
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
