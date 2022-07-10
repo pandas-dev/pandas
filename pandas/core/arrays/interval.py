@@ -23,7 +23,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._libs.interval import (
-    VALID_CLOSED,
+    VALID_INCLUSIVE,
     Interval,
     IntervalMixin,
     intervals_to_interval_bounds,
@@ -130,7 +130,7 @@ data : array-like (1-dimensional)
     Array-like containing Interval objects from which to build the
     %(klass)s.
 inclusive : {'left', 'right', 'both', 'neither'}, default 'right'
-    Whether the intervals are closed on the left-side, right-side, both or
+    Whether the intervals are inclusive on the left-side, right-side, both or
     neither.
 dtype : dtype or None, default None
     If None, dtype will be inferred.
@@ -185,7 +185,8 @@ for more.
     _interval_shared_docs["class"]
     % {
         "klass": "IntervalArray",
-        "summary": "Pandas array for interval data that are closed on the same side.",
+        "summary": "Pandas array for interval data that are inclusive on the same "
+        "side.",
         "versionadded": "0.24.0",
         "name": "",
         "extra_attributes": "",
@@ -254,13 +255,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # might need to convert empty or purely na data
             data = _maybe_convert_platform_interval(data)
-            left, right, infer_closed = intervals_to_interval_bounds(
-                data, validate_closed=inclusive is None
+            left, right, infer_inclusive = intervals_to_interval_bounds(
+                data, validate_inclusive=inclusive is None
             )
             if left.dtype == object:
                 left = lib.maybe_convert_objects(left)
                 right = lib.maybe_convert_objects(right)
-            inclusive = inclusive or infer_closed
+            inclusive = inclusive or infer_inclusive
 
         return cls._simple_new(
             left,
@@ -389,7 +390,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         breaks : array-like (1-dimensional)
             Left and right bounds for each interval.
         inclusive : {'left', 'right', 'both', 'neither'}, default 'right'
-            Whether the intervals are closed on the left-side, right-side, both
+            Whether the intervals are inclusive on the left-side, right-side, both
             or neither.
         copy : bool, default False
             Copy the data.
@@ -455,7 +456,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right : array-like (1-dimensional)
             Right bounds for each interval.
         inclusive : {'left', 'right', 'both', 'neither'}, default 'right'
-            Whether the intervals are closed on the left-side, right-side, both
+            Whether the intervals are inclusive on the left-side, right-side, both
             or neither.
         copy : bool, default False
             Copy the data.
@@ -542,7 +543,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         data : array-like (1-dimensional)
             Array of tuples.
         inclusive : {'left', 'right', 'both', 'neither'}, default 'right'
-            Whether the intervals are closed on the left-side, right-side, both
+            Whether the intervals are inclusive on the left-side, right-side, both
             or neither.
         copy : bool, default False
             By-default copy the data, this is compat only and ignored.
@@ -629,7 +630,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         * left and right have the same missing values
         * left is always below right
         """
-        if self.inclusive not in VALID_CLOSED:
+        if self.inclusive not in VALID_INCLUSIVE:
             msg = f"invalid option for 'inclusive': {self.inclusive}"
             raise ValueError(msg)
         if len(self._left) != len(self._right):
@@ -745,7 +746,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # for categorical defer to categories for dtype
             other_dtype = other.categories.dtype
 
-            # extract intervals if we have interval categories with matching closed
+            # extract intervals if we have interval categories with matching inclusive
             if is_interval_dtype(other_dtype):
                 if self.inclusive != other.categories.inclusive:
                     return invalid_comparison(self, other, op)
@@ -754,7 +755,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     other.codes, allow_fill=True, fill_value=other.categories._na_value
                 )
 
-        # interval-like -> need same closed and matching endpoints
+        # interval-like -> need same inclusive and matching endpoints
         if is_interval_dtype(other_dtype):
             if self.inclusive != other.inclusive:
                 return invalid_comparison(self, other, op)
@@ -994,7 +995,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         inclusive_set = {interval.inclusive for interval in to_concat}
         if len(inclusive_set) != 1:
-            raise ValueError("Intervals must all be closed on the same side.")
+            raise ValueError("Intervals must all be inclusive on the same side.")
         inclusive = inclusive_set.pop()
 
         left = np.concatenate([interval.left for interval in to_concat])
@@ -1120,7 +1121,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # list-like of intervals
         try:
             array = IntervalArray(value)
-            self._check_closed_matches(array, name="value")
+            self._check_inclusive_matches(array, name="value")
             value_left, value_right = array.left, array.right
         except TypeError as err:
             # wrong type: not interval or NA
@@ -1140,7 +1141,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def _validate_scalar(self, value):
         if isinstance(value, Interval):
-            self._check_closed_matches(value, name="value")
+            self._check_inclusive_matches(value, name="value")
             left, right = value.left, value.right
             # TODO: check subdtype match like _validate_setitem_value?
         elif is_valid_na_for_dtype(value, self.left.dtype):
@@ -1166,7 +1167,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         elif isinstance(value, Interval):
             # scalar
-            self._check_closed_matches(value, name="value")
+            self._check_inclusive_matches(value, name="value")
             value_left, value_right = value.left, value.right
             self.left._validate_fill_value(value_left)
             self.left._validate_fill_value(value_right)
@@ -1352,7 +1353,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             msg = f"`other` must be Interval-like, got {type(other).__name__}"
             raise TypeError(msg)
 
-        # equality is okay if both endpoints are closed (overlap at a point)
+        # equality is okay if both endpoints are inclusive (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt
         op2 = le if (other.closed_left and self.closed_right) else lt
 
@@ -1366,7 +1367,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def inclusive(self) -> IntervalInclusiveType:
         """
-        Whether the intervals are closed on the left-side, right-side, both or
+        Whether the intervals are inclusive on the left-side, right-side, both or
         neither.
         """
         return self.dtype.inclusive
@@ -1482,7 +1483,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def set_inclusive(
         self: IntervalArrayT, inclusive: IntervalInclusiveType
     ) -> IntervalArrayT:
-        if inclusive not in VALID_CLOSED:
+        if inclusive not in VALID_INCLUSIVE:
             msg = f"invalid option for 'inclusive': {inclusive}"
             raise ValueError(msg)
 

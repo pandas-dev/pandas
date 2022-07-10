@@ -826,7 +826,7 @@ class TestIntervalDtype(Base):
         # GH#38394
         dtype = IntervalDtype("interval")
 
-        assert dtype._closed is None
+        assert dtype._inclusive is None
 
         tm.round_trip_pickle(dtype)
 

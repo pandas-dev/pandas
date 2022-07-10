@@ -401,7 +401,7 @@ class TestClassConstructors(ConstructorTests):
     def test_constructor_errors(self, constructor):
         # mismatched closed within intervals with no constructor override
         ivs = [Interval(0, 1, inclusive="right"), Interval(2, 3, inclusive="left")]
-        msg = "intervals must all be closed on the same side"
+        msg = "intervals must all be inclusive on the same side"
         with pytest.raises(ValueError, match=msg):
             constructor(ivs)
 
