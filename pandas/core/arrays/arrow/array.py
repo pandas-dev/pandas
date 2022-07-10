@@ -70,22 +70,19 @@ if not pa_version_under1p01:
         "rxor": NotImplemented if pa_version_under2p0 else lambda x, y: pc.xor(y, x),
     }
 
-    def divide_compat(arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar):
-        # https://github.com/pandas-dev/pandas/pull/47645#discussion_r917247366=
-        # Ensure int / int -> float to align with numpy & python
-        if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
-            pa_object.type
-        ):
-            arrow_array = arrow_array.cast(pa.float64())
-        return pc.divide_checked(arrow_array, pa_object)
-
     ARROW_ARITHMETIC_FUNCS = {
-        "add": pc.add_checked,
-        "radd": lambda x, y: pc.add_checked(y, x),
-        "sub": pc.subtract_checked,
-        "rsub": lambda x, y: pc.subtract_checked(y, x),
-        "mul": pc.multiply_checked,
-        "rmul": lambda x, y: pc.multiply_checked(y, x),
+        "add": NotImplemented if pa_version_under2p0 else pc.add_checked,
+        "radd": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.add_checked(y, x),
+        "sub": NotImplemented if pa_version_under2p0 else pc.subtract_checked,
+        "rsub": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.subtract_checked(y, x),
+        "mul": NotImplemented if pa_version_under2p0 else pc.multiply_checked,
+        "rmul": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.multiply_checked(y, x),
         "truediv": NotImplemented,  # pc.divide_checked,
         "rtruediv": NotImplemented,  # lambda x, y: pc.divide_checked(y, x),
         "floordiv": NotImplemented,
@@ -94,8 +91,10 @@ if not pa_version_under1p01:
         "rmod": NotImplemented,
         "divmod": NotImplemented,
         "rdivmod": NotImplemented,
-        "pow": pc.power_checked,
-        "rpow": lambda x, y: pc.power_checked(y, x),
+        "pow": NotImplemented if pa_version_under2p0 else pc.power_checked,
+        "rpow": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.power_checked(y, x),
     }
 
 if TYPE_CHECKING:
