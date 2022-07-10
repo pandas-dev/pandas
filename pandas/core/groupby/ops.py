@@ -800,7 +800,7 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter)
 
         for key, group in zipped:
-            # BUG 47350 if added by hamedgibago
+            # BUG:47350 if added by hamedgibago
             if key in data.index:
                 object.__setattr__(group, "name", key)
 
@@ -810,7 +810,7 @@ class BaseGrouper:
                 if not mutated and not _is_indexed_like(res, group_axes, axis):
                     mutated = True
                 result_values.append(res)
-            # BUG 47350 else added by hamedgibago
+            # BUG:47350 else added by hamedgibago
             else:
                 result_values.append(np.nan)
 
