@@ -240,7 +240,7 @@ def get_subheader_index(bytes signature):
     cdef:
         uint32_t sig32
         uint64_t sig64
-        size_t i
+        Py_ssize_t i
     assert len(signature) in (4, 8)
     if len(signature) == 4:
         sig32 = (<uint32_t *><char *>signature)[0]
