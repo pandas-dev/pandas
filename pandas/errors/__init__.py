@@ -452,7 +452,7 @@ class AttributeConflictWarning(Warning):
     """
     Warning is raised when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
-    dffierent frequency than the existing index on an HDFStore.
+    different frequency than the existing index on an HDFStore.
     """
 
 
