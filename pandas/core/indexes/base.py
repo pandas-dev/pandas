@@ -6932,7 +6932,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise KeyError(f"{list(labels[mask])} not found in axis")
             indexer = indexer[~mask]
         return self.delete(indexer)
-    
+
     def round(self, decimals=0, *args, kwargs) -> Index:
         """
         Round each value in the index.

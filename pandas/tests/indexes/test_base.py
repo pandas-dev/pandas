@@ -1222,7 +1222,7 @@ class TestIndex(Base):
         expected = Index([5, 4, 3, 2, 1])
         result = index.sortlevel(ascending=False)
         tm.assert_index_equal(result[0], expected)
-    
+
     def test_diff(self):
         # GH#19708
         index = Index([1, 2, 3, 4])
