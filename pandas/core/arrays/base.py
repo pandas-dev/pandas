@@ -14,6 +14,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ClassVar,
     Iterator,
     Literal,
     Sequence,
@@ -1442,7 +1443,7 @@ class ExtensionArray:
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
     # "object" defined the type as "Callable[[object], int]")
-    __hash__: None  # type: ignore[assignment]
+    __hash__: ClassVar[None]  # type: ignore[assignment]
 
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods; in the case of the private methods here,
