@@ -6,15 +6,15 @@ import warnings
 import numpy as np
 import pyarrow
 
-from pandas._libs import lib
-from pandas._libs.interval import _warning_interval
+from pandas._typing import IntervalInclusiveType
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.arrays.interval import VALID_CLOSED
+from pandas.core.arrays.interval import VALID_INCLUSIVE
 
 
-def fallback_performancewarning(version: str | None = None):
+def fallback_performancewarning(version: str | None = None) -> None:
     """
     Raise a PerformanceWarning for falling back to ExtensionArray's
     non-pyarrow method
@@ -25,7 +25,9 @@ def fallback_performancewarning(version: str | None = None):
     warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
 
 
-def pyarrow_array_to_numpy_and_mask(arr, dtype: np.dtype):
+def pyarrow_array_to_numpy_and_mask(
+    arr, dtype: np.dtype
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Convert a primitive pyarrow.Array to a numpy array and boolean mask based
     on the buffers of the Array.
@@ -75,12 +77,12 @@ class ArrowPeriodType(pyarrow.ExtensionType):
     def freq(self):
         return self._freq
 
-    def __arrow_ext_serialize__(self):
+    def __arrow_ext_serialize__(self) -> bytes:
         metadata = {"freq": self.freq}
         return json.dumps(metadata).encode()
 
     @classmethod
-    def __arrow_ext_deserialize__(cls, storage_type, serialized):
+    def __arrow_ext_deserialize__(cls, storage_type, serialized) -> ArrowPeriodType:
         metadata = json.loads(serialized.decode())
         return ArrowPeriodType(metadata["freq"])
 
@@ -90,7 +92,7 @@ class ArrowPeriodType(pyarrow.ExtensionType):
         else:
             return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((str(self), self.freq))
 
     def to_pandas_dtype(self):
@@ -105,17 +107,12 @@ pyarrow.register_extension_type(_period_type)
 
 
 class ArrowIntervalType(pyarrow.ExtensionType):
-    def __init__(
-        self,
-        subtype,
-        inclusive: str | None = None,
-        closed: None | lib.NoDefault = lib.no_default,
-    ) -> None:
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
+    def __init__(self, subtype, inclusive: IntervalInclusiveType) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
-        inclusive, closed = _warning_interval(inclusive, closed)
-        assert inclusive in VALID_CLOSED
-        self._closed = inclusive
+        assert inclusive in VALID_INCLUSIVE
+        self._inclusive: IntervalInclusiveType = inclusive
         if not isinstance(subtype, pyarrow.DataType):
             subtype = pyarrow.type_for_alias(str(subtype))
         self._subtype = subtype
@@ -128,15 +125,24 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         return self._subtype
 
     @property
-    def inclusive(self):
-        return self._closed
+    def inclusive(self) -> IntervalInclusiveType:
+        return self._inclusive
 
-    def __arrow_ext_serialize__(self):
+    @property
+    def closed(self) -> IntervalInclusiveType:
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._inclusive
+
+    def __arrow_ext_serialize__(self) -> bytes:
         metadata = {"subtype": str(self.subtype), "inclusive": self.inclusive}
         return json.dumps(metadata).encode()
 
     @classmethod
-    def __arrow_ext_deserialize__(cls, storage_type, serialized):
+    def __arrow_ext_deserialize__(cls, storage_type, serialized) -> ArrowIntervalType:
         metadata = json.loads(serialized.decode())
         subtype = pyarrow.type_for_alias(metadata["subtype"])
         inclusive = metadata["inclusive"]
@@ -152,7 +158,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         else:
             return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((str(self), str(self.subtype), self.inclusive))
 
     def to_pandas_dtype(self):
