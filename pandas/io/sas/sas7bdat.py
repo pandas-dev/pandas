@@ -354,6 +354,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     # Read a single float of the given width (4 or 8).
     def _read_float(self, offset: int, width: int):
+        assert self._cached_page is not None
         if width == 4:
             return read_float_with_byteswap(
                 self._cached_page, offset, self.need_byteswap
@@ -368,6 +369,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     # Read a single signed integer of the given width (1, 2, 4 or 8).
     def _read_int(self, offset: int, width: int) -> int:
+        assert self._cached_page is not None
         if width == 1:
             return self._read_bytes(offset, 1)[0]
         elif width == 2:
