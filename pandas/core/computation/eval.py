@@ -18,10 +18,12 @@ from pandas.core.computation.expr import (
 from pandas.core.computation.ops import BinOp
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
+from pandas.core.frame import (
+    DataFrame,
+    Series,
+)
 
 from pandas.io.formats.printing import pprint_thing
-
-from pandas.core.frame import DataFrame, Series
 
 
 def _check_engine(engine: str | None) -> str:
