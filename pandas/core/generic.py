@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ClassVar,
     Hashable,
     Literal,
     Mapping,
@@ -1882,7 +1883,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
     # "object" defined the type as "Callable[[object], int]")
-    __hash__: None  # type: ignore[assignment]
+    __hash__: ClassVar[None]  # type: ignore[assignment]
 
     def __iter__(self):
         """
@@ -2132,7 +2133,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # I/O Methods
 
     @final
-    @doc(klass="object", storage_options=_shared_docs["storage_options"])
+    @doc(
+        klass="object",
+        storage_options=_shared_docs["storage_options"],
+        storage_options_versionadded="1.2.0",
+    )
     def to_excel(
         self,
         excel_writer,
@@ -2218,7 +2223,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             is to be frozen.
         {storage_options}
 
-            .. versionadded:: 1.2.0
+            .. versionadded:: {storage_options_versionadded}
 
         See Also
         --------

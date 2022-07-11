@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ClassVar,
     Hashable,
     Iterable,
     Literal,
@@ -403,9 +404,12 @@ class Index(IndexOpsMixin, PandasObject):
     # associated code in pandas 2.0.
     _is_backward_compat_public_numeric_index: bool = False
 
-    _engine_type: type[libindex.IndexEngine] | type[
-        libindex.ExtensionEngine
-    ] = libindex.ObjectEngine
+    @property
+    def _engine_type(
+        self,
+    ) -> type[libindex.IndexEngine] | type[libindex.ExtensionEngine]:
+        return libindex.ObjectEngine
+
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -5296,7 +5300,7 @@ class Index(IndexOpsMixin, PandasObject):
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
     # "object" defined the type as "Callable[[object], int]")
-    __hash__: None  # type: ignore[assignment]
+    __hash__: ClassVar[None]  # type: ignore[assignment]
 
     @final
     def __setitem__(self, key, value):
