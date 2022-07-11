@@ -21,6 +21,8 @@ from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
 
+from pandas.core.frame import DataFrame, Series
+
 
 def _check_engine(engine: str | None) -> str:
     """
@@ -384,7 +386,7 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    if hasattr(target, "loc"):
+                    if isinstance(target, (DataFrame, Series)):
                         target.loc[:, assigner] = ret
                     else:
                         target[assigner] = ret

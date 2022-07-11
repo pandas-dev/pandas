@@ -1893,9 +1893,11 @@ def test_negate_lt_eq_le(engine, parser):
 def test_set_inplace():
     # GH 47449
     df = DataFrame({"A": range(1, 6), "B": range(10, 0, -2), "C": range(11, 16)})
+    result_view = df[:]
     expected = Series([21, 20, 19, 18, 17], index=[0, 1, 2, 3, 4], name="A")
     df.eval("A = B + C", inplace=True)
     tm.assert_series_equal(df["A"], expected)
+    tm.assert_series_equal(result_view["A"], expected)
 
 
 class TestValidate:

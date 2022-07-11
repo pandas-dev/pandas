@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed regression in :meth:`DataFrame.eval` called with ``inplace=True`` had no effect (:issue:`47449`)
+- Fixed regression in :meth:`DataFrame.eval` creating a copy when updating inplace (:issue:`47449`)
 
 .. ---------------------------------------------------------------------------
 
