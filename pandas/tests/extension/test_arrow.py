@@ -1552,8 +1552,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             self.series_scalar_exc = pa.ArrowNotImplementedError
         else:
             self.series_scalar_exc = None
-        if all_arithmetic_operators == "__rpow__" and (
-            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        if (
+            all_arithmetic_operators == "__rpow__"
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1603,8 +1605,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             self.frame_scalar_exc = pa.ArrowNotImplementedError
         else:
             self.frame_scalar_exc = None
-        if all_arithmetic_operators == "__rpow__" and (
-            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        if (
+            all_arithmetic_operators == "__rpow__"
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1656,8 +1660,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             self.series_array_exc = pa.ArrowNotImplementedError
         else:
             self.series_array_exc = None
-        if all_arithmetic_operators == "__rpow__" and (
-            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        if (
+            all_arithmetic_operators == "__rpow__"
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1667,10 +1673,15 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     )
                 )
             )
-        elif all_arithmetic_operators in (
-            "__sub__",
-            "__rsub__",
-        ) and pa.types.is_unsigned_integer(pa_dtype):
+        elif (
+            all_arithmetic_operators
+            in (
+                "__sub__",
+                "__rsub__",
+            )
+            and pa.types.is_unsigned_integer(pa_dtype)
+            and not pa_version_under2p0
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowInvalid,
@@ -1714,18 +1725,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if not (
-            pa.types.is_integer(pa_dtype)
-            or pa.types.is_floating(pa_dtype)
-            or (not pa_version_under8p0 and pa.types.is_duration(pa_dtype))
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"add_checked not implemented for {pa_dtype}",
-                )
+        if (
+            not (
+                pa.types.is_integer(pa_dtype)
+                or pa.types.is_floating(pa_dtype)
+                or (not pa_version_under8p0 and pa.types.is_duration(pa_dtype))
             )
-        elif pa_version_under2p0:
+            or pa_version_under2p0
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
