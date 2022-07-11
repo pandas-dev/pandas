@@ -615,7 +615,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
-                new_fill = Period._from_ordinal(int(fill_value), freq=self.freq)
+                new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
                 new_fill = self._scalar_type(fill_value)
 

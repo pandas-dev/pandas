@@ -58,7 +58,7 @@ class TestReductions:
         if not isinstance(obj, PeriodIndex):
             expected = getattr(obj.values, opname)()
         else:
-            expected = Period(ordinal=int(getattr(obj.asi8, opname)()), freq=obj.freq)
+            expected = Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
 
         if getattr(obj, "tz", None) is not None:
             # We need to de-localize before comparing to the numpy-produced result
