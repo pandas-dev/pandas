@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 import pytest
 
@@ -89,6 +91,53 @@ class TestNonNano:
         assert isinstance(result, TimedeltaArray)
         assert result._reso == tda._reso
         assert result.isna().all()
+
+    def test_mul_scalar(self, tda):
+        other = 2
+        result = tda * other
+        expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
+        tm.assert_extension_array_equal(result, expected)
+        assert result._reso == tda._reso
+
+    def test_mul_listlike(self, tda):
+        other = np.arange(len(tda))
+        result = tda * other
+        expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
+        tm.assert_extension_array_equal(result, expected)
+        assert result._reso == tda._reso
+
+    def test_mul_listlike_object(self, tda):
+        other = np.arange(len(tda))
+        result = tda * other.astype(object)
+        expected = TimedeltaArray._simple_new(tda._ndarray * other, dtype=tda.dtype)
+        tm.assert_extension_array_equal(result, expected)
+        assert result._reso == tda._reso
+
+    def test_div_numeric_scalar(self, tda):
+        other = 2
+        result = tda / other
+        expected = TimedeltaArray._simple_new(tda._ndarray / other, dtype=tda.dtype)
+        tm.assert_extension_array_equal(result, expected)
+        assert result._reso == tda._reso
+
+    def test_div_td_scalar(self, tda):
+        other = timedelta(seconds=1)
+        result = tda / other
+        expected = tda._ndarray / np.timedelta64(1, "s")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_div_numeric_array(self, tda):
+        other = np.arange(len(tda))
+        result = tda / other
+        expected = TimedeltaArray._simple_new(tda._ndarray / other, dtype=tda.dtype)
+        tm.assert_extension_array_equal(result, expected)
+        assert result._reso == tda._reso
+
+    def test_div_td_array(self, tda):
+        other = tda._ndarray + tda._ndarray[-1]
+        result = tda / other
+        expected = tda._ndarray / other
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestTimedeltaArray:
