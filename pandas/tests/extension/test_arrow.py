@@ -1520,7 +1520,32 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     divmod_exc = NotImplementedError
 
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
+    def _patch_combine(self, obj, other, op):
+        # BaseOpsUtil._combine can upcast expected dtype
+        # (because it generates expected on python scalars)
+        # while ArrowExtensionArray maintains original type
+        expected = base.BaseArithmeticOpsTests._combine(self, obj, other, op)
+        was_frame = False
+        if isinstance(expected, pd.DataFrame):
+            was_frame = True
+            expected_data = expected.iloc[:, 0]
+            original_dtype = obj.iloc[:, 0].dtype
+        else:
+            expected_data = expected
+            original_dtype = obj.dtype
+        pa_array = pa.array(expected_data._values).cast(original_dtype.pyarrow_dtype)
+        pd_array = type(expected_data._values)(pa_array)
+        if was_frame:
+            expected = pd.DataFrame(
+                pd_array, index=expected.index, columns=expected.columns
+            )
+        else:
+            expected = pd.Series(pd_array)
+        return expected
+
+    def test_arith_series_with_scalar(
+        self, data, all_arithmetic_operators, request, monkeypatch
+    ):
         pa_dtype = data.dtype.pyarrow_dtype
 
         arrow_temporal_supported = not pa_version_under8p0 and (
@@ -1532,8 +1557,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators
             in {
-                "__floordiv__",
-                "__rfloordiv__",
                 "__mod__",
                 "__rmod__",
             }
@@ -1573,7 +1596,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
-        elif all_arithmetic_operators == "__rtruediv__" and (
+        elif all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"} and (
             pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
         ):
             request.node.add_marker(
@@ -1582,9 +1605,15 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     reason="divide by 0",
                 )
             )
+        if all_arithmetic_operators == "__floordiv__" and pa.types.is_integer(pa_dtype):
+            # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
+            # not upcast
+            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+    def test_arith_frame_with_scalar(
+        self, data, all_arithmetic_operators, request, monkeypatch
+    ):
         pa_dtype = data.dtype.pyarrow_dtype
 
         arrow_temporal_supported = not pa_version_under8p0 and (
@@ -1596,8 +1625,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators
             in {
-                "__floordiv__",
-                "__rfloordiv__",
                 "__mod__",
                 "__rmod__",
             }
@@ -1633,7 +1660,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
-        elif all_arithmetic_operators == "__rtruediv__" and (
+        elif all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"} and (
             pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
         ):
             request.node.add_marker(
@@ -1642,6 +1669,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     reason="divide by 0",
                 )
             )
+        if all_arithmetic_operators == "__floordiv__" and pa.types.is_integer(pa_dtype):
+            # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
+            # not upcast
+            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(
@@ -1658,8 +1689,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators
             in {
-                "__floordiv__",
-                "__rfloordiv__",
                 "__mod__",
                 "__rmod__",
             }
@@ -1713,7 +1742,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
-        elif all_arithmetic_operators == "__rtruediv__" and (
+        elif all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"} and (
             pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
         ):
             request.node.add_marker(
@@ -1730,20 +1759,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if pa.types.is_floating(pa_dtype) or (
             pa.types.is_integer(pa_dtype) and all_arithmetic_operators != "__truediv__"
         ):
-            # BaseOpsUtil._combine can upcast expected dtype
-            # (because it generates expected on python scalars)
-            # while ArrowExtensionArray maintains original type
-            super_combine = TestBaseArithmeticOps._combine
-
-            def _patch_combine(self, obj, other, op):
-                expected = super_combine(self, obj, other, op)
-                if isinstance(expected, pd.Series):
-                    pa_array = pa.array(expected._values).cast(obj.dtype.pyarrow_dtype)
-                    pd_array = type(expected._values)(pa_array)
-                    expected = pd.Series(pd_array)
-                return expected
-
-            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", _patch_combine)
+            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
 
     def test_add_series_with_extension_array(self, data, request):

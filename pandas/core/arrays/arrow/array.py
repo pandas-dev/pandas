@@ -70,16 +70,27 @@ if not pa_version_under1p01:
         "rxor": NotImplemented if pa_version_under2p0 else lambda x, y: pc.xor(y, x),
     }
 
-    def cast_for_division(
+    def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
     ) -> pa.ChunkedArray:
-        # Ensure int / int = float mirroring Python/Numpy behavior
+        # Ensure int / int -> float mirroring Python/Numpy behavior
         # as pc.divide_checked(int, int) -> int
         if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
             pa_object.type
         ):
             return arrow_array.cast(pa.float64())
         return arrow_array
+
+    def floordiv_compat(
+        left: pa.ChunkedArray | pa.Array | pa.Scalar,
+        right: pa.ChunkedArray | pa.Array | pa.Scalar,
+    ) -> pa.ChunkedArray:
+        # Ensure int // int -> int mirroring Python/Numpy behavior
+        # as pc.floor(pc.divide_checked(int, int)) -> float
+        result = pc.floor(pc.divide_checked(left, right))
+        if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
+            result = result.cast(left.type)
+        return result
 
     ARROW_ARITHMETIC_FUNCS = {
         "add": NotImplemented if pa_version_under2p0 else pc.add_checked,
@@ -96,12 +107,16 @@ if not pa_version_under1p01:
         else lambda x, y: pc.multiply_checked(y, x),
         "truediv": NotImplemented
         if pa_version_under2p0
-        else lambda x, y: pc.divide_checked(cast_for_division(x, y), y),
+        else lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
         "rtruediv": NotImplemented
         if pa_version_under2p0
-        else lambda x, y: pc.divide_checked(y, cast_for_division(x, y)),
-        "floordiv": NotImplemented,
-        "rfloordiv": NotImplemented,
+        else lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "floordiv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: floordiv_compat(x, y),
+        "rfloordiv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
         "rmod": NotImplemented,
         "divmod": NotImplemented,
