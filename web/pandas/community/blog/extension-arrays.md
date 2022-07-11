@@ -212,7 +212,7 @@ partners][partners] involved in the pandas community.
 [ml]: https://mail.python.org/mailman/listinfo/pandas-dev
 [twitter]: https://twitter.com/pandas_dev
 [tracker]: https://github.com/pandas-dev/pandas/issues
-[partners]: https://github.com/pandas-dev/pandas-governance/blob/master/people.md
+[partners]: https://pandas.pydata.org/about/sponsors.html
 [eco]: http://pandas.pydata.org/pandas-docs/stable/ecosystem.html#extension-data-types
 [whatsnew]: http://pandas.pydata.org/pandas-docs/version/0.24/whatsnew/v0.24.0.html
 [geopandas]: https://github.com/geopandas/geopandas
