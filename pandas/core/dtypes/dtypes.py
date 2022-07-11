@@ -38,6 +38,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalInclusiveType,
     Ordered,
     npt,
     type_t,
@@ -1091,7 +1092,7 @@ class IntervalDtype(PandasExtensionDtype):
     def __new__(
         cls,
         subtype=None,
-        inclusive: str_type | None = None,
+        inclusive: IntervalInclusiveType | None = None,
         closed: None | lib.NoDefault = lib.no_default,
     ):
         from pandas.core.dtypes.common import (
@@ -1123,7 +1124,7 @@ class IntervalDtype(PandasExtensionDtype):
             # generally for pickle compat
             u = object.__new__(cls)
             u._subtype = None
-            u._closed = inclusive
+            u._inclusive = inclusive
             return u
         elif isinstance(subtype, str) and subtype.lower() == "interval":
             subtype = None
@@ -1140,7 +1141,11 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'inclusive' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        inclusive = gd["inclusive"]
+                        # Incompatible types in assignment (expression has type
+                        # "Union[str, Any]", variable has type
+                        # "Optional[Union[Literal['left', 'right'],
+                        # Literal['both', 'neither']]]")
+                        inclusive = gd["inclusive"]  # type: ignore[assignment]
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1161,7 +1166,7 @@ class IntervalDtype(PandasExtensionDtype):
         except KeyError:
             u = object.__new__(cls)
             u._subtype = subtype
-            u._closed = inclusive
+            u._inclusive = inclusive
             cls._cache_dtypes[key] = u
             return u
 
@@ -1179,7 +1184,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     @property
     def inclusive(self):
-        return self._closed
+        return self._inclusive
 
     @property
     def closed(self):
@@ -1188,7 +1193,7 @@ class IntervalDtype(PandasExtensionDtype):
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self._closed
+        return self._inclusive
 
     @property
     def subtype(self):
@@ -1269,7 +1274,7 @@ class IntervalDtype(PandasExtensionDtype):
         # pickle -> need to set the settable private ones here (see GH26067)
         self._subtype = state["subtype"]
         # backward-compat older pickles won't have "inclusive" key
-        self._closed = state.pop("inclusive", None)
+        self._inclusive = state.pop("inclusive", None)
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
