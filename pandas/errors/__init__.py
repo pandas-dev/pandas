@@ -456,12 +456,30 @@ class AttributeConflictWarning(Warning):
     """
 
 
+class DatabaseError(OSError):
+    """
+    Error is raised when executing sql with bad syntax or sql that throws an error.
+
+    Examples
+    --------
+    >>> import pandas.io.sql as sql
+    >>> from sqlite3 import connect
+    >>> conn = connect(':memory:')
+    >>> sql.read_sql('select * test', conn) # doctest: +SKIP
+    ... # DatabaseError: Execution failed on sql 'test': near "test": syntax error
+
+    >>> sql.execute('select * from table', conn) # doctest: +SKIP
+    ... # DatabaseError: Execution failed on sql 'select * from table': no such tabl...
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
     "AttributeConflictWarning",
     "ClosedFileError",
     "CSSWarning",
+    "DatabaseError",
     "DataError",
     "DtypeWarning",
     "DuplicateLabelError",
