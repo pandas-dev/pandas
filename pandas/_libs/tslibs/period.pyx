@@ -2618,7 +2618,7 @@ class Period(_Period):
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 1000*nanosecond, base)
 
-        return cls._from_ordinal(ordinal, freq)
+        return cls._from_ordinal(int(ordinal), freq)
 
 
 cdef bint is_period_object(object obj):
