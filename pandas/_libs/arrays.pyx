@@ -8,7 +8,7 @@ import numpy as np
 cimport numpy as cnp
 from cpython cimport PyErr_Clear
 from numpy cimport (
-    int64_t,
+    intp_t,
     ndarray,
 )
 
@@ -160,7 +160,7 @@ cdef class NDArrayBacked:
         return self._from_backing_data(res_values)
 
     # TODO: pass NPY_MAXDIMS equiv to axis=None?
-    def repeat(self, repeats, int64_t axis = 0):
+    def repeat(self, repeats, intp_t axis = 0):
         if axis is None:
             axis = 0
         res_values = cnp.PyArray_Repeat(self._ndarray, repeats, <int>axis)
