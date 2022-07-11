@@ -151,7 +151,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow._arrow_utils  # noqa:F401
+        import pandas.core.arrays.arrow._arrow_utils  # pyright: ignore # noqa:F401
 
         self.api = pyarrow
 
@@ -231,6 +231,8 @@ class PyArrowImpl(BaseImpl):
                 self.api.uint64(): pd.UInt64Dtype(),
                 self.api.bool_(): pd.BooleanDtype(),
                 self.api.string(): pd.StringDtype(),
+                self.api.float32(): pd.Float32Dtype(),
+                self.api.float64(): pd.Float64Dtype(),
             }
             to_pandas_kwargs["types_mapper"] = mapping.get
         manager = get_option("mode.data_manager")

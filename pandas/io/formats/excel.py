@@ -3,7 +3,10 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
-from functools import reduce
+from functools import (
+    lru_cache,
+    reduce,
+)
 import itertools
 import re
 from typing import (
@@ -85,10 +88,13 @@ class CssExcelCell(ExcelCell):
         **kwargs,
     ) -> None:
         if css_styles and css_converter:
-            css = ";".join(
-                [a + ":" + str(v) for (a, v) in css_styles[css_row, css_col]]
-            )
-            style = css_converter(css)
+            # Use dict to get only one (case-insensitive) declaration per property
+            declaration_dict = {
+                prop.lower(): val for prop, val in css_styles[css_row, css_col]
+            }
+            # Convert to frozenset for order-invariant caching
+            unique_declarations = frozenset(declaration_dict.items())
+            style = css_converter(unique_declarations)
 
         return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
@@ -166,15 +172,19 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    def __call__(self, declarations_str: str) -> dict[str, dict[str, str]]:
+    @lru_cache(maxsize=None)
+    def __call__(
+        self, declarations: str | frozenset[tuple[str, str]]
+    ) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
         Parameters
         ----------
-        declarations_str : str
-            List of CSS declarations.
-            e.g. "font-weight: bold; background: blue"
+        declarations : str | frozenset[tuple[str, str]]
+            CSS string or set of CSS declaration tuples.
+            e.g. "font-weight: bold; background: blue" or
+            {("font-weight", "bold"), ("background", "blue")}
 
         Returns
         -------
@@ -182,8 +192,7 @@ class CSSToExcelConverter:
             A style as interpreted by ExcelWriter when found in
             ExcelCell.style.
         """
-        # TODO: memoize?
-        properties = self.compute_css(declarations_str, self.inherited)
+        properties = self.compute_css(declarations, self.inherited)
         return self.build_xlstyle(properties)
 
     def build_xlstyle(self, props: Mapping[str, str]) -> dict[str, dict[str, str]]:

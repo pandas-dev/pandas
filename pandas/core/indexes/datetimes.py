@@ -35,7 +35,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    IntervalClosedType,
+    IntervalInclusiveType,
     IntervalLeftRight,
     npt,
 )
@@ -46,9 +46,9 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_scalar,
 )
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -252,8 +252,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _typ = "datetimeindex"
 
     _data_cls = DatetimeArray
-    _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
+
+    @property
+    def _engine_type(self) -> type[libindex.DatetimeEngine]:
+        return libindex.DatetimeEngine
 
     _data: DatetimeArray
     inferred_freq: str | None
@@ -336,6 +339,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
             # Note in this particular case we retain non-nano.
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name)
+        elif (
+            isinstance(data, DatetimeArray)
+            and freq is lib.no_default
+            and tz is None
+            and is_dtype_equal(data.dtype, dtype)
+        ):
+            # Reached via Index.__new__ when we call .astype
+            # TODO(2.0): special casing can be removed once _from_sequence_not_strict
+            #  no longer chokes on non-nano
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
@@ -566,7 +581,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
+        dta = self._data.copy()
 
         for i, v in enumerate(self):
             s = v
@@ -577,9 +592,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t0
                 else:
                     s = t1
-            snapped[i] = s
+            dta[i] = s
 
-        dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------
@@ -909,7 +923,7 @@ def date_range(
     normalize: bool = False,
     name: Hashable = None,
     closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    inclusive: IntervalInclusiveType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1115,7 +1129,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    inclusive: IntervalInclusiveType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """

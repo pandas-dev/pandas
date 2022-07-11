@@ -6,7 +6,7 @@ import operator
 import numpy as np
 
 
-def invalid_comparison(left, right, op):
+def invalid_comparison(left, right, op) -> np.ndarray:
     """
     If a comparison has mismatched types and is not necessarily meaningful,
     follow python3 conventions by:
