@@ -502,11 +502,11 @@ class Resampler(BaseGroupBy, PandasObject):
         self.loffset = None
         return result
 
-    def _get_resampler_for_grouping(self, groupby):
+    def _get_resampler_for_grouping(self, groupby, key=None):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby)
+        return self._resampler_for_grouping(self, groupby=groupby, key=key)
 
     def _wrap_result(self, result):
         """
@@ -1132,7 +1132,7 @@ class _GroupByMixin(PandasObject):
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
 
-    def __init__(self, obj, parent=None, groupby=None, **kwargs) -> None:
+    def __init__(self, obj, parent=None, groupby=None, key=None, **kwargs) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
         if parent is None:
@@ -1145,6 +1145,7 @@ class _GroupByMixin(PandasObject):
         self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
+        self.key = key
 
         self._groupby = groupby
         self._groupby.mutated = True
@@ -1197,6 +1198,8 @@ class _GroupByMixin(PandasObject):
 
         # Try to select from a DataFrame, falling back to a Series
         try:
+            if isinstance(key, list) and self.key not in key:
+                key.append(self.key)
             groupby = self._groupby[key]
         except IndexError:
             groupby = self._groupby
@@ -1513,7 +1516,7 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(groupby=groupby)
+    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
 class TimeGrouper(Grouper):
