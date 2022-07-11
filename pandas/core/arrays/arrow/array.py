@@ -70,6 +70,17 @@ if not pa_version_under1p01:
         "rxor": NotImplemented if pa_version_under2p0 else lambda x, y: pc.xor(y, x),
     }
 
+    def cast_for_division(
+        arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
+    ) -> pa.ChunkedArray:
+        # Ensure int / int = float mirroring Python/Numpy behavior
+        # as pc.divide_checked(int, int) -> int
+        if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
+            pa_object.type
+        ):
+            return arrow_array.cast(pa.float64())
+        return arrow_array
+
     ARROW_ARITHMETIC_FUNCS = {
         "add": NotImplemented if pa_version_under2p0 else pc.add_checked,
         "radd": NotImplemented
@@ -83,8 +94,12 @@ if not pa_version_under1p01:
         "rmul": NotImplemented
         if pa_version_under2p0
         else lambda x, y: pc.multiply_checked(y, x),
-        "truediv": NotImplemented,  # pc.divide_checked,
-        "rtruediv": NotImplemented,  # lambda x, y: pc.divide_checked(y, x),
+        "truediv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.divide_checked(cast_for_division(x, y), y),
+        "rtruediv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.divide_checked(y, cast_for_division(x, y)),
         "floordiv": NotImplemented,
         "rfloordiv": NotImplemented,
         "mod": NotImplemented,

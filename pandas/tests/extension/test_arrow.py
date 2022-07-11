@@ -1532,8 +1532,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators
             in {
-                "__truediv__",
-                "__rtruediv__",
                 "__floordiv__",
                 "__rfloordiv__",
                 "__mod__",
@@ -1575,6 +1573,15 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
+        elif all_arithmetic_operators == "__rtruediv__" and (
+            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason="divide by 0",
+                )
+            )
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
@@ -1589,8 +1596,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators
             in {
-                "__truediv__",
-                "__rtruediv__",
                 "__floordiv__",
                 "__rfloordiv__",
                 "__mod__",
@@ -1628,6 +1633,15 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
+        elif all_arithmetic_operators == "__rtruediv__" and (
+            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason="divide by 0",
+                )
+            )
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(
@@ -1644,8 +1658,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         if (
             all_arithmetic_operators
             in {
-                "__truediv__",
-                "__rtruediv__",
                 "__floordiv__",
                 "__rfloordiv__",
                 "__mod__",
@@ -1701,12 +1713,23 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
+        elif all_arithmetic_operators == "__rtruediv__" and (
+            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason="divide by 0",
+                )
+            )
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
         # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
         # since ser.iloc[0] is a python scalar
         other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
-        if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
+        if pa.types.is_floating(pa_dtype) or (
+            pa.types.is_integer(pa_dtype) and all_arithmetic_operators != "__truediv__"
+        ):
             # BaseOpsUtil._combine can upcast expected dtype
             # (because it generates expected on python scalars)
             # while ArrowExtensionArray maintains original type
