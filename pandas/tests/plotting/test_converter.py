@@ -407,3 +407,4 @@ def test_quarterly_finder(year_span):
         and np.all(check_major_quarters)
         and np.all(check_minor_quarters)
     )
+    
