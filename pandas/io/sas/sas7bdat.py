@@ -389,6 +389,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise ValueError("invalid int width")
 
     def _read_bytes(self, offset: int, length: int):
+        assert self._cached_page is not None
         if offset + length > len(self._cached_page):
             self.close()
             raise ValueError("The cached page is too small.")
