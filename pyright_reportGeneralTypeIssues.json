@@ -15,7 +15,6 @@
         "pandas/io/clipboard",
         "pandas/util/version",
         # and all files that currently don't pass
-        "pandas/_config/config.py",
         "pandas/_testing/__init__.py",
         "pandas/core/algorithms.py",
         "pandas/core/apply.py",
@@ -58,7 +57,6 @@
         "pandas/core/indexes/multi.py",
         "pandas/core/indexes/numeric.py",
         "pandas/core/indexes/period.py",
-        "pandas/core/indexes/range.py",
         "pandas/core/indexing.py",
         "pandas/core/internals/api.py",
         "pandas/core/internals/array_manager.py",
@@ -80,7 +78,6 @@
         "pandas/core/tools/datetimes.py",
         "pandas/core/tools/timedeltas.py",
         "pandas/core/util/hashing.py",
-        "pandas/core/util/numba_.py",
         "pandas/core/window/ewm.py",
         "pandas/core/window/rolling.py",
         "pandas/io/common.py",
