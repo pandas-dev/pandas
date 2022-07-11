@@ -852,7 +852,8 @@ def read_csv(
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
         storage_options=_shared_docs["storage_options"],
-        decompression_options=_shared_docs["decompression_options"],
+        decompression_options=_shared_docs["decompression_options"]
+        % "filepath_or_buffer",
     )
 )
 def read_csv(
@@ -1182,16 +1183,15 @@ def read_table(
     ...
 
 
-@deprecate_nonkeyword_arguments(
-    version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
-)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
         storage_options=_shared_docs["storage_options"],
-        decompression_options=_shared_docs["decompression_options"],
+        decompression_options=_shared_docs["decompression_options"]
+        % "filepath_or_buffer",
     )
 )
 def read_table(
@@ -1281,9 +1281,7 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
-@deprecate_nonkeyword_arguments(
-    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
-)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",

@@ -192,7 +192,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     _values: Categorical
 
     @property
-    def _engine_type(self):
+    def _engine_type(self) -> type[libindex.IndexEngine]:
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
         return {
@@ -422,6 +422,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     stacklevel=find_stack_level(),
                 )
 
+        new_target: Index
         if len(self) and indexer is not None:
             new_target = self.take(indexer)
         else:
@@ -434,8 +435,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             if not isinstance(target, CategoricalIndex) or (cats == -1).any():
                 new_target, indexer, _ = super()._reindex_non_unique(target)
             else:
-
-                codes = new_target.codes.copy()
+                # error: "Index" has no attribute "codes"
+                codes = new_target.codes.copy()  # type: ignore[attr-defined]
                 codes[indexer == -1] = cats[missing]
                 cat = self._data._from_backing_data(codes)
                 new_target = type(self)._simple_new(cat, name=self.name)
@@ -450,8 +451,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             new_target = type(self)._simple_new(cat, name=self.name)
         else:
             # e.g. test_reindex_with_categoricalindex, test_reindex_duplicate_target
-            new_target = np.asarray(new_target)
-            new_target = Index._with_infer(new_target, name=self.name)
+            new_target_array = np.asarray(new_target)
+            new_target = Index._with_infer(new_target_array, name=self.name)
 
         return new_target, indexer
 
@@ -488,7 +489,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def take_nd(self, *args, **kwargs):
+    def take_nd(self, *args, **kwargs) -> CategoricalIndex:
         """Alias for `take`"""
         warnings.warn(
             "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
