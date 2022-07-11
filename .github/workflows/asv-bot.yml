@@ -9,8 +9,15 @@ env:
   ENV_FILE: environment.yml
   COMMENT: ${{github.event.comment.body}}
 
+permissions:
+  contents: read
+
 jobs:
   autotune:
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     name: "Run benchmarks"
     # TODO: Support more benchmarking options later, against different branches, against self, etc
     if: startsWith(github.event.comment.body, '@github-actions benchmark')

@@ -27,6 +27,9 @@ env:
   COVERAGE: true
   PYTEST_TARGET: pandas
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: false # Comment this line out to "unfreeze"

@@ -12,6 +12,9 @@ on:
     paths-ignore:
       - "doc/**"
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     runs-on: ubuntu-latest

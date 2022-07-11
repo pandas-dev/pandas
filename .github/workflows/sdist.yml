@@ -13,6 +13,9 @@ on:
     paths-ignore:
       - "doc/**"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}

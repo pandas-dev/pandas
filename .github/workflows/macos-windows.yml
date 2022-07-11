@@ -18,6 +18,9 @@ env:
   PATTERN: "not slow and not db and not network and not single_cpu"
 
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     defaults:
