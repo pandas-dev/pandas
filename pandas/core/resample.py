@@ -513,11 +513,11 @@ class Resampler(BaseGroupBy, PandasObject):
         Potentially wrap any results.
         """
         if (isinstance(result, ABCSeries) or
-            isinstance(result, ABCDataFrame)) and self._selection is not None:
+                isinstance(result, ABCDataFrame)) and self._selection is not None:
             result.name = self._selection
 
         if (isinstance(result, ABCSeries) or
-            isinstance(result, ABCDataFrame)) and result.empty:
+                isinstance(result, ABCDataFrame)) and result.empty:
             obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
