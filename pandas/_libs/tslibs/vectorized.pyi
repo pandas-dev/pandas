@@ -42,5 +42,5 @@ def ints_to_pydatetime(
 def tz_convert_from_utc(
     stamps: npt.NDArray[np.int64],
     tz: tzinfo | None,
-    reso: int = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int64]: ...
