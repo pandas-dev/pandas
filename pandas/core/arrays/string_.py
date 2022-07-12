@@ -338,13 +338,11 @@ class StringArray(BaseStringArray, PandasArray):
             na_values = scalars._mask
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            result[na_values] = StringDtype.na_value
+            result[na_values] = libmissing.NA
 
         else:
-            # convert non-na-likes to str, and nan-likes to StringDtype.na_value
-            result = lib.ensure_string_array(
-                scalars, na_value=StringDtype.na_value, copy=copy
-            )
+            # convert non-na-likes to str, and nan-likes to StringDtype().na_value
+            result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -515,7 +513,7 @@ class StringArray(BaseStringArray, PandasArray):
     # String methods interface
     # error: Incompatible types in assignment (expression has type "NAType",
     # base class "PandasArray" defined the type as "float")
-    _str_na_value = StringDtype.na_value  # type: ignore[assignment]
+    _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
