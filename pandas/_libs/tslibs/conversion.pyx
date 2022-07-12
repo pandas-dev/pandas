@@ -144,9 +144,13 @@ cpdef inline (int64_t, int) precision_from_unit(str unit):
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
+        # each 400 years we have 97 leap years, for an average of 97/400=.2425
+        #  extra days each year. We get 31556952 by writing
+        #  3600*24*365.2425=31556952
         m = 1_000_000_000 * 31556952
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
+        # 2629746 comes from dividing the "Y" case by 12.
         m = 1_000_000_000 * 2629746
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_W:

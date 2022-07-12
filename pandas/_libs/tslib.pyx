@@ -152,7 +152,7 @@ def format_array_from_datetime(
         # a format based on precision
         basic_format = format is None
         if basic_format:
-            reso_obj = get_resolution(values, reso=reso)
+            reso_obj = get_resolution(values, tz=tz, reso=reso)
             show_ns = reso_obj == Resolution.RESO_NS
             show_us = reso_obj == Resolution.RESO_US
             show_ms = reso_obj == Resolution.RESO_MS

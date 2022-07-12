@@ -6897,6 +6897,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
         # TODO(2.0) can use Index instead of self._constructor
+        #  Check if doing so fixes GH#47071
         return self._constructor._with_infer(new_values, name=self.name)
 
     def drop(
