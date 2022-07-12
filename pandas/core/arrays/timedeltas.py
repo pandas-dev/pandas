@@ -12,7 +12,6 @@ from pandas._libs import (
     lib,
     tslibs,
 )
-from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -54,13 +53,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
-from pandas.core.arrays import (
-    IntegerArray,
-    datetimelike as dtl,
-)
+from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -171,64 +166,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Constructors
 
     _freq = None
+    _default_dtype = TD64NS_DTYPE  # used in TimeLikeOps.__init__
 
-    def __init__(
-        self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy: bool = False
-    ) -> None:
-        values = extract_array(values, extract_numpy=True)
-        if isinstance(values, IntegerArray):
-            values = values.to_numpy("int64", na_value=tslibs.iNaT)
-
-        inferred_freq = getattr(values, "_freq", None)
-        explicit_none = freq is None
-        freq = freq if freq is not lib.no_default else None
-
-        if isinstance(values, type(self)):
-            if explicit_none:
-                # don't inherit from values
-                pass
-            elif freq is None:
-                freq = values.freq
-            elif freq and values.freq:
-                freq = to_offset(freq)
-                freq, _ = dtl.validate_inferred_freq(freq, values.freq, False)
-
-            values = values._ndarray
-
-        if not isinstance(values, np.ndarray):
-            raise ValueError(
-                f"Unexpected type '{type(values).__name__}'. 'values' must be a "
-                f"{type(self).__name__}, ndarray, or Series or Index "
-                "containing one of those."
-            )
-        if values.ndim not in [1, 2]:
-            raise ValueError("Only 1-dimensional input arrays are supported.")
-
-        if values.dtype == "i8":
-            # for compat with datetime/timedelta/period shared methods,
-            #  we can sometimes get here with int64 values.  These represent
-            #  nanosecond UTC (or tz-naive) unix timestamps
-            values = values.view(TD64NS_DTYPE)
-
+    @classmethod
+    def _validate_dtype(cls, values, dtype):
+        # used in TimeLikeOps.__init__
         _validate_td64_dtype(values.dtype)
         dtype = _validate_td64_dtype(dtype)
-
-        if freq == "infer":
-            raise ValueError(
-                f"Frequency inference not allowed in {type(self).__name__}.__init__. "
-                "Use 'pd.array()' instead."
-            )
-
-        if copy:
-            values = values.copy()
-        if freq:
-            freq = to_offset(freq)
-
-        NDArrayBacked.__init__(self, values=values, dtype=dtype)
-        self._freq = freq
-
-        if inferred_freq is None and freq is not None:
-            type(self)._validate_frequency(self, freq)
+        return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
@@ -453,7 +398,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
-            return type(self)(result, freq=freq)
+            return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
             # list, tuple
@@ -467,13 +412,14 @@ class TimedeltaArray(dtl.TimelikeOps):
             # this multiplication will succeed only if all elements of other
             #  are int or float scalars, so we will end up with
             #  timedelta64[ns]-dtyped result
-            result = [self[n] * other[n] for n in range(len(self))]
+            arr = self._ndarray
+            result = [arr[n] * other[n] for n in range(len(self))]
             result = np.array(result)
-            return type(self)(result)
+            return type(self)._simple_new(result, dtype=result.dtype)
 
         # numpy will accept float or int dtype, raise TypeError for others
         result = self._ndarray * other
-        return type(self)(result)
+        return type(self)._simple_new(result, dtype=result.dtype)
 
     __rmul__ = __mul__
 
@@ -501,7 +447,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self.freq is not None:
                 # Tick division is not implemented, so operate on Timedelta
                 freq = self.freq.delta / other
-            return type(self)(result, freq=freq)
+                freq = to_offset(freq)
+            return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
             # e.g. list, tuple
@@ -517,6 +464,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             # We operate on raveled arrays to avoid problems in inference
             #  on NaT
+            # TODO: tests with non-nano
             srav = self.ravel()
             orav = other.ravel()
             result_list = [srav[n] / orav[n] for n in range(len(srav))]
@@ -543,7 +491,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         else:
             result = self._ndarray / other
-            return type(self)(result)
+            return type(self)._simple_new(result, dtype=result.dtype)
 
     @unpack_zerodim_and_defer("__rtruediv__")
     def __rtruediv__(self, other):

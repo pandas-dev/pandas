@@ -154,6 +154,32 @@ def data_for_grouping(dtype):
 
 
 @pytest.fixture
+def data_for_sorting(data_for_grouping):
+    """
+    Length-3 array with a known sort order.
+
+    This should be three items [B, C, A] with
+    A < B < C
+    """
+    return type(data_for_grouping)._from_sequence(
+        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]]
+    )
+
+
+@pytest.fixture
+def data_missing_for_sorting(data_for_grouping):
+    """
+    Length-3 array with a known sort order.
+
+    This should be three items [B, NA, A] with
+    A < B and NA missing.
+    """
+    return type(data_for_grouping)._from_sequence(
+        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]]
+    )
+
+
+@pytest.fixture
 def na_value():
     """The scalar missing value for this type. Default 'None'"""
     return pd.NA
@@ -537,13 +563,209 @@ class TestBaseMissing(base.BaseMissingTests):
         super().test_fillna_frame(data_missing)
 
 
+class TestBasePrinting(base.BasePrintingTests):
+    def test_series_repr(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_series_repr(data)
+
+    def test_dataframe_repr(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_dataframe_repr(data)
+
+
+class TestBaseReshaping(base.BaseReshapingTests):
+    @pytest.mark.parametrize("in_frame", [True, False])
+    def test_concat(self, data, in_frame, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_concat(data, in_frame)
+
+    @pytest.mark.parametrize("in_frame", [True, False])
+    def test_concat_all_na_block(self, data_missing, in_frame, request):
+        pa_dtype = data_missing.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_concat_all_na_block(data_missing, in_frame)
+
+    def test_concat_columns(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_concat_columns(data, na_value)
+
+    def test_concat_extension_arrays_copy_false(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_concat_extension_arrays_copy_false(data, na_value)
+
+    def test_concat_with_reindex(self, data, request, using_array_manager):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        elif pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError if not using_array_manager else TypeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_concat_with_reindex(data)
+
+    def test_align(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align(data, na_value)
+
+    def test_align_frame(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align_frame(data, na_value)
+
+    def test_align_series_frame(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align_series_frame(data, na_value)
+
+    def test_merge(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_merge(data, na_value)
+
+    def test_merge_on_extension_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_merge_on_extension_array(data)
+
+    def test_merge_on_extension_array_duplicates(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_merge_on_extension_array_duplicates(data)
+
+    def test_ravel(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_ravel(data)
+
+    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    def test_transpose(self, data):
+        super().test_transpose(data)
+
+    def test_transpose_frame(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_transpose_frame(data)
+
+
 class TestBaseSetitem(base.BaseSetitemTests):
     def test_setitem_scalar_series(self, data, box_in_series, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         super().test_setitem_scalar_series(data, box_in_series)
@@ -654,7 +876,7 @@ class TestBaseSetitem(base.BaseSetitemTests):
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         elif using_array_manager and pa.types.is_duration(data.dtype.pyarrow_dtype):
@@ -986,6 +1208,287 @@ class TestBaseParsing(base.BaseParsingTests):
                 )
             )
         super().test_EA_types(engine, data)
+
+
+class TestBaseMethods(base.BaseMethodsTests):
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts(self, all_data, dropna, request):
+        pa_dtype = all_data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"value_count has no kernel for {pa_dtype}",
+                )
+            )
+        super().test_value_counts(all_data, dropna)
+
+    def test_value_counts_with_normalize(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"value_count has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        super().test_value_counts_with_normalize(data)
+
+    def test_argmin_argmax(
+        self, data_for_sorting, data_missing_for_sorting, na_value, request
+    ):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype) and not ascending and not pa_version_under2p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"unique has no pyarrow kernel "
+                        f"for {pa_dtype} when ascending={ascending}"
+                    ),
+                )
+            )
+        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_frame(self, data_for_sorting, ascending, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"dictionary_encode has no pyarrow kernel "
+                        f"for {pa_dtype} when ascending={ascending}"
+                    ),
+                )
+            )
+        super().test_sort_values_frame(data_for_sorting, ascending)
+
+    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
+    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
+    def test_unique(self, data, box, method, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype) and not pa_version_under2p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"unique has no pyarrow kernel for {pa_dtype}.",
+                )
+            )
+        super().test_unique(data, box, method)
+
+    @pytest.mark.parametrize("na_sentinel", [-1, -2])
+    def test_factorize(self, data_for_grouping, na_sentinel, request):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        elif pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        super().test_factorize(data_for_grouping, na_sentinel)
+
+    @pytest.mark.parametrize("na_sentinel", [-1, -2])
+    def test_factorize_equivalence(self, data_for_grouping, na_sentinel, request):
+        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        super().test_factorize_equivalence(data_for_grouping, na_sentinel)
+
+    def test_factorize_empty(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
+                )
+            )
+        super().test_factorize_empty(data)
+
+    def test_fillna_copy_frame(self, data_missing, request, using_array_manager):
+        pa_dtype = data_missing.dtype.pyarrow_dtype
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        super().test_fillna_copy_frame(data_missing)
+
+    def test_fillna_copy_series(self, data_missing, request, using_array_manager):
+        pa_dtype = data_missing.dtype.pyarrow_dtype
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        super().test_fillna_copy_series(data_missing)
+
+    def test_shift_fill_value(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_shift_fill_value(data)
+
+    @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
+    def test_repeat(self, data, repeats, as_series, use_numpy, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC") and repeats != 0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"Not supported by pyarrow < 2.0 with "
+                        f"timestamp type {tz} when repeats={repeats}"
+                    )
+                )
+            )
+        super().test_repeat(data, repeats, as_series, use_numpy)
+
+    def test_insert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_insert(data)
+
+    def test_combine_first(self, data, request, using_array_manager):
+        pa_dtype = data.dtype.pyarrow_dtype
+        tz = getattr(pa_dtype, "tz", None)
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        elif pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_combine_first(data)
+
+    @pytest.mark.parametrize("frame", [True, False])
+    @pytest.mark.parametrize(
+        "periods, indices",
+        [(-2, [2, 3, 4, -1, -1]), (0, [0, 1, 2, 3, 4]), (2, [-1, -1, 0, 1, 2])],
+    )
+    def test_container_shift(
+        self, data, frame, periods, indices, request, using_array_manager
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            using_array_manager
+            and pa.types.is_duration(pa_dtype)
+            and periods in (-2, 2)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"Checking ndim when using arraymanager with "
+                        f"{pa_dtype} and periods={periods}"
+                    )
+                )
+            )
+        super().test_container_shift(data, frame, periods, indices)
+
+    @pytest.mark.xfail(
+        reason="result dtype pyarrow[bool] better than expected dtype object"
+    )
+    def test_combine_le(self, data_repeated):
+        super().test_combine_le(data_repeated)
+
+    def test_combine_add(self, data_repeated, request):
+        pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
+        if pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=f"{pa_dtype} cannot be added to {pa_dtype}",
+                )
+            )
+        super().test_combine_add(data_repeated)
+
+    def test_searchsorted(self, data_for_sorting, as_series, request):
+        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
+        if pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{pa_dtype} only has 2 unique possible values",
+                )
+            )
+        super().test_searchsorted(data_for_sorting, as_series)
+
+    def test_where_series(self, data, na_value, as_frame, request, using_array_manager):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if using_array_manager and pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Checking ndim when using arraymanager with {pa_dtype}"
+                )
+            )
+        elif pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"Unsupported cast from double to {pa_dtype}",
+                )
+            )
+        super().test_where_series(data, na_value, as_frame)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():

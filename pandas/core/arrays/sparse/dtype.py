@@ -99,7 +99,7 @@ class SparseDtype(ExtensionDtype):
         self._fill_value = fill_value
         self._check_fill_value()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.
         return super().__hash__()
@@ -179,7 +179,7 @@ class SparseDtype(ExtensionDtype):
         return is_bool_dtype(self.subtype)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The sparse kind. Either 'integer', or 'block'.
         """
@@ -194,7 +194,7 @@ class SparseDtype(ExtensionDtype):
         return self._dtype
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
 
     def __repr__(self) -> str:
