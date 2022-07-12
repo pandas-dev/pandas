@@ -1654,7 +1654,7 @@ cdef class _Period(PeriodMixin):
             return NaT
         else:
             freq = cls._maybe_convert_freq(freq)
-            self = _Period.__new__(cls, ordinal, freq)
+            self = _Period.__new__(cls, ordinal=ordinal, freq=freq)
             return self
 
     def __richcmp__(self, other, op):
