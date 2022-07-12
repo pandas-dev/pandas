@@ -30,7 +30,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
+    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;:ref:`to_orc<io.orc>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
@@ -2559,16 +2559,29 @@ Let's look at a few examples.
 
 Read a URL with no options:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
-   dfs = pd.read_html(url)
-   dfs
+   In [320]: "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+   In [321]: pd.read_html(url)
+   Out[321]:
+   [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
+    0                    Almena State Bank             Almena      KS  ...                          Equity Bank    October 23, 2020    10538
+    1           First City Bank of Florida  Fort Walton Beach      FL  ...            United Fidelity Bank, fsb    October 16, 2020    10537
+    2                 The First State Bank      Barboursville      WV  ...                       MVB Bank, Inc.       April 3, 2020    10536
+    3                   Ericson State Bank            Ericson      NE  ...           Farmers and Merchants Bank   February 14, 2020    10535
+    4     City National Bank of New Jersey             Newark      NJ  ...                      Industrial Bank    November 1, 2019    10534
+    ..                                 ...                ...     ...  ...                                  ...                 ...      ...
+    558                 Superior Bank, FSB           Hinsdale      IL  ...                Superior Federal, FSB       July 27, 2001     6004
+    559                Malta National Bank              Malta      OH  ...                    North Valley Bank         May 3, 2001     4648
+    560    First Alliance Bank & Trust Co.         Manchester      NH  ...  Southern New Hampshire Bank & Trust    February 2, 2001     4647
+    561  National State Bank of Metropolis         Metropolis      IL  ...              Banterra Bank of Marion   December 14, 2000     4646
+    562                   Bank of Honolulu           Honolulu      HI  ...                   Bank of the Orient    October 13, 2000     4645
+
+    [563 rows x 7 columns]]
 
 .. note::
 
-   The data from the above URL changes every Monday so the resulting data above
-   and the data below may be slightly different.
+   The data from the above URL changes every Monday so the resulting data above may be slightly different.
 
 Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
@@ -5562,13 +5575,64 @@ ORC
 .. versionadded:: 1.0.0
 
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
-for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
-ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
+for data frames. It is designed to make reading data frames efficient. pandas provides both the reader and the writer for the
+ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
 .. warning::
 
    * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
-   * :func:`~pandas.read_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
+   * :func:`~pandas.DataFrame.to_orc` requires pyarrow>=7.0.0.
+   * :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc` are not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
+   * For supported dtypes please refer to `supported ORC features in Arrow <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
+   * Currently timezones in datetime columns are not preserved when a dataframe is converted into ORC files.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "a": list("abc"),
+           "b": list(range(1, 4)),
+           "c": np.arange(4.0, 7.0, dtype="float64"),
+           "d": [True, False, True],
+           "e": pd.date_range("20130101", periods=3),
+       }
+   )
+
+   df
+   df.dtypes
+
+Write to an orc file.
+
+.. ipython:: python
+   :okwarning:
+
+   df.to_orc("example_pa.orc", engine="pyarrow")
+
+Read from an orc file.
+
+.. ipython:: python
+   :okwarning:
+
+   result = pd.read_orc("example_pa.orc")
+
+   result.dtypes
+
+Read only certain columns of an orc file.
+
+.. ipython:: python
+
+   result = pd.read_orc(
+       "example_pa.orc",
+       columns=["a", "b"],
+   )
+   result.dtypes
+
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("example_pa.orc")
+
 
 .. _io.sql:
 

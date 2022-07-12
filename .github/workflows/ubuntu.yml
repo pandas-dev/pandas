@@ -1,4 +1,4 @@
-name: Posix
+name: Ubuntu
 
 on:
   push:
@@ -14,6 +14,9 @@ on:
 
 env:
   PANDAS_CI: 1
+
+permissions:
+  contents: read
 
 jobs:
   pytest:
@@ -134,18 +137,9 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Cache conda
-      uses: actions/cache@v3
-      env:
-        CACHE_NUMBER: 0
-      with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('${{ env.ENV_FILE }}') }}
-
     - name: Extra installs
       # xsel for clipboard tests
-      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
+      run: sudo apt-get update && sudo apt-get install -y xsel ${{ env.EXTRA_APT }}
 
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
@@ -157,23 +151,6 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: ci/run_tests.sh
+      uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
-
-    - name: Build Version
-      run: conda list
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: false

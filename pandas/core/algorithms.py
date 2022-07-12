@@ -4,6 +4,7 @@ intended for public consumption
 """
 from __future__ import annotations
 
+import inspect
 import operator
 from textwrap import dedent
 from typing import (
@@ -14,7 +15,7 @@ from typing import (
     cast,
     final,
 )
-from warnings import warn
+import warnings
 
 import numpy as np
 
@@ -57,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_signed_integer_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
@@ -446,7 +448,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        values = _ensure_arraylike(list(values))
+        if not is_signed_integer_dtype(comps):
+            # GH#46485 Use object to avoid upcast to float64 later
+            # TODO: Share with _find_common_type_compat
+            values = construct_1d_object_array_from_listlike(list(values))
+        else:
+            values = _ensure_arraylike(list(values))
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
         values = np.array(values)
@@ -580,7 +587,8 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int | None = -1,
+    na_sentinel: int | None | lib.NoDefault = lib.no_default,
+    use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     size_hint: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray | Index]:
     """
@@ -598,7 +606,19 @@ def factorize(
         Value to mark "not found". If None, will not drop the NaN
         from the uniques of the values.
 
+        .. deprecated:: 1.5.0
+            The na_sentinel argument is deprecated and
+            will be removed in a future version of pandas. Specify use_na_sentinel as
+            either True or False.
+
         .. versionchanged:: 1.1.2
+
+    use_na_sentinel : bool, default True
+        If True, the sentinel -1 will be used for NaN values. If False,
+        NaN values will be encoded as non-negative integers and will not drop the
+        NaN from the uniques of the values.
+
+        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -646,8 +666,8 @@ def factorize(
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
-    Missing values are indicated in `codes` with `na_sentinel`
-    (``-1`` by default). Note that missing values are never
+    When ``use_na_sentinel=True`` (the default), missing values are indicated in
+    the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
@@ -682,16 +702,16 @@ def factorize(
     Index(['a', 'c'], dtype='object')
 
     If NaN is in the values, and we want to include NaN in the uniques of the
-    values, it can be achieved by setting ``na_sentinel=None``.
+    values, it can be achieved by setting ``use_na_sentinel=False``.
 
     >>> values = np.array([1, 2, 1, np.nan])
-    >>> codes, uniques = pd.factorize(values)  # default: na_sentinel=-1
+    >>> codes, uniques = pd.factorize(values)  # default: use_na_sentinel=True
     >>> codes
     array([ 0,  1,  0, -1])
     >>> uniques
     array([1., 2.])
 
-    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
+    >>> codes, uniques = pd.factorize(values, use_na_sentinel=False)
     >>> codes
     array([0, 1, 0, 2])
     >>> uniques
@@ -706,6 +726,7 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
+    na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
     if isinstance(values, ABCRangeIndex):
         return values.factorize(sort=sort)
 
@@ -730,9 +751,22 @@ def factorize(
         codes, uniques = values.factorize(sort=sort)
         return _re_wrap_factorize(original, uniques, codes)
 
-    if not isinstance(values.dtype, np.dtype):
-        # i.e. ExtensionDtype
-        codes, uniques = values.factorize(na_sentinel=na_sentinel)
+    elif not isinstance(values.dtype, np.dtype):
+        if (
+            na_sentinel == -1
+            and "use_na_sentinel" in inspect.signature(values.factorize).parameters
+        ):
+            # Avoid using catch_warnings when possible
+            # GH#46910 - TimelikeOps has deprecated signature
+            codes, uniques = values.factorize(  # type: ignore[call-arg]
+                use_na_sentinel=True
+            )
+        else:
+            with warnings.catch_warnings():
+                # We've already warned above
+                warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
+                codes, uniques = values.factorize(na_sentinel=na_sentinel)
+
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
         codes, uniques = factorize_array(
@@ -755,6 +789,56 @@ def factorize(
     uniques = _reconstruct_data(uniques, original.dtype, original)
 
     return _re_wrap_factorize(original, uniques, codes)
+
+
+def resolve_na_sentinel(
+    na_sentinel: int | None | lib.NoDefault,
+    use_na_sentinel: bool | lib.NoDefault,
+) -> int | None:
+    """
+    Determine value of na_sentinel for factorize methods.
+
+    See GH#46910 for details on the deprecation.
+
+    Parameters
+    ----------
+    na_sentinel : int, None, or lib.no_default
+        Value passed to the method.
+    use_na_sentinel : bool or lib.no_default
+        Value passed to the method.
+
+    Returns
+    -------
+    Resolved value of na_sentinel.
+    """
+    if na_sentinel is not lib.no_default and use_na_sentinel is not lib.no_default:
+        raise ValueError(
+            "Cannot specify both `na_sentinel` and `use_na_sentile`; "
+            f"got `na_sentinel={na_sentinel}` and `use_na_sentinel={use_na_sentinel}`"
+        )
+    if na_sentinel is lib.no_default:
+        result = -1 if use_na_sentinel is lib.no_default or use_na_sentinel else None
+    else:
+        if na_sentinel is None:
+            msg = (
+                "Specifying `na_sentinel=None` is deprecated, specify "
+                "`use_na_sentinel=False` instead."
+            )
+        elif na_sentinel == -1:
+            msg = (
+                "Specifying `na_sentinel=-1` is deprecated, specify "
+                "`use_na_sentinel=True` instead."
+            )
+        else:
+            msg = (
+                "Specifying the specific value to use for `na_sentinel` is "
+                "deprecated and will be removed in a future version of pandas. "
+                "Specify `use_na_sentinel=True` to use the sentinel value -1, and "
+                "`use_na_sentinel=False` to encode NaN values."
+            )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        result = na_sentinel
+    return result
 
 
 def _re_wrap_factorize(original, uniques, codes: np.ndarray):
@@ -864,7 +948,7 @@ def value_counts(
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-):
+) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
     """
     Parameters
     ----------
@@ -950,7 +1034,7 @@ def mode(
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
-        warn(f"Unable to sort modes: {err}")
+        warnings.warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(npresult, original.dtype, original)
     return result
@@ -1017,10 +1101,10 @@ def rank(
 
 def checked_add_with_arr(
     arr: npt.NDArray[np.int64],
-    b,
+    b: int | npt.NDArray[np.int64],
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.int64]:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -1064,11 +1148,12 @@ def checked_add_with_arr(
     elif arr_mask is not None:
         not_nan = np.logical_not(arr_mask)
     elif b_mask is not None:
-        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has incompatible type
-        # "Optional[ndarray[Any, dtype[bool_]]]"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[An
-        # y]]], bool, int, float, complex, str, bytes, _NestedSequence[Union[bool,
-        # int, float, complex, str, bytes]]]"  [arg-type]
+        # error: Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
+        # incompatible type "Optional[ndarray[Any, dtype[bool_]]]";
+        # expected "Union[_SupportsArray[dtype[Any]], _NestedSequence
+        # [_SupportsArray[dtype[Any]]], bool, int, float, complex, str
+        # , bytes, _NestedSequence[Union[bool, int, float, complex, str
+        # , bytes]]]"
         not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
     else:
         not_nan = np.empty(arr.shape, dtype=bool)
@@ -1098,7 +1183,12 @@ def checked_add_with_arr(
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
-    return arr + b
+
+    result = arr + b
+    if arr_mask is not None or b2_mask is not None:
+        np.putmask(result, ~not_nan, iNaT)
+
+    return result
 
 
 # --------------- #
@@ -1564,7 +1654,7 @@ def diff(arr, n: int, axis: int = 0):
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
-            warn(
+            warnings.warn(
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
@@ -1771,9 +1861,12 @@ def safe_sort(
 def _sort_mixed(values) -> np.ndarray:
     """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos])
+    none_pos = np.array([x is None for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos & ~none_pos])
     strs = np.sort(values[str_pos])
-    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+    return np.concatenate(
+        [nums, np.asarray(strs, dtype=object), np.array(values[none_pos])]
+    )
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:

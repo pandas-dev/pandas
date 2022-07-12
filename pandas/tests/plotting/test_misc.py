@@ -10,6 +10,7 @@ from pandas import (
     Index,
     Series,
     Timestamp,
+    interval_range,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -597,3 +598,19 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot)
         s = Series({"A": 1.0})
         _check_plot_works(s.plot.bar)
+
+    def test_bar_plt_xaxis_intervalrange(self):
+        # GH 38969
+        # Ensure IntervalIndex x-axis produces a bar plot as expected
+        from matplotlib.text import Text
+
+        expected = [Text(0, 0, "([0, 1],)"), Text(1, 0, "([1, 2],)")]
+        s = Series(
+            [1, 2],
+            index=[interval_range(0, 2, inclusive="both")],
+        )
+        _check_plot_works(s.plot.bar)
+        assert all(
+            (a.get_text() == b.get_text())
+            for a, b in zip(s.plot.bar().get_xticklabels(), expected)
+        )

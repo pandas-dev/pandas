@@ -65,20 +65,6 @@ MATHOPS = _unary_math_ops + _binary_math_ops
 LOCAL_TAG = "__pd_eval_local_"
 
 
-class UndefinedVariableError(NameError):
-    """
-    NameError subclass for local variables.
-    """
-
-    def __init__(self, name: str, is_local: bool | None = None) -> None:
-        base_msg = f"{repr(name)} is not defined"
-        if is_local:
-            msg = f"local variable {base_msg}"
-        else:
-            msg = f"name {base_msg}"
-        super().__init__(msg)
-
-
 class Term:
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
@@ -108,7 +94,7 @@ class Term:
     def __call__(self, *args, **kwargs):
         return self.value
 
-    def evaluate(self, *args, **kwargs):
+    def evaluate(self, *args, **kwargs) -> Term:
         return self
 
     def _resolve_name(self):
@@ -121,7 +107,7 @@ class Term:
             )
         return res
 
-    def update(self, value):
+    def update(self, value) -> None:
         """
         search order for local (i.e., @variable) variables:
 
@@ -461,7 +447,7 @@ class BinOp(Op):
         name = env.add_tmp(res)
         return term_type(name, env=env)
 
-    def convert_values(self):
+    def convert_values(self) -> None:
         """
         Convert datetimes to a comparable value in an expression.
         """
@@ -578,7 +564,7 @@ class UnaryOp(Op):
                 f"valid operators are {UNARY_OPS_SYMS}"
             ) from err
 
-    def __call__(self, env):
+    def __call__(self, env) -> MathCall:
         operand = self.operand(env)
         # error: Cannot call function of unknown type
         return self.func(operand)  # type: ignore[operator]

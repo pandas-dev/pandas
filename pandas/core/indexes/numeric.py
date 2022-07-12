@@ -106,7 +106,7 @@ class NumericIndex(Index):
     }
 
     @property
-    def _engine_type(self):
+    def _engine_type(self) -> type[libindex.IndexEngine]:
         # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
         # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
         return self._engine_types[self.dtype]  # type: ignore[index]
@@ -120,7 +120,9 @@ class NumericIndex(Index):
             "c": "complex",
         }[self.dtype.kind]
 
-    def __new__(cls, data=None, dtype: Dtype | None = None, copy=False, name=None):
+    def __new__(
+        cls, data=None, dtype: Dtype | None = None, copy=False, name=None
+    ) -> NumericIndex:
         name = maybe_extract_name(name, data, cls)
 
         subarr = cls._ensure_array(data, dtype, copy)
@@ -371,9 +373,12 @@ class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "int64index"
-    _engine_type = libindex.Int64Engine
     _default_dtype = np.dtype(np.int64)
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
+
+    @property
+    def _engine_type(self) -> type[libindex.Int64Engine]:
+        return libindex.Int64Engine
 
 
 class UInt64Index(IntegerIndex):
@@ -386,9 +391,12 @@ class UInt64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "uint64index"
-    _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
+
+    @property
+    def _engine_type(self) -> type[libindex.UInt64Engine]:
+        return libindex.UInt64Engine
 
 
 class Float64Index(NumericIndex):
@@ -401,7 +409,10 @@ class Float64Index(NumericIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "float64index"
-    _engine_type = libindex.Float64Engine
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
     _is_backward_compat_public_numeric_index: bool = False
+
+    @property
+    def _engine_type(self) -> type[libindex.Float64Engine]:
+        return libindex.Float64Engine

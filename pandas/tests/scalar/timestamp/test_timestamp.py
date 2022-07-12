@@ -22,6 +22,8 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
+    maybe_get_tz,
+    tz_compare,
 )
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
@@ -711,6 +713,11 @@ class TestNonNano:
     def ts(self, dt64):
         return Timestamp._from_dt64(dt64)
 
+    @pytest.fixture
+    def ts_tz(self, ts, tz_aware_fixture):
+        tz = maybe_get_tz(tz_aware_fixture)
+        return Timestamp._from_value_and_reso(ts.value, ts._reso, tz)
+
     def test_non_nano_construction(self, dt64, ts, reso):
         assert ts.value == dt64.view("i8")
 
@@ -762,6 +769,16 @@ class TestNonNano:
     def test_month_name(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.month_name() == alt.month_name()
+
+    def test_tz_convert(self, ts):
+        ts = Timestamp._from_value_and_reso(ts.value, ts._reso, utc)
+
+        tz = pytz.timezone("US/Pacific")
+        result = ts.tz_convert(tz)
+
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts._reso
+        assert tz_compare(result.tz, tz)
 
     def test_repr(self, dt64, ts):
         alt = Timestamp(dt64)
@@ -825,7 +842,10 @@ class TestNonNano:
 
         assert other.asm8 < ts
 
-    def test_pickle(self, ts):
+    def test_pickle(self, ts, tz_aware_fixture):
+        tz = tz_aware_fixture
+        tz = maybe_get_tz(tz)
+        ts = Timestamp._from_value_and_reso(ts.value, ts._reso, tz)
         rt = tm.round_trip_pickle(ts)
         assert rt._reso == ts._reso
         assert rt == ts
@@ -881,6 +901,115 @@ class TestNonNano:
         assert isinstance(result, Timestamp)
         assert result._reso == ts._reso
         assert result == expected
+
+    @pytest.mark.xfail(reason="tz_localize not yet implemented for non-nano")
+    def test_addsub_offset(self, ts_tz):
+        # specifically non-Tick offset
+        off = offsets.YearBegin(1)
+        result = ts_tz + off
+
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts_tz._reso
+        # If ts_tz is ever on the last day of the year, the year would be
+        #  incremented by one
+        assert result.year == ts_tz.year
+        assert result.day == 31
+        assert result.month == 12
+        assert tz_compare(result.tz, ts_tz.tz)
+
+        result = ts_tz - off
+
+        assert isinstance(result, Timestamp)
+        assert result._reso == ts_tz._reso
+        assert result.year == ts_tz.year - 1
+        assert result.day == 31
+        assert result.month == 12
+        assert tz_compare(result.tz, ts_tz.tz)
+
+    def test_sub_datetimelike_mismatched_reso(self, ts_tz):
+        # case with non-lossy rounding
+        ts = ts_tz
+
+        # choose a unit for `other` that doesn't match ts_tz's;
+        #  this construction ensures we get cases with other._reso < ts._reso
+        #  and cases with other._reso > ts._reso
+        unit = {
+            NpyDatetimeUnit.NPY_FR_us.value: "ms",
+            NpyDatetimeUnit.NPY_FR_ms.value: "s",
+            NpyDatetimeUnit.NPY_FR_s.value: "us",
+        }[ts._reso]
+        other = ts._as_unit(unit)
+        assert other._reso != ts._reso
+
+        result = ts - other
+        assert isinstance(result, Timedelta)
+        assert result.value == 0
+        assert result._reso == min(ts._reso, other._reso)
+
+        result = other - ts
+        assert isinstance(result, Timedelta)
+        assert result.value == 0
+        assert result._reso == min(ts._reso, other._reso)
+
+        msg = "Timestamp subtraction with mismatched resolutions"
+        if ts._reso < other._reso:
+            # Case where rounding is lossy
+            other2 = other + Timedelta._from_value_and_reso(1, other._reso)
+            with pytest.raises(ValueError, match=msg):
+                ts - other2
+            with pytest.raises(ValueError, match=msg):
+                other2 - ts
+        else:
+            ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
+            with pytest.raises(ValueError, match=msg):
+                ts2 - other
+            with pytest.raises(ValueError, match=msg):
+                other - ts2
+
+    def test_sub_timedeltalike_mismatched_reso(self, ts_tz):
+        # case with non-lossy rounding
+        ts = ts_tz
+
+        # choose a unit for `other` that doesn't match ts_tz's;
+        #  this construction ensures we get cases with other._reso < ts._reso
+        #  and cases with other._reso > ts._reso
+        unit = {
+            NpyDatetimeUnit.NPY_FR_us.value: "ms",
+            NpyDatetimeUnit.NPY_FR_ms.value: "s",
+            NpyDatetimeUnit.NPY_FR_s.value: "us",
+        }[ts._reso]
+        other = Timedelta(0)._as_unit(unit)
+        assert other._reso != ts._reso
+
+        result = ts + other
+        assert isinstance(result, Timestamp)
+        assert result == ts
+        assert result._reso == min(ts._reso, other._reso)
+
+        result = other + ts
+        assert isinstance(result, Timestamp)
+        assert result == ts
+        assert result._reso == min(ts._reso, other._reso)
+
+        msg = "Timestamp addition with mismatched resolutions"
+        if ts._reso < other._reso:
+            # Case where rounding is lossy
+            other2 = other + Timedelta._from_value_and_reso(1, other._reso)
+            with pytest.raises(ValueError, match=msg):
+                ts + other2
+            with pytest.raises(ValueError, match=msg):
+                other2 + ts
+        else:
+            ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
+            with pytest.raises(ValueError, match=msg):
+                ts2 + other
+            with pytest.raises(ValueError, match=msg):
+                other + ts2
+
+        msg = "Addition between Timestamp and Timedelta with mismatched resolutions"
+        with pytest.raises(ValueError, match=msg):
+            # With a mismatched td64 as opposed to Timedelta
+            ts + np.timedelta64(1, "ns")
 
 
 class TestAsUnit:

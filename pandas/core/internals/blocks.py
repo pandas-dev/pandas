@@ -215,7 +215,7 @@ class Block(PandasObject):
         return self._mgr_locs
 
     @mgr_locs.setter
-    def mgr_locs(self, new_mgr_locs: BlockPlacement):
+    def mgr_locs(self, new_mgr_locs: BlockPlacement) -> None:
         self._mgr_locs = new_mgr_locs
 
     @final
@@ -504,7 +504,7 @@ class Block(PandasObject):
     @final
     def astype(
         self, dtype: DtypeObj, copy: bool = False, errors: IgnoreRaise = "raise"
-    ):
+    ) -> Block:
         """
         Coerce to the new dtype.
 
@@ -536,13 +536,13 @@ class Block(PandasObject):
         return newb
 
     @final
-    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
+    def to_native_types(self, na_rep="nan", quoting=None, **kwargs) -> Block:
         """convert to our native types format"""
         result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
         return self.make_block(result)
 
     @final
-    def copy(self, deep: bool = True):
+    def copy(self, deep: bool = True) -> Block:
         """copy constructor"""
         values = self.values
         if deep:
@@ -575,7 +575,11 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             blk = self if inplace else self.copy()
-            blk.values._replace(to_replace=to_replace, value=value, inplace=True)
+            # error: Item "ExtensionArray" of "Union[ndarray[Any, Any],
+            # ExtensionArray]" has no attribute "_replace"
+            blk.values._replace(  # type: ignore[union-attr]
+                to_replace=to_replace, value=value, inplace=True
+            )
             return [blk]
 
         if not self._can_hold_element(to_replace):
@@ -725,10 +729,13 @@ class Block(PandasObject):
                     assert not isinstance(mib, bool)
                     m = mib[blk_num : blk_num + 1]
 
+                # error: Argument "mask" to "_replace_coerce" of "Block" has
+                # incompatible type "Union[ExtensionArray, ndarray[Any, Any], bool]";
+                # expected "ndarray[Any, dtype[bool_]]"
                 result = blk._replace_coerce(
                     to_replace=src,
                     value=dest,
-                    mask=m,
+                    mask=m,  # type: ignore[arg-type]
                     inplace=inplace,
                     regex=regex,
                 )
@@ -815,7 +822,7 @@ class Block(PandasObject):
     def shape(self) -> Shape:
         return self.values.shape
 
-    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]) -> np.ndarray:
         # In the case where we have a tuple[slice, int], the slice will always
         #  be slice(None)
         # Note: only reached with self.ndim == 2
@@ -924,7 +931,7 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
-    def setitem(self, indexer, value):
+    def setitem(self, indexer, value) -> Block:
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
 
@@ -2156,7 +2163,7 @@ def new_block(values, placement, *, ndim: int) -> Block:
     return klass(values, ndim=ndim, placement=placement)
 
 
-def check_ndim(values, placement: BlockPlacement, ndim: int):
+def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
     """
     ndim inference and validation.
 
@@ -2262,7 +2269,7 @@ def to_native_types(
     **kwargs,
 ) -> np.ndarray:
     """convert to our native types format"""
-    if isinstance(values, Categorical):
+    if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
         # GH#40754 Convert categorical datetimes to datetime array
         values = algos.take_nd(
             values.categories._values,
