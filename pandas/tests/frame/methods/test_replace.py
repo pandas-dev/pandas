@@ -1567,3 +1567,10 @@ class TestDataFrameReplaceRegex:
         result = df.replace({0: 1, 1: np.nan})
         expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_with_pandas_NA(self):
+        # GH47480
+        df = DataFrame({"A": [pd.NA, 1, 2], "B": [1, 0, 2]})
+        result = df.replace(2, 3)
+        expected = DataFrame({"A": [pd.NA, 1, 3], "B": [1, 0, 3]})
+        tm.assert_frame_equal(result, expected)

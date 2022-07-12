@@ -92,7 +92,19 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
             # GH#29553 prevent numpy deprecation warnings
             pass
         else:
-            new_mask = arr == x
+            # Numpy Currently can't handle comparisons with "NAType" instances
+            arr_shape = arr.shape
+            arr = np.array(arr)
+            arr = arr.flatten()
+            new_mask = np.array([])
+            for i in arr:
+                if isna(i):
+                    new_mask = np.append(new_mask, False)
+                else:
+                    new_mask = np.append(new_mask, x == i)
+            new_mask.shape = arr_shape
+            new_mask = new_mask == 1
+
             if not isinstance(new_mask, np.ndarray):
                 # usually BooleanArray
                 new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
