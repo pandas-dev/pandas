@@ -107,6 +107,7 @@ class TestConcatSort:
             index=[3, 1, 6, 2],
             columns=["c", "d", "a", "b"],
         )
+        tm.assert_frame_equal(result, expected)
 
     def test_concat_sort_none_warning(self):
         # GH#41518
