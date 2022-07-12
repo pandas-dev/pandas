@@ -45,6 +45,17 @@ async def test_tab_complete_ipython6_warning(ip):
             list(ip.Completer.completions("rs.", 1))
 
 
+def test_dataframe_missing_a_day():
+    # GH 47350
+    dates = pd.DatetimeIndex(["2022-01-01", "2022-01-02", "2022-01-04"])
+    df = DataFrame([0, 1, 2], index=dates)
+    result = df.resample("D")[0].idxmax()  # raises value error
+
+    expected = df.resample("D")[0].apply(lambda x: x.idxmax() if len(x) else None)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_deferred_with_groupby():
 
     # GH 12486
