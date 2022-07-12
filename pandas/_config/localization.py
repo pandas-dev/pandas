@@ -39,7 +39,7 @@ def set_locale(
     particular locale, without globally setting the locale. This probably isn't
     thread-safe.
     """
-    # getlocale is wrong, see GH#46595
+    # getlocale is not always compliant with setlocale, use setlocale. GH#46595
     current_locale = locale.setlocale(lc_var)
 
     try:
