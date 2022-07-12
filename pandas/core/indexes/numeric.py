@@ -413,5 +413,6 @@ class Float64Index(NumericIndex):
     _dtype_validation_metadata = (is_float_dtype, "float")
     _is_backward_compat_public_numeric_index: bool = False
 
+    @property
     def _engine_type(self) -> type[libindex.Float64Engine]:
         return libindex.Float64Engine
