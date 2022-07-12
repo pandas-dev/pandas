@@ -676,10 +676,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
     kind: str_type = "M"
     num = 101
     base = np.dtype("M8[ns]")  # TODO: depend on reso?
-    na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+
+    @property
+    def na_value(self) -> NaTType:
+        return NaT
 
     @cache_readonly
     def str(self):
@@ -1450,7 +1453,9 @@ class BaseMaskedDtype(ExtensionDtype):
     base = None
     type: type
 
-    na_value = libmissing.NA
+    @property
+    def na_value(self) -> libmissing.NAType:
+        return libmissing.NA
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:

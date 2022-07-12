@@ -242,8 +242,9 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     # ------------------------------------------------------------------------
     # String methods interface
 
-    # error: Cannot determine type of 'na_value'
-    _str_na_value = StringDtype.na_value  # type: ignore[has-type]
+    # error: Incompatible types in assignment (expression has type "NAType",
+    # base class "ObjectStringArrayMixin" defined the type as "float")
+    _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True

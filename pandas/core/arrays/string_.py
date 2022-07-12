@@ -90,8 +90,11 @@ class StringDtype(StorageExtensionDtype):
 
     name = "string"
 
-    #: StringDtype.na_value uses pandas.NA
-    na_value = libmissing.NA
+    #: StringDtype().na_value uses pandas.NA
+    @property
+    def na_value(self) -> libmissing.NAType:
+        return libmissing.NA
+
     _metadata = ("storage",)
 
     def __init__(self, storage=None) -> None:
@@ -335,13 +338,11 @@ class StringArray(BaseStringArray, PandasArray):
             na_values = scalars._mask
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            result[na_values] = StringDtype.na_value
+            result[na_values] = libmissing.NA
 
         else:
-            # convert non-na-likes to str, and nan-likes to StringDtype.na_value
-            result = lib.ensure_string_array(
-                scalars, na_value=StringDtype.na_value, copy=copy
-            )
+            # convert non-na-likes to str, and nan-likes to StringDtype().na_value
+            result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -396,7 +397,7 @@ class StringArray(BaseStringArray, PandasArray):
         # validate new items
         if scalar_value:
             if isna(value):
-                value = StringDtype.na_value
+                value = libmissing.NA
             elif not isinstance(value, str):
                 raise ValueError(
                     f"Cannot set non-string value '{value}' into a StringArray."
@@ -497,7 +498,7 @@ class StringArray(BaseStringArray, PandasArray):
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
-            result[mask] = StringDtype.na_value
+            result[mask] = libmissing.NA
             result[valid] = op(self._ndarray[valid], other)
             return StringArray(result)
         else:
@@ -512,7 +513,7 @@ class StringArray(BaseStringArray, PandasArray):
     # String methods interface
     # error: Incompatible types in assignment (expression has type "NAType",
     # base class "PandasArray" defined the type as "float")
-    _str_na_value = StringDtype.na_value  # type: ignore[assignment]
+    _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
