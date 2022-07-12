@@ -92,7 +92,7 @@ class TestConcatSort:
         expected = DataFrame([[2, np.nan], [np.nan, 1]], index=[2, 1], columns=[2, 1])
 
         tm.assert_frame_equal(result, expected)
-        
+
         # GH 37937
         df1 = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=[1, 2, 3])
         df2 = DataFrame({"c": [7, 8, 9], "d": [10, 11, 12]}, index=[3, 1, 6])
@@ -107,7 +107,7 @@ class TestConcatSort:
             index=[3, 1, 6, 2],
             columns=["c", "d", "a", "b"],
         )
-        
+
     def test_concat_sort_none_warning(self):
         # GH#41518
         df = DataFrame({1: [1, 2], "a": [3, 4]})
