@@ -90,8 +90,11 @@ class StringDtype(StorageExtensionDtype):
 
     name = "string"
 
-    #: StringDtype.na_value uses pandas.NA
-    na_value = libmissing.NA
+    #: StringDtype().na_value uses pandas.NA
+    @property
+    def na_value(self) -> libmissing.NAType:
+        return libmissing.NA
+
     _metadata = ("storage",)
 
     def __init__(self, storage=None) -> None:
@@ -396,7 +399,7 @@ class StringArray(BaseStringArray, PandasArray):
         # validate new items
         if scalar_value:
             if isna(value):
-                value = StringDtype.na_value
+                value = libmissing.NA
             elif not isinstance(value, str):
                 raise ValueError(
                     f"Cannot set non-string value '{value}' into a StringArray."
@@ -497,7 +500,7 @@ class StringArray(BaseStringArray, PandasArray):
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
-            result[mask] = StringDtype.na_value
+            result[mask] = libmissing.NA
             result[valid] = op(self._ndarray[valid], other)
             return StringArray(result)
         else:
