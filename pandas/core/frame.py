@@ -8333,14 +8333,14 @@ Parrot 2  Parrot       24.0
 2  Parrot       24.0
 3  Parrot       26.0
 
-When using ``.groupby()`` on a multiple index dataframe, 
-do not specify both ``by`` and ``level``. 
-The argument validation should be done in instead be done in 
+When using ``.groupby()`` on a multiple index dataframe,
+do not specify both ``by`` and ``level``.
+The argument validation should be done in instead be done in
 ``.groupby()``, using the name of the specific index.
 
 >>> df = pandas.DataFrame({"col1": ["a", "b", "c"]})
->>> df.index = pandas.MultiIndex.from_arrays([["a", "a", "b"], 
-...                                           [1, 2, 1]], 
+>>> df.index = pandas.MultiIndex.from_arrays([["a", "a", "b"],
+...                                           [1, 2, 1]],
 ...                                           names=["x", "y"])
 >>> df.groupby(["col1", "x"]) # Fine
 >>> df.groupby("col1", level=0)  # TypeError
