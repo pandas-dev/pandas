@@ -7,10 +7,7 @@ import numpy as np
 
 cimport numpy as cnp
 from cpython cimport PyErr_Clear
-from numpy cimport (
-    intp_t,
-    ndarray,
-)
+from numpy cimport ndarray
 
 cnp.import_array()
 
