@@ -415,14 +415,58 @@ class CSSWarning(UserWarning):
     """
 
 
+class PossibleDataLossError(Exception):
+    """
+    Exception is raised when trying to open a HDFStore file when the file is already
+    opened.
+
+    Examples
+    --------
+    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
+    >>> store.open("w") # doctest: +SKIP
+    ... # PossibleDataLossError: Re-opening the file [my-store] with mode [a]...
+    """
+
+
+class ClosedFileError(Exception):
+    """
+    Exception is raised when trying to perform an operation on a closed HDFStore file.
+
+    Examples
+    --------
+    >>> store = pd.HDFStore('my-store', 'a') # doctest: +SKIP
+    >>> store.close() # doctest: +SKIP
+    >>> store.keys() # doctest: +SKIP
+    ... # ClosedFileError: my-store file is not open!
+    """
+
+
+class IncompatibilityWarning(Warning):
+    """
+    Warning is raised when trying to use where criteria on an incompatible
+    HDF5 file.
+    """
+
+
+class AttributeConflictWarning(Warning):
+    """
+    Warning is raised when attempting to append an index with a different
+    name than the existing index on an HDFStore or attempting to append an index with a
+    different frequency than the existing index on an HDFStore.
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
+    "AttributeConflictWarning",
+    "ClosedFileError",
     "CSSWarning",
     "DataError",
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",
+    "IncompatibilityWarning",
     "IntCastingNaNError",
     "InvalidIndexError",
     "IndexingError",
@@ -436,6 +480,7 @@ __all__ = [
     "ParserError",
     "ParserWarning",
     "PerformanceWarning",
+    "PossibleDataLossError",
     "PyperclipException",
     "PyperclipWindowsException",
     "SettingWithCopyError",

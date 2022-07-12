@@ -27,6 +27,8 @@ navbar:
       target: /about/
     - name: "Project roadmap"
       target: /about/roadmap.html
+    - name: "Governance"
+      target: /about/governance.html
     - name: "Team"
       target: /about/team.html
     - name: "Sponsors"
