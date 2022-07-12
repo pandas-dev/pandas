@@ -1596,8 +1596,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
-        elif all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"} and (
-            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        elif (
+            all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1660,8 +1662,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
-        elif all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"} and (
-            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        elif (
+            all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -1742,8 +1746,10 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     ),
                 )
             )
-        elif all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"} and (
-            pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)
+        elif (
+            all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
