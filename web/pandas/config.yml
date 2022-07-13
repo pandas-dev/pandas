@@ -131,9 +131,14 @@ sponsors:
     description: "Patrick Hoefler"
   - name: "Quansight"
     url: https://quansight.com/
-    logo: /static/img/partners/quansight.svg  # TODO pending
+    logo: /static/img/partners/quansight_labs.svg
     kind: partner
     description: "Marco Gorelli"
+  - name: "Nvidia"
+    url: https://www.nvidia.com
+    logo: /static/img/partners/nvidia.svg  # TODO pending
+    kind: partner
+    description: "Matthew Roeschke"
   - name: "Tidelift"
     url: https://tidelift.com
     logo: /static/img/partners/tidelift.svg
