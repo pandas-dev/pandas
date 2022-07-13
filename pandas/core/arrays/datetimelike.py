@@ -46,6 +46,7 @@ from pandas._libs.tslibs.fields import (
     RoundTo,
     round_nsint64,
 )
+from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
     ArrayLike,
@@ -1064,6 +1065,24 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     op, np.asarray(self.astype(object)), other
                 )
             return result
+
+        if other is NaT:
+            if op is operator.ne:
+                result = np.ones(self.shape, dtype=bool)
+            else:
+                result = np.zeros(self.shape, dtype=bool)
+            return result
+
+        if not is_period_dtype(self.dtype):
+            self = cast(TimelikeOps, self)
+            if self._reso != other._reso:
+                if not isinstance(other, type(self)):
+                    # i.e. Timedelta/Timestamp, cast to ndarray and let
+                    #  compare_mismatched_resolutions handle broadcasting
+                    other_arr = np.array(other.asm8)
+                else:
+                    other_arr = other._ndarray
+                return compare_mismatched_resolutions(self._ndarray, other_arr, op)
 
         other_vals = self._unbox(other)
         # GH#37462 comparison on i8 values is almost 2x faster than M8/m8

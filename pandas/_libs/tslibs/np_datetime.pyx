@@ -20,12 +20,14 @@ from cpython.object cimport (
 import_datetime()
 
 import numpy as np
+
 cimport numpy as cnp
 
 cnp.import_array()
 from numpy cimport (
     int64_t,
     ndarray,
+    uint8_t,
 )
 
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
@@ -370,3 +372,81 @@ cpdef ndarray astype_overflowsafe(
         cnp.PyArray_MultiIter_NEXT(mi)
 
     return iresult.view(dtype)
+
+
+# TODO: try to upstream this fix to numpy
+def compare_mismatched_resolutions(ndarray left, ndarray right, op):
+    """
+    Overflow-safe comparison of timedelta64/datetime64 with mismatched resolutions.
+
+    >>> left = np.array([500], dtype="M8[Y]")
+    >>> right = np.array([0], dtype="M8[ns]")
+    >>> left < right  # <- wrong!
+    array([ True])
+    """
+
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+        raise ValueError("left and right must both be timedelta64 or both datetime64")
+
+    cdef:
+        int op_code = op_to_op_code(op)
+        NPY_DATETIMEUNIT left_unit = get_unit_from_dtype(left.dtype)
+        NPY_DATETIMEUNIT right_unit = get_unit_from_dtype(right.dtype)
+
+        # equiv: result = np.empty((<object>left).shape, dtype="bool")
+        ndarray result = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_BOOL, 0
+        )
+
+        ndarray lvalues = left.view("i8")
+        ndarray rvalues = right.view("i8")
+
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(result, lvalues, rvalues)
+        int64_t lval, rval
+        bint res_value
+
+        Py_ssize_t i, N = left.size
+        npy_datetimestruct ldts, rdts
+
+
+    for i in range(N):
+        # Analogous to: lval = lvalues[i]
+        lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        # Analogous to: rval = rvalues[i]
+        rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+        if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+            res_value = op_code == Py_NE
+
+        else:
+            pandas_datetime_to_datetimestruct(lval, left_unit, &ldts)
+            pandas_datetime_to_datetimestruct(rval, right_unit, &rdts)
+
+            res_value = cmp_dtstructs(&ldts, &rdts, op_code)
+
+        # Analogous to: result[i] = res_value
+        (<uint8_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return result
+
+
+import operator
+
+
+cdef int op_to_op_code(op):
+    # TODO: should exist somewhere?
+    if op is operator.eq:
+        return Py_EQ
+    if op is operator.ne:
+        return Py_NE
+    if op is operator.le:
+        return Py_LE
+    if op is operator.lt:
+        return Py_LT
+    if op is operator.ge:
+        return Py_GE
+    if op is operator.gt:
+        return Py_GT
