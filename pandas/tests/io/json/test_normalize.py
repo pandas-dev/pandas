@@ -546,7 +546,7 @@ class TestJSONNormalize:
 
         result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
         expected = DataFrame(
-            {"one": [1], "two": [2], "id": np.array([99], dtype=object)}
+            {"one": [1], "two": [2], "id": np.array([99], dtype="int64")}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -641,7 +641,7 @@ class TestNestedToRecord:
         ex_data = [[1, "foo", np.nan], [2, "foo", np.nan]]
         columns = ["rec", "meta", "nested_meta.leaf"]
         expected = DataFrame(ex_data, columns=columns).astype(
-            {"nested_meta.leaf": object}
+            {"nested_meta.leaf": "float"}
         )
         tm.assert_frame_equal(result, expected)
 
