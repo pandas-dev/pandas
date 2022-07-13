@@ -1654,7 +1654,7 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int, freq) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, freq) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """
