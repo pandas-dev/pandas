@@ -522,7 +522,7 @@ class Resampler(BaseGroupBy, PandasObject):
         ) and result.empty:
             obj = self.obj
             # When index is all NaT, result is empty but index is not
-            result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
+            result.set_index(_asfreq_compat(obj.index[:0], freq=self.freq), inplace=True, append=True)
             result.name = getattr(obj, "name", None)
 
         return result

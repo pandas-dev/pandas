@@ -433,9 +433,13 @@ def test_resample_groupby_agg_listlike():
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 def test_empty(keys):
     # GH 26411
-    df = DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))
+    df = DataFrame([], columns=["a", "b", "date"])
+    df["date"] = pd.to_datetime(df["date"])
+    df.set_index("date", inplace=True)
     result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
-    expected = DataFrame(columns=["a", "b"]).set_index(keys.append(np.NaN), drop=False)
+    expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
+    expected["date"] = pd.to_datetime(expected["date"])
+    expected.set_index("date", append=True, drop =True, inplace = True)
     if len(keys) == 1:
         expected.index.name = keys[0]
 
