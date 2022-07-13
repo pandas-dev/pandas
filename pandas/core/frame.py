@@ -8332,6 +8332,7 @@ Parrot 2  Parrot       24.0
 1  Falcon      370.0
 2  Parrot       24.0
 3  Parrot       26.0
+
 """
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
