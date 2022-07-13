@@ -343,20 +343,6 @@ Index level names may be supplied as keys.
 
    s.groupby(["first", "second"]).sum()
 
-When using ``.groupby()`` on a multiple index dataframe, do not specify both
-``by`` and ``level``.
-The argument validation should be done in ``.groupby()``,
-using the name of the specific index.
-
-.. ipyton:: python
-
-    df = pandas.DataFrame({"col1": ["a", "b", "c"]})
-    df.index = pandas.MultiIndex.from_arrays([["a", "a", "b"],
-                                              [1, 2, 1]],
-                                              names=["x", "y"])
-    df.groupby(["col1", "x"]) # Fine
-    df.groupby("col1", level=0)  # TypeError
-
 More on the ``sum`` function and aggregation later.
 
 Grouping DataFrame with Index levels and columns
