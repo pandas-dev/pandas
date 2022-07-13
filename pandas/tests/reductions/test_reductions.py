@@ -1534,3 +1534,30 @@ class TestSeriesMode:
         # Complex numbers are sorted by their magnitude
         result = Series(array, dtype=dtype).mode()
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+def test_numerical_precision_mean(dtype):
+    np_dtype = np.dtype(dtype)
+    eps = np.finfo(np_dtype).eps
+    answer = 0.1
+    n = 10_000_000
+    log_error = np.log(n) * eps
+
+    series = Series(np.zeros(n, dtype=np_dtype)) + answer
+    assert series.dtype == np_dtype
+    assert np.abs(series.mean() - answer) < log_error
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+def test_numerical_precision_sum(dtype):
+    np_dtype = np.dtype(dtype)
+    eps = np.finfo(np_dtype).eps
+    value = 0.1
+    n = 10_000_000
+    log_error = np.log(n) * eps
+    answer = value * n
+
+    series = Series(np.zeros(n, dtype=np_dtype)) + value
+    assert series.dtype == np_dtype
+    assert np.abs(series.sum() - answer) < log_error
