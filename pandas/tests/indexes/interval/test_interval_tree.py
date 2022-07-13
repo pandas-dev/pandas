@@ -190,24 +190,6 @@ class TestIntervalTree:
         expected = (50 + np.iinfo(np.int64).max) / 2
         assert result == expected
 
-    def test_interval_tree_error_and_warning(self):
-        # GH 40245
-
-        msg = (
-            "Deprecated argument `closed` cannot "
-            "be passed if argument `inclusive` is not None"
-        )
-        with pytest.raises(ValueError, match=msg):
-            left, right = np.arange(10), [np.iinfo(np.int64).max] * 10
-            IntervalTree(left, right, closed="both", inclusive="both")
-
-        msg = "Argument `closed` is deprecated in favor of `inclusive`"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            left, right = np.arange(10), [np.iinfo(np.int64).max] * 10
-            IntervalTree(left, right, closed="both")
-
     @pytest.mark.xfail(not IS64, reason="GH 23440")
     @pytest.mark.parametrize(
         "left, right, expected",
