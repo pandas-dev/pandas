@@ -343,7 +343,8 @@ The argument validation should be done in ``.groupby()``, using the name of the 
 
    df = pd.DataFrame({"col1": ["a", "b", "c"]})
    df.index = pd.MultiIndex.from_arrays([["a", "a", "b"],
-                                        [1, 2, 1]], names=["x", "y"])
+                                        [1, 2, 1]],
+                                        names=["x", "y"])
    df.groupby(["col1", "x"])
 
 Grouping DataFrame with Index levels and columns
