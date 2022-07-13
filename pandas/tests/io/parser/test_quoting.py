@@ -38,7 +38,7 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
 @pytest.mark.parametrize(
     "quoting,msg",
     [
-        ("foo", '"quoting" must be an integer'),
+        ("foo", '"quoting" must be an integer|Argument'),
         (5, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
     ],
 )
