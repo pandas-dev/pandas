@@ -11,7 +11,6 @@ from pandas import (
     DataFrame,
     Index,
     Series,
-    TimedeltaIndex,
     Timestamp,
 )
 import pandas._testing as tm
