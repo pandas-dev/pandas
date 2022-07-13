@@ -121,7 +121,7 @@ Inactive maintainers are former active maintainers who are not interested or
 not available to continue contributing to pandas in a regular way. If they
 decide to participate in a discussion, they will still be considered active
 maintainers for that discussion, but otherwise they are not expected to be part
-of the decision making of the project, have commit rights to the pandas
+of the decision making of the project, not have commit rights to the pandas
 repositories, or be in the maintainers distribution list.
 
 **Membership**: Active maintainers become inactive by their own decision.
