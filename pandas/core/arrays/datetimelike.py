@@ -73,7 +73,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     is_all_strings,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -1103,6 +1102,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("TimedeltaArray", self)
 
         from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays.datetimes import tz_to_dtype
 
         assert other is not NaT
         other = Timestamp(other)
@@ -1113,10 +1113,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # Preserve our resolution
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
+        if self._reso != other._reso:
+            raise NotImplementedError(
+                "Addition between TimedeltaArray and Timestamp with mis-matched "
+                "resolutions is not yet supported."
+            )
+
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
-        dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
-        return DatetimeArray(result, dtype=dtype, freq=self.freq)
+        dtype = tz_to_dtype(tz=other.tz, unit=self._unit)
+        res_values = result.view(f"M8[{self._unit}]")
+        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=self.freq)
 
     @final
     def _add_datetime_arraylike(self, other) -> DatetimeArray:

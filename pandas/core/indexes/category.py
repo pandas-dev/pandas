@@ -192,7 +192,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     _values: Categorical
 
     @property
-    def _engine_type(self):
+    def _engine_type(self) -> type[libindex.IndexEngine]:
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
         return {
