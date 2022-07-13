@@ -409,7 +409,6 @@ class NAType(C_NAType):
     __rdivmod__ = _create_binary_propagating_op("__rdivmod__", is_divmod=True)
     # __lshift__ and __rshift__ are not implemented
 
-    __eq__ = _create_binary_propagating_op("__eq__")
     __ne__ = _create_binary_propagating_op("__ne__")
     __le__ = _create_binary_propagating_op("__le__")
     __lt__ = _create_binary_propagating_op("__lt__")
@@ -422,6 +421,12 @@ class NAType(C_NAType):
     __pos__ = _create_unary_propagating_op("__pos__")
     __abs__ = _create_unary_propagating_op("__abs__")
     __invert__ = _create_unary_propagating_op("__invert__")
+
+    def __eq__(self, other):
+        if other is C_NA:
+            return True
+        else:
+            return False
 
     # pow has special
     def __pow__(self, other):
