@@ -1074,6 +1074,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return result
 
         if not is_period_dtype(self.dtype):
+            self = cast(TimelikeOps, self)
             if self._reso != other._reso:
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
