@@ -274,15 +274,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    df
    gb = df.groupby("gender")
 
-
-.. ipython::
-
-   @verbatim
-   In [1]: gb.<TAB>  # noqa: E225, E999
-   gb.agg        gb.boxplot    gb.cummin     gb.describe   gb.filter     gb.get_group  gb.height     gb.last       gb.median     gb.ngroups    gb.plot       gb.rank       gb.std        gb.transform
-   gb.aggregate  gb.count      gb.cumprod    gb.dtype      gb.first      gb.groups     gb.hist       gb.max        gb.min        gb.nth        gb.prod       gb.resample   gb.sum        gb.var
-   gb.apply      gb.cummax     gb.cumsum     gb.fillna     gb.gender     gb.head       gb.indices    gb.mean       gb.name       gb.ohlc       gb.quantile   gb.size       gb.tail       gb.weight
-
 .. _groupby.multiindex:
 
 GroupBy with MultiIndex
@@ -344,6 +335,16 @@ Index level names may be supplied as keys.
    s.groupby(["first", "second"]).sum()
 
 More on the ``sum`` function and aggregation later.
+
+When using ``.groupby()`` on a DatFrame with a  MultiIndex, do not specify both ``by`` and ``level``.
+The argument validation should be done in ``.groupby()``, using the name of the specific index.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"col1": ["a", "b", "c"]})
+   df.index = pd.MultiIndex.from_arrays([["a", "a", "b"],
+                                        [1, 2, 1]], names=["x", "y"])
+   df.groupby(["col1", "x"])
 
 Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
