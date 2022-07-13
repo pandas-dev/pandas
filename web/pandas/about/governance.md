@@ -125,7 +125,7 @@ of the decision making of the project, not have commit rights to the pandas
 repositories, or be in the maintainers distribution list.
 
 **Membership**: Active maintainers become inactive by their own decision.
-Inactive maintainers can become active again if they are interested.
+Inactive maintainers can become active again at any time if they are interested.
 
 ### NumFOCUS
 
