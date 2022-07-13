@@ -167,7 +167,7 @@ def rec_array_to_mgr(
     dtype: DtypeObj | None,
     copy: bool,
     typ: str,
-):
+) -> Manager:
     """
     Extract from a masked rec array and create the manager.
     """

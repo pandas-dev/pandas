@@ -19,6 +19,9 @@ env:
   COVERAGE: true
   PYTEST_TARGET: pandas
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
