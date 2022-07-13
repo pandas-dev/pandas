@@ -531,7 +531,7 @@ def _json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        result[k] = np.array(v, dtype=object).repeat(lengths)
+        result[k] = np.array(v, dtype=object).repeat(lengths, axis=0).tolist()
     return result
 
 
