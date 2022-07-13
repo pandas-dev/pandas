@@ -891,3 +891,32 @@ class TestNestedToRecord:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_list_type_meta_data(self):
+        # GH 37782
+        data = {"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}
+        result = json_normalize(
+            data=data,
+            record_path=["values"],
+            meta=[["metadata", "listdata"]],
+        )
+        expected = DataFrame(
+            {
+                0: [1, 2, 3],
+                "metadata.listdata": [[1, 2], [1, 2], [1, 2]],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_list_data(self):
+        # GH 47182
+        data = [
+            {"id": 1, "path": [{"a": 3, "b": 4}], "emptyList": []},
+            {"id": 2, "path": [{"a": 5, "b": 6}], "emptyList": []},
+        ]
+        result = json_normalize(data, "path", ["id", "emptyList"])
+        expected = DataFrame(
+            [[3, 4, 1, []], [5, 6, 2, []]],
+            columns=["a", "b", "id", "emptyList"],
+        )
+        tm.assert_frame_equal(result, expected)
