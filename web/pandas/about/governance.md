@@ -49,145 +49,110 @@ manage project donations and acts as a parent legal entity. NumFOCUS is the
 only legal entity that has a formal relationship with the project (see
 Institutional Partners section below).
 
-## Governance
+## Community members
 
-This section describes the governance and leadership model of The Project.
+The pandas community is composed of a diverse group of stakeholders, such as
+developers, contributors, individual and corporate users, etc. There are
+some groups which have specific responsibilities. We list them next.
 
-The foundations of Project governance are:
+### Active maintainers
 
--   Openness & Transparency
--   Active Contribution
--   Institutional Neutrality
+Active maintainers (aka the core developer team) are contributors of the
+project who made significant contributions in the form of code, reviews,
+software design, documentation etc. Their role in the project is to
+advance the pandas software and goals.
 
-Traditionally, Project leadership was provided by a BDFL (Wes McKinney) and
-subset of Contributors, called the Core Team, whose active and consistent
-contributions have been recognized by their receiving “commit rights” to the
-Project GitHub repositories. In general all Project decisions are made through
-consensus among the Core Team with input from the Community. The BDFL can, but
-rarely chooses to, override the Core Team and make a final decision on a
-matter.
+**Membership**: Contributors to the pandas project become maintainers after
+showing significant contributions over a period of one year, and with
+consensus from the rest of activate maintainers
 
-While this approach has served us well, as the Project grows and faces more
-legal and financial decisions and interacts with other institutions, we see a
-need for a more formal governance model. Moving forward The Project leadership
-will consist of a BDFL and Core Team. We view this governance model as the
-formalization of what we are already doing, rather than a change in direction.
+See the list of active maintainers [here](team.html#maintainers).
 
-### BDFL
+### BDFL (Benevolent Dictator For Life)
 
-The Project will have a BDFL (Benevolent Dictator for Life), who is currently
-Wes McKinney. As Dictator, the BDFL has the authority to make all final
-decisions for The Project. As Benevolent, the BDFL, in practice chooses to
-defer that authority to the consensus of the community discussion channels and
-the Core Team. It is expected, and in the past has been the case, that the BDFL
-will only rarely assert his/her final authority. Because it is rarely used, we
-refer to BDFL’s final authority as a “special” or “overriding” vote. When it
-does occur, the BDFL override typically happens in situations where there is a
-deadlock in the Core Team or if the Core Team ask the BDFL to make a decision
-on a specific matter. To ensure the benevolence of the BDFL, The Project
-encourages others to fork the project if they disagree with the overall
-direction the BDFL is taking. The BDFL is chair of the Core Team (see below)
-and may delegate his/her authority on a particular decision or set of decisions
-to any other Core Team Member at his/her discretion.
+The figure of the BDFL exist to be able to unblock situations where a decision
+needs to be made, and consensus or voting has failed. In such situations, the
+BDFL will make the final decision.
 
-The BDFL can appoint his/her successor, but it is expected that the Core Team
-would be consulted on this decision. If the BDFL is unable to appoint a
-successor (e.g. due to death or illness), the Core Team will choose a successor
-by voting with at least 2/3 of the Core Team members voting in favor of the
-chosen successor. At least 80% of the Core Team must participate in the
-vote. If no BDFL candidate receives 2/3 of the votes of the Core Team, the Core
-Team members shall propose the BDFL candidates to the Main NumFOCUS board, who
-will then make the final decision.
+**Membership**: Wes McKinney, as original creator of pandas has been the BDFL
+of the project. In the event of Wes stepping down as BDFL, maintainers will
+make a decision about whether to appoint a new BDFL or change the governance
+type.
 
-### Core Team
+### Finances committee
 
-The Project's Core Team will consist of Project Contributors who have produced
-contributions that are substantial in quality and quantity, and sustained over
-at least one year. The overall role of the Core Team is to ensure, through
-working with the BDFL and taking input from the Community, the long-term
-well-being of the project, both technically and as a community.
+The role of the members of the finances committee is to approve the spending
+of pandas funds. Decisions in general will be made together with the rest of
+active maintainers. Committee members will be responsible to make the final
+decisions, and formally approve payments.
 
-During the everyday project activities, Core Team participate in all
-discussions, code review and other project activities as peers with all other
-Contributors and the Community. In these everyday activities, Core Team do not
-have any special power or privilege through their membership on the Core
-Team. However, it is expected that because of the quality and quantity of their
-contributions and their expert knowledge of the Project Software that the Core
-Team will provide useful guidance, both technical and in terms of project
-direction, to potentially less experienced contributors.
+**Membership**: The committee will have 5 members, who will be selected by active
+maintainers. Some constraints exists regarding committee membership:
 
-The Core Team and its Members play a special role in certain situations.
-In particular, the Core Team may:
+- Members must be active maintainers
+- No more than two committee members can be employed directly or indirectly
+  by the same employer
+- Committee members should not have conflicts of interest that could prevent
+  them to make the best decisions in the interest of the project. This includes
+  maintainers who receive significant payments from pandas funds
 
--   Make decisions about the overall scope, vision and direction of the
-    project.
--   Make decisions about strategic collaborations with other organizations or
-    individuals.
--   Make decisions about specific technical issues, features, bugs and pull
-    requests. They are the primary mechanism of guiding the code review process
-    and merging pull requests.
--   Make decisions about the Services that are run by The Project and manage
-    those Services for the benefit of the Project and Community.
--   Make decisions when regular community discussion doesn’t produce consensus
-    on an issue in a reasonable time frame.
+### Code of conduct committee
 
-### Core Team membership
+The role of the committee is to make sure pandas is as open, transparent and
+inclusive as it aims to be by its values. In particular, the committee will
+monitor and respond to any possible violation of our code of conduct. And
+will publish regular summaries about violation reports.
 
-To become eligible for being a Core Team Member an individual must be a Project
-Contributor who has produced contributions that are substantial in quality and
-quantity, and sustained over at least one year. Potential Core Team Members are
-nominated by existing Core members and voted upon by the existing Core Team
-after asking if the potential Member is interested and willing to serve in that
-capacity. The Core Team will be initially formed from the set of existing
-Contributors who have been granted commit rights as of late 2015.
+**Membership**: Any members of the community can be part of the committee.
+The committee will have 5 members, who will be selected by active maintainers.
+The next constraints must be satisfied:
 
-When considering potential Members, the Core Team will look at candidates with
-a comprehensive view of their contributions. This will include but is not
-limited to code, code review, infrastructure work, mailing list and chat
-participation, community help/building, education and outreach, design work,
-etc. We are deliberately not setting arbitrary quantitative metrics (like “100
-commits in this repo”) to avoid encouraging behavior that plays to the metrics
-rather than the project’s overall well-being. We want to encourage a diverse
-array of backgrounds, viewpoints and talents in our team, which is why we
-explicitly do not define code as the sole metric on which Core Team membership
-will be evaluated.
+- The committee should aim to be as diverse as reasonably possible, to be able
+  to make decisions based on a variety of points of views. In particular, the
+  committee should not have more than 3 members of the same gender, or more
+  than two members from the same geography (continent). Ideally the committee
+  will also be diverse in other ways such as religion, political views,
+  age, etc.
+- No more than two members of the committee should be pandas maintainers.
 
-If a Core Team member becomes inactive in the project for a period of one year,
-they will be considered for removal from the Core Team. Before removal,
-inactive Member will be approached by the BDFL to see if they plan on returning
-to active participation. If not they will be removed immediately upon a Core
-Team vote. If they plan on returning to active participation soon, they will be
-given a grace period of one year. If they don’t return to active participation
-within that time period they will be removed by vote of the Core Team without
-further grace period. All former Core Team members can be considered for
-membership again at any time in the future, like any other Project Contributor.
-Retired Core Team members will be listed on the project website, acknowledging
-the period during which they were active in the Core Team.
+### Inactive maintainers
 
-The Core Team reserves the right to eject current Members, other than the BDFL,
-if they are deemed to be actively harmful to the project’s well-being, and
-attempts at communication and conflict resolution have failed.
+Inactive maintainers are former active maintainers who are not interested or
+not available to continue contributing to pandas in a regular way. If they
+decide to participate in a discussion, they will still be considered active
+maintainers for that discussion, but otherwise they are not expected to be part
+of the decision making of the project, have commit rights to the pandas
+repositories, or be in the maintainers distribution list.
 
-### Conflict of interest
+**Membership**: Active maintainers become inactive by their own decision.
+Inactive maintainers can become active again if they are interested.
 
-It is expected that the BDFL and Core Team Members will be employed at a wide
-range of companies, universities and non-profit organizations. Because of this,
-it is possible that Members will have conflict of interests. Such conflict of
-interests include, but are not limited to:
+### NumFOCUS
 
--   Financial interests, such as investments, employment or contracting work,
-    outside of The Project that may influence their work on The Project.
--   Access to proprietary information of their employer that could potentially
-    leak into their work with the Project.
+[NumFOCUS](https://numfocus.org) is the fiscal sponsor of the pandas project.
+As such, NumFOCUS is the legal and financial entity of the project, being the
+owner of pandas trademarks and copyrights, and the legal entity of the
+project for financial and tax reasons. NumFOCUS also helps promote pandas, and
+find synergies with other projects of the ecosystem.
 
-All members of the Core Team, BDFL included, shall disclose to the rest of the
-Core Team any conflict of interest they may have. Members with a conflict of
-interest in a particular issue may participate in Core Team discussions on that
-issue, but must recuse themselves from voting on the issue. If the BDFL has
-recused his/herself for a particular decision, they will appoint a substitute
-BDFL for that decision.
+### Sponsors
 
-### Private communications of the Core Team
+Sponsors are institutions (companies, non-profits, universities, government
+agencies, etc) that contribute to the pandas project. The main types of
+sponsors are institutions employing people who work in pandas as part of their
+job. And institutions funding the project. Sponsors will have advantages like
+being listed in the pandas website, being mentioned in pandas channels
+such as the blog or social media, or having direct communication with the
+pandas maintainers, other than the usual channels. And others agreed by
+active maintainers.
+
+**Membership**: Institutions become sponsors if they employ a person to work
+on pandas at least one day per week. Or if they provide funds to the project
+(in money or in kind) of value of at least $10,000. Institutions stop
+being considered sponsors after one year since the last action that made them
+sponsors.
+
+## Private communications of the Core Team
 
 Unless specifically required, all Core Team discussions and activities will be
 public and done in collaboration and discussion with the Project Contributors
@@ -196,103 +161,6 @@ sparingly and only when a specific matter requires privacy. When private
 communications and decisions are needed, the Core Team will do its best to
 summarize those to the Community after eliding personal/private/sensitive
 information that should not be posted to the public internet.
-
-### Subcommittees
-
-The Core Team can create subcommittees that provide leadership and guidance for
-specific aspects of the project. Like the Core Team as a whole, subcommittees
-should conduct their business in an open and public manner unless privacy is
-specifically called for. Private subcommittee communications should happen on
-the main private mailing list of the Core Team unless specifically called for.
-
-Question: if the BDFL is not on a subcommittee, do they still have override
-authority?
-
-Suggestion: they do, but they should appoint a delegate who plays that role
-most of the time, and explicit BDFL intervention is sought only if the
-committee disagrees with that delegate’s decision and no resolution is possible
-within the team. This is different from a BDFL delegate for a specific decision
-(or a recusal situation), where the BDFL is literally giving up his/her
-authority to someone else in full. It’s more like what Linus Torvalds uses with his
-“lieutenants” model.
-
-### NumFOCUS Subcommittee
-
-The Core Team will maintain one narrowly focused subcommittee to manage its
-interactions with NumFOCUS.
-
-- The NumFOCUS Subcommittee is comprised of at least 5 persons who manage
-  project funding that comes through NumFOCUS. It is expected that these funds
-  will be spent in a manner that is consistent with the non-profit mission of
-  NumFOCUS and the direction of the Project as determined by the full Core
-  Team.
-- This Subcommittee shall NOT make decisions about the direction, scope or
-  technical direction of the Project.
-- This Subcommittee will have at least 5 members. No more than 2 Subcommitee
-  Members can report to one person (either directly or indirectly) through
-  employment or contracting work (including the reportee, i.e. the reportee + 1
-  is the max). This avoids effective majorities resting on one person.
-
-## Institutional Partners and Funding
-
-The BDFL and Core Team are the primary leadership for the project. No outside
-institution, individual or legal entity has the ability to own, control, usurp
-or influence the project other than by participating in the Project as
-Contributors and Core Team. However, because institutions are the primary
-funding mechanism for the project, it is important to formally acknowledge
-institutional participation in the project. These are Institutional Partners.
-
-An Institutional Contributor is any individual Project Contributor who
-contributes to the project as part of their official duties at an Institutional
-Partner. Likewise, an Institutional Core Team Member is any Core Team Member
-who contributes to the project as part of their official duties at an
-Institutional Partner.
-
-With these definitions, an Institutional Partner is any recognized legal entity
-in the United States or elsewhere that employs at least one Institutional
-Contributor or Institutional Core Team Member. Institutional Partners can be
-for-profit or non-profit entities.
-
-Institutions become eligible to become an Institutional Partner by employing
-individuals who actively contribute to The Project as part of their official
-duties. To state this another way, the only way for an Institutional Partner to
-influence the project is by actively contributing to the open development of
-the project, on equal terms with any other member of the community of
-Contributors and Core Team Members. Merely using pandas Software or Services in
-an institutional context does not allow an entity to become an Institutional
-Partner. Financial gifts do not enable an entity to become an Institutional
-Partner. Once an institution becomes eligible for Institutional Partnership,
-the Core Team must nominate and approve the Partnership.
-
-If an existing Institutional Partner no longer has a contributing employee,
-they will be given a one-year grace period for other employees to begin
-contributing.
-
-An Institutional Partner is free to pursue funding for their work on The
-Project through any legal means. This could involve a non-profit organization
-raising money from private foundations and donors or a for-profit company
-building proprietary products and services that leverage Project Software and
-Services. Funding acquired by Institutional Partners to work on The Project is
-called Institutional Funding. However, no funding obtained by an Institutional
-Partner can override The Project BDFL and Core Team. If a Partner has funding
-to do pandas work and the Core Team decides to not pursue that work as a
-project, the Partner is free to pursue it on their own. However in this
-situation, that part of the Partner’s work will not be under the pandas
-umbrella and cannot use the Project trademarks in a way that suggests a formal
-relationship.
-
-To acknowledge institutional contributions, there are two levels of
-Institutional Partners, with associated benefits:
-
-**Tier 1** = an institution with at least one Institutional Core Team Member
-
-- Acknowledged on the pandas website, in talks and T-shirts.
-- Ability to acknowledge their own funding sources on the pandas website, in
-  talks and T-shirts.
-- Ability to influence the project through the participation of their Core Team
-  Member.
-
-**Tier 2** = an institution with at least one Institutional Contributor
 
 ## Breach
 
