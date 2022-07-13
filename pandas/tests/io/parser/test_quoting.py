@@ -5,6 +5,7 @@ during parsing for all of the parsers defined in parsers.py
 
 import csv
 from io import StringIO
+import re
 
 import pytest
 
@@ -38,7 +39,14 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
 @pytest.mark.parametrize(
     "quoting,msg",
     [
-        ("foo", '"quoting" must be an integer'),
+        (
+            "foo",
+            # This error message changed across versions
+            '"quoting" must be an integer|'
+            + re.escape(
+                "Argument 'quoting' has incorrect type (expected int, got str)"
+            ),
+        ),
         (5, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
     ],
 )
