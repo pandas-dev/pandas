@@ -76,7 +76,7 @@ keep_equal : bool, default False
     If true, the result keeps values that are equal.
     Otherwise, equal values are shown as NaNs.
 
-suffixes : tuple, default ('self', 'other')
+result_names : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
 
     .. versionadded:: 1.5.0

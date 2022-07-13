@@ -3237,14 +3237,14 @@ Keep all original rows and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
-        suffixes: Suffixes = ("self", "other"),
+        result_names: Suffixes = ("self", "other"),
     ) -> DataFrame | Series:
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
-            suffixes=suffixes,
+            result_names=result_names,
         )
 
     def combine(self, other, func, fill_value=None) -> Series:

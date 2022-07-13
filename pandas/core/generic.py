@@ -8971,7 +8971,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         align_axis: Axis = 1,
         keep_shape: bool_t = False,
         keep_equal: bool_t = False,
-        suffixes: Suffixes = ("self", "other"),
+        result_names: Suffixes = ("self", "other"),
     ):
         from pandas.core.reshape.concat import concat
 
@@ -8996,10 +8996,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 self = self[mask]
                 other = other[mask]
-        if not isinstance(suffixes, tuple):
+        if not isinstance(result_names, tuple):
             raise TypeError(
-                f"Passing 'suffixes' as a {type(suffixes)} is not "
-                "supported. Provide 'suffixes' as a tuple instead."
+                f"Passing 'result_names' as a {type(result_names)} is not "
+                "supported. Provide 'result_names' as a tuple instead."
             )
 
         if align_axis in (1, "columns"):  # This is needed for Series
@@ -9007,7 +9007,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             axis = self._get_axis_number(align_axis)
 
-        diff = concat([self, other], axis=axis, keys=suffixes)
+        diff = concat([self, other], axis=axis, keys=result_names)
 
         if axis >= self.ndim:
             # No need to reorganize data if stacking on new axis

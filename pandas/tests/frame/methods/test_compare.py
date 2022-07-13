@@ -182,7 +182,7 @@ def test_compare_unaligned_objects():
         df1.compare(df2)
 
 
-def test_compare_suffixes():
+def test_compare_result_names():
     # 44354
     df1 = pd.DataFrame(
         {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
@@ -194,7 +194,7 @@ def test_compare_suffixes():
             "col3": [1.0, 2.0, np.nan],
         },
     )
-    result = df1.compare(df2, suffixes=("left", "right"))
+    result = df1.compare(df2, result_names=("left", "right"))
     expected = pd.DataFrame(
         {
             ("col1", "left"): {0: "a", 2: np.nan},
