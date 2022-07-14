@@ -1,5 +1,7 @@
-import pytest
 from enum import Enum
+
+import pytest
+
 from pandas import (
     DataFrame,
     MultiIndex,
