@@ -10550,7 +10550,8 @@ Parrot 2  Parrot       24.0
             else:
                 return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
-        other = other._get_numeric_data()
+        if numeric_only_bool:
+            other = other._get_numeric_data()
         left, right = this.align(other, join="inner", copy=False)
 
         if axis == 1:
@@ -10563,11 +10564,15 @@ Parrot 2  Parrot       24.0
             right = right + left * 0
 
             # demeaned data
-            ldem = left - left.mean()
-            rdem = right - right.mean()
+            ldem = left - left.mean(numeric_only=numeric_only_bool)
+            rdem = right - right.mean(numeric_only=numeric_only_bool)
 
             num = (ldem * rdem).sum()
-            dom = (left.count() - 1) * left.std() * right.std()
+            dom = (
+                (left.count() - 1)
+                * left.std(numeric_only=numeric_only_bool)
+                * right.std(numeric_only=numeric_only_bool)
+            )
 
             correl = num / dom
 
