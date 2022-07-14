@@ -1,5 +1,4 @@
 from __future__ import annotations
-from turtle import TurtleScreenBase
 
 from typing import (
     TYPE_CHECKING,
