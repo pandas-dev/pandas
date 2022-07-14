@@ -1210,6 +1210,19 @@ class TestBaseParsing(base.BaseParsingTests):
         super().test_EA_types(engine, data)
 
 
+class TestBaseUnaryOps(base.BaseUnaryOpsTests):
+    def test_invert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow.compute.invert does support {pa_dtype}",
+                )
+            )
+        super().test_invert(data)
+
+
 class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
