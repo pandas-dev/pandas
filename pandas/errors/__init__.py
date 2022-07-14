@@ -462,14 +462,11 @@ class DatabaseError(OSError):
 
     Examples
     --------
-    >>> import pandas.io.sql as sql
+    >>> import pandas as pd
     >>> from sqlite3 import connect
     >>> conn = connect(':memory:')
-    >>> sql.read_sql('select * test', conn) # doctest: +SKIP
+    >>> pd.read_sql('select * test', conn) # doctest: +SKIP
     ... # DatabaseError: Execution failed on sql 'test': near "test": syntax error
-
-    >>> sql.execute('select * from table', conn) # doctest: +SKIP
-    ... # DatabaseError: Execution failed on sql 'select * from table': no such tabl...
     """
 
 
