@@ -368,11 +368,11 @@ def _generate_marginal_results(
             cat_axis = 1
 
             for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
-                all_key = _all_key(key)
+                all_key = _all_key(key[0])
 
                 # we are going to mutate this, so need to copy!
                 piece = piece.copy()
-                piece[all_key] = margin[key]
+                piece[all_key] = margin[key[0]]
 
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
