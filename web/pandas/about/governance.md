@@ -175,6 +175,15 @@ on pandas at least one day per week. Or if they provide funds to the project
 being considered sponsors after one year since the last action that made them
 sponsors.
 
+## Creation of committees
+
+Active maintainers can create new committees which are helpful to a specific
+goal or that can provide leadership and guidance for specific aspects of the
+project. New committees will be added to the [Community members](#community-members)
+section of this document, with their roles and responsibilities, as well as
+a membership section on how members are selected, and any constraints about
+the members if they exist.
+
 ## Private communications of the Core Team
 
 Unless specifically required, all Core Team discussions and activities will be
