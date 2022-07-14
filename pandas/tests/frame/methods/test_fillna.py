@@ -698,11 +698,11 @@ class TestFillNA:
         result = df.fillna(50, limit=1, axis=1)
         expected = DataFrame(
             [
-                [ 5.,  7., 12., 50.],
-                [ 0., 50., np.nan,  1.],
-                [50., np.nan,  1.,  1.],
-                [10.,  5.,  2., 50.],
-                [50.,  3.,  0., 18.],
+                [5., 7., 12., 50.],
+                [0., 50., np.nan, 1.],
+                [50., np.nan, 1., 1.],
+                [10., 5., 2., 50.],
+                [50., 3., 0., 18.],
             ],
             columns=["col1", "col2", "col3", "col4"],
         )
