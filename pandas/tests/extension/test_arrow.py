@@ -1211,6 +1211,11 @@ class TestBaseParsing(base.BaseParsingTests):
 
 
 class TestBaseUnaryOps(base.BaseUnaryOpsTests):
+    @pytest.mark.xfail(
+        pa_version_under2p0,
+        raises=NotImplementedError,
+        reason="pyarrow.compute.invert not supported in pyarrow<2.0",
+    )
     def test_invert(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if not pa.types.is_boolean(pa_dtype):
@@ -1218,13 +1223,6 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow.compute.invert does support {pa_dtype}",
-                )
-            )
-        elif pa_version_under2p0:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason="pyarrow.compute.invert not supported in pyarrow<2.0",
                 )
             )
         super().test_invert(data)
