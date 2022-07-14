@@ -163,7 +163,7 @@ find synergies with other projects of the ecosystem.
 Sponsors are institutions (companies, non-profits, universities, government
 agencies, etc) that contribute to the pandas project. The main types of
 sponsors are institutions employing people who work in pandas as part of their
-job. And institutions funding the project. Sponsors will have advantages like
+job and institutions funding the project. Sponsors will have advantages like
 being listed in the pandas website, being mentioned in pandas channels
 such as the blog or social media, or having direct communication with the
 pandas maintainers, other than the usual channels. And others agreed by
