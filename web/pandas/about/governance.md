@@ -69,7 +69,7 @@ Some of the responsibilities and abilities of active maintainers are:
 - Have access to the core developer distribution list
 - Have access to the social media accounts
 - Participate in the decisions regarding the project funding
-- Have access to the project funding for tasks like maintainance and
+- Have access to the project funding for tasks like maintenance and
   leadership
 - Have voting rights for things that require a voting, such as technical
   decisions, project partnerships, changes to project governance, etc.
