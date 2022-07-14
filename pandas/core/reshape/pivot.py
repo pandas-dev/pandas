@@ -368,7 +368,7 @@ def _generate_marginal_results(
             cat_axis = 1
 
             for keys, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
-                if keys is tuple or keys is list:
+                if isinstance(keys, tuple):
                     key, = keys
                 else:
                     key = keys
