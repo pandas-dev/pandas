@@ -369,7 +369,7 @@ def _generate_marginal_results(
 
             for keys, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
                 if isinstance(keys, tuple):
-                    key, = keys
+                    (key,) = keys
                 else:
                     key = keys
                 all_key = _all_key(key)
