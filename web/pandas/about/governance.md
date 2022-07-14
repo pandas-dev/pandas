@@ -62,9 +62,22 @@ project who made significant contributions in the form of code, reviews,
 software design, documentation etc. Their role in the project is to
 advance the pandas software and goals.
 
+Some of the responsibilities and abilities of active maintainers are:
+
+- Have commit rights on the pandas repositories
+- Merge pull requests from other maintainers and other contributors
+- Have access to the core developer distribution list
+- Have access to the social media accounts
+- Participate in the decisions regarding the project funding
+- Have access to the project funding for tasks like maintainance and
+  leadership
+- Have voting rights for things that require a voting, such as technical
+  decisions, project partnerships, changes to project governance, etc.
+
 **Membership**: Contributors to the pandas project become maintainers after
-showing significant contributions over a period of one year, and with
-consensus from the rest of activate maintainers
+showing significant contributions over a period of one year. In general an
+active maintainer will nominate a contributor, and the nomination will move
+forward if consensus from the rest of activate maintainers exists.
 
 See the list of active maintainers [here](team.html#maintainers).
 
@@ -100,8 +113,9 @@ maintainers. Some constraints exists regarding committee membership:
 
 The role of the committee is to make sure pandas is as open, transparent and
 inclusive as it aims to be by its values. In particular, the committee will
-monitor and respond to any possible violation of our code of conduct. And
-will publish regular summaries about violation reports.
+monitor and respond to any possible violation of our
+[code of conduct](../community/coc.html). And will publish regular summaries
+about violation reports.
 
 **Membership**: Any members of the community can be part of the committee.
 The committee will have 5 members, who will be selected by active maintainers.
@@ -124,8 +138,17 @@ maintainers for that discussion, but otherwise they are not expected to be part
 of the decision making of the project, have commit rights to the pandas
 repositories, or be in the maintainers distribution list.
 
-**Membership**: Active maintainers become inactive by their own decision.
-Inactive maintainers can become active again if they are interested.
+**Membership**: An active maintainer becomes inactive by their own decision when
+they notify the rest of active maintainers to be inactive. Alternatively, an
+active maintainer will be considered inactive if both following conditions are
+satisfied:
+
+- The maintainer has not been engaged on the pandas repository, mailing lists, in
+  person sprints, or any other project communication channel for over 1 year
+- The maintainer has not responded to an inquiry from the active maintainers, within
+  a 1 month time frame, that they want to remain an active maintainer
+
+Inactive maintainers can become active again at any time if they are interested.
 
 ### NumFOCUS
 
