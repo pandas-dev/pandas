@@ -1181,7 +1181,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         applied = []
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
-        print(self.axis)
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
         # Determine whether to use slow or fast path by evaluating on the first group.
