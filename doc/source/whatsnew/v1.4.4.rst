@@ -32,7 +32,8 @@ Bug fixes
 
 Other
 ~~~~~
-- Optional Pandas dependencies can be managed now be managed as extras in a requirements/setup file eg. ``pandas[recommended, s3]>=1.4.3``.  Available optional dependencies are ``[all, recommended, computation, s3, gcp, azure, excel, parquet, feather,hdf5, sql-postgressql, ssql-mysql, sql-other, html, plot, table]`` (:issue:`39164`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
