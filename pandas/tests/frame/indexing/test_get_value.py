@@ -23,12 +23,12 @@ class TestGetValue:
 
 
 def test_enum_value():
-    Cols = Enum('Cols', 'col1 col2')
+    Cols = Enum("Cols", "col1 col2")
 
     q1 = DataFrame({Cols.col1: [1, 2, 3]})
     q2 = DataFrame({Cols.col1: [1, 2, 3]})
 
-    result = ((q1[Cols.col1] == q2[Cols.col1]).all())
+    result = (q1[Cols.col1] == q2[Cols.col1]).all()
 
     expected = True
 
