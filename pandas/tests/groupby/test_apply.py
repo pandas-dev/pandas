@@ -161,7 +161,10 @@ def test_group_apply_once_per_group(df, group_names):
         del names[:]
 
         df.groupby("a", group_keys=False).apply(func)
-        assert names == group_names
+        if len(group_names) == 1:
+            assert names == [(group_names[0],)]
+        else:
+            assert names == group_names
 
 
 def test_group_apply_once_per_group2(capsys):
