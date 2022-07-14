@@ -401,10 +401,8 @@ def test_quarterly_finder(year_span):
     check_minor_years = minor_quarters.year % min_anndef == 0
     check_major_quarters = major_quarters.quarter == 1
     check_minor_quarters = minor_quarters.quarter == 1
-    assert (
-        np.all(check_major_years)
-        and np.all(check_minor_years)
-        and np.all(check_major_quarters)
-        and np.all(check_minor_quarters)
-    )
+    assert np.all(check_major_years)
+    assert np.all(check_minor_years)
+    assert np.all(check_major_quarters)
+    assert np.all(check_minor_quarters)
     
