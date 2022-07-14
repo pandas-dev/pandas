@@ -34,6 +34,7 @@ import pandas as pd
         "PossibleDataLossError",
         "IncompatibilityWarning",
         "AttributeConflictWarning",
+        "DatabaseError",
     ],
 )
 def test_exception_importable(exc):
