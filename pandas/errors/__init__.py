@@ -462,7 +462,6 @@ class DatabaseError(OSError):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> from sqlite3 import connect
     >>> conn = connect(':memory:')
     >>> pd.read_sql('select * test', conn) # doctest: +SKIP
