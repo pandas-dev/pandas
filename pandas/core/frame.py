@@ -10355,9 +10355,9 @@ Parrot 2  Parrot       24.0
         See Also
         --------
         Series.cov : Compute covariance with another Series.
-        core.window.ExponentialMovingWindow.cov: Exponential weighted sample covariance.
-        core.window.Expanding.cov : Expanding sample covariance.
-        core.window.Rolling.cov : Rolling sample covariance.
+        core.window.ewm.ExponentialMovingWindow.cov: Exponential weighted sample covariance.
+        core.window.expanding.Expanding.cov : Expanding sample covariance.
+        core.window.rolling.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
