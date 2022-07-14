@@ -1220,6 +1220,13 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
                     reason=f"pyarrow.compute.invert does support {pa_dtype}",
                 )
             )
+        elif pa_version_under2p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="pyarrow.compute.invert not supported in pyarrow<2.0",
+                )
+            )
         super().test_invert(data)
 
 
