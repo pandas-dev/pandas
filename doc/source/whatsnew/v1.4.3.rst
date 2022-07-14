@@ -61,7 +61,6 @@ Bug fixes
 Other
 ~~~~~
 - The minimum version of Cython needed to compile pandas is now ``0.29.30`` (:issue:`41935`)
-- Optional Pandas dependencies can be managed now be managed as extras in a requirements/setup file eg. ``pandas[recommended, s3]>=1.4.3``.  Available optional dependencies are ``[recommended, computation, s3, gcp, azure, excel, parquet, feather,hdf5, sql-postgressql, ssql-mysql, sql-other, html, plot, table]`` (:issue:`39164`)
 
 .. ---------------------------------------------------------------------------
 
