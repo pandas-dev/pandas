@@ -187,6 +187,7 @@ def test_groupby_dataframe_slice_then_transform(dropna, index):
 
     result = gb.transform(len)
     expected = pd.DataFrame(expected_data, index=index)
+    print('result', result,'expected',expected)
     tm.assert_frame_equal(result, expected)
 
     result = gb[["B"]].transform(len)
