@@ -9599,6 +9599,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
 
+            .. deprecated:: 1.5.0
+               This argument had no effect.
+
         try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
 
