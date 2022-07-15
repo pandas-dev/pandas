@@ -1034,6 +1034,10 @@ Metadata
 - Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
 -
 
+Visualization
+^^^^^^^^^^^^^
+- Bug in :meth:`~pandas/plotting/_matplotlib/converter/_quarterly_finder` that led to xticks and vertical grids being improperly placed when plotting a quarterly series (:issue:`47602`)
+
 Other
 ^^^^^
 
