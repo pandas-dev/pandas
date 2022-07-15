@@ -5321,8 +5321,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
-            if isinstance(key, tuple):
-                key = key[0]
             key = com.cast_scalar_indexer(key, warn_float=True)
             return getitem(key)
 

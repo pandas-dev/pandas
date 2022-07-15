@@ -221,6 +221,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
+        print("item:", item, type(item))
         value = self._data[item]
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
