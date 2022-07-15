@@ -155,14 +155,40 @@ class TestMissing(base.BaseMissingTests):
 
 class TestNoReduce(base.BaseNoReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
+        op_name = all_boolean_reductions
+        s = pd.Series(data)
+
+        if s.dtype.storage == "pyarrow":
+            msg = "Function"
+            err = NotImplementedError
+        else:
+            err = TypeError
+            msg = (
+                "[Cc]annot perform|Categorical is not ordered for operation|"
+                "does not support reduction|"
+            )
+
+        with pytest.raises(err, match=msg):
+            getattr(s, op_name)(skipna=skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
 
         if op_name in ["min", "max"]:
             return None
 
+        if data.dtype.storage == "pyarrow" and all_numeric_reductions not in {
+            "skew",
+            "kurt",
+        }:
+            err = NotImplementedError
+        else:
+            err = TypeError
+
         ser = pd.Series(data)
-        with pytest.raises(TypeError):
+        with pytest.raises(err):
             getattr(ser, op_name)(skipna=skipna)
 
 
