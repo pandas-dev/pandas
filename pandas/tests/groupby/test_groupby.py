@@ -2798,8 +2798,8 @@ def test_groupby_none_column_name():
 
 
 def test_groupby_iterator_one_grouper():
-    df = pd.DataFrame(columns=["a", "b", "c"], index=["x", "y"])
-    df.loc["y"] = pd.Series({"a": 1, "b": 5, "c": 2})
+    df = DataFrame(columns=["a", "b", "c"], index=["x", "y"])
+    df.loc["y"] = Series({"a": 1, "b": 5, "c": 2})
 
     values, _ = next(iter(df.groupby(["a", "b"])))
     assert (isinstance(values, tuple)) is True
