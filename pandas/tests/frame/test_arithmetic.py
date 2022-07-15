@@ -2058,7 +2058,6 @@ def test_enum_column_equality():
     q1 = DataFrame({Cols.col1: [1, 2, 3]})
     q2 = DataFrame({Cols.col1: [1, 2, 3]})
 
-    result = (q1[Cols.col1] == q2[Cols.col1])
-
+    result = q1[Cols.col1] == q2[Cols.col1]
     expected = True
     tm.assert_equal(result, expected)
