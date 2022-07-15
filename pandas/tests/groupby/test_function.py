@@ -556,14 +556,14 @@ def test_idxmin_idxmax_axis1():
 
 
 @pytest.mark.parametrize("numeric_only", [True, False, None])
-def test_axis1_numeric_only(groupby_func, numeric_only):
+def test_axis1_numeric_only(request, groupby_func, numeric_only):
     if groupby_func in ("idxmax", "idxmin"):
         pytest.skip("idxmax and idx_min tested in test_idxmin_idxmax_axis1")
     if groupby_func in ("mad", "tshift"):
         pytest.skip("mad and tshift are deprecated")
     if groupby_func in ("corrwith", "skew"):
         msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
-        pytest.skip(msg)
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
 
     df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
     df["E"] = "x"
@@ -593,17 +593,15 @@ def test_axis1_numeric_only(groupby_func, numeric_only):
         "fillna",
     )
     if numeric_only is not None and groupby_func in no_args:
-        try:
+        msg = "got an unexpected keyword argument 'numeric_only'"
+        with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)
-            assert False, f"axis=1 succeeds for {groupby_func}"
-        except TypeError as err:
-            assert "got an unexpected keyword argument 'numeric_only'" in str(err)
     elif groupby_func not in has_axis:
-        try:
-            method(*args, **kwargs)
-            assert False, f"axis=1 succeeds for {groupby_func}"
-        except TypeError as err:
-            assert "got an unexpected keyword argument 'axis'" in str(err)
+        msg = "got an unexpected keyword argument 'axis'"
+        warn = FutureWarning if groupby_func == "skew" and not numeric_only else None
+        with tm.assert_produces_warning(warn, match="Dropping of nuisance columns"):
+            with pytest.raises(TypeError, match=msg):
+                method(*args, **kwargs)
     # fillna and shift are successful even on object dtypes
     elif (numeric_only is None or not numeric_only) and groupby_func not in (
         "fillna",
