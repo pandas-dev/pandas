@@ -79,6 +79,24 @@ class TestDataFrameDataTypes:
             Series({"a": np.float_, "b": np.float_, "c": np.float_}),
         )
 
+    def test_dtypes_are_correct_after_groupby_last(self):
+        # GH46409
+        df1 = DataFrame(
+            {"id": [1, 2, 3, 4], "test": [True, pd.NA, pd.NA, False]}
+        ).convert_dtypes()
+
+        df2 = DataFrame(
+            {"id": [1, 2, 3, 4], "test": [True, pd.NA, True, False]}
+        ).convert_dtypes()
+
+        grouped1 = df1.groupby("id")
+        last1 = grouped1.last()
+        grouped2 = df2.groupby("id")
+        last2 = grouped2.last()
+
+        assert last1.test.dtype == pd.BooleanDtype()
+        assert last2.test.dtype == pd.BooleanDtype()
+
     def test_dtypes_gh8722(self, float_string_frame):
         float_string_frame["bool"] = float_string_frame["A"] > 0
         result = float_string_frame.dtypes
