@@ -2063,4 +2063,4 @@ def test_enum_column_equality():
     data = np.array([True, True, True])
     expected = pd.Series(data)
 
-    tm.assert_equal(result, expected)
+    tm.assert_series_equal(result, expected)
