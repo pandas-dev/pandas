@@ -780,7 +780,7 @@ class BaseGrouper:
     @cache_readonly
     def group_keys_seq(self):
         if len(self.groupings) == 1:
-            if len(self.indices) == 1:
+            if len(self.indices) == 1 and len(self.groups) == 1:
                 return [tuple(self.levels[0])]
             return self.levels[0]
         else:
