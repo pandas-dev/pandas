@@ -1,6 +1,6 @@
-from enum import Enum
 from collections import deque
 from datetime import datetime
+from enum import Enum
 import functools
 import operator
 import re
