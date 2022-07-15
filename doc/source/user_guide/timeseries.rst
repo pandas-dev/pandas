@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************************
-Time series / date functionality
+Time Series / date functionality
 ********************************
 
 pandas contains extensive capabilities and features for working with time series data for all domains.
@@ -388,7 +388,7 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
 .. _timeseries.origin:
 
-Using the ``origin`` Parameter
+Using the ``origin`` parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using the ``origin`` parameter, one can specify an alternative starting point for creation
@@ -1523,7 +1523,7 @@ or calendars with additional rules.
 
 .. _timeseries.advanced_datetime:
 
-Time series-related instance methods
+Time Series-related instance methods
 ------------------------------------
 
 Shifting / lagging
@@ -2601,7 +2601,7 @@ Transform nonexistent times to ``NaT`` or shift the times.
 
 .. _timeseries.timezone_series:
 
-Time zone series operations
+Time zone Series operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A :class:`Series` with time zone **naive** values is

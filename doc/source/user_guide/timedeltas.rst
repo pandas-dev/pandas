@@ -67,7 +67,7 @@ Further, operations among the scalars yield another scalar ``Timedelta``.
        "00:00:00.000123"
    )
 
-to_timedelta
+To_timedelta
 ~~~~~~~~~~~~
 
 Using the top-level ``pd.to_timedelta``, you can convert a scalar, array, list,
