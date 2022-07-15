@@ -1,3 +1,4 @@
+from enum import Enum
 from collections import deque
 from datetime import datetime
 import functools
