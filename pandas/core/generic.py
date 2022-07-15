@@ -6679,7 +6679,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                if not self._mgr.is_single_block and axis == 1:
+                if axis == 1:
 
                     result = self.T.fillna(value=value, limit=limit).T
 
