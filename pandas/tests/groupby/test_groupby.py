@@ -2795,3 +2795,20 @@ def test_groupby_none_column_name():
     result = df.groupby(by=[None]).sum()
     expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=None))
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_iterator_one_grouper():
+    df = pd.DataFrame(columns=['a','b','c'], index=['x','y'])
+    df.loc['y'] = pd.Series({'a':1, 'b':5, 'c':2})
+
+    values, _ = next(iter(df.groupby(['a', 'b'])))
+    print(type(values))
+    assert (isinstance(values, tuple)) == True
+
+    values, _ = next(iter(df.groupby(['a'])))
+    print(type(values))
+    assert (isinstance(values, tuple)) == True
+
+    values, _ = next(iter(df.groupby('a')))
+    print(type(values))
+    assert (isinstance(values, tuple)) == True
