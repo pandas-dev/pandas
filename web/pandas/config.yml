@@ -151,7 +151,7 @@ sponsors:
     description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintenance, improve extension types, and a efficient string type."
   - name: "Bodo"
     url: https://www.bodo.ai/
-    logo: /static/img/partners/bodo.svg  # TODO pending
+    logo: /static/img/partners/bodo.svg
     kind: regular
     description: "Bodo's parallel computing platform uses pandas API, and Bodo financially supports pandas development to help improve pandas, in particular the pandas API"
   inkind:  # not included in active so they don't appear in the home page
