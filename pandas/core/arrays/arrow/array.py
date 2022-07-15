@@ -578,7 +578,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
             result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
-        if pc.is_null(result, nan_is_null=True).as_py():
+        if pc.is_null(result).as_py():
             return self.dtype.na_value
         return result.as_py()
 
