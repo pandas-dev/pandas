@@ -2802,13 +2802,10 @@ def test_groupby_iterator_one_grouper():
     df.loc["y"] = pd.Series({"a": 1, "b": 5, "c": 2})
 
     values, _ = next(iter(df.groupby(["a", "b"])))
-    print(type(values))
     assert (isinstance(values, tuple)) is True
 
     values, _ = next(iter(df.groupby(["a"])))
-    print(type(values))
     assert (isinstance(values, tuple)) is True
 
-    values, _ = next(iter(df.groupby('a')))
-    print(type(values))
+    values, _ = next(iter(df.groupby("a")))
     assert (isinstance(values, tuple)) is True
