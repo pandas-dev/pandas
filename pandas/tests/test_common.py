@@ -1,6 +1,8 @@
 import collections
 from functools import partial
 import string
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -229,3 +231,16 @@ def test_temp_setattr(with_exception):
                 raise ValueError("Inside exception raised")
         raise ValueError("Outside exception raised")
     assert ser.name == "first"
+
+
+def test_private_tests():
+    # GH 47738
+    output = subprocess.check_output(
+        [sys.executable, "-W", "default", "-c", '"from pandas import tests"'],
+        stderr=subprocess.STDOUT,
+    )
+    msg = (
+        "DeprecationWarning: pandas.tests is considered to be private and "
+        "will be renamed to pandas._tests in the future."
+    )
+    assert msg in output.decode()
