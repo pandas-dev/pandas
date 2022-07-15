@@ -215,6 +215,7 @@ def _maybe_cache(
     cache_array : Series
         Cache of converted, unique dates. Can be empty
     """
+
     from pandas import Series
 
     cache_array = Series(dtype=object)
@@ -391,7 +392,6 @@ def _convert_listlike_datetimes(
         raise TypeError(
             "arg must be a string, datetime, list, tuple, 1-d array, or Series"
         )
-
     # warn if passing timedelta64, raise for PeriodDtype
     # NB: this must come after unit transformation
     orig_arg = arg
@@ -411,7 +411,6 @@ def _convert_listlike_datetimes(
 
     if infer_datetime_format and format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
-
     if format is not None:
         # There is a special fast-path for iso8601 formatted
         # datetime strings, so in those cases don't use the inferred
@@ -428,7 +427,6 @@ def _convert_listlike_datetimes(
         )
         if res is not None:
             return res
-
     assert format is None or infer_datetime_format
     utc = tz == "utc"
     result, tz_parsed = objects_to_datetime64ns(
@@ -440,7 +438,6 @@ def _convert_listlike_datetimes(
         require_iso8601=require_iso8601,
         allow_object=True,
     )
-
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
@@ -495,6 +492,8 @@ def _array_strptime_with_fallback(
     else:
         if "%Z" in fmt or "%z" in fmt:
             return _return_parsed_timezone_results(result, timezones, tz, name)
+        if infer_datetime_format and np.isnan(result).any():
+            return None
 
     return _box_as_indexlike(result, utc=utc, name=name)
 
@@ -513,7 +512,6 @@ def _to_datetime_with_format(
     Try parsing with the given format, returning None on failure.
     """
     result = None
-
     # shortcut formatting here
     if fmt == "%Y%m%d":
         # pass orig_arg as float-dtype may have been converted to
@@ -1029,6 +1027,7 @@ def to_datetime(
                    '2020-01-01 18:00:00+00:00', '2020-01-01 19:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
+
     if arg is None:
         return None
 
