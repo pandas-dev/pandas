@@ -492,6 +492,7 @@ def _array_strptime_with_fallback(
     else:
         if "%Z" in fmt or "%z" in fmt:
             return _return_parsed_timezone_results(result, timezones, tz, name)
+        # GH#46071
         if infer_datetime_format and np.isnan(result).any():
             return None
 
