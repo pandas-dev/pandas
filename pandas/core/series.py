@@ -61,6 +61,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
 )
