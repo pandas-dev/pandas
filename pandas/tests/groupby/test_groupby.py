@@ -2798,17 +2798,17 @@ def test_groupby_none_column_name():
 
 
 def test_groupby_iterator_one_grouper():
-    df = pd.DataFrame(columns=['a','b','c'], index=['x','y'])
-    df.loc['y'] = pd.Series({'a':1, 'b':5, 'c':2})
+    df = pd.DataFrame(columns=['a', 'b', 'c'], index=['x', 'y'])
+    df.loc['y'] = pd.Series({'a': 1, 'b': 5, 'c': 2})
 
     values, _ = next(iter(df.groupby(['a', 'b'])))
     print(type(values))
-    assert (isinstance(values, tuple)) == True
+    assert (isinstance(values, tuple)) is True
 
     values, _ = next(iter(df.groupby(['a'])))
     print(type(values))
-    assert (isinstance(values, tuple)) == True
+    assert (isinstance(values, tuple)) is True
 
     values, _ = next(iter(df.groupby('a')))
     print(type(values))
-    assert (isinstance(values, tuple)) == True
+    assert (isinstance(values, tuple)) is True
