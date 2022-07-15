@@ -378,6 +378,7 @@ class TestTimeDeltaConverter:
         monkeypatch.setattr(tdc, "axis", mock_axis())
         tdc(0.0, 0)
 
+
 @pytest.mark.parametrize("year_span", [11.25, 30, 80, 150, 400, 800, 1500, 2500, 3500])
 # The range is limited to 11.25 at the bottom by if statements in
 # the _quarterly_finder() function
