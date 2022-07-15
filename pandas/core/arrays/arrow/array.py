@@ -608,6 +608,33 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.arange(n)[key]
         return indices
 
+    def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:
+        """
+        Returns the mode(s) of the ExtensionArray.
+
+        Always returns `ExtensionArray` even if only one value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't consider counts of NA values.
+            Not implemented by pyarrow.
+
+        Returns
+        -------
+        same type as self
+            Sorted, if possible.
+        """
+        modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
+        values = modes.field(0)
+        counts = modes.field(1)
+        # counts sorted descending i.e counts[0] = max
+        mask = pc.equal(counts, counts[0])
+        most_common = values.filter(mask)
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray[Any, Any]]", expected "ExtensionArrayT")
+        return type(self)(most_common)  # type: ignore[return-value]
+
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         # TODO: Make more robust like ArrowStringArray._maybe_convert_setitem_value
