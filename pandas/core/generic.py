@@ -9381,7 +9381,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -9548,6 +9547,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors")
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9721,7 +9721,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-        return self._where(cond, other, inplace, axis, level, errors=errors)
+        return self._where(cond, other, inplace, axis, level)
 
     @overload
     def mask(
@@ -9765,6 +9765,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors")
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9808,7 +9809,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
         )
 
     @doc(klass=_shared_doc_kwargs["klass"])

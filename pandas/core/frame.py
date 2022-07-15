@@ -11807,7 +11807,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 
@@ -11873,7 +11872,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 

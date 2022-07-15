@@ -6088,7 +6088,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 
@@ -6154,7 +6153,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 
