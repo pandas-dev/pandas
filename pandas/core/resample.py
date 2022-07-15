@@ -512,7 +512,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
-        if isinstance(result, ABCDataFrame) and result.empty:
+        if isinstance(result, ABCDataFrame) and result.empty and len(result.index) != 0:
             obj = self.obj
             result.set_index(
                 _asfreq_compat(obj.index[:0], freq=self.freq), inplace=True, append=True
