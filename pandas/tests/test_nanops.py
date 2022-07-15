@@ -1123,7 +1123,22 @@ def test_check_below_min_count__large_shape(min_count, expected_result):
 
 
 @pytest.mark.parametrize("func", ["nanmean", "nansum"])
-@pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        np.float16,
+        np.float32,
+        np.float64,
+    ],
+)
 def test_check_bottleneck_disallow(dtype, func):
     # GH 42878 bottleneck sometimes produces unreliable results for mean and sum
     assert not nanops._bn_ok_dtype(dtype, func)
