@@ -196,7 +196,6 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     def test_groupby_extension_transform(self, data_for_grouping, request):
-        pytest.skip("uses old format of groupby return GH #42795")
         super().test_groupby_extension_transform(data_for_grouping)
 
 

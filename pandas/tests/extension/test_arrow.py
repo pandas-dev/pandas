@@ -330,7 +330,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         super().test_groupby_extension_no_sort(data_for_grouping)
 
     def test_groupby_extension_transform(self, data_for_grouping, request):
-        pytest.skip("uses old format of groupby return GH #42795")
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         if pa.types.is_boolean(pa_dtype):
             request.node.add_marker(
@@ -350,7 +349,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request
     ):
-        pytest.skip("uses old format of groupby return GH #42795")
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         # Is there a better way to get the "series" ID for groupby_apply_op?
         is_series = "series" in request.node.nodeid
