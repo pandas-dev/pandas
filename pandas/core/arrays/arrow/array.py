@@ -608,6 +608,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.arange(n)[key]
         return indices
 
+    # TODO: redefine _rank using pc.rank with pyarrow 9.0
+
     def _quantile(
         self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
     ) -> ArrowExtensionArrayT:
