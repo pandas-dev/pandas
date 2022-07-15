@@ -266,7 +266,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _simple_new(  # type: ignore[override]
         cls,
         values: np.ndarray,
-        freq: str | BaseOffset | lib.NoDefault | None = None,
+        freq: BaseOffset | None = None,
         dtype=DT64NS_DTYPE,
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)

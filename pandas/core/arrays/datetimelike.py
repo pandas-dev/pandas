@@ -2190,7 +2190,9 @@ def validate_periods(periods):
     return periods
 
 
-def validate_inferred_freq(freq, inferred_freq, freq_infer):
+def validate_inferred_freq(
+    freq, inferred_freq, freq_infer
+) -> tuple[BaseOffset | None, bool]:
     """
     If the user passes a freq and another freq is inferred from passed data,
     require that they match.
