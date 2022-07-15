@@ -867,7 +867,8 @@ def _quarterly_finder(vmin, vmax, freq):
         info_fmt[year_start] = "%F"
 
     else:
-        years = dates_[year_start] // 4 + 1
+        # https://github.com/pandas-dev/pandas/pull/47602
+        years = dates_[year_start] // 4 + 1970
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
         major_idx = year_start[(years % maj_anndef == 0)]
