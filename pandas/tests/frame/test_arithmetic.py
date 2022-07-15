@@ -2060,7 +2060,6 @@ def test_enum_column_equality():
     q2 = DataFrame({Cols.col1: [1, 2, 3]})
 
     result = q1[Cols.col1] == q2[Cols.col1]
-    data = np.array([True, True, True])
-    expected = Series(data)
+    expected = Series([True, True, True], name=Cols.col1)
 
     tm.assert_series_equal(result, expected)
