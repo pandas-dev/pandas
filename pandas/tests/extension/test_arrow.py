@@ -292,6 +292,94 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_loc_iloc_frame_single_dtype(data)
 
 
+class TestBaseNumericReduce(base.BaseNumericReduceTests):
+    def check_reduce(self, ser, op_name, skipna):
+        pa_dtype = ser.dtype.pyarrow_dtype
+        result = getattr(ser, op_name)(skipna=skipna)
+        if pa.types.is_boolean(pa_dtype):
+            # Can't convert if ser contains NA
+            ser = ser.fillna(False).astype("Float64")
+        elif pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+            ser = ser.astype("Float64")
+        if pa.types.is_boolean(pa_dtype):
+            # TODO: Validate reduction functions on pandas boolean w/skipna
+            if op_name in {"sum", "max", "min", "mean", "prod"} and skipna is False:
+                assert result is pd.NA
+            elif op_name == "mean" and skipna is True:
+                assert result == 0.5
+        else:
+            expected = getattr(ser, op_name)(skipna=skipna)
+            tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if all_numeric_reductions in {"skew", "kurt"}:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        f"{all_numeric_reductions} is not implemented in pyarrow "
+                        f"for {pa_dtype}"
+                    ),
+                )
+            )
+        elif not (
+            pa.types.is_integer(pa_dtype)
+            or pa.types.is_floating(pa_dtype)
+            or pa.types.is_boolean(pa_dtype)
+        ) and not (
+            all_numeric_reductions in {"min", "max"}
+            and (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"{all_numeric_reductions} is not implemented in pyarrow "
+                        f"for {pa_dtype}"
+                    ),
+                )
+            )
+        elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
+            "std",
+            "var",
+            "median",
+        }:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"{all_numeric_reductions} is not implemented in pyarrow "
+                        f"for {pa_dtype}"
+                    ),
+                )
+            )
+        super().test_reduce_series(data, all_numeric_reductions, skipna)
+
+
+class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series(
+        self, data, all_boolean_reductions, skipna, na_value, request
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=(
+                        f"{all_boolean_reductions} is not implemented in pyarrow "
+                        f"for {pa_dtype}"
+                    ),
+                )
+            )
+        op_name = all_boolean_reductions
+        s = pd.Series(data)
+        result = getattr(s, op_name)(skipna=skipna)
+        assert result is (op_name == "any")
+
+
 class TestBaseGroupby(base.BaseGroupbyTests):
     def test_groupby_agg_extension(self, data_for_grouping, request):
         tz = getattr(data_for_grouping.dtype.pyarrow_dtype, "tz", None)
