@@ -404,9 +404,12 @@ class Index(IndexOpsMixin, PandasObject):
     # associated code in pandas 2.0.
     _is_backward_compat_public_numeric_index: bool = False
 
-    _engine_type: type[libindex.IndexEngine] | type[
-        libindex.ExtensionEngine
-    ] = libindex.ObjectEngine
+    @property
+    def _engine_type(
+        self,
+    ) -> type[libindex.IndexEngine] | type[libindex.ExtensionEngine]:
+        return libindex.ObjectEngine
+
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -6894,6 +6897,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
         # TODO(2.0) can use Index instead of self._constructor
+        #  Check if doing so fixes GH#47071
         return self._constructor._with_infer(new_values, name=self.name)
 
     def drop(

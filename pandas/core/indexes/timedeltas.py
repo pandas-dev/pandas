@@ -101,7 +101,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     _typ = "timedeltaindex"
 
     _data_cls = TimedeltaArray
-    _engine_type = libindex.TimedeltaEngine
+
+    @property
+    def _engine_type(self) -> type[libindex.TimedeltaEngine]:
+        return libindex.TimedeltaEngine
 
     _data: TimedeltaArray
 
