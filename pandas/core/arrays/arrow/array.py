@@ -608,6 +608,24 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.arange(n)[key]
         return indices
 
+    def _quantile(
+        self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> ArrowExtensionArrayT:
+        """
+        Compute the quantiles of self for each quantile in `qs`.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+        interpolation: str
+
+        Returns
+        -------
+        same type as self
+        """
+        result = pc.quantile(self._data, q=qs, interpolation=interpolation)
+        return type(self)(result)
+
     def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:
         """
         Returns the mode(s) of the ExtensionArray.

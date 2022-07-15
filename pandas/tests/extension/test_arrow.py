@@ -1496,6 +1496,33 @@ def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
 
 
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
+)
+@pytest.mark.parametrize("quantile", [0.5, [0.5, 0.5]])
+def test_quantile(data, interpolation, quantile, request):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"quantile not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    data = data.take([0, 0, 0])
+    ser = pd.Series(data)
+    result = ser.quantile(q=quantile, interpolation=interpolation)
+    if quantile == 0.5:
+        assert result == data[0]
+    else:
+        # Just check the values
+        result = result.astype("float64[pyarrow]")
+        expected = pd.Series(
+            data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
+        )
+        tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
