@@ -264,7 +264,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
+        cls,
+        values: np.ndarray,
+        freq: str | BaseOffset | lib.NoDefault | None = None,
+        dtype=DT64NS_DTYPE,
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         assert dtype.kind == "M"
@@ -291,7 +294,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         dtype=None,
         copy: bool = False,
         tz=None,
-        freq=lib.no_default,
+        freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
         ambiguous="raise",
