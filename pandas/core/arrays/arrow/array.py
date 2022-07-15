@@ -651,9 +651,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         # counts sorted descending i.e counts[0] = max
         mask = pc.equal(counts, counts[0])
         most_common = values.filter(mask)
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "ExtensionArrayT")
-        return type(self)(most_common)  # type: ignore[return-value]
+        return type(self)(most_common)
 
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
