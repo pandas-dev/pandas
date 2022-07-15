@@ -1035,11 +1035,3 @@ def test_where_dt64_2d():
     mask[:] = True
     expected = df
     _check_where_equivalences(df, mask, other, expected)
-
-def test_where_inplace_true():
-    df = pd.DataFrame({"HEREITIS": ["1", "", "3"]}, dtype="string")
-    df2 = pd.DataFrame({"HEREITIS": ["1", "", "3"]}, dtype="string")
-
-    df2.where(df != "", np.nan, inplace=True)
-    df = df.where(df != "", np.nan)
-    tm.assert_frame_equal(df, df2)
