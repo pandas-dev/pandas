@@ -1,5 +1,3 @@
-from enum import Enum
-
 import pytest
 
 from pandas import (
@@ -22,16 +20,3 @@ class TestGetValue:
                 result = float_frame._get_value(idx, col)
                 expected = float_frame[col][idx]
                 assert result == expected
-
-
-def test_enum_value():
-    Cols = Enum("Cols", "col1 col2")
-
-    q1 = DataFrame({Cols.col1: [1, 2, 3]})
-    q2 = DataFrame({Cols.col1: [1, 2, 3]})
-
-    result = (q1[Cols.col1] == q2[Cols.col1]).all()
-
-    expected = True
-
-    assert result == expected
