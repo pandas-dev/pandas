@@ -24,6 +24,7 @@ import pytest
 from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
+    pa_version_under6p0,
 )
 
 import pandas as pd
@@ -1523,6 +1524,7 @@ def test_quantile(data, interpolation, quantile, request):
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(pa_version_under6p0, raises=NotImplementedError)
 @pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",

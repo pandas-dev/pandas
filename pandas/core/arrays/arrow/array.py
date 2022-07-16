@@ -18,6 +18,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under1p01,
     pa_version_under2p0,
+    pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
 )
@@ -625,6 +626,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         same type as self
         """
+        if pa_version_under4p0:
+            raise NotImplementedError(
+                "quantile only supported for pyarrow version >= 6.0"
+            )
         result = pc.quantile(self._data, q=qs, interpolation=interpolation)
         return type(self)(result)
 
@@ -645,6 +650,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         same type as self
             Sorted, if possible.
         """
+        if pa_version_under6p0:
+            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
         modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
         values = modes.field(0)
         counts = modes.field(1)
