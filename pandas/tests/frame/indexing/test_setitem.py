@@ -776,7 +776,7 @@ class TestDataFrameSetItemWithExpansion:
         expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_empty_df_duplicate_columns(self):
+    def test_setitem_empty_df_duplicate_columns(self, using_copy_on_write):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
         msg = "will attempt to set the values inplace instead"

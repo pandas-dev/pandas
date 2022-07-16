@@ -716,34 +716,26 @@ class TestLocBaseIndependent:
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_reindex_mixed(self, using_copy_on_write):
+    def test_loc_setitem_frame_with_reindex_mixed(self):
         # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         msg = "will attempt to set the values inplace instead"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
-        ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
-        if not using_copy_on_write:
-            # For default BlockManager case, this takes the "split" path,
-            # which still overwrites the column
-            ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
+        ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_inverted_slice(self, using_copy_on_write):
+    def test_loc_setitem_frame_with_inverted_slice(self):
         # GH#40480
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         msg = "will attempt to set the values inplace instead"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
-        if not using_copy_on_write:
-            # For default BlockManager case, this takes the "split" path,
-            # which still overwrites the column
-            expected["A"] = expected["A"].astype("int64")
+        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_empty_frame(self):

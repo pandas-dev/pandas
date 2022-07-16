@@ -107,21 +107,12 @@ class TestiLocBaseIndependent:
         df.iloc[0, 0] = "gamma"
         assert cat[0] != "gamma"
 
-        # TODO with mixed dataframe ("split" path), we always overwrite the column
-        if using_copy_on_write and indexer == tm.loc:
-            # TODO(ArrayManager) with loc, slice(3) gets converted into slice(0, 3)
-            # which is then considered as "full" slice and does overwrite. For iloc
-            # this conversion is not done, and so it doesn't overwrite
-            overwrite = overwrite or (isinstance(key, slice) and key == slice(3))
-
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
         orig_vals = df.values
         with tm.assert_produces_warning(FutureWarning, match=msg):
             indexer(df)[key, 0] = cat
         expected = DataFrame({0: cat, 1: range(3)})
-        if using_copy_on_write and not overwrite:
-            expected[0] = expected[0].astype(object)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])

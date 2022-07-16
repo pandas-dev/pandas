@@ -3941,19 +3941,6 @@ class DataFrame(NDFrame, OpsMixin):
             Sets whether or not index/col interpreted as indexers
         """
         try:
-            if (
-                get_option("mode.copy_on_write")
-                and get_option("mode.data_manager") == "block"
-            ):
-                if not takeable:
-                    icol = self.columns.get_loc(col)
-                    index = self.index.get_loc(index)
-                    self._mgr.column_setitem(icol, index, value)
-                else:
-                    self._mgr.column_setitem(col, index, value)
-                self._clear_item_cache()
-                return
-
             if takeable:
                 icol = col
                 iindex = cast(int, index)
