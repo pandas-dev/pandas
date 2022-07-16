@@ -513,7 +513,6 @@ class Resampler(BaseGroupBy, PandasObject):
         Potentially wrap any results.
         """
         obj = self.obj
-
         if (
             isinstance(result, ABCDataFrame)
             and result.empty
