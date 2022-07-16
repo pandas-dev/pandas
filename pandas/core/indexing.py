@@ -1777,6 +1777,7 @@ class _iLocIndexer(_LocationIndexer):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
+                # import pdb; pdb.set_trace()
                 self._setitem_with_indexer_missing(indexer, value)
                 return
 
@@ -2111,6 +2112,7 @@ class _iLocIndexer(_LocationIndexer):
                 # We should not cast, if we have object dtype because we can
                 # set timedeltas into object series
                 curr_dtype = self.obj.dtype
+                # import pdb; pdb.set_trace()
                 curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
                 new_dtype = maybe_promote(curr_dtype, value)[0]
             else:
