@@ -402,7 +402,7 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(df, df2)
 
 
-def test_update_inplace_sets_valid_block_values():
+def test_update_inplace_sets_valid_block_values(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/33457
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
@@ -412,8 +412,9 @@ def test_update_inplace_sets_valid_block_values():
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
-    # smoketest for OP bug from GH#35731
-    assert df.isnull().sum().sum() == 0
+    if not using_copy_on_write:
+        # smoketest for OP bug from GH#35731
+        assert df.isnull().sum().sum() == 0
 
 
 def test_nonconsolidated_item_cache_take():
