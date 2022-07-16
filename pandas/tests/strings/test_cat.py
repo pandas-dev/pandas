@@ -376,3 +376,11 @@ def test_cat_different_classes(klass):
     result = s.str.cat(klass(["x", "y", "z"]))
     expected = Series(["ax", "by", "cz"])
     tm.assert_series_equal(result, expected)
+
+
+def test_cat_on_series_dot_str():
+    ps = Series(["AbC", "de", "FGHI", "j", "kLLLm"])
+
+    res = ps.str.cat(others=ps.str)
+    expected = Series(["AbCAbC", "dede", "FGHIFGHI", "jj", "kLLLmkLLLm"])
+    tm.assert_series_equal(res, expected)
