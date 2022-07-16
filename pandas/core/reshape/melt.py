@@ -130,7 +130,7 @@ def melt(
     mdata = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        if is_extension_array_dtype(id_data):
+        if is_extension_array_dtype(id_data) and K > 0:
             id_data = concat([id_data] * K, ignore_index=True)
         else:
             # error: Incompatible types in assignment (expression has type
