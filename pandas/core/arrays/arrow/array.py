@@ -35,7 +35,10 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import resolve_na_sentinel
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.base import (
+    ExtensionArray,
+    ExtensionArrayT,
+)
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
@@ -613,7 +616,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def _quantile(
         self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
-    ) -> ArrowExtensionArrayT:
+    ) -> ArrowExtensionArrayT | ExtensionArrayT:
         """
         Compute the quantiles of self for each quantile in `qs`.
 
@@ -627,13 +630,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         same type as self
         """
         if pa_version_under4p0:
-            raise NotImplementedError(
-                "quantile only supported for pyarrow version >= 6.0"
-            )
+            fallback_performancewarning("4")
+            return super()._quantile(qs, interpolation)
         result = pc.quantile(self._data, q=qs, interpolation=interpolation)
         return type(self)(result)
 
-    def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:
+    def _mode(
+        self: ArrowExtensionArrayT, dropna: bool = True
+    ) -> ArrowExtensionArrayT | ExtensionArrayT:
         """
         Returns the mode(s) of the ExtensionArray.
 
@@ -651,7 +655,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             Sorted, if possible.
         """
         if pa_version_under6p0:
-            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
+            fallback_performancewarning("6")
+            return super()._mode(dropna)
         modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
         values = modes.field(0)
         counts = modes.field(1)
