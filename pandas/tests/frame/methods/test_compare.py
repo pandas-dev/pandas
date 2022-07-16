@@ -183,7 +183,7 @@ def test_compare_unaligned_objects():
 
 
 def test_compare_result_names():
-    # 44354
+    #GH 44354
     df1 = pd.DataFrame(
         {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
     )
@@ -204,3 +204,29 @@ def test_compare_result_names():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "result_names",
+    [
+        [1,2],
+        "HK",
+        {"2":2,"3":3},
+        3,
+        3.0
+    ]
+)
+def test_invalid_input_result_names(result_names):
+    #GH 44354
+    df1 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
+    )
+    df2 = pd.DataFrame(
+        {
+            "col1": ["c", "b", "c"],
+            "col2": [1.0, 2.0, np.nan],
+            "col3": [1.0, 2.0, np.nan],
+        },
+    )
+    with pytest.raises(TypeError):
+        df1.compare(df2, result_names=result_names)
