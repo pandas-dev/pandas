@@ -3,7 +3,7 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.9
 
   # test dependencies
   - cython=0.29.30
