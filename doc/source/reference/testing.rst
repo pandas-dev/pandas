@@ -29,6 +29,7 @@ Exceptions and warnings
    errors.AttributeConflictWarning
    errors.ClosedFileError
    errors.CSSWarning
+   errors.DatabaseError
    errors.DataError
    errors.DtypeWarning
    errors.DuplicateLabelError
