@@ -512,12 +512,13 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
+        obj = self.obj
+
         if (
             isinstance(result, ABCDataFrame)
             and result.empty
             and type(result.index) != PeriodIndex
         ):
-            obj = self.obj
             result.set_index(
                 _asfreq_compat(obj.index[:0], freq=self.freq), inplace=True, append=True
             )
@@ -526,7 +527,6 @@ class Resampler(BaseGroupBy, PandasObject):
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
-            obj = self.obj
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
