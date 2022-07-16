@@ -360,7 +360,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         arr = Series(self).fillna("")
         try:
             arr = sep + arr + sep
-        except TypeError:
+        except (TypeError, NotImplementedError):
             arr = sep + arr.astype(str) + sep
 
         tags: set[str] = set()
