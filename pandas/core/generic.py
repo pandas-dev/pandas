@@ -6680,7 +6680,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                if not self._mgr.is_single_block and axis == 1:
+                if axis == 1:
 
                     result = self.T.fillna(value=value, limit=limit).T
 
@@ -9387,7 +9387,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -9554,6 +9553,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9604,6 +9604,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
+
+            .. deprecated:: 1.5.0
+               This argument had no effect.
 
         try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
@@ -9727,7 +9730,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-        return self._where(cond, other, inplace, axis, level, errors=errors)
+        return self._where(cond, other, inplace, axis, level)
 
     @overload
     def mask(
@@ -9771,6 +9774,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9814,7 +9818,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
         )
 
     @doc(klass=_shared_doc_kwargs["klass"])

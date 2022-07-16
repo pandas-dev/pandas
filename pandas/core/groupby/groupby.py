@@ -1024,7 +1024,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
 
-            if self._selected_obj.ndim != 1 and self.axis != 1:
+            if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:
                 missing = self._obj_with_exclusions.columns.difference(result.columns)
                 if len(missing) > 0:
                     warn_dropping_nuisance_columns_deprecated(

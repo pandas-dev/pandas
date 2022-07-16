@@ -772,6 +772,7 @@ Other Deprecations
 - Clarified warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument (:issue:`46210`)
 - Deprecated :class:`Series` and :class:`Resampler` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) raising a ``NotImplementedError`` when the dtype is non-numric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
+- Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -915,6 +916,7 @@ Missing
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 - Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
+- Bug in :meth:`DataFrame.fillna` ignored ``axis`` when :class:`DataFrame` is single block (:issue:`47713`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -975,6 +977,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
 - The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
 - Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
+- Bug in :meth:`DataFrame.plot` that led to xticks and vertical grids being improperly placed when plotting a quarterly series (:issue:`47602`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
