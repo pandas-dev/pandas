@@ -196,7 +196,6 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     def test_groupby_extension_transform(self, data_for_grouping, request):
-        pytest.skip("Iterating on Groupby gives different output type now")
         super().test_groupby_extension_transform(data_for_grouping)
 
 
