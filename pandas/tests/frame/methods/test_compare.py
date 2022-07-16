@@ -230,3 +230,4 @@ def test_invalid_input_result_names(result_names):
     )
     with pytest.raises(TypeError):
         df1.compare(df2, result_names=result_names)
+
