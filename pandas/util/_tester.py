@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import sys
+import warnings
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -22,6 +23,11 @@ def test(extra_args: list[str] | None = None):
     extra_args : list[str], default None
         Extra marks to run the tests.
     """
+    # prevent pytest from containing the pandas/tests deprecation
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        from pandas import tests
+
     pytest = import_optional_dependency("pytest")
     import_optional_dependency("hypothesis")
     cmd = ["--skip-slow", "--skip-network", "--skip-db"]
