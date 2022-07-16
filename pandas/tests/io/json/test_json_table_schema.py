@@ -149,11 +149,16 @@ class TestTableSchemaType:
             pd.to_datetime(["2016"], utc=True),
             pd.Series(pd.to_datetime(["2016"])),
             pd.Series(pd.to_datetime(["2016"], utc=True)),
-            pd.period_range("2016", freq="A", periods=3),
         ],
     )
     def test_as_json_table_type_date_data(self, date_data):
         assert as_json_table_type(date_data.dtype) == "datetime"
+
+    @pytest.mark.parametrize(
+        "period_data", [pd.period_range("2016", freq="A", periods=3)]
+    )
+    def test_as_json_table_type_period_data(self, period_data):
+        assert as_json_table_type(period_data.dtype) == "period"
 
     @pytest.mark.parametrize("str_data", [pd.Series(["a", "b"]), pd.Index(["a", "b"])])
     def test_as_json_table_type_string_data(self, str_data):
@@ -192,13 +197,19 @@ class TestTableSchemaType:
         [
             np.datetime64,
             np.dtype("<M8[ns]"),
-            PeriodDtype("D"),
             DatetimeTZDtype("ns", "US/Central"),
         ],
     )
     def test_as_json_table_type_date_dtypes(self, date_dtype):
         # TODO: datedate.date? datetime.time?
         assert as_json_table_type(date_dtype) == "datetime"
+
+    @pytest.mark.parametrize(
+        "period_dtype",
+        [PeriodDtype("D")],
+    )
+    def test_as_json_table_type_period_dtypes(self, period_dtype):
+        assert as_json_table_type(period_dtype) == "period"
 
     @pytest.mark.parametrize("td_dtype", [np.timedelta64, np.dtype("<m8[ns]")])
     def test_as_json_table_type_timedelta_dtypes(self, td_dtype):
@@ -391,7 +402,7 @@ class TestTableOrient:
         result["schema"].pop("pandas_version")
 
         fields = [
-            {"freq": "Q-JAN", "name": "index", "type": "datetime"},
+            {"freq": "Q-JAN", "name": "index", "type": "period"},
             {"name": "values", "type": "integer"},
         ]
 
@@ -487,7 +498,7 @@ class TestTableOrient:
     def test_convert_pandas_type_to_json_period_range(self):
         arr = pd.period_range("2016", freq="A-DEC", periods=4)
         result = convert_pandas_type_to_json_field(arr)
-        expected = {"name": "values", "type": "datetime", "freq": "A-DEC"}
+        expected = {"name": "values", "type": "period", "freq": "A-DEC"}
         assert result == expected
 
     @pytest.mark.parametrize("kind", [pd.Categorical, pd.CategoricalIndex])
