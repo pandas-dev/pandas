@@ -1109,7 +1109,11 @@ class TestWideToLong:
         # test extension string array
         df_str = df.astype({"id": "string"})
         result_str = wide_to_long(
-            df_str, stubnames=["a", "b"], i="id", j="num", sep="-",
+            df_str,
+            stubnames=["a", "b"],
+            i="id",
+            j="num",
+            sep="-",
         )
         new_level = expected.index.levels[0].astype("string")
         expected.index = expected.index.set_levels(new_level, level=0)
