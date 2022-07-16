@@ -512,9 +512,10 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
-        if (
-            isinstance(result, ABCDataFrame) and
-                result.empty and type(result.index) != PeriodIndex
+        if(
+            isinstance(result, ABCDataFrame)
+            and result.empty
+            and type(result.index) != PeriodIndex
         ):
             obj = self.obj
             result.set_index(
