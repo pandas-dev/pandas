@@ -213,8 +213,8 @@ def test_compare_result_names():
         "HK",
         {"2":2,"3":3},
         3,
-        3.0
-    ]
+        3.0,
+    ],
 )
 def test_invalid_input_result_names(result_names):
     #GH 44354
