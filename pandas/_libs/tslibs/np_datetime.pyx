@@ -20,12 +20,14 @@ from cpython.object cimport (
 import_datetime()
 
 import numpy as np
+
 cimport numpy as cnp
 
 cnp.import_array()
 from numpy cimport (
     int64_t,
     ndarray,
+    uint8_t,
 )
 
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
@@ -167,6 +169,26 @@ class OutOfBoundsTimedelta(ValueError):
     pass
 
 
+cdef get_implementation_bounds(NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper):
+    if reso == NPY_FR_ns:
+        upper[0] = _NS_MAX_DTS
+        lower[0] = _NS_MIN_DTS
+    elif reso == NPY_FR_us:
+        upper[0] = _US_MAX_DTS
+        lower[0] = _US_MIN_DTS
+    elif reso == NPY_FR_ms:
+        upper[0] = _MS_MAX_DTS
+        lower[0] = _MS_MIN_DTS
+    elif reso == NPY_FR_s:
+        upper[0] = _S_MAX_DTS
+        lower[0] = _S_MIN_DTS
+    elif reso == NPY_FR_m:
+        upper[0] = _M_MAX_DTS
+        lower[0] = _M_MIN_DTS
+    else:
+        raise NotImplementedError(reso)
+
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""
@@ -174,23 +196,7 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
         bint error = False
         npy_datetimestruct cmp_upper, cmp_lower
 
-    if unit == NPY_FR_ns:
-        cmp_upper = _NS_MAX_DTS
-        cmp_lower = _NS_MIN_DTS
-    elif unit == NPY_FR_us:
-        cmp_upper = _US_MAX_DTS
-        cmp_lower = _US_MIN_DTS
-    elif unit == NPY_FR_ms:
-        cmp_upper = _MS_MAX_DTS
-        cmp_lower = _MS_MIN_DTS
-    elif unit == NPY_FR_s:
-        cmp_upper = _S_MAX_DTS
-        cmp_lower = _S_MIN_DTS
-    elif unit == NPY_FR_m:
-        cmp_upper = _M_MAX_DTS
-        cmp_lower = _M_MIN_DTS
-    else:
-        raise NotImplementedError(unit)
+    get_implementation_bounds(unit, &cmp_lower, &cmp_upper)
 
     if cmp_npy_datetimestruct(dts, &cmp_lower) == -1:
         error = True
@@ -213,14 +219,6 @@ cdef inline int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil:
     return npy_datetimestruct_to_datetime(NPY_FR_ns, dts)
 
 
-cdef inline void dt64_to_dtstruct(int64_t dt64,
-                                  npy_datetimestruct* out) nogil:
-    """Convenience function to call pandas_datetime_to_datetimestruct
-    with the by-far-most-common frequency NPY_FR_ns"""
-    pandas_datetime_to_datetimestruct(dt64, NPY_FR_ns, out)
-    return
-
-
 # just exposed for testing at the moment
 def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     cdef:
@@ -229,19 +227,23 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
+cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(dt)
+    dts.month = PyDateTime_GET_MONTH(dt)
+    dts.day = PyDateTime_GET_DAY(dt)
+    dts.hour = PyDateTime_DATE_GET_HOUR(dt)
+    dts.min = PyDateTime_DATE_GET_MINUTE(dt)
+    dts.sec = PyDateTime_DATE_GET_SECOND(dt)
+    dts.us = PyDateTime_DATE_GET_MICROSECOND(dt)
+    dts.ps = dts.as = 0
+
+
 cdef inline int64_t pydatetime_to_dt64(datetime val,
                                        npy_datetimestruct *dts):
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
-    dts.year = PyDateTime_GET_YEAR(val)
-    dts.month = PyDateTime_GET_MONTH(val)
-    dts.day = PyDateTime_GET_DAY(val)
-    dts.hour = PyDateTime_DATE_GET_HOUR(val)
-    dts.min = PyDateTime_DATE_GET_MINUTE(val)
-    dts.sec = PyDateTime_DATE_GET_SECOND(val)
-    dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
-    dts.ps = dts.as = 0
+    pydatetime_to_dtstruct(val, dts)
     return dtstruct_to_dt64(dts)
 
 
@@ -370,3 +372,81 @@ cpdef ndarray astype_overflowsafe(
         cnp.PyArray_MultiIter_NEXT(mi)
 
     return iresult.view(dtype)
+
+
+# TODO: try to upstream this fix to numpy
+def compare_mismatched_resolutions(ndarray left, ndarray right, op):
+    """
+    Overflow-safe comparison of timedelta64/datetime64 with mismatched resolutions.
+
+    >>> left = np.array([500], dtype="M8[Y]")
+    >>> right = np.array([0], dtype="M8[ns]")
+    >>> left < right  # <- wrong!
+    array([ True])
+    """
+
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+        raise ValueError("left and right must both be timedelta64 or both datetime64")
+
+    cdef:
+        int op_code = op_to_op_code(op)
+        NPY_DATETIMEUNIT left_unit = get_unit_from_dtype(left.dtype)
+        NPY_DATETIMEUNIT right_unit = get_unit_from_dtype(right.dtype)
+
+        # equiv: result = np.empty((<object>left).shape, dtype="bool")
+        ndarray result = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_BOOL, 0
+        )
+
+        ndarray lvalues = left.view("i8")
+        ndarray rvalues = right.view("i8")
+
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(result, lvalues, rvalues)
+        int64_t lval, rval
+        bint res_value
+
+        Py_ssize_t i, N = left.size
+        npy_datetimestruct ldts, rdts
+
+
+    for i in range(N):
+        # Analogous to: lval = lvalues[i]
+        lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        # Analogous to: rval = rvalues[i]
+        rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+        if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+            res_value = op_code == Py_NE
+
+        else:
+            pandas_datetime_to_datetimestruct(lval, left_unit, &ldts)
+            pandas_datetime_to_datetimestruct(rval, right_unit, &rdts)
+
+            res_value = cmp_dtstructs(&ldts, &rdts, op_code)
+
+        # Analogous to: result[i] = res_value
+        (<uint8_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return result
+
+
+import operator
+
+
+cdef int op_to_op_code(op):
+    # TODO: should exist somewhere?
+    if op is operator.eq:
+        return Py_EQ
+    if op is operator.ne:
+        return Py_NE
+    if op is operator.le:
+        return Py_LE
+    if op is operator.lt:
+        return Py_LT
+    if op is operator.ge:
+        return Py_GE
+    if op is operator.gt:
+        return Py_GT

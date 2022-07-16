@@ -29,6 +29,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     NDFrameT,
+    QuantileInterpolation,
     WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -107,7 +108,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
-    from pandas.core.internals import Block  # noqa:F401
 
 
 class BaseWindow(SelectionMixin):
@@ -122,7 +122,7 @@ class BaseWindow(SelectionMixin):
         obj: NDFrame,
         window=None,
         min_periods: int | None = None,
-        center: bool = False,
+        center: bool | None = False,
         win_type: str | None = None,
         axis: Axis = 0,
         on: str | Index | None = None,
@@ -1658,7 +1658,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def quantile(
         self,
         quantile: float,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
         **kwargs,
     ):
@@ -2553,7 +2553,7 @@ class Rolling(RollingAndExpandingMixin):
     def quantile(
         self,
         quantile: float,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
         **kwargs,
     ):

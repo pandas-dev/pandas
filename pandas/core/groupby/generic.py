@@ -275,9 +275,9 @@ class SeriesGroupBy(GroupBy[Series]):
             func = maybe_mangle_lambdas(func)
             ret = self._aggregate_multiple_funcs(func)
             if relabeling:
-                # error: Incompatible types in assignment (expression has type
-                # "Optional[List[str]]", variable has type "Index")
-                ret.columns = columns  # type: ignore[assignment]
+                # columns is not narrowed by mypy from relabeling flag
+                assert columns is not None  # for mypy
+                ret.columns = columns
             return ret
 
         else:
@@ -603,7 +603,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-    ):
+    ) -> Series:
 
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
@@ -747,7 +747,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return self.obj._constructor(out, index=mi, name=self.obj.name)
 
     @doc(Series.nlargest)
-    def nlargest(self, n: int = 5, keep: str = "first"):
+    def nlargest(self, n: int = 5, keep: str = "first") -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -756,7 +756,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.nsmallest)
-    def nsmallest(self, n: int = 5, keep: str = "first"):
+    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -813,6 +813,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     A
     1    1    2
     2    3    4
+
+    User-defined function for aggregation
+
+    >>> df.groupby('A').agg(lambda x: sum(x) + 2)
+        B	       C
+    A
+    1	5	2.590715
+    2	9	2.704907
 
     Different aggregations per column
 
@@ -1137,7 +1145,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         assert axis == 0  # handled by caller
         # TODO: no tests with self.ndim == 1 for DataFrameGroupBy
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis)
+        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis)
 
         # With self.axis == 0, we have multi-block tests
         #  e.g. test_rank_min_int, test_cython_transform_frame
@@ -1196,13 +1204,32 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 applied.append(res)
 
         # Compute and process with the remaining groups
+        emit_alignment_warning = False
         for name, group in gen:
             if group.size == 0:
                 continue
             object.__setattr__(group, "name", name)
             res = path(group)
+            if (
+                not emit_alignment_warning
+                and res.ndim == 2
+                and not res.index.equals(group.index)
+            ):
+                emit_alignment_warning = True
+
             res = _wrap_transform_general_frame(self.obj, group, res)
             applied.append(res)
+
+        if emit_alignment_warning:
+            # GH#45648
+            warnings.warn(
+                "In a future version of pandas, returning a DataFrame in "
+                "groupby.transform will align with the input's index. Apply "
+                "`.to_numpy()` to the result in the transform function to keep "
+                "the current behavior and silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
@@ -1573,7 +1600,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis=0,
         skipna: bool = True,
         numeric_only: bool | lib.NoDefault = lib.no_default,
-    ):
+    ) -> DataFrame:
         axis = DataFrame._get_axis_number(axis)
         if numeric_only is lib.no_default:
             # Cannot use self._resolve_numeric_only; we must pass None to
@@ -1583,17 +1610,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only_arg = numeric_only
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmax,
-                "argmax",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only_arg,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            with warnings.catch_warnings():
+                # Suppress numeric_only warnings here, will warn below
+                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmax")
+                res = df._reduce(
+                    nanops.nanargmax,
+                    "argmax",
+                    axis=axis,
+                    skipna=skipna,
+                    numeric_only=numeric_only_arg,
+                )
+                indices = res._values
+                index = df._get_axis(axis)
+                result = [index[i] if i >= 0 else np.nan for i in indices]
+                return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmax"
         result = self._python_apply_general(func, self._obj_with_exclusions)
@@ -1609,7 +1639,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis=0,
         skipna: bool = True,
         numeric_only: bool | lib.NoDefault = lib.no_default,
-    ):
+    ) -> DataFrame:
         axis = DataFrame._get_axis_number(axis)
         if numeric_only is lib.no_default:
             # Cannot use self._resolve_numeric_only; we must pass None to
@@ -1619,17 +1649,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             numeric_only_arg = numeric_only
 
         def func(df):
-            res = df._reduce(
-                nanops.nanargmin,
-                "argmin",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only_arg,
-            )
-            indices = res._values
-            index = df._get_axis(axis)
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return df._constructor_sliced(result, index=res.index)
+            with warnings.catch_warnings():
+                # Suppress numeric_only warnings here, will warn below
+                warnings.filterwarnings("ignore", ".*numeric_only in DataFrame.argmin")
+                res = df._reduce(
+                    nanops.nanargmin,
+                    "argmin",
+                    axis=axis,
+                    skipna=skipna,
+                    numeric_only=numeric_only_arg,
+                )
+                indices = res._values
+                index = df._get_axis(axis)
+                result = [index[i] if i >= 0 else np.nan for i in indices]
+                return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmin"
         result = self._python_apply_general(func, self._obj_with_exclusions)

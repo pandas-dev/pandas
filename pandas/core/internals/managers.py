@@ -5,6 +5,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -146,7 +147,10 @@ class BaseBlockManager(DataManager):
     axes: list[Index]
     refs: list[weakref.ref | None] | None
 
-    ndim: int
+    @property
+    def ndim(self) -> int:
+        raise NotImplementedError
+
     _known_consolidated: bool
     _is_consolidated: bool
 
@@ -1831,7 +1835,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """manage a single block with"""
 
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
+
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()

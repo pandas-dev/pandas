@@ -18,6 +18,7 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Hashable,
     Iterable,
@@ -121,6 +122,13 @@ from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.window import (
+        ExpandingGroupby,
+        ExponentialMovingWindowGroupby,
+        RollingGroupby,
+    )
 
 _common_see_also = """
         See Also
@@ -373,14 +381,14 @@ Examples
 """
 
 _transform_template = """
-Call function producing a like-indexed %(klass)s on each group and
+Call function producing a same-indexed %(klass)s on each group and
 return a %(klass)s having the same indexes as the original object
 filled with the transformed values.
 
 Parameters
 ----------
 f : function
-    Function to apply to each group.
+    Function to apply to each group. See the Notes section below for requirements.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified.
@@ -450,6 +458,14 @@ user defined function, and no alternative execution attempts will be tried.
 
     The resulting dtype will reflect the return value of the passed ``func``,
     see the examples below.
+
+.. deprecated:: 1.5.0
+
+    When using ``.transform`` on a grouped DataFrame and the transformation function
+    returns a DataFrame, currently pandas does not align the result's index
+    with the input's index. This behavior is deprecated and alignment will
+    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    result of the transformation function to avoid alignment.
 
 Examples
 --------
@@ -655,7 +671,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     @property
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """
         Dict {group name -> group indices}.
         """
@@ -1283,7 +1299,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(
-        self, numeric_only: bool | lib.NoDefault, axis: int
+        self, how: str, numeric_only: bool | lib.NoDefault, axis: int
     ) -> bool:
         """
         Determine subclass-specific default value for 'numeric_only'.
@@ -1319,6 +1335,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             else:
                 numeric_only = False
+
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
+            # GH#47500
+            how = "sum" if how == "add" else how
+            warnings.warn(
+                f"{type(self).__name__}.{how} called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
+                "raise a TypeError in a future version of pandas",
+                category=FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            raise NotImplementedError(
+                f"{type(self).__name__}.{how} does not implement numeric_only"
+            )
 
         return numeric_only
 
@@ -1696,7 +1726,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis=0)
 
         data = self._get_data_to_aggregate()
         is_ser = data.ndim == 1
@@ -1708,8 +1738,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 kwd_name = "numeric_only"
                 if how in ["any", "all"]:
                     kwd_name = "bool_only"
+                kernel = "sum" if how == "add" else how
                 raise NotImplementedError(
-                    f"{type(self).__name__}.{how} does not implement {kwd_name}."
+                    f"{type(self).__name__}.{kernel} does not implement {kwd_name}."
                 )
             elif not is_ser:
                 data = data.get_numeric_data(copy=False)
@@ -2091,7 +2122,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2    4.0
         Name: B, dtype: float64
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        numeric_only_bool = self._resolve_numeric_only("mean", numeric_only, axis=0)
 
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
@@ -2125,7 +2156,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        numeric_only_bool = self._resolve_numeric_only("median", numeric_only, axis=0)
 
         result = self._cython_agg_general(
             "median",
@@ -2186,10 +2217,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
+            # Resolve numeric_only so that var doesn't warn
+            numeric_only_bool = self._resolve_numeric_only("std", numeric_only, axis=0)
+            if (
+                numeric_only_bool
+                and self.obj.ndim == 1
+                and not is_numeric_dtype(self.obj.dtype)
+            ):
+                raise TypeError(
+                    f"{type(self).__name__}.std called with "
+                    f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
+                )
             result = self._get_cythonized_result(
                 libgroupby.group_var,
                 cython_dtype=np.dtype(np.float64),
-                numeric_only=numeric_only,
+                numeric_only=numeric_only_bool,
                 needs_counts=True,
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
@@ -2249,7 +2291,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
-            numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+            numeric_only_bool = self._resolve_numeric_only("var", numeric_only, axis=0)
             if ddof == 1:
                 return self._cython_agg_general(
                     "var",
@@ -2288,7 +2330,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-        result = self.std(ddof=ddof, numeric_only=numeric_only)
+        # Reolve numeric_only so that std doesn't warn
+        numeric_only_bool = self._resolve_numeric_only("sem", numeric_only, axis=0)
+        if (
+            numeric_only_bool
+            and self.obj.ndim == 1
+            and not is_numeric_dtype(self.obj.dtype)
+        ):
+            raise TypeError(
+                f"{type(self).__name__}.sem called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
+            )
+        result = self.std(ddof=ddof, numeric_only=numeric_only_bool)
         self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
 
         if result.ndim == 1:
@@ -2713,7 +2766,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def rolling(self, *args, **kwargs):
+    def rolling(self, *args, **kwargs) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
         """
@@ -2730,7 +2783,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def expanding(self, *args, **kwargs):
+    def expanding(self, *args, **kwargs) -> ExpandingGroupby:
         """
         Return an expanding grouper, providing expanding
         functionality per group.
@@ -2747,7 +2800,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def ewm(self, *args, **kwargs):
+    def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
         """
@@ -3158,7 +3211,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        numeric_only_bool = self._resolve_numeric_only("quantile", numeric_only, axis=0)
+        if (
+            numeric_only_bool
+            and self.obj.ndim == 1
+            and not is_numeric_dtype(self.obj.dtype)
+        ):
+            raise TypeError(
+                f"{type(self).__name__}.quantile called with "
+                f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
+            )
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
             if is_object_dtype(vals):
@@ -3430,7 +3492,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         na_option: str = "keep",
         pct: bool = False,
         axis: int = 0,
-    ):
+    ) -> NDFrameT:
         """
         Provide the rank of values within each group.
 
@@ -3521,7 +3583,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumprod(self, axis=0, *args, **kwargs):
+    def cumprod(self, axis=0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -3539,7 +3601,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumsum(self, axis=0, *args, **kwargs):
+    def cumsum(self, axis=0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -3557,7 +3619,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, numeric_only=False, **kwargs):
+    def cummin(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
         """
         Cumulative min for each group.
 
@@ -3577,7 +3639,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, numeric_only=False, **kwargs):
+    def cummax(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
         """
         Cumulative max for each group.
 
@@ -3646,7 +3708,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         `Series` or `DataFrame`  with filled values
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only, axis=0)
+        how = base_func.__name__
+        numeric_only_bool = self._resolve_numeric_only(how, numeric_only, axis=0)
 
         if post_processing and not callable(post_processing):
             raise ValueError("'post_processing' must be a callable!")
@@ -3657,7 +3720,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         ids, _, ngroups = grouper.group_info
 
-        how = base_func.__name__
         base_func = partial(base_func, labels=ids)
 
         def blk_func(values: ArrayLike) -> ArrayLike:
@@ -3867,7 +3929,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def head(self, n=5):
+    def head(self, n: int = 5) -> NDFrameT:
         """
         Return first n rows of each group.
 
@@ -3906,7 +3968,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def tail(self, n=5):
+    def tail(self, n: int = 5) -> NDFrameT:
         """
         Return last n rows of each group.
 

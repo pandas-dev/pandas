@@ -1,6 +1,9 @@
 import pytest
 
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    UndefinedVariableError,
+)
 
 import pandas as pd
 
@@ -24,6 +27,14 @@ import pandas as pd
         "SettingWithCopyError",
         "SettingWithCopyWarning",
         "NumExprClobberingError",
+        "IndexingError",
+        "PyperclipException",
+        "CSSWarning",
+        "ClosedFileError",
+        "PossibleDataLossError",
+        "IncompatibilityWarning",
+        "AttributeConflictWarning",
+        "DatabaseError",
     ],
 )
 def test_exception_importable(exc):
@@ -46,6 +57,24 @@ def test_catch_oob():
     msg = "Out of bounds nanosecond timestamp: 1500-01-01 00:00:00"
     with pytest.raises(errors.OutOfBoundsDatetime, match=msg):
         pd.Timestamp("15000101")
+
+
+@pytest.mark.parametrize(
+    "is_local",
+    [
+        True,
+        False,
+    ],
+)
+def test_catch_undefined_variable_error(is_local):
+    variable_name = "x"
+    if is_local:
+        msg = f"local variable '{variable_name}' is not defined"
+    else:
+        msg = f"name '{variable_name}' is not defined"
+
+    with pytest.raises(UndefinedVariableError, match=msg):
+        raise UndefinedVariableError(variable_name, is_local)
 
 
 class Foo:

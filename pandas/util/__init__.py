@@ -1,3 +1,4 @@
+# pyright: reportUnusedImport = false
 from pandas.util._decorators import (  # noqa:F401
     Appender,
     Substitution,

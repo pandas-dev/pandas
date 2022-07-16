@@ -774,6 +774,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                         assert isinstance(skiprows, int)
                         row += skiprows
 
+                    if row > len(data) - 1:
+                        raise ValueError(
+                            f"header index {row} exceeds maximum index "
+                            f"{len(data) - 1} of data.",
+                        )
+
                     data[row], control_row = fill_mi_header(data[row], control_row)
 
                     if index_col is not None:
@@ -782,9 +788,27 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
             # If there is a MultiIndex header and an index then there is also
             # a row containing just the index name(s)
-            has_index_names = (
-                is_list_header and not is_len_one_list_header and index_col is not None
-            )
+            has_index_names = False
+            if is_list_header and not is_len_one_list_header and index_col is not None:
+
+                index_col_list: Sequence[int]
+                if isinstance(index_col, int):
+                    index_col_list = [index_col]
+                else:
+                    assert isinstance(index_col, Sequence)
+                    index_col_list = index_col
+
+                # We have to handle mi without names. If any of the entries in the data
+                # columns are not empty, this is a regular row
+                assert isinstance(header, Sequence)
+                if len(header) < len(data):
+                    potential_index_names = data[len(header)]
+                    potential_data = [
+                        x
+                        for i, x in enumerate(potential_index_names)
+                        if not control_row[i] and i not in index_col_list
+                    ]
+                    has_index_names = all(x == "" or x is None for x in potential_data)
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
@@ -865,11 +889,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use :
-    * xlwt for xls
-    * xlsxwriter for xlsx if xlsxwriter is installed otherwise openpyxl
-    * odf for ods.
-    See DataFrame.to_excel for typical usage.
+    Default is to use:
+
+    * `xlwt <https://pypi.org/project/xlwt/>`__ for xls files
+    * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
+      is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
+    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+
+    See ``DataFrame.to_excel`` for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
     and close any opened file handles.
@@ -1063,7 +1090,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     _supported_extensions: tuple[str, ...]
 
     def __new__(
-        cls,
+        cls: type[ExcelWriter],
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
         date_format: str | None = None,
@@ -1073,7 +1100,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
         engine_kwargs: dict | None = None,
         **kwargs,
-    ):
+    ) -> ExcelWriter:
         if kwargs:
             if engine_kwargs is not None:
                 raise ValueError("Cannot use both engine_kwargs and **kwargs")
@@ -1319,7 +1346,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self._cur_sheet
 
     @property
-    def handles(self):
+    def handles(self) -> IOHandles[bytes]:
         """
         Handles to Excel sheets.
 
@@ -1338,7 +1365,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self._deprecate("path")
         return self._path
 
-    def __fspath__(self):
+    def __fspath__(self) -> str:
         return getattr(self._handles.handle, "name", "")
 
     def _get_sheet_name(self, sheet_name: str | None) -> str:
@@ -1396,10 +1423,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             return True
 
     # Allow use as a contextmanager
-    def __enter__(self):
+    def __enter__(self) -> ExcelWriter:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
     def close(self) -> None:
@@ -1693,13 +1720,13 @@ class ExcelFile:
         """close io if necessary"""
         self._reader.close()
 
-    def __enter__(self):
+    def __enter__(self) -> ExcelFile:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         # Ensure we don't leak file descriptors, but put in try/except in case
         # attributes are already deleted
         try:

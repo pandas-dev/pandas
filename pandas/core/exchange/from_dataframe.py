@@ -32,7 +32,7 @@ _NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
 }
 
 
-def from_dataframe(df, allow_copy=True):
+def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 
@@ -136,7 +136,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
         buffers.append(buf)
 
     pandas_df = pd.DataFrame(columns)
-    pandas_df._buffers = buffers
+    pandas_df.attrs["_EXCHANGE_PROTOCOL_BUFFERS"] = buffers
     return pandas_df
 
 

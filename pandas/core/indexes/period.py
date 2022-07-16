@@ -159,8 +159,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     dtype: PeriodDtype
 
     _data_cls = PeriodArray
-    _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
+
+    @property
+    def _engine_type(self) -> type[libindex.PeriodEngine]:
+        return libindex.PeriodEngine
 
     @cache_readonly
     # Signature of "_resolution_obj" incompatible with supertype "DatetimeIndexOpsMixin"

@@ -140,7 +140,7 @@ filepath_or_buffer : str, path object or file-like object
 {_statafile_processing_params2}
 {_chunksize_params}
 {_iterator_params}
-{_shared_docs["decompression_options"]}
+{_shared_docs["decompression_options"] % "filepath_or_buffer"}
 {_shared_docs["storage_options"]}
 
 Returns
@@ -1929,7 +1929,9 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    cat_data.categories = categories
+                    # error: Incompatible types in assignment (expression has
+                    # type "List[str]", variable has type "Index")
+                    cat_data.categories = categories  # type: ignore[assignment]
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
@@ -3644,12 +3646,16 @@ class StataWriterUTF8(StataWriter117):
         # High code points appear to be acceptable
         for c in name:
             if (
-                ord(c) < 128
-                and (c < "A" or c > "Z")
-                and (c < "a" or c > "z")
-                and (c < "0" or c > "9")
-                and c != "_"
-            ) or 128 <= ord(c) < 256:
+                (
+                    ord(c) < 128
+                    and (c < "A" or c > "Z")
+                    and (c < "a" or c > "z")
+                    and (c < "0" or c > "9")
+                    and c != "_"
+                )
+                or 128 <= ord(c) < 192
+                or c in {"×", "÷"}
+            ):
                 name = name.replace(c, "_")
 
         return name

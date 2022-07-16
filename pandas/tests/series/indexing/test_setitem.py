@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
+
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
@@ -30,7 +32,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
@@ -532,6 +533,33 @@ class TestSetitemWithExpansion:
 
         app = Series([1], index=["foobar"], name="series")
         expected = concat([string_series, app])
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_keep_precision(self, any_numeric_ea_dtype):
+        # GH#32346
+        ser = Series([1, 2], dtype=any_numeric_ea_dtype)
+        ser[2] = 10
+        expected = Series([1, 2, 10], dtype=any_numeric_ea_dtype)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("indexer", [1, 2])
+    @pytest.mark.parametrize(
+        "na, target_na, dtype, target_dtype",
+        [
+            (NA, NA, "Int64", "Int64"),
+            (NA, np.nan, "int64", "float64"),
+            (NaT, NaT, "int64", "object"),
+            (np.nan, NA, "Int64", "Int64"),
+            (np.nan, NA, "Float64", "Float64"),
+            (np.nan, np.nan, "int64", "float64"),
+        ],
+    )
+    def test_setitem_enlarge_with_na(self, na, target_na, dtype, target_dtype, indexer):
+        # GH#32346
+        ser = Series([1, 2], dtype=dtype)
+        ser[indexer] = na
+        expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
+        expected = Series(expected_values, dtype=target_dtype)
         tm.assert_series_equal(ser, expected)
 
 
