@@ -1866,11 +1866,15 @@ def test_quantile(data, interpolation, quantile, request):
                 )
             )
         result = ser.quantile(q=quantile, interpolation=interpolation)
-        result = result.astype("float64[pyarrow]")
-        expected = pd.Series(
-            data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
-        )
-        tm.assert_series_equal(result, expected)
+        if quantile == 0.5:
+            assert result == data[0]
+        else:
+            # Just check the values
+            result = result.astype("float64[pyarrow]")
+            expected = pd.Series(
+                data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
+            )
+            tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("dropna", [True, False])
