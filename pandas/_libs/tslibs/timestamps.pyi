@@ -130,8 +130,8 @@ class Timestamp(datetime):
         second: int | None = ...,
         microsecond: int | None = ...,
         nanosecond: int | None = ...,
-        tzinfo: _tzinfo | None = ...,
-        fold: int = ...,
+        tzinfo: _tzinfo | type[object] | None = ...,
+        fold: int | None = ...,
     ) -> _DatetimeT: ...
     # LSP violation: datetime.datetime.astimezone has a default value for tz
     def astimezone(  # type: ignore[override]
