@@ -430,7 +430,7 @@ def test_resample_groupby_agg_listlike():
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
-def test_empty(keys):
+def test_resample_empty_Dataframe(keys):
     # GH 26411
     df = DataFrame([], columns=["a", "b", "date"])
     df["date"] = pd.to_datetime(df["date"])
