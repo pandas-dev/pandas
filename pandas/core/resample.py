@@ -937,7 +937,13 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
-    def std(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
+    def std(
+        self,
+        ddof=1,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -958,7 +964,13 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("std", args, kwargs)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
-    def var(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
+    def var(
+        self,
+        ddof=1,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
         """
         Compute variance of groups, excluding missing values.
 
