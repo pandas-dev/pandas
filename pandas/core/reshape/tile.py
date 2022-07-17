@@ -240,7 +240,9 @@ def cut(
 
     original = x
     x = _preprocess_for_cut(x)
-    x, dtype = _coerce_to_type(x)
+    dtype = None
+    if not isinstance(bins, IntervalIndex):
+        x, dtype = _coerce_to_type(x)
 
     if not np.iterable(bins):
         if is_scalar(bins) and bins < 1:
