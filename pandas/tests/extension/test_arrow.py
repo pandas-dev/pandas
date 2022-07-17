@@ -1887,7 +1887,9 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
     if pa_version_under6p0:
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(
+            PerformanceWarning, raise_on_extra_warnings=False
+        ):
             # Just validate the PerformanceWarning
             # ExtensionArray._mode may not support all pyarrow types
             with contextlib.suppress(Exception):
