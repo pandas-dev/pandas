@@ -782,7 +782,7 @@ class BaseGrouper:
     @cache_readonly
     def group_keys_seq(self):
         if len(self.groupings) == 1:
-            if isinstance(self.key, list) and self.names[0] != None:
+            if isinstance(self.key, list) and self.names[0] is not None:
                 if not isinstance(self.key[0], str):
                     return self.levels[0]
             else:
