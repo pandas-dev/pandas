@@ -8359,6 +8359,19 @@ Parrot 2  Parrot       24.0
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 
+        if isinstance(by, list):
+            if len(by) == 1 and isinstance(by[0], str):
+                warnings.warn(
+                    (
+                        "In a future version of pandas, a length 1 "
+                        "tuple will be returned when grouping by a "
+                        "list of length 1. Don't supply a list with "
+                        "a single grouper to avoid this warning."
+                    ),
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         if squeeze is not no_default:
             warnings.warn(
                 (
