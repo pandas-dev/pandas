@@ -7777,6 +7777,14 @@ Align the differences on columns
 0    a     c  NaN   NaN
 2  NaN   NaN  3.0   4.0
 
+Assign result_names
+
+>>> df.compare(df2, result_names=("left", "right"))
+  col1       col3
+  left right left right
+0    a     c  NaN   NaN
+2  NaN   NaN  3.0   4.0
+
 Stack the differences on rows
 
 >>> df.compare(df2, align_axis=0)
@@ -7824,12 +7832,14 @@ Keep all original rows and columns and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
+        result_names: Suffixes = ("self", "other"),
     ) -> DataFrame:
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
+            result_names=result_names,
         )
 
     def combine(
@@ -10356,9 +10366,10 @@ Parrot 2  Parrot       24.0
         See Also
         --------
         Series.cov : Compute covariance with another Series.
-        core.window.ExponentialMovingWindow.cov: Exponential weighted sample covariance.
-        core.window.Expanding.cov : Expanding sample covariance.
-        core.window.Rolling.cov : Rolling sample covariance.
+        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted sample
+            covariance.
+        core.window.expanding.Expanding.cov : Expanding sample covariance.
+        core.window.rolling.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
@@ -10551,7 +10562,8 @@ Parrot 2  Parrot       24.0
             else:
                 return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
-        other = other._get_numeric_data()
+        if numeric_only_bool:
+            other = other._get_numeric_data()
         left, right = this.align(other, join="inner", copy=False)
 
         if axis == 1:
@@ -10564,11 +10576,15 @@ Parrot 2  Parrot       24.0
             right = right + left * 0
 
             # demeaned data
-            ldem = left - left.mean()
-            rdem = right - right.mean()
+            ldem = left - left.mean(numeric_only=numeric_only_bool)
+            rdem = right - right.mean(numeric_only=numeric_only_bool)
 
             num = (ldem * rdem).sum()
-            dom = (left.count() - 1) * left.std() * right.std()
+            dom = (
+                (left.count() - 1)
+                * left.std(numeric_only=numeric_only_bool)
+                * right.std(numeric_only=numeric_only_bool)
+            )
 
             correl = num / dom
 
@@ -11168,7 +11184,7 @@ Parrot 2  Parrot       24.0
 
         See Also
         --------
-        core.window.Rolling.quantile: Rolling quantile.
+        core.window.rolling.Rolling.quantile: Rolling quantile.
         numpy.percentile: Numpy function to compute the percentile.
 
         Examples
@@ -11789,6 +11805,7 @@ Parrot 2  Parrot       24.0
         ...
 
     # error: Signature of "where" incompatible with supertype "NDFrame"
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -11808,7 +11825,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 
@@ -11855,6 +11871,7 @@ Parrot 2  Parrot       24.0
         ...
 
     # error: Signature of "mask" incompatible with supertype "NDFrame"
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -11874,7 +11891,6 @@ Parrot 2  Parrot       24.0
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 
