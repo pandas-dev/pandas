@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
-- Fixed regression in :func:`concat` or :func:`merge` handling of all-NaN ExtensionArrays with custom attributes
+- Fixed regression in :func:`concat` or :func:`merge` handling of all-NaN ExtensionArrays with custom attributes (:issue:`47762`)
 -
 
 .. ---------------------------------------------------------------------------
