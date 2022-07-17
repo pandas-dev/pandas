@@ -6,8 +6,6 @@ from typing import Callable
 
 import numpy as np
 
-from pandas._typing import npt
-
 # imported from dateutil.tz
 dateutil_gettz: Callable[[str], tzinfo]
 
