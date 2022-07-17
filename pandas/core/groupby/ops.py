@@ -782,7 +782,7 @@ class BaseGrouper:
     @cache_readonly
     def group_keys_seq(self):
         if len(self.groupings) == 1 and self.tuple_unified is False:
-                    return self.levels[0]
+            return self.levels[0]
 
         ids, _, ngroups = self.group_info
 

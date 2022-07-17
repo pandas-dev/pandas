@@ -736,7 +736,7 @@ def get_grouper(
     tuple_unified = False
     if isinstance(key, list):
         if len(key) == 1 and isinstance(key[0], str):
-                tuple_unified = True
+            tuple_unified = True
 
     # validate that the passed single level is compatible with the passed
     # axis of the object
