@@ -348,7 +348,7 @@ def test_groupby_dropna_with_multiindex_input(input_index, keys, series):
     expected = obj.set_index(keys)
     if series:
         expected = expected["c"]
-    elif input_index == ["a", "b"] and keys == ["a"]:
+    elif input_index == ["a", "b"] and keys == "a":
         # Column b should not be aggregated
         expected = expected[["c"]]
 

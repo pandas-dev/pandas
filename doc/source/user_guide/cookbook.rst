@@ -466,7 +466,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   gb = df.groupby(["animal"])
+   gb = df.groupby("animal")
    gb.get_group("cat")
 
 `Apply to different items in a group

@@ -1339,7 +1339,7 @@ def test_null_group_lambda_self(request, sort, dropna, keys):
     nulls1 = np.random.choice([False, True], size)
     nulls2 = np.random.choice([False, True], size)
     # Whether a group contains a null value or not
-    nulls_grouper = nulls1 if len(keys) == 1 else nulls1 | nulls2
+    nulls_grouper = nulls1 if not isinstance(keys, list) else nulls1 | nulls2
 
     a1 = np.random.randint(0, 5, size=size).astype(float)
     a1[nulls1] = np.nan
