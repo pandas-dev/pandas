@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -79,23 +80,23 @@ class TestDataFrameDataTypes:
             Series({"a": np.float_, "b": np.float_, "c": np.float_}),
         )
 
-    def test_dtypes_are_correct_after_groupby_last(self):
+    @pytest.mark.parametrize(
+        "data",
+        [
+            DataFrame(
+                {"id": [1, 2, 3, 4], "test": [True, pd.NA, pd.NA, False]}
+            ).convert_dtypes(),
+            DataFrame(
+                {"id": [1, 2, 3, 4], "test": [True, pd.NA, True, False]}
+            ).convert_dtypes(),
+        ],
+    )
+    def test_dtypes_are_correct_after_groupby_last(self, data):
         # GH46409
-        df1 = DataFrame(
-            {"id": [1, 2, 3, 4], "test": [True, pd.NA, pd.NA, False]}
-        ).convert_dtypes()
-
-        df2 = DataFrame(
-            {"id": [1, 2, 3, 4], "test": [True, pd.NA, True, False]}
-        ).convert_dtypes()
-
-        grouped1 = df1.groupby("id")
-        last1 = grouped1.last()
-        grouped2 = df2.groupby("id")
-        last2 = grouped2.last()
-
-        assert last1.test.dtype == pd.BooleanDtype()
-        assert last2.test.dtype == pd.BooleanDtype()
+        result = data.groupby("id").last().test
+        expected = data.set_index("id").test
+        assert result.dtype == pd.BooleanDtype()
+        tm.assert_series_equal(expected, result)
 
     def test_dtypes_gh8722(self, float_string_frame):
         float_string_frame["bool"] = float_string_frame["A"] > 0
