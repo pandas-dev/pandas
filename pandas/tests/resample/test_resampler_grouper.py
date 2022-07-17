@@ -430,7 +430,7 @@ def test_resample_groupby_agg_listlike():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+@pytest.mark.parametrize("keys", ["a", ["a", "b"]])
 def test_empty(keys):
     # GH 26411
     df = DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))

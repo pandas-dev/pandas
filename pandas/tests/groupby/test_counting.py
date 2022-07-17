@@ -192,7 +192,7 @@ class TestCounting:
         np.random.seed(0)
         df = DataFrame({"a": np.random.choice(list("abcdef"), 100)})
         for sort_flag in (False, True):
-            g = df.groupby(["a"], sort=sort_flag)
+            g = df.groupby("a", sort=sort_flag)
             df["group_id"] = -1
             df["group_index"] = -1
 
