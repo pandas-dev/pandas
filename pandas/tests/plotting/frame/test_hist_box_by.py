@@ -230,11 +230,11 @@ class TestBoxWithBy(TestPlotBase):
     @pytest.mark.parametrize(
         "by, column, titles, xticklabels",
         [
-            ("C", "A", ["A"], [["a", "b", "c"]]),
+            ("C", "A", "A", [["a", "b", "c"]]),
             (
                 ["C", "D"],
                 "A",
-                ["A"],
+                "A",
                 [
                     [
                         "(a, a)",
@@ -269,7 +269,7 @@ class TestBoxWithBy(TestPlotBase):
                 ]
                 * 2,
             ),
-            (["C"], None, ["A", "B"], [["a", "b", "c"]] * 2),
+            ("C", None, ["A", "B"], [["a", "b", "c"]] * 2),
         ],
     )
     def test_box_plot_by_argument(self, by, column, titles, xticklabels, hist_df):
