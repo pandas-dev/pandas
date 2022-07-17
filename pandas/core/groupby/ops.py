@@ -835,7 +835,7 @@ class BaseGrouper:
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             if isinstance(self.key, list):
                 if not isinstance(self.key[0], str):
-            # This shows unused categories in indices GH#38642
+                    # This shows unused categories in indices GH#38642
                     return self.groupings[0].indices
             else:
                 return self.groupings[0].indices
