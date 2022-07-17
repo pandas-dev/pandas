@@ -647,7 +647,10 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         return np.dtype("object"), fill_value
 
     elif isinstance(dtype, CategoricalDtype):
-        return object, ensure_object(fill_value)
+        if fill_value in dtype.categories:
+            return "category", fill_value
+        else:
+            return object, ensure_object(fill_value)
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):

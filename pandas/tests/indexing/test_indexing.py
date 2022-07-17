@@ -1026,3 +1026,10 @@ def test_additional_element_to_categorical_series_loc():
     result.loc[3] = 0
     expected = Series(["a", "b", "c", 0], dtype="object")
     tm.assert_series_equal(result, expected)
+
+
+def test_additional_categorical_element_loc():
+    result = Series(["a", "b", "c"], dtype="category")
+    result.loc[3] = "a"
+    expected = Series(["a", "b", "c", "a"], dtype="category")
+    tm.assert_series_equal(result, expected)

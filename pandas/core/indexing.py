@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -1777,7 +1778,6 @@ class _iLocIndexer(_LocationIndexer):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                # import pdb; pdb.set_trace()
                 self._setitem_with_indexer_missing(indexer, value)
                 return
 
@@ -2112,7 +2112,6 @@ class _iLocIndexer(_LocationIndexer):
                 # We should not cast, if we have object dtype because we can
                 # set timedeltas into object series
                 curr_dtype = self.obj.dtype
-                # import pdb; pdb.set_trace()
                 curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
                 new_dtype = maybe_promote(curr_dtype, value)[0]
             else:
@@ -2121,9 +2120,16 @@ class _iLocIndexer(_LocationIndexer):
             new_values = Series([value], dtype=new_dtype)._values
 
             if len(self.obj._values):
+                # GH#47677 handle enlarging with a scalar as a special case
+                if (
+                    isinstance(self.obj.dtype, CategoricalDtype)
+                    and new_dtype == "category"
+                ):
+                    new_values = Series(self.obj.tolist() + [value], dtype="category")
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
-                new_values = concat_compat([self.obj._values, new_values])
+                else:
+                    new_values = concat_compat([self.obj._values, new_values])
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr
