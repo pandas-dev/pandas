@@ -392,7 +392,7 @@ def test_groupby_selection_other_methods(df):
     df.columns.name = "foo"
     df.index = rng
 
-    g = df.groupby(["A"])[["C"]]
+    g = df.groupby("A")[["C"]]
     g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()
