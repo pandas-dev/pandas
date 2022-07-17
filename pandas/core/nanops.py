@@ -165,6 +165,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # GH 42878
         # Bottleneck uses naive summation leading to O(n) loss of precision
         # unlike numpy which implements pairwise summation, which has O(log(n)) loss
+        # crossref: https://github.com/pydata/bottleneck/issues/379
 
         # GH 15507
         # bottleneck does not properly upcast during the sum
