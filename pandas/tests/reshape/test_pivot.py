@@ -860,7 +860,7 @@ class TestPivotTable:
                 pd.pivot(df, index="zoo", columns="foo", values=("bar", "baz"))
 
     def _check_output(
-        self, result, values_col, index=["A", "B"], columns=["C"], margins_col="All"
+        self, result, values_col, index=["A", "B"], columns="C", margins_col="All"
     ):
         col_margins = result.loc[result.index[:-1], margins_col]
         expected_col_margins = self.data.groupby(index)[values_col].mean()

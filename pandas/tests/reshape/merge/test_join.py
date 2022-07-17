@@ -407,7 +407,7 @@ class TestJoin:
     def test_join_hierarchical_mixed(self):
         # GH 2024
         df = DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
-        new_df = df.groupby(["a"]).agg({"b": [np.mean, np.sum]})
+        new_df = df.groupby("a").agg({"b": [np.mean, np.sum]})
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
@@ -718,7 +718,9 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
     # some smoke tests
     for c in join_col:
         assert result[c].notna().all()
-
+    if isinstance(join_col, list):
+        if len(join_col) == 1:
+            join_col = join_col[0]
     left_grouped = left.groupby(join_col)
     right_grouped = right.groupby(join_col)
 

@@ -733,6 +733,11 @@ def get_grouper(
     """
     group_axis = obj._get_axis(axis)
 
+    tuple_unified = False
+    if isinstance(key, list):
+        if len(key) == 1 and isinstance(key[0], str):
+                tuple_unified = True
+
     # validate that the passed single level is compatible with the passed
     # axis of the object
     if level is not None:
@@ -918,7 +923,12 @@ def get_grouper(
 
     # create the internals grouper
     grouper = ops.BaseGrouper(
-        group_axis, groupings, key=key, sort=sort, mutated=mutated, dropna=dropna
+        group_axis,
+        groupings,
+        tuple_unified=tuple_unified,
+        sort=sort,
+        mutated=mutated,
+        dropna=dropna,
     )
     return grouper, frozenset(exclusions), obj
 

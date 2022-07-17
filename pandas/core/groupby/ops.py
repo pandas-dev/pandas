@@ -711,7 +711,7 @@ class BaseGrouper:
         self,
         axis: Index,
         groupings: Sequence[grouper.Grouping],
-        key,
+        tuple_unified: bool = False,
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -722,7 +722,7 @@ class BaseGrouper:
 
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
-        self.key = key
+        self.tuple_unified = tuple_unified
         self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -781,12 +781,8 @@ class BaseGrouper:
     @final
     @cache_readonly
     def group_keys_seq(self):
-        if len(self.groupings) == 1:
-            if isinstance(self.key, list) and self.names[0] is not None:
-                if not isinstance(self.key[0], str):
+        if len(self.groupings) == 1 and self.tuple_unified is False:
                     return self.levels[0]
-            else:
-                return self.levels[0]
 
         ids, _, ngroups = self.group_info
 
@@ -832,13 +828,9 @@ class BaseGrouper:
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
-        if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
-            if isinstance(self.key, list):
-                if not isinstance(self.key[0], str):
-                    # This shows unused categories in indices GH#38642
-                    return self.groupings[0].indices
-            else:
-                return self.groupings[0].indices
+        if len(self.groupings) == 1 and self.tuple_unified is False:
+            # This shows unused categories in indices GH#38642
+            return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
@@ -1133,11 +1125,13 @@ class BinGrouper(BaseGrouper):
         binlabels,
         mutated: bool = False,
         indexer=None,
+        tuple_unified: bool = False,
     ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
         self.mutated = mutated
         self.indexer = indexer
+        self.tuple_unified = False
 
         # These lengths must match, otherwise we could call agg_series
         #  with empty self.bins, which would raise in libreduction.
