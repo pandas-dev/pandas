@@ -2803,13 +2803,13 @@ def test_groupby_iterator_one_grouper():
     expected = True
 
     values, _ = next(iter(df.groupby(["a", "b"])))
-    result = (isinstance(values, tuple))
+    result = isinstance(values, tuple)
     assert result == expected
 
     values, _ = next(iter(df.groupby(["a"])))
-    result = (isinstance(values, tuple))
+    result = isinstance(values, tuple)
     assert result == expected
 
     values, _ = next(iter(df.groupby("a")))
-    result = (isinstance(values, int))
+    result = isinstance(values, int)
     assert result == expected
