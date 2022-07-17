@@ -13,8 +13,8 @@ def test_group_by_copy():
         }
     ).set_index("name")
 
-    grp_by_same_value = df.groupby(["age"], group_keys=False).apply(lambda group: group)
-    grp_by_copy = df.groupby(["age"], group_keys=False).apply(
+    grp_by_same_value = df.groupby("age", group_keys=False).apply(lambda group: group)
+    grp_by_copy = df.groupby("age", group_keys=False).apply(
         lambda group: group.copy()
     )
     tm.assert_frame_equal(grp_by_same_value, grp_by_copy)
@@ -75,7 +75,7 @@ def test_apply_function_with_indexing():
         x.loc[x.index[-1], "col2"] = 0
         return x.col2
 
-    result = df.groupby(["col1"], as_index=False).apply(fn)
+    result = df.groupby("col1", as_index=False).apply(fn)
     expected = pd.Series(
         [1, 2, 0, 4, 5, 0],
         index=pd.MultiIndex.from_tuples(

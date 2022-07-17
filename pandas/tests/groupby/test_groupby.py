@@ -2240,7 +2240,7 @@ def test_groupby_groups_in_BaseGrouper():
     assert result.groups == expected.groups
 
 
-@pytest.mark.parametrize("group_name", ["x", ["x"]])
+@pytest.mark.parametrize("group_name", ["x"])
 def test_groupby_axis_1(group_name):
     # GH 27614
     df = DataFrame(
@@ -2807,4 +2807,4 @@ def test_single_element_list_grouping():
         "a single grouper to avoid this warning."
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby(["a"])
+        df.groupby("a")

@@ -139,7 +139,7 @@ class TestCrosstab:
         assert result.columns.names == ["b", "c"]
 
         all_cols = result["All", ""]
-        exp_cols = df.groupby(["a"]).size().astype("i8")
+        exp_cols = df.groupby("a").size().astype("i8")
         # to keep index.name
         exp_margin = Series([len(df)], index=Index(["All"], name="a"))
         exp_cols = pd.concat([exp_cols, exp_margin])
@@ -177,7 +177,7 @@ class TestCrosstab:
         assert result.columns.names == ["b", "c"]
 
         all_cols = result["TOTAL", ""]
-        exp_cols = df.groupby(["a"]).size().astype("i8")
+        exp_cols = df.groupby("a").size().astype("i8")
         # to keep index.name
         exp_margin = Series([len(df)], index=Index(["TOTAL"], name="a"))
         exp_cols = pd.concat([exp_cols, exp_margin])

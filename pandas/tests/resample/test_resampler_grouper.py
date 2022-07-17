@@ -453,7 +453,7 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     if consolidate:
         df = df._consolidate()
 
-    result = df.groupby(["key"]).resample("W", on="date").min()
+    result = df.groupby("key").resample("W", on="date").min()
     idx = pd.MultiIndex.from_arrays(
         [
             ["A"] * 3 + ["B"] * 3,

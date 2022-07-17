@@ -151,7 +151,7 @@ class TestCounting:
 
     def test_ngroup_descending(self):
         df = DataFrame(["a", "a", "b", "a", "b"], columns=["A"])
-        g = df.groupby(["A"])
+        g = df.groupby("A")
 
         ascending = Series([0, 0, 1, 0, 1])
         descending = Series([1, 1, 0, 1, 0])
@@ -179,7 +179,7 @@ class TestCounting:
         # brute force comparison for all small series
         for p in product(range(3), repeat=4):
             df = DataFrame({"a": p})
-            g = df.groupby(["a"])
+            g = df.groupby("a")
 
             order = sorted(set(p))
             ngroupd = [order.index(val) for val in p]
@@ -235,7 +235,7 @@ class TestCounting:
     def test_count_groupby_column_with_nan_in_groupby_column(self):
         # https://github.com/pandas-dev/pandas/issues/32841
         df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
-        res = df.groupby(["B"]).count()
+        res = df.groupby("B").count()
         expected = DataFrame(
             index=Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
         )

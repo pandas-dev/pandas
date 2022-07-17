@@ -562,7 +562,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
        {"Color": "Red Red Red Blue".split(), "Value": [100, 150, 50, 50]}
    )
    df
-   df["Counts"] = df.groupby(["Color"]).transform(len)
+   df["Counts"] = df.groupby("Color").transform(len)
    df
 
 `Shift groups of the values in a column based on the index

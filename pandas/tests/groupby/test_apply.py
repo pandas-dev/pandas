@@ -595,9 +595,9 @@ def test_apply_numeric_coercion_when_datetime():
     df = DataFrame(
         {"Number": [1, 2], "Date": ["2017-03-02"] * 2, "Str": ["foo", "inf"]}
     )
-    expected = df.groupby(["Number"]).apply(lambda x: x.iloc[0])
+    expected = df.groupby("Number").apply(lambda x: x.iloc[0])
     df.Date = pd.to_datetime(df.Date)
-    result = df.groupby(["Number"]).apply(lambda x: x.iloc[0])
+    result = df.groupby("Number").apply(lambda x: x.iloc[0])
     tm.assert_series_equal(result["Str"], expected["Str"])
 
     # GH 15421

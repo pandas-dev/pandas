@@ -580,7 +580,7 @@ def test_rank_pct_equal_values_on_group_transition(use_nan):
         ],
         columns=["group", "val"],
     )
-    result = df.groupby(["group"])["val"].rank(
+    result = df.groupby("group")["val"].rank(
         method="dense",
         pct=True,
     )

@@ -1025,7 +1025,7 @@ def test_is_monotonic_increasing(in_vals, out_vals):
     tm.assert_series_equal(result, expected)
 
     # Also check result equal to manually taking x.is_monotonic_increasing.
-    expected = df.groupby(["B"]).C.apply(lambda x: x.is_monotonic_increasing)
+    expected = df.groupby("B").C.apply(lambda x: x.is_monotonic_increasing)
     tm.assert_series_equal(result, expected)
 
 
@@ -1357,7 +1357,7 @@ def test_groupby_sum_timedelta_with_nat():
     ],
 )
 @pytest.mark.parametrize("numeric_only", [True, False, lib.no_default])
-@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+@pytest.mark.parametrize("keys", ["a1", ["a1", "a2"]])
 def test_deprecate_numeric_only(
     kernel, numeric_only_default, drops_nuisance, has_arg, numeric_only, keys
 ):

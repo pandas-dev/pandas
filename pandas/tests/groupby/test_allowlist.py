@@ -362,7 +362,7 @@ def test_groupby_selection_with_methods(df, method):
     rng = date_range("2014", periods=len(df))
     df.index = rng
 
-    g = df.groupby(["A"])[["C"]]
+    g = df.groupby("A")[["C"]]
     g_exp = df[["C"]].groupby(df["A"])
     # TODO check groupby with > 1 col ?
 
@@ -378,7 +378,7 @@ def test_groupby_selection_tshift_raises(df):
     rng = date_range("2014", periods=len(df))
     df.index = rng
 
-    g = df.groupby(["A"])[["C"]]
+    g = df.groupby("A")[["C"]]
 
     # check that the index cache is cleared
     with pytest.raises(ValueError, match="Freq was not set in the index"):
@@ -392,7 +392,7 @@ def test_groupby_selection_other_methods(df):
     df.columns.name = "foo"
     df.index = rng
 
-    g = df.groupby(["A"])[["C"]]
+    g = df.groupby("A")[["C"]]
     g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()

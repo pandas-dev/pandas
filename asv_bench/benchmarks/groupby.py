@@ -618,7 +618,7 @@ class Float32:
         self.df = DataFrame({"a": arr, "b": arr})
 
     def time_sum(self):
-        self.df.groupby(["a"])["b"].sum()
+        self.df.groupby("a")["b"].sum()
 
 
 class String:
