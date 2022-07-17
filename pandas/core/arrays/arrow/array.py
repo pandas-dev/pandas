@@ -18,6 +18,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under1p01,
     pa_version_under2p0,
+    pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
 )
@@ -121,9 +122,9 @@ if not pa_version_under1p01:
         "rmod": NotImplemented,
         "divmod": NotImplemented,
         "rdivmod": NotImplemented,
-        "pow": NotImplemented if pa_version_under2p0 else pc.power_checked,
+        "pow": NotImplemented if pa_version_under4p0 else pc.power_checked,
         "rpow": NotImplemented
-        if pa_version_under2p0
+        if pa_version_under4p0
         else lambda x, y: pc.power_checked(y, x),
     }
 
