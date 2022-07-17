@@ -161,6 +161,9 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
+    if isinstance(keys, list):
+        if len(keys) == 1:
+            keys = keys[0]
     grouped = data.groupby(keys, observed=observed, sort=sort)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
