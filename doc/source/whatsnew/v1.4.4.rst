@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
+- Fixed regression in :func:`cut` using a ``datetime64`` IntervalIndex as bins (:issue:`46218`)
 -
 
 .. ---------------------------------------------------------------------------

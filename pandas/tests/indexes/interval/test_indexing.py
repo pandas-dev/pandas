@@ -319,10 +319,11 @@ class TestGetIndexer:
         expected = np.array([0], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        # TODO those should probably be deprecated?
         result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).astype(str))
         tm.assert_numpy_array_equal(result, expected)
 
+        # TODO this should probably be deprecated?
+        # https://github.com/pandas-dev/pandas/issues/47772
         result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).asi8)
         tm.assert_numpy_array_equal(result, expected)
 
