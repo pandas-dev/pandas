@@ -1936,7 +1936,11 @@ class _iLocIndexer(_LocationIndexer):
 
         else:
             for loc in ilocs:
-                item = self.obj.columns[loc]
+                level_diff = self.obj.columns.nlevels - value.columns.nlevels
+                if multiindex_indexer and level_diff > 0 and value.columns.nlevels != 0:
+                    item = self.obj.columns.get_level_values(level_diff)[loc]
+                else:
+                    item = self.obj.columns[loc]
                 if item in value:
                     sub_indexer[1] = item
                     val = self._align_series(
