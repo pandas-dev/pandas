@@ -80,6 +80,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
+    CategoricalIndex
     Index,
     MultiIndex,
     ensure_index,
@@ -827,7 +828,11 @@ class BaseGrouper:
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
-        if len(self.groupings) == 1 and self.tuple_unified is False:
+        if (
+            len(self.groupings) == 1
+            and isinstance(self.result_index, CategoricalIndex)
+            and self.tuple_unified is False
+        ):
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
