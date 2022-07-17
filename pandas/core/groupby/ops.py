@@ -711,6 +711,7 @@ class BaseGrouper:
         self,
         axis: Index,
         groupings: Sequence[grouper.Grouping],
+        key,
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -721,6 +722,7 @@ class BaseGrouper:
 
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
+        self.key = key
         self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -780,14 +782,16 @@ class BaseGrouper:
     @cache_readonly
     def group_keys_seq(self):
         if len(self.groupings) == 1:
-            if len(self.indices) == 1 and len(self.groups) == 1:
-                return [tuple(self.levels[0])]
-            return self.levels[0]
-        else:
-            ids, _, ngroups = self.group_info
+            if isinstance(self.key, list) and self.names[0] != None:
+                if not isinstance(self.key[0], str):
+                    return self.levels[0]
+            else:
+                return self.levels[0]
 
-            # provide "flattened" iterator for multi-group setting
-            return get_flattened_list(ids, ngroups, self.levels, self.codes)
+        ids, _, ngroups = self.group_info
+
+        # provide "flattened" iterator for multi-group setting
+        return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
     def apply(
@@ -829,8 +833,12 @@ class BaseGrouper:
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
+            if isinstance(self.key, list):
+                if not isinstance(self.key[0], str):
             # This shows unused categories in indices GH#38642
-            return self.groupings[0].indices
+                    return self.groupings[0].indices
+            else:
+                return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)

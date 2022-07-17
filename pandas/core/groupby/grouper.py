@@ -918,7 +918,7 @@ def get_grouper(
 
     # create the internals grouper
     grouper = ops.BaseGrouper(
-        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
+        group_axis, groupings, key=key, sort=sort, mutated=mutated, dropna=dropna
     )
     return grouper, frozenset(exclusions), obj
 

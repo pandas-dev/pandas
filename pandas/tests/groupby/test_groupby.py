@@ -806,7 +806,7 @@ def test_groupby_as_index_cython(df):
     msg = "The default value of numeric_only"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = grouped.mean()
-        expected = data.groupby(["A"]).mean()
+        expected = data.groupby("A").mean()
     expected.insert(0, "A", expected.index)
     expected.index = np.arange(len(expected))
     tm.assert_frame_equal(result, expected)
@@ -1259,7 +1259,7 @@ def test_consistency_name():
         }
     )
 
-    expected = df.groupby(["A"]).B.count()
+    expected = df.groupby("A").B.count()
     result = df.B.groupby(df.A).count()
     tm.assert_series_equal(result, expected)
 
@@ -1495,7 +1495,7 @@ def test_groupby_2d_malformed():
     d["label"] = ["l1", "l2"]
     msg = "The default value of numeric_only"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        tmp = d.groupby(["group"]).mean()
+        tmp = d.groupby("group").mean()
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
     tm.assert_numpy_array_equal(tmp.values, res_values)
@@ -1888,7 +1888,7 @@ def test_pivot_table_values_key_error():
 
 
 @pytest.mark.parametrize("columns", ["C", ["C"]])
-@pytest.mark.parametrize("keys", [["A"], ["A", "B"]])
+@pytest.mark.parametrize("keys", ["A", ["A", "B"]])
 @pytest.mark.parametrize(
     "values",
     [
@@ -2240,7 +2240,7 @@ def test_groupby_groups_in_BaseGrouper():
     assert result.groups == expected.groups
 
 
-@pytest.mark.parametrize("group_name", ["x", ["x"]])
+@pytest.mark.parametrize("group_name", ["x"])
 def test_groupby_axis_1(group_name):
     # GH 27614
     df = DataFrame(
@@ -2643,7 +2643,7 @@ def test_groupby_aggregation_non_numeric_dtype():
         index=Index(["M", "W"], dtype="object", name="MW"),
     )
 
-    gb = df.groupby(by=["MW"])
+    gb = df.groupby(by="MW")
     result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
@@ -2666,7 +2666,7 @@ def test_groupby_aggregation_multi_non_numeric_dtype():
         index=Index([0, 1], dtype="int64", name="x"),
     )
 
-    gb = df.groupby(by=["x"])
+    gb = df.groupby(by="x")
     result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
@@ -2686,7 +2686,7 @@ def test_groupby_aggregation_numeric_with_non_numeric_dtype():
         index=Index([0, 1], dtype="int64", name="x"),
     )
 
-    gb = df.groupby(by=["x"])
+    gb = df.groupby(by="x")
     msg = "The default value of numeric_only"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = gb.sum()
@@ -2766,7 +2766,7 @@ def test_by_column_values_with_same_starting_value():
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
 
-    result = df.groupby(["Name"]).agg(aggregate_details)
+    result = df.groupby("Name").agg(aggregate_details)
     expected_result = DataFrame(
         {
             "Mood": [["happy", "sad"], "happy"],
@@ -2800,12 +2800,16 @@ def test_groupby_none_column_name():
 def test_groupby_iterator_one_grouper():
     df = DataFrame(columns=["a", "b", "c"], index=["x", "y"])
     df.loc["y"] = Series({"a": 1, "b": 5, "c": 2})
+    expected = True
 
     values, _ = next(iter(df.groupby(["a", "b"])))
-    assert (isinstance(values, tuple)) is True
+    result = (isinstance(values, tuple))
+    assert result == expected
 
     values, _ = next(iter(df.groupby(["a"])))
-    assert (isinstance(values, tuple)) is True
+    result = (isinstance(values, tuple))
+    assert result == expected
 
     values, _ = next(iter(df.groupby("a")))
-    assert (isinstance(values, tuple)) is True
+    result = (isinstance(values, int))
+    assert result == expected
