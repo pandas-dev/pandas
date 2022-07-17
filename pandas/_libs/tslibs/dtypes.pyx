@@ -4,7 +4,10 @@ cimport cython
 
 from enum import Enum
 
-from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    get_conversion_factor,
+)
 
 
 cdef class PeriodDtypeBase:
@@ -386,43 +389,11 @@ cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) 
     """
     How many of the given time units fit into a single day?
     """
-    cdef:
-        int64_t day_units
-
-    if reso == NPY_DATETIMEUNIT.NPY_FR_ps:
-        # pico is the smallest unit for which we don't overflow, so
-        #  we exclude femto and atto
-        day_units = 24 * 3600 * 1_000_000_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_ns:
-        day_units = 24 * 3600 * 1_000_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        day_units = 24 * 3600 * 1_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        day_units = 24 * 3600 * 1_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        day_units = 24 * 3600
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
-        day_units = 24 * 60
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_h:
-        day_units = 24
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_D:
-        day_units = 1
-    else:
-        raise NotImplementedError(reso)
-    return day_units
+    return get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, reso)
 
 
 cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
-    if reso == NPY_DATETIMEUNIT.NPY_FR_ns:
-        return 1_000_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        return 1_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        return 1_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        return 1
-    else:
-        raise NotImplementedError(reso)
+    return get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, reso)
 
 
 cdef dict _reso_str_map = {
