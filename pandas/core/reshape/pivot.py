@@ -162,7 +162,7 @@ def __internal_pivot_table(
         values = list(values)
 
     if isinstance(keys, list):
-        if len(keys) == 1:
+        if len(keys) == 1 and isinstance(keys[0], str):
             keys = keys[0]
     grouped = data.groupby(keys, observed=observed, sort=sort)
     agged = grouped.agg(aggfunc)
