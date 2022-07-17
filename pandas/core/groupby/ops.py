@@ -80,7 +80,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
-    CategoricalIndex
+    CategoricalIndex,
     Index,
     MultiIndex,
     ensure_index,
