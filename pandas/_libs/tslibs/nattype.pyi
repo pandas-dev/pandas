@@ -12,8 +12,6 @@ NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
-def is_null_datetimelike(val: object, inat_is_null: bool = ...) -> bool: ...
-
 _NaTComparisonTypes = datetime | timedelta | Period | np.datetime64 | np.timedelta64
 
 class _NatComparison:
@@ -21,6 +19,7 @@ class _NatComparison:
 
 class NaTType:
     value: np.int64
+    @property
     def asm8(self) -> np.datetime64: ...
     def to_datetime64(self) -> np.datetime64: ...
     def to_numpy(

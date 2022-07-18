@@ -32,7 +32,7 @@ def update_blklocs_and_blknos(
     loc: int,
     nblocks: int,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
-
+@final
 class BlockPlacement:
     def __init__(self, val: int | slice | np.ndarray): ...
     @property
