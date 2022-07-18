@@ -1,4 +1,6 @@
 """Any shareable docstring components for rolling/expanding/ewm"""
+from __future__ import annotations
+
 from textwrap import dedent
 
 from pandas.core.shared_docs import _shared_docs

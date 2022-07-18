@@ -2,6 +2,8 @@
 Utility functions and objects for implementing the exchange API.
 """
 
+from __future__ import annotations
+
 import re
 import typing
 
