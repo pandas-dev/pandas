@@ -290,6 +290,7 @@ Other enhancements
 - :meth:`DatetimeIndex.astype` now supports casting timezone-naive indexes to ``datetime64[s]``, ``datetime64[ms]``, and ``datetime64[us]``, and timezone-aware indexes to the corresponding ``datetime64[unit, tzname]`` dtypes (:issue:`47579`)
 - :class:`Series` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) will now successfully operate when the dtype is numeric and ``numeric_only=True`` is provided; previously this would raise a ``NotImplementedError`` (:issue:`47500`)
 - :meth:`RangeIndex.union` now can return a :class:`RangeIndex` instead of a :class:`Int64Index` if the resulting values are equally spaced (:issue:`47557`, :issue:`43885`)
+- :meth:`DataFrame.compare` now accepts an argument ``result_names`` to allow the user to specify the result's names of both left and right DataFrame which are being compared. This is by default ``'self'`` and ``'other'`` (:issue:`44354`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -783,6 +784,7 @@ Other Deprecations
 - Clarified warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument (:issue:`46210`)
 - Deprecated :class:`Series` and :class:`Resampler` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) raising a ``NotImplementedError`` when the dtype is non-numric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
+- Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -856,7 +858,7 @@ Numeric
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
 - Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
--
+- Bug in :meth:`mean` where the optional dependency ``bottleneck`` causes precision loss linear in the length of the array. ``bottleneck`` has been disabled for :meth:`mean` improving the loss to log-linear but may result in a performance decrease. (:issue:`42878`)
 
 Conversion
 ^^^^^^^^^^
@@ -926,6 +928,7 @@ Missing
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 - Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
+- Bug in :meth:`DataFrame.fillna` ignored ``axis`` when :class:`DataFrame` is single block (:issue:`47713`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -986,6 +989,8 @@ Plotting
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
 - The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
 - Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
+- Bug in :meth:`DataFrame.plot` that led to xticks and vertical grids being improperly placed when plotting a quarterly series (:issue:`47602`)
+- Bug in :meth:`DataFrame.plot` that prevented setting y-axis label, limits and ticks for a secondary y-axis (:issue:`47753`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

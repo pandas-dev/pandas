@@ -8,6 +8,8 @@ from typing import (
     Callable,
     Literal,
     Sequence,
+    TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -91,6 +93,8 @@ if TYPE_CHECKING:
         DatetimeArray,
         TimedeltaArray,
     )
+
+BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
 
 
 _shared_doc_kwargs = {
@@ -976,7 +980,19 @@ def period_array(
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
-def validate_dtype_freq(dtype, freq):
+@overload
+def validate_dtype_freq(dtype, freq: BaseOffsetT) -> BaseOffsetT:
+    ...
+
+
+@overload
+def validate_dtype_freq(dtype, freq: timedelta | str | None) -> BaseOffset:
+    ...
+
+
+def validate_dtype_freq(
+    dtype, freq: BaseOffsetT | timedelta | str | None
+) -> BaseOffsetT:
     """
     If both a dtype and a freq are available, ensure they match.  If only
     dtype is available, extract the implied freq.
@@ -996,7 +1012,10 @@ def validate_dtype_freq(dtype, freq):
     IncompatibleFrequency : mismatch between dtype and freq
     """
     if freq is not None:
-        freq = to_offset(freq)
+        # error: Incompatible types in assignment (expression has type
+        # "BaseOffset", variable has type "Union[BaseOffsetT, timedelta,
+        # str, None]")
+        freq = to_offset(freq)  # type: ignore[assignment]
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
@@ -1006,7 +1025,9 @@ def validate_dtype_freq(dtype, freq):
             freq = dtype.freq
         elif freq != dtype.freq:
             raise IncompatibleFrequency("specified freq and dtype are different")
-    return freq
+    # error: Incompatible return value type (got "Union[BaseOffset, Any, None]",
+    # expected "BaseOffset")
+    return freq  # type: ignore[return-value]
 
 
 def dt64arr_to_periodarr(
