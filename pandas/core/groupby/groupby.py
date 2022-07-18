@@ -1024,7 +1024,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
 
-            if self._selected_obj.ndim != 1 and self.axis != 1:
+            if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:
                 missing = self._obj_with_exclusions.columns.difference(result.columns)
                 if len(missing) > 0:
                     warn_dropping_nuisance_columns_deprecated(
@@ -3630,7 +3630,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.minimum.accumulate(x, axis)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
+            obj = self._selected_obj
+            if numeric_only_bool:
+                obj = obj._get_numeric_data()
+            return self._python_apply_general(f, obj, is_transform=True)
 
         return self._cython_transform(
             "cummin", numeric_only=numeric_only, skipna=skipna
@@ -3650,7 +3654,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.maximum.accumulate(x, axis)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
+            obj = self._selected_obj
+            if numeric_only_bool:
+                obj = obj._get_numeric_data()
+            return self._python_apply_general(f, obj, is_transform=True)
 
         return self._cython_transform(
             "cummax", numeric_only=numeric_only, skipna=skipna

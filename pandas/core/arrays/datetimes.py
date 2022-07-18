@@ -251,7 +251,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Constructors
 
     _dtype: np.dtype | DatetimeTZDtype
-    _freq = None
+    _freq: BaseOffset | None = None
     _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod

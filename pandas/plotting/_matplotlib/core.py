@@ -679,6 +679,7 @@ class MPLPlot(ABC):
             )
 
         for ax in self.axes:
+            ax = getattr(ax, "right_ax", ax)
             if self.yticks is not None:
                 ax.set_yticks(self.yticks)
 
