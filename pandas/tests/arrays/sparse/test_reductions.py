@@ -268,7 +268,7 @@ class TestMinMax:
             assert result is NaT or np.isnat(result)
         else:
             assert np.isnan(result)
- 
+
 
 class TestArgmaxArgmin:
     @pytest.mark.parametrize(
