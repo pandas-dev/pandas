@@ -28,9 +28,7 @@ cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff)
         ipos += 1
 
         if control_byte == 0x00:
-            if end_of_first_byte != 0:
-                raise ValueError("Unexpected non-zero end_of_first_byte")
-            nbytes = <int>(inbuff[ipos]) + 64
+            nbytes = <int>(inbuff[ipos]) + 64 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
@@ -38,8 +36,7 @@ cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff)
                 ipos += 1
         elif control_byte == 0x40:
             # not documented
-            nbytes = end_of_first_byte * 16
-            nbytes += <int>(inbuff[ipos])
+            nbytes = (inbuff[ipos] & 0xFF) + 18 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
@@ -427,8 +424,11 @@ cdef class Parser:
                 jb += 1
             elif column_types[j] == column_type_string:
                 # string
-                string_chunk[js, current_row] = np.array(source[start:(
-                    start + lngt)]).tobytes().rstrip(b"\x00 ")
+                # Skip trailing whitespace. This is equivalent to calling
+                # .rstrip(b"\x00 ") but without Python call overhead.
+                while lngt > 0 and source[start+lngt-1] in b"\x00 ":
+                    lngt -= 1
+                string_chunk[js, current_row] = (&source[start])[:lngt]
                 js += 1
 
         self.current_row_on_page_index += 1
