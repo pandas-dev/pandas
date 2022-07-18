@@ -199,7 +199,7 @@ the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
-<https://hypothesis.readthedocs.io/en/latest/>`__ >= 3.58, then run:
+<https://hypothesis.readthedocs.io/en/latest/>`__ >= 6.13.0, then run:
 
 ::
 
@@ -247,11 +247,11 @@ Recommended dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.7.1 or higher.
+  If installed, must be Version 2.7.3 or higher.
 
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.3.1 or higher.
+  must be Version 1.3.2 or higher.
 
 .. note::
 
@@ -277,8 +277,8 @@ Visualization
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 matplotlib                3.3.2              Plotting library
-Jinja2                    2.11               Conditional formatting with DataFrame.style
-tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
+Jinja2                    3.0.0              Conditional formatting with DataFrame.style
+tabulate                  0.8.9              Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== =============================================================
 
 Computation
@@ -287,10 +287,10 @@ Computation
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SciPy                     1.4.1              Miscellaneous statistical functions
-numba                     0.50.1             Alternative execution engine for rolling operations
+SciPy                     1.7.1              Miscellaneous statistical functions
+numba                     0.53.1             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
-xarray                    0.15.1             pandas-like API for N-dimensional data
+xarray                    0.19.0             pandas-like API for N-dimensional data
 ========================= ================== =============================================================
 
 Excel files
@@ -301,9 +301,9 @@ Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 xlrd                      2.0.1              Reading Excel
 xlwt                      1.3.0              Writing Excel
-xlsxwriter                1.2.2              Writing Excel
-openpyxl                  3.0.3              Reading / writing for xlsx files
-pyxlsb                    1.0.6              Reading for xlsb files
+xlsxwriter                1.4.3              Writing Excel
+openpyxl                  3.0.7              Reading / writing for xlsx files
+pyxlsb                    1.0.8              Reading for xlsb files
 ========================= ================== =============================================================
 
 HTML
@@ -312,9 +312,9 @@ HTML
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-BeautifulSoup4            4.8.2              HTML parser for read_html
+BeautifulSoup4            4.9.3              HTML parser for read_html
 html5lib                  1.1                HTML parser for read_html
-lxml                      4.5.0              HTML parser for read_html
+lxml                      4.6.3              HTML parser for read_html
 ========================= ================== =============================================================
 
 One of the following combinations of libraries is needed to use the
@@ -356,9 +356,9 @@ SQL databases
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SQLAlchemy                1.4.0               SQL support for databases other than sqlite
-psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
-pymysql                   0.10.1              MySQL engine for sqlalchemy
+SQLAlchemy                1.4.16             SQL support for databases other than sqlite
+psycopg2                  2.8.6              PostgreSQL engine for sqlalchemy
+pymysql                   1.0.2              MySQL engine for sqlalchemy
 ========================= ================== =============================================================
 
 Other data sources
@@ -368,11 +368,11 @@ Other data sources
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 PyTables                  3.6.1              HDF5-based reading / writing
-blosc                     1.20.1             Compression for HDF5
+blosc                     1.21.0             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
 pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
-pyreadstat                1.1.0              SPSS files (.sav) reading
+pyreadstat                1.1.2              SPSS files (.sav) reading
 ========================= ================== =============================================================
 
 .. _install.warn_orc:
@@ -396,10 +396,10 @@ Access data in the cloud
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-fsspec                    0.7.4              Handling files aside from simple local and HTTP
-gcsfs                     0.6.0              Google Cloud Storage access
-pandas-gbq                0.14.0             Google Big Query access
-s3fs                      0.4.0              Amazon S3 access
+fsspec                    2021.5.0           Handling files aside from simple local and HTTP
+gcsfs                     2021.5.0           Google Cloud Storage access
+pandas-gbq                0.15.0             Google Big Query access
+s3fs                      2021.05.0          Amazon S3 access
 ========================= ================== =============================================================
 
 Clipboard
