@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ClassVar,
     Hashable,
     Literal,
     Mapping,
@@ -48,7 +49,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
-    IntervalClosedType,
+    IntervalInclusiveType,
     JSONSerializable,
     Level,
     Manager,
@@ -58,6 +59,7 @@ from pandas._typing import (
     Renamer,
     SortKind,
     StorageOptions,
+    Suffixes,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -1882,7 +1884,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
     # "object" defined the type as "Callable[[object], int]")
-    __hash__: None  # type: ignore[assignment]
+    __hash__: ClassVar[None]  # type: ignore[assignment]
 
     def __iter__(self):
         """
@@ -2132,7 +2134,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # I/O Methods
 
     @final
-    @doc(klass="object", storage_options=_shared_docs["storage_options"])
+    @doc(
+        klass="object",
+        storage_options=_shared_docs["storage_options"],
+        storage_options_versionadded="1.2.0",
+    )
     def to_excel(
         self,
         excel_writer,
@@ -2218,7 +2224,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             is to be frozen.
         {storage_options}
 
-            .. versionadded:: 1.2.0
+            .. versionadded:: {storage_options_versionadded}
 
         See Also
         --------
@@ -6674,7 +6680,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                if not self._mgr.is_single_block and axis == 1:
+                if axis == 1:
 
                     result = self.T.fillna(value=value, limit=limit).T
 
@@ -8066,7 +8072,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         end_time,
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: IntervalClosedType | None = None,
+        inclusive: IntervalInclusiveType | None = None,
         axis=None,
     ) -> NDFrameT:
         """
@@ -8172,7 +8178,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = True if include_start is lib.no_default else include_start
             right = True if include_end is lib.no_default else include_end
 
-            inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
+            inc_dict: dict[tuple[bool_t, bool_t], IntervalInclusiveType] = {
                 (True, True): "both",
                 (True, False): "left",
                 (False, True): "right",
@@ -8965,6 +8971,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         align_axis: Axis = 1,
         keep_shape: bool_t = False,
         keep_equal: bool_t = False,
+        result_names: Suffixes = ("self", "other"),
     ):
         from pandas.core.reshape.concat import concat
 
@@ -8975,7 +8982,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         mask = ~((self == other) | (self.isna() & other.isna()))
-        keys = ["self", "other"]
 
         if not keep_equal:
             self = self.where(mask)
@@ -8990,13 +8996,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 self = self[mask]
                 other = other[mask]
+        if not isinstance(result_names, tuple):
+            raise TypeError(
+                f"Passing 'result_names' as a {type(result_names)} is not "
+                "supported. Provide 'result_names' as a tuple instead."
+            )
 
         if align_axis in (1, "columns"):  # This is needed for Series
             axis = 1
         else:
             axis = self._get_axis_number(align_axis)
 
-        diff = concat([self, other], axis=axis, keys=keys)
+        diff = concat([self, other], axis=axis, keys=result_names)
 
         if axis >= self.ndim:
             # No need to reorganize data if stacking on new axis
@@ -9376,7 +9387,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -9543,6 +9553,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9594,6 +9605,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
 
+            .. deprecated:: 1.5.0
+               This argument had no effect.
+
         try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
 
@@ -9614,7 +9628,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The {name} method is an application of the if-then idiom. For each
         element in the calling DataFrame, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from the DataFrame
-        ``other`` is used.
+        ``other`` is used. If the axis of ``other`` does not align with axis of
+        ``cond`` {klass}, the misaligned index positions will be filled with
+        {cond_rev}.
 
         The signature for :func:`DataFrame.where` differs from
         :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
@@ -9640,6 +9656,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    NaN
         4    NaN
         dtype: float64
+
+        >>> s = pd.Series(range(5))
+        >>> t = pd.Series([True, False])
+        >>> s.where(t, 99)
+        0     0
+        1    99
+        2    99
+        3    99
+        4    99
+        dtype: int64
+        >>> s.mask(t, 99)
+        0    99
+        1     1
+        2    99
+        3    99
+        4    99
+        dtype: int64
 
         >>> s.where(s > 1, 10)
         0    10
@@ -9697,7 +9730,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-        return self._where(cond, other, inplace, axis, level, errors=errors)
+        return self._where(cond, other, inplace, axis, level)
 
     @overload
     def mask(
@@ -9741,6 +9774,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9784,7 +9818,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
         )
 
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -12166,7 +12199,7 @@ Returns
 
 See Also
 --------
-core.window.Expanding.{accum_func_name} : Similar functionality
+core.window.expanding.Expanding.{accum_func_name} : Similar functionality
     but ignores ``NaN`` values.
 {name2}.{accum_func_name} : Return the {desc} over
     {name2} axis.

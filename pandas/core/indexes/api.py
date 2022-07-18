@@ -233,6 +233,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         Parameters
         ----------
         inds : list of Index or list objects
+        dtype : dtype to set for the resulting Index
 
         Returns
         -------

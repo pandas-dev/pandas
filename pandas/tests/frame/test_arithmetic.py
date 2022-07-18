@@ -1,5 +1,6 @@
 from collections import deque
 from datetime import datetime
+from enum import Enum
 import functools
 import operator
 import re
@@ -2050,3 +2051,15 @@ def test_frame_op_subclass_nonclass_constructor():
 
     result = sdf + sdf
     tm.assert_frame_equal(result, expected)
+
+
+def test_enum_column_equality():
+    Cols = Enum("Cols", "col1 col2")
+
+    q1 = DataFrame({Cols.col1: [1, 2, 3]})
+    q2 = DataFrame({Cols.col1: [1, 2, 3]})
+
+    result = q1[Cols.col1] == q2[Cols.col1]
+    expected = Series([True, True, True], name=Cols.col1)
+
+    tm.assert_series_equal(result, expected)
