@@ -373,6 +373,7 @@ zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
 pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
 pyreadstat                1.1.2              SPSS files (.sav) reading
+odfpy                     1.4.1              Open document format (.odf, .ods, .odt) reading / writing
 ========================= ================== =============================================================
 
 .. _install.warn_orc:
