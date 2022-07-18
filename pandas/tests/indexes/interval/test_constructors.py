@@ -104,8 +104,8 @@ class ConstructorTests:
             timedelta_range("1 day", periods=5),
         ],
     )
-    def test_constructor_pass_closed(self, constructor, breaks):
-        # not passing closed to IntervalDtype, but to IntervalArray constructor
+    def test_constructor_pass_inclusive(self, constructor, breaks):
+        # not passing inclusive to IntervalDtype, but to IntervalArray constructor
         warn = None
         if isinstance(constructor, partial) and constructor.func is Index:
             # passing kwargs to Index is deprecated
@@ -193,7 +193,7 @@ class ConstructorTests:
         # filler input data to be used when supplying invalid kwargs
         filler = self.get_kwargs_from_breaks(range(10))
 
-        # invalid closed
+        # invalid inclusive
         msg = "inclusive must be one of 'right', 'left', 'both', 'neither'"
         with pytest.raises(ValueError, match=msg):
             constructor(inclusive="invalid", **filler)
@@ -399,7 +399,7 @@ class TestClassConstructors(ConstructorTests):
         pass
 
     def test_constructor_errors(self, constructor):
-        # mismatched closed within intervals with no constructor override
+        # mismatched inclusive within intervals with no constructor override
         ivs = [Interval(0, 1, inclusive="right"), Interval(2, 3, inclusive="left")]
         msg = "intervals must all be inclusive on the same side"
         with pytest.raises(ValueError, match=msg):
@@ -420,7 +420,7 @@ class TestClassConstructors(ConstructorTests):
 
     @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize(
-        "data, closed",
+        "data, inclusive",
         [
             ([], "both"),
             ([np.nan, np.nan], "neither"),
@@ -438,14 +438,14 @@ class TestClassConstructors(ConstructorTests):
             (IntervalIndex.from_breaks(range(5), inclusive="both"), "right"),
         ],
     )
-    def test_override_inferred_closed(self, constructor, data, closed):
+    def test_override_inferred_inclusive(self, constructor, data, inclusive):
         # GH 19370
         if isinstance(data, IntervalIndex):
             tuples = data.to_tuples()
         else:
             tuples = [(iv.left, iv.right) if notna(iv) else iv for iv in data]
-        expected = IntervalIndex.from_tuples(tuples, inclusive=closed)
-        result = constructor(data, inclusive=closed)
+        expected = IntervalIndex.from_tuples(tuples, inclusive=inclusive)
+        result = constructor(data, inclusive=inclusive)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -460,7 +460,7 @@ class TestClassConstructors(ConstructorTests):
         assert type(result) is Index
         tm.assert_numpy_array_equal(result.values, np.array(values))
 
-    def test_index_mixed_closed(self):
+    def test_index_mixed_inclusive(self):
         # GH27172
         intervals = [
             Interval(0, 1, inclusive="left"),
@@ -473,8 +473,8 @@ class TestClassConstructors(ConstructorTests):
         tm.assert_index_equal(result, expected)
 
 
-def test_dtype_closed_mismatch():
-    # GH#38394 closed specified in both dtype and IntervalIndex constructor
+def test_dtype_inclusive_mismatch():
+    # GH#38394
 
     dtype = IntervalDtype(np.int64, "left")
 

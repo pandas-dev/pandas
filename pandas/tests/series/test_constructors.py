@@ -1200,8 +1200,8 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
     )
-    def test_constructor_interval_mixed_closed(self, data_constructor):
-        # GH 23563: mixed closed results in object dtype (not interval dtype)
+    def test_constructor_interval_mixed_inclusive(self, data_constructor):
+        # GH 23563: mixed inclusive results in object dtype (not interval dtype)
         data = [Interval(0, 1, inclusive="both"), Interval(0, 2, inclusive="neither")]
         result = Series(data_constructor(data))
         assert result.dtype == object

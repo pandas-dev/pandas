@@ -10,22 +10,22 @@ from pandas import (
 import pandas._testing as tm
 
 
-def monotonic_index(start, end, dtype="int64", closed="right"):
+def monotonic_index(start, end, dtype="int64", inclusive="right"):
     return IntervalIndex.from_breaks(
-        np.arange(start, end, dtype=dtype), inclusive=closed
+        np.arange(start, end, dtype=dtype), inclusive=inclusive
     )
 
 
-def empty_index(dtype="int64", closed="right"):
-    return IntervalIndex(np.array([], dtype=dtype), inclusive=closed)
+def empty_index(dtype="int64", inclusive="right"):
+    return IntervalIndex(np.array([], dtype=dtype), inclusive=inclusive)
 
 
 class TestIntervalIndex:
     def test_union(self, closed, sort):
-        index = monotonic_index(0, 11, closed=closed)
-        other = monotonic_index(5, 13, closed=closed)
+        index = monotonic_index(0, 11, inclusive=closed)
+        other = monotonic_index(5, 13, inclusive=closed)
 
-        expected = monotonic_index(0, 13, closed=closed)
+        expected = monotonic_index(0, 13, inclusive=closed)
         result = index[::-1].union(other, sort=sort)
         if sort is None:
             tm.assert_index_equal(result, expected)
@@ -41,12 +41,12 @@ class TestIntervalIndex:
 
     def test_union_empty_result(self, closed, sort):
         # GH 19101: empty result, same dtype
-        index = empty_index(dtype="int64", closed=closed)
+        index = empty_index(dtype="int64", inclusive=closed)
         result = index.union(index, sort=sort)
         tm.assert_index_equal(result, index)
 
         # GH 19101: empty result, different numeric dtypes -> common dtype is f8
-        other = empty_index(dtype="float64", closed=closed)
+        other = empty_index(dtype="float64", inclusive=closed)
         result = index.union(other, sort=sort)
         expected = other
         tm.assert_index_equal(result, expected)
@@ -54,7 +54,7 @@ class TestIntervalIndex:
         other = index.union(index, sort=sort)
         tm.assert_index_equal(result, expected)
 
-        other = empty_index(dtype="uint64", closed=closed)
+        other = empty_index(dtype="uint64", inclusive=closed)
         result = index.union(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
@@ -62,10 +62,10 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
     def test_intersection(self, closed, sort):
-        index = monotonic_index(0, 11, closed=closed)
-        other = monotonic_index(5, 13, closed=closed)
+        index = monotonic_index(0, 11, inclusive=closed)
+        other = monotonic_index(5, 13, inclusive=closed)
 
-        expected = monotonic_index(5, 11, closed=closed)
+        expected = monotonic_index(5, 11, inclusive=closed)
         result = index[::-1].intersection(other, sort=sort)
         if sort is None:
             tm.assert_index_equal(result, expected)
@@ -100,21 +100,21 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
     def test_intersection_empty_result(self, closed, sort):
-        index = monotonic_index(0, 11, closed=closed)
+        index = monotonic_index(0, 11, inclusive=closed)
 
         # GH 19101: empty result, same dtype
-        other = monotonic_index(300, 314, closed=closed)
-        expected = empty_index(dtype="int64", closed=closed)
+        other = monotonic_index(300, 314, inclusive=closed)
+        expected = empty_index(dtype="int64", inclusive=closed)
         result = index.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, different numeric dtypes -> common dtype is float64
-        other = monotonic_index(300, 314, dtype="float64", closed=closed)
+        other = monotonic_index(300, 314, dtype="float64", inclusive=closed)
         result = index.intersection(other, sort=sort)
         expected = other[:0]
         tm.assert_index_equal(result, expected)
 
-        other = monotonic_index(300, 314, dtype="uint64", closed=closed)
+        other = monotonic_index(300, 314, dtype="uint64", inclusive=closed)
         result = index.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
@@ -136,7 +136,7 @@ class TestIntervalIndex:
 
         # GH 19101: empty result, same dtype
         result = index.difference(index, sort=sort)
-        expected = empty_index(dtype="int64", closed=closed)
+        expected = empty_index(dtype="int64", inclusive=closed)
         tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, different dtypes
@@ -147,7 +147,7 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self, closed, sort):
-        index = monotonic_index(0, 11, closed=closed)
+        index = monotonic_index(0, 11, inclusive=closed)
         result = index[1:].symmetric_difference(index[:-1], sort=sort)
         expected = IntervalIndex([index[0], index[-1]])
         if sort is None:
@@ -156,7 +156,7 @@ class TestIntervalIndex:
 
         # GH 19101: empty result, same dtype
         result = index.symmetric_difference(index, sort=sort)
-        expected = empty_index(dtype="int64", closed=closed)
+        expected = empty_index(dtype="int64", inclusive=closed)
         if sort is None:
             tm.assert_index_equal(result, expected)
         assert tm.equalContents(result, expected)
@@ -166,7 +166,7 @@ class TestIntervalIndex:
             index.left.astype("float64"), index.right, inclusive=closed
         )
         result = index.symmetric_difference(other, sort=sort)
-        expected = empty_index(dtype="float64", closed=closed)
+        expected = empty_index(dtype="float64", inclusive=closed)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:'<' not supported between:RuntimeWarning")
@@ -174,7 +174,7 @@ class TestIntervalIndex:
         "op_name", ["union", "intersection", "difference", "symmetric_difference"]
     )
     def test_set_incompatible_types(self, closed, op_name, sort):
-        index = monotonic_index(0, 11, closed=closed)
+        index = monotonic_index(0, 11, inclusive=closed)
         set_op = getattr(index, op_name)
 
         # TODO: standardize return type of non-union setops type(self vs other)
@@ -187,8 +187,8 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         # mixed closed -> cast to object
-        for other_closed in {"right", "left", "both", "neither"} - {closed}:
-            other = monotonic_index(0, 11, closed=other_closed)
+        for other_inclusive in {"right", "left", "both", "neither"} - {closed}:
+            other = monotonic_index(0, 11, inclusive=other_inclusive)
             expected = getattr(index.astype(object), op_name)(other, sort=sort)
             if op_name == "difference":
                 expected = index
