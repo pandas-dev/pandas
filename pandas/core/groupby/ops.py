@@ -831,7 +831,6 @@ class BaseGrouper:
         if (
             len(self.groupings) == 1
             and isinstance(self.result_index, CategoricalIndex)
-            and self.tuple_unified is False
         ):
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
