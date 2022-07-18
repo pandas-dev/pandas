@@ -10011,9 +10011,9 @@ Parrot 2  Parrot       24.0
                     "Suffixes not supported when joining multiple DataFrames"
                 )
 
-            # Mypy thinks the LHS is a
+            # Mypy thinks the RHS is a
             # "Union[DataFrame, Series, Iterable[Union[DataFrame, Series]]]" whereas
-            # the RHS is an "Iterable[DataFrame]", but in reality both types are
+            # the LHS is an "Iterable[DataFrame]", but in reality both types are
             # "Iterable[Union[DataFrame, Series]]" due to the if statements
             frames = [cast("DataFrame | Series", self)] + list(other)
 
