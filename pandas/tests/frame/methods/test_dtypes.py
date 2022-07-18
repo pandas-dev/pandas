@@ -83,16 +83,13 @@ class TestDataFrameDataTypes:
     @pytest.mark.parametrize(
         "data",
         [
-            DataFrame(
-                {"id": [1, 2, 3, 4], "test": [True, pd.NA, pd.NA, False]}
-            ).convert_dtypes(),
-            DataFrame(
-                {"id": [1, 2, 3, 4], "test": [True, pd.NA, True, False]}
-            ).convert_dtypes(),
+            DataFrame({"id": [1, 2, 3, 4], "test": [True, pd.NA, pd.NA, False]}),
+            DataFrame({"id": [1, 2, 3, 4], "test": [True, pd.NA, True, False]}),
         ],
     )
     def test_dtypes_are_correct_after_groupby_last(self, data):
         # GH46409
+        data = data.convert_dtypes()
         result = data.groupby("id").last().test
         expected = data.set_index("id").test
         assert result.dtype == pd.BooleanDtype()
