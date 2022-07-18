@@ -249,7 +249,7 @@ and attributes without holding entire tree in memory (:issue:`45442`).
 
 Optional dependencies version management
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Optional Pandas dependencies can be managed as extras in a requirements/setup file, for example:
+Optional pandas dependencies can be managed as extras in a requirements/setup file, for example:
 
 .. code-block:: python
 
