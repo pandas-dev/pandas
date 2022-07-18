@@ -1,4 +1,3 @@
-from nis import match
 import re
 
 import numpy as np
@@ -172,7 +171,11 @@ class TestHistWithBy(TestPlotBase):
             "a single grouper to avoid this warning."
         )
         with tm.assert_produces_warning(UserWarning):
-            with tm.assert_produces_warning(FutureWarning, match=msg):
+            with tm.assert_produces_warning(
+                FutureWarning,
+                match=msg,
+                check_stacklevel=False
+            ):
                 axes = _check_plot_works(
                     hist_df.plot.hist, column=column, by=by, layout=layout
                 )
