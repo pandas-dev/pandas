@@ -666,9 +666,6 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
-    def _mask_for_argsort(self) -> np.ndarray:
-        return np.asarray(isna(self))
-
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
@@ -708,11 +705,7 @@ class ExtensionArray:
         #    it is recommended to also override argmax/argmin
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
-        # TODO: ENH argsort for SparseArray
-        if type(self).__name__ == "SparseArray":
-            values = ExtensionArray._values_for_argsort(self)
-        else:
-            values = self._values_for_argsort()
+        values = self._values_for_argsort()
         return nargsort(
             values,
             kind=kind,
