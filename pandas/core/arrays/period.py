@@ -789,14 +789,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         -------
         result : ndarray[int64]
         """
-        if not isinstance(self.freq, Tick):
+        freq = self.freq
+        if not isinstance(freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise TypeError(
                 f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
             )
 
         # FIXME: kludge
-        abbrev = self.freq._prefix
+        # error: "Tick" has no attribute "_prefix"
+        abbrev = freq._prefix  # type: ignore[attr-defined]
         abbrev = {"H": "h", "T": "m", "S": "s", "L": "ms", "U": "us", "N": "ns"}.get(
             abbrev, abbrev
         )
