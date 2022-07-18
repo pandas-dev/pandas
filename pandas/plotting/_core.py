@@ -1294,6 +1294,7 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
             >>> ax = df.plot.box(column="age", by="gender", figsize=(10, 8))
         """
+        by = fix_groupby_singlelist_input(by)
         return self(kind="box", by=by, **kwargs)
 
     def hist(self, by=None, bins=10, **kwargs):
@@ -1356,6 +1357,7 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
             >>> ax = df.plot.hist(column=["age"], by="gender", figsize=(10, 8))
         """
+        by = fix_groupby_singlelist_input(by)
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
     def kde(self, bw_method=None, ind=None, **kwargs):
