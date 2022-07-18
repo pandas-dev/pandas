@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -78,6 +79,20 @@ class TestDataFrameDataTypes:
             df.dtypes,
             Series({"a": np.float_, "b": np.float_, "c": np.float_}),
         )
+
+    @pytest.mark.parametrize(
+        "data",
+        [pd.NA, True],
+    )
+    def test_dtypes_are_correct_after_groupby_last(self, data):
+        # GH46409
+        df = DataFrame(
+            {"id": [1, 2, 3, 4], "test": [True, pd.NA, data, False]}
+        ).convert_dtypes()
+        result = df.groupby("id").last().test
+        expected = df.set_index("id").test
+        assert result.dtype == pd.BooleanDtype()
+        tm.assert_series_equal(expected, result)
 
     def test_dtypes_gh8722(self, float_string_frame):
         float_string_frame["bool"] = float_string_frame["A"] > 0
