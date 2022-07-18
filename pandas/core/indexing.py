@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -2121,15 +2120,9 @@ class _iLocIndexer(_LocationIndexer):
 
             if len(self.obj._values):
                 # GH#47677 handle enlarging with a scalar as a special case
-                if (
-                    isinstance(self.obj.dtype, CategoricalDtype)
-                    and new_dtype == "category"
-                ):
-                    new_values = Series(self.obj.tolist() + [value], dtype="category")
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
-                else:
-                    new_values = concat_compat([self.obj._values, new_values])
+                new_values = concat_compat([self.obj._values, new_values])
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr

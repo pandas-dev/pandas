@@ -1019,17 +1019,3 @@ def test_ser_list_indexer_exceeds_dimensions(indexer_li):
     res = indexer_li(ser)[[0, 0]]
     exp = Series([10, 10], index=Index([0, 0]))
     tm.assert_series_equal(res, exp)
-
-
-def test_additional_element_to_categorical_series_loc():
-    result = Series(["a", "b", "c"], dtype="category")
-    result.loc[3] = 0
-    expected = Series(["a", "b", "c", 0], dtype="object")
-    tm.assert_series_equal(result, expected)
-
-
-def test_additional_categorical_element_loc():
-    result = Series(["a", "b", "c"], dtype="category")
-    result.loc[3] = "a"
-    expected = Series(["a", "b", "c", "a"], dtype="category")
-    tm.assert_series_equal(result, expected)

@@ -1820,6 +1820,24 @@ class TestLocWithMultiIndex:
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
 
+    def test_additional_element_to_categorical_series_loc(self):
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = 0
+        expected = Series(["a", "b", "c", 0], dtype="object")
+        tm.assert_series_equal(result, expected)
+
+    def test_additional_categorical_element_loc(self):
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = "a"
+        expected = Series(["a", "b", "c", "a"], dtype="category")
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_enlarge_category_series_with_np_nan(self):
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = np.nan
+        expected = Series(["a", "b", "c", np.nan], dtype=object)
+        tm.assert_series_equal(expected, result)
+
     def test_loc_getitem_preserves_index_level_category_dtype(self):
         # GH#15166
         df = DataFrame(

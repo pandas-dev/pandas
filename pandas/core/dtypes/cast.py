@@ -648,7 +648,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
 
     elif isinstance(dtype, CategoricalDtype):
         if fill_value in dtype.categories:
-            return "category", fill_value
+            return dtype, fill_value
         else:
             return object, ensure_object(fill_value)
 
