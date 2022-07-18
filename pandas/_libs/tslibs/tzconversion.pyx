@@ -642,9 +642,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     if not to_utc:
         # tz.utcoffset only makes sense if datetime
         # is _wall time_, so if val is a UTC timestamp convert to wall time
-        dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, utc_pytz)
-        dt = dt.astimezone(tz)
+        dt = _astimezone(dts, tz)
 
         if fold is not NULL:
             # NB: fold is only passed with to_utc=False
@@ -656,6 +654,27 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * pps)
     return delta
+
+
+cdef datetime _astimezone(npy_datetimestruct dts, tzinfo tz):
+    """
+    Optimized equivalent to:
+
+    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                  dts.min, dts.sec, dts.us, utc_pytz)
+    dt = dt.astimezone(tz)
+
+    Derived from the datetime.astimezone implementation at
+    https://github.com/python/cpython/blob/main/Modules/_datetimemodule.c#L6187
+
+    NB: we are assuming tz is not None.
+    """
+    cdef:
+        datetime result
+
+    result = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, tz)
+    return tz.fromutc(result)
 
 
 # NB: relies on dateutil internals, subject to change.
