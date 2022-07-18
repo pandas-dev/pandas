@@ -309,18 +309,13 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         result = getattr(ser, op_name)(skipna=skipna)
         if pa.types.is_boolean(pa_dtype):
             # Can't convert if ser contains NA
-            ser = ser.fillna(False).astype("Float64")
+            pytest.skip(
+                "pandas boolean data with NA does not fully support all reductions"
+            )
         elif pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
             ser = ser.astype("Float64")
-        if pa.types.is_boolean(pa_dtype):
-            # TODO: Validate reduction functions on pandas boolean w/skipna
-            if op_name in {"sum", "max", "min", "mean", "prod"} and skipna is False:
-                assert result is pd.NA
-            elif op_name == "mean" and skipna is True:
-                assert result == 0.5
-        else:
-            expected = getattr(ser, op_name)(skipna=skipna)
-            tm.assert_almost_equal(result, expected)
+        expected = getattr(ser, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
