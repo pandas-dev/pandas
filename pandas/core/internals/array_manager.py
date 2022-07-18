@@ -1132,7 +1132,7 @@ class ArrayManager(BaseArrayManager):
         self,
         dtype=None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
