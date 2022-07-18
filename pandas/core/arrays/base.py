@@ -709,7 +709,10 @@ class ExtensionArray:
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
         # TODO: ENH argsort for SparseArray
-        values = ExtensionArray._values_for_argsort(self)
+        if type(self).__name__ == "SparseArray":
+            values = ExtensionArray._values_for_argsort(self)
+        else:
+            values = self._values_for_argsort()
         return nargsort(
             values,
             kind=kind,
