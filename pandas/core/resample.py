@@ -518,8 +518,8 @@ class Resampler(BaseGroupBy, PandasObject):
             and result.empty
             and type(result.index) != PeriodIndex
         ):
-            result.set_index(
-                _asfreq_compat(obj.index[:0], freq=self.freq), inplace=True, append=True
+            resule = result.set_index(
+                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
             )
 
         if isinstance(result, ABCSeries) and self._selection is not None:
