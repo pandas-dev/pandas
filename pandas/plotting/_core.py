@@ -7,9 +7,6 @@ from typing import (
     Sequence,
 )
 
-from pandas.core.groupby.generic import (
-    fix_groupby_singlelist_input,
-)
 from pandas._config import get_option
 
 from pandas._typing import IndexLabel
