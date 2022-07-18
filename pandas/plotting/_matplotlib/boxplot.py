@@ -238,8 +238,8 @@ def _grouped_plot_by_column(
     return_type=None,
     **kwargs,
 ):
-    by = fix_groupby_singlelist_input(by)
-    grouped = data.groupby(by)
+    bymodi = fix_groupby_singlelist_input(by)
+    grouped = data.groupby(bymodi)
     if columns is None:
         if not isinstance(by, (list, tuple)):
             by = [by]

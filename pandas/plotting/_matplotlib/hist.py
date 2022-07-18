@@ -61,8 +61,8 @@ class HistPlot(LinePlot):
         # where subplots are created based on by argument
         if is_integer(self.bins):
             if self.by is not None:
-                self.by = fix_groupby_singlelist_input(self.by)
-                grouped = self.data.groupby(self.by)[self.columns]
+                bymodi = fix_groupby_singlelist_input(self.by)
+                grouped = self.data.groupby(bymodi)[self.columns]
                 self.bins = [self._calculate_bins(group) for key, group in grouped]
             else:
                 self.bins = self._calculate_bins(self.data)
@@ -263,8 +263,8 @@ def _grouped_plot(
             "Specify figure size by tuple instead"
         )
 
-    by = fix_groupby_singlelist_input(by)
-    grouped = data.groupby(by)
+    bymodified = fix_groupby_singlelist_input(by)
+    grouped = data.groupby(bymodified)
     if column is not None:
         grouped = grouped[column]
 
