@@ -263,10 +263,12 @@ def _grouped_plot(
             "Specify figure size by tuple instead"
         )
 
-    bymodified = fix_groupby_singlelist_input(by)
-    grouped = data.groupby(bymodified)
+    by = fix_groupby_singlelist_input(by)
+    grouped = data.groupby(by)
     if column is not None:
         grouped = grouped[column]
+        if isinstance(by, list) and len(by) == 1:
+            by = [by]
 
     naxes = len(grouped)
     fig, axes = create_subplots(
