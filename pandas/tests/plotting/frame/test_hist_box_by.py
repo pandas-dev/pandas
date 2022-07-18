@@ -1,3 +1,4 @@
+from nis import match
 import re
 
 import numpy as np
@@ -164,8 +165,14 @@ class TestHistWithBy(TestPlotBase):
     def test_hist_plot_layout_with_by(self, by, column, layout, axes_num, hist_df):
         # GH 15079
         # _check_plot_works adds an ax so catch warning. see GH #13188
+        msg = (
+        "In a future version of pandas, a length 1 "
+        "tuple will be returned when grouping by a "
+        "list of length 1. Don't supply a list with "
+        "a single grouper to avoid this warning."
+        )
         with tm.assert_produces_warning(UserWarning):
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning, match=msg):
                 axes = _check_plot_works(
                     hist_df.plot.hist, column=column, by=by, layout=layout
                 )
