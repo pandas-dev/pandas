@@ -1643,12 +1643,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             return na_value_for_dtype(self.dtype.subtype, compat=False)
 
-    def _argmin_argmax(self, candidate: int, kind: Literal["min", "max"]) -> int:
+    def _argmin_argmax(self, candidate: int, kind: Literal["argmin", "argmax"]) -> int:
         if isna(self.fill_value):
             return candidate
-        if kind == "min" and self[candidate] < self.fill_value:
+        if kind == "argmin" and self[candidate] < self.fill_value:
             return candidate
-        if kind == "max" and self[candidate] > self.fill_value:
+        if kind == "argmax" and self[candidate] > self.fill_value:
             return candidate
         _loc = self._first_fill_value_loc()
         if _loc == -1:
@@ -1660,12 +1660,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def argmax(self, skipna: bool = True) -> int:
         _candidate = ExtensionArray.argmax(self, skipna=skipna)
         candidate = self._sparse_index.indices[_candidate]
-        return self._argmin_argmax(candidate, "max")
+        return self._argmin_argmax(candidate, "argmax")
 
     def argmin(self, skipna: bool = True) -> int:
         _candidate = ExtensionArray.argmin(self, skipna=skipna)
         candidate = self._sparse_index.indices[_candidate]
-        return self._argmin_argmax(candidate, "min")
+        return self._argmin_argmax(candidate, "argmin")
 
     # ------------------------------------------------------------------------
     # Ufuncs
