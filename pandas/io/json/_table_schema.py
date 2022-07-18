@@ -81,10 +81,8 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "boolean"
     elif is_numeric_dtype(x):
         return "number"
-    elif is_datetime64_dtype(x) or is_datetime64tz_dtype(x):
+    elif is_datetime64_dtype(x) or is_datetime64tz_dtype(x) or is_period_dtype(x):
         return "datetime"
-    elif is_period_dtype(x):
-        return "period"
     elif is_timedelta64_dtype(x):
         return "duration"
     elif is_categorical_dtype(x):
@@ -199,10 +197,11 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     elif typ == "datetime":
         if field.get("tz"):
             return f"datetime64[ns, {field['tz']}]"
+        elif field.get("freq"):
+            # GH#47747 using datetime over period is not ideal but was kept to minimize the change surface
+            return f"period[{field['freq']}]"
         else:
             return "datetime64[ns]"
-    elif typ == "period":
-        return f"period[{field['freq']}]"
     elif typ == "any":
         if "constraints" in field and "ordered" in field:
             return CategoricalDtype(
