@@ -349,6 +349,7 @@ When using ``.groupby()`` on a DatFrame with a  MultiIndex, do not specify both 
 The argument validation should be done in ``.groupby()``, using the name of the specific index.
 
 .. ipython:: python
+
    df = pd.DataFrame({"col1": ["a", "b", "c"]})
    df.index = pd.MultiIndex.from_arrays([["a", "a", "b"],
                                         [1, 2, 1]],
