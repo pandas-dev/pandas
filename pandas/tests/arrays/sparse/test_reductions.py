@@ -268,3 +268,28 @@ class TestMinMax:
             assert result is NaT or np.isnat(result)
         else:
             assert np.isnan(result)
+ 
+
+class TestArgmaxArgmin:
+    @pytest.mark.parametrize(
+        "arr,argmax_expected,argmin_expected",
+        [
+            (SparseArray([1, 2, 0, 1, 2]), 1, 2),
+            (SparseArray([-1, -2, 0, -1, -2]), 2, 1),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, -1]), 1, 5),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2]), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=-1), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=0), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=1), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=2), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=3), 5, 2),
+            (SparseArray([0] * 10 + [-1], fill_value=0), 0, 10),
+            (SparseArray([0] * 10 + [-1], fill_value=-1), 0, 10),
+            (SparseArray([0] * 10 + [-1], fill_value=1), 0, 10),
+        ],
+    )
+    def test_argmax_argmin(self, arr, argmax_expected, argmin_expected):
+        argmax_result = arr.argmax()
+        argmin_result = arr.argmin()
+        assert argmax_result == argmax_expected
+        assert argmin_result == argmin_expected
