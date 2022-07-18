@@ -355,6 +355,8 @@ The argument validation should be done in ``.groupby()``, using the name of the 
                                         names=["x", "y"])
    df.groupby(["col1", "x"])
 
+
+
 Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels by
