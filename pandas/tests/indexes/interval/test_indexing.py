@@ -76,12 +76,12 @@ class TestGetLoc:
             with pytest.raises(KeyError, match=str(scalar)):
                 index.get_loc(scalar)
 
-    @pytest.mark.parametrize("other_closed", ["left", "right", "both", "neither"])
+    @pytest.mark.parametrize("other_inclusive", ["left", "right", "both", "neither"])
     @pytest.mark.parametrize("left, right", [(0, 5), (-1, 4), (-1, 6), (6, 7)])
-    def test_get_loc_length_one_interval(self, left, right, closed, other_closed):
+    def test_get_loc_length_one_interval(self, left, right, closed, other_inclusive):
         # GH 20921
         index = IntervalIndex.from_tuples([(0, 5)], inclusive=closed)
-        interval = Interval(left, right, inclusive=other_closed)
+        interval = Interval(left, right, inclusive=other_inclusive)
         if interval == index[0]:
             result = index.get_loc(interval)
             assert result == 0
@@ -89,7 +89,7 @@ class TestGetLoc:
             with pytest.raises(
                 KeyError,
                 match=re.escape(
-                    f"Interval({left}, {right}, inclusive='{other_closed}')"
+                    f"Interval({left}, {right}, inclusive='{other_inclusive}')"
                 ),
             ):
                 index.get_loc(interval)
