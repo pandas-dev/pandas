@@ -35,10 +35,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import resolve_na_sentinel
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays.base import (
-    ExtensionArray,
-    ExtensionArrayT,
-)
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
@@ -709,7 +706,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def _quantile(
         self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
-    ) -> ArrowExtensionArrayT | ExtensionArrayT:
+    ) -> ArrowExtensionArrayT:
         """
         Compute the quantiles of self for each quantile in `qs`.
 
@@ -729,9 +726,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         result = pc.quantile(self._data, q=qs, interpolation=interpolation)
         return type(self)(result)
 
-    def _mode(
-        self: ArrowExtensionArrayT, dropna: bool = True
-    ) -> ArrowExtensionArrayT | ExtensionArrayT:
+    def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:
         """
         Returns the mode(s) of the ExtensionArray.
 
