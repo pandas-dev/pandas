@@ -135,9 +135,7 @@ def melt(
                 id_data = concat([id_data] * K, ignore_index=True)
             else:
                 # We can't concat empty list. (GH 46044)
-                # Desired result is an empty Series, but we can't construct it by
-                # pd.Series() since circular import
-                id_data = id_data.iloc[:0]
+                id_data = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
         else:
             # error: Incompatible types in assignment (expression has type
             # "ndarray[Any, dtype[Any]]", variable has type "Series")
