@@ -196,6 +196,9 @@ class BoxPlot(LinePlot):
 
     def _set_ticklabels(self, ax: Axes, labels):
         if self.orientation == "vertical":
+            labels = fix_groupby_singlelist_input(labels)
+            for i in labels:
+                i = fix_groupby_singlelist_input(i)
             ax.set_xticklabels(labels)
         else:
             ax.set_yticklabels(labels)
@@ -374,6 +377,9 @@ def boxplot(
             assert remainder == 0, remainder
             keys *= i
         if is_vertical:
+            labels = fix_groupby_singlelist_input(labels)
+            for i in labels:
+                i = fix_groupby_singlelist_input(i)
             ax.set_xticklabels(keys, rotation=rot)
         else:
             ax.set_yticklabels(keys, rotation=rot)
