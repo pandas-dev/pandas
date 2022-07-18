@@ -1179,13 +1179,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
-    def _values_for_argsort(self) -> np.ndarray:
-        return self._sparse_values
-
-    def _mask_for_argsort(self) -> np.ndarray:
-        mask = ExtensionArray._mask_for_argsort(self)
-        return mask[self._sparse_index.indices]
-
     @classmethod
     def _concat_same_type(
         cls: type[SparseArrayT], to_concat: Sequence[SparseArrayT]
@@ -1643,7 +1636,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             return na_value_for_dtype(self.dtype.subtype, compat=False)
 
-    def _argmin_argmax(self, candidate: int, kind: Literal["argmin", "argmax"]) -> int:
+    def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
+
+        values = self._sparse_values
+        mask = np.asarray(isna(self))[self._sparse_index.indices]
+        func = np.argmax if kind == "argmax" else np.argmin
+
+        idx = np.arange(values.shape[0])
+        non_nans = values[~mask]
+        non_nan_idx = idx[~mask]
+
+        _candidate = non_nan_idx[func(non_nans)]
+        candidate = self._sparse_index.indices[_candidate]
+
         if isna(self.fill_value):
             return candidate
         if kind == "argmin" and self[candidate] < self.fill_value:
@@ -1658,14 +1663,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _loc
 
     def argmax(self, skipna: bool = True) -> int:
-        _candidate = ExtensionArray.argmax(self, skipna=skipna)
-        candidate = self._sparse_index.indices[_candidate]
-        return self._argmin_argmax(candidate, "argmax")
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return self._argmin_argmax("argmax")
 
     def argmin(self, skipna: bool = True) -> int:
-        _candidate = ExtensionArray.argmin(self, skipna=skipna)
-        candidate = self._sparse_index.indices[_candidate]
-        return self._argmin_argmax(candidate, "argmin")
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return self._argmin_argmax("argmin")
 
     # ------------------------------------------------------------------------
     # Ufuncs
