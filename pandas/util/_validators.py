@@ -5,6 +5,7 @@ for validating data or function arguments
 from __future__ import annotations
 
 from typing import (
+    Any,
     Iterable,
     Sequence,
     TypeVar,
@@ -265,7 +266,9 @@ def validate_bool_kwarg(
     return value
 
 
-def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
+def validate_axis_style_args(
+    data, args, kwargs, arg_name, method_name
+) -> dict[str, Any]:
     """
     Argument handler for mixed index, columns / axis functions
 
