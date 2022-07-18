@@ -10,7 +10,6 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
-import contextlib
 from datetime import (
     date,
     datetime,
@@ -28,7 +27,6 @@ from pandas.compat import (
     pa_version_under6p0,
     pa_version_under8p0,
 )
-from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
@@ -1843,40 +1841,35 @@ def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
 
 
+@pytest.mark.xfail(pa_version_under4p0, raises=NotImplementedError)
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )
 @pytest.mark.parametrize("quantile", [0.5, [0.5, 0.5]])
 def test_quantile(data, interpolation, quantile, request):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"quantile not supported by pyarrow for {pa_dtype}",
+            )
+        )
     data = data.take([0, 0, 0])
     ser = pd.Series(data)
-    if pa_version_under4p0:
-        with tm.assert_produces_warning(PerformanceWarning):
-            # Just validate the PerformanceWarning
-            # ExtensionArray._quantile may not support all pyarrow types
-            with contextlib.suppress(Exception):
-                ser.quantile(q=quantile, interpolation=interpolation)
+    result = ser.quantile(q=quantile, interpolation=interpolation)
+    if quantile == 0.5:
+        assert result == data[0]
     else:
-        pa_dtype = data.dtype.pyarrow_dtype
-        if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"quantile not supported by pyarrow for {pa_dtype}",
-                )
-            )
-        result = ser.quantile(q=quantile, interpolation=interpolation)
-        if quantile == 0.5:
-            assert result == data[0]
-        else:
-            # Just check the values
-            result = result.astype("float64[pyarrow]")
-            expected = pd.Series(
-                data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
-            )
-            tm.assert_series_equal(result, expected)
+        # Just check the values
+        result = result.astype("float64[pyarrow]")
+        expected = pd.Series(
+            data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
+        )
+        tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(pa_version_under6p0, raises=NotImplementedError)
 @pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
@@ -1884,32 +1877,23 @@ def test_quantile(data, interpolation, quantile, request):
     ids=["multi_mode", "single_mode"],
 )
 def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
+    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+    if pa.types.is_temporal(pa_dtype):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"mode not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    elif pa.types.is_boolean(pa_dtype) and "multi_mode" in request.node.nodeid:
+        # https://issues.apache.org/jira/browse/ARROW-17096
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="https://issues.apache.org/jira/browse/ARROW-17096",
+            )
+        )
     data = data_for_grouping.take(take_idx)
     ser = pd.Series(data)
-    if pa_version_under6p0:
-        with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
-        ):
-            # Just validate the PerformanceWarning
-            # ExtensionArray._mode may not support all pyarrow types
-            with contextlib.suppress(Exception):
-                ser.mode(dropna=dropna)
-    else:
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=f"mode not supported by pyarrow for {pa_dtype}",
-                )
-            )
-        elif pa.types.is_boolean(pa_dtype) and "multi_mode" in request.node.nodeid:
-            # https://issues.apache.org/jira/browse/ARROW-17096
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="https://issues.apache.org/jira/browse/ARROW-17096",
-                )
-            )
-        result = ser.mode(dropna=dropna)
-        expected = pd.Series(data_for_grouping.take(exp_idx))
-        tm.assert_series_equal(result, expected)
+    result = ser.mode(dropna=dropna)
+    expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)
