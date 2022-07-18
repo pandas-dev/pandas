@@ -518,7 +518,7 @@ class Resampler(BaseGroupBy, PandasObject):
             and result.empty
             and type(result.index) != PeriodIndex
         ):
-            resule = result.set_index(
+            result = result.set_index(
                 _asfreq_compat(obj.index[:0], freq=self.freq), append=True
             )
 
