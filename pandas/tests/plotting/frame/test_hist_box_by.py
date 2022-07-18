@@ -230,11 +230,11 @@ class TestBoxWithBy(TestPlotBase):
     @pytest.mark.parametrize(
         "by, column, titles, xticklabels",
         [
-            ("C", "A", "A", [["a", "b", "c"]]),
+            ("C", "A", ["A"], [["a", "b", "c"]]),
             (
                 ["C", "D"],
                 "A",
-                "A",
+                ["A"],
                 [
                     [
                         "(a, a)",
