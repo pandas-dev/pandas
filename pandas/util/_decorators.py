@@ -12,7 +12,10 @@ from typing import (
 import warnings
 
 from pandas._libs.properties import cache_readonly
-from pandas._typing import F
+from pandas._typing import (
+    F,
+    T,
+)
 from pandas.util._exceptions import find_stack_level
 
 
@@ -485,7 +488,7 @@ class Appender:
             self.addendum = addendum
         self.join = join
 
-    def __call__(self, func: F) -> F:
+    def __call__(self, func: T) -> T:
         func.__doc__ = func.__doc__ if func.__doc__ else ""
         self.addendum = self.addendum if self.addendum else ""
         docitems = [func.__doc__, self.addendum]
