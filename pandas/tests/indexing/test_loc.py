@@ -1832,10 +1832,18 @@ class TestLocWithMultiIndex:
         expected = Series(["a", "b", "c", "a"], dtype="category")
         tm.assert_series_equal(result, expected)
 
-    def test_loc_enlarge_category_series_with_np_nan(self):
+    @pytest.mark.parametrize("na", (np.nan, pd.NA, None))
+    def test_loc_enlarge_category_series_with_nan(self, na):
         result = Series(["a", "b", "c"], dtype="category")
-        result.loc[3] = np.nan
-        expected = Series(["a", "b", "c", np.nan], dtype=object)
+        result.loc[3] = na
+        expected = Series(["a", "b", "c", na], dtype="category")
+        tm.assert_series_equal(expected, result)
+
+    @pytest.mark.parametrize("na", (np.nan, pd.NA, None))
+    def test_loc_set_nan_into_category_series(self, na):
+        result = Series(["a", "b", "c", "d"], dtype="category")
+        result.loc[3] = na
+        expected = Series(["a", "b", "c", na], dtype="category")
         tm.assert_series_equal(expected, result)
 
     def test_loc_getitem_preserves_index_level_category_dtype(self):

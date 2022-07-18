@@ -591,7 +591,9 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         return dtype, fv
 
     elif isna(fill_value):
-        dtype = _dtype_obj
+        # preserve dtype in case of categoricaldtype
+        if not isinstance(dtype, CategoricalDtype):
+            dtype = _dtype_obj
         if fill_value is None:
             # but we retain e.g. pd.NA
             fill_value = np.nan
@@ -647,7 +649,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         return np.dtype("object"), fill_value
 
     elif isinstance(dtype, CategoricalDtype):
-        if fill_value in dtype.categories:
+        if fill_value in dtype.categories or isna(fill_value):
             return dtype, fill_value
         else:
             return object, ensure_object(fill_value)
