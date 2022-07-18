@@ -166,10 +166,10 @@ class TestHistWithBy(TestPlotBase):
         # GH 15079
         # _check_plot_works adds an ax so catch warning. see GH #13188
         msg = (
-        "In a future version of pandas, a length 1 "
-        "tuple will be returned when grouping by a "
-        "list of length 1. Don't supply a list with "
-        "a single grouper to avoid this warning."
+            "In a future version of pandas, a length 1 "
+            "tuple will be returned when grouping by a "
+            "list of length 1. Don't supply a list with "
+            "a single grouper to avoid this warning."
         )
         with tm.assert_produces_warning(UserWarning):
             with tm.assert_produces_warning(FutureWarning, match=msg):

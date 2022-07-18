@@ -1355,7 +1355,7 @@ ordered data. In particular it has an optional ``fill_method`` keyword to
 fill/interpolate missing data:
 
 .. ipython:: python
-
+   :okwarning:
    left = pd.DataFrame(
        {"k": ["K0", "K1", "K1", "K2"], "lv": [1, 2, 3, 4], "s": ["a", "b", "c", "d"]}
    )
@@ -1381,7 +1381,7 @@ For example; we might have ``trades`` and ``quotes`` and we want to ``asof``
 merge them.
 
 .. ipython:: python
-
+   :okwarning:
    trades = pd.DataFrame(
        {
            "time": pd.to_datetime(

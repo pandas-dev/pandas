@@ -239,7 +239,7 @@ interested in the row/column margins (subtotals) for each variable, set
 the ``margins`` parameter to ``True``:
 
 .. ipython:: python
-
+    :okwarning:
     air_quality.pivot_table(
         values="value",
         index="location",
@@ -260,6 +260,7 @@ For more information about :meth:`~DataFrame.pivot_table`, see the user guide se
    </div>
 
 .. note::
+    :okwarning:
     In case you are wondering, :meth:`~DataFrame.pivot_table` is indeed directly linked
     to :meth:`~DataFrame.groupby`. The same result can be derived by grouping on both
     ``parameter`` and ``location``:
