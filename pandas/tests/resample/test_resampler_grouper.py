@@ -434,11 +434,11 @@ def test_resample_empty_Dataframe(keys):
     # GH 26411
     df = DataFrame([], columns=["a", "b", "date"])
     df["date"] = pd.to_datetime(df["date"])
-    df.set_index("date", inplace=True)
+    df = df.set_index("date")
     result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
     expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
     expected["date"] = pd.to_datetime(expected["date"])
-    expected.set_index("date", append=True, drop=True, inplace=True)
+    expected = expected.set_index("date", append=True, drop=True)
     if len(keys) == 1:
         expected.index.name = keys[0]
 
