@@ -22,12 +22,8 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float32Dtype,
-    Float64Dtype,
     Index,
     IndexSlice,
-    Int32Dtype,
-    Int64Dtype,
     MultiIndex,
     Period,
     PeriodIndex,
@@ -1839,19 +1835,18 @@ class TestLocWithMultiIndex:
         expected = Series(["a", "b", "c", "a"], dtype="category")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        (np.int64, np.float64, Int64Dtype, Int32Dtype, Float64Dtype, Float32Dtype),
-    )
-    def test_loc_set_nan_in_categorical_series(self, dtype):
+    def test_loc_set_nan_in_categorical_series(self, any_numeric_ea_dtype):
         # GH#47677
-        srs = Series([1, 2, 3], dtype=CategoricalDtype(Index([1, 2, 3], dtype=dtype)))
+        srs = Series(
+            [1, 2, 3],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
         # enlarge
         srs.loc[3] = np.nan
-        assert srs.values.dtype._categories.dtype == dtype
+        assert srs.values.dtype._categories.dtype == any_numeric_ea_dtype
         # set into
         srs.loc[1] = np.nan
-        assert srs.values.dtype._categories.dtype == dtype
+        assert srs.values.dtype._categories.dtype == any_numeric_ea_dtype
 
     @pytest.mark.parametrize("na", (np.nan, pd.NA, None))
     def test_loc_consistency_series_enlarge_set_into(self, na):
