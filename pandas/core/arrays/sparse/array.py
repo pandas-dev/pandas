@@ -1179,6 +1179,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
+    def _values_for_argsort(self) -> np.ndarray:
+        return self._sparse_values
+
+    def _mask_for_argsort(self) -> np.ndarray:
+        mask = ExtensionArray._mask_for_argsort(self)
+        return mask[self._sparse_index.indices]
+
     @classmethod
     def _concat_same_type(
         cls: type[SparseArrayT], to_concat: Sequence[SparseArrayT]
@@ -1635,6 +1642,30 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.fill_value
         else:
             return na_value_for_dtype(self.dtype.subtype, compat=False)
+
+    def _argmin_argmax(self, candidate: int, kind: Literal["min", "max"]) -> int:
+        if isna(self.fill_value):
+            return candidate
+        if kind == "min" and self[candidate] < self.fill_value:
+            return candidate
+        if kind == "max" and self[candidate] > self.fill_value:
+            return candidate
+        _loc = self._first_fill_value_loc()
+        if _loc == -1:
+            # fill_value doesn't exist
+            return candidate
+        else:
+            return _loc
+
+    def argmax(self, skipna: bool = True) -> int:
+        _candidate = ExtensionArray.argmax(self, skipna=skipna)
+        candidate = self._sparse_index.indices[_candidate]
+        return self._argmin_argmax(candidate, "max")
+
+    def argmin(self, skipna: bool = True) -> int:
+        _candidate = ExtensionArray.argmin(self, skipna=skipna)
+        candidate = self._sparse_index.indices[_candidate]
+        return self._argmin_argmax(candidate, "min")
 
     # ------------------------------------------------------------------------
     # Ufuncs
