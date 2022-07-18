@@ -195,16 +195,14 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
-            results = []
-            for arr in chunks:
-                # using _from_sequence to ensure None is converted to NA
-                str_arr = StringArray._from_sequence(np.array(arr))
-                results.append(str_arr)
-
-        if results:
-            return StringArray._concat_same_type(results)
-        else:
-            return StringArray(np.array([], dtype="object"))
+        # Bypass validation inside StringArray constructor
+        new_string_array = StringArray.__new__(StringArray)
+        NDArrayBacked.__init__(
+            new_string_array,
+            pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False),
+            StringDtype(storage="python"),
+        )
+        return new_string_array
 
 
 class BaseStringArray(ExtensionArray):
