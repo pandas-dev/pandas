@@ -1891,6 +1891,7 @@ def _get_plot_backend(backend: str | None = None):
     _backends[backend_str] = module
     return module
 
+
 def fix_groupby_singlelist_input(keys):
     if isinstance(keys, list):
         if len(keys) == 1 and isinstance(keys[0], str):
