@@ -465,7 +465,7 @@ def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
     assert method in {"argmax", "argmin"}
     func = np.argmax if method == "argmax" else np.argmin
 
-    mask = np.asarray(isna(values))
+    mask = values._mask_for_argsort()
     arr_values = values._values_for_argsort()
 
     if arr_values.ndim > 1:
