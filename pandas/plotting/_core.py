@@ -7,6 +7,9 @@ from typing import (
     Sequence,
 )
 
+from pandas.core.groupby.generic import (
+    fix_groupby_singlelist_input,
+)
 from pandas._config import get_option
 
 from pandas._typing import IndexLabel
@@ -475,6 +478,8 @@ def boxplot(
     return_type=None,
     **kwargs,
 ):
+    column = fix_groupby_singlelist_input(column)
+    by = fix_groupby_singlelist_input(by)
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
         data,
@@ -600,6 +605,7 @@ def boxplot_frame_groupby(
 
         >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)  # doctest: +SKIP
     """
+    column = fix_groupby_singlelist_input(column)
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
         grouped,
@@ -1887,3 +1893,9 @@ def _get_plot_backend(backend: str | None = None):
     module = _load_backend(backend_str)
     _backends[backend_str] = module
     return module
+
+def fix_groupby_singlelist_input(keys):
+    if isinstance(keys, list):
+        if len(keys) == 1 and isinstance(keys[0], str):
+            keys = keys[0]
+    return keys
