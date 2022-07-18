@@ -377,8 +377,8 @@ def boxplot(
             assert remainder == 0, remainder
             keys *= i
         if is_vertical:
-            labels = fix_groupby_singlelist_input(labels)
-            for i in labels:
+            keys = fix_groupby_singlelist_input(keys)
+            for i in keys:
                 i = fix_groupby_singlelist_input(i)
             ax.set_xticklabels(keys, rotation=rot)
         else:
