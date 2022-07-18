@@ -238,6 +238,7 @@ def _grouped_plot_by_column(
     return_type=None,
     **kwargs,
 ):
+    by = fix_groupby_singlelist_input(by)
     grouped = data.groupby(by)
     if columns is None:
         if not isinstance(by, (list, tuple)):
@@ -534,3 +535,10 @@ def boxplot_frame_groupby(
             **kwds,
         )
     return ret
+
+
+def fix_groupby_singlelist_input(keys):
+    if isinstance(keys, list):
+        if len(keys) == 1 and isinstance(keys[0], str):
+            keys = keys[0]
+    return keys
