@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************************
-Time Series / date functionality
+Time series / date functionality
 ********************************
 
 pandas contains extensive capabilities and features for working with time series data for all domains.

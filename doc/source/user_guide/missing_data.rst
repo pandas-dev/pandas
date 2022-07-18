@@ -874,7 +874,7 @@ is already ``False``):
    True & pd.NA
 
 
-``NA`` in a Boolean context
+``NA`` in a boolean context
 ---------------------------
 
 Since the actual value of an NA is unknown, it is ambiguous to convert NA
