@@ -2119,7 +2119,6 @@ class _iLocIndexer(_LocationIndexer):
             new_values = Series([value], dtype=new_dtype)._values
 
             if len(self.obj._values):
-                # GH#47677 handle enlarging with a scalar as a special case
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
                 new_values = concat_compat([self.obj._values, new_values])
