@@ -1,3 +1,4 @@
+cimport cython
 from cpython.datetime cimport (
     PyDateTime_DATE_GET_HOUR,
     PyDateTime_DATE_GET_MICROSECOND,
@@ -450,3 +451,43 @@ cdef int op_to_op_code(op):
         return Py_GE
     if op is operator.gt:
         return Py_GT
+
+
+@cython.overflowcheck(True)
+cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1:
+    """
+    Find the factor by which we need to multiply to convert from from_unit to to_unit.
+    """
+    if (
+        from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+        or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+    ):
+        raise ValueError("unit-less resolutions are not supported")
+    if from_unit > to_unit:
+        raise ValueError
+
+    if from_unit == to_unit:
+        return 1
+
+    if from_unit == NPY_DATETIMEUNIT.NPY_FR_W:
+        return 7 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_D:
+        return 24 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_h:
+        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_m:
+        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_s:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ms:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_us:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ns:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ps:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+    else:
+        raise ValueError(from_unit, to_unit)
