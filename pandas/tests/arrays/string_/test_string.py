@@ -101,7 +101,7 @@ def test_add(dtype, request):
             "unsupported operand type(s) for +: 'ArrowStringArray' and "
             "'ArrowStringArray'"
         )
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
         request.node.add_marker(mark)
 
     a = pd.Series(["a", "b", "c", None, None], dtype=dtype)
@@ -142,7 +142,7 @@ def test_add_2d(dtype, request):
 def test_add_sequence(dtype, request):
     if dtype.storage == "pyarrow":
         reason = "unsupported operand type(s) for +: 'ArrowStringArray' and 'list'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
         request.node.add_marker(mark)
 
     a = pd.array(["a", "b", None, None], dtype=dtype)
@@ -160,7 +160,7 @@ def test_add_sequence(dtype, request):
 def test_mul(dtype, request):
     if dtype.storage == "pyarrow":
         reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
         request.node.add_marker(mark)
 
     a = pd.array(["a", "b", None], dtype=dtype)
