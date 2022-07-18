@@ -398,8 +398,6 @@ class StringMethods(NoNewAttributesMixin):
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
             return [others[x] for x in others]
-        elif isinstance(others, type(self)):
-            return [others._data]
         elif is_list_like(others, allow_sets=False):
             others = list(others)  # ensure iterators do not get read twice etc
 
