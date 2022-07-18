@@ -17,6 +17,7 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     Dtype,
     Scalar,
+    npt,
     type_t,
 )
 from pandas.compat import pa_version_under1p01
@@ -412,6 +413,12 @@ class StringArray(BaseStringArray, PandasArray):
                 raise ValueError("Must provide strings.")
 
         super().__setitem__(key, value)
+
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        # the super() method NDArrayBackedExtensionArray._putmask uses
+        # np.putmask which doesn't properly handle None/pd.NA, so using the
+        # base class implementation that uses __setitem__
+        ExtensionArray._putmask(self, mask, value)
 
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
