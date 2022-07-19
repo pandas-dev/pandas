@@ -12199,7 +12199,7 @@ Returns
 
 See Also
 --------
-core.window.Expanding.{accum_func_name} : Similar functionality
+core.window.expanding.Expanding.{accum_func_name} : Similar functionality
     but ignores ``NaN`` values.
 {name2}.{accum_func_name} : Return the {desc} over
     {name2} axis.

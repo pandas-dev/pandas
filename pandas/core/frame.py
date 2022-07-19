@@ -1746,7 +1746,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
@@ -10365,9 +10365,10 @@ Parrot 2  Parrot       24.0
         See Also
         --------
         Series.cov : Compute covariance with another Series.
-        core.window.ExponentialMovingWindow.cov: Exponential weighted sample covariance.
-        core.window.Expanding.cov : Expanding sample covariance.
-        core.window.Rolling.cov : Rolling sample covariance.
+        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted sample
+            covariance.
+        core.window.expanding.Expanding.cov : Expanding sample covariance.
+        core.window.rolling.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
@@ -10560,7 +10561,8 @@ Parrot 2  Parrot       24.0
             else:
                 return this.apply(lambda x: other.corr(x, method=method), axis=axis)
 
-        other = other._get_numeric_data()
+        if numeric_only_bool:
+            other = other._get_numeric_data()
         left, right = this.align(other, join="inner", copy=False)
 
         if axis == 1:
@@ -10573,11 +10575,15 @@ Parrot 2  Parrot       24.0
             right = right + left * 0
 
             # demeaned data
-            ldem = left - left.mean()
-            rdem = right - right.mean()
+            ldem = left - left.mean(numeric_only=numeric_only_bool)
+            rdem = right - right.mean(numeric_only=numeric_only_bool)
 
             num = (ldem * rdem).sum()
-            dom = (left.count() - 1) * left.std() * right.std()
+            dom = (
+                (left.count() - 1)
+                * left.std(numeric_only=numeric_only_bool)
+                * right.std(numeric_only=numeric_only_bool)
+            )
 
             correl = num / dom
 
@@ -11177,7 +11183,7 @@ Parrot 2  Parrot       24.0
 
         See Also
         --------
-        core.window.Rolling.quantile: Rolling quantile.
+        core.window.rolling.Rolling.quantile: Rolling quantile.
         numpy.percentile: Numpy function to compute the percentile.
 
         Examples
