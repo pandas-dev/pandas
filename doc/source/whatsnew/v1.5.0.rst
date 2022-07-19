@@ -248,14 +248,14 @@ and attributes without holding entire tree in memory (:issue:`45442`).
 .. _whatsnew_150.enhancements.optional_dependency_management:
 
 Optional dependencies version management
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Optional pandas dependencies can be managed as extras in a requirements/setup file, for example:
 
 .. code-block:: python
 
   pandas[recommended, s3]>=1.5.0
 
-Available optional dependencies are ``[all, recommended, computation, s3, gcp, azure, excel, parquet, feather, hdf5, sql-postgressql, ssql-mysql, sql-other, html, plot, table]`` (:issue:`39164`)
+Available optional dependencies are ``[all, performance, computation, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html, plot, output_formatting, compression, test]`` (:issue:`39164`)
 
 .. _whatsnew_150.enhancements.other:
 
