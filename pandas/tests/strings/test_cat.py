@@ -384,7 +384,7 @@ def test_cat_on_series_dot_str():
     ps = Series(["AbC", "de", "FGHI", "j", "kLLLm"])
     with tm.assert_produces_warning(FutureWarning):
         ps.str.cat(others=ps.str)
-    # The following code will be uncommented if `Series.str.__iter__` is removed.
+    # TODO(2.0): The following code can be uncommented when `Series.str.__iter__` is removed.
     """
     message = re.escape(
         "others must be Series, Index, DataFrame, np.ndarray "
