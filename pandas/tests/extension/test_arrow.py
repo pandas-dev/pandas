@@ -339,6 +339,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             all_numeric_reductions in {"sum", "mean"}
             and skipna is False
             and pa_version_under6p0
+            and (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype))
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
