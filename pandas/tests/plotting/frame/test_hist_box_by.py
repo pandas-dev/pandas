@@ -166,18 +166,17 @@ class TestHistWithBy(TestPlotBase):
         # GH 15079
         # _check_plot_works adds an ax so catch warning. see GH #13188
         msg = (
-        "In a future version of pandas, a length 1 "
-        "tuple will be returned when grouping by a "
-        "list of length 1. Don't supply a list with "
-        "a single grouper to avoid this warning."
+            "In a future version of pandas, a length 1 "
+            "tuple will be returned when grouping by a "
+            "list of length 1. Don't supply a list with "
+            "a single grouper to avoid this warning."
         )
         with tm.assert_produces_warning(UserWarning):
-                with warnings.catch_warnings():
-                # We've already warned above
-                    warnings.filterwarnings("ignore", message=msg)
-                    axes = _check_plot_works(
-                        hist_df.plot.hist, column=column, by=by, layout=layout
-                    )
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=msg)
+                axes = _check_plot_works(
+                    hist_df.plot.hist, column=column, by=by, layout=layout
+                )
         self._check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
     @pytest.mark.parametrize(

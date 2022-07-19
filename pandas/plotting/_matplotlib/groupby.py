@@ -108,7 +108,8 @@ def reconstruct_data_with_by(
     1  3.0   4.0   NaN   NaN
     2  NaN   NaN   5.0   6.0
     """
-    grouped = data.groupby(by)
+    bymodi = fix_groupby_singlelist_input(by)
+    grouped = data.groupby(bymodi)
 
     data_list = []
     for key, group in grouped:
@@ -134,3 +135,10 @@ def reformat_hist_y_given_by(
     if by is not None and len(y.shape) > 1:
         return np.array([remove_na_arraylike(col) for col in y.T]).T
     return remove_na_arraylike(y)
+
+
+def fix_groupby_singlelist_input(keys):
+    if isinstance(keys, list):
+        if len(keys) == 1 and isinstance(keys[0], str):
+            keys = keys[0]
+    return keys

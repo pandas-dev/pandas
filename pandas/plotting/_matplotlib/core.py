@@ -175,7 +175,8 @@ class MPLPlot(ABC):
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later
         if self.by is not None and self._kind == "hist":
-            self._grouped = data.groupby(self.by)
+            bymodi = fix_groupby_singlelist_input(by)
+            self._grouped = data.groupby(bymodi)
 
         self.kind = kind
 
@@ -679,6 +680,7 @@ class MPLPlot(ABC):
             )
 
         for ax in self.axes:
+            ax = getattr(ax, "right_ax", ax)
             if self.yticks is not None:
                 ax.set_yticks(self.yticks)
 
@@ -1828,3 +1830,10 @@ class PiePlot(MPLPlot):
             leglabels = labels if labels is not None else idx
             for p, l in zip(patches, leglabels):
                 self._append_legend_handles_labels(p, l)
+
+
+def fix_groupby_singlelist_input(keys):
+    if isinstance(keys, list):
+        if len(keys) == 1 and isinstance(keys[0], str):
+            keys = keys[0]
+    return keys
