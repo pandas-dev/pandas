@@ -664,13 +664,16 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 return pc.divide_checked(numerator, denominator)
 
         else:
-            pyarrow_reduction_map = {
+            pyarrow_name = {
                 "median": "approximate_median",
                 "prod": "product",
                 "std": "stddev",
                 "var": "variance",
-            }
-            pyarrow_meth = getattr(pc, pyarrow_reduction_map.get(name, name), None)
+            }.get(name, name)
+            # error: Incompatible types in assignment
+            # (expression has type "Optional[Any]", variable has type
+            # "Callable[[Any, Any, KwArg(Any)], Any]")
+            pyarrow_meth = getattr(pc, pyarrow_name, None)  # type: ignore[assignment]
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
