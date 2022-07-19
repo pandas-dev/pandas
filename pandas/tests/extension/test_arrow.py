@@ -331,10 +331,24 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         if all_numeric_reductions in {"skew", "kurt"}:
             request.node.add_marker(xfail_mark)
         elif (
-            all_numeric_reductions in {"median", "var", "std", "prod"}
+            all_numeric_reductions in {"median", "var", "std", "prod", "max", "min"}
             and pa_version_under6p0
         ):
             request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"sum", "mean"}
+            and skipna is False
+            and pa_version_under6p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AssertionError,
+                    reason=(
+                        f"{all_numeric_reductions} with skip_nulls={skipna} did not "
+                        f"return NA for {pa_dtype} with pyarrow={pa.__version__}"
+                    ),
+                )
+            )
         elif not (
             pa.types.is_integer(pa_dtype)
             or pa.types.is_floating(pa_dtype)
