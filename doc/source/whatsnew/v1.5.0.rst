@@ -253,7 +253,7 @@ Optional pandas dependencies can be managed as extras in a requirements/setup fi
 
 .. code-block:: python
 
-  pandas[recommended, s3]>=1.5.0
+  pandas[performance, aws]>=1.5.0
 
 Available optional dependencies are ``[all, performance, computation, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html, plot, output_formatting, compression, test]`` (:issue:`39164`)
 
