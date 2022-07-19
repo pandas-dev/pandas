@@ -26,6 +26,7 @@ from pandas.compat import (
     pa_version_under4p0,
     pa_version_under6p0,
     pa_version_under8p0,
+    pa_version_under9p0,
 )
 
 import pandas as pd
@@ -1893,8 +1894,11 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
                 reason=f"mode not supported by pyarrow for {pa_dtype}",
             )
         )
-    elif pa.types.is_boolean(pa_dtype) and "multi_mode" in request.node.nodeid:
-        # https://issues.apache.org/jira/browse/ARROW-17096
+    elif (
+        pa.types.is_boolean(pa_dtype)
+        and "multi_mode" in request.node.nodeid
+        and pa_version_under9p0
+    ):
         request.node.add_marker(
             pytest.mark.xfail(
                 reason="https://issues.apache.org/jira/browse/ARROW-17096",
