@@ -131,7 +131,11 @@ def melt(
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_array_dtype(id_data):
-            id_data = concat([id_data] * K, ignore_index=True)
+            if K > 0:
+                id_data = concat([id_data] * K, ignore_index=True)
+            else:
+                # We can't concat empty list. (GH 46044)
+                id_data = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
         else:
             # error: Incompatible types in assignment (expression has type
             # "ndarray[Any, dtype[Any]]", variable has type "Series")
