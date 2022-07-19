@@ -461,7 +461,6 @@ Additionally, you can call :meth:`DataFrame.stack` to display a pivoted DataFram
 as having a multi-level index:
 
 .. ipython:: python
-   :okwarning:
 
     table.stack()
 
@@ -579,7 +578,6 @@ array and is often used to transform continuous variables to discrete or
 categorical variables:
 
 .. ipython:: python
-   :okwarning:
 
    ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
 
