@@ -653,13 +653,16 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         TypeError : subclass does not define reductions
         """
         if name == "sem":
-            numerator = pc.stddev(self._data, skip_nulls=skipna, **kwargs)
-            denominator = pc.sqrt_checked(
-                pc.subtract_checked(
-                    pc.count(self._data, skip_nulls=skipna), kwargs["ddof"]
+
+            def pyarrow_meth(data, skipna, **kwargs):
+                numerator = pc.stddev(data, skip_nulls=skipna, **kwargs)
+                denominator = pc.sqrt_checked(
+                    pc.subtract_checked(
+                        pc.count(self._data, skip_nulls=skipna), kwargs["ddof"]
+                    )
                 )
-            )
-            result = pc.divide_checked(numerator, denominator)
+                return pc.divide_checked(numerator, denominator)
+
         else:
             pyarrow_reduction_map = {
                 "median": "approximate_median",
@@ -671,7 +674,16 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+        try:
             result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+        except (AttributeError, NotImplementedError, TypeError) as err:
+            msg = (
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                f"does not support reduction '{name}' with pyarrow "
+                f"version {pa.__version__}. '{name}' may be supported by "
+                f"upgrading pyarrow."
+            )
+            raise TypeError(msg) from err
         if pc.is_null(result).as_py():
             return self.dtype.na_value
         return result.as_py()

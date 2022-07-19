@@ -24,6 +24,7 @@ import pytest
 from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
+    pa_version_under6p0,
     pa_version_under8p0,
 )
 
@@ -320,16 +321,20 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
         pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_numeric_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
         if all_numeric_reductions in {"skew", "kurt"}:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        f"{all_numeric_reductions} is not implemented in pyarrow "
-                        f"for {pa_dtype}"
-                    ),
-                )
-            )
+            request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"median", "var", "std", "prod"}
+            and pa_version_under6p0
+        ):
+            request.node.add_marker(xfail_mark)
         elif not (
             pa.types.is_integer(pa_dtype)
             or pa.types.is_floating(pa_dtype)
@@ -338,29 +343,13 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             all_numeric_reductions in {"min", "max"}
             and (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
         ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=(
-                        f"{all_numeric_reductions} is not implemented in pyarrow "
-                        f"for {pa_dtype}"
-                    ),
-                )
-            )
+            request.node.add_marker(xfail_mark)
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
             "std",
             "var",
             "median",
         }:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
-                    reason=(
-                        f"{all_numeric_reductions} is not implemented in pyarrow "
-                        f"for {pa_dtype}"
-                    ),
-                )
-            )
+            request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
 
@@ -373,10 +362,10 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
         if not pa.types.is_boolean(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
+                    raises=TypeError,
                     reason=(
-                        f"{all_boolean_reductions} is not implemented in pyarrow "
-                        f"for {pa_dtype}"
+                        f"{all_boolean_reductions} is not implemented in "
+                        f"pyarrow={pa.__version__} for {pa_dtype}"
                     ),
                 )
             )
