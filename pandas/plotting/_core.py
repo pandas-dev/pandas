@@ -475,8 +475,6 @@ def boxplot(
     return_type=None,
     **kwargs,
 ):
-    column = fix_groupby_singlelist_input(column)
-    by = fix_groupby_singlelist_input(by)
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
         data,
@@ -602,7 +600,6 @@ def boxplot_frame_groupby(
 
         >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)  # doctest: +SKIP
     """
-    column = fix_groupby_singlelist_input(column)
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
         grouped,
@@ -1294,7 +1291,6 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
             >>> ax = df.plot.box(column="age", by="gender", figsize=(10, 8))
         """
-        by = fix_groupby_singlelist_input(by)
         return self(kind="box", by=by, **kwargs)
 
     def hist(self, by=None, bins=10, **kwargs):
@@ -1357,7 +1353,6 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
             >>> ax = df.plot.hist(column=["age"], by="gender", figsize=(10, 8))
         """
-        by = fix_groupby_singlelist_input(by)
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
     def kde(self, bw_method=None, ind=None, **kwargs):
@@ -1892,7 +1887,3 @@ def _get_plot_backend(backend: str | None = None):
     module = _load_backend(backend_str)
     _backends[backend_str] = module
     return module
-
-
-def fix_groupby_singlelist_input(keys):
-    return keys
