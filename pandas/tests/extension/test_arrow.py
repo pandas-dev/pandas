@@ -1841,7 +1841,11 @@ def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
 
 
-@pytest.mark.xfail(pa_version_under4p0, raises=NotImplementedError)
+@pytest.mark.xfail(
+    pa_version_under4p0,
+    raises=NotImplementedError,
+    reason="quantile only supported for pyarrow version >= 4.0",
+)
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )
@@ -1869,7 +1873,11 @@ def test_quantile(data, interpolation, quantile, request):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(pa_version_under6p0, raises=NotImplementedError)
+@pytest.mark.xfail(
+    pa_version_under6p0,
+    raises=NotImplementedError,
+    reason="mode only supported for pyarrow version >= 6.0",
+)
 @pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
