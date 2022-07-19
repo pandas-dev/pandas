@@ -335,6 +335,8 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             and pa_version_under6p0
         ):
             request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions in {"sum", "mean"} and pa_version_under2p0:
+            request.node.add_marker(xfail_mark)
         elif (
             all_numeric_reductions in {"sum", "mean"}
             and skipna is False
@@ -374,16 +376,17 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
         self, data, all_boolean_reductions, skipna, na_value, request
     ):
         pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_boolean_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
         if not pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason=(
-                        f"{all_boolean_reductions} is not implemented in "
-                        f"pyarrow={pa.__version__} for {pa_dtype}"
-                    ),
-                )
-            )
+            request.node.add_marker(xfail_mark)
+        elif pa_version_under3p0:
+            request.node.add_marker(xfail_mark)
         op_name = all_boolean_reductions
         s = pd.Series(data)
         result = getattr(s, op_name)(skipna=skipna)
