@@ -31,7 +31,10 @@ from pandas._typing import (
     DtypeArg,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    DatabaseError,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -54,10 +57,6 @@ from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
     from sqlalchemy import Table
-
-
-class DatabaseError(OSError):
-    pass
 
 
 # -----------------------------------------------------------------------------
