@@ -361,7 +361,7 @@ cpdef ndarray astype_overflowsafe(
                 check_dts_bounds(&dts, to_unit)
             except OutOfBoundsDatetime as err:
                 if is_td:
-                    from_abbrev = str(values.dtype).split("[")[-1][:-1]
+                    from_abbrev = np.datetime_data(values.dtype)[0]
                     np_val = np.timedelta64(value, from_abbrev)
                     msg = (
                         "Cannot convert {np_val} to {dtype} without overflow"

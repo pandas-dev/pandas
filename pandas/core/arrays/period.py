@@ -796,13 +796,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
             )
 
-        # FIXME: kludge
-        # error: "Tick" has no attribute "_prefix"
-        abbrev = freq._prefix  # type: ignore[attr-defined]
-        abbrev = {"H": "h", "T": "m", "S": "s", "L": "ms", "U": "us", "N": "ns"}.get(
-            abbrev, abbrev
-        )
-        dtype = np.dtype(f"m8[{abbrev}]")
+        dtype = np.dtype(f"m8[{freq._td64_unit}]")
 
         try:
             delta = astype_overflowsafe(
