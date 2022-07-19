@@ -196,9 +196,6 @@ class BoxPlot(LinePlot):
 
     def _set_ticklabels(self, ax: Axes, labels):
         if self.orientation == "vertical":
-            labels = fix_groupby_singlelist_input(labels)
-            for i in labels:
-                i = fix_groupby_singlelist_input(i)
             ax.set_xticklabels(labels)
         else:
             ax.set_yticklabels(labels)
@@ -241,7 +238,6 @@ def _grouped_plot_by_column(
     return_type=None,
     **kwargs,
 ):
-    by = fix_groupby_singlelist_input(by)
     grouped = data.groupby(by)
     if columns is None:
         if not isinstance(by, (list, tuple)):
@@ -377,9 +373,6 @@ def boxplot(
             assert remainder == 0, remainder
             keys *= i
         if is_vertical:
-            keys = fix_groupby_singlelist_input(keys)
-            for i in keys:
-                i = fix_groupby_singlelist_input(i)
             ax.set_xticklabels(keys, rotation=rot)
         else:
             ax.set_yticklabels(keys, rotation=rot)
@@ -541,10 +534,3 @@ def boxplot_frame_groupby(
             **kwds,
         )
     return ret
-
-
-def fix_groupby_singlelist_input(keys):
-    if isinstance(keys, list):
-        if len(keys) == 1 and isinstance(keys[0], str):
-            keys = keys[0]
-    return keys
