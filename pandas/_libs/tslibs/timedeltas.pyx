@@ -35,10 +35,7 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     precision_from_unit,
 )
-from pandas._libs.tslibs.dtypes cimport (
-    get_conversion_factor,
-    npy_unit_to_abbrev,
-)
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -50,6 +47,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_ns,
     cmp_dtstructs,
     cmp_scalar,
+    get_conversion_factor,
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
