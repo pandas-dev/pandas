@@ -245,7 +245,7 @@ and attributes without holding entire tree in memory (:issue:`45442`).
 .. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
 .. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
 
-.. _whatsnew_150.enhancements.Optional_dependency_management:
+.. _whatsnew_150.enhancements.optional_dependency_management:
 
 Optional dependencies version management
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -255,7 +255,7 @@ Optional pandas dependencies can be managed as extras in a requirements/setup fi
 
   pandas[recommended, s3]>=1.5.0
 
-Available optional dependencies are ``[all, recommended, computation, s3, gcp, azure, excel, parquet, feather,hdf5, sql-postgressql, ssql-mysql, sql-other, html, plot, table]`` (:issue:`39164`)
+Available optional dependencies are ``[all, recommended, computation, s3, gcp, azure, excel, parquet, feather, hdf5, sql-postgressql, ssql-mysql, sql-other, html, plot, table]`` (:issue:`39164`)
 
 .. _whatsnew_150.enhancements.other:
 
