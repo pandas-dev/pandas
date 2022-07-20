@@ -298,15 +298,13 @@ class TestTimestampUnaryOps:
         with pytest.raises(OverflowError, match=msg):
             Timestamp.max.ceil("s")
 
+    @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build")
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method",
         [
             Timestamp.round,
-            pytest.param(
-                Timedelta.floor,
-                marks=pytest.mark.xfail(not IS64, reason="Failing on 32 bit build"),
-            ),
+            Timedelta.floor,
             Timestamp.ceil,
         ],
     )

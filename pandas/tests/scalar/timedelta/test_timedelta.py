@@ -691,19 +691,14 @@ class TestTimedeltas:
         with pytest.raises(OverflowError, match=msg):
             Timedelta.max.ceil("s")
 
+    @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build")
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method",
         [
-            pytest.param(
-                Timedelta.round,
-                marks=pytest.mark.xfail(not IS64, reason="Failing on 32 bit build"),
-            ),
+            Timedelta.round,
             Timedelta.floor,
-            pytest.param(
-                Timedelta.ceil,
-                marks=pytest.mark.xfail(not IS64, reason="Failing on 32 bit build"),
-            ),
+            Timedelta.ceil,
         ],
     )
     def test_round_sanity(self, val, method):
