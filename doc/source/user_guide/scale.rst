@@ -336,6 +336,7 @@ a familiar groupby aggregation.
 
 .. ipython:: python
    :okwarning:
+   
    %time ddf.groupby("name")[["x", "y"]].mean().compute().head()
 
 The grouping and aggregation is done out-of-core and in parallel.

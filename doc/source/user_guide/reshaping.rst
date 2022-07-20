@@ -448,7 +448,7 @@ rows and columns:
 
 .. ipython:: python
    :okwarning:
-   
+
    table = df.pivot_table(
        index=["A", "B"],
        columns="C",
