@@ -6676,7 +6676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     downcast_k = downcast if not is_dict else downcast.get(k)
                     result.loc[:, k] = result[k].fillna(
                         v, limit=limit, downcast=downcast_k
-                    )
+                    ).values
                 return result if not inplace else None
 
             elif not is_list_like(value):

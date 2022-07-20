@@ -416,25 +416,6 @@ class TestMultiIndexLoc:
         )
         tm.assert_frame_equal(res, expected)
 
-    def test_loc_setitem_with_multi_index(self):
-        # GH 47649
-        result = DataFrame(
-            {
-                ("x", "a"): np.arange(6),
-                ("x", "b"): np.arange(6),
-                ("y", "c"): np.arange(6),
-            },
-        )
-        expected = DataFrame(
-            {
-                ("x", "a"): np.arange(6, 0, -1),
-                ("x", "b"): np.arange(6),
-                ("y", "c"): np.arange(6),
-            },
-        )
-        result.loc[:, "x"] = expected["x"]
-        tm.assert_frame_equal(result, expected)
-
 
 @pytest.mark.parametrize(
     "indexer, pos",
