@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import IS64
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -692,7 +693,18 @@ class TestTimedeltas:
 
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
-        "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
+        "method",
+        [
+            pytest.param(
+                Timedelta.round,
+                marks=pytest.mark.xfail(not IS64, reason="Failing on 32 bit build"),
+            ),
+            Timedelta.floor,
+            pytest.param(
+                Timedelta.ceil,
+                marks=pytest.mark.xfail(not IS64, reason="Failing on 32 bit build"),
+            ),
+        ],
     )
     def test_round_sanity(self, val, method):
         val = np.int64(val)

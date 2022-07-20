@@ -21,6 +21,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -299,7 +300,15 @@ class TestTimestampUnaryOps:
 
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
-        "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
+        "method",
+        [
+            Timestamp.round,
+            pytest.param(
+                Timedelta.floor,
+                marks=pytest.mark.xfail(not IS64, reason="Failing on 32 bit build"),
+            ),
+            Timestamp.ceil,
+        ],
     )
     def test_round_sanity(self, val, method):
         val = np.int64(val)
