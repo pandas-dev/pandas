@@ -22,7 +22,10 @@ from pandas.compat import (
     pa_version_under5p0,
     pa_version_under6p0,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -398,6 +401,56 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return self._data.is_null().to_pandas().values
         else:
             return self._data.is_null().to_numpy()
+
+    def _values_for_argsort(self) -> np.ndarray:
+        if pa_version_under2p0:
+            return self._data.to_pandas().values
+        else:
+            return self._data.to_numpy()
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def argsort(
+        self,
+        ascending: bool = True,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        *args,
+        **kwargs,
+    ) -> np.ndarray:
+        if pa_version_under6p0:
+            raise NotImplementedError(
+                "argsort only implemented for pyarrow version >= 6.0"
+            )
+
+        order = "ascending" if ascending else "descending"
+        try:
+            null_placement = {"last": "at_end", "first": "at_start"}[na_position]
+        except KeyError as err:
+            raise ValueError(
+                f"na_position must be 'last' or 'first'. Got {na_position}"
+            ) from err
+        result = pc.array_sort_indices(
+            self._data, order=order, null_placement=null_placement
+        )
+        if pa_version_under2p0:
+            return result.to_pandas().values
+        else:
+            return result.to_numpy()
+
+    def _argmin_max(self, skipna: bool, method: str) -> int:
+        if pa_version_under6p0:
+            raise NotImplementedError(
+                f"arg{method} only implemented for pyarrow version >= 6.0"
+            )
+
+        value = getattr(pc, method)(self._data, skip_nulls=skipna)
+        return pc.index(self._data, value).as_py()
+
+    def argmin(self, skipna: bool = True) -> int:
+        return self._argmin_max(skipna, "min")
+
+    def argmax(self, skipna: bool = True) -> int:
+        return self._argmin_max(skipna, "max")
 
     def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         """
