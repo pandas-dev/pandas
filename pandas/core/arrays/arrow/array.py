@@ -18,6 +18,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under1p01,
     pa_version_under2p0,
+    pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
@@ -388,6 +389,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         return len(self._data)
 
+    @property
+    def _hasna(self) -> bool:
+        return self._data.null_count > 0
+
     def isna(self) -> npt.NDArray[np.bool_]:
         """
         Boolean NumPy array indicating if each value is missing.
@@ -424,6 +429,49 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return super().dropna()
         else:
             return type(self)(pc.drop_null(self._data))
+
+    def isin(self, values):
+        if pa_version_under2p0:
+            fallback_performancewarning(version="2")
+            return super().isin(values)
+
+        # for an empty value_set pyarrow 3.0.0 segfaults and pyarrow 2.0.0 returns True
+        # for null values, so we short-circuit to return all False array.
+        if not len(values):
+            return np.zeros(len(self), dtype=bool)
+
+        kwargs = {}
+        if pa_version_under3p0:
+            # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
+            # with unexpected keyword argument in pyarrow 3.0.0+
+            kwargs["skip_null"] = True
+
+        result = pc.is_in(
+            self._data, value_set=pa.array(values, from_pandas=True), **kwargs
+        )
+        # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
+        # to False
+        return np.array(result, dtype=np.bool_)
+
+    def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
+        """
+        Return an array and missing value suitable for factorization.
+
+        Returns
+        -------
+        values : ndarray
+        na_value : pd.NA
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
+        """
+        if pa_version_under2p0:
+            values = self._data.to_pandas().values
+        else:
+            values = self._data.to_numpy()
+        return values, self.dtype.na_value
 
     @doc(ExtensionArray.factorize)
     def factorize(
@@ -622,8 +670,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        import pyarrow as pa
-
         chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
         arr = pa.chunked_array(chunks)
         return cls(arr)
