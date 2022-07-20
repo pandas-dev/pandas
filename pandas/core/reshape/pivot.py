@@ -368,7 +368,9 @@ def _generate_marginal_results(
 
         if len(rows) > 0:
             modifiedrow = fix_groupby_singlelist_input(rows)
-            margin = data[rows + values].groupby(modifiedrow, observed=observed).agg(aggfunc)
+            margin = (
+                data[rows + values].groupby(modifiedrow, observed=observed).agg(aggfunc)
+            )
             cat_axis = 1
 
             for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
