@@ -302,11 +302,7 @@ class TestTimestampUnaryOps:
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method",
-        [
-            Timestamp.round,
-            Timedelta.floor,
-            Timestamp.ceil,
-        ],
+        [Timestamp.round, Timedelta.floor, Timestamp.ceil],
     )
     def test_round_sanity(self, val, method):
         val = np.int64(val)

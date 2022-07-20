@@ -695,11 +695,7 @@ class TestTimedeltas:
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method",
-        [
-            Timedelta.round,
-            Timedelta.floor,
-            Timedelta.ceil,
-        ],
+        [Timedelta.round, Timedelta.floor, Timedelta.ceil],
     )
     def test_round_sanity(self, val, method):
         val = np.int64(val)
