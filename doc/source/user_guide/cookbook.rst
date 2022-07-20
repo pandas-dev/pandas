@@ -775,6 +775,13 @@ To create year and month cross tabulation:
        index=pd.date_range("2011-01-01", freq="M", periods=36),
    )
 
+.. ipython:: python
+    :okwarning:
+
+   pd.pivot_table(
+       df, index=df.index.month, columns=df.index.year, values="value", aggfunc="sum"
+   )
+
 Apply
 *****
 
