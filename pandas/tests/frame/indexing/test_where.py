@@ -1056,4 +1056,5 @@ def test_consitency_inplace():
     df2.where(df2 != "", np.nan, inplace=True)
     df = df.where(df != "", np.nan)
     
+    
     tm.assert_frame_equal(df,df2)
