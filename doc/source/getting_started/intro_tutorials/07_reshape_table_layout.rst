@@ -239,7 +239,7 @@ interested in the row/column margins (subtotals) for each variable, set
 the ``margins`` parameter to ``True``:
 
 .. ipython:: python
-
+    :okwarning:
     air_quality.pivot_table(
         values="value",
         index="location",

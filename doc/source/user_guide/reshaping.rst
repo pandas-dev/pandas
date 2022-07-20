@@ -447,7 +447,8 @@ rows will be added with partial group aggregates across the categories on the
 rows and columns:
 
 .. ipython:: python
-
+   :okwarning:
+   
    table = df.pivot_table(
        index=["A", "B"],
        columns="C",
@@ -562,6 +563,7 @@ Adding margins
 Finally, one can also add margins or normalize this output.
 
 .. ipython:: python
+   :okwarning:
 
    pd.crosstab(
        df["A"], df["B"], values=df["C"], aggfunc=np.sum, normalize=True, margins=True

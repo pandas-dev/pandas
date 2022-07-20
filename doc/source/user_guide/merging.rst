@@ -1355,6 +1355,7 @@ ordered data. In particular it has an optional ``fill_method`` keyword to
 fill/interpolate missing data:
 
 .. ipython:: python
+   :okwarning:
 
    left = pd.DataFrame(
        {"k": ["K0", "K1", "K1", "K2"], "lv": [1, 2, 3, 4], "s": ["a", "b", "c", "d"]}
