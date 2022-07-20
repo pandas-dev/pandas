@@ -1890,7 +1890,34 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("column", ["Timestamp", "datetime"])
+@pytest.mark.parametrize(
+    "column",
+    [
+        "Timestamp",
+        "datetime",
+        "True",
+        "False",
+        "list",
+        "tuple",
+        "inf",
+        "Inf",
+        "__name__",
+        "__doc__",
+        "__package__",
+        "__loader__",
+        "__spec__",
+        "__file__",
+        "__cached__",
+        "__builtins__",
+        "tm",
+        "pandas",
+        "np",
+        "DataFrame",
+        "column",
+        "df",
+        "expected",
+    ],
+)
 def test_eval_no_support_column_name(engine, parser, column):
     # GH#44603
     df = DataFrame(np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"])
