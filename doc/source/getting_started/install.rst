@@ -270,6 +270,12 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
+Optional pandas dependencies can be managed as extras (e.g.,``pandas[performance, aws]>=1.5.0``)
+in a requirements.txt, setup or pyproject.toml file.
+Available optional dependencies are ``[all, performance, computation, aws,
+gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html,
+plot, output_formatting, compression, test]``
+
 Visualization
 ^^^^^^^^^^^^^
 
