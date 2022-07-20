@@ -12,9 +12,7 @@ from pandas._typing import (
     ArrayLike,
     npt,
 )
-from pandas.compat import np_version_under1p20
 
-from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.arrays import ExtensionArray
@@ -66,9 +64,6 @@ def putmask_without_repeat(
     mask : np.ndarray[bool]
     new : Any
     """
-    if np_version_under1p20:
-        new = setitem_datetimelike_compat(values, mask.sum(), new)
-
     if getattr(new, "ndim", 0) >= 1:
         new = new.astype(values.dtype, copy=False)
 
@@ -76,9 +71,6 @@ def putmask_without_repeat(
     nlocs = mask.sum()
     if nlocs > 0 and is_list_like(new) and getattr(new, "ndim", 1) == 1:
         shape = np.shape(new)
-        # np.shape compat for if setitem_datetimelike_compat
-        #  changed arraylike to list e.g. test_where_dt64_2d
-
         if nlocs == shape[-1]:
             # GH#30567
             # If length of ``new`` is less than the length of ``values``,
@@ -122,26 +114,3 @@ def extract_bool_array(mask: ArrayLike) -> npt.NDArray[np.bool_]:
 
     mask = np.asarray(mask, dtype=bool)
     return mask
-
-
-def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
-    """
-    Parameters
-    ----------
-    values : np.ndarray
-    num_set : int
-        For putmask, this is mask.sum()
-    other : Any
-    """
-    if values.dtype == object:
-        dtype, _ = infer_dtype_from(other, pandas_dtype=True)
-
-        if isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]:
-            # https://github.com/numpy/numpy/issues/12550
-            #  timedelta64 will incorrectly cast to int
-            if not is_list_like(other):
-                other = [other] * num_set
-            else:
-                other = list(other)
-
-    return other
