@@ -342,7 +342,7 @@ class _XMLFrameParser:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
                             elem_val = elem.text.strip() if elem.text else None
-                            if elem_val not in row.values() and nm not in row:
+                            if row.get(nm) != elem_val and nm not in row:
                                 row[nm] = elem_val
                         if col in elem.attrib:
                             if elem.attrib[col] not in row.values() and nm not in row:

@@ -18,6 +18,7 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Hashable,
     Iterable,
@@ -121,6 +122,13 @@ from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.window import (
+        ExpandingGroupby,
+        ExponentialMovingWindowGroupby,
+        RollingGroupby,
+    )
 
 _common_see_also = """
         See Also
@@ -663,7 +671,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     @property
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """
         Dict {group name -> group indices}.
         """
@@ -1016,7 +1024,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
 
-            if self._selected_obj.ndim != 1 and self.axis != 1:
+            if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:
                 missing = self._obj_with_exclusions.columns.difference(result.columns)
                 if len(missing) > 0:
                     warn_dropping_nuisance_columns_deprecated(
@@ -2758,7 +2766,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def rolling(self, *args, **kwargs):
+    def rolling(self, *args, **kwargs) -> RollingGroupby:
         """
         Return a rolling grouper, providing rolling functionality per group.
         """
@@ -2775,7 +2783,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def expanding(self, *args, **kwargs):
+    def expanding(self, *args, **kwargs) -> ExpandingGroupby:
         """
         Return an expanding grouper, providing expanding
         functionality per group.
@@ -2792,7 +2800,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def ewm(self, *args, **kwargs):
+    def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
         """
@@ -3484,7 +3492,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         na_option: str = "keep",
         pct: bool = False,
         axis: int = 0,
-    ):
+    ) -> NDFrameT:
         """
         Provide the rank of values within each group.
 
@@ -3575,7 +3583,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumprod(self, axis=0, *args, **kwargs):
+    def cumprod(self, axis=0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -3593,7 +3601,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumsum(self, axis=0, *args, **kwargs):
+    def cumsum(self, axis=0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -3611,7 +3619,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, numeric_only=False, **kwargs):
+    def cummin(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
         """
         Cumulative min for each group.
 
@@ -3622,7 +3630,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.minimum.accumulate(x, axis)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
+            obj = self._selected_obj
+            if numeric_only_bool:
+                obj = obj._get_numeric_data()
+            return self._python_apply_general(f, obj, is_transform=True)
 
         return self._cython_transform(
             "cummin", numeric_only=numeric_only, skipna=skipna
@@ -3631,7 +3643,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, numeric_only=False, **kwargs):
+    def cummax(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
         """
         Cumulative max for each group.
 
@@ -3642,7 +3654,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.maximum.accumulate(x, axis)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
+            obj = self._selected_obj
+            if numeric_only_bool:
+                obj = obj._get_numeric_data()
+            return self._python_apply_general(f, obj, is_transform=True)
 
         return self._cython_transform(
             "cummax", numeric_only=numeric_only, skipna=skipna
@@ -3921,7 +3937,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def head(self, n=5):
+    def head(self, n: int = 5) -> NDFrameT:
         """
         Return first n rows of each group.
 
@@ -3960,7 +3976,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def tail(self, n=5):
+    def tail(self, n: int = 5) -> NDFrameT:
         """
         Return last n rows of each group.
 

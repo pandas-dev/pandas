@@ -77,7 +77,7 @@ class ArrowDtype(StorageExtensionDtype):
         return ArrowExtensionArray
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(cls, string: str) -> ArrowDtype:
         """
         Construct this type from a string.
 
