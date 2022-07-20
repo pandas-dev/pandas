@@ -541,5 +541,59 @@ cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT 
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+
+
+cdef int64_t convert_reso(
+    int64_t value,
+    NPY_DATETIMEUNIT from_reso,
+    NPY_DATETIMEUNIT to_reso,
+    bint round_ok,
+) except? -1:
+    cdef:
+        int64_t res_value, mult, div, mod
+
+    if from_reso == to_reso:
+        return value
+
+    elif to_reso < from_reso:
+        # e.g. ns -> us, no risk of overflow, but can be lossy rounding
+        mult = get_conversion_factor(to_reso, from_reso)
+        div, mod = divmod(value, mult)
+        if mod > 0 and not round_ok:
+            raise ValueError("Cannot losslessly convert units")
+
+        # Note that when mod > 0, we follow np.timedelta64 in always
+        #  rounding down.
+        res_value = div
+
+    elif (
+        from_reso == NPY_FR_Y
+        or from_reso == NPY_FR_M
+        or to_reso == NPY_FR_Y
+        or to_reso == NPY_FR_M
+    ):
+        # Converting by multiplying isn't _quite_ right bc the number of
+        #  seconds in a month/year isn't fixed.
+        res_value = _convert_reso_with_dtstruct(value, from_reso, to_reso)
+
     else:
-        raise ValueError(from_unit, to_unit)
+        # e.g. ns -> us, risk of overflow, but no risk of lossy rounding
+        mult = get_conversion_factor(from_reso, to_reso)
+        with cython.overflowcheck(True):
+            # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
+            res_value = value * mult
+
+    return res_value
+
+
+cdef int64_t _convert_reso_with_dtstruct(
+    int64_t value,
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit,
+) except? -1:
+    cdef:
+        npy_datetimestruct dts
+
+    pandas_datetime_to_datetimestruct(value, from_unit, &dts)
+    check_dts_bounds(&dts, to_unit)
+    return npy_datetimestruct_to_datetime(to_unit, &dts)
