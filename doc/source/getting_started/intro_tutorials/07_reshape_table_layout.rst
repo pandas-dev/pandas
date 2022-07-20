@@ -240,7 +240,7 @@ the ``margins`` parameter to ``True``:
 
 .. ipython:: python
     :okwarning:
-    
+
     air_quality.pivot_table(
         values="value",
         index="location",
