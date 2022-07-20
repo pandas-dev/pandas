@@ -409,7 +409,9 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         modifiedcol = fix_groupby_singlelist_input(cols)
-        row_margin = data[cols + values].groupby(modifiedcol, observed=observed).agg(aggfunc)
+        row_margin = (
+            data[cols + values].groupby(modifiedcol, observed=observed).agg(aggfunc)
+        )
         row_margin = row_margin.stack()
 
         # slight hack
