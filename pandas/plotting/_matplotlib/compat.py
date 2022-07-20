@@ -1,4 +1,6 @@
 # being a bit too dynamic
+from __future__ import annotations
+
 import operator
 
 from pandas.util.version import Version
