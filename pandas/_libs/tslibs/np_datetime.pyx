@@ -1,3 +1,4 @@
+cimport cython
 from cpython.datetime cimport (
     PyDateTime_DATE_GET_HOUR,
     PyDateTime_DATE_GET_MICROSECOND,
@@ -281,6 +282,7 @@ cpdef ndarray astype_overflowsafe(
     ndarray values,
     cnp.dtype dtype,
     bint copy=True,
+    bint round_ok=True,
 ):
     """
     Convert an ndarray with datetime64[X] to datetime64[Y]
@@ -313,10 +315,6 @@ cpdef ndarray astype_overflowsafe(
             "datetime64/timedelta64 values and dtype must have a unit specified"
         )
 
-    if (<object>values).dtype.byteorder == ">":
-        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
-        values = values.astype(values.dtype.newbyteorder("<"))
-
     if from_unit == to_unit:
         # Check this before allocating result for perf, might save some memory
         if copy:
@@ -324,9 +322,17 @@ cpdef ndarray astype_overflowsafe(
         return values
 
     elif from_unit > to_unit:
-        # e.g. ns -> us, so there is no risk of overflow, so we can use
-        #  numpy's astype safely. Note there _is_ risk of truncation.
-        return values.astype(dtype)
+        if round_ok:
+            # e.g. ns -> us, so there is no risk of overflow, so we can use
+            #  numpy's astype safely. Note there _is_ risk of truncation.
+            return values.astype(dtype)
+        else:
+            iresult2 = astype_round_check(values.view("i8"), from_unit, to_unit)
+            return iresult2.view(dtype)
+
+    if (<object>values).dtype.byteorder == ">":
+        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
+        values = values.astype(values.dtype.newbyteorder("<"))
 
     cdef:
         ndarray i8values = values.view("i8")
@@ -355,10 +361,11 @@ cpdef ndarray astype_overflowsafe(
                 check_dts_bounds(&dts, to_unit)
             except OutOfBoundsDatetime as err:
                 if is_td:
-                    tdval = np.timedelta64(value).view(values.dtype)
+                    from_abbrev = np.datetime_data(values.dtype)[0]
+                    np_val = np.timedelta64(value, from_abbrev)
                     msg = (
-                        "Cannot convert {tdval} to {dtype} without overflow"
-                        .format(tdval=str(tdval), dtype=str(dtype))
+                        "Cannot convert {np_val} to {dtype} without overflow"
+                        .format(np_val=str(np_val), dtype=str(dtype))
                     )
                     raise OutOfBoundsTimedelta(msg) from err
                 else:
@@ -450,3 +457,89 @@ cdef int op_to_op_code(op):
         return Py_GE
     if op is operator.gt:
         return Py_GT
+
+
+cdef ndarray astype_round_check(
+    ndarray i8values,
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit
+):
+    # cases with from_unit > to_unit, e.g. ns->us, raise if the conversion
+    #  involves truncation, e.g. 1500ns->1us
+    cdef:
+        Py_ssize_t i, N = i8values.size
+
+        # equiv: iresult = np.empty((<object>i8values).shape, dtype="i8")
+        ndarray iresult = cnp.PyArray_EMPTY(
+            i8values.ndim, i8values.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
+
+        # Note the arguments to_unit, from unit are swapped vs how they
+        #  are passed when going to a higher-frequency reso.
+        int64_t mult = get_conversion_factor(to_unit, from_unit)
+        int64_t value, mod
+
+    for i in range(N):
+        # Analogous to: item = i8values[i]
+        value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        if value == NPY_DATETIME_NAT:
+            new_value = NPY_DATETIME_NAT
+        else:
+            new_value, mod = divmod(value, mult)
+            if mod != 0:
+                # TODO: avoid runtime import
+                from pandas._libs.tslibs.dtypes import npy_unit_to_abbrev
+                from_abbrev = npy_unit_to_abbrev(from_unit)
+                to_abbrev = npy_unit_to_abbrev(to_unit)
+                raise ValueError(
+                    f"Cannot losslessly cast '{value} {from_abbrev}' to {to_abbrev}"
+                )
+
+        # Analogous to: iresult[i] = new_value
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return iresult
+
+
+@cython.overflowcheck(True)
+cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1:
+    """
+    Find the factor by which we need to multiply to convert from from_unit to to_unit.
+    """
+    if (
+        from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+        or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+    ):
+        raise ValueError("unit-less resolutions are not supported")
+    if from_unit > to_unit:
+        raise ValueError
+
+    if from_unit == to_unit:
+        return 1
+
+    if from_unit == NPY_DATETIMEUNIT.NPY_FR_W:
+        return 7 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_D:
+        return 24 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_h:
+        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_m:
+        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_s:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ms:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_us:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ns:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ps:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+    elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
+        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+    else:
+        raise ValueError(from_unit, to_unit)

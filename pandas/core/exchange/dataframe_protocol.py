@@ -2,6 +2,8 @@
 A verbatim copy (vendored) of the spec from https://github.com/data-apis/dataframe-api
 """
 
+from __future__ import annotations
+
 from abc import (
     ABC,
     abstractmethod,
@@ -9,11 +11,8 @@ from abc import (
 import enum
 from typing import (
     Any,
-    Dict,
     Iterable,
-    Optional,
     Sequence,
-    Tuple,
     TypedDict,
 )
 
@@ -90,18 +89,18 @@ class ColumnNullType(enum.IntEnum):
 class ColumnBuffers(TypedDict):
     # first element is a buffer containing the column data;
     # second element is the data buffer's associated dtype
-    data: Tuple["Buffer", Any]
+    data: tuple[Buffer, Any]
 
     # first element is a buffer containing mask values indicating missing data;
     # second element is the mask value buffer's associated dtype.
     # None if the null representation is not a bit or byte mask
-    validity: Optional[Tuple["Buffer", Any]]
+    validity: tuple[Buffer, Any] | None
 
     # first element is a buffer containing the offset values for
     # variable-size binary data (e.g., variable-length strings);
     # second element is the offsets buffer's associated dtype.
     # None if the data buffer does not have an associated offsets buffer
-    offsets: Optional[Tuple["Buffer", Any]]
+    offsets: tuple[Buffer, Any] | None
 
 
 class CategoricalDescription(TypedDict):
@@ -111,7 +110,7 @@ class CategoricalDescription(TypedDict):
     is_dictionary: bool
     # Python-level only (e.g. ``{int: str}``).
     # None if not a dictionary-style categorical.
-    mapping: Optional[dict]
+    mapping: dict | None
 
 
 class Buffer(ABC):
@@ -161,7 +160,7 @@ class Buffer(ABC):
         raise NotImplementedError("__dlpack__")
 
     @abstractmethod
-    def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
+    def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
         """
         Device type and device ID for where the data in the buffer resides.
         Uses device type codes matching DLPack.
@@ -239,7 +238,7 @@ class Column(ABC):
 
     @property
     @abstractmethod
-    def dtype(self) -> Tuple[DtypeKind, int, str, str]:
+    def dtype(self) -> tuple[DtypeKind, int, str, str]:
         """
         Dtype description as a tuple ``(kind, bit-width, format string, endianness)``.
 
@@ -293,7 +292,7 @@ class Column(ABC):
 
     @property
     @abstractmethod
-    def describe_null(self) -> Tuple[ColumnNullType, Any]:
+    def describe_null(self) -> tuple[ColumnNullType, Any]:
         """
         Return the missing value (or "null") representation the column dtype
         uses, as a tuple ``(kind, value)``.
@@ -306,7 +305,7 @@ class Column(ABC):
 
     @property
     @abstractmethod
-    def null_count(self) -> Optional[int]:
+    def null_count(self) -> int | None:
         """
         Number of null elements, if known.
 
@@ -316,7 +315,7 @@ class Column(ABC):
 
     @property
     @abstractmethod
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """
         The metadata for the column. See `DataFrame.metadata` for more details.
         """
@@ -330,7 +329,7 @@ class Column(ABC):
         pass
 
     @abstractmethod
-    def get_chunks(self, n_chunks: Optional[int] = None) -> Iterable["Column"]:
+    def get_chunks(self, n_chunks: int | None = None) -> Iterable[Column]:
         """
         Return an iterator yielding the chunks.
 
@@ -395,7 +394,7 @@ class DataFrame(ABC):
 
     @property
     @abstractmethod
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """
         The metadata for the data frame, as a dictionary with string keys. The
         contents of `metadata` may be anything, they are meant for a library
@@ -415,7 +414,7 @@ class DataFrame(ABC):
         pass
 
     @abstractmethod
-    def num_rows(self) -> Optional[int]:
+    def num_rows(self) -> int | None:
         # TODO: not happy with Optional, but need to flag it may be expensive
         #       why include it if it may be None - what do we expect consumers
         #       to do here?
@@ -460,21 +459,21 @@ class DataFrame(ABC):
         pass
 
     @abstractmethod
-    def select_columns(self, indices: Sequence[int]) -> "DataFrame":
+    def select_columns(self, indices: Sequence[int]) -> DataFrame:
         """
         Create a new DataFrame by selecting a subset of columns by index.
         """
         pass
 
     @abstractmethod
-    def select_columns_by_name(self, names: Sequence[str]) -> "DataFrame":
+    def select_columns_by_name(self, names: Sequence[str]) -> DataFrame:
         """
         Create a new DataFrame by selecting a subset of columns by name.
         """
         pass
 
     @abstractmethod
-    def get_chunks(self, n_chunks: Optional[int] = None) -> Iterable["DataFrame"]:
+    def get_chunks(self, n_chunks: int | None = None) -> Iterable[DataFrame]:
         """
         Return an iterator yielding the chunks.
 

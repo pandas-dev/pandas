@@ -2164,7 +2164,17 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
     return data, copy
 
 
-def validate_periods(periods):
+@overload
+def validate_periods(periods: None) -> None:
+    ...
+
+
+@overload
+def validate_periods(periods: int | float) -> int:
+    ...
+
+
+def validate_periods(periods: int | float | None) -> int | None:
     """
     If a `periods` argument is passed to the Datetime/Timedelta Array/Index
     constructor, cast it to an integer.
@@ -2187,10 +2197,14 @@ def validate_periods(periods):
             periods = int(periods)
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
-    return periods
+    # error: Incompatible return value type (got "Optional[float]",
+    # expected "Optional[int]")
+    return periods  # type: ignore[return-value]
 
 
-def validate_inferred_freq(freq, inferred_freq, freq_infer):
+def validate_inferred_freq(
+    freq, inferred_freq, freq_infer
+) -> tuple[BaseOffset | None, bool]:
     """
     If the user passes a freq and another freq is inferred from passed data,
     require that they match.
