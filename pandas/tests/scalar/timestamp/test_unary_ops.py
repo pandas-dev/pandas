@@ -301,8 +301,7 @@ class TestTimestampUnaryOps:
     @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build")
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
-        "method",
-        [Timestamp.round, Timedelta.floor, Timestamp.ceil],
+        "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
     def test_round_sanity(self, val, method):
         val = np.int64(val)

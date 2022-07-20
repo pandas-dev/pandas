@@ -694,8 +694,7 @@ class TestTimedeltas:
     @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build")
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
-        "method",
-        [Timedelta.round, Timedelta.floor, Timedelta.ceil],
+        "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
     )
     def test_round_sanity(self, val, method):
         val = np.int64(val)
