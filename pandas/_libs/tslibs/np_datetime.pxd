@@ -101,6 +101,7 @@ cpdef cnp.ndarray astype_overflowsafe(
     cnp.ndarray values,  # ndarray[datetime64[anyunit]]
     cnp.dtype dtype,  # ndarray[datetime64[anyunit]]
     bint copy=*,
+    bint round_ok=*,
 )
 cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1
 

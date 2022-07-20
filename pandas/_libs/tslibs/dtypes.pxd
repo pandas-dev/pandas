@@ -3,7 +3,7 @@ from numpy cimport int64_t
 from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
 
 
-cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit)
+cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit)
 cdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev)
 cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil
 cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=*) except? -1
