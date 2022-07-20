@@ -46,6 +46,7 @@ from pandas._libs.tslibs.fields import (
     RoundTo,
     round_nsint64,
 )
+from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
     ArrayLike,
@@ -73,7 +74,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     is_all_strings,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -1066,6 +1066,24 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 )
             return result
 
+        if other is NaT:
+            if op is operator.ne:
+                result = np.ones(self.shape, dtype=bool)
+            else:
+                result = np.zeros(self.shape, dtype=bool)
+            return result
+
+        if not is_period_dtype(self.dtype):
+            self = cast(TimelikeOps, self)
+            if self._reso != other._reso:
+                if not isinstance(other, type(self)):
+                    # i.e. Timedelta/Timestamp, cast to ndarray and let
+                    #  compare_mismatched_resolutions handle broadcasting
+                    other_arr = np.array(other.asm8)
+                else:
+                    other_arr = other._ndarray
+                return compare_mismatched_resolutions(self._ndarray, other_arr, op)
+
         other_vals = self._unbox(other)
         # GH#37462 comparison on i8 values is almost 2x faster than M8/m8
         result = op(self._ndarray.view("i8"), other_vals.view("i8"))
@@ -1103,6 +1121,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("TimedeltaArray", self)
 
         from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays.datetimes import tz_to_dtype
 
         assert other is not NaT
         other = Timestamp(other)
@@ -1113,10 +1132,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # Preserve our resolution
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
+        if self._reso != other._reso:
+            raise NotImplementedError(
+                "Addition between TimedeltaArray and Timestamp with mis-matched "
+                "resolutions is not yet supported."
+            )
+
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
-        dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
-        return DatetimeArray(result, dtype=dtype, freq=self.freq)
+        dtype = tz_to_dtype(tz=other.tz, unit=self._unit)
+        res_values = result.view(f"M8[{self._unit}]")
+        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=self.freq)
 
     @final
     def _add_datetime_arraylike(self, other) -> DatetimeArray:
@@ -2138,7 +2164,17 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
     return data, copy
 
 
-def validate_periods(periods):
+@overload
+def validate_periods(periods: None) -> None:
+    ...
+
+
+@overload
+def validate_periods(periods: int | float) -> int:
+    ...
+
+
+def validate_periods(periods: int | float | None) -> int | None:
     """
     If a `periods` argument is passed to the Datetime/Timedelta Array/Index
     constructor, cast it to an integer.
@@ -2161,10 +2197,14 @@ def validate_periods(periods):
             periods = int(periods)
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
-    return periods
+    # error: Incompatible return value type (got "Optional[float]",
+    # expected "Optional[int]")
+    return periods  # type: ignore[return-value]
 
 
-def validate_inferred_freq(freq, inferred_freq, freq_infer):
+def validate_inferred_freq(
+    freq, inferred_freq, freq_infer
+) -> tuple[BaseOffset | None, bool]:
     """
     If the user passes a freq and another freq is inferred from passed data,
     require that they match.

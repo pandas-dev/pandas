@@ -30,6 +30,11 @@ import pandas as pd
         "IndexingError",
         "PyperclipException",
         "CSSWarning",
+        "ClosedFileError",
+        "PossibleDataLossError",
+        "IncompatibilityWarning",
+        "AttributeConflictWarning",
+        "DatabaseError",
     ],
 )
 def test_exception_importable(exc):

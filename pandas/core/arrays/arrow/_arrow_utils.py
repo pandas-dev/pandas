@@ -11,7 +11,7 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.arrays.interval import VALID_CLOSED
+from pandas.core.arrays.interval import VALID_INCLUSIVE
 
 
 def fallback_performancewarning(version: str | None = None) -> None:
@@ -92,7 +92,7 @@ class ArrowPeriodType(pyarrow.ExtensionType):
         else:
             return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((str(self), self.freq))
 
     def to_pandas_dtype(self):
@@ -111,8 +111,8 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def __init__(self, subtype, inclusive: IntervalInclusiveType) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
-        assert inclusive in VALID_CLOSED
-        self._closed: IntervalInclusiveType = inclusive
+        assert inclusive in VALID_INCLUSIVE
+        self._inclusive: IntervalInclusiveType = inclusive
         if not isinstance(subtype, pyarrow.DataType):
             subtype = pyarrow.type_for_alias(str(subtype))
         self._subtype = subtype
@@ -126,7 +126,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
 
     @property
     def inclusive(self) -> IntervalInclusiveType:
-        return self._closed
+        return self._inclusive
 
     @property
     def closed(self) -> IntervalInclusiveType:
@@ -135,7 +135,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self._closed
+        return self._inclusive
 
     def __arrow_ext_serialize__(self) -> bytes:
         metadata = {"subtype": str(self.subtype), "inclusive": self.inclusive}
@@ -158,7 +158,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         else:
             return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((str(self), str(self.subtype), self.inclusive))
 
     def to_pandas_dtype(self):

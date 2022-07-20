@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ClassVar,
     Hashable,
     Literal,
     Mapping,
@@ -58,6 +59,7 @@ from pandas._typing import (
     Renamer,
     SortKind,
     StorageOptions,
+    Suffixes,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -1882,7 +1884,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
     # "object" defined the type as "Callable[[object], int]")
-    __hash__: None  # type: ignore[assignment]
+    __hash__: ClassVar[None]  # type: ignore[assignment]
 
     def __iter__(self):
         """
@@ -6678,7 +6680,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                if not self._mgr.is_single_block and axis == 1:
+                if axis == 1:
 
                     result = self.T.fillna(value=value, limit=limit).T
 
@@ -8969,6 +8971,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         align_axis: Axis = 1,
         keep_shape: bool_t = False,
         keep_equal: bool_t = False,
+        result_names: Suffixes = ("self", "other"),
     ):
         from pandas.core.reshape.concat import concat
 
@@ -8979,7 +8982,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         mask = ~((self == other) | (self.isna() & other.isna()))
-        keys = ["self", "other"]
 
         if not keep_equal:
             self = self.where(mask)
@@ -8994,13 +8996,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 self = self[mask]
                 other = other[mask]
+        if not isinstance(result_names, tuple):
+            raise TypeError(
+                f"Passing 'result_names' as a {type(result_names)} is not "
+                "supported. Provide 'result_names' as a tuple instead."
+            )
 
         if align_axis in (1, "columns"):  # This is needed for Series
             axis = 1
         else:
             axis = self._get_axis_number(align_axis)
 
-        diff = concat([self, other], axis=axis, keys=keys)
+        diff = concat([self, other], axis=axis, keys=result_names)
 
         if axis >= self.ndim:
             # No need to reorganize data if stacking on new axis
@@ -9380,7 +9387,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors: IgnoreRaise | lib.NoDefault = "raise",
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -9547,6 +9553,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9597,6 +9604,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
+
+            .. deprecated:: 1.5.0
+               This argument had no effect.
 
         try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
@@ -9720,7 +9730,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-        return self._where(cond, other, inplace, axis, level, errors=errors)
+        return self._where(cond, other, inplace, axis, level)
 
     @overload
     def mask(
@@ -9764,6 +9774,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> NDFrameT | None:
         ...
 
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -9807,7 +9818,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
         )
 
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -12189,7 +12199,7 @@ Returns
 
 See Also
 --------
-core.window.Expanding.{accum_func_name} : Similar functionality
+core.window.expanding.Expanding.{accum_func_name} : Similar functionality
     but ignores ``NaN`` values.
 {name2}.{accum_func_name} : Return the {desc} over
     {name2} axis.

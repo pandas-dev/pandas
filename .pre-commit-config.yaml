@@ -93,9 +93,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.253
--   repo: local
-    hooks:
+        - pyright@1.1.258
     -   id: pyright_reportGeneralTypeIssues
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
@@ -105,8 +103,6 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: *pyright_dependencies
--   repo: local
-    hooks:
     -   id: mypy
         name: mypy
         entry: mypy
@@ -115,8 +111,6 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
--   repo: local
-    hooks:
     -   id: flake8-rst
         name: flake8-rst
         description: Run flake8 on code snippets in docstrings or RST files
@@ -237,3 +231,15 @@ repos:
         additional_dependencies:
         - flake8==4.0.1
         - flake8-pyi==22.5.1
+    -   id: future-annotations
+        name: import annotations from __future__
+        entry: 'from __future__ import annotations'
+        language: pygrep
+        args: [--negate]
+        files: ^pandas/
+        types: [python]
+        exclude: |
+            (?x)
+            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
+            |/tests/
+            |/_testing/

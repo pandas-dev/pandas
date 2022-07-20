@@ -153,7 +153,7 @@ def _new_IntervalIndex(cls, d):
     _interval_shared_docs["class"]
     % {
         "klass": "IntervalIndex",
-        "summary": "Immutable index of intervals that are closed on the same side.",
+        "summary": "Immutable index of intervals that are inclusive on the same side.",
         "name": _index_doc_kwargs["name"],
         "versionadded": "0.20.0",
         "extra_attributes": "is_overlapping\nvalues\n",
@@ -473,7 +473,7 @@ class IntervalIndex(ExtensionIndex):
         >>> index.is_overlapping
         True
 
-        Intervals that share closed endpoints overlap:
+        Intervals that share inclusive endpoints overlap:
 
         >>> index = pd.interval_range(0, 3, inclusive='both')
         >>> index
@@ -1009,7 +1009,7 @@ def interval_range(
     name : str, default None
         Name of the resulting IntervalIndex.
     inclusive : {"both", "neither", "left", "right"}, default "both"
-        Include boundaries; Whether to set each bound as closed or open.
+        Include boundaries; Whether to set each bound as inclusive or not.
 
         .. versionadded:: 1.5.0
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
@@ -1026,7 +1026,7 @@ def interval_range(
 
     See Also
     --------
-    IntervalIndex : An Index of intervals that are all closed on the same side.
+    IntervalIndex : An Index of intervals that are all inclusive on the same side.
 
     Notes
     -----
@@ -1079,7 +1079,7 @@ def interval_range(
               dtype='interval[float64, right]')
 
     The ``inclusive`` parameter specifies which endpoints of the individual
-    intervals within the ``IntervalIndex`` are closed.
+    intervals within the ``IntervalIndex`` are inclusive.
 
     >>> pd.interval_range(end=5, periods=4, inclusive='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],

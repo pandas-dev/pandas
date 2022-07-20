@@ -25,6 +25,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    BaseOffset,
     Resolution,
     periods_per_day,
     timezones,
@@ -252,8 +253,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _typ = "datetimeindex"
 
     _data_cls = DatetimeArray
-    _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
+
+    @property
+    def _engine_type(self) -> type[libindex.DatetimeEngine]:
+        return libindex.DatetimeEngine
 
     _data: DatetimeArray
     inferred_freq: str | None
@@ -309,7 +313,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq=lib.no_default,
+        freq: str | BaseOffset | lib.NoDefault = lib.no_default,
         tz=None,
         normalize: bool = False,
         closed=None,

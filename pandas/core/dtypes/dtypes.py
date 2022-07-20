@@ -676,10 +676,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
     kind: str_type = "M"
     num = 101
     base = np.dtype("M8[ns]")  # TODO: depend on reso?
-    na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+
+    @property
+    def na_value(self) -> NaTType:
+        return NaT
 
     @cache_readonly
     def str(self):
@@ -1124,7 +1127,7 @@ class IntervalDtype(PandasExtensionDtype):
             # generally for pickle compat
             u = object.__new__(cls)
             u._subtype = None
-            u._closed = inclusive
+            u._inclusive = inclusive
             return u
         elif isinstance(subtype, str) and subtype.lower() == "interval":
             subtype = None
@@ -1166,7 +1169,7 @@ class IntervalDtype(PandasExtensionDtype):
         except KeyError:
             u = object.__new__(cls)
             u._subtype = subtype
-            u._closed = inclusive
+            u._inclusive = inclusive
             cls._cache_dtypes[key] = u
             return u
 
@@ -1184,7 +1187,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     @property
     def inclusive(self):
-        return self._closed
+        return self._inclusive
 
     @property
     def closed(self):
@@ -1193,7 +1196,7 @@ class IntervalDtype(PandasExtensionDtype):
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self._closed
+        return self._inclusive
 
     @property
     def subtype(self):
@@ -1274,7 +1277,7 @@ class IntervalDtype(PandasExtensionDtype):
         # pickle -> need to set the settable private ones here (see GH26067)
         self._subtype = state["subtype"]
         # backward-compat older pickles won't have "inclusive" key
-        self._closed = state.pop("inclusive", None)
+        self._inclusive = state.pop("inclusive", None)
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
@@ -1450,7 +1453,9 @@ class BaseMaskedDtype(ExtensionDtype):
     base = None
     type: type
 
-    na_value = libmissing.NA
+    @property
+    def na_value(self) -> libmissing.NAType:
+        return libmissing.NA
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
