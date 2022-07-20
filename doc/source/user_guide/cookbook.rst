@@ -770,6 +770,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 To create year and month cross tabulation:
 
 .. ipython:: python
+    :okwarning:
 
    df = pd.DataFrame(
        {"value": np.random.randn(36)},
