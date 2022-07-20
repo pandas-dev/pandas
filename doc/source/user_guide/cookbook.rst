@@ -664,6 +664,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 <https://stackoverflow.com/a/15574875>`__
 
 .. ipython:: python
+    :okwarning:
 
    df = pd.DataFrame(
        data={
@@ -694,6 +695,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 <https://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
 
 .. ipython:: python
+    :okwarning:
 
    grades = [48, 99, 75, 80, 42, 80, 72, 68, 36, 78]
    df = pd.DataFrame(
