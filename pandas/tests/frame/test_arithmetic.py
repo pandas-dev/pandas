@@ -2063,4 +2063,3 @@ def test_enum_column_equality():
     expected = Series([True, True, True], name=Cols.col1)
 
     tm.assert_series_equal(result, expected)
-    
