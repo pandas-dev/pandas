@@ -702,6 +702,10 @@ The :ref:`Pivot <reshaping.pivot>` docs.
     :okwarning:
 
    grades = [48, 99, 75, 80, 42, 80, 72, 68, 36, 78]
+
+.. ipython:: python
+    :okwarning:
+
    df = pd.DataFrame(
        {
            "ID": ["x%d" % r for r in range(10)],
