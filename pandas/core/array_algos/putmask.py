@@ -12,6 +12,7 @@ from pandas._typing import (
     ArrayLike,
     npt,
 )
+from pandas.compat import np_version_under1p21
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import is_list_like
@@ -65,6 +66,9 @@ def putmask_without_repeat(
     mask : np.ndarray[bool]
     new : Any
     """
+    if np_version_under1p21:
+        new = setitem_datetimelike_compat(values, mask.sum(), new)
+
     if getattr(new, "ndim", 0) >= 1:
         new = new.astype(values.dtype, copy=False)
 
@@ -73,7 +77,7 @@ def putmask_without_repeat(
     if nlocs > 0 and is_list_like(new) and getattr(new, "ndim", 1) == 1:
         shape = np.shape(new)
         # np.shape compat for if setitem_datetimelike_compat
-        # changed arraylike to list e.g. test_where_dt64_2d
+        #  changed arraylike to list e.g. test_where_dt64_2d
         if nlocs == shape[-1]:
             # GH#30567
             # If length of ``new`` is less than the length of ``values``,
