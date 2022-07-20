@@ -799,20 +799,37 @@ class BaseGrouper:
         # This calls DataSplitter.__iter__
         zipped = zip(group_keys, splitter)
 
+        i = 0
         for key, group in zipped:
             # BUG:47350 if added by hamedgibago
-            if key in data.index:
-                object.__setattr__(group, "name", key)
-
-                # group might be modified
-                group_axes = group.axes
+            # if key not in data.index and is_datetime64_any_dtype(data.index):
+            # #or (key not in data.index and f.__name__ in ['idxmax','idxmin']) :
+            # ser=Series(i,[key])
+            # res = None
+            # else:
+            # res = f(group)
+            try:
                 res = f(group)
-                if not mutated and not _is_indexed_like(res, group_axes, axis):
-                    mutated = True
-                result_values.append(res)
-            # BUG:47350 else added by hamedgibago
-            else:
-                result_values.append(np.nan)
+            except ValueError:
+                res = None
+
+            object.__setattr__(group, "name", key)
+
+            # group might be modified
+            group_axes = group.axes
+
+            if not mutated and not _is_indexed_like(res, group_axes, axis):
+                mutated = True
+
+            i = i + 1
+
+            # BUG:47350 if added by hamedgibago
+            # if key in data.index:
+            #     result_values.append(res)
+            # else:
+            #     result_values.append(np.nan)
+
+            result_values.append(res)
 
         # getattr pattern for __name__ is needed for functools.partial objects
         if len(group_keys) == 0 and getattr(f, "__name__", None) not in [
