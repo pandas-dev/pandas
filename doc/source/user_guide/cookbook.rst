@@ -681,6 +681,10 @@ The :ref:`Pivot <reshaping.pivot>` docs.
            "Sales": [13, 6, 16, 8, 4, 3, 1],
        }
    )
+
+.. ipython:: python
+    :okwarning:
+
    table = pd.pivot_table(
        df,
        values=["Sales"],
@@ -755,6 +759,9 @@ The :ref:`Pivot <reshaping.pivot>` docs.
        }
    )
 
+.. ipython:: python
+    :okwarning:
+
    df.groupby("ExamYear").agg(
        {
            "Participated": lambda x: x.value_counts()["yes"],
@@ -776,6 +783,9 @@ To create year and month cross tabulation:
        {"value": np.random.randn(36)},
        index=pd.date_range("2011-01-01", freq="M", periods=36),
    )
+
+.. ipython:: python
+    :okwarning:
 
    pd.pivot_table(
        df, index=df.index.month, columns=df.index.year, values="value", aggfunc="sum"
