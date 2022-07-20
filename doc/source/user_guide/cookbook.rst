@@ -664,7 +664,6 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 <https://stackoverflow.com/a/15574875>`__
 
 .. ipython:: python
-    :okwarning:
 
    df = pd.DataFrame(
        data={
@@ -681,18 +680,22 @@ The :ref:`Pivot <reshaping.pivot>` docs.
            "Sales": [13, 6, 16, 8, 4, 3, 1],
        }
    )
+   table = pd.pivot_table(
+       df,
+       values=["Sales"],
+       index=["Province"],
+       columns=["City"],
+       aggfunc=np.sum,
+       margins=True,
+   )
+   table.stack("City")
 
 `Frequency table like plyr in R
 <https://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
 
 .. ipython:: python
-    :okwarning:
 
    grades = [48, 99, 75, 80, 42, 80, 72, 68, 36, 78]
-
-.. ipython:: python
-    :okwarning:
-
    df = pd.DataFrame(
        {
            "ID": ["x%d" % r for r in range(10)],
@@ -750,9 +753,6 @@ The :ref:`Pivot <reshaping.pivot>` docs.
        }
    )
 
-.. ipython:: python
-    :okwarning:
-
    df.groupby("ExamYear").agg(
        {
            "Participated": lambda x: x.value_counts()["yes"],
@@ -768,15 +768,11 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 To create year and month cross tabulation:
 
 .. ipython:: python
-    :okwarning:
 
    df = pd.DataFrame(
        {"value": np.random.randn(36)},
        index=pd.date_range("2011-01-01", freq="M", periods=36),
    )
-
-.. ipython:: python
-    :okwarning:
 
    pd.pivot_table(
        df, index=df.index.month, columns=df.index.year, values="value", aggfunc="sum"

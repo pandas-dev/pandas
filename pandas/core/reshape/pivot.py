@@ -367,7 +367,8 @@ def _generate_marginal_results(
             return (key, margins_name) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows + values].groupby(rows, observed=observed).agg(aggfunc)
+            modifiedrow = fix_groupby_singlelist_input(rows)
+            margin = data[rows + values].groupby(modifiedrow, observed=observed).agg(aggfunc)
             cat_axis = 1
 
             for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
@@ -407,7 +408,8 @@ def _generate_marginal_results(
         margin_keys = table.columns
 
     if len(cols) > 0:
-        row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
+        modifiedcol = fix_groupby_singlelist_input(cols)
+        row_margin = data[cols + values].groupby(modifiedcol, observed=observed).agg(aggfunc)
         row_margin = row_margin.stack()
 
         # slight hack
@@ -847,3 +849,10 @@ def _build_names_mapper(
     ]
 
     return rownames_mapper, unique_rownames, colnames_mapper, unique_colnames
+
+
+def fix_groupby_singlelist_input(keys):
+    if isinstance(keys, list):
+        if len(keys) == 1 and isinstance(keys[0], str):
+            keys = keys[0]
+    return keys
