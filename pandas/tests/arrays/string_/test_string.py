@@ -101,7 +101,7 @@ def test_add(dtype, request):
             "unsupported operand type(s) for +: 'ArrowStringArray' and "
             "'ArrowStringArray'"
         )
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
         request.node.add_marker(mark)
 
     a = pd.Series(["a", "b", "c", None, None], dtype=dtype)
@@ -142,7 +142,7 @@ def test_add_2d(dtype, request):
 def test_add_sequence(dtype, request):
     if dtype.storage == "pyarrow":
         reason = "unsupported operand type(s) for +: 'ArrowStringArray' and 'list'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
         request.node.add_marker(mark)
 
     a = pd.array(["a", "b", None, None], dtype=dtype)
@@ -160,7 +160,7 @@ def test_add_sequence(dtype, request):
 def test_mul(dtype, request):
     if dtype.storage == "pyarrow":
         reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
         request.node.add_marker(mark)
 
     a = pd.array(["a", "b", None], dtype=dtype)
@@ -588,3 +588,23 @@ def test_isin(dtype, fixed_now_ts):
         result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
+
+
+def test_setitem_scalar_with_mask_validation(dtype):
+    # https://github.com/pandas-dev/pandas/issues/47628
+    # setting None with a boolean mask (through _putmaks) should still result
+    # in pd.NA values in the underlying array
+    ser = pd.Series(["a", "b", "c"], dtype=dtype)
+    mask = np.array([False, True, False])
+
+    ser[mask] = None
+    assert ser.array[1] is pd.NA
+
+    # for other non-string we should also raise an error
+    ser = pd.Series(["a", "b", "c"], dtype=dtype)
+    if type(ser.array) is pd.arrays.StringArray:
+        msg = "Cannot set non-string value"
+    else:
+        msg = "Scalar must be NA or str"
+    with pytest.raises(ValueError, match=msg):
+        ser[mask] = 1
