@@ -72,10 +72,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
@@ -792,20 +789,30 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         -------
         result : ndarray[int64]
         """
-        if not isinstance(self.freq, Tick):
+        freq = self.freq
+        if not isinstance(freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise TypeError(
                 f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
             )
 
-        if not np.all(isna(other)):
-            delta = self._check_timedeltalike_freq_compat(other)
-        else:
-            # all-NaT TimedeltaIndex is equivalent to a single scalar td64 NaT
-            return self + np.timedelta64("NaT")
+        dtype = np.dtype(f"m8[{freq._td64_unit}]")
 
-        ordinals = self._addsub_int_array_or_scalar(delta, operator.add).asi8
-        return type(self)(ordinals, dtype=self.dtype)
+        try:
+            delta = astype_overflowsafe(
+                np.asarray(other), dtype=dtype, copy=False, round_ok=False
+            )
+        except ValueError as err:
+            # TODO: not actually a great exception message in this case
+            raise raise_on_incompatible(self, other) from err
+
+        b_mask = np.isnat(delta)
+
+        res_values = algos.checked_add_with_arr(
+            self.asi8, delta.view("i8"), arr_mask=self._isnan, b_mask=b_mask
+        )
+        np.putmask(res_values, self._isnan | b_mask, iNaT)
+        return type(self)(res_values, freq=self.freq)
 
     def _check_timedeltalike_freq_compat(self, other):
         """
