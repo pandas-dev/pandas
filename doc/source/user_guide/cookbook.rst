@@ -682,19 +682,6 @@ The :ref:`Pivot <reshaping.pivot>` docs.
        }
    )
 
-.. ipython:: python
-    :okwarning:
-
-   table = pd.pivot_table(
-       df,
-       values=["Sales"],
-       index=["Province"],
-       columns=["City"],
-       aggfunc=np.sum,
-       margins=True,
-   )
-   table.stack("City")
-
 `Frequency table like plyr in R
 <https://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
 
@@ -786,13 +773,6 @@ To create year and month cross tabulation:
    df = pd.DataFrame(
        {"value": np.random.randn(36)},
        index=pd.date_range("2011-01-01", freq="M", periods=36),
-   )
-
-.. ipython:: python
-    :okwarning:
-
-   pd.pivot_table(
-       df, index=df.index.month, columns=df.index.year, values="value", aggfunc="sum"
    )
 
 Apply

@@ -8369,6 +8369,7 @@ Parrot 2  Parrot       24.0
                         "a single grouper to avoid this warning."
                     ),
                     FutureWarning,
+                    stacklevel=find_stack_level(),
                 )
 
         if squeeze is not no_default:
