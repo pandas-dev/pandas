@@ -264,10 +264,10 @@ class TestSeriesRepr:
         result = repr(ser)
         expected = "True    1\nNone    2\nNaN     3\nNaT     4\ndtype: int64"
         assert result == expected
-    
+
     def test_dtype_timedelta64_ns(self):
         # GH#35465
-        series = Series([1000000, 200000, 3000000], dtype='timedelta64[ns]')   
+        series = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
         result = repr(series)
         expected = (
             "0   0 days 00:00:00.001000\n"
@@ -276,10 +276,10 @@ class TestSeriesRepr:
             "dtype: timedelta64[ns]"
         )
         assert result == expected
-        
+
     def test_dtype_timedelta64_s(self):
         # GH#35465
-        series = Series([1000000, 200000, 3000000], dtype='timedelta64[s]')   
+        series = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
         result = repr(series)
         expected = (
             "0   0 days 00:00:00.001000\n"
@@ -291,8 +291,8 @@ class TestSeriesRepr:
 
     def test_dtype_timedelta64_ns_s(self):
         # GH#35465
-        series_ns = Series([1000000, 200000, 3000000], dtype='timedelta64[ns]')   
-        series_s = Series([1000000, 200000, 3000000], dtype='timedelta64[s]')
+        series_ns = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
+        series_s = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
         expected = (
             "0   0 days 00:00:00.001000\n"
             "1   0 days 00:00:00.000200\n"
@@ -303,38 +303,31 @@ class TestSeriesRepr:
 
     def test_dtype_timedelta64_ns_astype_int(self):
         # GH#35465
-        series = Series([1000000, 200000, 3000000], dtype='timedelta64[ns]').astype('int')   
-        result = repr(series)
-        expected = (
-            "0    1000000\n"
-            "1     200000\n"
-            "2    3000000\n"
-            "dtype: int64"
+        series = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
+            "int"
         )
+        result = repr(series)
+        expected = "0    1000000\n" "1     200000\n" "2    3000000\n" "dtype: int64"
         assert result == expected
 
     def test_dtype_timedelta64_s_astype_int(self):
         # GH#35465
-        series = Series([1000000, 200000, 3000000], dtype='timedelta64[s]').astype('int')   
-        result = repr(series)
-        expected = (
-            "0    1000000\n"
-            "1     200000\n"
-            "2    3000000\n"
-            "dtype: int64"
+        series = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype(
+            "int"
         )
+        result = repr(series)
+        expected = "0    1000000\n" "1     200000\n" "2    3000000\n" "dtype: int64"
         assert result == expected
 
     def test_dtype_timedelta64_ns_s_astype_int(self):
         # GH#35465
-        series_ns = Series([1000000, 200000, 3000000], dtype='timedelta64[ns]').astype('int')  
-        series_s = Series([1000000, 200000, 3000000], dtype='timedelta64[s]').astype('int')
-        expected = (
-            "0    1000000\n"
-            "1     200000\n"
-            "2    3000000\n"
-            "dtype: int64"
+        series_ns = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
+            "int"
         )
+        series_s = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype(
+            "int"
+        )
+        expected = "0    1000000\n" "1     200000\n" "2    3000000\n" "dtype: int64"
         assert repr(series_ns) == expected == repr(series_s)
 
 
