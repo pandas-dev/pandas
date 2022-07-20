@@ -801,7 +801,7 @@ class BaseGrouper:
 
         i = 0
         for key, group in zipped:
-            # BUG:47350 if added by hamedgibago
+            # BUG:47350 if replaced by hamedgibago
             # if key not in data.index and is_datetime64_any_dtype(data.index):
             # #or (key not in data.index and f.__name__ in ['idxmax','idxmin']) :
             # ser=Series(i,[key])
