@@ -24,7 +24,9 @@ def test_only_one_dtype(test_data, df_from_dict):
 
     column_size = len(test_data[columns[0]])
     for column in columns:
-        assert dfX.get_column_by_name(column).null_count == 0
+        null_count = dfX.get_column_by_name(column).null_count
+        assert null_count == 0
+        assert isinstance(null_count, int)
         assert dfX.get_column_by_name(column).size == column_size
         assert dfX.get_column_by_name(column).offset == 0
 
@@ -49,6 +51,7 @@ def test_mixed_dtypes(df_from_dict):
     for column, kind in columns.items():
         colX = dfX.get_column_by_name(column)
         assert colX.null_count == 0
+        assert isinstance(colX.null_count, int)
         assert colX.size == 3
         assert colX.offset == 0
 
@@ -62,6 +65,7 @@ def test_na_float(df_from_dict):
     dfX = df.__dataframe__()
     colX = dfX.get_column_by_name("a")
     assert colX.null_count == 1
+    assert isinstance(colX.null_count, int)
 
 
 def test_noncategorical(df_from_dict):
