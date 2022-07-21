@@ -7,7 +7,7 @@ import warnings
 
 from pandas.util.version import Version
 
-# Update install.rst when updating versions!
+# Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
     "bs4": "4.9.3",
