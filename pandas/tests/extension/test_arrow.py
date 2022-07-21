@@ -1221,6 +1221,24 @@ class TestBaseParsing(base.BaseParsingTests):
         super().test_EA_types(engine, data)
 
 
+class TestBaseUnaryOps(base.BaseUnaryOpsTests):
+    @pytest.mark.xfail(
+        pa_version_under2p0,
+        raises=NotImplementedError,
+        reason="pyarrow.compute.invert not supported in pyarrow<2.0",
+    )
+    def test_invert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow.compute.invert does support {pa_dtype}",
+                )
+            )
+        super().test_invert(data)
+
+
 class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
