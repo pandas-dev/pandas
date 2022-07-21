@@ -419,14 +419,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
-        if null_placement is None:
-            raise ValueError(
-                f"na_position must be 'last' or 'first'. Got {na_position}"
-            )
-        if pa_version_under6p0:
-            raise NotImplementedError(
-                "argsort only implemented for pyarrow version >= 6.0"
-            )
+        if null_placement is None or pa_version_under6p0:
+            fallback_performancewarning("6")
+            return super().argsort(ascending, kind, na_position, *args, **kwargs)
+
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
         )

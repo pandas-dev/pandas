@@ -1281,31 +1281,7 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.xfail(
         pa_version_under6p0,
         raises=NotImplementedError,
-        reason="argsort only implemented for pyarrow version >= 6.0",
-    )
-    def test_argsort(self, data_for_sorting):
-        super().test_argsort(data_for_sorting)
-
-    @pytest.mark.xfail(
-        pa_version_under6p0,
-        raises=NotImplementedError,
-        reason="argsort only implemented for pyarrow version >= 6.0",
-    )
-    def test_argsort_missing_array(self, data_missing_for_sorting):
-        super().test_argsort_missing_array(data_missing_for_sorting)
-
-    @pytest.mark.xfail(
-        pa_version_under6p0,
-        raises=NotImplementedError,
-        reason="argsort only implemented for pyarrow version >= 6.0",
-    )
-    def test_argsort_missing(self, data_missing_for_sorting):
-        super().test_argsort_missing(data_missing_for_sorting)
-
-    @pytest.mark.xfail(
-        pa_version_under6p0,
-        raises=NotImplementedError,
-        reason="argsort only implemented for pyarrow version >= 6.0",
+        reason="argmin/max only implemented for pyarrow version >= 6.0",
     )
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
@@ -1329,7 +1305,7 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.xfail(
         pa_version_under6p0,
         raises=NotImplementedError,
-        reason="argsort only implemented for pyarrow version >= 6.0",
+        reason="argmin/max only implemented for pyarrow version >= 6.0",
     )
     @pytest.mark.parametrize(
         "op_name, skipna, expected",
