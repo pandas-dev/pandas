@@ -245,6 +245,9 @@ Package                                                          Minimum support
 Recommended dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+pandas recommends the following optional dependencies for performance gains. Can be managed via the
+``performance`` extra when defining the pandas requirement.
+
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.7.3 or higher.
@@ -252,6 +255,10 @@ Recommended dependencies
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.3.2 or higher.
+
+* `numba <https://github.com/numba/numba>`__: Alternative execution engine for rolling operations.
+``numba`` is a JIT compiler that translates Python functions to optimized machine code using the
+LLVM compiler library. If installed, must be Version 0.53.1 or higher.
 
 .. note::
 
@@ -273,11 +280,13 @@ the method requiring that dependency is called.
 Optional pandas dependencies can be managed as extras (e.g.,``pandas[performance, aws]>=1.5.0``)
 in a requirements.txt, setup or pyproject.toml file.
 Available optional dependencies are ``[all, performance, computation, aws,
-gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html,
+gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html, xml,
 plot, output_formatting, compression, test]``
 
 Visualization
 ^^^^^^^^^^^^^
+
+Can be managed with the ``plot, output_formatting`` extras, depending on the required functionality
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -290,17 +299,19 @@ tabulate                  0.8.9              Printing in Markdown-friendly forma
 Computation
 ^^^^^^^^^^^
 
+Can be managed with the ``computation`` extra.
+
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 SciPy                     1.7.1              Miscellaneous statistical functions
-numba                     0.53.1             Alternative execution engine for rolling operations
-                                             (see :ref:`Enhancing Performance <enhancingperf.numba>`)
 xarray                    0.19.0             pandas-like API for N-dimensional data
 ========================= ================== =============================================================
 
 Excel files
 ^^^^^^^^^^^
+
+Can be managed with the ``excel`` extra.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -314,6 +325,8 @@ pyxlsb                    1.0.8              Reading for xlsb files
 
 HTML
 ^^^^
+
+Can be managed with the ``html`` extra.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -350,14 +363,18 @@ top-level :func:`~pandas.read_html` function:
 XML
 ^^^
 
+Can be managed with the ``xml`` extra.
+
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-lxml                      4.5.0              XML parser for read_xml and tree builder for to_xml
+lxml                      4.6.3              XML parser for read_xml and tree builder for to_xml
 ========================= ================== =============================================================
 
 SQL databases
 ^^^^^^^^^^^^^
+
+Can be managed with the ``postgresql, mysql, sql-other`` extras, depending on required sql compatibility.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -369,6 +386,8 @@ pymysql                   1.0.2              MySQL engine for sqlalchemy
 
 Other data sources
 ^^^^^^^^^^^^^^^^^^
+
+Can be managed with the ``hdf5, parquet, feather, spss, excel`` extras, depending on required compatibility.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -400,6 +419,8 @@ odfpy                     1.4.1              Open document format (.odf, .ods, .
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+Can be managed with the ``aws, gcp`` extras, depending on required compatibility.
+
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
@@ -411,6 +432,8 @@ s3fs                      2021.05.0          Amazon S3 access
 
 Clipboard
 ^^^^^^^^^
+
+Must be manually managed, depending on operating system.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -424,6 +447,8 @@ xsel                                         Clipboard I/O on linux
 
 Compression
 ^^^^^^^^^^^
+
+Can be managed with the ``compression`` extra.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes

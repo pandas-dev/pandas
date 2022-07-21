@@ -255,7 +255,7 @@ Optional pandas dependencies can be managed as extras in a requirements/setup fi
 
   pandas[performance, aws]>=1.5.0
 
-Available optional dependencies are ``[all, performance, computation, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html, plot, output_formatting, compression, test]`` (:issue:`39164`)
+Available optional dependencies are ``[all, performance, computation, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html, xml, plot, output_formatting, compression, test]`` (:issue:`39164`)
 
 .. _whatsnew_150.enhancements.other:
 
