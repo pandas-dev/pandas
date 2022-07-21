@@ -417,27 +417,34 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         *args,
         **kwargs,
     ) -> np.ndarray:
+        order = "ascending" if ascending else "descending"
+        null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
+        if null_placement is None:
+            raise ValueError(
+                f"na_position must be 'last' or 'first'. Got {na_position}"
+            )
         if pa_version_under6p0:
             raise NotImplementedError(
                 "argsort only implemented for pyarrow version >= 6.0"
             )
-
-        order = "ascending" if ascending else "descending"
-        try:
-            null_placement = {"last": "at_end", "first": "at_start"}[na_position]
-        except KeyError as err:
-            raise ValueError(
-                f"na_position must be 'last' or 'first'. Got {na_position}"
-            ) from err
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
         )
         if pa_version_under2p0:
-            return result.to_pandas().values
+            np_result = result.to_pandas().values
         else:
-            return result.to_numpy()
+            np_result = result.to_numpy()
+        return np_result.astype(np.intp, copy=False)
 
     def _argmin_max(self, skipna: bool, method: str) -> int:
+        if self._data.length() in (0, self._data.null_count) or (
+            self._hasna and not skipna
+        ):
+            # For empty or all null, pyarrow returns -1 but pandas expects TypeError
+            # For skipna=False and data w/ null, pandas expects NotImplementedError
+            # let ExtensionArray.arg{max|min} raise
+            return getattr(super(), f"arg{method}")(skipna)
+
         if pa_version_under6p0:
             raise NotImplementedError(
                 f"arg{method} only implemented for pyarrow version >= 6.0"
