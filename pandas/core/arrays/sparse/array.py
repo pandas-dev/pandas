@@ -837,7 +837,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # a number larger than 1 should be appended to
         # the last in case of fill value only appears
         # in the tail of array
-        diff = np.r_[indices[1:] - indices[:-1], 2]
+        diff = np.r_[np.diff(indices), 2]
         return indices[(diff > 1).argmax()] + 1
 
     def unique(self: SparseArrayT) -> SparseArrayT:
