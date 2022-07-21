@@ -307,6 +307,20 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._data
 
+    def __invert__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        if pa_version_under2p0:
+            raise NotImplementedError("__invert__ not implement for pyarrow < 2.0")
+        return type(self)(pc.invert(self._data))
+
+    def __neg__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        return type(self)(pc.negate_checked(self._data))
+
+    def __pos__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        return type(self)(self._data)
+
+    def __abs__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        return type(self)(pc.abs_checked(self._data))
+
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
