@@ -382,9 +382,8 @@ class BaseBlockManager(DataManager):
 
         if not self._has_no_reference(0):
             # if being referenced -> perform Copy-on-Write and clear the reference
-            # self.blocks = tuple([self.blocks[0].copy()])
+            # this method is only called if there is a single block -> hardcoded 0
             self = self.copy()
-            # self._clear_reference_block(blkno)
 
         return self.apply("setitem", indexer=indexer, value=value)
 
