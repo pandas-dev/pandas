@@ -1,5 +1,6 @@
 cimport cython
 from cpython.datetime cimport (
+    PyDateTime_CheckExact,
     PyDateTime_DATE_GET_HOUR,
     PyDateTime_DATE_GET_MICROSECOND,
     PyDateTime_DATE_GET_MINUTE,
@@ -229,7 +230,13 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
 
 
 cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
-    dts.year = PyDateTime_GET_YEAR(dt)
+    if PyDateTime_CheckExact(dt):
+        dts.year = PyDateTime_GET_YEAR(dt)
+    else:
+        # We use dt.year instead of PyDateTime_GET_YEAR because with Timestamp
+        #  we override year such that PyDateTime_GET_YEAR is incorrect.
+        dts.year = dt.year
+
     dts.month = PyDateTime_GET_MONTH(dt)
     dts.day = PyDateTime_GET_DAY(dt)
     dts.hour = PyDateTime_DATE_GET_HOUR(dt)
