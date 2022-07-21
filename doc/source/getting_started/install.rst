@@ -257,8 +257,8 @@ pandas recommends the following optional dependencies for performance gains. Can
   must be Version 1.3.2 or higher.
 
 * `numba <https://github.com/numba/numba>`__: Alternative execution engine for rolling operations.
-``numba`` is a JIT compiler that translates Python functions to optimized machine code using the
-LLVM compiler library. If installed, must be Version 0.53.1 or higher.
+  ``numba`` is a JIT compiler that translates Python functions to optimized machine code using the
+  LLVM compiler library. If installed, must be Version 0.53.1 or higher.
 
 .. note::
 
