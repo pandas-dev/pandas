@@ -8,6 +8,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under7p0
+
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
@@ -228,7 +230,13 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.intersection([1, 2, 3])
 
-    def test_union_base(self, index):
+    def test_union_base(self, index, request):
+        if pa_version_under7p0 and index.dtype == "string[pyarrow]":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
         first = index[3:]
         second = index[:5]
         everything = index
@@ -277,7 +285,13 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.difference([1, 2, 3], sort)
 
-    def test_symmetric_difference(self, index):
+    def test_symmetric_difference(self, index, request):
+        if pa_version_under7p0 and index.dtype == "string[pyarrow]":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
         if isinstance(index, CategoricalIndex):
             return
         if len(index) < 2:

@@ -18,7 +18,10 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import (
+    pa_version_under6p0,
+    pa_version_under7p0,
+)
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -167,7 +170,96 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    pass
+    def test_argsort(self, data_for_sorting, request):
+        if (
+            pa_version_under7p0
+            and data_for_sorting.dtype == "string[pyarrow]"
+            and "True" in request.node.name
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
+        super().test_argsort(data_for_sorting)
+
+    def test_argsort_missing_array(self, data_missing_for_sorting, request):
+        if (
+            pa_version_under7p0
+            and data_missing_for_sorting.dtype == "string[pyarrow]"
+            and "True" in request.node.name
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
+        super().test_argsort_missing_array(data_missing_for_sorting)
+
+    def test_argsort_missing(self, data_missing_for_sorting, request):
+        if (
+            pa_version_under7p0
+            and data_missing_for_sorting.dtype == "string[pyarrow]"
+            and "True" in request.node.name
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
+        super().test_argsort_missing(data_missing_for_sorting)
+
+    @pytest.mark.parametrize(
+        "na_position, expected",
+        [
+            ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
+            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
+        ],
+    )
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected, request):
+        if (
+            pa_version_under7p0
+            and data_missing_for_sorting.dtype == "string[pyarrow]"
+            and "True" in request.node.name
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
+        super().test_nargsort(data_missing_for_sorting, na_position, expected)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
+        if (
+            pa_version_under7p0
+            and data_for_sorting.dtype == "string[pyarrow]"
+            and "-True-" in request.node.name
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
+        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key, request
+    ):
+        if (
+            pa_version_under7p0
+            and data_missing_for_sorting.dtype == "string[pyarrow]"
+            and "-True-" in request.node.name
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
+                )
+            )
+        super().test_sort_values_missing(
+            data_missing_for_sorting, ascending, sort_by_key
+        )
 
 
 class TestCasting(base.BaseCastingTests):
