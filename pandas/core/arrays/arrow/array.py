@@ -430,7 +430,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             return type(self)(pc.drop_null(self._data))
 
-    def isin(self, values):
+    def isin(self: ArrowExtensionArrayT, values) -> npt.NDArray[np.bool_]:
         if pa_version_under2p0:
             fallback_performancewarning(version="2")
             return super().isin(values)
