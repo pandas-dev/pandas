@@ -14,10 +14,14 @@ import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
+    IntervalIndex,
     Timestamp,
+    array,
     bdate_range,
     date_range,
+    interval_range,
     notna,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -668,6 +672,17 @@ class TestGetIndexer:
         msg = "index must be monotonic increasing or decreasing"
         with pytest.raises(ValueError, match=msg):
             rng2.get_indexer(rng, method="pad")
+
+    @pytest.mark.parametrize("box", [IntervalIndex, array, list])
+    def test_get_indexer_interval_index(self, box):
+        # GH#30178
+        rng = period_range("2022-07-01", freq="D", periods=3)
+        idx = box(interval_range(pd.Timestamp("2022-07-01"), freq="3D", periods=3))
+
+        actual = rng.get_indexer(idx)
+        expected = np.array([-1, -1, -1], dtype=np.int64)
+
+        tm.assert_equal(actual, expected)
 
 
 class TestMaybeCastSliceBound:
