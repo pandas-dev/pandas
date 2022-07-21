@@ -1590,8 +1590,8 @@ def test_apply_on_empty_dataframe():
 @pytest.mark.parametrize(
     "test, constant",
     [
-        ({"a": [1, 2, 3], "b": [1, 1, 1]}, {"a": [1, 2, 3], "b": 1}),
-        ({"a": [2, 2, 2], "b": [1, 1, 1]}, {"a": 2, "b": 1}),
+        ({"a": [1, 2, 3], "b": [1, 1, 1]}, {"a": [1, 2, 3], "b": [1]}),
+        ({"a": [2, 2, 2], "b": [1, 1, 1]}, {"a": [2], "b": [1]}),
     ],
 )
 def test_unique_agg_type_is_series(test, constant):
