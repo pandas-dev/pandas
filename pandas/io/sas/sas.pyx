@@ -495,35 +495,31 @@ def read_uint64_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
 
 
 # Byteswapping
-# From https://github.com/WizardMac/ReadStat/blob/master/src/readstat_bits.
-# Copyright (c) 2013-2016 Evan Miller, Apache 2 License
 
-cdef inline uint16_t _byteswap2(uint16_t num):
-    return ((num & 0xFF00) >> 8) | ((num & 0x00FF) << 8)
-
-
-cdef inline uint32_t _byteswap4(uint32_t num):
-    num = ((num & <uint32_t>0xFFFF0000) >> 16) | ((num & <uint32_t>0x0000FFFF) << 16)
-    return ((num & <uint32_t>0xFF00FF00) >> 8) | ((num & <uint32_t>0x00FF00FF) << 8)
-
-
-cdef inline uint64_t _byteswap8(uint64_t num):
-    num = ((num & <uint64_t>0xFFFFFFFF00000000) >> 32) | ((num & <uint64_t>0x00000000FFFFFFFF) << 32)
-    num = ((num & <uint64_t>0xFFFF0000FFFF0000) >> 16) | ((num & <uint64_t>0x0000FFFF0000FFFF) << 16)
-    return ((num & <uint64_t>0xFF00FF00FF00FF00) >> 8) | ((num & <uint64_t>0x00FF00FF00FF00FF) << 8)
+cdef extern from *:
+    """
+    #ifdef _MSC_VER
+        #define _byteswap2 _byteswap_ushort
+        #define _byteswap4 _byteswap_ulong
+        #define _byteswap8 _byteswap_uint64
+    #else
+        #define _byteswap2 __builtin_bswap16
+        #define _byteswap4 __builtin_bswap32
+        #define _byteswap8 __builtin_bswap64
+    #endif
+    """
+    uint16_t _byteswap2(uint16_t)
+    uint32_t _byteswap4(uint32_t)
+    uint64_t _byteswap8(uint64_t)
 
 
 cdef inline float _byteswap_float(float num):
-    cdef uint32_t answer = 0
-    memcpy(&answer, &num, 4)
-    answer = _byteswap4(answer)
-    memcpy(&num, &answer, 4)
+    cdef uint32_t *intptr = <uint32_t *>&num
+    intptr[0] = _byteswap4(intptr[0])
     return num
 
 
 cdef inline double _byteswap_double(double num):
-    cdef uint64_t answer = 0
-    memcpy(&answer, &num, 8)
-    answer = _byteswap8(answer)
-    memcpy(&num, &answer, 8)
+    cdef uint64_t *intptr = <uint64_t *>&num
+    intptr[0] = _byteswap8(intptr[0])
     return num
