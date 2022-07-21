@@ -7,7 +7,7 @@ from pandas.tests.copy_view.util import get_array
 
 
 @td.skip_array_manager_invalid_test
-def test_consolidate():
+def test_consolidate(using_copy_on_write):
 
     # create unconsolidated DataFrame
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
@@ -39,6 +39,7 @@ def test_consolidate():
     assert df._mgr._has_no_reference(2)
 
     # and modifying subset still doesn't modify parent
-    subset.iloc[0, 1] = 0.0
-    assert df._mgr._has_no_reference(1)
-    assert df.loc[0, "b"] == 0.1
+    if using_copy_on_write:
+        subset.iloc[0, 1] = 0.0
+        assert df._mgr._has_no_reference(1)
+        assert df.loc[0, "b"] == 0.1

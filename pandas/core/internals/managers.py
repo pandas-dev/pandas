@@ -380,7 +380,7 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if not self._has_no_reference(0):
+        if _using_copy_on_write() and not self._has_no_reference(0):
             # if being referenced -> perform Copy-on-Write and clear the reference
             # this method is only called if there is a single block -> hardcoded 0
             self = self.copy()
@@ -388,7 +388,11 @@ class BaseBlockManager(DataManager):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-        if self.refs is not None and not all(ref is None for ref in self.refs):
+        if (
+            _using_copy_on_write()
+            and self.refs is not None
+            and not all(ref is None for ref in self.refs)
+        ):
             # some reference -> copy full dataframe
             # TODO(CoW) this could be optimized to only copy the blocks that would
             # get modified
@@ -428,7 +432,7 @@ class BaseBlockManager(DataManager):
             limit = libalgos.validate_limit(None, limit=limit)
         if inplace:
             # TODO(CoW) can be optimized to only copy those blocks that have refs
-            if any(
+            if _using_copy_on_write() and any(
                 not self._has_no_reference_block(i) for i in range(len(self.blocks))
             ):
                 self = self.copy()
@@ -618,7 +622,7 @@ class BaseBlockManager(DataManager):
         BlockManager
         """
         if deep is None:
-            if get_option("mode.copy_on_write"):
+            if _using_copy_on_write():
                 # use shallow copy
                 deep = False
             else:
@@ -702,7 +706,7 @@ class BaseBlockManager(DataManager):
         pandas-indexer with -1's only.
         """
         if copy is None:
-            if get_option("mode.copy_on_write"):
+            if _using_copy_on_write():
                 # use shallow copy
                 copy = False
             else:
@@ -875,7 +879,7 @@ class BaseBlockManager(DataManager):
                     #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    if only_slice or get_option("mode.copy_on_write"):
+                    if only_slice or _using_copy_on_write():
                         taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
@@ -1218,7 +1222,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
-                if not self._has_no_reference_block(blkno_l):
+                if _using_copy_on_write() and not self._has_no_reference_block(blkno_l):
                     blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
                     self._clear_reference_block(blkno_l)
                 else:
@@ -1316,7 +1320,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if inplace and blk.should_store(value):
             copy = False
-            if not self._has_no_reference_block(blkno):
+            if _using_copy_on_write() and not self._has_no_reference_block(blkno):
                 # perform Copy-on-Write and clear the reference
                 copy = True
                 self._clear_reference_block(blkno)
@@ -1338,7 +1342,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        if not self._has_no_reference(loc):
+        if _using_copy_on_write() and not self._has_no_reference(loc):
             # otherwise perform Copy-on-Write and clear the reference
             blkno = self.blknos[loc]
             blocks = list(self.blocks)
@@ -2042,7 +2046,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        if not self._has_no_reference(0):
+        if _using_copy_on_write() and not self._has_no_reference(0):
             self.blocks = (self._block.copy(),)
             self.refs = None
             self._cache.clear()
@@ -2372,3 +2376,7 @@ def _preprocess_slice_or_indexer(
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
+
+
+def _using_copy_on_write():
+    return get_option("mode.copy_on_write")
