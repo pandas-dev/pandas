@@ -1878,7 +1878,7 @@ class TestSeriesConstructors:
         result = Series(index=[0], dtype="bool")
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
-    
+
     def test_constructor_dtype_timedelta_alternative_construct(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
@@ -1893,8 +1893,12 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_timedelta_ns_s_astype_int(self):
         # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype("int")
-        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype("int")
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
+            "int"
+        )
+        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype(
+            "int"
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings(
