@@ -247,7 +247,7 @@ cpdef int64_t delta_to_nanoseconds(
         if in_reso == NPY_DATETIMEUNIT.NPY_FR_Y or in_reso == NPY_DATETIMEUNIT.NPY_FR_M:
             raise ValueError(
                 "delta_to_nanoseconds does not support Y or M units, "
-                "as their duration in nanoseconds is amibiguous."
+                "as their duration in nanoseconds is ambiguous."
             )
         n = get_timedelta64_value(delta)
 

@@ -58,7 +58,7 @@ def test_delta_to_nanoseconds_error():
 def test_delta_to_nanoseconds_td64_MY_raises():
     msg = (
         "delta_to_nanoseconds does not support Y or M units, "
-        "as their duration in nanoseconds is amibiguous"
+        "as their duration in nanoseconds is ambiguous"
     )
 
     td = np.timedelta64(1234, "Y")
