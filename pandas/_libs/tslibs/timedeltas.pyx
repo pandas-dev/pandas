@@ -47,6 +47,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_ns,
     cmp_dtstructs,
     cmp_scalar,
+    convert_reso,
     get_conversion_factor,
     get_datetime64_unit,
     get_timedelta64_value,
@@ -57,7 +58,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedeltastruct,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
 from pandas._libs.tslibs.util cimport (
@@ -240,6 +244,11 @@ cpdef int64_t delta_to_nanoseconds(
 
     elif is_timedelta64_object(delta):
         in_reso = get_datetime64_unit(delta)
+        if in_reso == NPY_DATETIMEUNIT.NPY_FR_Y or in_reso == NPY_DATETIMEUNIT.NPY_FR_M:
+            raise ValueError(
+                "delta_to_nanoseconds does not support Y or M units, "
+                "as their duration in nanoseconds is ambiguous."
+            )
         n = get_timedelta64_value(delta)
 
     elif PyDelta_Check(delta):
@@ -256,26 +265,15 @@ cpdef int64_t delta_to_nanoseconds(
     else:
         raise TypeError(type(delta))
 
-    if reso < in_reso:
-        # e.g. ns -> us
-        factor = get_conversion_factor(reso, in_reso)
-        div, mod = divmod(n, factor)
-        if mod > 0 and not round_ok:
-            raise ValueError("Cannot losslessly convert units")
-
-        # Note that when mod > 0, we follow np.timedelta64 in always
-        #  rounding down.
-        value = div
-    else:
-        factor = get_conversion_factor(in_reso, reso)
-        try:
-            with cython.overflowcheck(True):
-                value = n * factor
-        except OverflowError as err:
-            unit_str = npy_unit_to_abbrev(reso)
-            raise OutOfBoundsTimedelta(
-                f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
-            ) from err
+    try:
+        return convert_reso(n, in_reso, reso, round_ok=round_ok)
+    except (OutOfBoundsDatetime, OverflowError) as err:
+        # Catch OutOfBoundsDatetime bc convert_reso can call check_dts_bounds
+        #  for Y/M-resolution cases
+        unit_str = npy_unit_to_abbrev(reso)
+        raise OutOfBoundsTimedelta(
+            f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
+        ) from err
 
     return value
 
@@ -1538,21 +1536,7 @@ cdef class _Timedelta(timedelta):
         if reso == self._reso:
             return self
 
-        if reso < self._reso:
-            # e.g. ns -> us
-            mult = get_conversion_factor(reso, self._reso)
-            div, mod = divmod(self.value, mult)
-            if mod > 0 and not round_ok:
-                raise ValueError("Cannot losslessly convert units")
-
-            # Note that when mod > 0, we follow np.timedelta64 in always
-            #  rounding down.
-            value = div
-        else:
-            mult = get_conversion_factor(self._reso, reso)
-            with cython.overflowcheck(True):
-                # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
-                value = self.value * mult
+        value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
         return type(self)._from_value_and_reso(value, reso=reso)
 
 
