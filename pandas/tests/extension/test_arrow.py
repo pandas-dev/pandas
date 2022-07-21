@@ -1479,7 +1479,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype):
+        if pa.types.is_temporal(pa_dtype) and pa_dtype != 'duration[ns]':
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=TypeError,
@@ -1552,7 +1552,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             all_arithmetic_operators in ("__add__", "__radd__")
             and pa.types.is_duration(pa_dtype)
             or all_arithmetic_operators in ("__sub__", "__rsub__")
-            and pa.types.is_temporal(pa_dtype)
+            and pa.types.is_temporal(pa_dtype) and pa_dtype != 'duration[ns]'
         )
         if (
             all_arithmetic_operators
