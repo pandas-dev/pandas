@@ -82,6 +82,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_ns,
     cmp_dtstructs,
     cmp_scalar,
+    convert_reso,
     get_conversion_factor,
     get_datetime64_unit,
     get_datetime64_value,
@@ -1043,7 +1044,6 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Conversion Methods
 
-    # TODO: share with _Timedelta?
     @cython.cdivision(False)
     cdef _Timestamp _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
@@ -1052,21 +1052,7 @@ cdef class _Timestamp(ABCTimestamp):
         if reso == self._reso:
             return self
 
-        if reso < self._reso:
-            # e.g. ns -> us
-            mult = get_conversion_factor(reso, self._reso)
-            div, mod = divmod(self.value, mult)
-            if mod > 0 and not round_ok:
-                raise ValueError("Cannot losslessly convert units")
-
-            # Note that when mod > 0, we follow np.datetime64 in always
-            #  rounding down.
-            value = div
-        else:
-            mult = get_conversion_factor(self._reso, reso)
-            with cython.overflowcheck(True):
-                # Note: caller is responsible for re-raising as OutOfBoundsDatetime
-                value = self.value * mult
+        value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
         return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
 
     def _as_unit(self, str unit, bint round_ok=True):
