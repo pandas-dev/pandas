@@ -2281,7 +2281,7 @@ def _consolidate(blocks: tuple[Block, ...]) -> list[Block]:
     return tuple(new_blocks)
 
 
-def _consolidate_with_refs(blocks: tuple[Block, ...], refs) -> list[Block]:
+def _consolidate_with_refs(blocks: tuple[Block, ...], refs) -> tuple[list[Block], list[weakref.ref | None]]:
     """
     Merge blocks having same dtype, exclude non-consolidating blocks, handling
     refs
