@@ -5,6 +5,7 @@ import itertools
 import operator
 from typing import (
     Any,
+    Callable,
     cast,
 )
 import warnings
@@ -161,6 +162,10 @@ class bottleneck_switch:
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
     # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
     if not is_object_dtype(dtype) and not needs_i8_conversion(dtype):
+        # GH 42878
+        # Bottleneck uses naive summation leading to O(n) loss of precision
+        # unlike numpy which implements pairwise summation, which has O(log(n)) loss
+        # crossref: https://github.com/pydata/bottleneck/issues/379
 
         # GH 15507
         # bottleneck does not properly upcast during the sum
@@ -170,7 +175,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        return name not in ["nansum", "nanprod"]
+        return name not in ["nansum", "nanprod", "nanmean"]
     return False
 
 
@@ -1527,7 +1532,7 @@ def _zero_out_fperr(arg):
 @disallow("M8", "m8")
 def nancorr(
     a: np.ndarray, b: np.ndarray, *, method="pearson", min_periods: int | None = None
-):
+) -> float:
     """
     a, b: ndarrays
     """
@@ -1549,7 +1554,7 @@ def nancorr(
     return f(a, b)
 
 
-def get_corr_func(method):
+def get_corr_func(method) -> Callable[[np.ndarray, np.ndarray], float]:
     if method == "kendall":
         from scipy.stats import kendalltau
 
@@ -1586,7 +1591,7 @@ def nancov(
     *,
     min_periods: int | None = None,
     ddof: int | None = 1,
-):
+) -> float:
     if len(a) != len(b):
         raise AssertionError("Operands to nancov must have same size")
 

@@ -54,7 +54,6 @@ from pandas._libs.tslibs.conversion cimport (
     maybe_localize_tso,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    get_conversion_factor,
     npy_unit_to_abbrev,
     periods_per_day,
     periods_per_second,
@@ -83,6 +82,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_ns,
     cmp_dtstructs,
     cmp_scalar,
+    get_conversion_factor,
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
@@ -1014,7 +1014,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
-        # the datetime strftime() methods require year >= 1900
+        # the datetime strftime() methods require year >= 1900 and is slower
         return f'{self.year}-{self.month:02d}-{self.day:02d}'
 
     @property

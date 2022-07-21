@@ -806,8 +806,7 @@ def test_read_csv_posargs_deprecation(all_parsers):
         "In a future version of pandas all arguments of read_csv "
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        parser.read_csv(f, " ")
+    parser.read_csv_check_warnings(FutureWarning, msg, f, " ")
 
 
 @pytest.mark.parametrize("delimiter", [",", "\t"])
@@ -921,5 +920,4 @@ def test_read_table_posargs_deprecation(all_parsers):
         "In a future version of pandas all arguments of read_table "
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        parser.read_table(data, " ")
+    parser.read_table_check_warnings(FutureWarning, msg, data, " ")

@@ -9,8 +9,15 @@ env:
   ENV_FILE: environment.yml
   COMMENT: ${{github.event.comment.body}}
 
+permissions:
+  contents: read
+
 jobs:
   autotune:
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     name: "Run benchmarks"
     # TODO: Support more benchmarking options later, against different branches, against self, etc
     if: startsWith(github.event.comment.body, '@github-actions benchmark')
@@ -32,12 +39,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Cache conda
-        uses: actions/cache@v3
-        with:
-          path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
         # Although asv sets up its own env, deps are still needed
         # during discovery process

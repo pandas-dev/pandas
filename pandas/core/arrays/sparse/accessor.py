@@ -1,4 +1,7 @@
 """Sparse accessor"""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -12,6 +15,12 @@ from pandas.core.accessor import (
 )
 from pandas.core.arrays.sparse.array import SparseArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
+
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class BaseAccessor:
@@ -49,7 +58,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             raise ValueError
 
     @classmethod
-    def from_coo(cls, A, dense_index=False):
+    def from_coo(cls, A, dense_index=False) -> Series:
         """
         Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
@@ -180,7 +189,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         )
         return A, rows, columns
 
-    def to_dense(self):
+    def to_dense(self) -> Series:
         """
         Convert a Series from sparse values to dense.
 
@@ -228,7 +237,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             raise AttributeError(self._validation_msg)
 
     @classmethod
-    def from_spmatrix(cls, data, index=None, columns=None):
+    def from_spmatrix(cls, data, index=None, columns=None) -> DataFrame:
         """
         Create a new DataFrame from a scipy sparse matrix.
 
@@ -284,7 +293,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             arrays, columns=columns, index=index, verify_integrity=False
         )
 
-    def to_dense(self):
+    def to_dense(self) -> DataFrame:
         """
         Convert a DataFrame with sparse values to dense.
 

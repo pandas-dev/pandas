@@ -889,12 +889,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if mask.any():
                 counts[mask] += fcounts
             else:
-                keys = np.insert(keys, 0, self.fill_value)
+                # error: Argument 1 to "insert" has incompatible type "Union[
+                # ExtensionArray,ndarray[Any, Any]]"; expected "Union[
+                # _SupportsArray[dtype[Any]], Sequence[_SupportsArray[dtype
+                # [Any]]], Sequence[Sequence[_SupportsArray[dtype[Any]]]],
+                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]], Sequence
+                # [Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]]"
+                keys = np.insert(keys, 0, self.fill_value)  # type: ignore[arg-type]
                 counts = np.insert(counts, 0, fcounts)
 
         if not isinstance(keys, ABCIndex):
-            keys = Index(keys)
-        return Series(counts, index=keys)
+            index = Index(keys)
+        else:
+            index = keys
+        return Series(counts, index=index)
 
     def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str):
 
@@ -1387,7 +1395,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # ------------------------------------------------------------------------
     # IO
     # ------------------------------------------------------------------------
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         """Necessary for making this object picklable"""
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
@@ -1402,7 +1410,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             self.__dict__.update(state)
 
-    def nonzero(self):
+    def nonzero(self) -> tuple[npt.NDArray[np.int32]]:
         if self.fill_value == 0:
             return (self.sp_index.indices,)
         else:

@@ -18,6 +18,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under1p01,
     pa_version_under2p0,
+    pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
 )
@@ -57,10 +58,98 @@ if not pa_version_under1p01:
         "ge": pc.greater_equal,
     }
 
+    ARROW_LOGICAL_FUNCS = {
+        "and": NotImplemented if pa_version_under2p0 else pc.and_kleene,
+        "rand": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.and_kleene(y, x),
+        "or": NotImplemented if pa_version_under2p0 else pc.or_kleene,
+        "ror": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.or_kleene(y, x),
+        "xor": NotImplemented if pa_version_under2p0 else pc.xor,
+        "rxor": NotImplemented if pa_version_under2p0 else lambda x, y: pc.xor(y, x),
+    }
+
+    def cast_for_truediv(
+        arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
+    ) -> pa.ChunkedArray:
+        # Ensure int / int -> float mirroring Python/Numpy behavior
+        # as pc.divide_checked(int, int) -> int
+        if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
+            pa_object.type
+        ):
+            return arrow_array.cast(pa.float64())
+        return arrow_array
+
+    def floordiv_compat(
+        left: pa.ChunkedArray | pa.Array | pa.Scalar,
+        right: pa.ChunkedArray | pa.Array | pa.Scalar,
+    ) -> pa.ChunkedArray:
+        # Ensure int // int -> int mirroring Python/Numpy behavior
+        # as pc.floor(pc.divide_checked(int, int)) -> float
+        result = pc.floor(pc.divide_checked(left, right))
+        if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
+            result = result.cast(left.type)
+        return result
+
+    ARROW_ARITHMETIC_FUNCS = {
+        "add": NotImplemented if pa_version_under2p0 else pc.add_checked,
+        "radd": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.add_checked(y, x),
+        "sub": NotImplemented if pa_version_under2p0 else pc.subtract_checked,
+        "rsub": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.subtract_checked(y, x),
+        "mul": NotImplemented if pa_version_under2p0 else pc.multiply_checked,
+        "rmul": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.multiply_checked(y, x),
+        "truediv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
+        "rtruediv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "floordiv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: floordiv_compat(x, y),
+        "rfloordiv": NotImplemented
+        if pa_version_under2p0
+        else lambda x, y: floordiv_compat(y, x),
+        "mod": NotImplemented,
+        "rmod": NotImplemented,
+        "divmod": NotImplemented,
+        "rdivmod": NotImplemented,
+        "pow": NotImplemented if pa_version_under4p0 else pc.power_checked,
+        "rpow": NotImplemented
+        if pa_version_under4p0
+        else lambda x, y: pc.power_checked(y, x),
+    }
+
 if TYPE_CHECKING:
     from pandas import Series
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
+
+
+def to_pyarrow_type(
+    dtype: ArrowDtype | pa.DataType | Dtype | None,
+) -> pa.DataType | None:
+    """
+    Convert dtype to a pyarrow type instance.
+    """
+    if isinstance(dtype, ArrowDtype):
+        pa_dtype = dtype.pyarrow_dtype
+    elif isinstance(dtype, pa.DataType):
+        pa_dtype = dtype
+    elif dtype:
+        # Accepts python types too
+        pa_dtype = pa.from_numpy_dtype(dtype)
+    else:
+        pa_dtype = None
+    return pa_dtype
 
 
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
@@ -89,13 +178,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
-        if isinstance(dtype, ArrowDtype):
-            pa_dtype = dtype.pyarrow_dtype
-        elif dtype:
-            pa_dtype = pa.from_numpy_dtype(dtype)
-        else:
-            pa_dtype = None
-
+        pa_dtype = to_pyarrow_type(dtype)
         if isinstance(scalars, cls):
             data = scalars._data
             if pa_dtype:
@@ -113,7 +196,40 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+        pa_type = to_pyarrow_type(dtype)
+        if pa.types.is_timestamp(pa_type):
+            from pandas.core.tools.datetimes import to_datetime
+
+            scalars = to_datetime(strings, errors="raise")
+        elif pa.types.is_date(pa_type):
+            from pandas.core.tools.datetimes import to_datetime
+
+            scalars = to_datetime(strings, errors="raise").date
+        elif pa.types.is_duration(pa_type):
+            from pandas.core.tools.timedeltas import to_timedelta
+
+            scalars = to_timedelta(strings, errors="raise")
+        elif pa.types.is_time(pa_type):
+            from pandas.core.tools.times import to_time
+
+            # "coerce" to allow "null times" (None) to not raise
+            scalars = to_time(strings, errors="coerce")
+        elif pa.types.is_boolean(pa_type):
+            from pandas.core.arrays import BooleanArray
+
+            scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
+        elif (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            from pandas.core.tools.numeric import to_numeric
+
+            scalars = to_numeric(strings, errors="raise")
+        else:
+            # Let pyarrow try to infer or raise
+            scalars = strings
+        return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
     def __getitem__(self, item: PositionalIndexer):
         """Select a subset of self.
@@ -218,6 +334,28 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             result = result.to_numpy()
         return BooleanArray._from_sequence(result)
+
+    def _evaluate_op_method(self, other, op, arrow_funcs):
+        pc_func = arrow_funcs[op.__name__]
+        if pc_func is NotImplemented:
+            raise NotImplementedError(f"{op.__name__} not implemented.")
+        if isinstance(other, ArrowExtensionArray):
+            result = pc_func(self._data, other._data)
+        elif isinstance(other, (np.ndarray, list)):
+            result = pc_func(self._data, pa.array(other, from_pandas=True))
+        elif is_scalar(other):
+            result = pc_func(self._data, pa.scalar(other))
+        else:
+            raise NotImplementedError(
+                f"{op.__name__} not implemented for {type(other)}"
+            )
+        return type(self)(result)
+
+    def _logical_method(self, other, op):
+        return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
+
+    def _arith_method(self, other, op):
+        return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
 
     def equals(self, other) -> bool:
         if not isinstance(other, ArrowExtensionArray):
@@ -324,7 +462,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         indices: TakeIndexer,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ):
+    ) -> ArrowExtensionArray:
         """
         Take elements from an array.
 

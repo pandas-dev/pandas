@@ -92,8 +92,9 @@ def test_cython_agg_boolean():
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(NotImplementedError, match="does not implement"):
-        frame.groupby("a")["b"].mean(numeric_only=True)
+    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            frame.groupby("a")["b"].mean(numeric_only=True)
 
     with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
         frame.groupby("a")["b"].mean()
@@ -114,8 +115,9 @@ def test_cython_agg_nothing_to_agg_with_dates():
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
     )
-    with pytest.raises(NotImplementedError, match="does not implement"):
-        frame.groupby("b").dates.mean(numeric_only=True)
+    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            frame.groupby("b").dates.mean(numeric_only=True)
 
 
 def test_cython_agg_frame_columns():
