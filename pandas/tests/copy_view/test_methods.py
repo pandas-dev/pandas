@@ -140,12 +140,12 @@ def test_select_dtypes(using_copy_on_write):
     df2._mgr._verify_integrity()
 
     # currently this always returns a "view"
-    assert np.shares_memory(df2["a"].values, df["a"].values)
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 0] = 0
     if using_copy_on_write:
-        assert not np.shares_memory(df2["a"].values, df["a"].values)
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
         tm.assert_frame_equal(df, df_orig)
     else:
         # but currently select_dtypes() actually returns a view -> mutates parent
@@ -161,13 +161,13 @@ def test_to_frame(using_copy_on_write):
     df = ser.to_frame()
 
     # currently this always returns a "view"
-    assert np.shares_memory(ser.values, df._get_column_array(0))
+    assert np.shares_memory(ser.values, get_array(df, 0))
 
     df.iloc[0, 0] = 0
 
     if using_copy_on_write:
         # mutating df triggers a copy-on-write for that column
-        assert not np.shares_memory(ser.values, df[0].values)
+        assert not np.shares_memory(ser.values, get_array(df, 0))
         tm.assert_series_equal(ser, ser_orig)
     else:
         # but currently select_dtypes() actually returns a view -> mutates parent

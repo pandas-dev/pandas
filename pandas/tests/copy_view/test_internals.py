@@ -3,6 +3,7 @@ import numpy as np
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
+from pandas.tests.copy_view.util import get_array
 
 
 @td.skip_array_manager_invalid_test
@@ -27,7 +28,7 @@ def test_consolidate():
     assert subset._mgr.refs[0] is not None
     # equivalent of assert np.shares_memory(df["b"].values, subset["b"].values)
     # but avoids caching df["b"]
-    assert np.shares_memory(df._get_column_array(1), subset["b"].values)
+    assert np.shares_memory(get_array(df, "b"), get_array(subset, "b"))
 
     # the new consolidated int64 block does not reference another
     assert subset._mgr.refs[1] is None
