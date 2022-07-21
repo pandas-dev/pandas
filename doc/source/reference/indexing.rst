@@ -251,6 +251,7 @@ IntervalIndex components
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
+   IntervalIndex.set_inclusive
    IntervalIndex.contains
    IntervalIndex.overlaps
    IntervalIndex.to_tuples

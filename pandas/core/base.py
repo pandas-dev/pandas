@@ -81,7 +81,10 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        Series,
+    )
 
 
 _shared_docs: dict[str, str] = {}
@@ -161,7 +164,7 @@ class NoNewAttributesMixin:
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key: str, value):
+    def __setattr__(self, key: str, value) -> None:
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
@@ -765,7 +768,7 @@ class IndexOpsMixin(OpsMixin):
         # has no attribute "any"
         return bool(isna(self).any())  # type: ignore[union-attr]
 
-    def isna(self):
+    def isna(self) -> npt.NDArray[np.bool_]:
         return isna(self._values)
 
     def _reduce(
@@ -840,6 +843,10 @@ class IndexOpsMixin(OpsMixin):
                     f"{na_action} was passed"
                 )
                 raise ValueError(msg)
+
+            if na_action == "ignore":
+                mapper = mapper[mapper.index.notna()]
+
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
             if is_categorical_dtype(self.dtype):
@@ -890,7 +897,7 @@ class IndexOpsMixin(OpsMixin):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-    ):
+    ) -> Series:
         """
         Return a Series containing counts of unique values.
 

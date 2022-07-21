@@ -15,6 +15,9 @@ on:
 env:
   PANDAS_CI: 1
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     runs-on: ubuntu-latest

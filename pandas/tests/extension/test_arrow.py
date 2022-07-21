@@ -24,6 +24,7 @@ import pytest
 from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
+    pa_version_under8p0,
 )
 
 import pandas as pd
@@ -177,6 +178,16 @@ def data_missing_for_sorting(data_for_grouping):
     return type(data_for_grouping)._from_sequence(
         [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]]
     )
+
+
+@pytest.fixture
+def data_for_twos(data):
+    """Length-100 array in which all the elements are two."""
+    pa_dtype = data.dtype.pyarrow_dtype
+    if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+        return pd.array([2] * 100, dtype=data.dtype)
+    # tests will be xfailed where 2 is not a valid scalar for pa_dtype
+    return data
 
 
 @pytest.fixture
@@ -563,13 +574,209 @@ class TestBaseMissing(base.BaseMissingTests):
         super().test_fillna_frame(data_missing)
 
 
+class TestBasePrinting(base.BasePrintingTests):
+    def test_series_repr(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_series_repr(data)
+
+    def test_dataframe_repr(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_dataframe_repr(data)
+
+
+class TestBaseReshaping(base.BaseReshapingTests):
+    @pytest.mark.parametrize("in_frame", [True, False])
+    def test_concat(self, data, in_frame, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_concat(data, in_frame)
+
+    @pytest.mark.parametrize("in_frame", [True, False])
+    def test_concat_all_na_block(self, data_missing, in_frame, request):
+        pa_dtype = data_missing.dtype.pyarrow_dtype
+        if (
+            pa.types.is_date(pa_dtype)
+            or pa.types.is_duration(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        super().test_concat_all_na_block(data_missing, in_frame)
+
+    def test_concat_columns(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_concat_columns(data, na_value)
+
+    def test_concat_extension_arrays_copy_false(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_concat_extension_arrays_copy_false(data, na_value)
+
+    def test_concat_with_reindex(self, data, request, using_array_manager):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="GH 47514: _concat_datetime expects axis arg.",
+                )
+            )
+        elif pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError if not using_array_manager else TypeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_concat_with_reindex(data)
+
+    def test_align(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align(data, na_value)
+
+    def test_align_frame(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align_frame(data, na_value)
+
+    def test_align_series_frame(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_align_series_frame(data, na_value)
+
+    def test_merge(self, data, na_value, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_merge(data, na_value)
+
+    def test_merge_on_extension_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_merge_on_extension_array(data)
+
+    def test_merge_on_extension_array_duplicates(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype) or (
+            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="GH 34986",
+                )
+            )
+        super().test_merge_on_extension_array_duplicates(data)
+
+    def test_ravel(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_ravel(data)
+
+    @pytest.mark.xfail(reason="GH 45419: pyarrow.ChunkedArray does not support views")
+    def test_transpose(self, data):
+        super().test_transpose(data)
+
+    def test_transpose_frame(self, data, request):
+        tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
+        if pa_version_under2p0 and tz not in (None, "UTC"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
+                )
+            )
+        super().test_transpose_frame(data)
+
+
 class TestBaseSetitem(base.BaseSetitemTests):
     def test_setitem_scalar_series(self, data, box_in_series, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC"):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason=(f"Not supported by pyarrow < 2.0 with timestamp type {tz}")
+                    reason=f"Not supported by pyarrow < 2.0 with timestamp type {tz}"
                 )
             )
         super().test_setitem_scalar_series(data, box_in_series)
@@ -1014,7 +1221,39 @@ class TestBaseParsing(base.BaseParsingTests):
         super().test_EA_types(engine, data)
 
 
+class TestBaseUnaryOps(base.BaseUnaryOpsTests):
+    @pytest.mark.xfail(
+        pa_version_under2p0,
+        raises=NotImplementedError,
+        reason="pyarrow.compute.invert not supported in pyarrow<2.0",
+    )
+    def test_invert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow.compute.invert does support {pa_dtype}",
+                )
+            )
+        super().test_invert(data)
+
+
 class TestBaseMethods(base.BaseMethodsTests):
+    @pytest.mark.parametrize("periods", [1, -2])
+    def test_diff(self, data, periods, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_unsigned_integer(pa_dtype) and periods == 1:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason=(
+                        f"diff with {pa_dtype} and periods={periods} will overflow"
+                    ),
+                )
+            )
+        super().test_diff(data, periods)
+
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
@@ -1293,6 +1532,325 @@ class TestBaseMethods(base.BaseMethodsTests):
                 )
             )
         super().test_where_series(data, na_value, as_frame)
+
+
+class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
+
+    divmod_exc = NotImplementedError
+
+    def _patch_combine(self, obj, other, op):
+        # BaseOpsUtil._combine can upcast expected dtype
+        # (because it generates expected on python scalars)
+        # while ArrowExtensionArray maintains original type
+        expected = base.BaseArithmeticOpsTests._combine(self, obj, other, op)
+        was_frame = False
+        if isinstance(expected, pd.DataFrame):
+            was_frame = True
+            expected_data = expected.iloc[:, 0]
+            original_dtype = obj.iloc[:, 0].dtype
+        else:
+            expected_data = expected
+            original_dtype = obj.dtype
+        pa_array = pa.array(expected_data._values).cast(original_dtype.pyarrow_dtype)
+        pd_array = type(expected_data._values)(pa_array)
+        if was_frame:
+            expected = pd.DataFrame(
+                pd_array, index=expected.index, columns=expected.columns
+            )
+        else:
+            expected = pd.Series(pd_array)
+        return expected
+
+    def test_arith_series_with_scalar(
+        self, data, all_arithmetic_operators, request, monkeypatch
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+
+        arrow_temporal_supported = not pa_version_under8p0 and (
+            all_arithmetic_operators in ("__add__", "__radd__")
+            and pa.types.is_duration(pa_dtype)
+            or all_arithmetic_operators in ("__sub__", "__rsub__")
+            and pa.types.is_temporal(pa_dtype)
+        )
+        if (
+            all_arithmetic_operators
+            in {
+                "__mod__",
+                "__rmod__",
+            }
+            or pa_version_under2p0
+        ):
+            self.series_scalar_exc = NotImplementedError
+        elif arrow_temporal_supported:
+            self.series_scalar_exc = None
+        elif not (
+            pa.types.is_floating(pa_dtype)
+            or pa.types.is_integer(pa_dtype)
+            or arrow_temporal_supported
+        ):
+            self.series_scalar_exc = pa.ArrowNotImplementedError
+        else:
+            self.series_scalar_exc = None
+        if (
+            all_arithmetic_operators == "__rpow__"
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"GH 29997: 1**pandas.NA == 1 while 1**pyarrow.NA == NULL "
+                        f"for {pa_dtype}"
+                    )
+                )
+            )
+        elif arrow_temporal_supported:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        f"{all_arithmetic_operators} not supported between"
+                        f"pd.NA and {pa_dtype} Python scalar"
+                    ),
+                )
+            )
+        elif (
+            all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason="divide by 0",
+                )
+            )
+        if all_arithmetic_operators == "__floordiv__" and pa.types.is_integer(pa_dtype):
+            # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
+            # not upcast
+            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+
+    def test_arith_frame_with_scalar(
+        self, data, all_arithmetic_operators, request, monkeypatch
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+
+        arrow_temporal_supported = not pa_version_under8p0 and (
+            all_arithmetic_operators in ("__add__", "__radd__")
+            and pa.types.is_duration(pa_dtype)
+            or all_arithmetic_operators in ("__sub__", "__rsub__")
+            and pa.types.is_temporal(pa_dtype)
+        )
+        if (
+            all_arithmetic_operators
+            in {
+                "__mod__",
+                "__rmod__",
+            }
+            or pa_version_under2p0
+        ):
+            self.frame_scalar_exc = NotImplementedError
+        elif arrow_temporal_supported:
+            self.frame_scalar_exc = None
+        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+            self.frame_scalar_exc = pa.ArrowNotImplementedError
+        else:
+            self.frame_scalar_exc = None
+        if (
+            all_arithmetic_operators == "__rpow__"
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"GH 29997: 1**pandas.NA == 1 while 1**pyarrow.NA == NULL "
+                        f"for {pa_dtype}"
+                    )
+                )
+            )
+        elif arrow_temporal_supported:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        f"{all_arithmetic_operators} not supported between"
+                        f"pd.NA and {pa_dtype} Python scalar"
+                    ),
+                )
+            )
+        elif (
+            all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason="divide by 0",
+                )
+            )
+        if all_arithmetic_operators == "__floordiv__" and pa.types.is_integer(pa_dtype):
+            # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
+            # not upcast
+            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
+    def test_arith_series_with_array(
+        self, data, all_arithmetic_operators, request, monkeypatch
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+
+        arrow_temporal_supported = not pa_version_under8p0 and (
+            all_arithmetic_operators in ("__add__", "__radd__")
+            and pa.types.is_duration(pa_dtype)
+            or all_arithmetic_operators in ("__sub__", "__rsub__")
+            and pa.types.is_temporal(pa_dtype)
+        )
+        if (
+            all_arithmetic_operators
+            in {
+                "__mod__",
+                "__rmod__",
+            }
+            or pa_version_under2p0
+        ):
+            self.series_array_exc = NotImplementedError
+        elif arrow_temporal_supported:
+            self.series_array_exc = None
+        elif not (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype)):
+            self.series_array_exc = pa.ArrowNotImplementedError
+        else:
+            self.series_array_exc = None
+        if (
+            all_arithmetic_operators == "__rpow__"
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"GH 29997: 1**pandas.NA == 1 while 1**pyarrow.NA == NULL "
+                        f"for {pa_dtype}"
+                    )
+                )
+            )
+        elif (
+            all_arithmetic_operators
+            in (
+                "__sub__",
+                "__rsub__",
+            )
+            and pa.types.is_unsigned_integer(pa_dtype)
+            and not pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason=(
+                        f"Implemented pyarrow.compute.subtract_checked "
+                        f"which raises on overflow for {pa_dtype}"
+                    ),
+                )
+            )
+        elif arrow_temporal_supported:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason=(
+                        f"{all_arithmetic_operators} not supported between"
+                        f"pd.NA and {pa_dtype} Python scalar"
+                    ),
+                )
+            )
+        elif (
+            all_arithmetic_operators in {"__rtruediv__", "__rfloordiv__"}
+            and (pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype))
+            and not pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason="divide by 0",
+                )
+            )
+        op_name = all_arithmetic_operators
+        ser = pd.Series(data)
+        # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
+        # since ser.iloc[0] is a python scalar
+        other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
+        if pa.types.is_floating(pa_dtype) or (
+            pa.types.is_integer(pa_dtype) and all_arithmetic_operators != "__truediv__"
+        ):
+            monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
+        self.check_opname(ser, op_name, other, exc=self.series_array_exc)
+
+    def test_add_series_with_extension_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if (
+            not (
+                pa.types.is_integer(pa_dtype)
+                or pa.types.is_floating(pa_dtype)
+                or (not pa_version_under8p0 and pa.types.is_duration(pa_dtype))
+            )
+            or pa_version_under2p0
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason=f"add_checked not implemented for {pa_dtype}",
+                )
+            )
+        super().test_add_series_with_extension_array(data)
+
+
+class TestBaseComparisonOps(base.BaseComparisonOpsTests):
+    def assert_series_equal(self, left, right, *args, **kwargs):
+        # Series.combine for "expected" retains bool[pyarrow] dtype
+        # While "result" return "boolean" dtype
+        right = pd.Series(right._values.to_numpy(), dtype="boolean")
+        super().assert_series_equal(left, right, *args, **kwargs)
+
+    def test_compare_array(self, data, comparison_op, na_value, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        ser = pd.Series(data)
+        # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
+        # since ser.iloc[0] is a python scalar
+        other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
+        if comparison_op.__name__ in ["eq", "ne"]:
+            # comparison should match point-wise comparisons
+            result = comparison_op(ser, other)
+            # Series.combine does not calculate the NA mask correctly
+            # when comparing over an array
+            assert result[8] is na_value
+            assert result[97] is na_value
+            expected = ser.combine(other, comparison_op)
+            expected[8] = na_value
+            expected[97] = na_value
+            self.assert_series_equal(result, expected)
+
+        else:
+            exc = None
+            try:
+                result = comparison_op(ser, other)
+            except Exception as err:
+                exc = err
+
+            if exc is None:
+                # Didn't error, then should match point-wise behavior
+                if pa.types.is_temporal(pa_dtype):
+                    # point-wise comparison with pd.NA raises TypeError
+                    assert result[8] is na_value
+                    assert result[97] is na_value
+                    result = result.drop([8, 97]).reset_index(drop=True)
+                    ser = ser.drop([8, 97])
+                    other = other.drop([8, 97])
+                expected = ser.combine(other, comparison_op)
+                self.assert_series_equal(result, expected)
+            else:
+                with pytest.raises(type(exc)):
+                    ser.combine(other, comparison_op)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
