@@ -162,7 +162,7 @@ class BaseBlockManager(DataManager):
         cls: type_t[T],
         blocks: list[Block],
         axes: list[Index],
-        refs: list[weakref.ref | None] | None,
+        refs: list[weakref.ref | None] | None = None,
     ) -> T:
         raise NotImplementedError
 
@@ -594,7 +594,8 @@ class BaseBlockManager(DataManager):
             nb.mgr_locs = BlockPlacement(inv_indexer[nb.mgr_locs.indexer])
             new_blocks.append(nb)
             if not copy:
-                new_refs.append(weakref.ref(b))
+                # None has no attribute "append"
+                new_refs.append(weakref.ref(b))  # type: ignore[union-attr]
 
         axes = list(self.axes)
         if index is not None:
@@ -641,6 +642,7 @@ class BaseBlockManager(DataManager):
             new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
+        new_refs: list[weakref.ref | None] | None
         if deep:
             new_refs = None
         else:
@@ -766,7 +768,7 @@ class BaseBlockManager(DataManager):
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
-    ) -> list[Block]:
+    ) -> tuple[list[Block], list[weakref.ref | None]]:
         """
         Slice/take blocks along axis=0.
 
@@ -845,7 +847,7 @@ class BaseBlockManager(DataManager):
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
         blocks = []
-        refs = []
+        refs: list[weakref.ref | None] = []
         group = not only_slice
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
@@ -1906,7 +1908,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         bp = BlockPlacement(0)
         new_blk = type(blk)(arr, placement=bp, ndim=2)
         axes = [columns, self.axes[0]]
-        refs = [weakref.ref(blk)]
+        refs: list[weakref.ref | None] = [weakref.ref(blk)]
         return BlockManager([new_blk], axes=axes, refs=refs, verify_integrity=False)
 
     def _has_no_reference(self, i: int = 0) -> bool:
@@ -2267,7 +2269,7 @@ def _stack_arrays(tuples, dtype: np.dtype):
     return stacked, placement
 
 
-def _consolidate(blocks: tuple[Block, ...]) -> list[Block]:
+def _consolidate(blocks: tuple[Block, ...]) -> tuple[Block, ...]:
     """
     Merge blocks having same dtype, exclude non-consolidating blocks
     """
@@ -2286,7 +2288,7 @@ def _consolidate(blocks: tuple[Block, ...]) -> list[Block]:
 
 def _consolidate_with_refs(
     blocks: tuple[Block, ...], refs
-) -> tuple[list[Block], list[weakref.ref | None]]:
+) -> tuple[tuple[Block, ...], list[weakref.ref | None]]:
     """
     Merge blocks having same dtype, exclude non-consolidating blocks, handling
     refs
