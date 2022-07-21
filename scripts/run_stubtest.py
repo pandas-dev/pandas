@@ -6,12 +6,10 @@ import warnings
 
 from mypy import stubtest
 
-# fail early if pandas is not installed
-try:
-    import pandas as pd
+import pandas as pd
 
-    assert "dev" in pd.__version__
-except (AssertionError, AttributeError, ImportError):
+# fail early if pandas is not installed
+if "dev" not in getattr(pd, "__version__", ""):
     # 'succeed' but print warning
     warnings.warn("You need to install the development version of pandas")
     sys.exit(0)
