@@ -238,18 +238,18 @@ class BaseBlockManager(DataManager):
 
     def _has_no_reference(self, i: int) -> bool:
         """
-        Check for column `i` if has references.
+        Check for column `i` if it has references.
         (whether it references another array or is itself being referenced)
-        Returns True if the columns has no references.
+        Returns True if the column has no references.
         """
         blkno = self.blknos[i]
         return self._has_no_reference_block(blkno)
 
     def _has_no_reference_block(self, blkno: int) -> bool:
         """
-        Check for column `i` if has references.
+        Check for block `i` if it has references.
         (whether it references another array or is itself being referenced)
-        Returns True if the columns has no references.
+        Returns True if the block has no references.
         """
         # TODO(CoW) include `or self.refs[blkno]() is None` ?
         return (
@@ -393,8 +393,6 @@ class BaseBlockManager(DataManager):
             # some reference -> copy full dataframe
             # TODO(CoW) this could be optimized to only copy the blocks that would
             # get modified
-            # self.blocks = tuple([blk.copy() for blk in self.blocks])
-            # self.refs = None
             self = self.copy()
 
         if align:
@@ -1037,9 +1035,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
         if self.refs is not None:
             if len(self.refs) != len(self.blocks):
-                raise ValueError(
+                raise AssertionError(
                     "Number of passed refs must equal the number of blocks: "
                     f"{len(self.refs)} refs vs {len(self.blocks)} blocks."
+                    "\nIf you see this error, please report a bug at "
+                    "https://github.com/pandas-dev/pandas/issues"
                 )
 
     @classmethod
@@ -1060,9 +1060,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def fast_xs(self, loc: int) -> SingleBlockManager:
         """
         Return the array corresponding to `frame.iloc[loc]`.
-
-        Warning! The returned array is a view in case of a single block,
-        but doesn't handle Copy-on-Write, so this should be used with caution.
 
         Parameters
         ----------
@@ -1823,7 +1820,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
-        # TODO(CoW) correctly handle passing through refs
         # In general, _consolidate_inplace should only be called via
         #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
         #  the DataFrame's _item_cache. The exception is for newly-created
@@ -1902,7 +1898,6 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Manager analogue of Series.to_frame
         """
-        # TODO(CoW) pass ref to ensure CoW for to_frame
         blk = self.blocks[0]
         arr = ensure_block_shape(blk.values, ndim=2)
         bp = BlockPlacement(0)
@@ -1913,9 +1908,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
     def _has_no_reference(self, i: int = 0) -> bool:
         """
-        Check for column `i` if has references.
+        Check for column `i` if it has references.
         (whether it references another array or is itself being referenced)
-        Returns True if the columns has no references.
+        Returns True if the column has no references.
         """
         return (self.refs is None or self.refs[0] is None) and weakref.getweakrefcount(
             self.blocks[0]

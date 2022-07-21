@@ -1297,7 +1297,6 @@ class Series(base.IndexOpsMixin, NDFrame):
                 del self._cacher
             # for CoW, we never want to update the parent DataFrame cache
             # if the Series changed, and always pop the cached item
-            # TODO replace False with check for option
             elif (
                 not (
                     get_option("mode.copy_on_write")

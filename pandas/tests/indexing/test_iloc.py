@@ -71,9 +71,7 @@ class TestiLocBaseIndependent:
         ],
     )
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_iloc_setitem_fullcol_categorical(
-        self, indexer, key, using_array_manager, using_copy_on_write
-    ):
+    def test_iloc_setitem_fullcol_categorical(self, indexer, key, using_array_manager):
         frame = DataFrame({0: range(3)}, dtype=object)
 
         cat = Categorical(["alpha", "beta", "gamma"])
@@ -107,6 +105,7 @@ class TestiLocBaseIndependent:
         df.iloc[0, 0] = "gamma"
         assert cat[0] != "gamma"
 
+        # TODO with mixed dataframe ("split" path), we always overwrite the column
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
         orig_vals = df.values
