@@ -4,7 +4,10 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under6p0,
+    pa_version_under7p0,
+)
 
 import pandas as pd
 from pandas import (
@@ -54,7 +57,11 @@ def test_value_counts_null(null_obj, index_or_series_obj, request):
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
-    elif pa_version_under7p0 and orig.dtype == "string[pyarrow]":
+    elif (
+        pa_version_under7p0
+        and orig.dtype == "string[pyarrow]"
+        and not pa_version_under6p0
+    ):
         request.node.add_marker(
             pytest.mark.xfail(
                 reason="https://issues.apache.org/jira/browse/ARROW-12042"

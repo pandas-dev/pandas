@@ -170,9 +170,49 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
+    def test_argmin_argmax(
+        self, data_for_sorting, data_missing_for_sorting, na_value, request
+    ):
+        if pa_version_under6p0 and data_for_sorting.dtype == "string[pyarrow]":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected, request
+    ):
+        if pa_version_under6p0 and data_missing_for_sorting.dtype == "string[pyarrow]":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        super().test_argreduce_series(
+            data_missing_for_sorting, op_name, skipna, expected
+        )
+
     def test_argsort(self, data_for_sorting, request):
         if (
             pa_version_under7p0
+            and not pa_version_under6p0
             and data_for_sorting.dtype == "string[pyarrow]"
             and "True" in request.node.name
         ):
@@ -186,6 +226,7 @@ class TestMethods(base.BaseMethodsTests):
     def test_argsort_missing_array(self, data_missing_for_sorting, request):
         if (
             pa_version_under7p0
+            and not pa_version_under6p0
             and data_missing_for_sorting.dtype == "string[pyarrow]"
             and "True" in request.node.name
         ):
@@ -199,6 +240,7 @@ class TestMethods(base.BaseMethodsTests):
     def test_argsort_missing(self, data_missing_for_sorting, request):
         if (
             pa_version_under7p0
+            and not pa_version_under6p0
             and data_missing_for_sorting.dtype == "string[pyarrow]"
             and "True" in request.node.name
         ):
@@ -219,6 +261,7 @@ class TestMethods(base.BaseMethodsTests):
     def test_nargsort(self, data_missing_for_sorting, na_position, expected, request):
         if (
             pa_version_under7p0
+            and not pa_version_under6p0
             and data_missing_for_sorting.dtype == "string[pyarrow]"
             and "True" in request.node.name
         ):
@@ -233,6 +276,7 @@ class TestMethods(base.BaseMethodsTests):
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
         if (
             pa_version_under7p0
+            and not pa_version_under6p0
             and data_for_sorting.dtype == "string[pyarrow]"
             and "-True-" in request.node.name
         ):
@@ -249,6 +293,7 @@ class TestMethods(base.BaseMethodsTests):
     ):
         if (
             pa_version_under7p0
+            and not pa_version_under6p0
             and data_missing_for_sorting.dtype == "string[pyarrow]"
             and "-True-" in request.node.name
         ):
