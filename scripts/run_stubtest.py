@@ -10,9 +10,12 @@ import pandas as pd
 
 # fail early if pandas is not installed
 if "dev" not in getattr(pd, "__version__", ""):
-    # 'succeed' but print warning
+    # fail on the CI, soft fail during local development
     warnings.warn("You need to install the development version of pandas")
-    sys.exit(0)
+    if pd.compat.is_ci_environment():
+        sys.exit(1)
+    else:
+        sys.exit(0)
 
 
 _ALLOWLIST = [  # should be empty
