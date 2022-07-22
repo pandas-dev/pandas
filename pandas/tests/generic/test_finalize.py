@@ -227,12 +227,10 @@ _all_methods = [
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("idxmin"))
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("idxmax")),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("idxmax"))
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("mode")),

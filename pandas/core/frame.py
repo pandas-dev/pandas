@@ -11010,7 +11010,7 @@ Parrot 2  Parrot       24.0
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        return data._constructor_sliced(result, index=data._get_agg_axis(axis)).__finalize__(self, method="idxmin")
 
     @doc(_shared_docs["idxmax"], numeric_only_default="False")
     def idxmax(
@@ -11035,7 +11035,7 @@ Parrot 2  Parrot       24.0
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        return data._constructor_sliced(result, index=data._get_agg_axis(axis)).__finalize__(self, method="idxmax")
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """
