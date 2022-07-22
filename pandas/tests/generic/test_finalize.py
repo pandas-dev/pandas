@@ -229,12 +229,8 @@ _all_methods = [
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("idxmin"))
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("idxmax"))
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("mode")),
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("idxmax")),
+    (pd.DataFrame, frame_data, operator.methodcaller("mode")),
     pytest.param(
         (pd.Series, [0], operator.methodcaller("mode")),
         marks=not_implemented_mark,
