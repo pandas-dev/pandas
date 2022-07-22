@@ -1409,11 +1409,6 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
 
-    @pytest.mark.xfail(
-        pa_version_under6p0,
-        raises=NotImplementedError,
-        reason="argmin/max only implemented for pyarrow version >= 6.0",
-    )
     @pytest.mark.parametrize(
         "op_name, skipna, expected",
         [
@@ -1431,7 +1426,14 @@ class TestBaseMethods(base.BaseMethodsTests):
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
         pa_dtype = data_missing_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype) and skipna:
+        if pa_version_under6p0 and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        elif not pa_version_under6p0 and pa.types.is_duration(pa_dtype) and skipna:
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,

@@ -198,7 +198,11 @@ class TestMethods(base.BaseMethodsTests):
     def test_argreduce_series(
         self, data_missing_for_sorting, op_name, skipna, expected, request
     ):
-        if pa_version_under6p0 and data_missing_for_sorting.dtype == "string[pyarrow]":
+        if (
+            pa_version_under6p0
+            and data_missing_for_sorting.dtype == "string[pyarrow]"
+            and skipna
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,

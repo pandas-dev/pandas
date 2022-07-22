@@ -182,11 +182,7 @@ def test_dunder_inplace_setops_deprecated(index):
     with tm.assert_produces_warning(FutureWarning):
         index &= index
 
-    is_pyarrow = (
-        index.dtype == "string[pyarrow]"
-        and pa_version_under7p0
-        and not pa_version_under6p0
-    )
+    is_pyarrow = index.dtype == "string[pyarrow]" and pa_version_under7p0
     with tm.assert_produces_warning(
         FutureWarning, raise_on_extra_warnings=not is_pyarrow
     ):
