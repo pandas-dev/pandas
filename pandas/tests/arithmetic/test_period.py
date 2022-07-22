@@ -1243,6 +1243,21 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - obj
 
+        # some but not *all* NaT
+        other = other.copy()
+        other[0] = np.timedelta64(0, "ns")
+        expected = PeriodIndex([pi[0]] + ["NaT"] * 8, freq="19D")
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            other - obj
+
     # ---------------------------------------------------------------
     # Unsorted
 

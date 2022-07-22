@@ -96,7 +96,7 @@ class PandasColumn(Column):
         return 0
 
     @cache_readonly
-    def dtype(self):
+    def dtype(self) -> tuple[DtypeKind, int, str, str]:
         dtype = self._col.dtype
 
         if is_categorical_dtype(dtype):
@@ -138,7 +138,7 @@ class PandasColumn(Column):
             # Not a NumPy dtype. Check if it's a categorical maybe
             raise ValueError(f"Data type {dtype} not supported by exchange protocol")
 
-        return (kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder)
+        return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder
 
     @property
     def describe_categorical(self):
@@ -181,10 +181,10 @@ class PandasColumn(Column):
         """
         Number of null elements. Should always be known.
         """
-        return self._col.isna().sum()
+        return self._col.isna().sum().item()
 
     @property
-    def metadata(self):
+    def metadata(self) -> dict[str, pd.Index]:
         """
         Store specific metadata of the column.
         """
@@ -196,7 +196,7 @@ class PandasColumn(Column):
         """
         return 1
 
-    def get_chunks(self, n_chunks=None):
+    def get_chunks(self, n_chunks: int | None = None):
         """
         Return an iterator yielding the chunks.
         See `DataFrame.get_chunks` for details on ``n_chunks``.
