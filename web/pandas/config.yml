@@ -121,7 +121,7 @@ sponsors:
     description: "Jeff Reback"
   - name: "Voltron Data"
     url: https://voltrondata.com/
-    logo: /static/img/partners/voltron_data.svg  # TODO pending
+    logo: /static/img/partners/voltron_data.svg
     kind: partner
     description: "Joris Van den Bossche"
   - name: "d-fine GmbH"
@@ -136,7 +136,7 @@ sponsors:
     description: "Marco Gorelli"
   - name: "Nvidia"
     url: https://www.nvidia.com
-    logo: /static/img/partners/nvidia.svg  # TODO pending
+    logo: /static/img/partners/nvidia.svg
     kind: partner
     description: "Matthew Roeschke"
   - name: "Tidelift"
