@@ -639,3 +639,21 @@ class TestDatetimeArray:
 
         roundtrip = expected.tz_localize("US/Pacific")
         tm.assert_datetime_array_equal(roundtrip, dta)
+
+    @pytest.mark.parametrize(
+        "error",
+        ["coerce", "raise"],
+    )
+    def test_coerce_fallback(self, error):
+        # GH#46071
+        s = pd.Series(["6/30/2025", "1 27 2024"])
+        expected = pd.Series(
+            [pd.Timestamp("2025-06-30 00:00:00"), pd.Timestamp("2024-01-27 00:00:00")]
+        )
+
+        result = pd.to_datetime(s, errors=error, infer_datetime_format=True)
+
+        if error == "coerce":
+            assert result[1] is not pd.NaT
+
+        tm.assert_series_equal(expected, result)
