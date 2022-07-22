@@ -11,10 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-)
+from pandas._typing import AnyArrayLike
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -243,7 +240,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 # Indexer Conversion
 
 
-def maybe_convert_indices(indices, n: int, verify: bool = True):
+def maybe_convert_indices(indices, n: int, verify: bool = True) -> np.ndarray:
     """
     Attempt to convert indices into valid, positive indices.
 
@@ -292,27 +289,6 @@ def maybe_convert_indices(indices, n: int, verify: bool = True):
 
 # -----------------------------------------------------------
 # Unsorted
-
-
-def is_exact_shape_match(target: ArrayLike, value: ArrayLike) -> bool:
-    """
-    Is setting this value into this target overwriting the entire column?
-
-    Parameters
-    ----------
-    target : np.ndarray or ExtensionArray
-    value : np.ndarray or ExtensionArray
-
-    Returns
-    -------
-    bool
-    """
-    return (
-        len(value.shape) > 0
-        and len(target.shape) > 0
-        and value.shape[0] == target.shape[0]
-        and value.size == target.size
-    )
 
 
 def length_of_indexer(indexer, target=None) -> int:

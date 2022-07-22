@@ -620,7 +620,8 @@ def test_read_procedure(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", postgresql_connectable)
-def test_copy_from_callable_insertion_method(conn, request):
+@pytest.mark.parametrize("expected_count", [2, "Success!"])
+def test_copy_from_callable_insertion_method(conn, expected_count, request):
     # GH 8953
     # Example in io.rst found under _io.sql.method
     # not available in sqlite, mysql
@@ -641,10 +642,18 @@ def test_copy_from_callable_insertion_method(conn, request):
 
             sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
             cur.copy_expert(sql=sql_query, file=s_buf)
+        return expected_count
 
     conn = request.getfixturevalue(conn)
     expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
-    expected.to_sql("test_frame", conn, index=False, method=psql_insert_copy)
+    result_count = expected.to_sql(
+        "test_frame", conn, index=False, method=psql_insert_copy
+    )
+    # GH 46891
+    if not isinstance(expected_count, int):
+        assert result_count is None
+    else:
+        assert result_count == expected_count
     result = sql.read_sql_table("test_frame", conn)
     tm.assert_frame_equal(result, expected)
 
@@ -2595,9 +2604,17 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         elif self.flavor == "mysql":
             tm.assert_frame_equal(res, df)
 
-    def test_datetime_time(self):
+    @pytest.mark.parametrize("tz_aware", [False, True])
+    def test_datetime_time(self, tz_aware):
         # test support for datetime.time, GH #8341
-        df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
+        if not tz_aware:
+            tz_times = [time(9, 0, 0), time(9, 1, 30)]
+        else:
+            tz_dt = date_range("2013-01-01 09:00:00", periods=2, tz="US/Pacific")
+            tz_times = Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
+
+        df = DataFrame(tz_times, columns=["a"])
+
         assert df.to_sql("test_time", self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":

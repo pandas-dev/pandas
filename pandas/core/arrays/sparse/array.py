@@ -821,7 +821,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def _first_fill_value_loc(self):
         """
-        Get the location of the first missing value.
+        Get the location of the first fill value.
 
         Returns
         -------
@@ -834,27 +834,43 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if not len(indices) or indices[0] > 0:
             return 0
 
-        diff = indices[1:] - indices[:-1]
-        return np.searchsorted(diff, 2) + 1
+        # a number larger than 1 should be appended to
+        # the last in case of fill value only appears
+        # in the tail of array
+        diff = np.r_[np.diff(indices), 2]
+        return indices[(diff > 1).argmax()] + 1
 
     def unique(self: SparseArrayT) -> SparseArrayT:
         uniques = algos.unique(self.sp_values)
-        fill_loc = self._first_fill_value_loc()
-        if fill_loc >= 0:
-            uniques = np.insert(uniques, fill_loc, self.fill_value)
+        if len(self.sp_values) != len(self):
+            fill_loc = self._first_fill_value_loc()
+            # Inorder to align the behavior of pd.unique or
+            # pd.Series.unique, we should keep the original
+            # order, here we use unique again to find the
+            # insertion place. Since the length of sp_values
+            # is not large, maybe minor performance hurt
+            # is worthwhile to the correctness.
+            insert_loc = len(algos.unique(self.sp_values[:fill_loc]))
+            uniques = np.insert(uniques, insert_loc, self.fill_value)
         return type(self)._from_sequence(uniques, dtype=self.dtype)
 
     def _values_for_factorize(self):
         # Still override this for hash_pandas_object
         return np.asarray(self), self.fill_value
 
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, SparseArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, SparseArray]:
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
         # ExtensionArray.factorize -> Tuple[EA, EA]
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
-        codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
+        codes, uniques = algos.factorize(
+            np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
+        )
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
@@ -883,12 +899,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if mask.any():
                 counts[mask] += fcounts
             else:
-                keys = np.insert(keys, 0, self.fill_value)
+                # error: Argument 1 to "insert" has incompatible type "Union[
+                # ExtensionArray,ndarray[Any, Any]]"; expected "Union[
+                # _SupportsArray[dtype[Any]], Sequence[_SupportsArray[dtype
+                # [Any]]], Sequence[Sequence[_SupportsArray[dtype[Any]]]],
+                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]], Sequence
+                # [Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]]"
+                keys = np.insert(keys, 0, self.fill_value)  # type: ignore[arg-type]
                 counts = np.insert(counts, 0, fcounts)
 
         if not isinstance(keys, ABCIndex):
-            keys = Index(keys)
-        return Series(counts, index=keys)
+            index = Index(keys)
+        else:
+            index = keys
+        return Series(counts, index=index)
 
     def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str):
 
@@ -944,14 +968,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            # Invalid index type "Tuple[Union[int, ellipsis], ...]" for
-            # "ndarray[Any, Any]"; expected type "Union[SupportsIndex,
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]], _NestedSequence[_Su
-            # pportsArray[dtype[Union[bool_, integer[Any]]]]],
-            # _NestedSequence[Union[bool, int]], Tuple[Union[SupportsIndex,
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]],
-            # _NestedSequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]], _N
-            # estedSequence[Union[bool, int]]], ...]]"  [index]
+            # error: Invalid index type "Tuple[Union[int, ellipsis], ...]"
+            # for "ndarray[Any, Any]"; expected type
+            # "Union[SupportsIndex, _SupportsArray[dtype[Union[bool_,
+            # integer[Any]]]], _NestedSequence[_SupportsArray[dtype[
+            # Union[bool_, integer[Any]]]]], _NestedSequence[Union[
+            # bool, int]], Tuple[Union[SupportsIndex, _SupportsArray[
+            # dtype[Union[bool_, integer[Any]]]], _NestedSequence[
+            # _SupportsArray[dtype[Union[bool_, integer[Any]]]]],
+            # _NestedSequence[Union[bool, int]]], ...]]"
             data_slice = self.to_dense()[key]  # type: ignore[index]
         elif isinstance(key, slice):
 
@@ -1192,8 +1217,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             data = np.concatenate(values)
             indices_arr = np.concatenate(indices)
-            # Argument 2 to "IntIndex" has incompatible type "ndarray[Any,
-            # dtype[signedinteger[_32Bit]]]"; expected "Sequence[int]"
+            # error: Argument 2 to "IntIndex" has incompatible type
+            # "ndarray[Any, dtype[signedinteger[_32Bit]]]";
+            # expected "Sequence[int]"
             sp_index = IntIndex(length, indices_arr)  # type: ignore[arg-type]
 
         else:
@@ -1379,12 +1405,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # ------------------------------------------------------------------------
     # IO
     # ------------------------------------------------------------------------
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         """Necessary for making this object picklable"""
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
             nd_state, (fill_value, sp_index) = state
-            # Need type annotation for "sparse_values"  [var-annotated]
+            # error: Need type annotation for "sparse_values"
             sparse_values = np.array([])  # type: ignore[var-annotated]
             sparse_values.__setstate__(nd_state)
 
@@ -1394,7 +1420,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             self.__dict__.update(state)
 
-    def nonzero(self):
+    def nonzero(self) -> tuple[npt.NDArray[np.int32]]:
         if self.fill_value == 0:
             return (self.sp_index.indices,)
         else:

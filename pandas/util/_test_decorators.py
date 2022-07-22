@@ -27,7 +27,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import locale
-from typing import Callable
+from typing import (
+    Callable,
+    Iterator,
+)
 import warnings
 
 import numpy as np
@@ -35,6 +38,7 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas._typing import F
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -216,7 +220,7 @@ def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     )
 
 
-def parametrize_fixture_doc(*args):
+def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
     this function will wrap the decorated function with a pytest
@@ -252,7 +256,7 @@ def check_file_leaks(func) -> Callable:
 
 
 @contextmanager
-def file_leak_context():
+def file_leak_context() -> Iterator[None]:
     """
     ContextManager analogue to check_file_leaks.
     """
@@ -289,7 +293,7 @@ def async_mark():
     return async_mark
 
 
-def mark_array_manager_not_yet_implemented(request):
+def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
     request.node.add_marker(mark)
 

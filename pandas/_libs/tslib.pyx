@@ -28,11 +28,12 @@ import pytz
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    NPY_FR_ns,
     check_dts_bounds,
-    dt64_to_dtstruct,
     dtstruct_to_dt64,
     get_datetime64_value,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     pydatetime_to_dt64,
     string_to_dts,
@@ -104,10 +105,11 @@ def _test_parse_iso8601(ts: str):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def format_array_from_datetime(
-    ndarray[int64_t] values,
+    ndarray values,
     tzinfo tz=None,
     str format=None,
-    object na_rep=None
+    object na_rep=None,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -120,40 +122,71 @@ def format_array_from_datetime(
           a strftime capable string
     na_rep : optional, default is None
           a nat format
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
     np.ndarray[object]
     """
     cdef:
-        int64_t val, ns, N = len(values)
+        int64_t val, ns, N = values.size
         bint show_ms = False, show_us = False, show_ns = False
-        bint basic_format = False
-        ndarray[object] result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+        bint basic_format = False, basic_format_day = False
         _Timestamp ts
-        str res
+        object res
         npy_datetimestruct dts
+
+        # Note that `result` (and thus `result_flat`) is C-order and
+        #  `it` iterates C-order as well, so the iteration matches
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
+        ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+        object[::1] res_flat = result.ravel()     # should NOT be a copy
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
 
     if na_rep is None:
         na_rep = 'NaT'
 
-    # if we don't have a format nor tz, then choose
-    # a format based on precision
-    basic_format = format is None and tz is None
-    if basic_format:
-        reso_obj = get_resolution(values)
-        show_ns = reso_obj == Resolution.RESO_NS
-        show_us = reso_obj == Resolution.RESO_US
-        show_ms = reso_obj == Resolution.RESO_MS
+    if tz is None:
+        # if we don't have a format nor tz, then choose
+        # a format based on precision
+        basic_format = format is None
+        if basic_format:
+            reso_obj = get_resolution(values, tz=tz, reso=reso)
+            show_ns = reso_obj == Resolution.RESO_NS
+            show_us = reso_obj == Resolution.RESO_US
+            show_ms = reso_obj == Resolution.RESO_MS
+
+        elif format == "%Y-%m-%d %H:%M:%S":
+            # Same format as default, but with hardcoded precision (s)
+            basic_format = True
+            show_ns = show_us = show_ms = False
+
+        elif format == "%Y-%m-%d %H:%M:%S.%f":
+            # Same format as default, but with hardcoded precision (us)
+            basic_format = show_us = True
+            show_ns = show_ms = False
+
+        elif format == "%Y-%m-%d":
+            # Default format for dates
+            basic_format_day = True
+
+    assert not (basic_format_day and basic_format)
 
     for i in range(N):
-        val = values[i]
+        # Analogous to: utc_val = values[i]
+        val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
         if val == NPY_NAT:
-            result[i] = na_rep
+            res = na_rep
+        elif basic_format_day:
+
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
+            res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
+
         elif basic_format:
 
-            dt64_to_dtstruct(val, &dts)
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
             res = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
                    f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
 
@@ -165,22 +198,32 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f'.{dts.us // 1000:03d}'
 
-            result[i] = res
-
         else:
 
-            ts = Timestamp(val, tz=tz)
+            ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
-                result[i] = str(ts)
+                # Use datetime.str, that returns ts.isoformat(sep=' ')
+                res = str(ts)
             else:
 
                 # invalid format string
                 # requires dates > 1900
                 try:
                     # Note: dispatches to pydatetime
-                    result[i] = ts.strftime(format)
+                    res = ts.strftime(format)
                 except ValueError:
-                    result[i] = str(ts)
+                    # Use datetime.str, that returns ts.isoformat(sep=' ')
+                    res = str(ts)
+
+        # Note: we can index result directly instead of using PyArray_MultiIter_DATA
+        #  like we do for the other functions because result is known C-contiguous
+        #  and is the first argument to PyArray_MultiIterNew2.  The usual pattern
+        #  does not seem to work with object dtype.
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
+        res_flat[i] = res
+
+        cnp.PyArray_ITER_NEXT(it)
 
     return result
 

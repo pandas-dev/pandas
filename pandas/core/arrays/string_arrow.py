@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable  # noqa: PDF001
 import re
-from typing import (
-    Union,
-    overload,
-)
+from typing import Union
 
 import numpy as np
 
@@ -16,10 +13,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     NpDtype,
-    PositionalIndexer,
     Scalar,
-    ScalarIndexer,
-    SequenceIndexer,
     npt,
 )
 from pandas.compat import (
@@ -32,7 +26,6 @@ from pandas.compat import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dtype_equal,
-    is_integer,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
@@ -41,7 +34,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
@@ -49,10 +41,6 @@ from pandas.core.arrays.numeric import NumericDtype
 from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
-)
-from pandas.core.indexers import (
-    check_array_indexer,
-    unpack_tuple_and_ellipses,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
@@ -62,21 +50,12 @@ if not pa_version_under1p01:
 
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
 
-    ARROW_CMP_FUNCS = {
-        "eq": pc.equal,
-        "ne": pc.not_equal,
-        "lt": pc.less,
-        "gt": pc.greater,
-        "le": pc.less_equal,
-        "ge": pc.greater_equal,
-    }
-
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
     if pa_version_under1p01:
-        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+        msg = "pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -85,9 +64,7 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(
-    OpsMixin, ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin
-):
+class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -132,13 +109,9 @@ class ArrowStringArray(
     """
 
     def __init__(self, values) -> None:
+        super().__init__(values)
+        # TODO: Migrate to ArrowDtype instead
         self._dtype = StringDtype(storage="pyarrow")
-        if isinstance(values, pa.Array):
-            self._data = pa.chunked_array([values])
-        elif isinstance(values, pa.ChunkedArray):
-            self._data = values
-        else:
-            raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
 
         if not pa.types.is_string(self._data.type):
             raise ValueError(
@@ -174,7 +147,7 @@ class ArrowStringArray(
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
-    def dtype(self) -> StringDtype:
+    def dtype(self) -> StringDtype:  # type: ignore[override]
         """
         An instance of 'string[pyarrow]'.
         """
@@ -205,113 +178,7 @@ class ArrowStringArray(
             result[mask] = na_value
         return result
 
-    @overload
-    def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
-        ...
-
-    @overload
-    def __getitem__(self: ArrowStringArray, item: SequenceIndexer) -> ArrowStringArray:
-        ...
-
-    def __getitem__(
-        self: ArrowStringArray, item: PositionalIndexer
-    ) -> ArrowStringArray | ArrowStringScalarOrNAT:
-        """Select a subset of self.
-
-        Parameters
-        ----------
-        item : int, slice, or ndarray
-            * int: The position in 'self' to get.
-            * slice: A slice object, where 'start', 'stop', and 'step' are
-              integers or None
-            * ndarray: A 1-d boolean NumPy ndarray the same length as 'self'
-
-        Returns
-        -------
-        item : scalar or ExtensionArray
-
-        Notes
-        -----
-        For scalar ``item``, return a scalar value suitable for the array's
-        type. This should be an instance of ``self.dtype.type``.
-        For slice ``key``, return an instance of ``ExtensionArray``, even
-        if the slice is length 0 or 1.
-        For a boolean mask, return an instance of ``ExtensionArray``, filtered
-        to the values where ``item`` is True.
-        """
-        item = check_array_indexer(self, item)
-
-        if isinstance(item, np.ndarray):
-            if not len(item):
-                return type(self)(pa.chunked_array([], type=pa.string()))
-            elif is_integer_dtype(item.dtype):
-                return self.take(item)
-            elif is_bool_dtype(item.dtype):
-                return type(self)(self._data.filter(item))
-            else:
-                raise IndexError(
-                    "Only integers, slices and integer or "
-                    "boolean arrays are valid indices."
-                )
-        elif isinstance(item, tuple):
-            item = unpack_tuple_and_ellipses(item)
-
-        # error: Non-overlapping identity check (left operand type:
-        # "Union[Union[int, integer[Any]], Union[slice, List[int],
-        # ndarray[Any, Any]]]", right operand type: "ellipsis")
-        if item is Ellipsis:  # type: ignore[comparison-overlap]
-            # TODO: should be handled by pyarrow?
-            item = slice(None)
-
-        if is_scalar(item) and not is_integer(item):
-            # e.g. "foo" or 2.5
-            # exception message copied from numpy
-            raise IndexError(
-                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
-                r"(`None`) and integer or boolean arrays are valid indices"
-            )
-        # We are not an array indexer, so maybe e.g. a slice or integer
-        # indexer. We dispatch to pyarrow.
-        value = self._data[item]
-        if isinstance(value, pa.ChunkedArray):
-            return type(self)(value)
-        else:
-            return self._as_pandas_scalar(value)
-
-    def _as_pandas_scalar(self, arrow_scalar: pa.Scalar):
-        scalar = arrow_scalar.as_py()
-        if scalar is None:
-            return self._dtype.na_value
-        else:
-            return scalar
-
-    def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
-
-        pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(other, ArrowStringArray):
-            result = pc_func(self._data, other._data)
-        elif isinstance(other, (np.ndarray, list)):
-            result = pc_func(self._data, other)
-        elif is_scalar(other):
-            try:
-                result = pc_func(self._data, pa.scalar(other))
-            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
-                mask = isna(self) | isna(other)
-                valid = ~mask
-                result = np.zeros(len(self), dtype="bool")
-                result[valid] = op(np.array(self)[valid], other)
-                return BooleanArray(result, mask)
-        else:
-            return NotImplemented
-
-        if pa_version_under2p0:
-            result = result.to_pandas().values
-        else:
-            result = result.to_numpy()
-        return BooleanArray._from_sequence(result)
-
-    def insert(self, loc: int, item):
+    def insert(self, loc: int, item) -> ArrowStringArray:
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
@@ -375,8 +242,9 @@ class ArrowStringArray(
     # ------------------------------------------------------------------------
     # String methods interface
 
-    # error: Cannot determine type of 'na_value'
-    _str_na_value = StringDtype.na_value  # type: ignore[has-type]
+    # error: Incompatible types in assignment (expression has type "NAType",
+    # base class "ObjectStringArrayMixin" defined the type as "float")
+    _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True

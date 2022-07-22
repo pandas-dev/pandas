@@ -345,6 +345,17 @@ Index level names may be supplied as keys.
 
 More on the ``sum`` function and aggregation later.
 
+When using ``.groupby()`` on a DatFrame with a  MultiIndex, do not specify both ``by`` and ``level``.
+The argument validation should be done in ``.groupby()``, using the name of the specific index.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"col1": ["a", "b", "c"]})
+   df.index = pd.MultiIndex.from_arrays([["a", "a", "b"],
+                                        [1, 2, 1]],
+                                        names=["x", "y"])
+   df.groupby(["col1", "x"])
+
 Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels by
@@ -761,7 +772,7 @@ different dtypes, then a common dtype will be determined in the same way as ``Da
 Transformation
 --------------
 
-The ``transform`` method returns an object that is indexed the same (same size)
+The ``transform`` method returns an object that is indexed the same
 as the one being grouped. The transform function must:
 
 * Return a result that is either the same size as the group chunk or
@@ -775,6 +786,14 @@ as the one being grouped. The transform function must:
   (``grouped.transform(lambda x: x.fillna(inplace=False))``).
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
+
+.. deprecated:: 1.5.0
+
+    When using ``.transform`` on a grouped DataFrame and the transformation function
+    returns a DataFrame, currently pandas does not align the result's index
+    with the input's index. This behavior is deprecated and alignment will
+    be performed in a future version of pandas. You can apply ``.to_numpy()`` to the
+    result of the transformation function to avoid alignment.
 
 Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
 transformation function. If the results from different groups have different dtypes, then
@@ -831,10 +850,10 @@ Alternatively, the built-in methods could be used to produce the same outputs.
 
 .. ipython:: python
 
-   max = ts.groupby(lambda x: x.year).transform("max")
-   min = ts.groupby(lambda x: x.year).transform("min")
+   max_ts = ts.groupby(lambda x: x.year).transform("max")
+   min_ts = ts.groupby(lambda x: x.year).transform("min")
 
-   max - min
+   max_ts - min_ts
 
 Another common data transform is to replace missing data with the group mean.
 

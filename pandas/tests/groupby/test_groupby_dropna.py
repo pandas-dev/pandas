@@ -332,6 +332,36 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("input_index", [None, ["a"], ["a", "b"]])
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+@pytest.mark.parametrize("series", [True, False])
+def test_groupby_dropna_with_multiindex_input(input_index, keys, series):
+    # GH#46783
+    obj = pd.DataFrame(
+        {
+            "a": [1, np.nan],
+            "b": [1, 1],
+            "c": [2, 3],
+        }
+    )
+
+    expected = obj.set_index(keys)
+    if series:
+        expected = expected["c"]
+    elif input_index == ["a", "b"] and keys == ["a"]:
+        # Column b should not be aggregated
+        expected = expected[["c"]]
+
+    if input_index is not None:
+        obj = obj.set_index(input_index)
+    gb = obj.groupby(keys, dropna=False)
+    if series:
+        gb = gb["c"]
+    result = gb.sum()
+
+    tm.assert_equal(result, expected)
+
+
 def test_groupby_nan_included():
     # GH 35646
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -348,3 +378,12 @@ def test_groupby_nan_included():
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
+
+
+def test_groupby_drop_nan_with_multi_index():
+    # GH 39895
+    df = pd.DataFrame([[np.nan, 0, 1]], columns=["a", "b", "c"])
+    df = df.set_index(["a", "b"])
+    result = df.groupby(["a", "b"], dropna=False).first()
+    expected = df
+    tm.assert_frame_equal(result, expected)

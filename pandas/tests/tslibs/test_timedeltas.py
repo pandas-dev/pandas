@@ -55,6 +55,23 @@ def test_delta_to_nanoseconds_error():
         delta_to_nanoseconds(np.int32(3))
 
 
+def test_delta_to_nanoseconds_td64_MY_raises():
+    msg = (
+        "delta_to_nanoseconds does not support Y or M units, "
+        "as their duration in nanoseconds is ambiguous"
+    )
+
+    td = np.timedelta64(1234, "Y")
+
+    with pytest.raises(ValueError, match=msg):
+        delta_to_nanoseconds(td)
+
+    td = np.timedelta64(1234, "M")
+
+    with pytest.raises(ValueError, match=msg):
+        delta_to_nanoseconds(td)
+
+
 def test_huge_nanoseconds_overflow():
     # GH 32402
     assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
@@ -115,5 +132,6 @@ def test_ints_to_pytimedelta_unsupported(unit):
 
     with pytest.raises(NotImplementedError, match=r"\d{1,2}"):
         ints_to_pytimedelta(arr, box=False)
-    with pytest.raises(NotImplementedError, match=r"\d{1,2}"):
+    msg = "Only resolutions 's', 'ms', 'us', 'ns' are supported"
+    with pytest.raises(NotImplementedError, match=msg):
         ints_to_pytimedelta(arr, box=True)

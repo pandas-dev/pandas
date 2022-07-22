@@ -5,6 +5,7 @@ inherit from this class.
 from __future__ import annotations
 
 from typing import (
+    Literal,
     TypeVar,
     final,
 )
@@ -155,7 +156,9 @@ class DataManager(PandasObject):
 
 
 class SingleDataManager(DataManager):
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     @final
     @property

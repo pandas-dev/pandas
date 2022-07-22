@@ -531,7 +531,7 @@ def sanitize_array(
         dtype = dtype.numpy_dtype
 
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
-    data = extract_array(data, extract_numpy=True)
+    data = extract_array(data, extract_numpy=True, extract_range=True)
 
     if isinstance(data, np.ndarray) and data.ndim == 0:
         if dtype is None:
@@ -556,7 +556,10 @@ def sanitize_array(
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
             try:
-                subarr = _try_cast(data, dtype, copy, True)
+                # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
+                # casting aligning with IntCastingNaNError below
+                with np.errstate(invalid="ignore"):
+                    subarr = _try_cast(data, dtype, copy, True)
             except IntCastingNaNError:
                 warnings.warn(
                     "In a future version, passing float-dtype values containing NaN "
@@ -610,7 +613,7 @@ def sanitize_array(
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
         if hasattr(data, "__array__"):
             # e.g. dask array GH#38645
-            data = np.asarray(data)
+            data = np.array(data, copy=copy)
         else:
             data = list(data)
 

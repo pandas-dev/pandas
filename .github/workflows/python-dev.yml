@@ -27,6 +27,9 @@ env:
   COVERAGE: true
   PYTEST_TARGET: pandas
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: false # Comment this line out to "unfreeze"
@@ -57,40 +60,20 @@ jobs:
     - name: Install dependencies
       shell: bash -el {0}
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
-        pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
-        pip list
+        python3 -m pip install --upgrade pip setuptools wheel
+        python3 -m pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
+        python3 -m pip install git+https://github.com/nedbat/coveragepy.git
+        python3 -m pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov pytest-asyncio>=0.17
+        python3 -m pip list
 
     - name: Build Pandas
       run: |
-        python setup.py build_ext -q -j2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
+        python3 setup.py build_ext -q -j2
+        python3 -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Build Version
       run: |
-        python -c "import pandas; pandas.show_versions();"
+        python3 -c "import pandas; pandas.show_versions();"
 
-    - name: Test with pytest
-      shell: bash -el {0}
-      run: |
-        ci/run_tests.sh
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Report Coverage
-      run: |
-        coverage report -m
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: true
+    - name: Test
+      uses: ./.github/actions/run-tests
