@@ -111,7 +111,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     def __init__(self, values) -> None:
         super().__init__(values)
         # TODO: Migrate to ArrowDtype instead
-        self._dtype = StringDtype(storage="pyarrow")
+        self._dtype = StringDtype(storage="pyarrow")  # type: ignore[assignment]
 
         if not pa.types.is_string(self._data.type):
             raise ValueError(
@@ -151,7 +151,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
         """
         An instance of 'string[pyarrow]'.
         """
-        return self._dtype
+        return self._dtype  # type: ignore[return-value]
 
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
