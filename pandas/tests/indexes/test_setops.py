@@ -244,7 +244,7 @@ class TestSetOps:
         if (
             pa_version_under7p0
             and index.dtype == "string[pyarrow]"
-            and pa_version_under6p0
+            and not pa_version_under6p0
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
