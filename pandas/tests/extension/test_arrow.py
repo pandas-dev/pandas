@@ -24,6 +24,7 @@ import pytest
 from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
+    pa_version_under6p0,
     pa_version_under8p0,
 )
 
@@ -301,6 +302,95 @@ class TestGetitemTests(base.BaseGetitemTests):
                 )
             )
         super().test_loc_iloc_frame_single_dtype(data)
+
+
+class TestBaseNumericReduce(base.BaseNumericReduceTests):
+    def check_reduce(self, ser, op_name, skipna):
+        pa_dtype = ser.dtype.pyarrow_dtype
+        result = getattr(ser, op_name)(skipna=skipna)
+        if pa.types.is_boolean(pa_dtype):
+            # Can't convert if ser contains NA
+            pytest.skip(
+                "pandas boolean data with NA does not fully support all reductions"
+            )
+        elif pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+            ser = ser.astype("Float64")
+        expected = getattr(ser, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_numeric_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
+        if all_numeric_reductions in {"skew", "kurt"}:
+            request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"median", "var", "std", "prod", "max", "min"}
+            and pa_version_under6p0
+        ):
+            request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions in {"sum", "mean"} and pa_version_under2p0:
+            request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"sum", "mean"}
+            and skipna is False
+            and pa_version_under6p0
+            and (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype))
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AssertionError,
+                    reason=(
+                        f"{all_numeric_reductions} with skip_nulls={skipna} did not "
+                        f"return NA for {pa_dtype} with pyarrow={pa.__version__}"
+                    ),
+                )
+            )
+        elif not (
+            pa.types.is_integer(pa_dtype)
+            or pa.types.is_floating(pa_dtype)
+            or pa.types.is_boolean(pa_dtype)
+        ) and not (
+            all_numeric_reductions in {"min", "max"}
+            and (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
+        ):
+            request.node.add_marker(xfail_mark)
+        elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
+            "std",
+            "var",
+            "median",
+        }:
+            request.node.add_marker(xfail_mark)
+        super().test_reduce_series(data, all_numeric_reductions, skipna)
+
+
+class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series(
+        self, data, all_boolean_reductions, skipna, na_value, request
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_boolean_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(xfail_mark)
+        elif pa_version_under3p0:
+            request.node.add_marker(xfail_mark)
+        op_name = all_boolean_reductions
+        s = pd.Series(data)
+        result = getattr(s, op_name)(skipna=skipna)
+        assert result is (op_name == "any")
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
@@ -1219,6 +1309,24 @@ class TestBaseParsing(base.BaseParsingTests):
                 )
             )
         super().test_EA_types(engine, data)
+
+
+class TestBaseUnaryOps(base.BaseUnaryOpsTests):
+    @pytest.mark.xfail(
+        pa_version_under2p0,
+        raises=NotImplementedError,
+        reason="pyarrow.compute.invert not supported in pyarrow<2.0",
+    )
+    def test_invert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow.compute.invert does support {pa_dtype}",
+                )
+            )
+        super().test_invert(data)
 
 
 class TestBaseMethods(base.BaseMethodsTests):

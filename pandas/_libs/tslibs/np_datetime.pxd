@@ -101,6 +101,7 @@ cpdef cnp.ndarray astype_overflowsafe(
     cnp.ndarray values,  # ndarray[datetime64[anyunit]]
     cnp.dtype dtype,  # ndarray[datetime64[anyunit]]
     bint copy=*,
+    bint round_ok=*,
 )
 cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1
 
@@ -108,3 +109,10 @@ cdef bint cmp_dtstructs(npy_datetimestruct* left, npy_datetimestruct* right, int
 cdef get_implementation_bounds(
     NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper
 )
+
+cdef int64_t convert_reso(
+    int64_t value,
+    NPY_DATETIMEUNIT from_reso,
+    NPY_DATETIMEUNIT to_reso,
+    bint round_ok,
+) except? -1

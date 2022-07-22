@@ -82,6 +82,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_ns,
     cmp_dtstructs,
     cmp_scalar,
+    convert_reso,
     get_conversion_factor,
     get_datetime64_unit,
     get_datetime64_value,
@@ -143,12 +144,27 @@ cdef inline _Timestamp create_timestamp_from_ts(
     """ convenience routine to construct a Timestamp from its parts """
     cdef:
         _Timestamp ts_base
+        int64_t pass_year = dts.year
 
-    ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
+    # We pass year=1970/1972 here and set year below because with non-nanosecond
+    #  resolution we may have datetimes outside of the stdlib pydatetime
+    #  implementation bounds, which would raise.
+    # NB: this means the C-API macro PyDateTime_GET_YEAR is unreliable.
+    if 1 <= pass_year <= 9999:
+        # we are in-bounds for pydatetime
+        pass
+    elif ccalendar.is_leapyear(dts.year):
+        pass_year = 1972
+    else:
+        pass_year = 1970
+
+    ts_base = _Timestamp.__new__(Timestamp, pass_year, dts.month,
                                  dts.day, dts.hour, dts.min,
                                  dts.sec, dts.us, tz, fold=fold)
+
     ts_base.value = value
     ts_base._freq = freq
+    ts_base.year = dts.year
     ts_base.nanosecond = dts.ps // 1000
     ts_base._reso = reso
 
@@ -179,6 +195,40 @@ def integer_op_not_supported(obj):
     return TypeError(int_addsub_msg)
 
 
+class MinMaxReso:
+    """
+    We need to define min/max/resolution on both the Timestamp _instance_
+    and Timestamp class.  On an instance, these depend on the object's _reso.
+    On the class, we default to the values we would get with nanosecond _reso.
+
+    See also: timedeltas.MinMaxReso
+    """
+    def __init__(self, name):
+        self._name = name
+
+    def __get__(self, obj, type=None):
+        cls = Timestamp
+        if self._name == "min":
+            val = np.iinfo(np.int64).min + 1
+        elif self._name == "max":
+            val = np.iinfo(np.int64).max
+        else:
+            assert self._name == "resolution"
+            val = 1
+            cls = Timedelta
+
+        if obj is None:
+            # i.e. this is on the class, default to nanos
+            return cls(val)
+        elif self._name == "resolution":
+            return Timedelta._from_value_and_reso(val, obj._reso)
+        else:
+            return Timestamp._from_value_and_reso(val, obj._reso, tz=None)
+
+    def __set__(self, obj, value):
+        raise AttributeError(f"{self._name} is not settable.")
+
+
 # ----------------------------------------------------------------------
 
 cdef class _Timestamp(ABCTimestamp):
@@ -187,6 +237,10 @@ cdef class _Timestamp(ABCTimestamp):
     __array_priority__ = 100
     dayofweek = _Timestamp.day_of_week
     dayofyear = _Timestamp.day_of_year
+
+    min = MinMaxReso("min")
+    max = MinMaxReso("max")
+    resolution = MinMaxReso("resolution")  # GH#21336, GH#21365
 
     cpdef void _set_freq(self, freq):
         # set the ._freq attribute without going through the constructor,
@@ -248,10 +302,12 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
+        if not (1 <= self.year <= 9999):
+            # out of bounds for pydatetime
+            return hash(self.value)
         if self.fold:
             return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
-        # TODO(non-nano): what if we are out of bounds for pydatetime?
 
     def __richcmp__(_Timestamp self, object other, int op):
         cdef:
@@ -968,6 +1024,9 @@ cdef class _Timestamp(ABCTimestamp):
         """
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        # We need to replace the fake year 1970 with our real year
+        base = f"{self.year}-" + base.split("-", 1)[1]
+
         if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
 
@@ -1043,7 +1102,6 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Conversion Methods
 
-    # TODO: share with _Timedelta?
     @cython.cdivision(False)
     cdef _Timestamp _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
@@ -1052,21 +1110,7 @@ cdef class _Timestamp(ABCTimestamp):
         if reso == self._reso:
             return self
 
-        if reso < self._reso:
-            # e.g. ns -> us
-            mult = get_conversion_factor(reso, self._reso)
-            div, mod = divmod(self.value, mult)
-            if mod > 0 and not round_ok:
-                raise ValueError("Cannot losslessly convert units")
-
-            # Note that when mod > 0, we follow np.datetime64 in always
-            #  rounding down.
-            value = div
-        else:
-            mult = get_conversion_factor(self._reso, reso)
-            with cython.overflowcheck(True):
-                # Note: caller is responsible for re-raising as OutOfBoundsDatetime
-                value = self.value * mult
+        value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
         return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
 
     def _as_unit(self, str unit, bint round_ok=True):
@@ -2332,28 +2376,23 @@ default 'raise'
         Return the day of the week represented by the date.
         Monday == 1 ... Sunday == 7.
         """
-        return super().isoweekday()
+        # same as super().isoweekday(), but that breaks because of how
+        #  we have overriden year, see note in create_timestamp_from_ts
+        return self.weekday() + 1
 
     def weekday(self):
         """
         Return the day of the week represented by the date.
         Monday == 0 ... Sunday == 6.
         """
-        return super().weekday()
+        # same as super().weekday(), but that breaks because of how
+        #  we have overriden year, see note in create_timestamp_from_ts
+        return ccalendar.dayofweek(self.year, self.month, self.day)
 
 
 # Aliases
 Timestamp.weekofyear = Timestamp.week
 Timestamp.daysinmonth = Timestamp.days_in_month
-
-# Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
-cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
-
-# Resolution is in nanoseconds
-Timestamp.min = Timestamp(_NS_LOWER_BOUND)
-Timestamp.max = Timestamp(_NS_UPPER_BOUND)
-Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
 
 
 # ----------------------------------------------------------------------
