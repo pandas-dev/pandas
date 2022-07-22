@@ -93,6 +93,9 @@ class ArrowDtype(StorageExtensionDtype):
             )
         if not string.endswith("[pyarrow]"):
             raise TypeError(f"'{string}' must end with '[pyarrow]'")
+        if string == "string[pyarrow]":
+            # Ensure Registry.find skips ArrowDtype to use StringDtype instead
+            raise TypeError("string[pyarrow] should be constructed by StringDtype")
         base_type = string.split("[pyarrow]")[0]
         try:
             pa_dtype = pa.type_for_alias(base_type)
