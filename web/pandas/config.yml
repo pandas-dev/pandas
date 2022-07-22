@@ -167,15 +167,12 @@ sponsors:
     kind: partner
   - name: "Anaconda"
     url: https://www.anaconda.com/
-    logo: /static/img/partners/anaconda.svg
     kind: partner
   - name: "RStudio"
     url: https://www.rstudio.com/
-    logo: /static/img/partners/r_studio.svg
     kind: partner
   - name: "Ursa Labs"
     url: https://ursalabs.org/
-    logo: /static/img/partners/ursa_labs.svg
     kind: partner
   - name: "Gousto"
     url: https://www.gousto.co.uk/
