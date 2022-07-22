@@ -72,6 +72,7 @@ from pandas._libs.tslibs.timedeltas cimport (
 
 from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 
+from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
     FR_BUS,

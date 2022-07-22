@@ -1587,7 +1587,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_combine_add(self, data_repeated, request):
         pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype) and pa_dtype != "duration[ns]":
+        if pa.types.is_temporal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=TypeError,
@@ -1697,7 +1697,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif arrow_temporal_supported:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=TypeError if pa_dtype != "duration[ns]" else AssertionError,
+                    raises=TypeError,
                     reason=(
                         f"{all_arithmetic_operators} not supported between"
                         f"pd.NA and {pa_dtype} Python scalar"
@@ -1763,7 +1763,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif arrow_temporal_supported:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=TypeError if pa_dtype != "duration[ns]" else AssertionError,
+                    raises=TypeError,
                     reason=(
                         f"{all_arithmetic_operators} not supported between"
                         f"pd.NA and {pa_dtype} Python scalar"
@@ -1847,7 +1847,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         elif arrow_temporal_supported:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=TypeError if pa_dtype != "duration[ns]" else AssertionError,
+                    raises=TypeError,
                     reason=(
                         f"{all_arithmetic_operators} not supported between"
                         f"pd.NA and {pa_dtype} Python scalar"
