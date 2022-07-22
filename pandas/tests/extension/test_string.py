@@ -173,7 +173,7 @@ class TestMethods(base.BaseMethodsTests):
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
-        if pa_version_under6p0 and data_for_sorting.dtype == "string[pyarrow]":
+        if pa_version_under6p0 and str(data_for_sorting.dtype) == "string[pyarrow]":
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
@@ -200,7 +200,7 @@ class TestMethods(base.BaseMethodsTests):
     ):
         if (
             pa_version_under6p0
-            and data_missing_for_sorting.dtype == "string[pyarrow]"
+            and str(data_missing_for_sorting.dtype) == "string[pyarrow]"
             and skipna
         ):
             request.node.add_marker(

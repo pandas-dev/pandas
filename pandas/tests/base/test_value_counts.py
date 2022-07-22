@@ -59,7 +59,7 @@ def test_value_counts_null(null_obj, index_or_series_obj, request):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
     elif (
         pa_version_under7p0
-        and orig.dtype == "string[pyarrow]"
+        and str(orig.dtype) == "string[pyarrow]"
         and not pa_version_under6p0
     ):
         request.node.add_marker(

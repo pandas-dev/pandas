@@ -397,7 +397,7 @@ class TestCommon:
             warn = np.ComplexWarning
 
         is_pyarrow_str = (
-            index.dtype == "string[pyarrow]"
+            str(index.dtype) == "string[pyarrow]"
             and pa_version_under7p0
             and dtype == "category"
         )
