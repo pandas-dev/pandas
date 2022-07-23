@@ -12,6 +12,10 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.api.types import (
+    is_extension_array_dtype,
+    pandas_dtype,
+)
 
 # GH#43650: Some expected failures with the pyarrow engine can occasionally
 # cause a deadlock instead, so we skip these instead of xfailing
@@ -108,6 +112,24 @@ def test_integer_overflow_bug(all_parsers, sep):
     result = parser.read_csv(StringIO(data), header=None, sep=sep)
     expected = DataFrame([[6.5248e14, 11], [5.5555e59, 22]])
     tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
+    dtype = any_int_dtype
+    parser = all_parsers
+
+    pdtype = pandas_dtype(any_int_dtype)
+    iinfo = np.iinfo(pdtype.type if is_extension_array_dtype(dtype) else pdtype)
+
+    for x in [iinfo.max, iinfo.min]:
+        result = parser.read_csv(StringIO(f"{x}"), header=None, dtype=dtype)
+        expected = DataFrame([x], dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    for x in [iinfo.max + 1, iinfo.min - 1]:
+        with pytest.raises(Exception, match=""):
+            parser.read_csv(StringIO(f"{x}"), header=None, dtype=dtype)
 
 
 def test_int64_min_issues(all_parsers):
