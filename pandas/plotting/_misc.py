@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Iterator,
-    Sequence,
 )
 
 from pandas.plotting._core import _get_plot_backend
@@ -394,7 +393,7 @@ def parallel_coordinates(
     ax: Axes | None = None,
     color: list[str] | tuple[str, ...] | None = None,
     use_columns: bool = False,
-    xticks: Sequence | None = None,
+    xticks: list | tuple | None = None,
     colormap=None,
     axvlines: bool = True,
     axvlines_kwds=None,
