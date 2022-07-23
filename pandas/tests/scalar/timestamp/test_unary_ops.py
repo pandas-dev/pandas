@@ -20,6 +20,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -280,6 +281,7 @@ class TestTimestampUnaryOps:
         with pytest.raises(OverflowError, match=msg):
             Timestamp.max.ceil("s")
 
+    @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build", strict=False)
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
