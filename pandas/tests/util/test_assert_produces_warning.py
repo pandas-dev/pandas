@@ -178,6 +178,14 @@ def test_same_category_different_messages_last_match():
         warnings.warn("Do not match that either", category)
         warnings.warn("Match this", category)
 
+def test_match_multiple_warnings():
+    category = (FutureWarning, UserWarning)
+    with tm.assert_produces_warning(category, match=r"^Match this"):
+        warnings.warn("Match this",FutureWarning )
+        warnings.warn("Match this too", UserWarning)
+        warnings.warn("Do not match this", DeprecationWarning)
+
+
 
 def test_right_category_wrong_match_raises(pair_different_warnings):
     target_category, other_category = pair_different_warnings
