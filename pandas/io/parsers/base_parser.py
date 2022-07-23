@@ -785,11 +785,16 @@ class ParserBase:
 
         else:
             try:
-                values = astype_nansafe(values, cast_type, copy=True, skipna=True)
+                casted = astype_nansafe(values, cast_type, copy=True, skipna=True)
             except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
                 ) from err
+            if is_integer_dtype(cast_type) and not (casted == values).all():
+                raise TypeError(
+                    f"cannot safely cast non-equivalent {values.dtype} to {cast_type}"
+                )
+            values = casted
         return values
 
     @overload
