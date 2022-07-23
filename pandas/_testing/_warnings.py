@@ -9,6 +9,7 @@ import sys
 from typing import (
     Literal,
     Sequence,
+    Tuple,
     Type,
     cast,
 )
@@ -17,7 +18,7 @@ import warnings
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning: type[Warning] | bool | None = Warning,
+    expected_warning: type[Warning] | bool | None = Warning | Tuple[Type[Warning], ...],
     filter_level: Literal[
         "error", "ignore", "always", "default", "module", "once"
     ] = "always",
