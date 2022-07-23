@@ -405,7 +405,7 @@ class TestCommon:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(
                 warn,
-                raise_on_extra_warnings=not is_pyarrow_str,
+                raise_on_extra_warnings=is_pyarrow_str,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):

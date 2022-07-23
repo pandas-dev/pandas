@@ -22,6 +22,7 @@ from pandas.compat import (
     pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
+    pa_version_under7p0,
 )
 from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
@@ -438,8 +439,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
-        if null_placement is None or pa_version_under6p0:
-            fallback_performancewarning("6")
+        if null_placement is None or pa_version_under7p0:
+            # Although pc.array_sort_indices exists in version 6
+            # there's a bug that affects the pa.ChunkedArray backing
+            # https://issues.apache.org/jira/browse/ARROW-12042
+            fallback_performancewarning("7")
             return super().argsort(ascending, kind, na_position, *args, **kwargs)
 
         result = pc.array_sort_indices(

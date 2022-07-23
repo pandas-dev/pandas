@@ -8,10 +8,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    pa_version_under6p0,
-    pa_version_under7p0,
-)
+from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.cast import find_common_type
 
@@ -183,9 +180,7 @@ def test_dunder_inplace_setops_deprecated(index):
         index &= index
 
     is_pyarrow = str(index.dtype) == "string[pyarrow]" and pa_version_under7p0
-    with tm.assert_produces_warning(
-        FutureWarning, raise_on_extra_warnings=not is_pyarrow
-    ):
+    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=is_pyarrow):
         index ^= index
 
 
@@ -236,17 +231,7 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.intersection([1, 2, 3])
 
-    def test_union_base(self, index, request):
-        if (
-            pa_version_under7p0
-            and str(index.dtype) == "string[pyarrow]"
-            and not pa_version_under6p0
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
-                )
-            )
+    def test_union_base(self, index):
         first = index[3:]
         second = index[:5]
         everything = index
@@ -295,17 +280,7 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.difference([1, 2, 3], sort)
 
-    def test_symmetric_difference(self, index, request):
-        if (
-            pa_version_under7p0
-            and str(index.dtype) == "string[pyarrow]"
-            and not pa_version_under6p0
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="https://issues.apache.org/jira/browse/ARROW-12042"
-                )
-            )
+    def test_symmetric_difference(self, index):
         if isinstance(index, CategoricalIndex):
             return
         if len(index) < 2:
