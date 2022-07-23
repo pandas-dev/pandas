@@ -915,6 +915,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
+- Bug in :meth:`Series.map` not respecting ``na_action`` argument if mapper is a ``dict`` or :class:`Series` (:issue:`47527`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 - Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
 - Bug in :meth:`DataFrame.fillna` ignored ``axis`` when :class:`DataFrame` is single block (:issue:`47713`)
@@ -957,6 +958,7 @@ I/O
 - Bug in :func:`read_sas` that scrambled column names (:issue:`31243`)
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
 - Bug in :func:`read_parquet` with ``use_nullable_dtypes=True`` where ``float64`` dtype was returned instead of nullable ``Float64`` dtype (:issue:`45694`)
+- Bug in :meth:`DataFrame.to_json` where ``PeriodDtype`` would not make the serialization roundtrip when read back with :meth:`read_json` (:issue:`44720`)
 
 Period
 ^^^^^^
@@ -1022,10 +1024,12 @@ Reshaping
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 - Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
 - Bug in :meth:`concat` when ``axis=1`` and ``sort=False`` where the resulting Index was a :class:`Int64Index` instead of a :class:`RangeIndex` (:issue:`46675`)
+- Bug in :meth:`wide_to_long` raises when ``stubnames`` is missing in columns and ``i`` contains string dtype column (:issue:`46044`)
 
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
+- Bug in :meth:`SparseArray.unique` fails to keep original elements order (:issue:`47809`)
 -
 
 ExtensionArray
