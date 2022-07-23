@@ -129,29 +129,8 @@ class TestTextReader:
         expected = DataFrame([123456, 12500])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "uint64",
-            "int64",
-            "uint32",
-            "int32",
-            "uint16",
-            "int16",
-            "uint8",
-            "int8",
-            "UInt64",
-            "Int64",
-            "UInt32",
-            "Int32",
-            "UInt16",
-            "Int16",
-            "UInt8",
-            "Int8",
-        ],
-    )
-    def test_integer_overflow_with_user_dtype(self, dtype):
-        dtype = ensure_dtype_objs(dtype)
+    def test_integer_overflow_with_user_dtype(self, any_int_dtype):
+        dtype = ensure_dtype_objs(any_int_dtype)
         is_ext_dtype = is_extension_array_dtype(dtype)
         maxint = np.iinfo(dtype.type if is_ext_dtype else dtype).max
 
