@@ -2348,6 +2348,21 @@ def test_groupby_duplicate_index():
     tm.assert_series_equal(result, expected)
 
 
+def test_group_on_empty_multiindex(transformation_func):
+    # GH 47787
+    # With one row, those are transforms so the schema should be the same
+    df = pd.DataFrame(data=[[1, 2, 3, 4]], columns=['col_1', 'col_2', 'col_3', 'col_4'])
+    df = df.set_index(['col_1', 'col_2'])
+    result = df.groupby(['col_1']).fillna('')
+    assert df.index.names == result.index.names
+    
+    # When empty, expect the same schema as well
+    df = pd.DataFrame(data=[], columns=['col_1', 'col_2', 'col_3', 'col_4'])
+    df = df.set_index(['col_1', 'col_2'])
+    result = df.groupby(['col_1']).fillna('')
+    assert df.index.names == result.index.names
+
+
 @pytest.mark.parametrize(
     "idx",
     [
