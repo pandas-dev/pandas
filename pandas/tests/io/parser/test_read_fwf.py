@@ -556,7 +556,7 @@ def test_variable_width_unicode():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", [{}, {"a": "float64", "b": str, "c": "int32"}])
+@pytest.mark.parametrize("dtype", [{}, {"a": "float64", "b": str, "c": "float16"}])
 def test_dtype(dtype):
     data = """ a    b    c
 1    2    3.2

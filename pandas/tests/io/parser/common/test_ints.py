@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+from contextlib import nullcontext
 from io import StringIO
 
 import numpy as np
@@ -130,6 +131,22 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
     for x in [iinfo.max + 1, iinfo.min - 1]:
         with pytest.raises(Exception, match=""):
             parser.read_csv(StringIO(f"{x}"), header=None, dtype=dtype)
+
+
+@pytest.mark.parametrize(
+    "val,expected",
+    [
+        (0.0, nullcontext()),  # lossless conversion does not raise
+        (0.1, pytest.raises(Exception, match=None)),  # noqa: PDF010
+    ],
+)
+def test_integer_from_float_raises(all_parsers, any_int_dtype, val, expected):
+    dtype = any_int_dtype
+    parser = all_parsers
+    data = f"0\n{val}"
+
+    with expected:
+        parser.read_csv(StringIO(data), header=None, dtype=dtype)
 
 
 def test_int64_min_issues(all_parsers):
