@@ -571,6 +571,26 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
+
+        permutations = True
+
+        dummy_cat1 = CategoricalIndex([], categories=to_concat[0].categories,
+                                      ordered=False
+                                      )
+        for i in to_concat[1:]:
+
+            dummy_cat2 = CategoricalIndex([], categories=i.categories,
+                                          ordered=False
+                                          )
+            if not dummy_cat1.equals(dummy_cat2):
+                permutations = False
+
+        cat_dummy = CategoricalIndex([], categories=to_concat[0].categories,
+                                     ordered=True
+                                     )
+        if permutations:
+            to_concat.append(cat_dummy)
+
         try:
             codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
         except TypeError:
