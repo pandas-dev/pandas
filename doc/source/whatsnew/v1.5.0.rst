@@ -13,9 +13,103 @@ including other versions of pandas.
 
 Enhancements
 ~~~~~~~~~~~~
+.. _whatsnew_150.enhancements.ignore_col_json_normalize:
+
+JSON_normalize() funciton with user-specified cols to ignore
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+```PY
+   """
+    A more commplex version of nested_to_record(), user can pass in columns to
+    ignore in the input dictionary (before flattening).
+
+    Can also return the deleted values so they can be used for other cases.
+
+    If no column to be ignored is specified, function just performs the 
+    un-edited nested_to_record().
+
+    Only truly deletes values if no max_level is specified (max_level == None).
+
+    Parameters
+    ----------
+    ds : dict or list of dicts
+    prefix: the prefix, optional, default: ""
+    sep : str, default '.'
+        Nested records will generate names separated by sep,
+        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
+    level: int, optional, default: 0
+        The number of levels in the json string.
+    max_level: int, optional, default: None
+        The max depth to normalize.
+    keys_hist: dict, optional, default: {}
+        This saves the path to a value to be deleted, gets reset
+        after the value gets deleted.
+    del_dict: dict, optional, default: {}
+        This saves the values deleted from the original data in their
+        own dictionary. THIS DICTIONARY IS UNORDERED.
+    dels: list, optional, default: []
+        This is an extension of del_dict, saves the locations of each deleted
+        value in an array as well as their levels leading up to the deleted value.
+    pivot_dels: dict, optional, default: {}
+        This is the ordered version of del_dict. The top level keys are the deleted value
+        keys/columns and the values are dictionaries with user-specified "name_lvl" keys
+        in ignore (see below).
+    return_dels: bool, optional, default: True
+        If true, returns the deleted values, as well as the flattened input dictionary,
+        in the format: flattened_dict, (del_dict, dels, pivot_dels, path_idx)
+    path_idx: int, default: 0
+        Internal variable used to find the updated running idx of values in dels.
+    ignore: dict, optional, default: {"cols": None, "name_lvls": None}
+        This contains the columns to be deleted and the desired levels (in the array of the
+        locations of deleted values) to be used as keys in the level below the top level of
+        the ordered pivot_dels dictionary (see above).
+
+    .. versionadded:: x.xx.x --- Please fill in
+
+    Returns
+    -------
+    1. d - dict or list of dicts, matching `ds`
+    or
+    2. (1.) and del_tuple - tuple of (del_dict, dels, pivot_dels, path_idx) (see above)
+
+    Example (1.)
+    --------
+    nested_ignore_cols_to_record(
+      dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
+
+            {
+        'flat1': 1, 
+        'dict1.c': 1, 
+        'dict1.d': 2, 
+        'nested.e.c': 1, 
+        'nested.e.d': 2, 
+        'nested.d': 2
+        }
+
+    Example (2.)
+    --------
+    nested_ignore_cols_to_record(
+         dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2),
+                ignore = {"cols": ["e"], "name_lvls": None},
+                return_dels = True)
+
+       returns: NORMALISED DICT WITH 'e' col ignored:
+               {'flat1': 1, 'dict1.c': 1, 'dict1.d': 2, 'nested.d': 2},
+
+                FULL_DELS_TUPLE:
+               ({'nested': {'e': {'c': 1, 'd': 2}}}, [['nested', 'e']], {'e': {'nested': {'c': 1, 'd': 2}}}, 1)
+               
+               FULL_DELS_TUPLE[0] = del_dict
+               FULL_DELS_TUPLE[1] = dels
+               FULL_DELS_TUPLE[2] = pivot_dels
+               FULL_DELS_TUPLE[3] = path_idx
+   """
+```
+
+
+
+
 
 .. _whatsnew_150.enhancements.dataframe_exchange:
-
 DataFrame exchange protocol implementation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
