@@ -607,11 +607,11 @@ cpdef array_to_datetime(
                             # to check if all arguments have the same tzinfo
                             tz = py_dt.utcoffset()
 
-                        except (ValueError, OverflowError):
+                        except (ValueError, OverflowError) as err:
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
-                            raise TypeError("invalid string coercion to datetime")
+                            raise type(err)(f"invalid string coercion to datetime for \"{val}\" at position {i}")
 
                         if tz is not None:
                             seen_datetime_offset = True
@@ -798,6 +798,7 @@ cdef _array_to_datetime_object(
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
+    # 3) special strings - "now" & "today"
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
@@ -811,17 +812,24 @@ cdef _array_to_datetime_object(
             if len(val) == 0 or val in nat_strings:
                 oresult[i] = 'NaT'
                 continue
+
             try:
-                oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
+                # Handling special case strings today & now
+                if val == "today":
+                    oresult[i] = datetime.today()
+                elif val == "now":
+                    oresult[i] = datetime.now()
+                else:
+                    oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
                                                    yearfirst=yearfirst)
-                pydatetime_to_dt64(oresult[i], &dts)
-                check_dts_bounds(&dts)
-            except (ValueError, OverflowError):
+                    pydatetime_to_dt64(oresult[i], &dts)
+                    check_dts_bounds(&dts)
+            except (ValueError, OverflowError) as err:
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue
                 if is_raise:
-                    raise ValueError(f"Unable to parse string \"{val}\" at position {i}")
+                    raise type(err)(f"Unable to parse string \"{val}\" at position {i}")
                 return values, None
         else:
             if is_raise:
