@@ -200,7 +200,7 @@ class TestCategoricalConcat:
         df1 = DataFrame({"A": [1, 2]}, index=c1)
         df2 = DataFrame({"A": [3, 4]}, index=c2)
 
-        result = pd.concat((df1, df2))
+        result = pd.concat([df1, df2])
 
         expected = DataFrame({"A": [1, 2, 3, 4]}, index=c3)
 
