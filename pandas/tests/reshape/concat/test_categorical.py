@@ -184,7 +184,7 @@ class TestCategoricalConcat:
         )
         tm.assert_equal(result, expected)
 
-    def test_categorical_concat_same_categories_different_order(self):
+    def test_categorical_concat_same_cat(self):
         # https://github.com/pandas-dev/pandas/issues/24845
 
         c1 = CategoricalIndex(["a", "a"], categories=["a", "b"],
@@ -200,7 +200,7 @@ class TestCategoricalConcat:
         df1 = DataFrame({"A": [1, 2]}, index=c1)
         df2 = DataFrame({"A": [3, 4]}, index=c2)
 
-        result = concat((df1, df2))
+        result = pd.concat((df1, df2))
 
         expected = DataFrame({"A": [1, 2, 3, 4]}, index=c3)
 
