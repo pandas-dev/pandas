@@ -61,6 +61,7 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
 )
@@ -164,6 +165,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
+        Suffixes,
     )
 
     from pandas.core.frame import DataFrame
@@ -3236,12 +3238,14 @@ Keep all original rows and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
+        result_names: Suffixes = ("self", "other"),
     ) -> DataFrame | Series:
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
+            result_names=result_names,
         )
 
     def combine(self, other, func, fill_value=None) -> Series:
@@ -6069,6 +6073,7 @@ Keep all original rows and also all original values
         ...
 
     # error: Signature of "where" incompatible with supertype "NDFrame"
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -6088,7 +6093,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 
@@ -6135,6 +6139,7 @@ Keep all original rows and also all original values
         ...
 
     # error: Signature of "mask" incompatible with supertype "NDFrame"
+    @deprecate_kwarg(old_arg_name="errors", new_arg_name=None)
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "cond", "other"]
     )
@@ -6154,7 +6159,6 @@ Keep all original rows and also all original values
             inplace=inplace,
             axis=axis,
             level=level,
-            errors=errors,
             try_cast=try_cast,
         )
 
