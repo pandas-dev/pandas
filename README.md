@@ -151,6 +151,7 @@ has been under active development since then.
 
 For usage questions, the best place to go to is [StackOverflow](https://stackoverflow.com/questions/tagged/pandas).
 Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
+The subreddit [r/learnpython](https://www.reddit.com/r/learnpython/search/?q=pandas) is also helpful in this regard.
 
 ## Discussion and Development
 Most development discussions take place on GitHub in this repo. Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Gitter channel](https://gitter.im/pydata/pandas) is available for quick development related questions.
