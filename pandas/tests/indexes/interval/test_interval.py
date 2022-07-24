@@ -933,9 +933,8 @@ class TestIntervalIndex:
         idx = box(interval_range(Timestamp("2022-07-01"), freq="3D", periods=3))
 
         actual = rng.get_indexer(idx)
-        expected = np.array([-1, -1, -1], dtype=np.int64)
-
-        tm.assert_equal(actual, expected)
+        expected = np.array([-1, -1, -1], dtype="intp")
+        tm.assert_numpy_array_equal(actual, expected)
 
 
 def test_dir():
