@@ -439,15 +439,19 @@ Sorting and order
 .. _categorical.sort:
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
-meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a ``TypeError``.
+meaning and certain operations are possible. If the categorical is unordered, the data can still be sorted,
+but ``.min()/.max()`` will raise a ``TypeError``.
 
 .. ipython:: python
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "a"], ordered=False))
-    s.sort_values(inplace=True)
-    s = pd.Series(["a", "b", "c", "a"]).astype(CategoricalDtype(ordered=True))
-    s.sort_values(inplace=True)
-    s
+    s.sort_values(ascending=False)
+    try:
+        s.min()
+    except TypeError as e:
+        print(f"TypeError: {e}")
+    s = s.astype(CategoricalDtype(ordered=True))
+    s.sort_values()
     s.min(), s.max()
 
 You can set categorical data to be ordered by using ``as_ordered()`` or unordered by using ``as_unordered()``. These will by
