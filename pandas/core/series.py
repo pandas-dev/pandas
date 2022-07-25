@@ -2172,7 +2172,7 @@ Name: Max Speed, dtype: float64
         Examples
         --------
         >>> pd.Series([2, 1, 3, 3], name='A').unique()
-        array([2, 1, 3])
+        array([2, 1, 3], dtype=int64)
 
         >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
         array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
