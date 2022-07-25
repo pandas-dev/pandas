@@ -442,6 +442,7 @@ def test_rolling_max_min_periods(step):
     ],
 )
 def test_args_kwargs_depr(roll_type, class_name, kernel, has_args, raises):
+    # GH#47836
     r = getattr(Series([2, 4, 6]), roll_type)(2)
     error_msg = "numpy operations are not valid with window objects"
     if kernel == "quantile":
