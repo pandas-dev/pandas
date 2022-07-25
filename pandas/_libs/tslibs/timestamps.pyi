@@ -33,8 +33,7 @@ class Timestamp(datetime):
     value: int  # np.int64
     def __new__(
         cls: type[_DatetimeT],
-        ts_input: int
-        | np.integer
+        ts_input: np.integer
         | float
         | str
         | _date
