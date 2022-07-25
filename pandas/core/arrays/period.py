@@ -14,7 +14,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import algos as libalgos
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+)
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -22,7 +25,6 @@ from pandas._libs.tslibs import (
     NaTType,
     Timedelta,
     astype_overflowsafe,
-    delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     get_unit_from_dtype,
     iNaT,
@@ -55,7 +57,6 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    TD64NS_DTYPE,
     ensure_object,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -72,7 +73,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
@@ -764,22 +765,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise raise_on_incompatible(self, other)
 
-        if notna(other):
-            # Convert to an integer increment of our own freq, disallowing
-            #  e.g. 30seconds if our freq is minutes.
-            try:
-                inc = delta_to_nanoseconds(other, reso=self.freq._reso, round_ok=False)
-            except ValueError as err:
-                # "Cannot losslessly convert units"
-                raise raise_on_incompatible(self, other) from err
+        if isna(other):
+            # i.e. np.timedelta64("NaT")
+            return super()._add_timedeltalike_scalar(other)
 
-            return self._addsub_int_array_or_scalar(inc, operator.add)
-
-        return super()._add_timedeltalike_scalar(other)
+        td = np.asarray(Timedelta(other).asm8)
+        return self._add_timedelta_arraylike(td)
 
     def _add_timedelta_arraylike(
         self, other: TimedeltaArray | npt.NDArray[np.timedelta64]
-    ):
+    ) -> PeriodArray:
         """
         Parameters
         ----------
@@ -787,7 +782,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns
         -------
-        result : ndarray[int64]
+        PeriodArray
         """
         freq = self.freq
         if not isinstance(freq, Tick):
@@ -803,8 +798,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 np.asarray(other), dtype=dtype, copy=False, round_ok=False
             )
         except ValueError as err:
-            # TODO: not actually a great exception message in this case
-            raise raise_on_incompatible(self, other) from err
+            # e.g. if we have minutes freq and try to add 30s
+            # "Cannot losslessly convert units"
+            raise IncompatibleFrequency(
+                "Cannot add/subtract timedelta-like from PeriodArray that is "
+                "not an integer multiple of the PeriodArray's freq."
+            ) from err
 
         b_mask = np.isnat(delta)
 
@@ -835,31 +834,21 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         IncompatibleFrequency
         """
         assert isinstance(self.freq, Tick)  # checked by calling function
-        base_nanos = self.freq.base.nanos
+
+        dtype = np.dtype(f"m8[{self.freq._td64_unit}]")
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
-            nanos = delta_to_nanoseconds(other)
-
-        elif isinstance(other, np.ndarray):
-            # numpy timedelta64 array; all entries must be compatible
-            assert other.dtype.kind == "m"
-            other = astype_overflowsafe(other, TD64NS_DTYPE, copy=False)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[Any]]", variable has type "int")
-            nanos = other.view("i8")  # type: ignore[assignment]
+            td = np.asarray(Timedelta(other).asm8)
         else:
-            # TimedeltaArray/Index
-            nanos = other.asi8
+            td = np.asarray(other)
 
-        if np.all(nanos % base_nanos == 0):
-            # nanos being added is an integer multiple of the
-            #  base-frequency to self.freq
-            delta = nanos // base_nanos
-            # delta is the integer (or integer-array) number of periods
-            # by which will be added to self.
-            return delta
+        try:
+            delta = astype_overflowsafe(td, dtype=dtype, copy=False, round_ok=False)
+        except ValueError as err:
+            raise raise_on_incompatible(self, other) from err
 
-        raise raise_on_incompatible(self, other)
+        delta = delta.view("i8")
+        return lib.item_from_zerodim(delta)
 
 
 def raise_on_incompatible(left, right):
