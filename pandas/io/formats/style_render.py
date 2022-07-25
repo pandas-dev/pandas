@@ -8,6 +8,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -22,7 +23,10 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Level
+from pandas._typing import (
+    Axis,
+    Level,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -1342,6 +1346,96 @@ class StylerRenderer:
 
             for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
                 display_funcs_[idx] = format_func
+
+        return self
+
+    def relabel_index(
+        self,
+        labels: Iterable,
+        axis: Axis = 0,
+        level: Level | list[Level] | None = None,
+    ) -> StylerRenderer:
+        r"""
+        Relabel the index keys to display a set of specified values.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        labels : Iterable
+            New labels to display. Must have same length as the original.
+        axis : {"index", 0, "columns", 1}
+            Apply to the index or columns.
+        level : int, str, list, optional
+            The level(s) over which to apply the new labels.
+            If `None` will apply to the last level(s) of an Index or MultiIndex.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.format_index: Format the text display value of index or column headers.
+
+        Notes
+        -----
+        None
+
+        Examples
+        --------
+        Using ``na_rep`` and ``precision`` with the default ``formatter``
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0])
+        >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
+            2.000    MISS   4.000
+        0       1       2       3
+
+        Using a ``formatter`` specification on consistent dtypes in a level
+
+        >>> df.style.format_index('{:.2f}', axis=1, na_rep='MISS')  # doctest: +SKIP
+             2.00   MISS    4.00
+        0       1      2       3
+
+        """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index, self.index
+            hidden_labels, hidden_lvls = self.hidden_rows, self.hide_index_
+        else:
+            display_funcs_, obj = self._display_funcs_columns, self.columns
+            hidden_labels, hidden_lvls = self.hidden_columns, self.hide_columns_
+        visible_len = len(obj) - len(set(hidden_labels))
+        visible_lvls = obj.nlevels - sum(hidden_lvls)
+        if len(labels) != visible_len:
+            raise ValueError(
+                "``labels`` must be of length equal to the number of "
+                "visible labels along ``axis``."
+            )
+        if level is None and visible_lvls > 1:
+            error_msg = (
+                f"``labels`` specified do not contain the same "
+                f"number of visible levels ({visible_lvls}) as the specified ``axis``: "
+            )
+            try:
+                if len(labels[0]) != visible_lvls:
+                    raise ValueError(error_msg)
+            except TypeError:
+                raise ValueError(error_msg)
+            level = [i for i in range(obj.nlevels) if not hidden_lvls[i]]
+        levels_ = refactor_levels(level, obj)
+
+        def alias_(x, value):
+            return value
+
+        for ai, i in enumerate([i for i in range(len(obj)) if i not in hidden_labels]):
+            if len(levels_) == 1:
+                idx = (i, levels_[0]) if axis == 0 else (levels_[0], i)
+                display_funcs_[idx] = partial(alias_, value=labels[ai])
+            else:
+                for aj, lvl in enumerate(levels_):
+                    idx = (i, lvl) if axis == 0 else (lvl, i)
+                    display_funcs_[idx] = partial(alias_, value=labels[ai][aj])
 
         return self
 
