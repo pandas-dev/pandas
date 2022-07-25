@@ -34,7 +34,7 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://github.com/pre-commit/mirrors-autopep8
-    rev: ''  # Use the sha / tag you want to point at
+    rev: 'v1.6.0'  # Use the sha / tag you want to point at
     hooks:
     -   id: autopep8
 -   repo: https://github.com/PyCQA/flake8
