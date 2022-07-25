@@ -34,7 +34,7 @@ def get_dict_path(kh: dict, ignore: dict, ig_key: str) -> dict[str, Any]:
     new_lvls = []
     ignore_count = 0
 
-    set_lvls = set(list(kh.values())) 
+    set_lvls = set(list(kh.values()))
     for lvl in set_lvls:
         idxs = [
             (idx_in_dict, key)
