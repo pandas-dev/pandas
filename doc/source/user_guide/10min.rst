@@ -685,7 +685,7 @@ Rename the categories to more meaningful names:
 .. ipython:: python
 
     new_categories = ["very good", "good", "very bad"]
-    df["grade"] = df["grade"].cat.categories.rename_categories(new_categories)
+    df["grade"] = df["grade"].cat.rename_categories(new_categories)
 
 Reorder the categories and simultaneously add the missing categories (methods under :meth:`Series.cat` return a new :class:`Series` by default):
 

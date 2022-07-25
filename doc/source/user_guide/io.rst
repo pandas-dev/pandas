@@ -555,7 +555,7 @@ This matches the behavior of :meth:`Categorical.set_categories`.
       df.dtypes
       df["col3"]
       new_categories = pd.to_numeric(df["col3"].cat.categories)
-      df["col3"] = df["col3"].cat.categories.rename_categories(new_categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 
