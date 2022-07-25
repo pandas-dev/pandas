@@ -133,6 +133,7 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
             parser.read_csv(StringIO(f"{x}"), header=None, dtype=dtype)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "val,expected",
     [
