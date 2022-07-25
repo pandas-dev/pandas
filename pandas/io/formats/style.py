@@ -2977,6 +2977,9 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    def _get_subset_default(self):
+        return self.data.columns.isin(self.data.select_dtypes(include=np.number))
+
     @doc(
         name="background",
         alt="text",
@@ -3120,7 +3123,7 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_subset_default()
 
         self.apply(
             _background_gradient,
@@ -3155,7 +3158,7 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_subset_default()
 
         return self.apply(
             _background_gradient,
@@ -3308,7 +3311,7 @@ class Styler(StylerRenderer):
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_subset_default()
 
         self.apply(
             _bar,
