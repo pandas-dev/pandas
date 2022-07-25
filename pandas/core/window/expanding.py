@@ -565,9 +565,9 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="standard error of mean",
         agg_method="sem",
     )
-    def sem(self, ddof: int = 1, *args, **kwargs):
+    def sem(self, ddof: int = 1, numeric_only: bool = False, *args, **kwargs):
         maybe_warn_args_and_kwargs(type(self), "sem", args, kwargs)
-        return super().sem(ddof=ddof, **kwargs)
+        return super().sem(ddof=ddof, numeric_only=numeric_only, **kwargs)
 
     @doc(
         template_header,
