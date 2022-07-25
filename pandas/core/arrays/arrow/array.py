@@ -422,11 +422,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             return self._data.is_null().to_numpy()
 
-    def _values_for_argsort(self) -> np.ndarray:
-        if pa_version_under2p0:
-            return self._data.to_pandas().values
-        else:
-            return self._data.to_numpy()
+    # def _values_for_argsort(self) -> np.ndarray:
+    #     if pa_version_under2p0:
+    #         return self._data.to_pandas().values
+    #     else:
+    #         return self._data.to_numpy()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
@@ -464,7 +464,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # For empty or all null, pyarrow returns -1 but pandas expects TypeError
             # For skipna=False and data w/ null, pandas expects NotImplementedError
             # let ExtensionArray.arg{max|min} raise
-            return getattr(super(), f"arg{method}")(skipna)
+            return getattr(super(), f"arg{method}")(skipna=skipna)
 
         if pa_version_under6p0:
             raise NotImplementedError(
