@@ -22,6 +22,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
+    Final,
     Hashable,
     Sequence,
     cast,
@@ -140,7 +141,7 @@ filepath_or_buffer : str, path object or file-like object
 {_statafile_processing_params2}
 {_chunksize_params}
 {_iterator_params}
-{_shared_docs["decompression_options"]}
+{_shared_docs["decompression_options"] % "filepath_or_buffer"}
 {_shared_docs["storage_options"]}
 
 Returns
@@ -214,7 +215,7 @@ path_or_buf : path (string), buffer or path object
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
 
-stata_epoch = datetime.datetime(1960, 1, 1)
+stata_epoch: Final = datetime.datetime(1960, 1, 1)
 
 
 # TODO: Add typing. As of January 2020 it is not possible to type this function since
@@ -485,7 +486,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     return Series(conv_dates, index=index)
 
 
-excessive_string_length_error = """
+excessive_string_length_error: Final = """
 Fixed width strings in Stata .dta files are limited to 244 (or fewer)
 characters.  Column '{0}' does not satisfy this restriction. Use the
 'version=117' parameter to write the newer (Stata 13 and later) format.
@@ -496,7 +497,7 @@ class PossiblePrecisionLoss(Warning):
     pass
 
 
-precision_loss_doc = """
+precision_loss_doc: Final = """
 Column converted from {0} to {1}, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
@@ -506,7 +507,7 @@ class ValueLabelTypeMismatch(Warning):
     pass
 
 
-value_label_mismatch_doc = """
+value_label_mismatch_doc: Final = """
 Stata value labels (pandas categories) must be strings. Column {0} contains
 non-string labels which will be converted to strings.  Please check that the
 Stata data file created has not lost information due to duplicate labels.
@@ -517,7 +518,7 @@ class InvalidColumnName(Warning):
     pass
 
 
-invalid_name_doc = """
+invalid_name_doc: Final = """
 Not all pandas column names were valid Stata variable names.
 The following replacements have been made:
 
@@ -851,15 +852,15 @@ class StataMissingValue:
 
     # Construct a dictionary of missing values
     MISSING_VALUES: dict[float, str] = {}
-    bases = (101, 32741, 2147483621)
+    bases: Final = (101, 32741, 2147483621)
     for b in bases:
         # Conversion to long to avoid hash issues on 32 bit platforms #8968
         MISSING_VALUES[b] = "."
         for i in range(1, 27):
             MISSING_VALUES[i + b] = "." + chr(96 + i)
 
-    float32_base = b"\x00\x00\x00\x7f"
-    increment = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
+    float32_base: bytes = b"\x00\x00\x00\x7f"
+    increment: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<f", float32_base)[0]
         MISSING_VALUES[key] = "."
@@ -868,7 +869,7 @@ class StataMissingValue:
         int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment
         float32_base = struct.pack("<i", int_value)
 
-    float64_base = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
+    float64_base: bytes = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
     increment = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<d", float64_base)[0]
@@ -878,7 +879,7 @@ class StataMissingValue:
         int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment
         float64_base = struct.pack("q", int_value)
 
-    BASE_MISSING_VALUES = {
+    BASE_MISSING_VALUES: Final = {
         "int8": 101,
         "int16": 32741,
         "int32": 2147483621,
@@ -1930,7 +1931,9 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    cat_data.categories = categories
+                    # error: Incompatible types in assignment (expression has
+                    # type "List[str]", variable has type "Index")
+                    cat_data.categories = categories  # type: ignore[assignment]
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])

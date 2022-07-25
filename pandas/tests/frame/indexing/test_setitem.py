@@ -57,7 +57,9 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
         tm.assert_equal(df, expected)
 
-    @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
+    )
     def test_setitem_dtype(self, dtype, float_frame):
         arr = np.random.randn(len(float_frame))
 
@@ -210,6 +212,7 @@ class TestDataFrameSetItem:
                 "a": Series([0, 1, 2], dtype="int64"),
                 "b": Series([1, 2, 3], dtype=float),
                 "c": Series([1, 2, 3], dtype=float),
+                "d": Series([1, 2, 3], dtype="uint32"),
             }
         )
         df = DataFrame(
@@ -217,10 +220,16 @@ class TestDataFrameSetItem:
                 "a": Series([], dtype="int64"),
                 "b": Series([], dtype=float),
                 "c": Series([], dtype=float),
+                "d": Series([], dtype="uint32"),
             }
         )
         for idx, b in enumerate([1, 2, 3]):
-            df.loc[df.shape[0]] = {"a": int(idx), "b": float(b), "c": float(b)}
+            df.loc[df.shape[0]] = {
+                "a": int(idx),
+                "b": float(b),
+                "c": float(b),
+                "d": np.uint32(b),
+            }
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
@@ -806,9 +815,7 @@ class TestDataFrameSetItemWithExpansion:
     def test_setitem_empty_df_duplicate_columns(self):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "a"] = list(range(2))
+        df.loc[:, "a"] = list(range(2))
         expected = DataFrame(
             [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
         )

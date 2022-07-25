@@ -1,7 +1,6 @@
-from typing import (
-    Any,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
@@ -97,7 +96,7 @@ class PandasColumn(Column):
         return 0
 
     @cache_readonly
-    def dtype(self):
+    def dtype(self) -> tuple[DtypeKind, int, str, str]:
         dtype = self._col.dtype
 
         if is_categorical_dtype(dtype):
@@ -126,7 +125,7 @@ class PandasColumn(Column):
         else:
             return self._dtype_from_pandasdtype(dtype)
 
-    def _dtype_from_pandasdtype(self, dtype) -> Tuple[DtypeKind, int, str, str]:
+    def _dtype_from_pandasdtype(self, dtype) -> tuple[DtypeKind, int, str, str]:
         """
         See `self.dtype` for details.
         """
@@ -139,7 +138,7 @@ class PandasColumn(Column):
             # Not a NumPy dtype. Check if it's a categorical maybe
             raise ValueError(f"Data type {dtype} not supported by exchange protocol")
 
-        return (kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder)
+        return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder
 
     @property
     def describe_categorical(self):
@@ -182,10 +181,10 @@ class PandasColumn(Column):
         """
         Number of null elements. Should always be known.
         """
-        return self._col.isna().sum()
+        return self._col.isna().sum().item()
 
     @property
-    def metadata(self):
+    def metadata(self) -> dict[str, pd.Index]:
         """
         Store specific metadata of the column.
         """
@@ -197,7 +196,7 @@ class PandasColumn(Column):
         """
         return 1
 
-    def get_chunks(self, n_chunks=None):
+    def get_chunks(self, n_chunks: int | None = None):
         """
         Return an iterator yielding the chunks.
         See `DataFrame.get_chunks` for details on ``n_chunks``.
@@ -214,7 +213,7 @@ class PandasColumn(Column):
         else:
             yield self
 
-    def get_buffers(self):
+    def get_buffers(self) -> ColumnBuffers:
         """
         Return a dictionary containing the underlying buffers.
         The returned dictionary has the following contents:
@@ -253,7 +252,7 @@ class PandasColumn(Column):
 
     def _get_data_buffer(
         self,
-    ) -> Tuple[PandasBuffer, Any]:  # Any is for self.dtype tuple
+    ) -> tuple[PandasBuffer, Any]:  # Any is for self.dtype tuple
         """
         Return the buffer containing the data and the buffer's associated dtype.
         """
@@ -296,7 +295,7 @@ class PandasColumn(Column):
 
         return buffer, dtype
 
-    def _get_validity_buffer(self) -> Tuple[PandasBuffer, Any]:
+    def _get_validity_buffer(self) -> tuple[PandasBuffer, Any]:
         """
         Return the buffer containing the mask values indicating missing data and
         the buffer's associated dtype.
@@ -334,7 +333,7 @@ class PandasColumn(Column):
 
         raise NoBufferPresent(msg)
 
-    def _get_offsets_buffer(self) -> Tuple[PandasBuffer, Any]:
+    def _get_offsets_buffer(self) -> tuple[PandasBuffer, Any]:
         """
         Return the buffer containing the offset values for variable-size binary
         data (e.g., variable-length strings) and the buffer's associated dtype.

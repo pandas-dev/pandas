@@ -1,13 +1,8 @@
+from __future__ import annotations
+
 import ctypes
 import re
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any
 
 import numpy as np
 
@@ -24,7 +19,7 @@ from pandas.core.exchange.utils import (
     Endianness,
 )
 
-_NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
+_NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
     DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
     DtypeKind.UINT: {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64},
     DtypeKind.FLOAT: {32: np.float32, 64: np.float64},
@@ -32,7 +27,7 @@ _NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
 }
 
 
-def from_dataframe(df, allow_copy=True):
+def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 
@@ -108,7 +103,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     """
     # We need a dict of columns here, with each column being a NumPy array (at
     # least for now, deal with non-NumPy dtypes later).
-    columns: Dict[str, Any] = {}
+    columns: dict[str, Any] = {}
     buffers = []  # hold on to buffers, keeps memory alive
     for name in df.column_names():
         if not isinstance(name, str):
@@ -140,7 +135,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     return pandas_df
 
 
-def primitive_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
+def primitive_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     """
     Convert a column holding one of the primitive dtypes to a NumPy array.
 
@@ -165,7 +160,7 @@ def primitive_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
     return data, buffers
 
 
-def categorical_column_to_series(col: Column) -> Tuple[pd.Series, Any]:
+def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     """
     Convert a column holding categorical data to a pandas Series.
 
@@ -205,7 +200,7 @@ def categorical_column_to_series(col: Column) -> Tuple[pd.Series, Any]:
     return data, buffers
 
 
-def string_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
+def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     """
     Convert a column holding string data to a NumPy array.
 
@@ -268,7 +263,7 @@ def string_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
             null_pos = ~null_pos
 
     # Assemble the strings from the code units
-    str_list: List[Union[None, float, str]] = [None] * col.size
+    str_list: list[None | float | str] = [None] * col.size
     for i in range(col.size):
         # Check for missing values
         if null_pos is not None and null_pos[i]:
@@ -324,7 +319,7 @@ def parse_datetime_format_str(format_str, data):
     raise NotImplementedError(f"DateTime kind is not supported: {format_str}")
 
 
-def datetime_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
+def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     """
     Convert a column holding DateTime data to a NumPy array.
 
@@ -362,9 +357,9 @@ def datetime_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
 
 def buffer_to_ndarray(
     buffer: Buffer,
-    dtype: Tuple[DtypeKind, int, str, str],
+    dtype: tuple[DtypeKind, int, str, str],
     offset: int = 0,
-    length: Optional[int] = None,
+    length: int | None = None,
 ) -> np.ndarray:
     """
     Build a NumPy array from the passed buffer.
@@ -470,9 +465,9 @@ def bitmask_to_bool_ndarray(
 
 
 def set_nulls(
-    data: Union[np.ndarray, pd.Series],
+    data: np.ndarray | pd.Series,
     col: Column,
-    validity: Optional[Tuple[Buffer, Tuple[DtypeKind, int, str, str]]],
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
     allow_modify_inplace: bool = True,
 ):
     """
