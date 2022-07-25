@@ -20,6 +20,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Final,
     Hashable,
     Iterable,
     Iterator,
@@ -117,7 +118,7 @@ if TYPE_CHECKING:
     )
 
 
-common_docstring = """
+common_docstring: Final = """
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -190,7 +191,7 @@ _VALID_JUSTIFY_PARAMETERS = (
     "unset",
 )
 
-return_docstring = """
+return_docstring: Final = """
         Returns
         -------
         str or None

@@ -364,7 +364,7 @@ def validate_axis_style_args(
     return out
 
 
-def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
+def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
     """
     Validate the keyword arguments to 'fillna'.
 

@@ -3332,7 +3332,7 @@ class Styler(StylerRenderer):
         color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
-        null_color=lib.no_default,
+        null_color: str | lib.NoDefault = lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.

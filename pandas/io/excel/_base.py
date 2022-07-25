@@ -359,13 +359,18 @@ def read_excel(
     # sheet name is str or int -> DataFrame
     sheet_name: str | int,
     header: int | Sequence[int] | None = ...,
-    names=...,
+    names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols=...,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = ...,
     squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
-    converters=...,
+    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -374,8 +379,8 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates=...,
-    date_parser=...,
+    parse_dates: list | dict | bool = ...,
+    date_parser: Callable | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -393,13 +398,18 @@ def read_excel(
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     header: int | Sequence[int] | None = ...,
-    names=...,
+    names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols=...,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = ...,
     squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
-    converters=...,
+    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -408,8 +418,8 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates=...,
-    date_parser=...,
+    parse_dates: list | dict | bool = ...,
+    date_parser: Callable | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -428,13 +438,18 @@ def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
     header: int | Sequence[int] | None = 0,
-    names=None,
+    names: list[str] | None = None,
     index_col: int | Sequence[int] | None = None,
-    usecols=None,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = None,
     squeeze: bool | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
-    converters=None,
+    converters: dict[str, Callable] | dict[int, Callable] | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
@@ -443,8 +458,8 @@ def read_excel(
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
-    parse_dates=False,
-    date_parser=None,
+    parse_dates: list | dict | bool = False,
+    date_parser: Callable | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
@@ -687,8 +702,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         nrows: int | None = None,
         na_values=None,
         verbose: bool = False,
-        parse_dates=False,
-        date_parser=None,
+        parse_dates: list | dict | bool = False,
+        date_parser: Callable | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -1665,8 +1680,8 @@ class ExcelFile:
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
-        parse_dates=False,
-        date_parser=None,
+        parse_dates: list | dict | bool = False,
+        date_parser: Callable | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
