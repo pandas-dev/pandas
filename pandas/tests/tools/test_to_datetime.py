@@ -2773,3 +2773,23 @@ def test_to_datetime_monotonic_increasing_index(cache):
     result = to_datetime(times.iloc[:, 0], cache=cache)
     expected = times.iloc[:, 0]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        Series(
+            [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
+            + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * 40)
+        ),
+        Series(
+            [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
+            + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * 50)
+        ),
+    ],
+)
+def test_to_datetime_cache_coerce_50_lines(input):
+    # GH#45319
+    result = to_datetime(input, errors="coerce", utc=True)
+
+    assert result[0] is NaT
