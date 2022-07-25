@@ -316,29 +316,22 @@ def nested_ignore_cols_to_record(
 
     Example (2.)
     --------
-    >>> nested_ignore_cols_to_record(
-    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2)),
-    ...     ignore = {"cols": ["e"], "name_lvls": None},
-    ...     return_dels = True
-    ... )
+    nested_ignore_cols_to_record(
+        dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2)),
+        ignore = {"cols": ["e"], "name_lvls": None},
+        return_dels = True
+    )
+
     returns: NORMALISED DICT WITH 'e' col ignored:
-    {\
-'flat1': 1, \
-'dict1.c': 1, \
-'dict1.d': 2, \
-'nested.d': 2\
-}
-            FULL_DELS_TUPLE:
-            FULL_DELS_TUPLE[0] = del_dict
-            FULL_DELS_TUPLE[1] = dels
-            FULL_DELS_TUPLE[2] = pivot_dels
-            FULL_DELS_TUPLE[3] = path_idx
-    (\
-{'nested': {'e': {'c': 1, 'd': 2}}}, \
-[['nested', 'e']], \
-{'e': {'nested': {'c': 1, 'd': 2}}}, \
-1\
-)
+    (
+        {'flat1': 1, 'dict1.c': 1, 'dict1.d': 2, 'nested.d': 2},
+        (
+            {'nested': {'e': {'c': 1, 'd': 2}}},
+            [['nested', 'e']],
+            {'e': {'nested': {'c': 1, 'd': 2}}},
+            1
+        )
+    )
     """
     singleton = False
     if isinstance(ds, dict):
