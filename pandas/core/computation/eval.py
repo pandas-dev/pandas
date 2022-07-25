@@ -206,12 +206,11 @@ def eval(
 
         The engine used to evaluate the expression. Supported engines are
 
-        - None         : tries to use ``numexpr``, falls back to ``python``
-        - ``'numexpr'``: This default engine evaluates pandas objects using
-                         numexpr for large speed ups in complex expressions
-                         with large frames.
-        - ``'python'``: Performs operations as if you had ``eval``'d in top
-                        level python. This engine is generally not that useful.
+        - None : tries to use ``numexpr``, falls back to ``python``
+        - ``'numexpr'`` : This default engine evaluates pandas objects using
+          numexpr for large speed ups in complex expressions with large frames.
+        - ``'python'`` : Performs operations as if you had ``eval``'d in top
+          level python. This engine is generally not that useful.
 
         More backends may be available in the future.
 
