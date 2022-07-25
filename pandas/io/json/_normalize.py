@@ -7,10 +7,12 @@ from collections import (
     defaultdict,
 )
 import copy
+
 from typing import (
     Any,
     DefaultDict,
     Iterable,
+    Scalar,
 )
 
 import numpy as np
@@ -25,7 +27,7 @@ from pandas import DataFrame
 import numpy as np
 
 # Helper Functions
-def get_dict_path(kh: dict, ignore: dict, ig_key: str)-> dict[str, Any]:
+def get_dict_path(kh: dict, ignore: dict, ig_key: str) -> dict[str, Any]:
     """
     Helper Function to get all parent keys up to the point
     of deletion in a dictionary. Reorginises current disorganised path dict (kh)
@@ -37,7 +39,12 @@ def get_dict_path(kh: dict, ignore: dict, ig_key: str)-> dict[str, Any]:
 
     set_lvls = set(list(kh.values()))
     for lvl in set_lvls:
-        idxs = [(idx_in_dict, key) for idx_in_dict, (key, val) in enumerate(list(kh.items())) if val == lvl]
+        
+        idxs = [
+            (idx_in_dict, key)
+            for idx_in_dict, (key, val) in enumerate(list(kh.items()))
+            if val == lvl
+        ]
         idx_ig_key = [i for i, key in idxs if key == ig_key]
         idx_ig_key = idx_ig_key[0] if len(idx_ig_key) >= 1 else idx_ig_key
         temp_kh = {k: v for k, v in list(kh.items()) if v == lvl}
