@@ -16,7 +16,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import * # Other imports raise errors
+from pandas._typing import *  # Other imports raise errors
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -73,7 +73,7 @@ def get_locs(kh: dict)-> list:
     """
     Function to get strings of all parent keys up to del point
     """
-    return [[key for key in list(kh)],\
+    return [[key for key in list(kh)],
             [lvl for lvl in list(kh.values())]] 
 
 def get_multi_dict(splits: list, val: Any)-> dict[str, Any]:
@@ -106,7 +106,7 @@ def locs_to_val(d_dict: dict, loc_arr: list, lvl: int = 0)-> Any:
         return d_dict[loc_arr[-1]]
     return d_dict[loc_arr[-1]]
 
-def update_dict(del_dict: dict, temp_dict: dict, replace: bool = True, add_val: bool = False,\
+def update_dict(del_dict: dict, temp_dict: dict, replace: bool = True, add_val: bool = False,
             sep: str = "_", suffix: str = "0", prefix: str = "")-> dict[str, Any]:
     """
     Function that updates multilevel dictionary without resetting values. Much like an
@@ -138,7 +138,7 @@ def update_dict(del_dict: dict, temp_dict: dict, replace: bool = True, add_val: 
                     del_dict[k] = v
     return del_dict
 
-def get_del(ignore_col: str, del_dict: dict, dels: list, max_level: int or None = None,\
+def get_del(ignore_col: str, del_dict: dict, dels: list, max_level: int or None = None,
    ignore_loc: bool = False)-> dict[str, Any]:
     """
     Helper Function to create a "pivot_table" (see earlier) of the delete values.
@@ -151,12 +151,12 @@ def get_del(ignore_col: str, del_dict: dict, dels: list, max_level: int or None 
     dict_cols = {}
     dels = np.array(dels)
 
-    if len(dels.shape) == 2: # If a list of paths is passed
+    if len(dels.shape) == 2:  # If a list of paths is passed
         for idx in range(len(dels)):
             if ignore_col in dels[idx]:
                 if len(dels[idx]) >= (max_level):
                     dict_cols[str(dels[idx][max_level])] = locs_to_val(del_dict, dels[idx])
-                elif max_level == None:
+                elif max_level is None:
                     # If max_level is none, use lowest level available
                     dict_cols[str(dels[idx][0])] = locs_to_val(del_dict, dels[idx])
                 else:
@@ -167,11 +167,11 @@ def get_del(ignore_col: str, del_dict: dict, dels: list, max_level: int or None 
                         # Ignore a column if incorrect max_level supplied
                         pass
 
-    elif len(dels.shape) == 1: # If a single path is passed
+    elif len(dels.shape) == 1:  # If a single path is passed
         if ignore_col in dels:
             if len(dels) >= (max_level):
                 dict_cols[str(dels[max_level])] = locs_to_val(del_dict, dels)
-            elif max_level == None:
+            elif max_level is None:
                 # If max_level is none, use lowest level available
                 dict_cols[str(dels[0])] = locs_to_val(del_dict, dels)
             else:
@@ -198,6 +198,7 @@ def convert_to_line_delimits(s: str) -> str:
 
 # Returns normalised_json, (unordered_dict_of_deleted_vals, locations_of_deleted_vals,
 # pivot_tables_of_deleted_vals, path_idx)
+
 def nested_ignore_cols_to_record(
     ds,
     prefix: str = "",
@@ -211,7 +212,7 @@ def nested_ignore_cols_to_record(
     return_dels: bool = False,
     path_idx: int = 0,
     first_update: bool = True,
-    ignore: dict = {"cols": None,\
+    ignore: dict = {"cols": None,
                     "name_lvls": None}
 ):
     """
@@ -223,7 +224,7 @@ def nested_ignore_cols_to_record(
     If no column to be ignored is specified, function just performs the 
     un-edited nested_to_record().
 
-    Only truly deletes values if no max_level is specified (max_level == None).
+    Only truly deletes values if no max_level is specified (max_level is None).
 
     Parameters
     ----------
@@ -246,18 +247,20 @@ def nested_ignore_cols_to_record(
         This is an extension of del_dict, saves the locations of each deleted
         value in an array as well as their levels leading up to the deleted value.
     pivot_dels: dict, optional, default: {}
-        This is the ordered version of del_dict. The top level keys are the deleted value
-        keys/columns and the values are dictionaries with user-specified "name_lvl" keys
-        in ignore (see below).
+        This is the ordered version of del_dict. The top level keys are the
+        deleted value keys/columns and the values are dictionaries with user
+        -specified "name_lvl" keys in ignore (see below).
     return_dels: bool, optional, default: True
-        If true, returns the deleted values, as well as the flattened input dictionary,
-        in the format: flattened_dict, (del_dict, dels, pivot_dels, path_idx)
+        If true, returns the deleted values, as well as the flattened input
+        dictionary, in the format: flattened_dict, (del_dict, dels, pivot_dels,
+        path_idx)
     path_idx: int, default: 0
         Internal variable used to find the updated running idx of values in dels.
     ignore: dict, optional, default: {"cols": None, "name_lvls": None}
-        This contains the columns to be deleted and the desired levels (in the array of the
-        locations of deleted values) to be used as keys in the level below the top level of
-        the ordered pivot_dels dictionary (see above).
+        This contains the columns to be deleted and the desired levels
+        (in the array of the locations of deleted values) to be used as
+        keys in the level below the top level of the ordered pivot_dels
+        dictionary (see above).
 
     .. versionadded:: x.xx.x --- Please fill in
 
@@ -292,7 +295,8 @@ def nested_ignore_cols_to_record(
                 {'flat1': 1, 'dict1.c': 1, 'dict1.d': 2, 'nested.d': 2},
 
                 FULL_DELS_TUPLE:
-                ({'nested': {'e': {'c': 1, 'd': 2}}}, [['nested', 'e']], {'e': {'nested': {'c': 1, 'd': 2}}}, 1)
+                ({'nested': {'e': {'c': 1, 'd': 2}}}, [['nested', 'e']],
+                 {'e': {'nested': {'c': 1, 'd': 2}}}, 1)
                
                 FULL_DELS_TUPLE[0] = del_dict
                 FULL_DELS_TUPLE[1] = dels
@@ -334,7 +338,7 @@ def nested_ignore_cols_to_record(
                 else:
                     newkey = prefix + sep + k
             elif k in ignore["cols"]:
-                if first_update == True:
+                if first_update:
                     del_dict = {}
                     pivot_dels = {}
                     dels = []
@@ -370,10 +374,11 @@ def nested_ignore_cols_to_record(
                 v = new_d.pop(k)
                 keys_hist = get_dict_path(keys_hist, ignore, k)
 
-                if return_dels == True:
+                if return_dels:
                     nest_dict, d_tuple = \
-                    nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,\
-                                keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, first_update = first_update, ignore = ignore)
+                    nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,
+                                keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx,
+                                first_update=first_update, ignore=ignore)
                     del_dict = d_tuple[0]
                     dels = d_tuple[1]
                     pivot_dels = d_tuple[2]
@@ -393,8 +398,9 @@ def nested_ignore_cols_to_record(
                         break
                 else:
                     nest_dict = \
-                    nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,\
-                                keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, first_update, ignore = ignore)
+                    nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,
+                                keys_hist, del_dict, dels, pivot_dels,
+                                return_dels, path_idx, first_update, ignore=ignore)
                 new_d.update(nest_dict)
         new_ds.append(new_d)
    
@@ -409,8 +415,8 @@ def nested_ignore_cols_to_record(
                 # Assuming del_val is last in each del_tup array
                 last_val = del_tup[-1] 
                 if last_val in list(new_ds[0]) and last_val in ignore["cols"]:
-                    ig_ml_tup = [(ig, ml) for ig, ml in zip(ignore["cols"], ignore["name_lvls"])\
-                                if ig == last_val]
+                    ig_ml_tup = [(ig, ml) for ig, ml in zip(ignore["cols"],
+                                ignore["name_lvls"]) if ig == last_val]
                     ignore_col = ig_ml_tup[0][0]
                     ml = ig_ml_tup[0][1]
                     val = new_ds[0].pop(last_val)
@@ -424,7 +430,7 @@ def nested_ignore_cols_to_record(
 
             pivot_dels = update_dict(pivot_dels, temp_d)
 
-        if return_dels == True: # User defined
+        if return_dels:  # User defined
             return new_ds[0], (del_dict, dels, pivot_dels, path_idx)
         return new_ds[0]
 
@@ -437,8 +443,8 @@ def nested_ignore_cols_to_record(
             # Assuming del_val is last in each del_tup array
             last_val = del_tup[-1] 
             if last_val in list(new_ds) and last_val in ignore["cols"]:
-                ig_ml_tup = [(ig, ml) for ig, ml in zip(ignore["cols"], ignore["name_lvls"])\
-                            if ig == last_val]
+                ig_ml_tup = [(ig, ml) for ig, ml in zip(ignore["cols"],
+                            ignore["name_lvls"]) if ig == last_val]
                 ignore_col = ig_ml_tup[0][0]
                 ml = ig_ml_tup[0][1]
                 val = new_ds.pop(last_val)
@@ -452,7 +458,7 @@ def nested_ignore_cols_to_record(
 
         pivot_dels = update_dict(pivot_dels, temp_d)
 
-    if return_dels == True: # User defined
+    if return_dels:  # User defined
         return new_ds, (del_dict, dels, pivot_dels, path_idx)
     return new_ds
 
