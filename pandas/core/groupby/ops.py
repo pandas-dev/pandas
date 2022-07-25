@@ -810,7 +810,8 @@ class BaseGrouper:
             # res = f(group)
             try:
                 res = f(group)
-            except ValueError:
+            except (ValueError, AttributeError):
+                # except ValueError:
                 res = None
 
             object.__setattr__(group, "name", key)

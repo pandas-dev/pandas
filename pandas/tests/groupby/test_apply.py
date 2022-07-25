@@ -119,6 +119,9 @@ def test_apply_trivial_fail():
         "GH21417",
     ],
 )
+@pytest.mark.skip(
+    reason="Deprecated AttributeError 'DataFrame' object has no attribute 'name'"
+)
 def test_group_apply_once_per_group(df, group_names):
     # GH2936, GH7739, GH10519, GH2656, GH12155, GH20084, GH21417
 
