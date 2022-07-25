@@ -206,7 +206,7 @@ class TestCategoricalIndexing:
         # GH 46673
         result = PeriodIndex(["2022-04-06", "2022-04-07", null_val], freq="D")
         expected = PeriodIndex(["2022-04-06", "2022-04-07", "NaT"], dtype="period[D]")
-        assert type(result[2]) == type(NaT)
+        assert result[2] is NaT
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
