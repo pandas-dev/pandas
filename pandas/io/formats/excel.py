@@ -853,9 +853,9 @@ class ExcelFormatter:
     def write(
         self,
         writer,
-        sheet_name="Sheet1",
-        startrow=0,
-        startcol=0,
+        sheet_name: str = "Sheet1",
+        startrow: int = 0,
+        startcol: int = 0,
         freeze_panes=None,
         engine=None,
         storage_options: StorageOptions = None,
