@@ -115,22 +115,38 @@ def test_integer_overflow_bug(all_parsers, sep):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
-def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
-    dtype = any_int_dtype
-    parser = all_parsers
-
+def _iinfo(dtype):
     pdtype = pandas_dtype(dtype)
     iinfo = np.iinfo(pdtype.type if is_extension_array_dtype(dtype) else pdtype)
+    return iinfo
 
-    for x in [iinfo.max, iinfo.min]:
-        result = parser.read_csv(StringIO(f"{x}"), header=None, dtype=dtype)
-        expected = DataFrame([x], dtype=dtype)
-        tm.assert_frame_equal(result, expected)
 
-    for x in [iinfo.max + 1, iinfo.min - 1]:
-        with pytest.raises((OverflowError, TypeError, ValueError), match=None):
-            parser.read_csv(StringIO(f"{x}"), header=None, dtype=dtype)
+_raises_int_overflow = pytest.raises(  # noqa: PDF010
+    (OverflowError, TypeError, ValueError), match=None
+)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize(
+    "getval,expected",
+    [
+        (lambda dtype: _iinfo(dtype).max, nullcontext()),  # in range does not raise
+        (lambda dtype: _iinfo(dtype).min, nullcontext()),  # in range does not raise
+        (lambda dtype: _iinfo(dtype).max + 1, _raises_int_overflow),
+        (lambda dtype: _iinfo(dtype).min - 1, _raises_int_overflow),
+    ],
+)
+def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, expected):
+    dtype = any_int_dtype
+    parser = all_parsers
+    val = getval(dtype)
+    data = f"A\n{val}"
+
+    with expected:
+        result = parser.read_csv(StringIO(data), dtype=dtype)
+    if "result" in locals():
+        expected_result = DataFrame({"A": [val]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected_result)
 
 
 @skip_pyarrow
@@ -144,10 +160,13 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
 def test_integer_from_float_raises(all_parsers, any_int_dtype, val, expected):
     dtype = any_int_dtype
     parser = all_parsers
-    data = f"0\n{val}"
+    data = f"A\n0\n{val}"
 
     with expected:
-        parser.read_csv(StringIO(data), header=None, dtype=dtype)
+        result = parser.read_csv(StringIO(data), dtype=dtype)
+    if "result" in locals():
+        expected_result = DataFrame({"A": [0, val]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected_result)
 
 
 def test_int64_min_issues(all_parsers):
