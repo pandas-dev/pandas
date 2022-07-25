@@ -1,4 +1,5 @@
 import copy
+from itertools import combinations
 import re
 from textwrap import dedent
 
@@ -461,6 +462,31 @@ def test_apply_map_header_raises(mi_styler):
         mi_styler.applymap_index(lambda v: "attr: val;", axis="bad")._compute()
 
 
+def _gen_test_cases_subset_defaults(df_test_subset_defaults, styled_cols_expected):
+    "generate list of test cases from all subsets of columns of `df`"
+    # Iterate over all possible column in df
+    for n_cols in range(1, df_test_subset_defaults.shape[1] + 1):
+        for input_cols in combinations(df_test_subset_defaults.columns, n_cols):
+            # Use 'isin' to work around the difficulty with indexing
+            # when a column label is boolean
+            df_test_case = df_test_subset_defaults.loc[
+                :, df_test_subset_defaults.columns.isin(input_cols)
+            ]
+            styled_cols_expected_subset = list(
+                set(styled_cols_expected).intersection(df_test_case)
+            )
+
+            styled_elements_expected = {
+                (i, j)
+                for i in range(df_test_case.shape[0])
+                for j in np.where(
+                    df_test_case.columns.isin(styled_cols_expected_subset)
+                )[0]
+            }
+
+            yield df_test_case, styled_elements_expected
+
+
 class TestStyler:
     def test_init_non_pandas(self):
         msg = "``data`` must be a Series or DataFrame"
@@ -644,6 +670,46 @@ class TestStyler:
         assert (result[(0, 1)] == [("color", "red")]) is index  # (X,Y) only if index
         assert (result[(1, 0)] == [("color", "red")]) is columns  # (Y,X) only if cols
         assert (result[(0, 0)] == [("color", "red")]) is (index and columns)  # (X,X)
+
+    @pytest.mark.parametrize(
+        # styled_elements_expected is a set of tuples (i, j) with integer indices,
+        # where we expect .ctx to be set after calling _compute on the styler
+        "df_test_case, styled_elements_expected",
+        (
+            list(
+                _gen_test_cases_subset_defaults(
+                    DataFrame(
+                        {
+                            True: [1, 2],
+                            False: [3, 4],
+                            "num_column": [5, 6],
+                            "non_num_column": ["a", "b"],
+                        }
+                    ),
+                    [True, False, "num_column"],
+                )
+            )
+            + list(
+                _gen_test_cases_subset_defaults(
+                    DataFrame(
+                        {
+                            True: ["a", "b"],
+                            False: [3, 4],
+                            "num_column": [5, 6],
+                        }
+                    ),
+                    [False, "num_column"],
+                )
+            )
+        ),
+    )
+    @pytest.mark.parametrize(
+        "stylefunc", ["background_gradient", "bar", "text_gradient"]
+    )
+    def test_subset_defaults(self, df_test_case, styled_elements_expected, stylefunc):
+        styled = getattr(df_test_case.style, stylefunc)()
+        styled._compute()
+        assert set(styled.ctx) == set(styled_elements_expected)
 
     @pytest.mark.parametrize(
         "slice_",
