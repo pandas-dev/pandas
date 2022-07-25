@@ -34,15 +34,15 @@ if TYPE_CHECKING:
 
 def scatter_matrix(
     frame: DataFrame,
-    alpha=0.5,
+    alpha: float = 0.5,
     figsize=None,
     ax=None,
-    grid=False,
-    diagonal="hist",
-    marker=".",
+    grid: bool = False,
+    diagonal: str = "hist",
+    marker: str = ".",
     density_kwds=None,
     hist_kwds=None,
-    range_padding=0.05,
+    range_padding: float = 0.05,
     **kwds,
 ):
     df = frame._get_numeric_data()
@@ -352,7 +352,7 @@ def parallel_coordinates(
     cols=None,
     ax: Axes | None = None,
     color=None,
-    use_columns=False,
+    use_columns: bool = False,
     xticks=None,
     colormap=None,
     axvlines: bool = True,

@@ -50,7 +50,7 @@ def maybe_adjust_figure(fig: Figure, *args, **kwargs):
         fig.subplots_adjust(*args, **kwargs)
 
 
-def format_date_labels(ax: Axes, rot):
+def format_date_labels(ax: Axes, rot) -> None:
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")

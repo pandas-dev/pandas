@@ -27,6 +27,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+
     from pandas import DataFrame
 
 
@@ -463,16 +465,16 @@ _bar_or_line_doc = """
 @Substitution(backend="")
 @Appender(_boxplot_doc)
 def boxplot(
-    data,
-    column=None,
-    by=None,
-    ax=None,
-    fontsize=None,
-    rot=0,
-    grid=True,
-    figsize=None,
-    layout=None,
-    return_type=None,
+    data: DataFrame,
+    column: str | list[str] | None = None,
+    by: str | list[str] | None = None,
+    ax: Axes | None = None,
+    fontsize: float | str | None = None,
+    rot: int = 0,
+    grid: bool = True,
+    figsize: tuple[float, float] | None = None,
+    layout: tuple[int, int] | None = None,
+    return_type: str | None = None,
     **kwargs,
 ):
     plot_backend = _get_plot_backend("matplotlib")
@@ -499,8 +501,8 @@ def boxplot_frame(
     by=None,
     ax=None,
     fontsize=None,
-    rot=0,
-    grid=True,
+    rot: int = 0,
+    grid: bool = True,
     figsize=None,
     layout=None,
     return_type=None,
@@ -525,16 +527,16 @@ def boxplot_frame(
 
 def boxplot_frame_groupby(
     grouped,
-    subplots=True,
+    subplots: bool = True,
     column=None,
     fontsize=None,
-    rot=0,
-    grid=True,
+    rot: int = 0,
+    grid: bool = True,
     ax=None,
     figsize=None,
     layout=None,
-    sharex=False,
-    sharey=True,
+    sharex: bool = False,
+    sharey: bool = True,
     backend=None,
     **kwargs,
 ):
@@ -1041,7 +1043,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
-    def line(self, x=None, y=None, **kwargs):
+    def line(self, x=None, y=None, **kwargs) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
 
@@ -1128,7 +1130,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def bar(self, x=None, y=None, **kwargs):
+    def bar(self, x=None, y=None, **kwargs) -> PlotAccessor:
         """
         Vertical bar plot.
 
@@ -1214,7 +1216,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def barh(self, x=None, y=None, **kwargs):
+    def barh(self, x=None, y=None, **kwargs) -> PlotAccessor:
         """
         Make a horizontal bar plot.
 
@@ -1226,7 +1228,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="barh", x=x, y=y, **kwargs)
 
-    def box(self, by=None, **kwargs):
+    def box(self, by=None, **kwargs) -> PlotAccessor:
         r"""
         Make a box plot of the DataFrame columns.
 
@@ -1293,7 +1295,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by=None, bins=10, **kwargs):
+    def hist(self, by=None, bins: int = 10, **kwargs) -> PlotAccessor:
         """
         Draw one histogram of the DataFrame's columns.
 
@@ -1355,7 +1357,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
-    def kde(self, bw_method=None, ind=None, **kwargs):
+    def kde(self, bw_method=None, ind=None, **kwargs) -> PlotAccessor:
         """
         Generate Kernel Density Estimate plot using Gaussian kernels.
 
@@ -1465,7 +1467,7 @@ class PlotAccessor(PandasObject):
 
     density = kde
 
-    def area(self, x=None, y=None, **kwargs):
+    def area(self, x=None, y=None, **kwargs) -> PlotAccessor:
         """
         Draw a stacked area plot.
 
@@ -1538,7 +1540,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="area", x=x, y=y, **kwargs)
 
-    def pie(self, **kwargs):
+    def pie(self, **kwargs) -> PlotAccessor:
         """
         Generate a pie plot.
 
@@ -1593,7 +1595,7 @@ class PlotAccessor(PandasObject):
             raise ValueError("pie requires either y column or 'subplots=True'")
         return self(kind="pie", **kwargs)
 
-    def scatter(self, x, y, s=None, c=None, **kwargs):
+    def scatter(self, x, y, s=None, c=None, **kwargs) -> PlotAccessor:
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -1699,7 +1701,9 @@ class PlotAccessor(PandasObject):
 
         return self(kind="scatter", x=x, y=y, **kwargs)
 
-    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs):
+    def hexbin(
+        self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs
+    ) -> PlotAccessor:
         """
         Generate a hexagonal binning plot.
 

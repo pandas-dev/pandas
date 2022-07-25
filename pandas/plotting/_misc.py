@@ -13,6 +13,11 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
     import numpy as np
 
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     """
@@ -81,16 +86,16 @@ def deregister() -> None:
 
 
 def scatter_matrix(
-    frame,
-    alpha=0.5,
-    figsize=None,
-    ax=None,
-    grid=False,
-    diagonal="hist",
-    marker=".",
+    frame: DataFrame,
+    alpha: float = 0.5,
+    figsize: tuple[float, float] | None = None,
+    ax: Axes | None = None,
+    grid: bool = False,
+    diagonal: str = "hist",
+    marker: str = ".",
     density_kwds=None,
     hist_kwds=None,
-    range_padding=0.05,
+    range_padding: float = 0.05,
     **kwargs,
 ) -> np.ndarray:
     """
@@ -167,7 +172,14 @@ def scatter_matrix(
     )
 
 
-def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds) -> Axes:
+def radviz(
+    frame: DataFrame,
+    class_column: str,
+    ax: Axes | None = None,
+    color: list[str] | tuple[str, ...] | None = None,
+    colormap=None,
+    **kwds,
+) -> Axes:
     """
     Plot a multidimensional dataset in 2D.
 
@@ -249,7 +261,13 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds) -> A
 
 
 def andrews_curves(
-    frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
+    frame: DataFrame,
+    class_column: str,
+    ax: Axes | None = None,
+    samples: int = 200,
+    color: list[str] | tuple[str, ...] | None = None,
+    colormap=None,
+    **kwargs,
 ) -> Axes:
     """
     Generate a matplotlib plot of Andrews curves, for visualising clusters of
@@ -308,7 +326,13 @@ def andrews_curves(
     )
 
 
-def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds) -> Figure:
+def bootstrap_plot(
+    series: Series,
+    fig: Figure | None = None,
+    size: int = 50,
+    samples: int = 500,
+    **kwds,
+) -> Figure:
     """
     Bootstrap plot on mean, median and mid-range statistics.
 
@@ -363,17 +387,17 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds) -> Figure:
 
 
 def parallel_coordinates(
-    frame,
-    class_column,
-    cols=None,
-    ax=None,
-    color=None,
-    use_columns=False,
-    xticks=None,
+    frame: DataFrame,
+    class_column: str,
+    cols: list[str] | None = None,
+    ax: Axes | None = None,
+    color: list[str] | tuple[str, ...] | None = None,
+    use_columns: bool = False,
+    xticks: list | tuple | None = None,
     colormap=None,
-    axvlines=True,
+    axvlines: bool = True,
     axvlines_kwds=None,
-    sort_labels=False,
+    sort_labels: bool = False,
     **kwargs,
 ) -> Axes:
     """
@@ -441,7 +465,7 @@ def parallel_coordinates(
     )
 
 
-def lag_plot(series, lag=1, ax=None, **kwds) -> Axes:
+def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Axes:
     """
     Lag plot for time series.
 
@@ -485,7 +509,7 @@ def lag_plot(series, lag=1, ax=None, **kwds) -> Axes:
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
-def autocorrelation_plot(series, ax=None, **kwargs) -> Axes:
+def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
     """
     Autocorrelation plot for time series.
 
@@ -532,7 +556,7 @@ class _Options(dict):
     _ALIASES = {"x_compat": "xaxis.compat"}
     _DEFAULT_KEYS = ["xaxis.compat"]
 
-    def __init__(self, deprecated=False) -> None:
+    def __init__(self, deprecated: bool = False) -> None:
         self._deprecated = deprecated
         super().__setitem__("xaxis.compat", False)
 
