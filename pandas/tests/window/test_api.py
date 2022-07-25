@@ -450,28 +450,40 @@ def test_args_kwargs_depr(roll_type, class_name, kernel, has_args, raises):
     else:
         required_args = ()
 
-    warn_msg = f"Passing additional kwargs to {class_name}.{kernel}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        if raises:
-            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                getattr(r, kernel)(*required_args, dtype=np.float64)
-        else:
-            getattr(r, kernel)(*required_args, dtype=np.float64)
-
-    if has_args:
-        warn_msg = f"Passing additional args to {class_name}.{kernel}"
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            # sem raises for rolling but not expanding
-            if raises and (roll_type != "expanding" or kernel != "sem"):
-                with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                    getattr(r, kernel)(*required_args, 1, 2, 3, 4)
-            else:
-                getattr(r, kernel)(*required_args, 1, 2, 3, 4)
-
-        warn_msg = f"Passing additional args and kwargs to {class_name}.{kernel}"
+    if roll_type == "ewm" and kernel not in (
+        "sum",
+        "mean",
+        "std",
+        "var",
+        "cov",
+        "corr",
+    ):
+        # kernels not implemented for ewm
+        with pytest.raises(AttributeError, match=f"has no attribute '{kernel}'"):
+            getattr(r, kernel)
+    else:
+        warn_msg = f"Passing additional kwargs to {class_name}.{kernel}"
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             if raises:
                 with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                    getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)
+                    getattr(r, kernel)(*required_args, dtype=np.float64)
             else:
-                getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)
+                getattr(r, kernel)(*required_args, dtype=np.float64)
+
+        if has_args:
+            warn_msg = f"Passing additional args to {class_name}.{kernel}"
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                # sem raises for rolling but not expanding
+                if raises and (roll_type != "expanding" or kernel != "sem"):
+                    with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                        getattr(r, kernel)(*required_args, 1, 2, 3, 4)
+                else:
+                    getattr(r, kernel)(*required_args, 1, 2, 3, 4)
+
+            warn_msg = f"Passing additional args and kwargs to {class_name}.{kernel}"
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                if raises:
+                    with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+                        getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)
+                else:
+                    getattr(r, kernel)(*required_args, 1, 2, 3, 4, dtype=np.float64)
