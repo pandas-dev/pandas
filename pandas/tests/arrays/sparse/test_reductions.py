@@ -286,6 +286,10 @@ class TestArgmaxArgmin:
             (SparseArray([0] * 10 + [-1], fill_value=0), 0, 10),
             (SparseArray([0] * 10 + [-1], fill_value=-1), 0, 10),
             (SparseArray([0] * 10 + [-1], fill_value=1), 0, 10),
+            (SparseArray([-1] + [0] * 10, fill_value=0), 1, 0),
+            (SparseArray([1] + [0] * 10, fill_value=0), 0, 1),
+            (SparseArray([-1] + [0] * 10, fill_value=-1), 1, 0),
+            (SparseArray([1] + [0] * 10, fill_value=1), 0, 1),
         ],
     )
     def test_argmax_argmin(self, arr, argmax_expected, argmin_expected):
