@@ -16,7 +16,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import Scalar
+from pandas._typing import (Scalar, IgnoreRaise)
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -34,7 +34,7 @@ def get_dict_path(kh: dict, ignore: dict, ig_key: str) -> dict[str, Any]:
     new_lvls = []
     ignore_count = 0
 
-    set_lvls = set(list(kh.values()))
+    set_lvls = set(kh.values())
     for lvl in set_lvls:
         idxs = [
             (idx_in_dict, key)
@@ -77,7 +77,7 @@ def get_locs(kh: dict) -> list:
     """
     Function to get strings of all parent keys up to del point
     """
-    return [[key for key in list(kh)], [lvl for lvl in list(kh.values())]]
+    return [list(kh), list(kh.values())]
 
 
 def get_multi_dict(splits: list, val: Any) -> dict[str, Any]:
@@ -93,7 +93,7 @@ def get_multi_dict(splits: list, val: Any) -> dict[str, Any]:
         return splits_dict
 
 
-# Helper Functions to separte each deleted val into a separted dictionary,
+# Helper Functions to separate each deleted val into a separated dictionary,
 # with user chosen lvls for names. These operate like a pivot table (in sql).
 def locs_to_val(d_dict: dict, loc_arr: list, lvl: int = 0) -> Any:
     """
@@ -165,9 +165,10 @@ def get_del(
     """
     Helper Function to create a "pivot_table" (see earlier) of the delete values.
     It uses recursion in locs_to_val() to search for a value to put in this new
-    ordered dictionary. The result is appended to the main dicitonary containing all the pivots.
-    It can either be used with a list of location lists or a sinlge location list (to reduce
-    time and soze complexities for large dictionaries).
+    ordered dictionary. The result is appended to the main dicitonary containing
+    all the pivots. It can either be used with a list of location lists or a
+    single location list (to reduce time and soze complexities for large
+    dictionaries).
     """
     # max_level always starts from 0
     dict_cols = {}
@@ -181,11 +182,11 @@ def get_del(
                         del_dict, dels[idx]
                     )
                 elif max_level is None:
-                    # If max_level is none, use lowest level available
+                    # max_level is none, use lowest level available
                     dict_cols[str(dels[idx][0])] = locs_to_val(del_dict, dels[idx])
                 else:
                     if not ignore_loc:
-                        # If max_level is greater than len(loc_lvls) use level at maximum idx
+                        # max_level greater than len(loc_lvls) use maximum idx level
                         dict_cols[str(dels[idx][-1])] = locs_to_val(del_dict, dels[idx])
                     else:
                         # Ignore a column if incorrect max_level supplied
@@ -196,11 +197,11 @@ def get_del(
             if len(dels) >= (max_level):
                 dict_cols[str(dels[max_level])] = locs_to_val(del_dict, dels)
             elif max_level is None:
-                # If max_level is none, use lowest level available
+                # max_level is none, use lowest level available
                 dict_cols[str(dels[0])] = locs_to_val(del_dict, dels)
             else:
                 if not ignore_loc:
-                    # If max_level is greater than len(loc_lvls) use level at maximum idx
+                    # max_level is greater than len(loc_lvls) use level at maximum idx
                     dict_cols[str(dels[-1])] = locs_to_val(del_dict, dels)
                 else:
                     # Ignore a column if incorrect max_level supplied
@@ -242,7 +243,7 @@ def nested_ignore_cols_to_record(
     ignore: dict = {"cols": None, "name_lvls": None},
 ):
     """
-    A more commplex version of nested_to_record(), user can pass in columns to
+    A more complex version of nested_to_record(), user can pass in columns to
     ignore in the input dictionary (before flattening).
 
     Can also return the deleted values so they can be used for other cases.
@@ -298,36 +299,43 @@ def nested_ignore_cols_to_record(
 
     Example (1.)
     --------
-    nested_ignore_cols_to_record(
-      dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
-
-            {
-        'flat1': 1,
-        'dict1.c': 1,
-        'dict1.d': 2,
-        'nested.e.c': 1,
-        'nested.e.d': 2,
-        'nested.d': 2
-        }
+    >>> nested_to_record(
+    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
+    ... )
+    {\
+'flat1': 1, \
+'dict1.c': 1, \
+'dict1.d': 2, \
+'nested.e.c': 1, \
+'nested.e.d': 2, \
+'nested.d': 2\
+}
 
     Example (2.)
     --------
-    nested_ignore_cols_to_record(
-            dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2),
-                ignore = {"cols": ["e"], "name_lvls": None},
-                return_dels = True)
-
-        returns: NORMALISED DICT WITH 'e' col ignored:
-                {'flat1': 1, 'dict1.c': 1, 'dict1.d': 2, 'nested.d': 2},
-
-                FULL_DELS_TUPLE:
-                ({'nested': {'e': {'c': 1, 'd': 2}}}, [['nested', 'e']],
-                 {'e': {'nested': {'c': 1, 'd': 2}}}, 1)
-
-                FULL_DELS_TUPLE[0] = del_dict
-                FULL_DELS_TUPLE[1] = dels
-                FULL_DELS_TUPLE[2] = pivot_dels
-                FULL_DELS_TUPLE[3] = path_idx
+    >>> nested_ignore_cols_to_record(
+    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2)),
+    ...     ignore = {"cols": ["e"], "name_lvls": None},
+    ...     return_dels = True
+    ... )
+    returns: NORMALISED DICT WITH 'e' col ignored:
+    {\
+'flat1': 1, \
+'dict1.c': 1, \
+'dict1.d': 2, \
+'nested.d': 2\
+}
+            FULL_DELS_TUPLE:
+            FULL_DELS_TUPLE[0] = del_dict
+            FULL_DELS_TUPLE[1] = dels
+            FULL_DELS_TUPLE[2] = pivot_dels
+            FULL_DELS_TUPLE[3] = path_idx
+    (\
+{'nested': {'e': {'c': 1, 'd': 2}}}, \
+[['nested', 'e']], \
+{'e': {'nested': {'c': 1, 'd': 2}}}, \
+1\
+)
     """
     singleton = False
     if isinstance(ds, dict):
