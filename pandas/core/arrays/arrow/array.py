@@ -444,7 +444,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # there's a bug that affects the pa.ChunkedArray backing
             # https://issues.apache.org/jira/browse/ARROW-12042
             fallback_performancewarning("7")
-            return super().argsort(ascending, kind, na_position, *args, **kwargs)
+            return super().argsort(
+                ascending=ascending, kind=kind, na_position=na_position
+            )
 
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
