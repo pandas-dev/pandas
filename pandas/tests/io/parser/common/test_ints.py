@@ -120,7 +120,7 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
     dtype = any_int_dtype
     parser = all_parsers
 
-    pdtype = pandas_dtype(any_int_dtype)
+    pdtype = pandas_dtype(dtype)
     iinfo = np.iinfo(pdtype.type if is_extension_array_dtype(dtype) else pdtype)
 
     for x in [iinfo.max, iinfo.min]:
@@ -129,7 +129,7 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
         tm.assert_frame_equal(result, expected)
 
     for x in [iinfo.max + 1, iinfo.min - 1]:
-        with pytest.raises(Exception, match=""):
+        with pytest.raises((OverflowError, TypeError, ValueError), match=None):
             parser.read_csv(StringIO(f"{x}"), header=None, dtype=dtype)
 
 
@@ -138,7 +138,7 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype):
     "val,expected",
     [
         (0.0, nullcontext()),  # lossless conversion does not raise
-        (0.1, pytest.raises(Exception, match=None)),  # noqa: PDF010
+        (0.1, pytest.raises((TypeError, ValueError), match=None)),  # noqa: PDF010
     ],
 )
 def test_integer_from_float_raises(all_parsers, any_int_dtype, val, expected):
