@@ -82,7 +82,7 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
 # scalars
 
-PythonScalar = Union[str, int, float, bool]
+PythonScalar = Union[str, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, datetime]
@@ -126,7 +126,7 @@ RandomState = Union[
 ]
 
 # dtypes
-NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, object]]]
+NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
