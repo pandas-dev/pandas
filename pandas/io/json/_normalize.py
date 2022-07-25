@@ -9,14 +9,17 @@ from collections import (
 import copy
 from typing import (
     Any,
-    DefaultDict, 
+    DefaultDict,
     Iterable,
 )
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import Scalar, IgnoreRaise
+from pandas._typing import (
+    IgnoreRaise,
+    Scalar,
+)
 from pandas.util._decorators import deprecate
 
 import pandas as pd
