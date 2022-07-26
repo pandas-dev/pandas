@@ -16,8 +16,7 @@ from typing import (
     Iterator,
     Sequence,
     final,
-)
-import warnings
+)   
 
 import numpy as np
 
@@ -36,7 +35,6 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
