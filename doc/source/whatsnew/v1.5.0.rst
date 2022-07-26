@@ -914,6 +914,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
+- Bug in :meth:`Series.map` not respecting ``na_action`` argument if mapper is a ``dict`` or :class:`Series` (:issue:`47527`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 - Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
 - Bug in :meth:`DataFrame.fillna` ignored ``axis`` when :class:`DataFrame` is single block (:issue:`47713`)
@@ -1026,6 +1027,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
+- Bug in :meth:`SparseArray.unique` fails to keep original elements order (:issue:`47809`)
 -
 
 ExtensionArray
