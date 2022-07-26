@@ -798,6 +798,7 @@ cdef _array_to_datetime_object(
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
+    # 3) special strings - "now" & "today"
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
@@ -812,10 +813,16 @@ cdef _array_to_datetime_object(
                 oresult[i] = 'NaT'
                 continue
             try:
-                oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
+                # Handling special case strings today & now
+                if val == "today":
+                    oresult[i] = datetime.today()
+                elif val == "now":
+                    oresult[i] = datetime.now()
+                else:
+                    oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
                                                    yearfirst=yearfirst)
-                pydatetime_to_dt64(oresult[i], &dts)
-                check_dts_bounds(&dts)
+                    pydatetime_to_dt64(oresult[i], &dts)
+                    check_dts_bounds(&dts)
             except (ValueError, OverflowError):
                 if is_coerce:
                     oresult[i] = <object>NaT
