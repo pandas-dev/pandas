@@ -1042,6 +1042,7 @@ Styler
 - Bug in :meth:`Styler.set_sticky` leading to white text on white background in dark mode (:issue:`46984`)
 - Bug in :meth:`Styler.to_latex` causing ``UnboundLocalError`` when ``clines="all;data"`` and the ``DataFrame`` has no rows. (:issue:`47203`)
 - Bug in :meth:`Styler.to_excel` when using ``vertical-align: middle;`` with ``xlsxwriter`` engine (:issue:`30107`)
+- Bug when applying styles to a DataFrame with boolean column labels (:issue:`47838`)
 
 Metadata
 ^^^^^^^^
