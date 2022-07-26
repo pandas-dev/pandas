@@ -16,7 +16,7 @@ from typing import (
     Iterator,
     Sequence,
     final,
-)   
+)
 
 import numpy as np
 
