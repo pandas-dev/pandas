@@ -282,7 +282,7 @@ def parse_datetime_string(
         pass
 
     try:
-            dt = du_parse(date_string, default=_DEFAULT_DATETIME,
+        dt = du_parse(date_string, default=_DEFAULT_DATETIME,
                       dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
     except TypeError:
         # following may be raised from dateutil
