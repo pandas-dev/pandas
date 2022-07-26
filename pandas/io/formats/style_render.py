@@ -8,7 +8,6 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
-    Iterable,
     List,
     Optional,
     Sequence,
@@ -1351,24 +1350,25 @@ class StylerRenderer:
 
     def relabel_index(
         self,
-        labels: Iterable,
+        labels: Sequence | Index,
         axis: Axis = 0,
         level: Level | list[Level] | None = None,
     ) -> StylerRenderer:
         r"""
-        Relabel the index keys to display a set of specified values.
+        Relabel the index, or column header, keys to display a set of specified values.
 
         .. versionadded:: 1.5.0
 
         Parameters
         ----------
-        labels : Iterable
-            New labels to display. Must have same length as the original.
+        labels : list-like or Index
+            New labels to display. Must have same length as the underlying values not
+            hidden.
         axis : {"index", 0, "columns", 1}
             Apply to the index or columns.
         level : int, str, list, optional
-            The level(s) over which to apply the new labels.
-            If `None` will apply to the last level(s) of an Index or MultiIndex.
+            The level(s) over which to apply the new labels. If `None` will apply
+            to all levels of an Index or MultiIndex which are not hidden.
 
         Returns
         -------
@@ -1377,26 +1377,98 @@ class StylerRenderer:
         See Also
         --------
         Styler.format_index: Format the text display value of index or column headers.
+        Styler.hide: Hide the index, column headers, or specified data from display.
 
         Notes
         -----
-        None
+        As part of Styler, this method allows the display of an index to be
+        completely user-specified without affecting the underlying DataFrame data,
+        index, or column headers. This means that the flexibility of indexing is
+        maintained whilst the final display is customisable.
+
+        Since Styler is designed to be progressively constructed with method chaining,
+        this method is adapted to react to the **currently specified hidden elements**.
+        This is useful because it means one does not have to specify all the new
+        labels if the majority of an index, or column headers, have already been hidden.
+        The following produce equivalent display (note the length of ``labels`` in
+        each case).
+
+        .. code-block:: python
+
+            df = pd.DataFrame({"col": ["a", "b", "c"]})
+            df.style.relabel_index(["A", "B", "C"]).hide([0,1])
+
+         .. code-block:: python
+
+            df = pd.DataFrame({"col": ["a", "b", "c"]})
+            df.style.hide([0,1]).relabel_index(["C"])
+
+        This method should be used, rather than :meth:`Styler.format_index`, in one of
+        the following cases (see examples):
+
+          - A specified set of labels are required which are not a function of the
+            underlying index keys.
+          - The function of the underlying index keys requires a counter variable,
+            such as those available upon enumeration.
 
         Examples
         --------
-        Using ``na_rep`` and ``precision`` with the default ``formatter``
+        Basic use
 
-        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0])
-        >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
-            2.000    MISS   4.000
-        0       1       2       3
+        >>> df = pd.DataFrame({"col": ["a", "b", "c"]})
+        >>> df.style.relabel_index(["A", "B", "C"])  # doctest: +SKIP
+             col
+        A      a
+        B      b
+        C      c
 
-        Using a ``formatter`` specification on consistent dtypes in a level
+        Chaining with pre-hidden elements
 
-        >>> df.style.format_index('{:.2f}', axis=1, na_rep='MISS')  # doctest: +SKIP
-             2.00   MISS    4.00
-        0       1      2       3
+        >>> df.style.hide([0,1]).relabel_index(["C"])  # doctest: +SKIP
+             col
+        C      c
 
+        Using a MultiIndex
+
+        >>> midx = pd.MultiIndex.from_product([[0, 1], [0, 1], [0, 1]])
+        >>> df = pd.DataFrame({"col": list(range(8))}, index=midx)
+        >>> styler = df.style  # doctest: +SKIP
+                  col
+        0  0  0     0
+              1     1
+           1  0     2
+              1     3
+        1  0  0     4
+              1     5
+           1  0     6
+              1     7
+        >>> styler.hide((midx.get_level_values(0)==0)|(midx.get_level_values(1)==0))
+        >>> styler.hide(level=[0,1])
+        >>> styler.relabel_index(["binary6", "binary7"])
+                  col
+        binary6     6
+        binary7     7
+
+        We can also achieve the above by indexing first and then re-labeling
+
+        >>> styler = df.loc[[(1,1,0), (1,1,1)]].style
+        >>> styler.hide(level=[0,1]).relabel_index(["binary6", "binary7"])
+                  col
+        binary6     6
+        binary7     7
+
+        Defining a formatting function which uses an enumeration counter. Also note
+        that the value of the index key is passed in the case of string labels so it
+        can also be inserted into the label, using curly brackets (or double curly
+        brackets if the string if pre-formatted),
+
+        >>> df = pd.DataFrame({"samples": np.random.rand(10)})
+        >>> styler = df.loc[np.random.randint(0,10,3)].style
+        >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
+                         samples
+        sample1 (5)     0.315811
+        sample2 (0)     0.495941
+        sample3 (2)     0.067946
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
@@ -1406,26 +1478,20 @@ class StylerRenderer:
             display_funcs_, obj = self._display_funcs_columns, self.columns
             hidden_labels, hidden_lvls = self.hidden_columns, self.hide_columns_
         visible_len = len(obj) - len(set(hidden_labels))
-        visible_lvls = obj.nlevels - sum(hidden_lvls)
+        # visible_lvls = obj.nlevels - sum(hidden_lvls)
         if len(labels) != visible_len:
             raise ValueError(
                 "``labels`` must be of length equal to the number of "
-                "visible labels along ``axis``."
+                f"visible labels along ``axis`` ({visible_len})."
             )
-        if level is None and visible_lvls > 1:
-            error_msg = (
-                f"``labels`` specified do not contain the same "
-                f"number of visible levels ({visible_lvls}) as the specified ``axis``: "
-            )
-            try:
-                if len(labels[0]) != visible_lvls:
-                    raise ValueError(error_msg)
-            except TypeError:
-                raise ValueError(error_msg)
+
+        if level is None:
             level = [i for i in range(obj.nlevels) if not hidden_lvls[i]]
         levels_ = refactor_levels(level, obj)
 
         def alias_(x, value):
+            if isinstance(value, str):
+                return value.format(x)
             return value
 
         for ai, i in enumerate([i for i in range(len(obj)) if i not in hidden_labels]):
