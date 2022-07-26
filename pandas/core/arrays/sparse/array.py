@@ -1642,7 +1642,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
 
         values = self._sparse_values
-        mask = np.asarray(isna(self))[self._sparse_index.indices]
+        index = self._sparse_index.indices
+        mask = np.asarray(isna(values))
         func = np.argmax if kind == "argmax" else np.argmin
 
         idx = np.arange(values.shape[0])
@@ -1650,7 +1651,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         non_nan_idx = idx[~mask]
 
         _candidate = non_nan_idx[func(non_nans)]
-        candidate = self._sparse_index.indices[_candidate]
+        candidate = index[_candidate]
 
         if isna(self.fill_value):
             return candidate
