@@ -2468,22 +2468,22 @@ class MultiIndex(Index):
         >>> mi.sortlevel()
         (MultiIndex([(0, 1),
                     (0, 2)],
-                   ), array([1, 0]))
+                   ), array([1, 0], dtype=int64))
 
         >>> mi.sortlevel(sort_remaining=False)
         (MultiIndex([(0, 2),
                     (0, 1)],
-                   ), array([0, 1]))
+                   ), array([0, 1], dtype=int64))
 
         >>> mi.sortlevel(1)
         (MultiIndex([(0, 1),
                     (0, 2)],
-                   ), array([1, 0]))
+                   ), array([1, 0], dtype=int64))
 
         >>> mi.sortlevel(1, ascending=False)
         (MultiIndex([(0, 2),
                     (0, 1)],
-                   ), array([0, 1]))
+                   ), array([0, 1], dtype=int64))
         """
         if isinstance(level, (str, int)):
             level = [level]

@@ -356,7 +356,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     [0, 0, 1, 2]
     Fill: 0
     IntIndex
-    Indices: array([2, 3], dtype=int32)
+    Indices: array([2, 3])
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
@@ -639,7 +639,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         >>> s = SparseArray([0, 0, 1, 0, 2], fill_value=0)
         >>> s.sp_values
-        array([1, 2])
+        array([1, 2], dtype=int64)
         """
         return self._sparse_values
 
@@ -1277,13 +1277,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Indices: array([2, 3])
 
         >>> arr.astype(SparseDtype(np.dtype('int32')))
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Indices: array([2, 3])
 
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
@@ -1293,7 +1293,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [nan, nan, 1.0, 2.0]
         Fill: nan
         IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Indices: array([2, 3])
 
         Using a SparseDtype, you can also change the fill value as well.
 
@@ -1302,7 +1302,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [0.0, 0.0, 1.0, 2.0]
         Fill: 0.0
         IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Indices: array([2, 3])
         """
         if is_dtype_equal(dtype, self._dtype):
             if not copy:
@@ -1355,19 +1355,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [10, 11, 12]
         Fill: 10
         IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Indices: array([1, 2])
 
         >>> arr.map({0: 10, 1: 11, 2: 12})
         [10, 11, 12]
         Fill: 10
         IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Indices: array([1, 2])
 
         >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
         [10, 11, 12]
         Fill: 10
         IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Indices: array([1, 2])
         """
         # this is used in apply.
         # We get hit since we're an "is_extension_type" but regular extension

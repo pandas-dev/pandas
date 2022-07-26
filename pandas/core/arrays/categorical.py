@@ -1831,19 +1831,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Examples
         --------
         >>> pd.Categorical(['b', 'b', 'a', 'c']).argsort()
-        array([2, 0, 1, 3])
+        array([2, 0, 1, 3], dtype=int64)
 
         >>> cat = pd.Categorical(['b', 'b', 'a', 'c'],
         ...                      categories=['c', 'b', 'a'],
         ...                      ordered=True)
         >>> cat.argsort()
-        array([3, 0, 1, 2])
+        array([3, 0, 1, 2], dtype=int64)
 
         Missing values are placed at the end
 
         >>> cat = pd.Categorical([2, None, 1])
         >>> cat.argsort()
-        array([2, 0, 1])
+        array([2, 0, 1], dtype=int64)
         """
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
@@ -2248,7 +2248,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c.codes
         array([0, 0, 1, 2, 0], dtype=int8)
         >>> c._reverse_indexer()
-        {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
+        {'a': array([0, 1, 4], dtype=int64), 'b':
+        array([2], dtype=int64), 'c': array([3], dtype=int64)}
 
         """
         categories = self.categories

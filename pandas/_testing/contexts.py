@@ -57,7 +57,7 @@ def set_timezone(tz: str) -> Iterator[None]:
     >>> tzlocal().tzname(datetime(2021, 1, 1))  # doctest: +SKIP
     'IST'
 
-    >>> with set_timezone('US/Eastern'):
+    >>> with set_timezone('US/Eastern'): # doctest: +SKIP
     ...     tzlocal().tzname(datetime(2021, 1, 1))
     ...
     'EST'

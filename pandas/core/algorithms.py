@@ -343,10 +343,10 @@ def unique(values):
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))
-    array([2, 1, 3])
+    array([2, 1, 3], dtype=int64)
 
     >>> pd.unique(pd.Series([2] + [1] * 5))
-    array([2, 1])
+    array([2, 1], dtype=int64)
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
@@ -677,7 +677,8 @@ def factorize(
     array(['b', 'a', 'c'], dtype=object)
 
     Thus far, we've only factorized lists (which are internally coerced to
-    NumPy arrays). When factorizing pandas objects, the type of `uniques`
+    NumPy arrays). When factorizcodes, uniques =
+    pd.factorize(valuing pandas objects, the type of `uniques`
     will differ. For Categoricals, a `Categorical` is returned.
 
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
@@ -707,13 +708,13 @@ def factorize(
     >>> values = np.array([1, 2, 1, np.nan])
     >>> codes, uniques = pd.factorize(values)  # default: use_na_sentinel=True
     >>> codes
-    array([ 0,  1,  0, -1])
+    array([ 0,  1,  0, -1], dtype=int64)
     >>> uniques
     array([1., 2.])
 
     >>> codes, uniques = pd.factorize(values, use_na_sentinel=False)
     >>> codes
-    array([0, 1, 0, 2])
+    array([0, 1, 0, 2], dtype=int64)
     >>> uniques
     array([ 1.,  2., nan])
     """

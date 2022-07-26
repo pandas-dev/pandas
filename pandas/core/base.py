@@ -1210,13 +1210,13 @@ class IndexOpsMixin(OpsMixin):
         3
 
         >>> ser.searchsorted([0, 4])
-        array([0, 3])
+        array([0, 3],  dtype=int64)
 
         >>> ser.searchsorted([1, 3], side='left')
-        array([0, 2])
+        array([0, 2], dtype=int64)
 
         >>> ser.searchsorted([1, 3], side='right')
-        array([1, 3])
+        array([1, 3], dtype=int64)
 
         >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
         >>> ser
@@ -1239,7 +1239,7 @@ class IndexOpsMixin(OpsMixin):
         1
 
         >>> ser.searchsorted(['bread'], side='right')
-        array([3])
+        array([3], dtype=int64)
 
         If the values are not monotonically sorted, wrong locations
         may be returned:

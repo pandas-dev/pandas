@@ -1251,7 +1251,8 @@ def reconstruct_func(
     Examples
     --------
     >>> reconstruct_func(None, **{"foo": ("col", "min")})
-    (True, defaultdict(<class 'list'>, {'col': ['min']}), ('foo',), array([0]))
+    (True, defaultdict(<class 'list'>, {'col': ['min']}),
+     ('foo',), array([0], dtype=int64))
 
     >>> reconstruct_func("min")
     (False, 'min', None, None)
@@ -1329,7 +1330,8 @@ def normalize_keyword_aggregation(
     Examples
     --------
     >>> normalize_keyword_aggregation({"output": ("input", "sum")})
-    (defaultdict(<class 'list'>, {'input': ['sum']}), ('output',), array([0]))
+    (defaultdict(<class 'list'>, {'input': ['sum']}),
+    ('output',), array([0], dtype=int64))
     """
     from pandas.core.indexes.base import Index
 
