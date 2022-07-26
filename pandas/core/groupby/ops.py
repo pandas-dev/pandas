@@ -759,17 +759,6 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self.group_keys_seq
-        if self.raise_warning_single_grouper:
-            warnings.warn(
-                (
-                    "In a future version of pandas, a length 1 "
-                    "tuple will be returned when grouping by a "
-                    "list of length 1. Don't supply a list with "
-                    "a single grouper to avoid this warning."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
         yield from zip(keys, splitter)
 
     @final

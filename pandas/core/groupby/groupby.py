@@ -821,6 +821,18 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
+        result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+        if result.gi_frame.f_locals["self"].raise_warning_single_grouper:
+            warnings.warn(
+                (
+                    "In a future version of pandas, a length 1 "
+                    "tuple will be returned when grouping by a "
+                    "list of length 1. Don't supply a list with "
+                    "a single grouper to avoid this warning."
+                ),
+                FutureWarning,
+                stacklevel=1,
+            )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
 
