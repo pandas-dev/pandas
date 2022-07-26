@@ -10,6 +10,7 @@ from collections import abc
 import numbers
 import re
 from typing import (
+    Iterable,
     Pattern,
     Sequence,
     cast,
@@ -971,7 +972,7 @@ def read_html(
     encoding: str | None = None,
     decimal: str = ".",
     converters: dict | None = None,
-    na_values=None,
+    na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
 ) -> list[DataFrame]:

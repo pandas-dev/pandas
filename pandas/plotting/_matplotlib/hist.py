@@ -49,7 +49,13 @@ class HistPlot(LinePlot):
     def _kind(self) -> Literal["hist", "kde"]:
         return "hist"
 
-    def __init__(self, data, bins=10, bottom=0, **kwargs) -> None:
+    def __init__(
+        self,
+        data,
+        bins: int | np.ndarray | list[np.ndarray] = 10,
+        bottom: int | np.ndarray = 0,
+        **kwargs,
+    ) -> None:
         self.bins = bins  # use mpl default
         self.bottom = bottom
         # Do not call LinePlot.__init__ which may fill nan
@@ -369,13 +375,13 @@ def hist_series(
     self,
     by=None,
     ax=None,
-    grid=True,
+    grid: bool = True,
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
     yrot=None,
     figsize=None,
-    bins=10,
+    bins: int = 10,
     legend: bool = False,
     **kwds,
 ):
@@ -441,17 +447,17 @@ def hist_frame(
     data,
     column=None,
     by=None,
-    grid=True,
+    grid: bool = True,
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
     yrot=None,
     ax=None,
-    sharex=False,
-    sharey=False,
+    sharex: bool = False,
+    sharey: bool = False,
     figsize=None,
     layout=None,
-    bins=10,
+    bins: int = 10,
     legend: bool = False,
     **kwds,
 ):
