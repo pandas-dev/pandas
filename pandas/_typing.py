@@ -92,10 +92,10 @@ IntStrT = TypeVar("IntStrT", int, str)
 # timestamp and timedelta convertible types
 
 TimestampConvertibleTypes = Union[
-    "Timestamp", datetime, np.datetime64, int, np.int64, float, str
+    "Timestamp", datetime, np.datetime64, np.int64, float, str
 ]
 TimedeltaConvertibleTypes = Union[
-    "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
+    "Timedelta", timedelta, np.timedelta64, np.int64, float, str
 ]
 Timezone = Union[str, tzinfo]
 
