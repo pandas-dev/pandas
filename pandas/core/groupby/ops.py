@@ -17,6 +17,8 @@ from typing import (
     Sequence,
     final,
 )
+import warnings
+from pandas.util._exceptions import find_stack_level
 
 import numpy as np
 
@@ -711,6 +713,7 @@ class BaseGrouper:
         self,
         axis: Index,
         groupings: Sequence[grouper.Grouping],
+        tuple_unified: bool = False,
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -721,6 +724,7 @@ class BaseGrouper:
 
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
+        self.tuple_unified = tuple_unified
         self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -755,6 +759,17 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self.group_keys_seq
+        if self.tuple_unified:
+            warnings.warn(
+                (
+                    "In a future version of pandas, a length 1 "
+                    "tuple will be returned when grouping by a "
+                    "list of length 1. Don't supply a list with "
+                    "a single grouper to avoid this warning."
+                ),
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         yield from zip(keys, splitter)
 
     @final
@@ -1123,11 +1138,13 @@ class BinGrouper(BaseGrouper):
         binlabels,
         mutated: bool = False,
         indexer=None,
+        tuple_unified: bool = False,
     ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
         self.mutated = mutated
         self.indexer = indexer
+        self.tuple_unified = False
 
         # These lengths must match, otherwise we could call agg_series
         #  with empty self.bins, which would raise in libreduction.
