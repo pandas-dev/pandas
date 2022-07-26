@@ -1903,14 +1903,14 @@ def test_negate_lt_eq_le(engine, parser):
         "Inf",
     ],
 )
-def test_eval_no_support_column_name(request, column):
+def test_eval_no_support_column_name(engine, parser, request, column):
     # GH#44603
     if column in ["True", "False", "inf", "Inf"]:
         request.node.add_marker(pytest.mark.xfail(raises=ValueError))
 
     df = DataFrame(np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"])
     expected = df[df[column] > 6]
-    result = df.query(f"{column}>6")
+    result = df.query(f"{column}>6", engine=engine, parser=parser)
 
     tm.assert_frame_equal(result, expected)
 
