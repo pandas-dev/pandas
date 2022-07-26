@@ -8565,7 +8565,7 @@ Parrot 2  Parrot       24.0
             Add all row / columns (e.g. for subtotal / grand totals).
         dropna : bool, default True
             Do not include columns whose entries are all NaN. If true: 
-            exclude rows containing missing data from aggregated margins
+            exclude rows containing missing data from aggregated margins.
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
