@@ -205,7 +205,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
     @property
-    def obj(self) -> NDFrameT:  # type: ignore[override]
+    def obj(self) -> NDFrame:  # type: ignore[override]
         # error: Incompatible return value type (got "Optional[Any]",
         # expected "NDFrameT")
         return self.groupby.obj  # type: ignore[return-value]
