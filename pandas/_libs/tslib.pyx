@@ -652,7 +652,7 @@ cpdef array_to_datetime(
                     else:
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            except OutOfBoundsDatetime:
+            except OutOfBoundsDatetime as ex:
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
@@ -664,11 +664,11 @@ cpdef array_to_datetime(
 
                         # Still raise OutOfBoundsDatetime,
                         # as error message is informative.
-                        raise OutOfBoundsDatetime(f"Cannot convert \"{val}\" at position {i} to datetime")
+                        raise OutOfBoundsDatetime(f"Cannot convert \"{val}\" at position {i} to datetime") from ex
 
                     assert is_ignore
                     return values, tz_out
-                raise OutOfBoundsDatetime(f"Cannot convert \"{val}\" at position {i} to datetime")
+                raise OutOfBoundsDatetime(f"Cannot convert \"{val}\" at position {i} to datetime") from ex
 
     except OutOfBoundsDatetime:
         if is_raise:
