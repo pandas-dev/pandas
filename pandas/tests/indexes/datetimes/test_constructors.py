@@ -521,7 +521,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = f'Cannot convert "{dates[0]}" at position 0 to datetime'
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
