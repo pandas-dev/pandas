@@ -1395,11 +1395,10 @@ class StylerRenderer:
 
         .. code-block:: python
 
+            # relabel first, then hide
             df = pd.DataFrame({"col": ["a", "b", "c"]})
             df.style.relabel_index(["A", "B", "C"]).hide([0,1])
-
-         .. code-block:: python
-
+            # hide first, then relabel
             df = pd.DataFrame({"col": ["a", "b", "c"]})
             df.style.hide([0,1]).relabel_index(["C"])
 
