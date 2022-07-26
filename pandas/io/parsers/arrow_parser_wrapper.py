@@ -5,6 +5,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
+from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 
 from pandas.io.parsers.base_parser import ParserBase
@@ -147,6 +148,10 @@ class ArrowParserWrapper(ParserBase):
             parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
             convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
         )
-
-        frame = table.to_pandas()
+        frame = DataFrame(
+            {
+                column_name: ArrowExtensionArray(array)
+                for column_name, array in zip(table.column_names, table.itercolumns())
+            }
+        )
         return self._finalize_output(frame)
