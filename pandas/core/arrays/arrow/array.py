@@ -18,6 +18,7 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under1p01,
     pa_version_under2p0,
+    pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
@@ -307,6 +308,20 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._data
 
+    def __invert__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        if pa_version_under2p0:
+            raise NotImplementedError("__invert__ not implement for pyarrow < 2.0")
+        return type(self)(pc.invert(self._data))
+
+    def __neg__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        return type(self)(pc.negate_checked(self._data))
+
+    def __pos__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        return type(self)(self._data)
+
+    def __abs__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        return type(self)(pc.abs_checked(self._data))
+
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
@@ -388,6 +403,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         return len(self._data)
 
+    @property
+    def _hasna(self) -> bool:
+        return self._data.null_count > 0
+
     def isna(self) -> npt.NDArray[np.bool_]:
         """
         Boolean NumPy array indicating if each value is missing.
@@ -424,6 +443,49 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return super().dropna()
         else:
             return type(self)(pc.drop_null(self._data))
+
+    def isin(self, values) -> npt.NDArray[np.bool_]:
+        if pa_version_under2p0:
+            fallback_performancewarning(version="2")
+            return super().isin(values)
+
+        # for an empty value_set pyarrow 3.0.0 segfaults and pyarrow 2.0.0 returns True
+        # for null values, so we short-circuit to return all False array.
+        if not len(values):
+            return np.zeros(len(self), dtype=bool)
+
+        kwargs = {}
+        if pa_version_under3p0:
+            # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
+            # with unexpected keyword argument in pyarrow 3.0.0+
+            kwargs["skip_null"] = True
+
+        result = pc.is_in(
+            self._data, value_set=pa.array(values, from_pandas=True), **kwargs
+        )
+        # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
+        # to False
+        return np.array(result, dtype=np.bool_)
+
+    def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
+        """
+        Return an array and missing value suitable for factorization.
+
+        Returns
+        -------
+        values : ndarray
+        na_value : pd.NA
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
+        """
+        if pa_version_under2p0:
+            values = self._data.to_pandas().values
+        else:
+            values = self._data.to_numpy()
+        return values, self.dtype.na_value
 
     @doc(ExtensionArray.factorize)
     def factorize(
@@ -622,11 +684,72 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         -------
         ArrowExtensionArray
         """
-        import pyarrow as pa
-
         chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
         arr = pa.chunked_array(chunks)
         return cls(arr)
+
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        if name == "sem":
+
+            def pyarrow_meth(data, skipna, **kwargs):
+                numerator = pc.stddev(data, skip_nulls=skipna, **kwargs)
+                denominator = pc.sqrt_checked(
+                    pc.subtract_checked(
+                        pc.count(self._data, skip_nulls=skipna), kwargs["ddof"]
+                    )
+                )
+                return pc.divide_checked(numerator, denominator)
+
+        else:
+            pyarrow_name = {
+                "median": "approximate_median",
+                "prod": "product",
+                "std": "stddev",
+                "var": "variance",
+            }.get(name, name)
+            # error: Incompatible types in assignment
+            # (expression has type "Optional[Any]", variable has type
+            # "Callable[[Any, Any, KwArg(Any)], Any]")
+            pyarrow_meth = getattr(pc, pyarrow_name, None)  # type: ignore[assignment]
+            if pyarrow_meth is None:
+                # Let ExtensionArray._reduce raise the TypeError
+                return super()._reduce(name, skipna=skipna, **kwargs)
+        try:
+            result = pyarrow_meth(self._data, skip_nulls=skipna, **kwargs)
+        except (AttributeError, NotImplementedError, TypeError) as err:
+            msg = (
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                f"does not support reduction '{name}' with pyarrow "
+                f"version {pa.__version__}. '{name}' may be supported by "
+                f"upgrading pyarrow."
+            )
+            raise TypeError(msg) from err
+        if pc.is_null(result).as_py():
+            return self.dtype.na_value
+        return result.as_py()
 
     def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """Set one or more values inplace.
