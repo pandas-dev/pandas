@@ -11,12 +11,10 @@ from pandas import (
     IntervalIndex,
     Timedelta,
     Timestamp,
-    array,
     date_range,
     interval_range,
     isna,
     notna,
-    period_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -925,16 +923,6 @@ class TestIntervalIndex:
 
         with tm.assert_produces_warning(FutureWarning, match=msg_warn):
             IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)], closed="both")
-
-    @pytest.mark.parametrize("box", [IntervalIndex, array, list])
-    def test_get_indexer_interval_index(self, box):
-        # GH#30178
-        rng = period_range("2022-07-01", freq="D", periods=3)
-        idx = box(interval_range(Timestamp("2022-07-01"), freq="3D", periods=3))
-
-        actual = rng.get_indexer(idx)
-        expected = np.array([-1, -1, -1], dtype="intp")
-        tm.assert_numpy_array_equal(actual, expected)
 
 
 def test_dir():
