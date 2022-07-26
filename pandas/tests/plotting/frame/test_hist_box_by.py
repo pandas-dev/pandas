@@ -269,7 +269,7 @@ class TestBoxWithBy(TestPlotBase):
                 ]
                 * 2,
             ),
-            ("C", None, ["A", "B"], [["a", "b", "c"]] * 2),
+            (["C"], None, ["A", "B"], [["a", "b", "c"]] * 2),
         ],
     )
     def test_box_plot_by_argument(self, by, column, titles, xticklabels, hist_df):

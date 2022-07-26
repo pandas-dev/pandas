@@ -1194,7 +1194,7 @@ def test_transform_lambda_with_datetimetz():
             "timezone": ["Etc/GMT+4", "US/Eastern"],
         }
     )
-    result = df.groupby("timezone")["time"].transform(
+    result = df.groupby(["timezone"])["time"].transform(
         lambda x: x.dt.tz_localize(x.name)
     )
     expected = Series(
