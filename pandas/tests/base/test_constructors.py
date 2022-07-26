@@ -157,8 +157,7 @@ class TestConstruction:
 
         # Explicit dtype specified
         # Forced conversion fails for all -> all cases raise error
-        msg = "Out of bounds|" \
-            f"Cannot convert \"{a[0]}\" at position 0 to datetime"
+        msg = f'Out of bounds|Cannot convert "{a[0]}" at position 0 to datetime'
         with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
             klass(a, dtype="datetime64[ns]")
 
