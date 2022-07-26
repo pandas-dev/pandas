@@ -2807,4 +2807,4 @@ def test_single_element_list_grouping():
         "a single grouper to avoid this warning."
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        values, _ = next(iter(df.groupby(['a'])))
+        values, _ = next(iter(df.groupby(["a"])))
