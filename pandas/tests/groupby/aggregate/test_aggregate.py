@@ -504,7 +504,7 @@ def test_bool_agg_dtype(op):
 @pytest.mark.parametrize(
     "keys, agg_index",
     [
-        ("a", Index([1], name="a")),
+        (["a"], Index([1], name="a")),
         (["a", "b"], MultiIndex([[1], [2]], [[0], [0]], names=["a", "b"])),
     ],
 )
@@ -535,7 +535,7 @@ def test_callable_result_dtype_frame(
 @pytest.mark.parametrize(
     "keys, agg_index",
     [
-        ("a", Index([1], name="a")),
+        (["a"], Index([1], name="a")),
         (["a", "b"], MultiIndex([[1], [2]], [[0], [0]], names=["a", "b"])),
     ],
 )

@@ -152,7 +152,7 @@ called ``no2_subset``.
 .. ipython:: python
 
     # use 2 measurements (head) for each location (groupby)
-    no2_subset = no2.sort_index().groupby("location").head(2)
+    no2_subset = no2.sort_index().groupby(["location"]).head(2)
     no2_subset
 
 .. image:: ../../_static/schemas/07_pivot.svg

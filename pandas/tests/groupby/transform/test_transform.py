@@ -1194,7 +1194,7 @@ def test_transform_lambda_with_datetimetz():
             "timezone": ["Etc/GMT+4", "US/Eastern"],
         }
     )
-    result = df.groupby("timezone")["time"].transform(
+    result = df.groupby(["timezone"])["time"].transform(
         lambda x: x.dt.tz_localize(x.name)
     )
     expected = Series(
@@ -1328,7 +1328,7 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("keys", ["A1", ["A1", "A2"]])
+@pytest.mark.parametrize("keys", [["A1"], ["A1", "A2"]])
 def test_null_group_lambda_self(request, sort, dropna, keys):
     # GH 17093
     if not sort and not dropna:
@@ -1339,7 +1339,7 @@ def test_null_group_lambda_self(request, sort, dropna, keys):
     nulls1 = np.random.choice([False, True], size)
     nulls2 = np.random.choice([False, True], size)
     # Whether a group contains a null value or not
-    nulls_grouper = nulls1 if not isinstance(keys, list) else nulls1 | nulls2
+    nulls_grouper = nulls1 if len(keys) == 1 else nulls1 | nulls2
 
     a1 = np.random.randint(0, 5, size=size).astype(float)
     a1[nulls1] = np.nan
@@ -1543,7 +1543,7 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         (lambda x: x.head(1), True, [5.0, np.nan, 3.0, 2.0, np.nan]),
     ],
 )
-@pytest.mark.parametrize("keys", ["a1", ["a1", "a2"]])
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 @pytest.mark.parametrize("keys_in_index", [True, False])
 def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_index):
     # GH#45648 - transform should align with the input's index

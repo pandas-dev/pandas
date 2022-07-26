@@ -433,8 +433,8 @@ Top n rows per group
 
     (
         tips.assign(
-            rn=tips.sort_values("total_bill", ascending=False)
-            .groupby("day")
+            rn=tips.sort_values(["total_bill"], ascending=False)
+            .groupby(["day"])
             .cumcount()
             + 1
         )
@@ -448,7 +448,7 @@ the same using ``rank(method='first')`` function
 
     (
         tips.assign(
-            rnk=tips.groupby("day")["total_bill"].rank(
+            rnk=tips.groupby(["day"])["total_bill"].rank(
                 method="first", ascending=False
             )
         )
@@ -478,7 +478,7 @@ Notice that when using ``rank(method='min')`` function
 
     (
         tips[tips["tip"] < 2]
-        .assign(rnk_min=tips.groupby("sex")["tip"].rank(method="min"))
+        .assign(rnk_min=tips.groupby(["sex"])["tip"].rank(method="min"))
         .query("rnk_min < 3")
         .sort_values(["sex", "rnk_min"])
     )

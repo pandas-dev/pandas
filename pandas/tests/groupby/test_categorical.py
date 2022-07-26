@@ -115,7 +115,7 @@ def test_basic():  # TODO: split this test
     )
     x["person_name"] = Categorical(x.person_name)
 
-    g = x.groupby("person_id", observed=False)
+    g = x.groupby(["person_id"], observed=False)
     result = g.transform(lambda x: x)
     tm.assert_frame_equal(result, x[["person_name"]])
 
@@ -917,7 +917,7 @@ def test_sort():
         df.value, range(0, 10500, 500), right=False, labels=cat_labels
     )
 
-    res = df.groupby("value_group", observed=False)["value_group"].count()
+    res = df.groupby(["value_group"], observed=False)["value_group"].count()
     exp = res[sorted(res.index, key=lambda x: float(x.split()[0]))]
     exp.index = CategoricalIndex(exp.index, name=exp.index.name)
     tm.assert_series_equal(res, exp)

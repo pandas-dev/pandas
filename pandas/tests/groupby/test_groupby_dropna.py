@@ -333,7 +333,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
 
 
 @pytest.mark.parametrize("input_index", [None, ["a"], ["a", "b"]])
-@pytest.mark.parametrize("keys", ["a", ["a", "b"]])
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 @pytest.mark.parametrize("series", [True, False])
 def test_groupby_dropna_with_multiindex_input(input_index, keys, series):
     # GH#46783
@@ -348,7 +348,7 @@ def test_groupby_dropna_with_multiindex_input(input_index, keys, series):
     expected = obj.set_index(keys)
     if series:
         expected = expected["c"]
-    elif input_index == ["a", "b"] and keys == "a":
+    elif input_index == ["a", "b"] and keys == ["a"]:
         # Column b should not be aggregated
         expected = expected[["c"]]
 

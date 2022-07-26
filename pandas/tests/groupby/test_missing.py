@@ -17,7 +17,7 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
         [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
         columns=Index(["type", "a", "b"], name="idx"),
     )
-    df_grouped = df.groupby("type")[["a", "b"]]
+    df_grouped = df.groupby(["type"])[["a", "b"]]
     result = getattr(df_grouped, func)().columns
     expected = Index(["a", "b"], name="idx")
     tm.assert_index_equal(result, expected)
@@ -28,7 +28,7 @@ def test_groupby_fill_duplicate_column_names(func):
     # GH: 25610 ValueError with duplicate column names
     df1 = DataFrame({"field1": [1, 3, 4], "field2": [1, 3, 4]})
     df2 = DataFrame({"field1": [1, np.nan, 4]})
-    df_grouped = pd.concat([df1, df2], axis=1).groupby(by="field2")
+    df_grouped = pd.concat([df1, df2], axis=1).groupby(by=["field2"])
     expected = DataFrame(
         [[1, 1.0], [3, np.nan], [4, 4.0]], columns=["field1", "field1"]
     )

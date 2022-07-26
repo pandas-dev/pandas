@@ -873,7 +873,7 @@ class TestGetGroup:
 
 class TestIteration:
     def test_groups(self, df):
-        grouped = df.groupby("A")
+        grouped = df.groupby(["A"])
         groups = grouped.groups
         assert groups is grouped.groups  # caching works
 

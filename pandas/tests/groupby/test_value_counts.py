@@ -142,7 +142,7 @@ def test_series_groupby_value_counts_with_grouper():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("columns", [["A", "B", "C"]])
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
 def test_series_groupby_value_counts_empty(columns):
     # GH39172
     df = DataFrame(columns=columns)
@@ -155,7 +155,7 @@ def test_series_groupby_value_counts_empty(columns):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("columns", [["A", "B", "C"]])
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
 def test_series_groupby_value_counts_one_row(columns):
     # GH42618
     df = DataFrame(data=[range(len(columns))], columns=columns)

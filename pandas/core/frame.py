@@ -8293,13 +8293,13 @@ We can also choose to include NA in group keys or not by setting
 >>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
 >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
 
->>> df.groupby(by="b").sum()
+>>> df.groupby(by=["b"]).sum()
     a   c
 b
 1.0 2   3
 2.0 2   5
 
->>> df.groupby(by="b", dropna=False).sum()
+>>> df.groupby(by=["b"], dropna=False).sum()
     a   c
 b
 1.0 2   3

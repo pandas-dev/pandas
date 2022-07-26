@@ -430,7 +430,7 @@ def test_resample_groupby_agg_listlike():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("keys", ["a", ["a", "b"]])
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 def test_empty(keys):
     # GH 26411
     df = DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))
@@ -453,7 +453,7 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     if consolidate:
         df = df._consolidate()
 
-    result = df.groupby("key").resample("W", on="date").min()
+    result = df.groupby(["key"]).resample("W", on="date").min()
     idx = pd.MultiIndex.from_arrays(
         [
             ["A"] * 3 + ["B"] * 3,
