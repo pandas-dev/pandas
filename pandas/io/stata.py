@@ -678,7 +678,7 @@ class StataValueLabel:
         self.labname = catarray.name
         self._encoding = encoding
         categories = catarray.cat.categories
-        self.value_labels: list[tuple[int | float, str]] = list(
+        self.value_labels: list[tuple[float, str]] = list(
             zip(np.arange(len(categories)), categories)
         )
         self.value_labels.sort(key=lambda x: x[0])
@@ -699,7 +699,7 @@ class StataValueLabel:
 
         # Compute lengths and setup lists of offsets and labels
         offsets: list[int] = []
-        values: list[int | float] = []
+        values: list[float] = []
         for vl in self.value_labels:
             category: str | bytes = vl[1]
             if not isinstance(category, str):
@@ -798,7 +798,7 @@ class StataNonCatValueLabel(StataValueLabel):
     def __init__(
         self,
         labname: str,
-        value_labels: dict[float | int, str],
+        value_labels: dict[float, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
     ) -> None:
 
@@ -807,7 +807,7 @@ class StataNonCatValueLabel(StataValueLabel):
 
         self.labname = labname
         self._encoding = encoding
-        self.value_labels: list[tuple[int | float, str]] = sorted(
+        self.value_labels: list[tuple[float, str]] = sorted(
             value_labels.items(), key=lambda x: x[0]
         )
         self._prepare_value_labels()
@@ -887,7 +887,7 @@ class StataMissingValue:
         "float64": struct.unpack("<d", float64_base)[0],
     }
 
-    def __init__(self, value: int | float) -> None:
+    def __init__(self, value: float) -> None:
         self._value = value
         # Conversion to int to avoid hash issues on 32 bit platforms #8968
         value = int(value) if value < 2147483648 else float(value)
@@ -906,7 +906,7 @@ class StataMissingValue:
         return self._str
 
     @property
-    def value(self) -> int | float:
+    def value(self) -> float:
         """
         The binary representation of the missing value.
 
@@ -931,7 +931,7 @@ class StataMissingValue:
         )
 
     @classmethod
-    def get_base_missing_value(cls, dtype: np.dtype) -> int | float:
+    def get_base_missing_value(cls, dtype: np.dtype) -> float:
         if dtype.type is np.int8:
             value = cls.BASE_MISSING_VALUES["int8"]
         elif dtype.type is np.int16:
@@ -1526,7 +1526,7 @@ the string values returned are correct."""
         if self.format_version <= 108:
             # Value labels are not supported in version 108 and earlier.
             self._value_labels_read = True
-            self.value_label_dict: dict[str, dict[float | int, str]] = {}
+            self.value_label_dict: dict[str, dict[float, str]] = {}
             return
 
         if self.format_version >= 117:
@@ -1886,7 +1886,7 @@ the string values returned are correct."""
     def _do_convert_categoricals(
         self,
         data: DataFrame,
-        value_label_dict: dict[str, dict[float | int, str]],
+        value_label_dict: dict[str, dict[float, str]],
         lbllist: Sequence[str],
         order_categoricals: bool,
     ) -> DataFrame:
@@ -1977,7 +1977,7 @@ The repeated labels are:
         """
         return dict(zip(self.varlist, self._variable_labels))
 
-    def value_labels(self) -> dict[str, dict[float | int, str]]:
+    def value_labels(self) -> dict[str, dict[float, str]]:
         """
         Return a dict, associating each variable name a dict, associating
         each value its corresponding label.
@@ -2270,7 +2270,7 @@ class StataWriter(StataParser):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         super().__init__()
         self.data = data
@@ -3200,7 +3200,7 @@ class StataWriter117(StataWriter):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
@@ -3597,7 +3597,7 @@ class StataWriterUTF8(StataWriter117):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119

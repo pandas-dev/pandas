@@ -325,7 +325,7 @@ def _put_str(s: str | Dtype, space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
-def _sizeof_fmt(num: int | float, size_qualifier: str) -> str:
+def _sizeof_fmt(num: float, size_qualifier: str) -> str:
     """
     Return size in human readable format.
 

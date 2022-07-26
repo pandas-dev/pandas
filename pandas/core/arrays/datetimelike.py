@@ -2170,11 +2170,11 @@ def validate_periods(periods: None) -> None:
 
 
 @overload
-def validate_periods(periods: int | float) -> int:
+def validate_periods(periods: float) -> int:
     ...
 
 
-def validate_periods(periods: int | float | None) -> int | None:
+def validate_periods(periods: float | None) -> int | None:
     """
     If a `periods` argument is passed to the Datetime/Timedelta Array/Index
     constructor, cast it to an integer.

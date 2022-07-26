@@ -33,13 +33,7 @@ class Timestamp(datetime):
     value: int  # np.int64
     def __new__(
         cls: type[_DatetimeT],
-        ts_input: int
-        | np.integer
-        | float
-        | str
-        | _date
-        | datetime
-        | np.datetime64 = ...,
+        ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
         freq: int | None | str | BaseOffset = ...,
         tz: str | _tzinfo | None | int = ...,
         unit: str | int | None = ...,

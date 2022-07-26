@@ -331,7 +331,7 @@ class CSSToExcelConverter:
 
     def build_font(
         self, props: Mapping[str, str]
-    ) -> dict[str, bool | int | float | str | None]:
+    ) -> dict[str, bool | float | str | None]:
         font_names = self._get_font_names(props)
         decoration = self._get_decoration(props)
         return {
