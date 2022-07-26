@@ -1901,28 +1901,18 @@ def test_negate_lt_eq_le(engine, parser):
         "tuple",
         "inf",
         "Inf",
-        "__name__",
-        "__doc__",
-        "__package__",
-        "__loader__",
-        "__spec__",
-        "__file__",
-        "__cached__",
-        "__builtins__",
-        "tm",
-        "pandas",
-        "np",
-        "DataFrame",
-        "column",
-        "df",
-        "expected",
     ],
 )
-def test_eval_no_support_column_name(engine, parser, column):
+def test_eval_no_support_column_name(request, column):
     # GH#44603
+    if column in ["True", "False", "inf", "Inf"]:
+        request.node.add_marker(
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
+        )
+
     df = DataFrame(np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"])
     expected = df[df[column] > 6]
-    result = df.query(f"{column}>6", engine=engine, parser=parser)
+    result = df.query(f"{column}>6")
 
     tm.assert_frame_equal(result, expected)
 
