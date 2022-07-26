@@ -97,5 +97,5 @@ feedparser
 pyyaml
 requests
 jupyterlab >=3.4,<4
-jupyterlite==0.1.0b9
+jupyterlite==0.1.0b10
 setuptools>=51.0.0
