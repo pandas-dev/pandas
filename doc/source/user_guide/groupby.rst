@@ -186,8 +186,8 @@ By default the group keys are sorted during the ``groupby`` operation. You may h
 .. ipython:: python
 
    df2 = pd.DataFrame({"X": ["B", "B", "A", "A"], "Y": [1, 2, 3, 4]})
-   df2.groupby("X").sum()
-   df2.groupby("X", sort=False).sum()
+   df2.groupby(["X"]).sum()
+   df2.groupby(["X"], sort=False).sum()
 
 
 Note that ``groupby`` will preserve the order in which *observations* are sorted *within* each group.
@@ -196,9 +196,9 @@ For example, the groups created by ``groupby()`` below are in the order they app
 .. ipython:: python
 
    df3 = pd.DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
-   df3.groupby("X").get_group("A")
+   df3.groupby(["X"]).get_group("A")
 
-   df3.groupby("X").get_group("B")
+   df3.groupby(["X"]).get_group("B")
 
 
 .. _groupby.dropna:
@@ -221,10 +221,10 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 .. ipython:: python
 
     # Default ``dropna`` is set to True, which will exclude NaNs in keys
-    df_dropna.groupby(by="b", dropna=True).sum()
+    df_dropna.groupby(by=["b"], dropna=True).sum()
 
     # In order to allow NaN in keys, set ``dropna`` to False
-    df_dropna.groupby(by="b", dropna=False).sum()
+    df_dropna.groupby(by=["b"], dropna=False).sum()
 
 The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
 
@@ -414,7 +414,7 @@ getting a column from a DataFrame, you can do:
 
    df
 
-   grouped = df.groupby("A")
+   grouped = df.groupby(["A"])
    grouped_C = grouped["C"]
    grouped_D = grouped["D"]
 

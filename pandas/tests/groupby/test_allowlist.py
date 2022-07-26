@@ -378,7 +378,7 @@ def test_groupby_selection_tshift_raises(df):
     rng = date_range("2014", periods=len(df))
     df.index = rng
 
-    g = df.groupby("A")[["C"]]
+    g = df.groupby(["A"])[["C"]]
 
     # check that the index cache is cleared
     with pytest.raises(ValueError, match="Freq was not set in the index"):
