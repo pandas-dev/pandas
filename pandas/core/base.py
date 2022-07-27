@@ -1239,7 +1239,7 @@ class IndexOpsMixin(OpsMixin):
         1
 
         >>> ser.searchsorted(['bread'], side='right')
-        array([3], dtype=int64)
+        array([3])
 
         If the values are not monotonically sorted, wrong locations
         may be returned:

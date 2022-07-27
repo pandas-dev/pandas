@@ -1837,13 +1837,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...                      categories=['c', 'b', 'a'],
         ...                      ordered=True)
         >>> cat.argsort()
-        array([3, 0, 1, 2], dtype=int64)
+        array([3, 0, 1, 2])
 
         Missing values are placed at the end
 
         >>> cat = pd.Categorical([2, None, 1])
         >>> cat.argsort()
-        array([2, 0, 1], dtype=int64)
+        array([2, 0, 1])
         """
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 

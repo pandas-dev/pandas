@@ -211,7 +211,7 @@ class Grouper:
     2000-10-01 23:48:00    21
     2000-10-02 00:05:00    54
     2000-10-02 00:22:00    24
-    Freq: 17T, dtype: int32
+    Freq: 17T, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
     2000-10-01 23:18:00     0

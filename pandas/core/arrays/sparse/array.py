@@ -1283,7 +1283,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
-        Indices: array([2, 3])
+        Indices: array([2, 3], dtype=int32)
 
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
@@ -1361,7 +1361,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [10, 11, 12]
         Fill: 10
         IntIndex
-        Indices: array([1, 2])
+        Indices: array([1, 2], dtype=int32)
 
         >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
         [10, 11, 12]

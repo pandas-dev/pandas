@@ -2192,7 +2192,7 @@ def _factorize_keys(
     in which the unique elements first appear: `{0: 'a', 1: 'c', 2: 'b'}`:
 
     >>> pd.core.reshape.merge._factorize_keys(lk, rk, sort=False)
-    (array([0, 1, 2], dtype=int64), array([0, 1], dtype=int64), 3)
+    (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
     lk = extract_array(lk, extract_numpy=True, extract_range=True)
