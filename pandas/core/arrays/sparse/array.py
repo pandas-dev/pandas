@@ -1302,7 +1302,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [0.0, 0.0, 1.0, 2.0]
         Fill: 0.0
         IntIndex
-        Indices: array([2, 3])
+        Indices: array([2, 3], dtype=int32)
         """
         if is_dtype_equal(dtype, self._dtype):
             if not copy:
