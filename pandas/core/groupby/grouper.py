@@ -219,7 +219,7 @@ class Grouper:
     2000-10-01 23:52:00    27
     2000-10-02 00:09:00    39
     2000-10-02 00:26:00    24
-    Freq: 17T, dtype: int32
+    Freq: 17T, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
     2000-10-01 23:24:00     3
