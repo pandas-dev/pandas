@@ -272,7 +272,7 @@ def _get_dummies_1d(
 
     if sparse:
 
-        fill_value: bool | float | int
+        fill_value: bool | float
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == np.dtype(bool):
