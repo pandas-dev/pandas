@@ -1893,10 +1893,9 @@ def test_negate_lt_eq_le(engine, parser):
 
 @pytest.mark.parametrize(
     "column",
-    DEFAULT_GLOBALS,
+    DEFAULT_GLOBALS.keys(),
 )
 def test_eval_no_support_column_name(request, column):
-    # GH#44603
     if column in ["True", "False", "inf", "Inf"]:
         request.node.add_marker(
             pytest.mark.xfail(
