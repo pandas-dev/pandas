@@ -592,7 +592,7 @@ Development tools
 -----------------
 
 `pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While pandas repository is partially typed, the package itself doesn't expose this information for external use.
 Install pandas-stubs to enable basic type coverage of pandas API.
