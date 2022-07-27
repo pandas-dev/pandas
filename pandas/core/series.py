@@ -868,7 +868,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         --------
         >>> ser = pd.Series([1, 2, 3])
         >>> np.asarray(ser)
-        array([1, 2, 3], dtype=int64)
+        array([1, 2, 3])
 
         For timezone-aware data, the timezones may be retained with
         ``dtype='object'``
@@ -2938,7 +2938,7 @@ Name: Max Speed, dtype: float64
         dtype: int64
         >>> arr = np.array([[0, 1], [-2, 3], [4, -5], [6, 7]])
         >>> s.dot(arr)
-        array([24, 14], dtype=int64)
+        array([24, 14])
         """
         if isinstance(other, (Series, ABCDataFrame)):
             common = self.index.union(other.index)
@@ -5094,7 +5094,7 @@ Keep all original rows and also all original values
         A  0
         B  1
         C  2
-        dtype: int32
+        dtype: int64
 
         Drop labels B en C
 

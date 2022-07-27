@@ -343,7 +343,7 @@ def unique(values):
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))
-    array([2, 1, 3], dtype=int64)
+    array([2, 1, 3])
 
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1], dtype=int64)
@@ -708,7 +708,7 @@ def factorize(
     >>> values = np.array([1, 2, 1, np.nan])
     >>> codes, uniques = pd.factorize(values)  # default: use_na_sentinel=True
     >>> codes
-    array([ 0,  1,  0, -1], dtype=int64)
+    array([ 0,  1,  0, -1])
     >>> uniques
     array([1., 2.])
 
