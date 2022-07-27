@@ -303,7 +303,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     >>> ser
     0    999
     1      2
-    dtype: int32
+    dtype: int64
 
     Due to input data type the Series has a `view` on
     the original data, so
@@ -682,7 +682,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         Examples
         --------
         >>> pd.Series([1, 2, 3]).values
-        array([1, 2, 3], dtype=int64)
+        array([1, 2, 3])
 
         >>> pd.Series(list('aabc')).values
         array(['a', 'a', 'b', 'c'], dtype=object)
@@ -2172,7 +2172,7 @@ Name: Max Speed, dtype: float64
         Examples
         --------
         >>> pd.Series([2, 1, 3, 3], name='A').unique()
-        array([2, 1, 3], dtype=int64)
+        array([2, 1, 3])
 
         >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
         array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
@@ -5100,7 +5100,7 @@ Keep all original rows and also all original values
 
         >>> s.drop(labels=['B', 'C'])
         A  0
-        dtype: int32
+        dtype: int64
 
         Drop 2nd level label in MultiIndex Series
 

@@ -377,7 +377,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([True, False], dtype="boolean").to_numpy(dtype="bool")
         array([ True, False])
         >>> pd.array([1, 2], dtype="Int64").to_numpy("int64")
-        array([1, 2], dtype=int64)
+        array([1, 2])
 
         However, requesting such dtype will raise a ValueError if
         missing values are present and the default missing value :attr:`NA`

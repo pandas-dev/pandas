@@ -884,7 +884,7 @@ def infer_dtype_from_array(
     Examples
     --------
     >>> np.asarray([1, '1'])
-    array(['1', '1'], dtype='<U11')
+    array(['1', '1'], dtype='<U21')
 
     >>> infer_dtype_from_array([1, '1'])
     (dtype('O'), [1, '1'])

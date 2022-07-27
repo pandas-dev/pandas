@@ -669,7 +669,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     datetime64[ns, UTC]
 
     >>> pd.DatetimeTZDtype(tz='dateutil/US/Central')
-    datetime64[ns, tzfile('US/Central')]
+    datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
     """
 
     type: type[Timestamp] = Timestamp

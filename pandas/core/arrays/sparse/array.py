@@ -356,7 +356,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     [0, 0, 1, 2]
     Fill: 0
     IntIndex
-    Indices: array([2, 3])
+    Indices: array([2, 3], dtype=int32)
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
@@ -639,7 +639,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         >>> s = SparseArray([0, 0, 1, 0, 2], fill_value=0)
         >>> s.sp_values
-        array([1, 2], dtype=int64)
+        array([1, 2])
         """
         return self._sparse_values
 
@@ -1277,7 +1277,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
-        Indices: array([2, 3])
+        Indices: array([2, 3], dtype=int32)
 
         >>> arr.astype(SparseDtype(np.dtype('int32')))
         [0, 0, 1, 2]
@@ -1355,7 +1355,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [10, 11, 12]
         Fill: 10
         IntIndex
-        Indices: array([1, 2])
+        Indices: array([1, 2], dtype=int32)
 
         >>> arr.map({0: 10, 1: 11, 2: 12})
         [10, 11, 12]
