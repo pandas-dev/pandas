@@ -474,14 +474,6 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> None:
     left_attr = getattr(left, attr)
     right_attr = getattr(right, attr)
 
-    if attr == "dtype":
-        from pandas.core.arrays.arrow.dtype import ArrowDtype
-
-        if isinstance(left_attr, ArrowDtype):
-            left_attr = left_attr.pyarrow_dtype.to_pandas_dtype()
-        if isinstance(right_attr, ArrowDtype):
-            right_attr = right_attr.pyarrow_dtype.to_pandas_dtype()
-
     if left_attr is right_attr or is_matching_na(left_attr, right_attr):
         # e.g. both np.nan, both NaT, both pd.NA, ...
         return None
