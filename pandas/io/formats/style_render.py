@@ -68,6 +68,12 @@ def _gl01_adjust(obj: Any) -> Any:
     return obj
 
 
+def _ss06_adjust(obj: Any) -> Any:
+    """Adjust docstrings for Numpydoc SS06."""
+    obj.__doc__ = "\n" + obj.__doc__
+    return obj
+
+
 class StylerRenderer:
     """
     Base class to process rendering a Styler with a specified jinja2 template.

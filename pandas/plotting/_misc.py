@@ -270,8 +270,7 @@ def andrews_curves(
     **kwargs,
 ) -> Axes:
     """
-    Generate a matplotlib plot of Andrews curves, for visualising clusters of
-    multivariate data.
+    Generate a matplotlib plot for visualising clusters of multivariate data.
 
     Andrews curves have the functional form:
 
@@ -543,7 +542,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
 
 
-class _Options(dict):
+class plot_params(dict):
     """
     Stores pandas plotting options.
 
@@ -595,7 +594,7 @@ class _Options(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value) -> Iterator[_Options]:
+    def use(self, key, value) -> Iterator[plot_params]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.
@@ -606,6 +605,3 @@ class _Options(dict):
             yield self
         finally:
             self[key] = old_value
-
-
-plot_params = _Options()
