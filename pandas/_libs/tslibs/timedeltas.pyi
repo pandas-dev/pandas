@@ -86,7 +86,7 @@ class Timedelta(timedelta):
         cls: type[_S],
         value=...,
         unit: str = ...,
-        **kwargs: int | float | np.integer | np.floating,
+        **kwargs: float | np.integer | np.floating,
     ) -> _S: ...
     # GH 46171
     # While Timedelta can return pd.NaT, having the constructor return
@@ -123,7 +123,7 @@ class Timedelta(timedelta):
     @overload  # type: ignore[override]
     def __floordiv__(self, other: timedelta) -> int: ...
     @overload
-    def __floordiv__(self, other: int | float) -> Timedelta: ...
+    def __floordiv__(self, other: float) -> Timedelta: ...
     @overload
     def __floordiv__(
         self, other: npt.NDArray[np.timedelta64]
