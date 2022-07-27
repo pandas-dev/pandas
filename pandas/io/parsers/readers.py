@@ -499,7 +499,7 @@ def validate_integer(name, val: None, min_val=...) -> None:
 
 
 @overload
-def validate_integer(name, val: int | float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val=...) -> int:
     ...
 
 
@@ -1910,7 +1910,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """return a stringified and numeric for these values"""
-    result: list[int | str | float] = []
+    result: list[str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
