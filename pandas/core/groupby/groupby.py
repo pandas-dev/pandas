@@ -822,7 +822,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         for each group
         """
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
-        if result.gi_frame.f_locals["self"].raise_warning_single_grouper:  # type: ignore[attr-defined]
+        if result.gi_frame.f_locals["self"].raise_warning_single_grouper:
             warnings.warn(
                 (
                     "In a future version of pandas, a length 1 "

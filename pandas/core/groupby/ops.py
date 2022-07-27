@@ -11,6 +11,7 @@ import collections
 import functools
 from typing import (
     Callable,
+    Generator,
     Generic,
     Hashable,
     Iterator,
@@ -746,7 +747,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: NDFrameT, axis: int = 0
-    ) -> Iterator[tuple[Hashable, NDFrameT]]:
+    ) -> Generator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
 
