@@ -93,7 +93,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.258
+        - pyright@1.1.262
     -   id: pyright_reportGeneralTypeIssues
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
@@ -230,7 +230,7 @@ repos:
         language: python
         additional_dependencies:
         - flake8==4.0.1
-        - flake8-pyi==22.5.1
+        - flake8-pyi==22.7.0
     -   id: future-annotations
         name: import annotations from __future__
         entry: 'from __future__ import annotations'
