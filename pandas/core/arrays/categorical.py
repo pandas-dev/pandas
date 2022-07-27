@@ -2227,27 +2227,27 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _reverse_indexer(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """
-         Compute the inverse of a categorical, returning
-         a dict of categories -> indexers.
+        Compute the inverse of a categorical, returning
+        a dict of categories -> indexers.
 
-         *This is an internal function*
+        *This is an internal function*
 
-         Returns
-         -------
-         Dict[Hashable, np.ndarray[np.intp]]
-             dict of categories -> indexers
+        Returns
+        -------
+        Dict[Hashable, np.ndarray[np.intp]]
+            dict of categories -> indexers
 
-         Examples
-         --------
-         >>> c = pd.Categorical(list('aabca'))
-         >>> c
-         ['a', 'a', 'b', 'c', 'a']
-         Categories (3, object): ['a', 'b', 'c']
-         >>> c.categories
-         Index(['a', 'b', 'c'], dtype='object')
-         >>> c.codes
-         array([0, 0, 1, 2, 0], dtype=int8)
-         >>> c._reverse_indexer()
+        Examples
+        --------
+        >>> c = pd.Categorical(list('aabca'))
+        >>> c
+        ['a', 'a', 'b', 'c', 'a']
+        Categories (3, object): ['a', 'b', 'c']
+        >>> c.categories
+        Index(['a', 'b', 'c'], dtype='object')
+        >>> c.codes
+        array([0, 0, 1, 2, 0], dtype=int8)
+        >>> c._reverse_indexer()
         {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
 
         """
