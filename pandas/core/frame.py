@@ -2563,7 +2563,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -11010,7 +11010,8 @@ Parrot 2  Parrot       24.0
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        return final_result.__finalize__(self, method="idxmin")
 
     @doc(_shared_docs["idxmax"], numeric_only_default="False")
     def idxmax(
@@ -11035,7 +11036,8 @@ Parrot 2  Parrot       24.0
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        return final_result.__finalize__(self, method="idxmax")
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """
