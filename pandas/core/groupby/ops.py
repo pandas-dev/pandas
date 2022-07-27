@@ -747,7 +747,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: NDFrameT, axis: int = 0
-    ) -> Generator[tuple[Hashable, NDFrameT]]:
+    ) -> Generator[tuple[Hashable, NDFrameT], None, None]:
         """
         Groupby iterator
 
