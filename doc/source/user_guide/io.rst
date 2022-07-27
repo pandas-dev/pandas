@@ -107,9 +107,10 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
 
-  Note: ``index_col=False`` can be used to force pandas to *not* use the first
-  column as the index, e.g. when you have a malformed file with delimiters at
-  the end of each line.
+  .. note::
+     ``index_col=False`` can be used to force pandas to *not* use the first
+     column as the index, e.g. when you have a malformed file with delimiters at
+     the end of each line.
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
@@ -1594,8 +1595,10 @@ of multi-columns indices.
 
    pd.read_csv("mi2.csv", header=[0, 1], index_col=0)
 
-Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will be *lost*.
+.. note::
+   If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
+   with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will
+   be *lost*.
 
 .. ipython:: python
    :suppress:
