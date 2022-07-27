@@ -42,7 +42,10 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import validate_insert_loc
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_insert_loc,
+)
 
 from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
@@ -1645,6 +1648,45 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.fill_value
         else:
             return na_value_for_dtype(self.dtype.subtype, compat=False)
+
+    def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
+
+        values = self._sparse_values
+        index = self._sparse_index.indices
+        mask = np.asarray(isna(values))
+        func = np.argmax if kind == "argmax" else np.argmin
+
+        idx = np.arange(values.shape[0])
+        non_nans = values[~mask]
+        non_nan_idx = idx[~mask]
+
+        _candidate = non_nan_idx[func(non_nans)]
+        candidate = index[_candidate]
+
+        if isna(self.fill_value):
+            return candidate
+        if kind == "argmin" and self[candidate] < self.fill_value:
+            return candidate
+        if kind == "argmax" and self[candidate] > self.fill_value:
+            return candidate
+        _loc = self._first_fill_value_loc()
+        if _loc == -1:
+            # fill_value doesn't exist
+            return candidate
+        else:
+            return _loc
+
+    def argmax(self, skipna: bool = True) -> int:
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return self._argmin_argmax("argmax")
+
+    def argmin(self, skipna: bool = True) -> int:
+        validate_bool_kwarg(skipna, "skipna")
+        if not skipna and self._hasna:
+            raise NotImplementedError
+        return self._argmin_argmax("argmin")
 
     # ------------------------------------------------------------------------
     # Ufuncs
