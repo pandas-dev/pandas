@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
@@ -51,15 +50,6 @@ if not pa_version_under1p01:
 
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
 
-    ARROW_CMP_FUNCS = {
-        "eq": pc.equal,
-        "ne": pc.not_equal,
-        "lt": pc.less,
-        "gt": pc.greater,
-        "le": pc.less_equal,
-        "ge": pc.greater_equal,
-    }
-
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
@@ -74,9 +64,7 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(
-    OpsMixin, ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin
-):
+class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -190,33 +178,7 @@ class ArrowStringArray(
             result[mask] = na_value
         return result
 
-    def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
-
-        pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(other, ArrowStringArray):
-            result = pc_func(self._data, other._data)
-        elif isinstance(other, (np.ndarray, list)):
-            result = pc_func(self._data, other)
-        elif is_scalar(other):
-            try:
-                result = pc_func(self._data, pa.scalar(other))
-            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
-                mask = isna(self) | isna(other)
-                valid = ~mask
-                result = np.zeros(len(self), dtype="bool")
-                result[valid] = op(np.array(self)[valid], other)
-                return BooleanArray(result, mask)
-        else:
-            return NotImplemented
-
-        if pa_version_under2p0:
-            result = result.to_pandas().values
-        else:
-            result = result.to_numpy()
-        return BooleanArray._from_sequence(result)
-
-    def insert(self, loc: int, item):
+    def insert(self, loc: int, item) -> ArrowStringArray:
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
@@ -280,8 +242,9 @@ class ArrowStringArray(
     # ------------------------------------------------------------------------
     # String methods interface
 
-    # error: Cannot determine type of 'na_value'
-    _str_na_value = StringDtype.na_value  # type: ignore[has-type]
+    # error: Incompatible types in assignment (expression has type "NAType",
+    # base class "ObjectStringArrayMixin" defined the type as "float")
+    _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True

@@ -1,21 +1,85 @@
+# Local development dependencies including docs building, website upload, ASV benchmark
 name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  # required
-  - numpy>=1.19.5
   - python=3.8
-  - python-dateutil>=2.8.1
+
+  # test dependencies
+  - cython=0.29.30
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - psutil
+  - pytest-asyncio>=0.17
+  - boto3
+
+  # required dependencies
+  - python-dateutil
+  - numpy
   - pytz
+
+  # optional dependencies
+  - beautifulsoup4
+  - blosc
+  - brotlipy
+  - bottleneck
+  - fastparquet
+  - fsspec
+  - html5lib
+  - hypothesis
+  - gcsfs
+  - jinja2
+  - lxml
+  - matplotlib
+  - numba>=0.53.1
+  - numexpr>=2.8.0  # pin for "Run checks on imported code" job
+  - openpyxl
+  - odfpy
+  - pandas-gbq
+  - psycopg2
+  - pyarrow
+  - pymysql
+  - pyreadstat
+  - pytables
+  - python-snappy
+  - pyxlsb
+  - s3fs
+  - scipy
+  - sqlalchemy
+  - tabulate
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - zstandard
+
+  # downstream packages
+  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
+  - botocore
+  - cftime
+  - dask
+  - ipython
+  - geopandas-base
+  - seaborn
+  - scikit-learn
+  - statsmodels
+  - coverage
+  - pandas-datareader
+  - pyyaml
+  - py
+  - pytorch
+
+  # local testing dependencies
+  - moto
+  - flask
 
   # benchmarks
   - asv
 
-  # building
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
   - cxx-compiler
-  - cython>=0.29.30
 
   # code checks
   - black=22.3.0
@@ -32,10 +96,11 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - natsort  # DataFrame.sort_values doctest
   - numpydoc
   - pandas-dev-flaker=0.5.0
   - pydata-sphinx-theme=0.8.0
-  - pytest-cython
+  - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
   - types-python-dateutil
@@ -47,77 +112,19 @@ dependencies:
   - nbconvert>=6.4.5
   - nbsphinx
   - pandoc
+  - ipywidgets
+  - nbformat
+  - notebook>=6.0.3
+  - ipykernel
 
-  # Dask and its dependencies (that dont install with dask)
-  - dask-core
-  - toolz>=0.7.3
-  - partd>=0.3.10
-  - cloudpickle>=0.2.1
-
-  # web (jinja2 is also needed, but it's also an optional pandas dependency)
+  # web
+  - jinja2  # in optional dependencies, but documented here as needed
   - markdown
   - feedparser
   - pyyaml
   - requests
 
-  # testing
-  - boto3
-  - botocore>=1.11
-  - hypothesis>=5.5.3
-  - moto  # mock S3
-  - flask
-  - pytest>=6.0
-  - pytest-cov
-  - pytest-xdist>=1.31
-  - pytest-asyncio>=0.17
-  - pytest-instafail
-
-  # downstream tests
-  - seaborn
-  - statsmodels
-
-  # unused (required indirectly may be?)
-  - ipywidgets
-  - nbformat
-  - notebook>=6.0.3
-
-  # optional
-  - blosc
-  - bottleneck>=1.3.1
-  - ipykernel
-  - ipython>=7.11.1
-  - jinja2  # pandas.Styler
-  - matplotlib>=3.3.2  # pandas.plotting, Series.plot, DataFrame.plot
-  - numexpr>=2.7.1
-  - scipy>=1.4.1
-  - numba>=0.50.1
-
-  # optional for io
-  # ---------------
-  # pd.read_html
-  - beautifulsoup4>=4.8.2
-  - html5lib
-  - lxml
-
-  # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
-  - openpyxl
-  - xlrd
-  - xlsxwriter
-  - xlwt
-  - odfpy
-
-  - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
-  - pyarrow>2.0.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
-  - python-snappy  # required by pyarrow
-
-  - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
-  - s3fs>=0.4.0  # file IO when using 's3://...' path
-  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
-  - fsspec>=0.7.4  # for generic remote file operations
-  - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
-  - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
-  - xarray  # DataFrame.to_xarray
-  - cftime  # Needed for downstream xarray.CFTimeIndex test
-  - pyreadstat  # pandas.read_spss
-  - tabulate>=0.8.3  # DataFrame.to_markdown
-  - natsort  # DataFrame.sort_values
+  # build the interactive terminal
+  - jupyterlab >=3.4,<4
+  - pip:
+      - jupyterlite==0.1.0b10

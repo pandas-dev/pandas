@@ -27,6 +27,8 @@ navbar:
       target: /about/
     - name: "Project roadmap"
       target: /about/roadmap.html
+    - name: "Governance"
+      target: /about/governance.html
     - name: "Team"
       target: /about/team.html
     - name: "Sponsors"
@@ -101,11 +103,11 @@ maintainers:
   - Camille Scott
   - Nathaniel Smith
   numfocus:
-  - Phillip Cloud
-  - Stephan Hoyer
   - Wes McKinney
   - Jeff Reback
   - Joris Van den Bossche
+  - Tom Augspurger
+  - Matthew Roeschke
 sponsors:
   active:
   - name: "NumFOCUS"
@@ -116,17 +118,27 @@ sponsors:
     url: https://www.twosigma.com/
     logo: /static/img/partners/two_sigma.svg
     kind: partner
-    description: "Phillip Cloud, Jeff Reback"
-  - name: "Ursa Labs"
-    url: https://ursalabs.org/
-    logo: /static/img/partners/ursa_labs.svg
+    description: "Jeff Reback"
+  - name: "Voltron Data"
+    url: https://voltrondata.com/
+    logo: /static/img/partners/voltron_data.svg
     kind: partner
-    description: "Wes McKinney, Joris Van den Bossche"
+    description: "Joris Van den Bossche"
   - name: "d-fine GmbH"
     url: https://www.d-fine.com/en/
     logo: /static/img/partners/dfine.svg
     kind: partner
     description: "Patrick Hoefler"
+  - name: "Quansight"
+    url: https://quansight.com/
+    logo: /static/img/partners/quansight_labs.svg
+    kind: partner
+    description: "Marco Gorelli"
+  - name: "Nvidia"
+    url: https://www.nvidia.com
+    logo: /static/img/partners/nvidia.svg
+    kind: partner
+    description: "Matthew Roeschke"
   - name: "Tidelift"
     url: https://tidelift.com
     logo: /static/img/partners/tidelift.svg
@@ -137,6 +149,11 @@ sponsors:
     logo: /static/img/partners/czi.svg
     kind: regular
     description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintenance, improve extension types, and a efficient string type."
+  - name: "Bodo"
+    url: https://www.bodo.ai/
+    logo: /static/img/partners/bodo.svg
+    kind: regular
+    description: "Bodo's parallel computing platform uses pandas API, and Bodo financially supports pandas development to help improve pandas, in particular the pandas API"
   inkind:  # not included in active so they don't appear in the home page
   - name: "OVH"
     url: https://us.ovhcloud.com/
@@ -150,10 +167,13 @@ sponsors:
     kind: partner
   - name: "Anaconda"
     url: https://www.anaconda.com/
-    logo: /static/img/partners/anaconda.svg
     kind: partner
   - name: "RStudio"
     url: https://www.rstudio.com/
-    logo: /static/img/partners/r_studio.svg
     kind: partner
-    description: "Wes McKinney"
+  - name: "Ursa Labs"
+    url: https://ursalabs.org/
+    kind: partner
+  - name: "Gousto"
+    url: https://www.gousto.co.uk/
+    kind: partner

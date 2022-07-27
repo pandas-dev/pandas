@@ -519,7 +519,7 @@ cdef ndarray[int64_t] _get_dst_hours(
     trans_idx = mismatch.nonzero()[0]
 
     if trans_idx.size == 1:
-        # TODO: not reached in tests 2022-05-02; possible?
+        # see test_tz_localize_to_utc_ambiguous_infer
         stamp = _render_tstamp(vals[trans_idx[0]], reso=reso)
         raise pytz.AmbiguousTimeError(
             f"Cannot infer dst time from {stamp} as there "
@@ -541,7 +541,7 @@ cdef ndarray[int64_t] _get_dst_hours(
 
             delta = np.diff(result_a[grp])
             if grp.size == 1 or np.all(delta > 0):
-                # TODO: not reached in tests 2022-05-02; possible?
+                # see test_tz_localize_to_utc_ambiguous_infer
                 stamp = _render_tstamp(vals[grp[0]], reso=reso)
                 raise pytz.AmbiguousTimeError(stamp)
 
@@ -549,7 +549,7 @@ cdef ndarray[int64_t] _get_dst_hours(
             # for standard
             switch_idxs = (delta <= 0).nonzero()[0]
             if switch_idxs.size > 1:
-                # TODO: not reached in tests 2022-05-02; possible?
+                # see test_tz_localize_to_utc_ambiguous_infer
                 raise pytz.AmbiguousTimeError(
                     f"There are {switch_idxs.size} dst switches when "
                     "there should only be 1."
@@ -642,9 +642,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     if not to_utc:
         # tz.utcoffset only makes sense if datetime
         # is _wall time_, so if val is a UTC timestamp convert to wall time
-        dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, utc_pytz)
-        dt = dt.astimezone(tz)
+        dt = _astimezone(dts, tz)
 
         if fold is not NULL:
             # NB: fold is only passed with to_utc=False
@@ -656,6 +654,27 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * pps)
     return delta
+
+
+cdef datetime _astimezone(npy_datetimestruct dts, tzinfo tz):
+    """
+    Optimized equivalent to:
+
+    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                  dts.min, dts.sec, dts.us, utc_pytz)
+    dt = dt.astimezone(tz)
+
+    Derived from the datetime.astimezone implementation at
+    https://github.com/python/cpython/blob/main/Modules/_datetimemodule.c#L6187
+
+    NB: we are assuming tz is not None.
+    """
+    cdef:
+        datetime result
+
+    result = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, tz)
+    return tz.fromutc(result)
 
 
 # NB: relies on dateutil internals, subject to change.

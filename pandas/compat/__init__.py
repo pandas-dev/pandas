@@ -7,9 +7,12 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+from __future__ import annotations
+
 import os
 import platform
 import sys
+from typing import TYPE_CHECKING
 
 from pandas._typing import F
 from pandas.compat.numpy import (
@@ -24,7 +27,11 @@ from pandas.compat.pyarrow import (
     pa_version_under5p0,
     pa_version_under6p0,
     pa_version_under7p0,
+    pa_version_under8p0,
 )
+
+if TYPE_CHECKING:
+    import lzma
 
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
@@ -117,7 +124,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file():
+def get_lzma_file() -> type[lzma.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -152,4 +159,5 @@ __all__ = [
     "pa_version_under5p0",
     "pa_version_under6p0",
     "pa_version_under7p0",
+    "pa_version_under8p0",
 ]
