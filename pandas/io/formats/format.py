@@ -1447,7 +1447,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _value_formatter(
         self,
         float_format: FloatFormatType | None = None,
-        threshold: float | int | None = None,
+        threshold: float | None = None,
     ) -> Callable:
         """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
@@ -2047,7 +2047,7 @@ class EngFormatter:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
-    def __call__(self, num: int | float) -> str:
+    def __call__(self, num: float) -> str:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
