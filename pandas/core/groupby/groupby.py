@@ -831,7 +831,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     "a single grouper to avoid this warning."
                 ),
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(),
             )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
