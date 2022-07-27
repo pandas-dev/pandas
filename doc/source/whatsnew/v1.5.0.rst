@@ -45,7 +45,7 @@ Additionally there is an alternative output method :meth:`.Styler.to_string`,
 which allows using the Styler's formatting methods to create, for example, CSVs (:issue:`44502`).
 
 A new feature :meth:`.Styler.relabel_index` is also made available to provide full customisation of the display of
-index or column headers (:issue:`XXXXX`)
+index or column headers (:issue:`47864`)
 
 Minor feature improvements are:
 
