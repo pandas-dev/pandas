@@ -461,7 +461,7 @@ arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
 Parameters
 ----------
-other : scalar, sequence, Series, or DataFrame
+other : scalar, sequence, Series, dict or DataFrame
     Any single or multiple element data structure, or list-like object.
 axis : {{0 or 'index', 1 or 'columns'}}
     Whether to compare by the index (0 or 'index') or columns.
@@ -555,6 +555,20 @@ rectangle       3      358
 circle         -1      359
 triangle        2      179
 rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({{'angles': 0, 'degrees': 2}})
+            angles	degrees
+circle	         0	    720
+triangle	     0	    360
+rectangle	     0	    720
+
+>>> df.mul({{'circle': 0, 'triangle': 2, 'rectangle': 3}}, axis='index')
+            angles	degrees
+circle		     0	      0
+triangle	     6	    360
+rectangle	    12	   1080
 
 Multiply a DataFrame of different shape with operator version.
 

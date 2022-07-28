@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import (
     datetime,
     timedelta,
@@ -111,6 +109,8 @@ def to_offset(freq: timedelta | str) -> BaseOffset: ...
 
 class Tick(SingleConstructorOffset):
     _reso: int
+    _prefix: str
+    _td64_unit: str
     def __init__(self, n: int = ..., normalize: bool = ...) -> None: ...
     @property
     def delta(self) -> Timedelta: ...

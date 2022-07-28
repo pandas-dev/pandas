@@ -3213,7 +3213,7 @@ class Styler(StylerRenderer):
         cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
-        align: str | float | int | Callable = "mid",
+        align: str | float | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -3332,7 +3332,7 @@ class Styler(StylerRenderer):
         color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
-        null_color=lib.no_default,
+        null_color: str | lib.NoDefault = lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -4039,7 +4039,7 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
 
 def _bar(
     data: NDFrame,
-    align: str | float | int | Callable,
+    align: str | float | Callable,
     colors: str | list | tuple,
     cmap: Any,
     width: float,

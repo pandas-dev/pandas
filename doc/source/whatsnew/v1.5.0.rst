@@ -802,6 +802,7 @@ Performance improvements
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47404`, :issue:`47405`)
+- Performance improvement in ``argmax`` and ``argmin`` for :class:`arrays.SparseArray` (:issue:`34197`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -914,6 +915,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
+- Bug in :meth:`Series.map` not respecting ``na_action`` argument if mapper is a ``dict`` or :class:`Series` (:issue:`47527`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 - Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
 - Bug in :meth:`DataFrame.fillna` ignored ``axis`` when :class:`DataFrame` is single block (:issue:`47713`)
@@ -1027,6 +1029,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
+- Bug in :meth:`SparseArray.unique` fails to keep original elements order (:issue:`47809`)
 -
 
 ExtensionArray
