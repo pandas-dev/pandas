@@ -21,6 +21,9 @@ from pandas.core.dtypes.missing import (
     isna,
     remove_na_arraylike,
 )
+from pandas.plotting._matplotlib.misc import (
+    unpack_single_str_list,
+)
 
 from pandas.core.frame import DataFrame
 
@@ -67,7 +70,7 @@ class HistPlot(LinePlot):
         # where subplots are created based on by argument
         if is_integer(self.bins):
             if self.by is not None:
-                bymodi = fix_groupby_singlelist_input(self.by)
+                bymodi = unpack_single_str_list(self.by)
                 grouped = self.data.groupby(bymodi)[self.columns]
                 self.bins = [self._calculate_bins(group) for key, group in grouped]
             else:
@@ -272,8 +275,6 @@ def _grouped_plot(
     grouped = data.groupby(by)
     if column is not None:
         grouped = grouped[column]
-        if isinstance(by, list) and len(by) == 1:
-            by = [by]
 
     naxes = len(grouped)
     fig, axes = create_subplots(
@@ -531,10 +532,3 @@ def hist_frame(
     maybe_adjust_figure(fig, wspace=0.3, hspace=0.3)
 
     return axes
-
-
-def fix_groupby_singlelist_input(keys):
-    if isinstance(keys, list):
-        if len(keys) == 1 and isinstance(keys[0], str):
-            keys = keys[0]
-    return keys

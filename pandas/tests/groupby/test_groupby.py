@@ -2798,6 +2798,7 @@ def test_groupby_none_column_name():
 
 
 def test_single_element_list_grouping():
+    # GH 42795
     df = DataFrame(columns=["a", "b", "c"], index=["x", "y"])
     df.loc["y"] = Series({"a": 1, "b": 5, "c": 2})
     msg = (

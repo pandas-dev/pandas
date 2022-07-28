@@ -733,10 +733,6 @@ def get_grouper(
     """
     group_axis = obj._get_axis(axis)
 
-    raise_warning_single_grouper = False
-    if isinstance(key, list):
-        if len(key) == 1 and isinstance(key[0], str):
-            raise_warning_single_grouper = True
 
     # validate that the passed single level is compatible with the passed
     # axis of the object
@@ -925,7 +921,6 @@ def get_grouper(
     grouper = ops.BaseGrouper(
         group_axis,
         groupings,
-        raise_warning_single_grouper=raise_warning_single_grouper,
         sort=sort,
         mutated=mutated,
         dropna=dropna,

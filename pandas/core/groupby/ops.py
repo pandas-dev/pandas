@@ -712,7 +712,6 @@ class BaseGrouper:
         self,
         axis: Index,
         groupings: Sequence[grouper.Grouping],
-        raise_warning_single_grouper: bool = False,
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -723,7 +722,6 @@ class BaseGrouper:
 
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
-        self.raise_warning_single_grouper = raise_warning_single_grouper
         self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -1126,13 +1124,11 @@ class BinGrouper(BaseGrouper):
         binlabels,
         mutated: bool = False,
         indexer=None,
-        raise_warning_single_grouper: bool = False,
     ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
         self.mutated = mutated
         self.indexer = indexer
-        self.raise_warning_single_grouper = False
 
         # These lengths must match, otherwise we could call agg_series
         #  with empty self.bins, which would raise in libreduction.
