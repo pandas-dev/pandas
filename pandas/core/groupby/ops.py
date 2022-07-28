@@ -15,11 +15,11 @@ from typing import (
     Generic,
     Hashable,
     Iterator,
-    Sequence,
-    final,
-    Union,
     List,
     Mapping,
+    Sequence,
+    Union,
+    final,
 )
 
 import numpy as np
@@ -98,7 +98,6 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
-
 
 _KeysArgType = Union[
     Hashable,
