@@ -38,7 +38,7 @@ _NP_KINDS = {
 
 _NULL_DESCRIPTION = {
     DtypeKind.FLOAT: (ColumnNullType.USE_NAN, None),
-    DtypeKind.DATETIME: (ColumnNullType.USE_NAN, None),
+    DtypeKind.DATETIME: (ColumnNullType.USE_SENTINEL, pd.NaT),
     DtypeKind.INT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.UINT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.BOOL: (ColumnNullType.NON_NULLABLE, None),
