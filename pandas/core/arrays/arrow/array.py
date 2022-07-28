@@ -881,6 +881,57 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             indices = np.arange(n)[key]
         return indices
 
+    # TODO: redefine _rank using pc.rank with pyarrow 9.0
+
+    def _quantile(
+        self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> ArrowExtensionArrayT:
+        """
+        Compute the quantiles of self for each quantile in `qs`.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+        interpolation: str
+
+        Returns
+        -------
+        same type as self
+        """
+        if pa_version_under4p0:
+            raise NotImplementedError(
+                "quantile only supported for pyarrow version >= 4.0"
+            )
+        result = pc.quantile(self._data, q=qs, interpolation=interpolation)
+        return type(self)(result)
+
+    def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:
+        """
+        Returns the mode(s) of the ExtensionArray.
+
+        Always returns `ExtensionArray` even if only one value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't consider counts of NA values.
+            Not implemented by pyarrow.
+
+        Returns
+        -------
+        same type as self
+            Sorted, if possible.
+        """
+        if pa_version_under6p0:
+            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
+        modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
+        values = modes.field(0)
+        counts = modes.field(1)
+        # counts sorted descending i.e counts[0] = max
+        mask = pc.equal(counts, counts[0])
+        most_common = values.filter(mask)
+        return type(self)(most_common)
+
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         # TODO: Make more robust like ArrowStringArray._maybe_convert_setitem_value
