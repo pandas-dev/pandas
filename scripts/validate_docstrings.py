@@ -230,7 +230,8 @@ def pandas_validate(func_name: str):
         Information about the docstring and the errors found.
     """
     func_obj = Validator._load_obj(func_name)
-    doc_obj = get_doc_object(func_obj)
+    # Some objects are instances, e.g. IndexSlice, which numpydoc can't validate
+    doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
     doc = PandasDocstring(func_name, doc_obj)
     result = validate(doc_obj)
 
