@@ -50,23 +50,25 @@ sys.path.extend(
 # sphinxext.
 
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.doctest",
-    "sphinx.ext.extlinks",
-    "sphinx.ext.todo",
-    "numpydoc",  # handle NumPy documentation formatted docstrings
+    "contributors",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.ifconfig",
-    "sphinx.ext.linkcode",
-    "nbsphinx",
+    "numpydoc",
+    "sphinx_copybutton",
     "sphinx_panels",
-    "contributors",  # custom pandas extension
+    "sphinx_toggleprompt",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.coverage",
+    "sphinx.ext.doctest",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.linkcode",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.todo",
+    "nbsphinx",
 ]
 
 exclude_patterns = [
@@ -143,6 +145,9 @@ nbsphinx_requirejs_path = ""
 # sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
 # already loads it
 panels_add_bootstrap_css = False
+
+# https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
+toggleprompt_offset_right = 35
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
@@ -453,7 +458,6 @@ if include_api:
 # extlinks alias
 extlinks = {
     "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
-    "wiki": ("https://github.com/pandas-dev/pandas/wiki/%s", "wiki "),
 }
 
 
