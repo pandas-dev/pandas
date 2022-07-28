@@ -453,7 +453,6 @@ if include_api:
 # extlinks alias
 extlinks = {
     "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
-    "wiki": ("https://github.com/pandas-dev/pandas/wiki/%s", "wiki "),
 }
 
 
