@@ -542,7 +542,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
 
 
-class plot_params(dict):
+class _Options(dict):
     """
     Stores pandas plotting options.
 
@@ -594,7 +594,7 @@ class plot_params(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value) -> Iterator[plot_params]:
+    def use(self, key, value) -> Iterator[_Options]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.
@@ -605,3 +605,6 @@ class plot_params(dict):
             yield self
         finally:
             self[key] = old_value
+
+
+plot_params = _Options()
