@@ -354,7 +354,7 @@ cdef class Interval(IntervalMixin):
     """
     String describing the inclusive side the intervals.
 
-    Either ``left``, ``right``, ``both`` or ``neither`.
+    Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
     def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
@@ -389,7 +389,7 @@ cdef class Interval(IntervalMixin):
 
         .. deprecated:: 1.5.0
 
-        Either ``left``, ``right``, ``both`` or ``neither`.
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",

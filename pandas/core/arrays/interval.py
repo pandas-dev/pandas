@@ -1366,7 +1366,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         String describing the inclusive side the intervals.
 
-        Either ``left``, ``right``, ``both`` or ``neither`.
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         return self.dtype.inclusive
 
