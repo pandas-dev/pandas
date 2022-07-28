@@ -38,7 +38,7 @@ class TestDatetimeIndexOps:
     @pytest.mark.parametrize("data", [["1400-01-01"], [datetime(1400, 1, 1)]])
     def test_dti_date_out_of_range(self, data):
         # GH#1475
-        msg = f'Cannot convert "{data[0]}" at position 0 to datetime'
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             DatetimeIndex(data)
 
