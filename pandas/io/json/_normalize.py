@@ -531,10 +531,13 @@ def _json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        out = []
-        for item, repeat in zip(v, lengths):
-            for _ in range(repeat):
-                out.append(item)
+        if v and isinstance(v[0], abc.Iterable):
+            out = []
+            for item, repeat in zip(v, lengths):
+                for _ in range(repeat):
+                    out.append(item)
+        else:
+            out = np.array(v).repeat(lengths)
         result[k] = out
     return result
 
