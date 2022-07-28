@@ -1385,6 +1385,11 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_value_counts_with_normalize(data)
 
+    @pytest.mark.xfail(
+        pa_version_under6p0,
+        raises=NotImplementedError,
+        reason="argmin/max only implemented for pyarrow version >= 6.0",
+    )
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
@@ -1395,7 +1400,49 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"min_max not supported in pyarrow for {pa_dtype}",
+                )
+            )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected, request
+    ):
+        pa_dtype = data_missing_for_sorting.dtype.pyarrow_dtype
+        if pa_version_under6p0 and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        elif not pa_version_under6p0 and pa.types.is_duration(pa_dtype) and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"min_max not supported in pyarrow for {pa_dtype}",
+                )
+            )
+        super().test_argreduce_series(
+            data_missing_for_sorting, op_name, skipna, expected
+        )
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):

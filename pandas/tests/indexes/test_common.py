@@ -10,7 +10,7 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    pa_version_under2p0,
+    pa_version_under7p0,
 )
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -396,11 +396,16 @@ class TestCommon:
             # imaginary components discarded
             warn = np.ComplexWarning
 
+        is_pyarrow_str = (
+            str(index.dtype) == "string[pyarrow]"
+            and pa_version_under7p0
+            and dtype == "category"
+        )
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(
                 warn,
-                raise_on_extra_warnings=not pa_version_under2p0,
+                raise_on_extra_warnings=is_pyarrow_str,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):

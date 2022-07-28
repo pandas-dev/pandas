@@ -8,6 +8,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under7p0
+
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
@@ -177,7 +179,8 @@ def test_dunder_inplace_setops_deprecated(index):
     with tm.assert_produces_warning(FutureWarning):
         index &= index
 
-    with tm.assert_produces_warning(FutureWarning):
+    is_pyarrow = str(index.dtype) == "string[pyarrow]" and pa_version_under7p0
+    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=is_pyarrow):
         index ^= index
 
 
