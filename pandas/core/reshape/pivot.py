@@ -844,4 +844,3 @@ def _build_names_mapper(
     ]
 
     return rownames_mapper, unique_rownames, colnames_mapper, unique_colnames
-

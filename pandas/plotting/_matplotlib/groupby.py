@@ -18,6 +18,7 @@ from pandas import (
 
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 
+
 def create_iter_data_given_by(
     data: DataFrame, kind: str = "hist"
 ) -> Dict[str, DataFrame | Series]:
