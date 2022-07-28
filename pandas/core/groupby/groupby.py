@@ -821,7 +821,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
         if isinstance(self.keys, list) and len(self.keys) == 1:
             warnings.warn(
                 (

@@ -21,9 +21,6 @@ from pandas.core.dtypes.missing import (
     isna,
     remove_na_arraylike,
 )
-from pandas.plotting._matplotlib.misc import (
-    unpack_single_str_list,
-)
 
 from pandas.core.frame import DataFrame
 
@@ -36,6 +33,7 @@ from pandas.plotting._matplotlib.groupby import (
     create_iter_data_given_by,
     reformat_hist_y_given_by,
 )
+from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,

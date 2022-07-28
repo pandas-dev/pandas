@@ -175,7 +175,7 @@ class MPLPlot(ABC):
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later
         if self.by is not None and self._kind == "hist":
-            self._grouped = data.groupby(by)
+            self._grouped = data.groupby(self.by)
 
         self.kind = kind
 

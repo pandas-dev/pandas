@@ -6,9 +6,6 @@ from pandas._typing import (
     Dict,
     IndexLabel,
 )
-from pandas.plotting._matplotlib.misc import (
-    unpack_single_str_list,
-)
 
 from pandas.core.dtypes.missing import remove_na_arraylike
 
@@ -19,6 +16,7 @@ from pandas import (
     concat,
 )
 
+from pandas.plotting._matplotlib.misc import unpack_single_str_list
 
 def create_iter_data_given_by(
     data: DataFrame, kind: str = "hist"
