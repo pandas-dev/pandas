@@ -17,6 +17,9 @@ from typing import (
     Iterator,
     Sequence,
     final,
+    Union,
+    List,
+    Mapping,
 )
 
 import numpy as np
@@ -95,6 +98,15 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
+
+
+_KeysArgType = Union[
+    Hashable,
+    List[Hashable],
+    Callable[[Hashable], Hashable],
+    List[Callable[[Hashable], Hashable]],
+    Mapping[Hashable, Hashable],
+]
 
 
 class WrappedCythonOp:
@@ -712,6 +724,7 @@ class BaseGrouper:
         self,
         axis: Index,
         groupings: Sequence[grouper.Grouping],
+        keys: _KeysArgType | None = None,
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
