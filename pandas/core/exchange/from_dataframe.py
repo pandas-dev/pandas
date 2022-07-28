@@ -179,9 +179,7 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     if not categorical["is_dictionary"]:
         raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
-    mapping = categorical["mapping"]
-    assert isinstance(mapping, dict), "Categorical mapping must be a dict"
-    categories = np.array(tuple(mapping[k] for k in sorted(mapping)))
+    categories = np.array(categorical["categories"]._col)
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]
