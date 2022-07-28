@@ -179,7 +179,7 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     if not categorical["is_dictionary"]:
         raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
-    categories = np.array(categorical["categories"]._col)
+    categories = np.array(categorical["categories"]._col)  # type:ignore[union-attr]
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]

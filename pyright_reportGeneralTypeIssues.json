@@ -36,6 +36,7 @@
         "pandas/core/arrays/timedeltas.py",
         "pandas/core/computation/align.py",
         "pandas/core/construction.py",
+        "pandas/core/exchange/from_dataframe.py",
         "pandas/core/dtypes/cast.py",
         "pandas/core/dtypes/common.py",
         "pandas/core/dtypes/concat.py",
