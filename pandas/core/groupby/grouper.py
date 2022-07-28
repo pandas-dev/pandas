@@ -733,7 +733,6 @@ def get_grouper(
     """
     group_axis = obj._get_axis(axis)
 
-
     # validate that the passed single level is compatible with the passed
     # axis of the object
     if level is not None:
@@ -919,11 +918,7 @@ def get_grouper(
 
     # create the internals grouper
     grouper = ops.BaseGrouper(
-        group_axis,
-        groupings,
-        sort=sort,
-        mutated=mutated,
-        dropna=dropna,
+        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
     )
     return grouper, frozenset(exclusions), obj
 
