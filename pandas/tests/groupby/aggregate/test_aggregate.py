@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import SpecificationError
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -21,7 +23,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 
 
@@ -238,7 +239,10 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
         [[1, 2, 3, 4, 5, 6]] * 3,
         columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
     ).astype({("a", "j"): dtype, ("b", "j"): dtype})
-    result = df.groupby(level=1, axis=1).agg(func)
+    warn = FutureWarning if func == "std" else None
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.groupby(level=1, axis=1).agg(func)
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
@@ -262,7 +266,10 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
         columns=Index([10, 20, 10, 20], name="x"),
         dtype="int64",
     ).astype({10: "Int64"})
-    result = df.groupby("x", axis=1).agg(func)
+    warn = FutureWarning if func == "std" else None
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.groupby("x", axis=1).agg(func)
     expected = DataFrame(
         data=expected_data,
         index=Index([0, 1, 0], name="y"),
@@ -1395,3 +1402,39 @@ def test_groupby_complex_raises(func):
     msg = "No matching signature found"
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
+
+
+@pytest.mark.parametrize(
+    "func", [["min"], ["mean", "max"], {"b": "sum"}, {"b": "prod", "c": "median"}]
+)
+def test_multi_axis_1_raises(func):
+    # GH#46995
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
+    gb = df.groupby("a", axis=1)
+    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
+        gb.agg(func)
+
+
+@pytest.mark.parametrize(
+    "test, constant",
+    [
+        ([[20, "A"], [20, "B"], [10, "C"]], {0: [10, 20], 1: ["C", ["A", "B"]]}),
+        ([[20, "A"], [20, "B"], [30, "C"]], {0: [20, 30], 1: [["A", "B"], "C"]}),
+        ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], {0: ["a", "b"], 1: [1, [2, 3]]}),
+        pytest.param(
+            [["a", 1], ["a", 2], ["b", 3], ["b", 3]],
+            {0: ["a", "b"], 1: [[1, 2], 3]},
+            marks=pytest.mark.xfail,
+        ),
+    ],
+)
+def test_agg_of_mode_list(test, constant):
+    # GH#25581
+    df1 = DataFrame(test)
+    result = df1.groupby(0).agg(Series.mode)
+    # Mode usually only returns 1 value, but can return a list in the case of a tie.
+
+    expected = DataFrame(constant)
+    expected = expected.set_index(0)
+
+    tm.assert_frame_equal(result, expected)

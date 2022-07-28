@@ -414,12 +414,11 @@ We can produce pivot tables from this data very easily:
 
 The result object is a :class:`DataFrame` having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
-will include all of the data that can be aggregated in an additional level of
-hierarchy in the columns:
+will include all of the data in an additional level of hierarchy in the columns:
 
 .. ipython:: python
 
-   pd.pivot_table(df, index=["A", "B"], columns=["C"])
+   pd.pivot_table(df[["A", "B", "C", "D", "E"]], index=["A", "B"], columns=["C"])
 
 Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For detail of :class:`Grouper`, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
 
@@ -432,7 +431,7 @@ calling :meth:`~DataFrame.to_string` if you wish:
 
 .. ipython:: python
 
-   table = pd.pivot_table(df, index=["A", "B"], columns=["C"])
+   table = pd.pivot_table(df, index=["A", "B"], columns=["C"], values=["D", "E"])
    print(table.to_string(na_rep=""))
 
 Note that :meth:`~DataFrame.pivot_table` is also available as an instance method on DataFrame,
@@ -449,7 +448,13 @@ rows and columns:
 
 .. ipython:: python
 
-   table = df.pivot_table(index=["A", "B"], columns="C", margins=True, aggfunc=np.std)
+   table = df.pivot_table(
+       index=["A", "B"],
+       columns="C",
+       values=["D", "E"],
+       margins=True,
+       aggfunc=np.std
+   )
    table
 
 Additionally, you can call :meth:`DataFrame.stack` to display a pivoted DataFrame
@@ -701,6 +706,30 @@ To choose another dtype, use the ``dtype`` argument:
 
     pd.get_dummies(df, dtype=bool).dtypes
 
+.. versionadded:: 1.5.0
+
+To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``,
+for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
+``DataFrame`` which has ``k`` distinct values using
+:func:`~pandas.from_dummies`:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
+   df
+
+   pd.from_dummies(df, sep="_")
+
+Dummy coded data only requires ``k - 1`` categories to be included, in this case
+the ``k`` th category is the default category, implied by not being assigned any of
+the other ``k - 1`` categories, can be passed via ``default_category``.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"prefix_a": [0, 1, 0]})
+   df
+
+   pd.from_dummies(df, sep="_", default_category="b")
 
 .. _reshaping.factorize:
 

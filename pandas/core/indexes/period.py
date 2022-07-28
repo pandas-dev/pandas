@@ -25,7 +25,10 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -156,8 +159,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     dtype: PeriodDtype
 
     _data_cls = PeriodArray
-    _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
+
+    @property
+    def _engine_type(self) -> type[libindex.PeriodEngine]:
+        return libindex.PeriodEngine
+
+    @cache_readonly
+    # Signature of "_resolution_obj" incompatible with supertype "DatetimeIndexOpsMixin"
+    def _resolution_obj(self) -> Resolution:  # type: ignore[override]
+        # for compat with DatetimeIndex
+        return self.dtype._resolution_obj
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
@@ -446,10 +458,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                     # TODO: pass if method is not None, like DTI does?
                     raise KeyError(key) from err
 
-            if reso == self.dtype._resolution_obj:
-                # the reso < self.dtype._resolution_obj case goes
+            if reso == self._resolution_obj:
+                # the reso < self._resolution_obj case goes
                 #  through _get_string_slice
-                key = Period(parsed, freq=self.freq)
+                key = self._cast_partial_indexing_scalar(key)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
                 # Recursing instead of falling through matters for the exception
                 #  message in test_get_loc3 (though not clear if that really matters)
@@ -457,28 +469,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             elif method is None:
                 raise KeyError(key)
             else:
-                key = Period(parsed, freq=self.freq)
+                key = self._cast_partial_indexing_scalar(parsed)
 
         elif isinstance(key, Period):
-            sfreq = self.freq
-            kfreq = key.freq
-            if not (
-                sfreq.n == kfreq.n
-                # error: "BaseOffset" has no attribute "_period_dtype_code"
-                and sfreq._period_dtype_code  # type: ignore[attr-defined]
-                # error: "BaseOffset" has no attribute "_period_dtype_code"
-                == kfreq._period_dtype_code  # type: ignore[attr-defined]
-            ):
-                # GH#42247 For the subset of DateOffsets that can be Period freqs,
-                #  checking these two attributes is sufficient to check equality,
-                #  and much more performant than `self.freq == key.freq`
-                raise KeyError(key)
+            key = self._maybe_cast_for_get_loc(key)
+
         elif isinstance(key, datetime):
-            try:
-                key = Period(key, freq=self.freq)
-            except ValueError as err:
-                # we cannot construct the Period
-                raise KeyError(orig_key) from err
+            key = self._cast_partial_indexing_scalar(key)
+
         else:
             # in particular integer, which Period constructor would cast to string
             raise KeyError(key)
@@ -488,21 +486,41 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         except KeyError as err:
             raise KeyError(orig_key) from err
 
+    def _maybe_cast_for_get_loc(self, key: Period) -> Period:
+        # name is a misnomer, chosen for compat with DatetimeIndex
+        sfreq = self.freq
+        kfreq = key.freq
+        if not (
+            sfreq.n == kfreq.n
+            # error: "BaseOffset" has no attribute "_period_dtype_code"
+            and sfreq._period_dtype_code  # type: ignore[attr-defined]
+            # error: "BaseOffset" has no attribute "_period_dtype_code"
+            == kfreq._period_dtype_code  # type: ignore[attr-defined]
+        ):
+            # GH#42247 For the subset of DateOffsets that can be Period freqs,
+            #  checking these two attributes is sufficient to check equality,
+            #  and much more performant than `self.freq == key.freq`
+            raise KeyError(key)
+        return key
+
+    def _cast_partial_indexing_scalar(self, label):
+        try:
+            key = Period(label, freq=self.freq)
+        except ValueError as err:
+            # we cannot construct the Period
+            raise KeyError(label) from err
+        return key
+
     @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         if isinstance(label, datetime):
-            label = Period(label, freq=self.freq)
+            label = self._cast_partial_indexing_scalar(label)
 
         return super()._maybe_cast_slice_bound(label, side, kind=kind)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         iv = Period(parsed, freq=reso.attr_abbrev)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
-
-    def _can_partial_date_slice(self, reso: Resolution) -> bool:
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        # e.g. test_getitem_setitem_periodindex
-        return reso > self.dtype._resolution_obj
 
 
 def period_range(

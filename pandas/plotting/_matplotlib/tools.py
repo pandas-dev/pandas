@@ -50,7 +50,7 @@ def maybe_adjust_figure(fig: Figure, *args, **kwargs):
         fig.subplots_adjust(*args, **kwargs)
 
 
-def format_date_labels(ax: Axes, rot):
+def format_date_labels(ax: Axes, rot) -> None:
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")
@@ -83,7 +83,11 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
+def _get_layout(
+    nplots: int,
+    layout: tuple[int, int] | None = None,
+    layout_type: str = "box",
+) -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -328,13 +332,13 @@ def _remove_labels_from_axis(axis: Axis):
     axis.get_label().set_visible(False)
 
 
-def _has_externally_shared_axis(ax1: matplotlib.axes, compare_axis: str) -> bool:
+def _has_externally_shared_axis(ax1: Axes, compare_axis: str) -> bool:
     """
     Return whether an axis is externally shared.
 
     Parameters
     ----------
-    ax1 : matplotlib.axes
+    ax1 : matplotlib.axes.Axes
         Axis to query.
     compare_axis : str
         `"x"` or `"y"` according to whether the X-axis or Y-axis is being

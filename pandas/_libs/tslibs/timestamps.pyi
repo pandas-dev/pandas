@@ -16,7 +16,6 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
-    NaTType,
     Period,
     Tick,
     Timedelta,
@@ -34,13 +33,7 @@ class Timestamp(datetime):
     value: int  # np.int64
     def __new__(
         cls: type[_DatetimeT],
-        ts_input: int
-        | np.integer
-        | float
-        | str
-        | _date
-        | datetime
-        | np.datetime64 = ...,
+        ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
         freq: int | None | str | BaseOffset = ...,
         tz: str | _tzinfo | None | int = ...,
         unit: str | int | None = ...,
@@ -60,6 +53,10 @@ class Timestamp(datetime):
     # While Timestamp can return pd.NaT, having the constructor return
     # a Union with NaTType makes things awkward for users of pandas
     def _set_freq(self, freq: BaseOffset | None) -> None: ...
+    @classmethod
+    def _from_value_and_reso(
+        cls, value: int, reso: int, tz: _tzinfo | None
+    ) -> Timestamp: ...
     @property
     def year(self) -> int: ...
     @property
@@ -82,10 +79,10 @@ class Timestamp(datetime):
     def fold(self) -> int: ...
     @classmethod
     def fromtimestamp(
-        cls: type[_DatetimeT], t: float, tz: _tzinfo | None = ...
+        cls: type[_DatetimeT], ts: float, tz: _tzinfo | None = ...
     ) -> _DatetimeT: ...
     @classmethod
-    def utcfromtimestamp(cls: type[_DatetimeT], t: float) -> _DatetimeT: ...
+    def utcfromtimestamp(cls: type[_DatetimeT], ts: float) -> _DatetimeT: ...
     @classmethod
     def today(cls: type[_DatetimeT], tz: _tzinfo | str | None = ...) -> _DatetimeT: ...
     @classmethod
@@ -101,7 +98,9 @@ class Timestamp(datetime):
     def utcnow(cls: type[_DatetimeT]) -> _DatetimeT: ...
     # error: Signature of "combine" incompatible with supertype "datetime"
     @classmethod
-    def combine(cls, date: _date, time: _time) -> datetime: ...  # type: ignore[override]
+    def combine(  # type: ignore[override]
+        cls, date: _date, time: _time
+    ) -> datetime: ...
     @classmethod
     def fromisoformat(cls: type[_DatetimeT], date_string: str) -> _DatetimeT: ...
     def strftime(self, format: str) -> str: ...
@@ -113,19 +112,25 @@ class Timestamp(datetime):
     def date(self) -> _date: ...
     def time(self) -> _time: ...
     def timetz(self) -> _time: ...
-    def replace(
-        self,
-        year: int = ...,
-        month: int = ...,
-        day: int = ...,
-        hour: int = ...,
-        minute: int = ...,
-        second: int = ...,
-        microsecond: int = ...,
-        tzinfo: _tzinfo | None = ...,
-        fold: int = ...,
-    ) -> datetime: ...
-    def astimezone(self: _DatetimeT, tz: _tzinfo | None = ...) -> _DatetimeT: ...
+    # LSP violation: nanosecond is not present in datetime.datetime.replace
+    # and has positional args following it
+    def replace(  # type: ignore[override]
+        self: _DatetimeT,
+        year: int | None = ...,
+        month: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
+        microsecond: int | None = ...,
+        nanosecond: int | None = ...,
+        tzinfo: _tzinfo | type[object] | None = ...,
+        fold: int | None = ...,
+    ) -> _DatetimeT: ...
+    # LSP violation: datetime.datetime.astimezone has a default value for tz
+    def astimezone(  # type: ignore[override]
+        self: _DatetimeT, tz: _tzinfo | None
+    ) -> _DatetimeT: ...
     def ctime(self) -> str: ...
     def isoformat(self, sep: str = ..., timespec: str = ...) -> str: ...
     @classmethod
@@ -199,9 +204,11 @@ class Timestamp(datetime):
     @property
     def day_of_week(self) -> int: ...
     @property
-    def day_of_month(self) -> int: ...
+    def dayofweek(self) -> int: ...
     @property
     def day_of_year(self) -> int: ...
+    @property
+    def dayofyear(self) -> int: ...
     @property
     def quarter(self) -> int: ...
     @property
@@ -211,3 +218,8 @@ class Timestamp(datetime):
     ) -> np.datetime64: ...
     @property
     def _date_repr(self) -> str: ...
+    @property
+    def days_in_month(self) -> int: ...
+    @property
+    def daysinmonth(self) -> int: ...
+    def _as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...

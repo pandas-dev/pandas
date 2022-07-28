@@ -45,6 +45,11 @@ doctest_optionflags = [
 filterwarnings = [
   "error:Sparse:FutureWarning",
   "error:The SparseArray:FutureWarning",
+  # Deprecation gives warning on import during pytest collection
+  "ignore:pandas.core.index is deprecated:FutureWarning:importlib",
+  "ignore:pandas.util.testing is deprecated:FutureWarning:importlib",
+  # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
+  "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
 ]
 junit_family = "xunit2"
 markers = [
@@ -153,34 +158,22 @@ pythonVersion = "3.8"
 typeCheckingMode = "basic"
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
+# enable subset of "strict"
+reportDuplicateImport = true
+reportInvalidStubStatement = true
+reportOverlappingOverload = true
+reportPropertyTypeMismatch = true
+reportUntypedClassDecorator = true
+reportUntypedFunctionDecorator = true
+reportUntypedNamedTuple = true
+reportUnusedImport = true
+# disable subset of "basic"
 reportGeneralTypeIssues = false
-reportConstantRedefinition = false
-reportFunctionMemberAccess = false
-reportImportCycles = false
-reportIncompatibleMethodOverride = false
-reportIncompatibleVariableOverride = false
 reportMissingModuleSource = false
-reportMissingParameterType = false
-reportMissingTypeArgument = false
-reportMissingTypeStubs = false
 reportOptionalCall = false
 reportOptionalIterable = false
 reportOptionalMemberAccess = false
 reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
-reportPrivateUsage = false
 reportUnboundVariable = false
-reportUnknownArgumentType = false
-reportUnknownLambdaType = false
-reportUnknownMemberType = false
-reportUnknownParameterType = false
-reportUnknownVariableType = false
-reportUnnecessaryComparison = false
-reportUnnecessaryIsInstance = false
-reportUnsupportedDunderAll = false
-reportUntypedBaseClass = false
-reportUnusedClass = false
-reportUnusedFunction = false
-reportUnusedImport = false
-reportUnusedVariable = false

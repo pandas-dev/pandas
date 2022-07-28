@@ -17,7 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-# pyright: reportUntypedFunctionDecorator = false
 
 from collections import abc
 from datetime import (
@@ -30,6 +29,10 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+from typing import (
+    Callable,
+    Literal,
+)
 
 from dateutil.tz import (
     tzlocal,
@@ -91,7 +94,7 @@ suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
 # pytest
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser) -> None:
     parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
     parser.addoption("--skip-network", action="store_true", help="skip network tests")
     parser.addoption("--skip-db", action="store_true", help="skip db tests")
@@ -106,6 +109,24 @@ def pytest_addoption(parser):
     )
 
 
+def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
+    """Ignore doctest warning.
+
+    Parameters
+    ----------
+    item : pytest.Item
+        pytest test item.
+    path : str
+        Module path to Python object, e.g. "pandas.core.frame.DataFrame.append". A
+        warning will be filtered when item.name ends with in given path. So it is
+        sufficient to specify e.g. "DataFrame.append".
+    message : str
+        Message to be filtered.
+    """
+    if item.name.endswith(path):
+        item.add_marker(pytest.mark.filterwarnings(f"ignore:{message}"))
+
+
 def pytest_collection_modifyitems(items, config):
     skip_slow = config.getoption("--skip-slow")
     only_slow = config.getoption("--only-slow")
@@ -118,6 +139,23 @@ def pytest_collection_modifyitems(items, config):
         (pytest.mark.db, "db", skip_db, "--skip-db"),
     ]
 
+    # Warnings from doctests that can be ignored; place reason in comment above.
+    # Each entry specifies (path, message) - see the ignore_doctest_warning function
+    ignored_doctest_warnings = [
+        # Deprecations where the docstring will emit a warning
+        ("DataFrame.append", "The frame.append method is deprecated"),
+        ("Series.append", "The series.append method is deprecated"),
+        ("dtypes.common.is_categorical", "is_categorical is deprecated"),
+        ("Categorical.replace", "Categorical.replace is deprecated"),
+        ("dtypes.common.is_extension_type", "'is_extension_type' is deprecated"),
+        ("Index.is_mixed", "Index.is_mixed is deprecated"),
+        ("MultiIndex._is_lexsorted", "MultiIndex.is_lexsorted is deprecated"),
+        # Docstring divides by zero to show behavior difference
+        ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        # Docstring demonstrates the call raises a warning
+        ("_validators.validate_axis_style_args", "Use named arguments"),
+    ]
+
     for item in items:
         if config.getoption("--doctest-modules") or config.getoption(
             "--doctest-cython", default=False
@@ -125,6 +163,10 @@ def pytest_collection_modifyitems(items, config):
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
+
+            for path, message in ignored_doctest_warnings:
+                ignore_doctest_warning(item, path, message)
+
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
@@ -193,7 +235,7 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 
 
 @pytest.fixture
-def add_doctest_imports(doctest_namespace):
+def add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
     """
@@ -205,7 +247,7 @@ def add_doctest_imports(doctest_namespace):
 # Autouse fixtures
 # ----------------------------------------------------------------
 @pytest.fixture(autouse=True)
-def configure_tests():
+def configure_tests() -> None:
     """
     Configure settings for all tests and test modules.
     """
@@ -295,6 +337,7 @@ def other_closed(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -311,6 +354,7 @@ def compression(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -490,7 +534,7 @@ def multiindex_year_month_day_dataframe_random_data():
 
 
 @pytest.fixture
-def lexsorted_two_level_string_multiindex():
+def lexsorted_two_level_string_multiindex() -> MultiIndex:
     """
     2-level MultiIndex, lexsorted, with string names.
     """
@@ -502,7 +546,9 @@ def lexsorted_two_level_string_multiindex():
 
 
 @pytest.fixture
-def multiindex_dataframe_random_data(lexsorted_two_level_string_multiindex):
+def multiindex_dataframe_random_data(
+    lexsorted_two_level_string_multiindex,
+) -> DataFrame:
     """DataFrame with 2 level MultiIndex with random data"""
     index = lexsorted_two_level_string_multiindex
     return DataFrame(
@@ -542,7 +588,6 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "unicode": tm.makeUnicodeIndex(100),
     "string": tm.makeStringIndex(100),
     "datetime": tm.makeDateIndex(100),
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
@@ -567,7 +612,7 @@ indices_dict = {
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100),
+    "interval": tm.makeIntervalIndex(100, inclusive="right"),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -657,7 +702,7 @@ def index_with_missing(request):
     """
 
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
-    # Azure pipeline that writes into indices_dict despite copy
+    # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
     vals = ind.values
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
@@ -676,7 +721,7 @@ def index_with_missing(request):
 # Series'
 # ----------------------------------------------------------------
 @pytest.fixture
-def string_series():
+def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
@@ -686,7 +731,7 @@ def string_series():
 
 
 @pytest.fixture
-def object_series():
+def object_series() -> Series:
     """
     Fixture for Series of dtype object with Index of unique strings
     """
@@ -696,7 +741,7 @@ def object_series():
 
 
 @pytest.fixture
-def datetime_series():
+def datetime_series() -> Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
@@ -719,7 +764,7 @@ _series = {
 
 
 @pytest.fixture
-def series_with_simple_index(index):
+def series_with_simple_index(index) -> Series:
     """
     Fixture for tests on series with changing types of indices.
     """
@@ -727,7 +772,7 @@ def series_with_simple_index(index):
 
 
 @pytest.fixture
-def series_with_multilevel_index():
+def series_with_multilevel_index() -> Series:
     """
     Fixture with a Series with a 2-level MultiIndex.
     """
@@ -765,7 +810,7 @@ def index_or_series_obj(request):
 # DataFrames
 # ----------------------------------------------------------------
 @pytest.fixture
-def int_frame():
+def int_frame() -> DataFrame:
     """
     Fixture for DataFrame of ints with index of unique strings
 
@@ -794,7 +839,7 @@ def int_frame():
 
 
 @pytest.fixture
-def datetime_frame():
+def datetime_frame() -> DataFrame:
     """
     Fixture for DataFrame of floats with DatetimeIndex
 
@@ -823,7 +868,7 @@ def datetime_frame():
 
 
 @pytest.fixture
-def float_frame():
+def float_frame() -> DataFrame:
     """
     Fixture for DataFrame of floats with index of unique strings
 
@@ -852,7 +897,7 @@ def float_frame():
 
 
 @pytest.fixture
-def mixed_type_frame():
+def mixed_type_frame() -> DataFrame:
     """
     Fixture for DataFrame of float/int/string columns with RangeIndex
     Columns are ['a', 'b', 'c', 'float32', 'int32'].
@@ -870,7 +915,7 @@ def mixed_type_frame():
 
 
 @pytest.fixture
-def rand_series_with_duplicate_datetimeindex():
+def rand_series_with_duplicate_datetimeindex() -> Series:
     """
     Fixture for Series with a DatetimeIndex that has duplicates.
     """
@@ -895,8 +940,14 @@ def rand_series_with_duplicate_datetimeindex():
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
-        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
+        (
+            Interval(left=0, right=5, inclusive="right"),
+            IntervalDtype("int64", inclusive="right"),
+        ),
+        (
+            Interval(left=0.1, right=0.5, inclusive="right"),
+            IntervalDtype("float64", inclusive="right"),
+        ),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
@@ -1106,7 +1157,7 @@ def strict_data_files(pytestconfig):
 
 
 @pytest.fixture
-def datapath(strict_data_files):
+def datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
 
@@ -1141,7 +1192,7 @@ def datapath(strict_data_files):
 
 
 @pytest.fixture
-def iris(datapath):
+def iris(datapath) -> DataFrame:
     """
     The iris dataset as a DataFrame.
     """
@@ -1331,7 +1382,7 @@ def timedelta64_dtype(request):
 
 
 @pytest.fixture
-def fixed_now_ts():
+def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
@@ -1683,7 +1734,7 @@ def spmatrix(request):
     params=[
         getattr(pd.offsets, o)
         for o in pd.offsets.__all__
-        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick)
+        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick) and o != "Tick"
     ]
 )
 def tick_classes(request):
@@ -1797,3 +1848,11 @@ def using_array_manager():
     Fixture to check if the array manager is being used.
     """
     return pd.options.mode.data_manager == "array"
+
+
+@pytest.fixture
+def using_copy_on_write() -> Literal[False]:
+    """
+    Fixture to check if Copy-on-Write is enabled.
+    """
+    return False

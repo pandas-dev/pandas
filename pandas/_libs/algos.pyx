@@ -1,6 +1,5 @@
-import cython
-from cython import Py_ssize_t
-
+cimport cython
+from cython cimport Py_ssize_t
 from libc.math cimport (
     fabs,
     sqrt,
@@ -181,6 +180,8 @@ def is_lexsorted(list_of_arrays: list) -> bint:
                 else:
                     result = False
                     break
+            if not result:
+                break
     free(vecs)
     return result
 
@@ -323,6 +324,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
@@ -355,8 +357,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                         nobs += 1
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1 / nobs * dx
-                        meany += 1 / nobs * dy
+                        meanx += 1. / nobs * dx
+                        meany += 1. / nobs * dy
                         ssqdmx += (vx - meanx) * dx
                         ssqdmy += (vy - meany) * dy
                         covxy += (vx - meanx) * dy
@@ -890,6 +892,7 @@ def rank_1d(
     bint ascending=True,
     bint pct=False,
     na_option="keep",
+    const uint8_t[:] mask=None,
 ):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
@@ -919,6 +922,8 @@ def rank_1d(
         * keep: leave NA values where they are
         * top: smallest rank if ascending
         * bottom: smallest rank if descending
+    mask : np.ndarray[bool], optional, default None
+        Specify locations to be treated as NA, for e.g. Categorical.
     """
     cdef:
         TiebreakEnumType tiebreak
@@ -928,7 +933,6 @@ def rank_1d(
         float64_t[::1] out
         ndarray[numeric_object_t, ndim=1] masked_vals
         numeric_object_t[:] masked_vals_memview
-        uint8_t[:] mask
         bint keep_na, nans_rank_highest, check_labels, check_mask
         numeric_object_t nan_fill_val
 
@@ -957,6 +961,7 @@ def rank_1d(
         or numeric_object_t is object
         or (numeric_object_t is int64_t and is_datetimelike)
     )
+    check_mask = check_mask or mask is not None
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -966,7 +971,9 @@ def rank_1d(
     else:
         masked_vals = values.copy()
 
-    if numeric_object_t is object:
+    if mask is not None:
+        pass
+    elif numeric_object_t is object:
         mask = missing.isnaobj(masked_vals)
     elif numeric_object_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)

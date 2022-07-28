@@ -1,8 +1,13 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
+cimport cython
+
 from enum import Enum
 
-from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    get_conversion_factor,
+)
 
 
 cdef class PeriodDtypeBase:
@@ -255,7 +260,36 @@ class Resolution(Enum):
         return cls.from_attrname(attr_name)
 
 
-cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
+class NpyDatetimeUnit(Enum):
+    """
+    Python-space analogue to NPY_DATETIMEUNIT.
+    """
+    NPY_FR_Y = NPY_DATETIMEUNIT.NPY_FR_Y
+    NPY_FR_M = NPY_DATETIMEUNIT.NPY_FR_M
+    NPY_FR_W = NPY_DATETIMEUNIT.NPY_FR_W
+    NPY_FR_D = NPY_DATETIMEUNIT.NPY_FR_D
+    NPY_FR_h = NPY_DATETIMEUNIT.NPY_FR_h
+    NPY_FR_m = NPY_DATETIMEUNIT.NPY_FR_m
+    NPY_FR_s = NPY_DATETIMEUNIT.NPY_FR_s
+    NPY_FR_ms = NPY_DATETIMEUNIT.NPY_FR_ms
+    NPY_FR_us = NPY_DATETIMEUNIT.NPY_FR_us
+    NPY_FR_ns = NPY_DATETIMEUNIT.NPY_FR_ns
+    NPY_FR_ps = NPY_DATETIMEUNIT.NPY_FR_ps
+    NPY_FR_fs = NPY_DATETIMEUNIT.NPY_FR_fs
+    NPY_FR_as = NPY_DATETIMEUNIT.NPY_FR_as
+    NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
+
+
+def is_supported_unit(NPY_DATETIMEUNIT reso):
+    return (
+        reso == NPY_DATETIMEUNIT.NPY_FR_ns
+        or reso == NPY_DATETIMEUNIT.NPY_FR_us
+        or reso == NPY_DATETIMEUNIT.NPY_FR_ms
+        or reso == NPY_DATETIMEUNIT.NPY_FR_s
+    )
+
+
+cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # generic -> default to nanoseconds
         return "ns"
@@ -277,8 +311,51 @@ cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
         return "M"
     elif unit == NPY_DATETIMEUNIT.NPY_FR_Y:
         return "Y"
+
+    # Checks for not-really-supported units go at the end, as we don't expect
+    #  to see these often
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_ps:
+        return "ps"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_fs:
+        return "fs"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_as:
+        return "as"
+
     else:
         raise NotImplementedError(unit)
+
+
+cdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
+    if abbrev == "Y":
+        return NPY_DATETIMEUNIT.NPY_FR_Y
+    elif abbrev == "M":
+        return NPY_DATETIMEUNIT.NPY_FR_M
+    elif abbrev == "W":
+        return NPY_DATETIMEUNIT.NPY_FR_W
+    elif abbrev == "D" or abbrev == "d":
+        return NPY_DATETIMEUNIT.NPY_FR_D
+    elif abbrev == "h":
+        return NPY_DATETIMEUNIT.NPY_FR_h
+    elif abbrev == "m":
+        return NPY_DATETIMEUNIT.NPY_FR_m
+    elif abbrev == "s":
+        return NPY_DATETIMEUNIT.NPY_FR_s
+    elif abbrev == "ms":
+        return NPY_DATETIMEUNIT.NPY_FR_ms
+    elif abbrev == "us":
+        return NPY_DATETIMEUNIT.NPY_FR_us
+    elif abbrev == "ns":
+        return NPY_DATETIMEUNIT.NPY_FR_ns
+    elif abbrev == "ps":
+        return NPY_DATETIMEUNIT.NPY_FR_ps
+    elif abbrev == "fs":
+        return NPY_DATETIMEUNIT.NPY_FR_fs
+    elif abbrev == "as":
+        return NPY_DATETIMEUNIT.NPY_FR_as
+    elif abbrev is None:
+        return NPY_DATETIMEUNIT.NPY_FR_GENERIC
+    else:
+        raise ValueError(f"Unrecognized unit {abbrev}")
 
 
 cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil:
@@ -307,34 +384,16 @@ cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil:
         return NPY_DATETIMEUNIT.NPY_FR_D
 
 
-cdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) except? -1:
+# TODO: use in _matplotlib.converter?
+cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) except? -1:
     """
     How many of the given time units fit into a single day?
     """
-    cdef:
-        int64_t day_units
+    return get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, reso)
 
-    if reso == NPY_DATETIMEUNIT.NPY_FR_ps:
-        # pico is the smallest unit for which we don't overflow, so
-        #  we exclude fempto and atto
-        day_units = 24 * 3600 * 1_000_000_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_ns:
-        day_units = 24 * 3600 * 1_000_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
-        day_units = 24 * 3600 * 1_000_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        day_units = 24 * 3600 * 1_000
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        day_units = 24 * 3600
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
-        day_units = 24 * 60
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_h:
-        day_units = 24
-    elif reso == NPY_DATETIMEUNIT.NPY_FR_D:
-        day_units = 1
-    else:
-        raise NotImplementedError(reso)
-    return day_units
+
+cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
+    return get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, reso)
 
 
 cdef dict _reso_str_map = {

@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
-    Type,
     TypeVar,
     overload,
 )
@@ -63,7 +62,7 @@ UnitChoices = Literal[
 _S = TypeVar("_S", bound=timedelta)
 
 def ints_to_pytimedelta(
-    arr: npt.NDArray[np.int64],  # const int64_t[:]
+    arr: npt.NDArray[np.timedelta64],
     box: bool = ...,
 ) -> npt.NDArray[np.object_]: ...
 def array_to_timedelta64(
@@ -72,7 +71,11 @@ def array_to_timedelta64(
     errors: str = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
-def delta_to_nanoseconds(delta: np.timedelta64 | timedelta | Tick) -> int: ...
+def delta_to_nanoseconds(
+    delta: np.timedelta64 | timedelta | Tick,
+    reso: int = ...,  # NPY_DATETIMEUNIT
+    round_ok: bool = ...,
+) -> int: ...
 
 class Timedelta(timedelta):
     min: ClassVar[Timedelta]
@@ -80,14 +83,16 @@ class Timedelta(timedelta):
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
     def __new__(
-        cls: Type[_S],
+        cls: type[_S],
         value=...,
         unit: str = ...,
-        **kwargs: int | float | np.integer | np.floating,
+        **kwargs: float | np.integer | np.floating,
     ) -> _S: ...
     # GH 46171
     # While Timedelta can return pd.NaT, having the constructor return
     # a Union with NaTType makes things awkward for users of pandas
+    @classmethod
+    def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property
     def days(self) -> int: ...
     @property
@@ -118,7 +123,7 @@ class Timedelta(timedelta):
     @overload  # type: ignore[override]
     def __floordiv__(self, other: timedelta) -> int: ...
     @overload
-    def __floordiv__(self, other: int | float) -> Timedelta: ...
+    def __floordiv__(self, other: float) -> Timedelta: ...
     @overload
     def __floordiv__(
         self, other: npt.NDArray[np.timedelta64]
@@ -150,3 +155,4 @@ class Timedelta(timedelta):
     def freq(self) -> None: ...
     @property
     def is_populated(self) -> bool: ...
+    def _as_unit(self, unit: str, round_ok: bool = ...) -> Timedelta: ...

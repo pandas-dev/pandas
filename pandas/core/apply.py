@@ -32,6 +32,11 @@ from pandas._typing import (
     AggObjType,
     Axis,
     NDFrameT,
+    npt,
+)
+from pandas.errors import (
+    DataError,
+    SpecificationError,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -50,11 +55,7 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas.core.algorithms import safe_sort
-from pandas.core.base import (
-    DataError,
-    SelectionMixin,
-    SpecificationError,
-)
+from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
@@ -234,8 +235,12 @@ class Apply(metaclass=abc.ABCMeta):
             and not obj.empty
         ):
             raise ValueError("Transform function failed")
+        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
+        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
+        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
+        # Series]"
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-            obj.index
+            obj.index  # type:ignore[arg-type]
         ):
             raise ValueError("Function did not transform")
 
@@ -324,6 +329,9 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
+
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
 
         if not isinstance(obj, SelectionMixin):
             # i.e. obj is Series or DataFrame
@@ -456,6 +464,9 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
 
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
         if not isinstance(obj, SelectionMixin):
             # i.e. obj is Series or DataFrame
             selected_obj = obj
@@ -584,18 +595,17 @@ class Apply(metaclass=abc.ABCMeta):
                 cols_sorted = list(safe_sort(list(cols)))
                 raise KeyError(f"Column(s) {cols_sorted} do not exist")
 
-        is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+        aggregator_types = (list, tuple, dict)
 
         # if we have a dict of any non-scalars
         # eg. {'A' : ['mean']}, normalize all to
         # be list-likes
         # Cannot use func.values() because arg may be a Series
-        if any(is_aggregator(x) for _, x in func.items()):
+        if any(isinstance(x, aggregator_types) for _, x in func.items()):
             new_func: AggFuncTypeDict = {}
             for k, v in func.items():
-                if not is_aggregator(v):
-                    # mypy can't realize v is not a list here
-                    new_func[k] = [v]  # type: ignore[list-item]
+                if not isinstance(v, aggregator_types):
+                    new_func[k] = [v]
                 else:
                     new_func[k] = v
             func = new_func
@@ -639,7 +649,11 @@ class NDFrameApply(Apply):
 
     @property
     def index(self) -> Index:
-        return self.obj.index
+        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
+        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
+        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
+        # Series]"
+        return self.obj.index  # type:ignore[arg-type]
 
     @property
     def agg_axis(self) -> Index:
@@ -776,7 +790,10 @@ class FrameApply(NDFrameApply):
 
         if not should_reduce:
             try:
-                r = self.f(Series([], dtype=np.float64))
+                if self.axis == 0:
+                    r = self.f(Series([], dtype=np.float64))
+                else:
+                    r = self.f(Series(index=self.columns, dtype=np.float64))
             except Exception:
                 pass
             else:
@@ -1079,6 +1096,7 @@ class SeriesApply(NDFrameApply):
             # if we are a string, try to dispatch
             return self.apply_str()
 
+        # self.f is Callable
         return self.apply_standard()
 
     def agg(self):
@@ -1116,7 +1134,8 @@ class SeriesApply(NDFrameApply):
         )
 
     def apply_standard(self) -> DataFrame | Series:
-        f = self.f
+        # caller is responsible for ensuring that f is Callable
+        f = cast(Callable, self.f)
         obj = self.obj
 
         with np.errstate(all="ignore"):
@@ -1129,14 +1148,9 @@ class SeriesApply(NDFrameApply):
                 mapped = obj._values.map(f)
             else:
                 values = obj.astype(object)._values
-                # error: Argument 2 to "map_infer" has incompatible type
-                # "Union[Callable[..., Any], str, List[Union[Callable[..., Any], str]],
-                # Dict[Hashable, Union[Union[Callable[..., Any], str],
-                # List[Union[Callable[..., Any], str]]]]]"; expected
-                # "Callable[[Any], Any]"
                 mapped = lib.map_infer(
                     values,
-                    f,  # type: ignore[arg-type]
+                    f,
                     convert=self.convert_dtype,
                 )
 
@@ -1205,7 +1219,7 @@ class ResamplerWindowApply(Apply):
 
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
-) -> tuple[bool, AggFuncType | None, list[str] | None, list[int] | None]:
+) -> tuple[bool, AggFuncType | None, list[str] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -1232,7 +1246,7 @@ def reconstruct_func(
     relabelling: bool, if there is relabelling or not
     func: normalized and mangled func
     columns: list of column names
-    order: list of columns indices
+    order: array of columns indices
 
     Examples
     --------
@@ -1244,7 +1258,7 @@ def reconstruct_func(
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
     columns: list[str] | None = None
-    order: list[int] | None = None
+    order: npt.NDArray[np.intp] | None = None
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
@@ -1291,7 +1305,9 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
     )
 
 
-def normalize_keyword_aggregation(kwargs: dict) -> tuple[dict, list[str], list[int]]:
+def normalize_keyword_aggregation(
+    kwargs: dict,
+) -> tuple[dict, list[str], npt.NDArray[np.intp]]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
@@ -1345,9 +1361,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> tuple[dict, list[str], list[i
 
     # get the new index of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
-    # error: Incompatible return value type (got "Tuple[defaultdict[Any, Any],
-    # Any, ndarray]", expected "Tuple[Dict[Any, Any], List[str], List[int]]")
-    return aggspec, columns, col_idx_order  # type: ignore[return-value]
+    return aggspec, columns, col_idx_order
 
 
 def _make_unique_kwarg_list(

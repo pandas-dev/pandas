@@ -1,6 +1,6 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
-from cython import Py_ssize_t
+from cython cimport Py_ssize_t
 import numpy as np
 
 import pandas.io.sas.sas_constants as const
@@ -13,7 +13,7 @@ ctypedef unsigned short     uint16_t
 # algorithm.  It is partially documented here:
 #
 # https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
-cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff):
+cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff) except *:
 
     cdef:
         uint8_t control_byte, x
@@ -28,9 +28,7 @@ cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff)
         ipos += 1
 
         if control_byte == 0x00:
-            if end_of_first_byte != 0:
-                raise ValueError("Unexpected non-zero end_of_first_byte")
-            nbytes = <int>(inbuff[ipos]) + 64
+            nbytes = <int>(inbuff[ipos]) + 64 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
@@ -38,8 +36,7 @@ cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff)
                 ipos += 1
         elif control_byte == 0x40:
             # not documented
-            nbytes = end_of_first_byte * 16
-            nbytes += <int>(inbuff[ipos])
+            nbytes = (inbuff[ipos] & 0xFF) + 18 + end_of_first_byte * 256
             ipos += 1
             for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
@@ -116,7 +113,7 @@ cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff)
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
 # http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
-cdef const uint8_t[:] rdc_decompress(int result_length, const uint8_t[:] inbuff):
+cdef const uint8_t[:] rdc_decompress(int result_length, const uint8_t[:] inbuff) except *:
 
     cdef:
         uint8_t cmd
@@ -177,16 +174,13 @@ cdef const uint8_t[:] rdc_decompress(int result_length, const uint8_t[:] inbuff)
             rpos += cnt
 
         # short pattern
-        elif (cmd >= 3) & (cmd <= 15):
+        else:
             ofs = cnt + 3
             ofs += <uint16_t>inbuff[ipos] << 4
             ipos += 1
             for k in range(cmd):
                 outbuff[rpos + k] = outbuff[rpos - <int>ofs + k]
             rpos += cmd
-
-        else:
-            raise ValueError("unknown RDC command")
 
     # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
     if <Py_ssize_t>len(outbuff) != <Py_ssize_t>result_length:
@@ -201,10 +195,11 @@ cdef enum ColumnTypes:
 
 
 # type the page_data types
+assert len(const.page_meta_types) == 2
 cdef:
-    int page_meta_type = const.page_meta_type
-    int page_mix_types_0 = const.page_mix_types[0]
-    int page_mix_types_1 = const.page_mix_types[1]
+    int page_meta_types_0 = const.page_meta_types[0]
+    int page_meta_types_1 = const.page_meta_types[1]
+    int page_mix_type = const.page_mix_type
     int page_data_type = const.page_data_type
     int subheader_pointers_offset = const.subheader_pointers_offset
 
@@ -231,7 +226,7 @@ cdef class Parser:
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        const uint8_t[:] (*decompress)(int result_length, const uint8_t[:] inbuff)
+        const uint8_t[:] (*decompress)(int result_length, const uint8_t[:] inbuff) except *
         object parser
 
     def __init__(self, object parser):
@@ -294,8 +289,8 @@ cdef class Parser:
         self.parser._current_row_in_chunk_index = self.current_row_in_chunk_index
         self.parser._current_row_in_file_index = self.current_row_in_file_index
 
-    cdef bint read_next_page(self):
-        cdef done
+    cdef bint read_next_page(self) except? True:
+        cdef bint done
 
         done = self.parser._read_next_page()
         if done:
@@ -316,7 +311,7 @@ cdef class Parser:
         )
         self.current_page_subheaders_count = self.parser._current_page_subheaders_count
 
-    cdef readline(self):
+    cdef bint readline(self) except? True:
 
         cdef:
             int offset, bit_offset, align_correction
@@ -335,7 +330,7 @@ cdef class Parser:
 
         # Loop until a data row is read
         while True:
-            if self.current_page_type == page_meta_type:
+            if self.current_page_type in (page_meta_types_0, page_meta_types_1):
                 flag = self.current_row_on_page_index >=\
                     self.current_page_data_subheader_pointers_len
                 if flag:
@@ -350,8 +345,7 @@ cdef class Parser:
                     current_subheader_pointer.offset,
                     current_subheader_pointer.length)
                 return False
-            elif (self.current_page_type == page_mix_types_0 or
-                    self.current_page_type == page_mix_types_1):
+            elif self.current_page_type == page_mix_type:
                 align_correction = (
                     bit_offset
                     + subheader_pointers_offset
@@ -369,7 +363,7 @@ cdef class Parser:
                     if done:
                         return True
                 return False
-            elif self.current_page_type & page_data_type == page_data_type:
+            elif self.current_page_type == page_data_type:
                 self.process_byte_array_with_data(
                     bit_offset
                     + subheader_pointers_offset
@@ -385,7 +379,7 @@ cdef class Parser:
             else:
                 raise ValueError(f"unknown page type: {self.current_page_type}")
 
-    cdef void process_byte_array_with_data(self, int offset, int length):
+    cdef void process_byte_array_with_data(self, int offset, int length) except *:
 
         cdef:
             Py_ssize_t j
@@ -430,8 +424,11 @@ cdef class Parser:
                 jb += 1
             elif column_types[j] == column_type_string:
                 # string
-                string_chunk[js, current_row] = np.array(source[start:(
-                    start + lngt)]).tobytes().rstrip(b"\x00 ")
+                # Skip trailing whitespace. This is equivalent to calling
+                # .rstrip(b"\x00 ") but without Python call overhead.
+                while lngt > 0 and source[start+lngt-1] in b"\x00 ":
+                    lngt -= 1
+                string_chunk[js, current_row] = (&source[start])[:lngt]
                 js += 1
 
         self.current_row_on_page_index += 1

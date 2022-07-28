@@ -42,7 +42,7 @@ def leaf_size(request):
 )
 def tree(request, leaf_size):
     left = request.param
-    return IntervalTree(left, left + 2, leaf_size=leaf_size)
+    return IntervalTree(left, left + 2, leaf_size=leaf_size, inclusive="right")
 
 
 class TestIntervalTree:
@@ -129,7 +129,7 @@ class TestIntervalTree:
         found = x.astype("intp")
         not_found = (-1 * np.ones(1000)).astype("intp")
 
-        tree = IntervalTree(x, x + 0.5, closed=closed, leaf_size=leaf_size)
+        tree = IntervalTree(x, x + 0.5, inclusive=closed, leaf_size=leaf_size)
         tm.assert_numpy_array_equal(found, tree.get_indexer(x + 0.25))
 
         expected = found if tree.closed_left else not_found
@@ -151,7 +151,7 @@ class TestIntervalTree:
     @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping(self, closed, order, left, right, expected):
         # GH 23309
-        tree = IntervalTree(left[order], right[order], closed=closed)
+        tree = IntervalTree(left[order], right[order], inclusive=closed)
         result = tree.is_overlapping
         assert result is expected
 
@@ -160,7 +160,7 @@ class TestIntervalTree:
         """shared endpoints are marked as overlapping"""
         # GH 23309
         left, right = np.arange(3, dtype="int64"), np.arange(1, 4)
-        tree = IntervalTree(left[order], right[order], closed=closed)
+        tree = IntervalTree(left[order], right[order], inclusive=closed)
         result = tree.is_overlapping
         expected = closed == "both"
         assert result is expected
@@ -176,7 +176,7 @@ class TestIntervalTree:
     )
     def test_is_overlapping_trivial(self, closed, left, right):
         # GH 23309
-        tree = IntervalTree(left, right, closed=closed)
+        tree = IntervalTree(left, right, inclusive=closed)
         assert tree.is_overlapping is False
 
     @pytest.mark.skipif(not IS64, reason="GH 23440")
@@ -188,4 +188,22 @@ class TestIntervalTree:
         # pivot should be average of left/right medians
         result = tree.root.pivot
         expected = (50 + np.iinfo(np.int64).max) / 2
+        assert result == expected
+
+    @pytest.mark.xfail(not IS64, reason="GH 23440")
+    @pytest.mark.parametrize(
+        "left, right, expected",
+        [
+            ([-np.inf, 1.0], [1.0, 2.0], 0.0),
+            ([-np.inf, -2.0], [-2.0, -1.0], -2.0),
+            ([-2.0, -1.0], [-1.0, np.inf], 0.0),
+            ([1.0, 2.0], [2.0, np.inf], 2.0),
+        ],
+    )
+    def test_inf_bound_infinite_recursion(self, left, right, expected):
+        # GH 46658
+
+        tree = IntervalTree(left * 101, right * 101)
+
+        result = tree.root.pivot
         assert result == expected

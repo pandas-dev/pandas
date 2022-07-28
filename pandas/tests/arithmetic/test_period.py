@@ -807,9 +807,13 @@ class TestPeriodIndexArithmetic:
 
         elif pi_freq == "D":
             # Tick, but non-compatible
-            msg = "Input has different freq=None from PeriodArray"
+            msg = (
+                "Cannot add/subtract timedelta-like from PeriodArray that is "
+                "not an integer multiple of the PeriodArray's freq."
+            )
             with pytest.raises(IncompatibleFrequency, match=msg):
                 pi - td64obj
+
             with pytest.raises(IncompatibleFrequency, match=msg):
                 pi[0] - td64obj
 
@@ -913,6 +917,19 @@ class TestPeriodIndexArithmetic:
         result = rng - five
         exp = rng + (-five)
         tm.assert_index_equal(result, exp)
+
+    def test_pi_add_sub_int_array_freqn_gt1(self):
+        # GH#47209 test adding array of ints when freq.n > 1 matches
+        #  scalar behavior
+        pi = period_range("2016-01-01", periods=10, freq="2D")
+        arr = np.arange(10)
+        result = pi + arr
+        expected = pd.Index([x + y for x, y in zip(pi, arr)])
+        tm.assert_index_equal(result, expected)
+
+        result = pi - arr
+        expected = pd.Index([x - y for x, y in zip(pi, arr)])
+        tm.assert_index_equal(result, expected)
 
     def test_pi_sub_isub_offset(self):
         # offset
@@ -1094,7 +1111,15 @@ class TestPeriodIndexArithmetic:
         rng = period_range("2014-05-01", "2014-05-15", freq="D")
         rng = tm.box_expected(rng, box_with_array)
 
-        msg = "Input has different freq(=.+)? from Period.*?\\(freq=D\\)"
+        msg = "|".join(
+            [
+                # non-timedelta-like DateOffset
+                "Input has different freq(=.+)? from Period.*?\\(freq=D\\)",
+                # timedelta/td64/Timedelta but not a multiple of 24H
+                "Cannot add/subtract timedelta-like from PeriodArray that is "
+                "not an integer multiple of the PeriodArray's freq.",
+            ]
+        )
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + other
         with pytest.raises(IncompatibleFrequency, match=msg):
@@ -1121,7 +1146,15 @@ class TestPeriodIndexArithmetic:
         other = not_hourly
         rng = period_range("2014-01-01 10:00", "2014-01-05 10:00", freq="H")
         rng = tm.box_expected(rng, box_with_array)
-        msg = "Input has different freq(=.+)? from Period.*?\\(freq=H\\)"
+        msg = "|".join(
+            [
+                # non-timedelta-like DateOffset
+                "Input has different freq(=.+)? from Period.*?\\(freq=H\\)",
+                # timedelta/td64/Timedelta but not a multiple of 24H
+                "Cannot add/subtract timedelta-like from PeriodArray that is "
+                "not an integer multiple of the PeriodArray's freq.",
+            ]
+        )
 
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + other
@@ -1227,6 +1260,21 @@ class TestPeriodIndexArithmetic:
         result = obj - other
         tm.assert_equal(result, expected)
         msg = r"cannot subtract .* from .*"
+        with pytest.raises(TypeError, match=msg):
+            other - obj
+
+        # some but not *all* NaT
+        other = other.copy()
+        other[0] = np.timedelta64(0, "ns")
+        expected = PeriodIndex([pi[0]] + ["NaT"] * 8, freq="19D")
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
         with pytest.raises(TypeError, match=msg):
             other - obj
 
@@ -1480,17 +1528,17 @@ class TestPeriodIndexSeriesMethods:
         )
         ser = Series(idx)
 
-        # Series op is applied per Period instance, thus error is raised
-        # from Period
+        msg = (
+            "Cannot add/subtract timedelta-like from PeriodArray that is not "
+            "an integer multiple of the PeriodArray's freq"
+        )
         for obj in [idx, ser]:
-            msg = r"Input has different freq=2H from Period.*?\(freq=D\)"
             with pytest.raises(IncompatibleFrequency, match=msg):
                 obj + pd.offsets.Hour(2)
 
             with pytest.raises(IncompatibleFrequency, match=msg):
                 pd.offsets.Hour(2) + obj
 
-            msg = r"Input has different freq=-2H from Period.*?\(freq=D\)"
             with pytest.raises(IncompatibleFrequency, match=msg):
                 obj - pd.offsets.Hour(2)
 

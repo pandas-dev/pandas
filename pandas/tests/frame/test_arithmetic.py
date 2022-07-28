@@ -1,5 +1,6 @@
 from collections import deque
 from datetime import datetime
+from enum import Enum
 import functools
 import operator
 import re
@@ -1333,7 +1334,8 @@ class TestFrameArithmeticUnsorted:
         frame_copy = float_frame.reindex(float_frame.index[::2])
 
         del frame_copy["D"]
-        frame_copy["C"][:5] = np.nan
+        # adding NAs to first 5 values of column "C"
+        frame_copy.loc[: frame_copy.index[4], "C"] = np.nan
 
         added = float_frame + frame_copy
 
@@ -2006,6 +2008,15 @@ def test_bool_frame_mult_float():
     tm.assert_frame_equal(result, expected)
 
 
+def test_frame_sub_nullable_int(any_int_ea_dtype):
+    # GH 32822
+    series1 = Series([1, 2, None], dtype=any_int_ea_dtype)
+    series2 = Series([1, 2, 3], dtype=any_int_ea_dtype)
+    expected = DataFrame([0, 0, None], dtype=any_int_ea_dtype)
+    result = series1.to_frame() - series2.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 
@@ -2040,3 +2051,15 @@ def test_frame_op_subclass_nonclass_constructor():
 
     result = sdf + sdf
     tm.assert_frame_equal(result, expected)
+
+
+def test_enum_column_equality():
+    Cols = Enum("Cols", "col1 col2")
+
+    q1 = DataFrame({Cols.col1: [1, 2, 3]})
+    q2 = DataFrame({Cols.col1: [1, 2, 3]})
+
+    result = q1[Cols.col1] == q2[Cols.col1]
+    expected = Series([True, True, True], name=Cols.col1)
+
+    tm.assert_series_equal(result, expected)

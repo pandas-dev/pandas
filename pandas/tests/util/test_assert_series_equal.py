@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_extension_array_dtype
@@ -158,6 +159,37 @@ def test_series_equal_index_dtype(s1, s2, msg, check_index_type):
         tm.assert_series_equal(s1, s2, **kwargs)
 
 
+@pytest.mark.parametrize("check_like", [True, False])
+def test_series_equal_order_mismatch(check_like):
+    s1 = Series([1, 2, 3], index=["a", "b", "c"])
+    s2 = Series([3, 2, 1], index=["c", "b", "a"])
+
+    if not check_like:  # Do not ignore index ordering.
+        with pytest.raises(AssertionError, match="Series.index are different"):
+            tm.assert_series_equal(s1, s2, check_like=check_like)
+    else:
+        _assert_series_equal_both(s1, s2, check_like=check_like)
+
+
+@pytest.mark.parametrize("check_index", [True, False])
+def test_series_equal_index_mismatch(check_index):
+    s1 = Series([1, 2, 3], index=["a", "b", "c"])
+    s2 = Series([1, 2, 3], index=["c", "b", "a"])
+
+    if check_index:  # Do not ignore index.
+        with pytest.raises(AssertionError, match="Series.index are different"):
+            tm.assert_series_equal(s1, s2, check_index=check_index)
+    else:
+        _assert_series_equal_both(s1, s2, check_index=check_index)
+
+
+def test_series_invalid_param_combination():
+    with pytest.raises(
+        ValueError, match="check_like must be False if check_index is False"
+    ):
+        tm.assert_series_equal(Series(), Series(), check_index=False, check_like=True)
+
+
 def test_series_equal_length_mismatch(rtol):
     msg = """Series are different
 
@@ -256,7 +288,7 @@ Attribute "dtype" are different
 
 def test_assert_series_equal_interval_dtype_mismatch():
     # https://github.com/pandas-dev/pandas/issues/32747
-    left = Series([pd.Interval(0, 1)], dtype="interval")
+    left = Series([pd.Interval(0, 1, "right")], dtype="interval")
     right = left.astype(object)
 
     msg = """Attributes of Series are different
@@ -351,3 +383,29 @@ def test_assert_series_equal_identical_na(nulls_fixture):
     # while we're here do Index too
     idx = pd.Index(ser)
     tm.assert_index_equal(idx, idx.copy(deep=True))
+
+
+def test_identical_nested_series_is_equal():
+    # GH#22400
+    x = Series(
+        [
+            0,
+            0.0131142231938,
+            1.77774652865e-05,
+            np.array([0.4722720840328748, 0.4216929783681722]),
+        ]
+    )
+    y = Series(
+        [
+            0,
+            0.0131142231938,
+            1.77774652865e-05,
+            np.array([0.4722720840328748, 0.4216929783681722]),
+        ]
+    )
+    # These two arrays should be equal, nesting could cause issue
+
+    tm.assert_series_equal(x, x)
+    tm.assert_series_equal(x, x, check_exact=True)
+    tm.assert_series_equal(x, y)
+    tm.assert_series_equal(x, y, check_exact=True)

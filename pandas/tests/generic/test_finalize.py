@@ -226,17 +226,9 @@ _all_methods = [
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("idxmax")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("mode")),
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),
+    (pd.DataFrame, frame_data, operator.methodcaller("idxmax")),
+    (pd.DataFrame, frame_data, operator.methodcaller("mode")),
     pytest.param(
         (pd.Series, [0], operator.methodcaller("mode")),
         marks=not_implemented_mark,
@@ -247,7 +239,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("quantile", numeric_only=True),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -259,10 +250,16 @@ _all_methods = [
     pytest.param(
         (
             pd.DataFrame,
-            frame_data,
+            ({"A": [pd.Timedelta(days=1), pd.Timedelta(days=2)]},),
+            operator.methodcaller("quantile", numeric_only=False),
+        ),
+    ),
+    pytest.param(
+        (
+            pd.DataFrame,
+            ({"A": [np.datetime64("2022-01-01"), np.datetime64("2022-01-02")]},),
             operator.methodcaller("quantile", numeric_only=True),
         ),
-        marks=not_implemented_mark,
     ),
     (
         pd.DataFrame,

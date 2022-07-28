@@ -6,8 +6,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-
-import pandas.io.common as icom
+from pandas.tests.io.test_compression import _compression_to_extension
 
 
 def test_compression_roundtrip(compression):
@@ -100,7 +99,7 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
 
     # We'll complete file extension subsequently.
     filename = "test."
-    filename += icom._compression_to_extension[compression]
+    filename += _compression_to_extension[compression]
 
     df = pd.DataFrame({"A": [1]})
 

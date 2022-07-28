@@ -3,7 +3,9 @@ Template for intervaltree
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
+import warnings
 
+from pandas._libs import lib
 from pandas._libs.algos import is_monotonic
 
 ctypedef fused int_scalar_t:
@@ -34,27 +36,34 @@ cdef class IntervalTree(IntervalMixin):
         ndarray left, right
         IntervalNode root
         object dtype
-        str closed
+        str inclusive
         object _is_overlapping, _left_sorter, _right_sorter
         Py_ssize_t _na_count
 
-    def __init__(self, left, right, closed='right', leaf_size=100):
+    def __init__(self, left, right, inclusive: str | None = None, leaf_size=100):
         """
         Parameters
         ----------
         left, right : np.ndarray[ndim=1]
             Left and right bounds for each interval. Assumed to contain no
             NaNs.
-        closed : {'left', 'right', 'both', 'neither'}, optional
+
+        inclusive : {"both", "neither", "left", "right"}, optional
             Whether the intervals are closed on the left-side, right-side, both
             or neither. Defaults to 'right'.
+
+            .. versionadded:: 1.5.0
+
         leaf_size : int, optional
             Parameter that controls when the tree switches from creating nodes
             to brute-force search. Tune this parameter to optimize query
             performance.
         """
-        if closed not in ['left', 'right', 'both', 'neither']:
-            raise ValueError("invalid option for 'closed': %s" % closed)
+        if inclusive is None:
+            inclusive = "right"
+
+        if inclusive not in ['left', 'right', 'both', 'neither']:
+            raise ValueError("invalid option for 'inclusive': %s" % inclusive)
 
         left = np.asarray(left)
         right = np.asarray(right)
@@ -64,7 +73,7 @@ cdef class IntervalTree(IntervalMixin):
 
         indices = np.arange(len(left), dtype='int64')
 
-        self.closed = closed
+        self.inclusive = inclusive
 
         # GH 23352: ensure no nan in nodes
         mask = ~np.isnan(self.left)
@@ -73,7 +82,7 @@ cdef class IntervalTree(IntervalMixin):
         self.right = self.right[mask]
         indices = indices[mask]
 
-        node_cls = NODE_CLASSES[str(self.dtype), closed]
+        node_cls = NODE_CLASSES[str(self.dtype), inclusive]
         self.root = node_cls(self.left, self.right, indices, leaf_size)
 
     @property
@@ -101,8 +110,8 @@ cdef class IntervalTree(IntervalMixin):
         if self._is_overlapping is not None:
             return self._is_overlapping
 
-        # <= when both sides closed since endpoints can overlap
-        op = le if self.closed == 'both' else lt
+        # <= when inclusive on both sides since endpoints can overlap
+        op = le if self.inclusive == 'both' else lt
 
         # overlap if start of current interval < end of previous interval
         # (current and previous in terms of sorted order by left/start side)
@@ -180,9 +189,9 @@ cdef class IntervalTree(IntervalMixin):
                 missing.to_array().astype('intp'))
 
     def __repr__(self) -> str:
-        return ('<IntervalTree[{dtype},{closed}]: '
+        return ('<IntervalTree[{dtype},{inclusive}]: '
                 '{n_elements} elements>'.format(
-                    dtype=self.dtype, closed=self.closed,
+                    dtype=self.dtype, inclusive=self.inclusive,
                     n_elements=self.root.n_elements))
 
     # compat with IndexEngine interface
@@ -245,13 +254,13 @@ cdef class IntervalNode:
 
 
 # we need specialized nodes and leaves to optimize for different dtype and
-# closed values
+# inclusive values
 
 {{py:
 
 nodes = []
 for dtype in ['float64', 'int64', 'uint64']:
-    for closed, cmp_left, cmp_right in [
+    for inclusive, cmp_left, cmp_right in [
         ('left', '<=', '<'),
         ('right', '<', '<='),
         ('both', '<=', '<='),
@@ -265,7 +274,7 @@ for dtype in ['float64', 'int64', 'uint64']:
         elif dtype.startswith('float'):
             fused_prefix = ''
         nodes.append((dtype, dtype.title(),
-                      closed, closed.title(),
+                      inclusive, inclusive.title(),
                       cmp_left,
                       cmp_right,
                       cmp_left_converse,
@@ -324,6 +333,13 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode(IntervalNode):
             # calculate a pivot so we can create child nodes
             self.is_leaf_node = False
             self.pivot = np.median(left / 2 + right / 2)
+            if np.isinf(self.pivot):
+                self.pivot = cython.cast({{dtype}}_t, 0)
+                if self.pivot > np.max(right):
+                    self.pivot = np.max(left)
+                if self.pivot < np.min(left):
+                    self.pivot = np.min(right)
+
             left_set, right_set, center_set = self.classify_intervals(
                 left, right)
 

@@ -15,7 +15,11 @@ from pandas import (
     NaT,
     Series,
     Timedelta,
+    Timestamp,
+    array,
     date_range,
+    interval_range,
+    period_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -25,23 +29,23 @@ class TestGetLoc:
     @pytest.mark.parametrize("side", ["right", "left", "both", "neither"])
     def test_get_loc_interval(self, closed, side):
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], inclusive=closed)
 
         for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
             # if get_loc is supplied an interval, it should only search
             # for exact matches, not overlaps or covers, else KeyError.
-            msg = re.escape(f"Interval({bound[0]}, {bound[1]}, closed='{side}')")
+            msg = re.escape(f"Interval({bound[0]}, {bound[1]}, inclusive='{side}')")
             if closed == side:
                 if bound == [0, 1]:
-                    assert idx.get_loc(Interval(0, 1, closed=side)) == 0
+                    assert idx.get_loc(Interval(0, 1, inclusive=side)) == 0
                 elif bound == [2, 3]:
-                    assert idx.get_loc(Interval(2, 3, closed=side)) == 1
+                    assert idx.get_loc(Interval(2, 3, inclusive=side)) == 1
                 else:
                     with pytest.raises(KeyError, match=msg):
-                        idx.get_loc(Interval(*bound, closed=side))
+                        idx.get_loc(Interval(*bound, inclusive=side))
             else:
                 with pytest.raises(KeyError, match=msg):
-                    idx.get_loc(Interval(*bound, closed=side))
+                    idx.get_loc(Interval(*bound, inclusive=side))
 
     @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
     def test_get_loc_scalar(self, closed, scalar):
@@ -55,7 +59,7 @@ class TestGetLoc:
             "neither": {0.5: 0, 2.5: 1},
         }
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], inclusive=closed)
 
         # if get_loc is supplied a scalar, it should return the index of
         # the interval which contains the scalar, or KeyError.
@@ -68,7 +72,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("scalar", [-1, 0, 0.5, 3, 4.5, 5, 6])
     def test_get_loc_length_one_scalar(self, scalar, closed):
         # GH 20921
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = IntervalIndex.from_tuples([(0, 5)], inclusive=closed)
         if scalar in index[0]:
             result = index.get_loc(scalar)
             assert result == 0
@@ -76,19 +80,21 @@ class TestGetLoc:
             with pytest.raises(KeyError, match=str(scalar)):
                 index.get_loc(scalar)
 
-    @pytest.mark.parametrize("other_closed", ["left", "right", "both", "neither"])
+    @pytest.mark.parametrize("other_inclusive", ["left", "right", "both", "neither"])
     @pytest.mark.parametrize("left, right", [(0, 5), (-1, 4), (-1, 6), (6, 7)])
-    def test_get_loc_length_one_interval(self, left, right, closed, other_closed):
+    def test_get_loc_length_one_interval(self, left, right, closed, other_inclusive):
         # GH 20921
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
-        interval = Interval(left, right, closed=other_closed)
+        index = IntervalIndex.from_tuples([(0, 5)], inclusive=closed)
+        interval = Interval(left, right, inclusive=other_inclusive)
         if interval == index[0]:
             result = index.get_loc(interval)
             assert result == 0
         else:
             with pytest.raises(
                 KeyError,
-                match=re.escape(f"Interval({left}, {right}, closed='{other_closed}')"),
+                match=re.escape(
+                    f"Interval({left}, {right}, inclusive='{other_inclusive}')"
+                ),
             ):
                 index.get_loc(interval)
 
@@ -192,23 +198,35 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "query, expected",
         [
-            ([Interval(2, 4, closed="right")], [1]),
-            ([Interval(2, 4, closed="left")], [-1]),
-            ([Interval(2, 4, closed="both")], [-1]),
-            ([Interval(2, 4, closed="neither")], [-1]),
-            ([Interval(1, 4, closed="right")], [-1]),
-            ([Interval(0, 4, closed="right")], [-1]),
-            ([Interval(0.5, 1.5, closed="right")], [-1]),
-            ([Interval(2, 4, closed="right"), Interval(0, 1, closed="right")], [1, -1]),
-            ([Interval(2, 4, closed="right"), Interval(2, 4, closed="right")], [1, 1]),
-            ([Interval(5, 7, closed="right"), Interval(2, 4, closed="right")], [2, 1]),
-            ([Interval(2, 4, closed="right"), Interval(2, 4, closed="left")], [1, -1]),
+            ([Interval(2, 4, inclusive="right")], [1]),
+            ([Interval(2, 4, inclusive="left")], [-1]),
+            ([Interval(2, 4, inclusive="both")], [-1]),
+            ([Interval(2, 4, inclusive="neither")], [-1]),
+            ([Interval(1, 4, inclusive="right")], [-1]),
+            ([Interval(0, 4, inclusive="right")], [-1]),
+            ([Interval(0.5, 1.5, inclusive="right")], [-1]),
+            (
+                [Interval(2, 4, inclusive="right"), Interval(0, 1, inclusive="right")],
+                [1, -1],
+            ),
+            (
+                [Interval(2, 4, inclusive="right"), Interval(2, 4, inclusive="right")],
+                [1, 1],
+            ),
+            (
+                [Interval(5, 7, inclusive="right"), Interval(2, 4, inclusive="right")],
+                [2, 1],
+            ),
+            (
+                [Interval(2, 4, inclusive="right"), Interval(2, 4, inclusive="left")],
+                [1, -1],
+            ),
         ],
     )
     def test_get_indexer_with_interval(self, query, expected):
 
         tuples = [(0, 2), (2, 4), (5, 7)]
-        index = IntervalIndex.from_tuples(tuples, closed="right")
+        index = IntervalIndex.from_tuples(tuples, inclusive="right")
 
         result = index.get_indexer(query)
         expected = np.array(expected, dtype="intp")
@@ -237,7 +255,7 @@ class TestGetIndexer:
     def test_get_indexer_with_int_and_float(self, query, expected):
 
         tuples = [(0, 1), (1, 2), (3, 4)]
-        index = IntervalIndex.from_tuples(tuples, closed="right")
+        index = IntervalIndex.from_tuples(tuples, inclusive="right")
 
         result = index.get_indexer(query)
         expected = np.array(expected, dtype="intp")
@@ -246,7 +264,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize("item", [[3], np.arange(0.5, 5, 0.5)])
     def test_get_indexer_length_one(self, item, closed):
         # GH 17284
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = IntervalIndex.from_tuples([(0, 5)], inclusive=closed)
         result = index.get_indexer(item)
         expected = np.array([0] * len(item), dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
@@ -254,7 +272,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize("size", [1, 5])
     def test_get_indexer_length_one_interval(self, size, closed):
         # GH 17284
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = IntervalIndex.from_tuples([(0, 5)], inclusive=closed)
         result = index.get_indexer([Interval(0, 5, closed)] * size)
         expected = np.array([0] * size, dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
@@ -264,14 +282,14 @@ class TestGetIndexer:
         [
             IntervalIndex.from_tuples([(7, 8), (1, 2), (3, 4), (0, 1)]),
             IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4), np.nan]),
-            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], closed="both"),
+            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], inclusive="both"),
             [-1, 0, 0.5, 1, 2, 2.5, np.nan],
             ["foo", "foo", "bar", "baz"],
         ],
     )
     def test_get_indexer_categorical(self, target, ordered):
         # GH 30063: categorical and non-categorical results should be consistent
-        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], inclusive="right")
         categorical_target = CategoricalIndex(target, ordered=ordered)
 
         result = index.get_indexer(categorical_target)
@@ -280,7 +298,7 @@ class TestGetIndexer:
 
     def test_get_indexer_categorical_with_nans(self):
         # GH#41934 nans in both index and in target
-        ii = IntervalIndex.from_breaks(range(5))
+        ii = IntervalIndex.from_breaks(range(5), inclusive="right")
         ii2 = ii.append(IntervalIndex([np.nan]))
         ci2 = CategoricalIndex(ii2)
 
@@ -299,7 +317,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "tuples, closed",
+        "tuples, inclusive",
         [
             ([(0, 2), (1, 3), (3, 4)], "neither"),
             ([(0, 5), (1, 4), (6, 7)], "left"),
@@ -307,9 +325,9 @@ class TestGetIndexer:
             ([(0, 1), (2, 3), (3, 4)], "both"),
         ],
     )
-    def test_get_indexer_errors(self, tuples, closed):
+    def test_get_indexer_errors(self, tuples, inclusive):
         # IntervalIndex needs non-overlapping for uniqueness when querying
-        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        index = IntervalIndex.from_tuples(tuples, inclusive=inclusive)
 
         msg = (
             "cannot handle overlapping indices; use "
@@ -341,7 +359,7 @@ class TestGetIndexer:
     def test_get_indexer_non_unique_with_int_and_float(self, query, expected):
 
         tuples = [(0, 2.5), (1, 3), (2, 4)]
-        index = IntervalIndex.from_tuples(tuples, closed="left")
+        index = IntervalIndex.from_tuples(tuples, inclusive="left")
 
         result_indexer, result_missing = index.get_indexer_non_unique(query)
         expected_indexer = np.array(expected[0], dtype="intp")
@@ -401,6 +419,16 @@ class TestGetIndexer:
         expected = np.array([1, 4, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("box", [IntervalIndex, array, list])
+    def test_get_indexer_interval_index(self, box):
+        # GH#30178
+        rng = period_range("2022-07-01", freq="D", periods=3)
+        idx = box(interval_range(Timestamp("2022-07-01"), freq="3D", periods=3))
+
+        actual = rng.get_indexer(idx)
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(actual, expected)
+
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
@@ -433,45 +461,45 @@ class TestSliceLocs:
         assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
         # unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
+        index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)], "right")
 
         with pytest.raises(
             KeyError,
             match=re.escape(
                 '"Cannot get left slice bound for non-unique label: '
-                "Interval(0, 2, closed='right')\""
+                "Interval(0, 2, inclusive='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))
+            index.slice_locs(start=Interval(0, 2, "right"), end=Interval(2, 4, "right"))
 
         with pytest.raises(
             KeyError,
             match=re.escape(
                 '"Cannot get left slice bound for non-unique label: '
-                "Interval(0, 2, closed='right')\""
+                "Interval(0, 2, inclusive='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2))
+            index.slice_locs(start=Interval(0, 2, "right"))
 
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                '"Cannot get right slice bound for non-unique label: '
-                "Interval(0, 2, closed='right')\""
-            ),
-        ):
-            index.slice_locs(end=Interval(0, 2))
+        assert index.slice_locs(end=Interval(2, 4, "right")) == (0, 2)
 
         with pytest.raises(
             KeyError,
             match=re.escape(
                 '"Cannot get right slice bound for non-unique label: '
-                "Interval(0, 2, closed='right')\""
+                "Interval(0, 2, inclusive='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))
+            index.slice_locs(end=Interval(0, 2, "right"))
+
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, inclusive='right')\""
+            ),
+        ):
+            index.slice_locs(start=Interval(2, 4, "right"), end=Interval(0, 2, "right"))
 
         # another unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
@@ -485,7 +513,7 @@ class TestSliceLocs:
     def test_slice_locs_with_ints_and_floats_succeeds(self):
 
         # increasing non-overlapping
-        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], inclusive="right")
 
         assert index.slice_locs(0, 1) == (0, 1)
         assert index.slice_locs(0, 2) == (0, 2)
@@ -495,7 +523,7 @@ class TestSliceLocs:
         assert index.slice_locs(0, 4) == (0, 3)
 
         # decreasing non-overlapping
-        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
+        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)], inclusive="right")
         assert index.slice_locs(0, 1) == (3, 3)
         assert index.slice_locs(0, 2) == (3, 2)
         assert index.slice_locs(0, 3) == (3, 1)
@@ -516,7 +544,7 @@ class TestSliceLocs:
     )
     def test_slice_locs_with_ints_and_floats_errors(self, tuples, query):
         start, stop = query
-        index = IntervalIndex.from_tuples(tuples)
+        index = IntervalIndex.from_tuples(tuples, inclusive="right")
         with pytest.raises(
             KeyError,
             match=(
@@ -571,17 +599,17 @@ class TestContains:
 
     def test_contains_dunder(self):
 
-        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
+        index = IntervalIndex.from_arrays([0, 1], [1, 2], inclusive="right")
 
         # __contains__ requires perfect matches to intervals.
         assert 0 not in index
         assert 1 not in index
         assert 2 not in index
 
-        assert Interval(0, 1, closed="right") in index
-        assert Interval(0, 2, closed="right") not in index
-        assert Interval(0, 0.5, closed="right") not in index
-        assert Interval(3, 5, closed="right") not in index
-        assert Interval(-1, 0, closed="left") not in index
-        assert Interval(0, 1, closed="left") not in index
-        assert Interval(0, 1, closed="both") not in index
+        assert Interval(0, 1, inclusive="right") in index
+        assert Interval(0, 2, inclusive="right") not in index
+        assert Interval(0, 0.5, inclusive="right") not in index
+        assert Interval(3, 5, inclusive="right") not in index
+        assert Interval(-1, 0, inclusive="left") not in index
+        assert Interval(0, 1, inclusive="left") not in index
+        assert Interval(0, 1, inclusive="both") not in index

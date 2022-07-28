@@ -22,6 +22,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
+    Final,
     Hashable,
     Sequence,
     cast,
@@ -140,7 +141,7 @@ filepath_or_buffer : str, path object or file-like object
 {_statafile_processing_params2}
 {_chunksize_params}
 {_iterator_params}
-{_shared_docs["decompression_options"]}
+{_shared_docs["decompression_options"] % "filepath_or_buffer"}
 {_shared_docs["storage_options"]}
 
 Returns
@@ -214,7 +215,7 @@ path_or_buf : path (string), buffer or path object
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
 
-stata_epoch = datetime.datetime(1960, 1, 1)
+stata_epoch: Final = datetime.datetime(1960, 1, 1)
 
 
 # TODO: Add typing. As of January 2020 it is not possible to type this function since
@@ -485,7 +486,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     return Series(conv_dates, index=index)
 
 
-excessive_string_length_error = """
+excessive_string_length_error: Final = """
 Fixed width strings in Stata .dta files are limited to 244 (or fewer)
 characters.  Column '{0}' does not satisfy this restriction. Use the
 'version=117' parameter to write the newer (Stata 13 and later) format.
@@ -496,7 +497,7 @@ class PossiblePrecisionLoss(Warning):
     pass
 
 
-precision_loss_doc = """
+precision_loss_doc: Final = """
 Column converted from {0} to {1}, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
@@ -506,7 +507,7 @@ class ValueLabelTypeMismatch(Warning):
     pass
 
 
-value_label_mismatch_doc = """
+value_label_mismatch_doc: Final = """
 Stata value labels (pandas categories) must be strings. Column {0} contains
 non-string labels which will be converted to strings.  Please check that the
 Stata data file created has not lost information due to duplicate labels.
@@ -517,7 +518,7 @@ class InvalidColumnName(Warning):
     pass
 
 
-invalid_name_doc = """
+invalid_name_doc: Final = """
 Not all pandas column names were valid Stata variable names.
 The following replacements have been made:
 
@@ -668,14 +669,16 @@ class StataValueLabel:
         Encoding to use for value labels.
     """
 
-    def __init__(self, catarray: Series, encoding: str = "latin-1") -> None:
+    def __init__(
+        self, catarray: Series, encoding: Literal["latin-1", "utf-8"] = "latin-1"
+    ) -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
         self.labname = catarray.name
         self._encoding = encoding
         categories = catarray.cat.categories
-        self.value_labels: list[tuple[int | float, str]] = list(
+        self.value_labels: list[tuple[float, str]] = list(
             zip(np.arange(len(categories)), categories)
         )
         self.value_labels.sort(key=lambda x: x[0])
@@ -696,7 +699,7 @@ class StataValueLabel:
 
         # Compute lengths and setup lists of offsets and labels
         offsets: list[int] = []
-        values: list[int | float] = []
+        values: list[float] = []
         for vl in self.value_labels:
             category: str | bytes = vl[1]
             if not isinstance(category, str):
@@ -795,7 +798,7 @@ class StataNonCatValueLabel(StataValueLabel):
     def __init__(
         self,
         labname: str,
-        value_labels: dict[float | int, str],
+        value_labels: dict[float, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
     ) -> None:
 
@@ -804,7 +807,7 @@ class StataNonCatValueLabel(StataValueLabel):
 
         self.labname = labname
         self._encoding = encoding
-        self.value_labels: list[tuple[int | float, str]] = sorted(
+        self.value_labels: list[tuple[float, str]] = sorted(
             value_labels.items(), key=lambda x: x[0]
         )
         self._prepare_value_labels()
@@ -849,15 +852,15 @@ class StataMissingValue:
 
     # Construct a dictionary of missing values
     MISSING_VALUES: dict[float, str] = {}
-    bases = (101, 32741, 2147483621)
+    bases: Final = (101, 32741, 2147483621)
     for b in bases:
         # Conversion to long to avoid hash issues on 32 bit platforms #8968
         MISSING_VALUES[b] = "."
         for i in range(1, 27):
             MISSING_VALUES[i + b] = "." + chr(96 + i)
 
-    float32_base = b"\x00\x00\x00\x7f"
-    increment = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
+    float32_base: bytes = b"\x00\x00\x00\x7f"
+    increment: int = struct.unpack("<i", b"\x00\x08\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<f", float32_base)[0]
         MISSING_VALUES[key] = "."
@@ -866,7 +869,7 @@ class StataMissingValue:
         int_value = struct.unpack("<i", struct.pack("<f", key))[0] + increment
         float32_base = struct.pack("<i", int_value)
 
-    float64_base = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
+    float64_base: bytes = b"\x00\x00\x00\x00\x00\x00\xe0\x7f"
     increment = struct.unpack("q", b"\x00\x00\x00\x00\x00\x01\x00\x00")[0]
     for i in range(27):
         key = struct.unpack("<d", float64_base)[0]
@@ -876,7 +879,7 @@ class StataMissingValue:
         int_value = struct.unpack("q", struct.pack("<d", key))[0] + increment
         float64_base = struct.pack("q", int_value)
 
-    BASE_MISSING_VALUES = {
+    BASE_MISSING_VALUES: Final = {
         "int8": 101,
         "int16": 32741,
         "int32": 2147483621,
@@ -884,7 +887,7 @@ class StataMissingValue:
         "float64": struct.unpack("<d", float64_base)[0],
     }
 
-    def __init__(self, value: int | float) -> None:
+    def __init__(self, value: float) -> None:
         self._value = value
         # Conversion to int to avoid hash issues on 32 bit platforms #8968
         value = int(value) if value < 2147483648 else float(value)
@@ -903,7 +906,7 @@ class StataMissingValue:
         return self._str
 
     @property
-    def value(self) -> int | float:
+    def value(self) -> float:
         """
         The binary representation of the missing value.
 
@@ -928,7 +931,7 @@ class StataMissingValue:
         )
 
     @classmethod
-    def get_base_missing_value(cls, dtype: np.dtype) -> int | float:
+    def get_base_missing_value(cls, dtype: np.dtype) -> float:
         if dtype.type is np.int8:
             value = cls.BASE_MISSING_VALUES["int8"]
         elif dtype.type is np.int16:
@@ -1523,7 +1526,7 @@ the string values returned are correct."""
         if self.format_version <= 108:
             # Value labels are not supported in version 108 and earlier.
             self._value_labels_read = True
-            self.value_label_dict: dict[str, dict[float | int, str]] = {}
+            self.value_label_dict: dict[str, dict[float, str]] = {}
             return
 
         if self.format_version >= 117:
@@ -1883,7 +1886,7 @@ the string values returned are correct."""
     def _do_convert_categoricals(
         self,
         data: DataFrame,
-        value_label_dict: dict[str, dict[float | int, str]],
+        value_label_dict: dict[str, dict[float, str]],
         lbllist: Sequence[str],
         order_categoricals: bool,
     ) -> DataFrame:
@@ -1928,7 +1931,9 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    cat_data.categories = categories
+                    # error: Incompatible types in assignment (expression has
+                    # type "List[str]", variable has type "Index")
+                    cat_data.categories = categories  # type: ignore[assignment]
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
@@ -1972,7 +1977,7 @@ The repeated labels are:
         """
         return dict(zip(self.varlist, self._variable_labels))
 
-    def value_labels(self) -> dict[str, dict[float | int, str]]:
+    def value_labels(self) -> dict[str, dict[float, str]]:
         """
         Return a dict, associating each variable name a dict, associating
         each value its corresponding label.
@@ -2250,7 +2255,7 @@ class StataWriter(StataParser):
     """
 
     _max_string_length = 244
-    _encoding = "latin-1"
+    _encoding: Literal["latin-1", "utf-8"] = "latin-1"
 
     def __init__(
         self,
@@ -2265,7 +2270,7 @@ class StataWriter(StataParser):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         super().__init__()
         self.data = data
@@ -2331,7 +2336,7 @@ class StataWriter(StataParser):
                     f"Can't create value labels for {labname}, value labels "
                     "can only be applied to numeric columns."
                 )
-            svl = StataNonCatValueLabel(colname, labels)
+            svl = StataNonCatValueLabel(colname, labels, self._encoding)
             non_cat_value_labels.append(svl)
         return non_cat_value_labels
 
@@ -3195,7 +3200,7 @@ class StataWriter117(StataWriter):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
@@ -3575,7 +3580,7 @@ class StataWriterUTF8(StataWriter117):
     >>> writer.write_file()
     """
 
-    _encoding = "utf-8"
+    _encoding: Literal["utf-8"] = "utf-8"
 
     def __init__(
         self,
@@ -3592,7 +3597,7 @@ class StataWriterUTF8(StataWriter117):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
@@ -3644,12 +3649,16 @@ class StataWriterUTF8(StataWriter117):
         # High code points appear to be acceptable
         for c in name:
             if (
-                ord(c) < 128
-                and (c < "A" or c > "Z")
-                and (c < "a" or c > "z")
-                and (c < "0" or c > "9")
-                and c != "_"
-            ) or 128 <= ord(c) < 256:
+                (
+                    ord(c) < 128
+                    and (c < "A" or c > "Z")
+                    and (c < "a" or c > "z")
+                    and (c < "0" or c > "9")
+                    and c != "_"
+                )
+                or 128 <= ord(c) < 192
+                or c in {"×", "÷"}
+            ):
                 name = name.replace(c, "_")
 
         return name

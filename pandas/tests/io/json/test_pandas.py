@@ -822,7 +822,7 @@ class TestPandasContainer:
             expected = '{"1577836800000":1577836800000,"null":null}'
         else:
             expected = (
-                '{"2020-01-01T00:00:00.000Z":"2020-01-01T00:00:00.000Z","null":null}'
+                '{"2020-01-01T00:00:00.000":"2020-01-01T00:00:00.000","null":null}'
             )
 
         if as_object:
@@ -875,8 +875,6 @@ class TestPandasContainer:
             json = df.to_json(date_format="iso")
         result = read_json(json)
         expected = df.copy()
-        expected.index = expected.index.tz_localize("UTC")
-        expected["date"] = expected["date"].dt.tz_localize("UTC")
         tm.assert_frame_equal(result, expected)
 
     def test_date_format_frame_raises(self, datetime_frame):
@@ -905,8 +903,6 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
         result = read_json(json, typ="series")
         expected = ts.copy()
-        expected.index = expected.index.tz_localize("UTC")
-        expected = expected.dt.tz_localize("UTC")
         tm.assert_series_equal(result, expected)
 
     def test_date_format_series_raises(self, datetime_series):
@@ -1192,6 +1188,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
+    def test_tz_is_naive(self):
+        from pandas.io.json import dumps
+
+        ts = Timestamp("2013-01-10 05:00:00")
+        exp = '"2013-01-10T05:00:00.000"'
+
+        assert dumps(ts, iso_dates=True) == exp
+        dt = ts.to_pydatetime()
+        assert dumps(dt, iso_dates=True) == exp
+
     @pytest.mark.parametrize(
         "tz_range",
         [
@@ -1212,10 +1218,31 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
+        # Ensure datetimes in object array are serialized correctly
+        # in addition to the normal DTI case
         assert dumps(dti, iso_dates=True) == exp
+        assert dumps(dti.astype(object), iso_dates=True) == exp
         df = DataFrame({"DT": dti})
         result = dumps(df, iso_dates=True)
         assert result == dfexp
+        assert dumps(df.astype({"DT": object}), iso_dates=True)
+
+    def test_tz_range_is_naive(self):
+        from pandas.io.json import dumps
+
+        dti = pd.date_range("2013-01-01 05:00:00", periods=2)
+
+        exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
+        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
+
+        # Ensure datetimes in object array are serialized correctly
+        # in addition to the normal DTI case
+        assert dumps(dti, iso_dates=True) == exp
+        assert dumps(dti.astype(object), iso_dates=True) == exp
+        df = DataFrame({"DT": dti})
+        result = dumps(df, iso_dates=True)
+        assert result == dfexp
+        assert dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_read_inline_jsonl(self):
         # GH9180
@@ -1538,6 +1565,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json(f'{{"url":{{"0":"{url}"}}}}')
         expected = DataFrame({"url": [url]})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "compression",
+        ["", ".gz", ".bz2", ".tar"],
+    )
+    def test_read_json_with_very_long_file_path(self, compression):
+        # GH 46718
+        long_json_path = f'{"a" * 1000}.json{compression}'
+        with pytest.raises(
+            FileNotFoundError, match=f"File {long_json_path} does not exist"
+        ):
+            # path too long for Windows is handled in file_exists() but raises in
+            # _get_data_from_filepath()
+            read_json(long_json_path)
 
     @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
@@ -1866,4 +1907,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_complex_data_tojson(self, data, expected):
         # GH41174
         result = data.to_json()
+        assert result == expected
+
+    def test_json_uint64(self):
+        # GH21073
+        expected = (
+            '{"columns":["col1"],"index":[0,1],'
+            '"data":[[13342205958987758245],[12388075603347835679]]}'
+        )
+        df = DataFrame(data={"col1": [13342205958987758245, 12388075603347835679]})
+        result = df.to_json(orient="split")
         assert result == expected

@@ -17,8 +17,8 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 
-import pandas.io.common as icom
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
@@ -1292,7 +1292,7 @@ def test_compression_output(parser, compression_only):
 
 
 def test_filename_and_suffix_comp(parser, compression_only):
-    compfile = "xml." + icom._compression_to_extension[compression_only]
+    compfile = "xml." + _compression_to_extension[compression_only]
     with tm.ensure_clean(filename=compfile) as path:
         geom_df.to_xml(path, parser=parser, compression=compression_only)
 

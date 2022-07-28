@@ -1,9 +1,12 @@
 """Common IO api utilities"""
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import bz2
 import codecs
-from collections import abc
 import dataclasses
 import functools
 import gzip
@@ -19,6 +22,7 @@ import mmap
 import os
 from pathlib import Path
 import re
+import tarfile
 from typing import (
     IO,
     Any,
@@ -26,6 +30,7 @@ from typing import (
     Generic,
     Literal,
     Mapping,
+    Sequence,
     TypeVar,
     cast,
     overload,
@@ -54,7 +59,12 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import is_file_like
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_file_like,
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -98,7 +108,6 @@ class IOHandles(Generic[AnyStr]):
     compression: CompressionDict
     created_handles: list[IO[bytes] | IO[str]] = dataclasses.field(default_factory=list)
     is_wrapped: bool = False
-    is_mmap: bool = False
 
     def close(self) -> None:
         """
@@ -112,11 +121,8 @@ class IOHandles(Generic[AnyStr]):
             self.handle.flush()
             self.handle.detach()
             self.created_handles.remove(self.handle)
-        try:
-            for handle in self.created_handles:
-                handle.close()
-        except (OSError, ValueError):
-            pass
+        for handle in self.created_handles:
+            handle.close()
         self.created_handles = []
         self.is_wrapped = False
 
@@ -175,12 +181,32 @@ def _expand_user(filepath_or_buffer: str | BaseBufferT) -> str | BaseBufferT:
 
 
 def validate_header_arg(header: object) -> None:
-    if isinstance(header, bool):
+    if header is None:
+        return
+    if is_integer(header):
+        header = cast(int, header)
+        if header < 0:
+            # GH 27779
+            raise ValueError(
+                "Passing negative integer to header is invalid. "
+                "For no header, use header=None instead"
+            )
+        return
+    if is_list_like(header, allow_sets=False):
+        header = cast(Sequence, header)
+        if not all(map(is_integer, header)):
+            raise ValueError("header must be integer or list of integers")
+        if any(i < 0 for i in header):
+            raise ValueError("cannot specify multi-index header with negative integers")
+        return
+    if is_bool(header):
         raise TypeError(
             "Passing a bool to header is invalid. Use header=None for no header or "
             "header=int or list-like of ints to specify "
             "the row(s) making up the column names"
         )
+    # GH 16338
+    raise ValueError("header must be integer or list of integers")
 
 
 @overload
@@ -450,13 +476,18 @@ def file_path_to_url(path: str) -> str:
     return urljoin("file:", pathname2url(path))
 
 
-_compression_to_extension = {
-    "gzip": ".gz",
-    "bz2": ".bz2",
-    "zip": ".zip",
-    "xz": ".xz",
-    "zstd": ".zst",
+_extension_to_compression = {
+    ".tar": "tar",
+    ".tar.gz": "tar",
+    ".tar.bz2": "tar",
+    ".tar.xz": "tar",
+    ".gz": "gzip",
+    ".bz2": "bz2",
+    ".zip": "zip",
+    ".xz": "xz",
+    ".zst": "zstd",
 }
+_supported_compressions = set(_extension_to_compression.values())
 
 
 def get_compression_method(
@@ -532,20 +563,18 @@ def infer_compression(
             return None
 
         # Infer compression from the filename/URL extension
-        for compression, extension in _compression_to_extension.items():
+        for extension, compression in _extension_to_compression.items():
             if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 
     # Compression has been specified. Check that it's valid
-    if compression in _compression_to_extension:
+    if compression in _supported_compressions:
         return compression
 
     # https://github.com/python/mypy/issues/5492
     # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
-    valid = ["infer", None] + sorted(
-        _compression_to_extension
-    )  # type: ignore[operator]
+    valid = ["infer", None] + sorted(_supported_compressions)  # type: ignore[operator]
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"
@@ -561,7 +590,6 @@ def check_parent_directory(path: Path | str) -> None:
     ----------
     path: Path or str
         Path to check parent directory of
-
     """
     parent = Path(path).parent
     if not parent.is_dir():
@@ -595,6 +623,21 @@ def get_handle(
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
 ) -> IOHandles[str]:
+    ...
+
+
+@overload
+def get_handle(
+    path_or_buf: FilePath | BaseBuffer,
+    mode: str,
+    *,
+    encoding: str | None = ...,
+    compression: CompressionOptions = ...,
+    memory_map: bool = ...,
+    is_text: bool = ...,
+    errors: str | None = ...,
+    storage_options: StorageOptions = ...,
+) -> IOHandles[str] | IOHandles[bytes]:
     ...
 
 
@@ -635,7 +678,7 @@ def get_handle(
         .. versionchanged:: 1.4.0 Zstandard support.
 
     memory_map : bool, default False
-        See parsers._parser_params for more information.
+        See parsers._parser_params for more information. Only used by read_csv.
     is_text : bool, default True
         Whether the type of the content passed to the file/buffer is string or
         bytes. This is not the same as `"b" not in mode`. If a string content is
@@ -653,6 +696,8 @@ def get_handle(
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
     encoding = encoding or "utf-8"
+
+    errors = errors or "strict"
 
     # read_csv does not know whether the buffer is opened in binary/text mode
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
@@ -676,14 +721,8 @@ def get_handle(
     handles: list[BaseBuffer]
 
     # memory mapping needs to be the first step
-    handle, memory_map, handles = _maybe_memory_map(
-        handle,
-        memory_map,
-        ioargs.encoding,
-        ioargs.mode,
-        errors,
-        ioargs.compression["method"] not in _compression_to_extension,
-    )
+    # only used for read_csv
+    handle, memory_map, handles = _maybe_memory_map(handle, memory_map)
 
     is_path = isinstance(handle, str)
     compression_args = dict(ioargs.compression)
@@ -704,8 +743,7 @@ def get_handle(
 
         # GZ Compression
         if compression == "gzip":
-            if is_path:
-                assert isinstance(handle, str)
+            if isinstance(handle, str):
                 # error: Incompatible types in assignment (expression has type
                 # "GzipFile", variable has type "Union[str, BaseBuffer]")
                 handle = gzip.GzipFile(  # type: ignore[assignment]
@@ -734,18 +772,18 @@ def get_handle(
 
         # ZIP Compression
         elif compression == "zip":
-            # error: Argument 1 to "_BytesZipFile" has incompatible type "Union[str,
-            # BaseBuffer]"; expected "Union[Union[str, PathLike[str]],
+            # error: Argument 1 to "_BytesZipFile" has incompatible type
+            # "Union[str, BaseBuffer]"; expected "Union[Union[str, PathLike[str]],
             # ReadBuffer[bytes], WriteBuffer[bytes]]"
             handle = _BytesZipFile(
                 handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
             )
-            if handle.mode == "r":
+            if handle.buffer.mode == "r":
                 handles.append(handle)
-                zip_names = handle.namelist()
+                zip_names = handle.buffer.namelist()
                 if len(zip_names) == 1:
-                    handle = handle.open(zip_names.pop())
-                elif len(zip_names) == 0:
+                    handle = handle.buffer.open(zip_names.pop())
+                elif not zip_names:
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
                     raise ValueError(
@@ -753,9 +791,40 @@ def get_handle(
                         f"Only one file per ZIP: {zip_names}"
                     )
 
+        # TAR Encoding
+        elif compression == "tar":
+            compression_args.setdefault("mode", ioargs.mode)
+            if isinstance(handle, str):
+                handle = _BytesTarFile(name=handle, **compression_args)
+            else:
+                # error: Argument "fileobj" to "_BytesTarFile" has incompatible
+                # type "BaseBuffer"; expected "Union[ReadBuffer[bytes],
+                # WriteBuffer[bytes], None]"
+                handle = _BytesTarFile(
+                    fileobj=handle, **compression_args  # type: ignore[arg-type]
+                )
+            assert isinstance(handle, _BytesTarFile)
+            if "r" in handle.buffer.mode:
+                handles.append(handle)
+                files = handle.buffer.getnames()
+                if len(files) == 1:
+                    file = handle.buffer.extractfile(files[0])
+                    assert file is not None
+                    handle = file
+                elif not files:
+                    raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
+                else:
+                    raise ValueError(
+                        "Multiple files found in TAR archive. "
+                        f"Only one file per TAR archive: {files}"
+                    )
+
         # XZ Compression
         elif compression == "xz":
-            handle = get_lzma_file()(handle, ioargs.mode)
+            # error: Argument 1 to "LZMAFile" has incompatible type "Union[str,
+            # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
+            # PathLike[bytes]], IO[bytes]]]"
+            handle = get_lzma_file()(handle, ioargs.mode)  # type: ignore[arg-type]
 
         # Zstd Compression
         elif compression == "zstd":
@@ -803,12 +872,19 @@ def get_handle(
             handle,
             encoding=ioargs.encoding,
         )
-    elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
+    elif is_text and (
+        compression or memory_map or _is_binary_mode(handle, ioargs.mode)
+    ):
+        if (
+            not hasattr(handle, "readable")
+            or not hasattr(handle, "writable")
+            or not hasattr(handle, "seekable")
+        ):
+            handle = _IOWrapper(handle)
+        # error: Argument 1 to "TextIOWrapper" has incompatible type
+        # "_IOWrapper"; expected "IO[bytes]"
         handle = TextIOWrapper(
-            # error: Argument 1 to "TextIOWrapper" has incompatible type
-            # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
-            # expected "IO[bytes]"
-            _IOWrapper(handle),  # type: ignore[arg-type]
+            handle,  # type: ignore[arg-type]
             encoding=ioargs.encoding,
             errors=errors,
             newline="",
@@ -839,33 +915,94 @@ def get_handle(
         # "List[BaseBuffer]"; expected "List[Union[IO[bytes], IO[str]]]"
         created_handles=handles,  # type: ignore[arg-type]
         is_wrapped=is_wrapped,
-        is_mmap=memory_map,
         compression=ioargs.compression,
     )
 
 
-# error: Definition of "__exit__" in base class "ZipFile" is incompatible with
-# definition in base class "BytesIO"  [misc]
-# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
-# definition in base class "BytesIO"  [misc]
-# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
-# definition in base class "BinaryIO"  [misc]
-# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
-# definition in base class "IO"  [misc]
-# error: Definition of "read" in base class "ZipFile" is incompatible with
-# definition in base class "BytesIO"  [misc]
-# error: Definition of "read" in base class "ZipFile" is incompatible with
-# definition in base class "IO"  [misc]
-class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
+# error: Definition of "__enter__" in base class "IOBase" is incompatible
+# with definition in base class "BinaryIO"
+class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     """
-    Wrapper for standard library class ZipFile and allow the returned file-like
-    handle to accept byte strings via `write` method.
-
-    BytesIO provides attributes of file-like object and ZipFile.writestr writes
-    bytes strings into a member of the archive.
+    Some objects do not support multiple .write() calls (TarFile and ZipFile).
+    This wrapper writes to the underlying buffer on close.
     """
 
-    # GH 17778
+    @abstractmethod
+    def write_to_buffer(self) -> None:
+        ...
+
+    def close(self) -> None:
+        if self.closed:
+            # already closed
+            return
+        if self.getvalue():
+            # write to buffer
+            self.seek(0)
+            # error: "_BufferedWriter" has no attribute "buffer"
+            with self.buffer:  # type: ignore[attr-defined]
+                self.write_to_buffer()
+        else:
+            # error: "_BufferedWriter" has no attribute "buffer"
+            self.buffer.close()  # type: ignore[attr-defined]
+        super().close()
+
+
+class _BytesTarFile(_BufferedWriter):
+    def __init__(
+        self,
+        name: str | None = None,
+        mode: Literal["r", "a", "w", "x"] = "r",
+        fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
+        archive_name: str | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        self.archive_name = archive_name
+        self.name = name
+        # error: Argument "fileobj" to "open" of "TarFile" has incompatible
+        # type "Union[ReadBuffer[bytes], WriteBuffer[bytes], None]"; expected
+        # "Optional[IO[bytes]]"
+        self.buffer = tarfile.TarFile.open(
+            name=name,
+            mode=self.extend_mode(mode),
+            fileobj=fileobj,  # type: ignore[arg-type]
+            **kwargs,
+        )
+
+    def extend_mode(self, mode: str) -> str:
+        mode = mode.replace("b", "")
+        if mode != "w":
+            return mode
+        if self.name is not None:
+            suffix = Path(self.name).suffix
+            if suffix in (".gz", ".xz", ".bz2"):
+                mode = f"{mode}:{suffix[1:]}"
+        return mode
+
+    def infer_filename(self) -> str | None:
+        """
+        If an explicit archive_name is not given, we still want the file inside the zip
+        file not to be named something.tar, because that causes confusion (GH39465).
+        """
+        if self.name is None:
+            return None
+
+        filename = Path(self.name)
+        if filename.suffix == ".tar":
+            return filename.with_suffix("").name
+        elif filename.suffix in (".tar.gz", ".tar.bz2", ".tar.xz"):
+            return filename.with_suffix("").with_suffix("").name
+        return filename.name
+
+    def write_to_buffer(self) -> None:
+        # TarFile needs a non-empty string
+        archive_name = self.archive_name or self.infer_filename() or "tar"
+        tarinfo = tarfile.TarInfo(name=archive_name)
+        tarinfo.size = len(self.getvalue())
+        self.buffer.addfile(tarinfo, self)
+
+
+class _BytesZipFile(_BufferedWriter):
     def __init__(
         self,
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
@@ -873,123 +1010,32 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         archive_name: str | None = None,
         **kwargs,
     ) -> None:
+        super().__init__()
         mode = mode.replace("b", "")
         self.archive_name = archive_name
-        self.multiple_write_buffer: StringIO | BytesIO | None = None
 
-        kwargs_zip: dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
-        kwargs_zip.update(kwargs)
+        kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
+        # error: Argument 1 to "ZipFile" has incompatible type "Union[
+        # Union[str, PathLike[str]], ReadBuffer[bytes], WriteBuffer[bytes]]";
+        # expected "Union[Union[str, PathLike[str]], IO[bytes]]"
+        self.buffer = zipfile.ZipFile(file, mode, **kwargs)  # type: ignore[arg-type]
 
-        # error: Argument 1 to "__init__" of "ZipFile" has incompatible type
-        # "Union[_PathLike[str], Union[str, Union[IO[Any], RawIOBase, BufferedIOBase,
-        # TextIOBase, TextIOWrapper, mmap]]]"; expected "Union[Union[str,
-        # _PathLike[str]], IO[bytes]]"
-        super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
-
-    def infer_filename(self):
+    def infer_filename(self) -> str | None:
         """
         If an explicit archive_name is not given, we still want the file inside the zip
         file not to be named something.zip, because that causes confusion (GH39465).
         """
-        if isinstance(self.filename, (os.PathLike, str)):
-            filename = Path(self.filename)
+        if isinstance(self.buffer.filename, (os.PathLike, str)):
+            filename = Path(self.buffer.filename)
             if filename.suffix == ".zip":
                 return filename.with_suffix("").name
             return filename.name
         return None
 
-    def write(self, data):
-        # buffer multiple write calls, write on flush
-        if self.multiple_write_buffer is None:
-            self.multiple_write_buffer = (
-                BytesIO() if isinstance(data, bytes) else StringIO()
-            )
-        self.multiple_write_buffer.write(data)
-
-    def flush(self) -> None:
-        # write to actual handle and close write buffer
-        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
-            return
-
+    def write_to_buffer(self) -> None:
         # ZipFile needs a non-empty string
         archive_name = self.archive_name or self.infer_filename() or "zip"
-        with self.multiple_write_buffer:
-            super().writestr(archive_name, self.multiple_write_buffer.getvalue())
-
-    def close(self):
-        self.flush()
-        super().close()
-
-    @property
-    def closed(self):
-        return self.fp is None
-
-
-class _MMapWrapper(abc.Iterator):
-    """
-    Wrapper for the Python's mmap class so that it can be properly read in
-    by Python's csv.reader class.
-
-    Parameters
-    ----------
-    f : file object
-        File object to be mapped onto memory. Must support the 'fileno'
-        method or have an equivalent attribute
-
-    """
-
-    def __init__(
-        self,
-        f: IO,
-        encoding: str = "utf-8",
-        errors: str = "strict",
-        decode: bool = True,
-    ) -> None:
-        self.encoding = encoding
-        self.errors = errors
-        self.decoder = codecs.getincrementaldecoder(encoding)(errors=errors)
-        self.decode = decode
-
-        self.attributes = {}
-        for attribute in ("seekable", "readable"):
-            if not hasattr(f, attribute):
-                continue
-            self.attributes[attribute] = getattr(f, attribute)()
-        self.mmap = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-
-    def __getattr__(self, name: str):
-        if name in self.attributes:
-            return lambda: self.attributes[name]
-        return getattr(self.mmap, name)
-
-    def __iter__(self) -> _MMapWrapper:
-        return self
-
-    def read(self, size: int = -1) -> str | bytes:
-        # CSV c-engine uses read instead of iterating
-        content: bytes = self.mmap.read(size)
-        if self.decode and self.encoding != "utf-8":
-            # memory mapping is applied before compression. Encoding should
-            # be applied to the de-compressed data.
-            final = size == -1 or len(content) < size
-            return self.decoder.decode(content, final=final)
-        return content
-
-    def __next__(self) -> str:
-        newbytes = self.mmap.readline()
-
-        # readline returns bytes, not str, but Python's CSV reader
-        # expects str, so convert the output to str before continuing
-        newline = self.decoder.decode(newbytes)
-
-        # mmap doesn't raise if reading past the allocated
-        # data but instead returns an empty string, so raise
-        # if that is returned
-        if newline == "":
-            raise StopIteration
-
-        # IncrementalDecoder seems to push newline to the next line
-        return newline.lstrip("\n")
+        self.buffer.writestr(archive_name, self.getvalue())
 
 
 class _IOWrapper:
@@ -1053,12 +1099,7 @@ class _BytesIOWrapper:
 
 
 def _maybe_memory_map(
-    handle: str | BaseBuffer,
-    memory_map: bool,
-    encoding: str,
-    mode: str,
-    errors: str | None,
-    decode: bool,
+    handle: str | BaseBuffer, memory_map: bool
 ) -> tuple[str | BaseBuffer, bool, list[BaseBuffer]]:
     """Try to memory map file/buffer."""
     handles: list[BaseBuffer] = []
@@ -1068,28 +1109,24 @@ def _maybe_memory_map(
 
     # need to open the file first
     if isinstance(handle, str):
-        if encoding and "b" not in mode:
-            # Encoding
-            handle = open(handle, mode, encoding=encoding, errors=errors, newline="")
-        else:
-            # Binary mode
-            handle = open(handle, mode)
+        handle = open(handle, "rb")
         handles.append(handle)
 
-    # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
-    # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
     try:
-        wrapped = cast(
-            BaseBuffer,
-            _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
+        # open mmap and adds *-able
+        # error: Argument 1 to "_IOWrapper" has incompatible type "mmap";
+        # expected "BaseBuffer"
+        wrapped = _IOWrapper(
+            mmap.mmap(
+                handle.fileno(), 0, access=mmap.ACCESS_READ  # type: ignore[arg-type]
+            )
         )
     finally:
         for handle in reversed(handles):
             # error: "BaseBuffer" has no attribute "close"
             handle.close()  # type: ignore[attr-defined]
-    handles.append(wrapped)
 
-    return wrapped, memory_map, handles
+    return wrapped, memory_map, [wrapped]
 
 
 def file_exists(filepath_or_buffer: FilePath | BaseBuffer) -> bool:

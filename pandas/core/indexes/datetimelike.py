@@ -210,8 +210,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
+    @final
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
-        raise NotImplementedError
+        # e.g. test_getitem_setitem_periodindex
+        # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
+        return reso > self._resolution_obj
+        # NB: for DTI/PI, not TDI
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
@@ -668,7 +672,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return freq
 
     @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self, loc):
+    def delete(self, loc) -> DatetimeTimedeltaMixin:
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result

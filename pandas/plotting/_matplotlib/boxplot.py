@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Literal,
     NamedTuple,
 )
 import warnings
@@ -34,7 +35,10 @@ if TYPE_CHECKING:
 
 
 class BoxPlot(LinePlot):
-    _kind = "box"
+    @property
+    def _kind(self) -> Literal["box"]:
+        return "box"
+
     _layout_type = "horizontal"
 
     _valid_return_types = (None, "axes", "dict", "both")
@@ -44,7 +48,7 @@ class BoxPlot(LinePlot):
         ax: Axes
         lines: dict[str, list[Line2D]]
 
-    def __init__(self, data, return_type="axes", **kwargs) -> None:
+    def __init__(self, data, return_type: str = "axes", **kwargs) -> None:
         # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
             raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
@@ -113,7 +117,7 @@ class BoxPlot(LinePlot):
     def _get_colors(self, num_colors=None, color_kwds="color"):
         pass
 
-    def maybe_color_bp(self, bp):
+    def maybe_color_bp(self, bp) -> None:
         if isinstance(self.color, dict):
             boxes = self.color.get("boxes", self._boxes_c)
             whiskers = self.color.get("whiskers", self._whiskers_c)
@@ -288,8 +292,8 @@ def boxplot(
     by=None,
     ax=None,
     fontsize=None,
-    rot=0,
-    grid=True,
+    rot: int = 0,
+    grid: bool = True,
     figsize=None,
     layout=None,
     return_type=None,
@@ -439,8 +443,8 @@ def boxplot_frame(
     by=None,
     ax=None,
     fontsize=None,
-    rot=0,
-    grid=True,
+    rot: int = 0,
+    grid: bool = True,
     figsize=None,
     layout=None,
     return_type=None,
@@ -467,16 +471,16 @@ def boxplot_frame(
 
 def boxplot_frame_groupby(
     grouped,
-    subplots=True,
+    subplots: bool = True,
     column=None,
     fontsize=None,
-    rot=0,
-    grid=True,
+    rot: int = 0,
+    grid: bool = True,
     ax=None,
     figsize=None,
     layout=None,
-    sharex=False,
-    sharey=True,
+    sharex: bool = False,
+    sharey: bool = True,
     **kwds,
 ):
     if subplots is True:

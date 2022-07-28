@@ -263,7 +263,7 @@ class Grouper:
     _gpr_index: Index | None
     _grouper: Index | None
 
-    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort", "dropna")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -287,6 +287,7 @@ class Grouper:
         self.freq = freq
         self.axis = axis
         self.sort = sort
+        self.dropna = dropna
 
         self.grouper = None
         self._gpr_index = None
@@ -295,7 +296,6 @@ class Grouper:
         self.binner = None
         self._grouper = None
         self._indexer = None
-        self.dropna = dropna
 
     @final
     @property
@@ -339,7 +339,7 @@ class Grouper:
         return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
-    def _set_grouper(self, obj: NDFrame, sort: bool = False):
+    def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -413,7 +413,6 @@ class Grouper:
         # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
-        return self._gpr_index
 
     @final
     @property
@@ -502,7 +501,7 @@ class Grouping:
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, level=ilevel)
+            ) = index._get_grouper_for_level(mapper, level=ilevel, dropna=dropna)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -680,15 +679,17 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_index._values
+            # error: Incompatible types in assignment (expression has type "Union
+            # [ExtensionArray, ndarray[Any, Any]]", variable has type "Categorical")
+            uniques = (
+                self.grouping_vector.result_index._values  # type: ignore[assignment]
+            )
         else:
-            # GH35667, replace dropna=False with na_sentinel=None
-            if not self._dropna:
-                na_sentinel = None
-            else:
-                na_sentinel = -1
-            codes, uniques = algorithms.factorize(
-                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
+            # GH35667, replace dropna=False with use_na_sentinel=False
+            # error: Incompatible types in assignment (expression has type "Union[
+            # ndarray[Any, Any], Index]", variable has type "Categorical")
+            codes, uniques = algorithms.factorize(  # type: ignore[assignment]
+                self.grouping_vector, sort=self._sort, use_na_sentinel=self._dropna
             )
         return codes, uniques
 
@@ -836,7 +837,11 @@ def get_grouper(
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
+
         if not _is_label_like(key):
+            if obj.ndim == 1:
+                return False
+
             # items -> .columns for DataFrame, .index for Series
             items = obj.axes[-1]
             try:

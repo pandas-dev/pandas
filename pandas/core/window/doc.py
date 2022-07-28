@@ -1,4 +1,6 @@
 """Any shareable docstring components for rolling/expanding/ewm"""
+from __future__ import annotations
+
 from textwrap import dedent
 
 from pandas.core.shared_docs import _shared_docs
@@ -26,6 +28,15 @@ template_see_also = dedent(
     pandas.DataFrame.{window_method} : Calling {window_method} with DataFrames.
     pandas.Series.{agg_method} : Aggregating {agg_method} for Series.
     pandas.DataFrame.{agg_method} : Aggregating {agg_method} for DataFrame.\n
+    """
+).replace("\n", "", 1)
+
+kwargs_numeric_only = dedent(
+    """
+    numeric_only : bool, default False
+        Include only float, int, boolean columns.
+
+        .. versionadded:: 1.5.0\n
     """
 ).replace("\n", "", 1)
 

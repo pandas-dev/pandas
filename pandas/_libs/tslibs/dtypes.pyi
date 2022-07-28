@@ -1,21 +1,26 @@
 from enum import Enum
 
-from pandas._libs.tslibs.offsets import BaseOffset
-
 # These are not public API, but are exposed in the .pyi file because they
 #  are imported in tests.
 _attrname_to_abbrevs: dict[str, str]
 _period_code_map: dict[str, int]
+
+def periods_per_day(reso: int) -> int: ...
+def periods_per_second(reso: int) -> int: ...
+def is_supported_unit(reso: int) -> bool: ...
+def npy_unit_to_abbrev(reso: int) -> str: ...
 
 class PeriodDtypeBase:
     _dtype_code: int  # PeriodDtypeCode
 
     # actually __cinit__
     def __new__(cls, code: int): ...
+    @property
     def _freq_group_code(self) -> int: ...
     @property
     def _resolution_obj(self) -> Resolution: ...
     def _get_to_timestamp_base(self) -> int: ...
+    @property
     def _freqstr(self) -> str: ...
 
 class FreqGroup(Enum):
@@ -56,3 +61,19 @@ class Resolution(Enum):
     def get_reso_from_freqstr(cls, freq: str) -> Resolution: ...
     @property
     def attr_abbrev(self) -> str: ...
+
+class NpyDatetimeUnit(Enum):
+    NPY_FR_Y: int
+    NPY_FR_M: int
+    NPY_FR_W: int
+    NPY_FR_D: int
+    NPY_FR_h: int
+    NPY_FR_m: int
+    NPY_FR_s: int
+    NPY_FR_ms: int
+    NPY_FR_us: int
+    NPY_FR_ns: int
+    NPY_FR_ps: int
+    NPY_FR_fs: int
+    NPY_FR_as: int
+    NPY_FR_GENERIC: int

@@ -173,7 +173,7 @@ def test_date_time(datapath):
         fname, parse_dates=["Date1", "Date2", "DateTime", "DateTimeHi", "Taiw"]
     )
     # GH 19732: Timestamps imported from sas will incur floating point errors
-    df.iloc[:, 3] = df.iloc[:, 3].dt.round("us")
+    df[df.columns[3]] = df.iloc[:, 3].dt.round("us")
     tm.assert_frame_equal(df, df0)
 
 
@@ -214,6 +214,14 @@ def test_zero_variables(datapath):
     fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")
     with pytest.raises(EmptyDataError, match="No columns to parse from file"):
         pd.read_sas(fname)
+
+
+def test_zero_rows(datapath):
+    # GH 18198
+    fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
+    result = pd.read_sas(fname)
+    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_corrupt_read(datapath):
@@ -333,3 +341,59 @@ def test_null_date(datapath):
         },
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_meta2_page(datapath):
+    # GH 35545
+    fname = datapath("io", "sas", "data", "test_meta2_page.sas7bdat")
+    df = pd.read_sas(fname)
+    assert len(df) == 1000
+
+
+@pytest.mark.parametrize("test_file", ["test2.sas7bdat", "test3.sas7bdat"])
+def test_exception_propagation_rdc_rle_decompress(datapath, monkeypatch, test_file):
+    """Errors in RLE/RDC decompression should propagate the same error."""
+    orig_np_zeros = np.zeros
+
+    def _patched_zeros(size, dtype):
+        if isinstance(size, int):
+            # np.zeros() call in {rdc,rle}_decompress
+            raise Exception("Test exception")
+        else:
+            # Other calls to np.zeros
+            return orig_np_zeros(size, dtype)
+
+    monkeypatch.setattr(np, "zeros", _patched_zeros)
+
+    with pytest.raises(Exception, match="^Test exception$"):
+        pd.read_sas(datapath("io", "sas", "data", test_file))
+
+
+def test_exception_propagation_rle_decompress(tmp_path, datapath):
+    """Illegal control byte in RLE decompressor should raise the correct ValueError."""
+    with open(datapath("io", "sas", "data", "test2.sas7bdat"), "rb") as f:
+        data = bytearray(f.read())
+    invalid_control_byte = 0x10
+    page_offset = 0x10000
+    control_byte_pos = 55229
+    data[page_offset + control_byte_pos] = invalid_control_byte
+    tmp_file = tmp_path / "test2.sas7bdat"
+    tmp_file.write_bytes(data)
+    with pytest.raises(ValueError, match="unknown control byte"):
+        pd.read_sas(tmp_file)
+
+
+def test_0x40_control_byte(datapath):
+    # GH 31243
+    fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
+    df = pd.read_sas(fname, encoding="ascii")
+    fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
+    df0 = pd.read_csv(fname, dtype="object")
+    tm.assert_frame_equal(df, df0)
+
+
+def test_0x00_control_byte(datapath):
+    # GH 47099
+    fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
+    df = next(pd.read_sas(fname, chunksize=11_000))
+    assert df.shape == (11_000, 20)

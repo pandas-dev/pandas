@@ -48,7 +48,7 @@ from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
-CSSPair = Tuple[str, Union[str, int, float]]
+CSSPair = Tuple[str, Union[str, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
 
@@ -908,7 +908,7 @@ class StylerRenderer:
                 f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
             )
         elif clines is not None:
-            data_len = len(row_body_cells) if "data" in clines else 0
+            data_len = len(row_body_cells) if "data" in clines and d["body"] else 0
 
             d["clines"] = defaultdict(list)
             visible_row_indexes: list[int] = [
@@ -2055,7 +2055,7 @@ def _parse_latex_header_span(
         return display_val
 
 
-def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
+def _parse_latex_options_strip(value: str | float, arg: str) -> str:
     """
     Strip a css_value which may have latex wrapping arguments, css comment identifiers,
     and whitespaces, to a valid string for latex options parsing.

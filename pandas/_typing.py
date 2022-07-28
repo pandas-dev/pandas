@@ -82,7 +82,7 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
 # scalars
 
-PythonScalar = Union[str, int, float, bool]
+PythonScalar = Union[str, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, datetime]
@@ -92,10 +92,10 @@ IntStrT = TypeVar("IntStrT", int, str)
 # timestamp and timedelta convertible types
 
 TimestampConvertibleTypes = Union[
-    "Timestamp", datetime, np.datetime64, int, np.int64, float, str
+    "Timestamp", datetime, np.datetime64, np.int64, float, str
 ]
 TimedeltaConvertibleTypes = Union[
-    "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
+    "Timedelta", timedelta, np.timedelta64, np.int64, float, str
 ]
 Timezone = Union[str, tzinfo]
 
@@ -109,7 +109,7 @@ NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
-Level = Union[Hashable, int]
+Level = Hashable
 Shape = Tuple[int, ...]
 Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
@@ -126,7 +126,7 @@ RandomState = Union[
 ]
 
 # dtypes
-NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, object]]]
+NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
@@ -256,7 +256,7 @@ StorageOptions = Optional[Dict[str, Any]]
 # compression keywords and compression
 CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
-    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
+    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict]
 ]
 
 # types in DataFrameFormatter
@@ -313,7 +313,8 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
-IntervalClosedType = Literal["left", "right", "both", "neither"]
+IntervalLeftRight = Literal["left", "right"]
+IntervalInclusiveType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]
@@ -322,3 +323,9 @@ DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
 # sort_index
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
+
+# quantile interpolation
+QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
+
+# plotting
+PlottingOrientation = Literal["horizontal", "vertical"]
