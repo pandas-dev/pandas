@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_percentile_argname
+from pandas.compat.numpy import (
+    np_percentile_argname,
+    np_version_under1p21,
+)
 
 import pandas as pd
 from pandas import (
@@ -655,6 +658,10 @@ class TestQuantileExtensionDtype:
             result = obj.quantile(qs, numeric_only=False)
         return result
 
+    @pytest.mark.xfail(
+        np_version_under1p21,
+        reason="failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood",
+    )
     def test_quantile_ea(self, obj, index):
 
         # result should be invariant to shuffling
@@ -722,6 +729,10 @@ class TestQuantileExtensionDtype:
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
+    @pytest.mark.xfail(
+        np_version_under1p21,
+        reason="failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood",
+    )
     def test_quantile_ea_scalar(self, obj, index):
         # scalar qs
 
