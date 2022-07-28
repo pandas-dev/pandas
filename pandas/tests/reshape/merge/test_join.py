@@ -723,7 +723,7 @@ class TestJoin:
         result = df1.join(df2)
         expected = DataFrame(
             {"c1": ["a", "b"], "c2": ["a", "b"]},
-            index=pd.CategoricalIndex(["a", "b"], categories=["a", "b"])
+            index=pd.CategoricalIndex(["a", "b"], categories=["a", "b"]),
         )
         tm.assert_frame_equal(result, expected)
 
