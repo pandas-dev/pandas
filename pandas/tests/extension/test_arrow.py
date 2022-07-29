@@ -10,7 +10,6 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
-
 from datetime import (
     date,
     datetime,
@@ -24,8 +23,10 @@ import pytest
 from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
+    pa_version_under4p0,
     pa_version_under6p0,
     pa_version_under8p0,
+    pa_version_under9p0,
 )
 
 import pandas as pd
@@ -1385,6 +1386,11 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_value_counts_with_normalize(data)
 
+    @pytest.mark.xfail(
+        pa_version_under6p0,
+        raises=NotImplementedError,
+        reason="argmin/max only implemented for pyarrow version >= 6.0",
+    )
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
@@ -1395,7 +1401,49 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"min_max not supported in pyarrow for {pa_dtype}",
+                )
+            )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected, request
+    ):
+        pa_dtype = data_missing_for_sorting.dtype.pyarrow_dtype
+        if pa_version_under6p0 and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        elif not pa_version_under6p0 and pa.types.is_duration(pa_dtype) and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"min_max not supported in pyarrow for {pa_dtype}",
+                )
+            )
+        super().test_argreduce_series(
+            data_missing_for_sorting, op_name, skipna, expected
+        )
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
@@ -1946,3 +1994,72 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+
+
+@pytest.mark.xfail(
+    pa_version_under4p0,
+    raises=NotImplementedError,
+    reason="quantile only supported for pyarrow version >= 4.0",
+)
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
+)
+@pytest.mark.parametrize("quantile", [0.5, [0.5, 0.5]])
+def test_quantile(data, interpolation, quantile, request):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"quantile not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    data = data.take([0, 0, 0])
+    ser = pd.Series(data)
+    result = ser.quantile(q=quantile, interpolation=interpolation)
+    if quantile == 0.5:
+        assert result == data[0]
+    else:
+        # Just check the values
+        result = result.astype("float64[pyarrow]")
+        expected = pd.Series(
+            data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
+        )
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(
+    pa_version_under6p0,
+    raises=NotImplementedError,
+    reason="mode only supported for pyarrow version >= 6.0",
+)
+@pytest.mark.parametrize("dropna", [True, False])
+@pytest.mark.parametrize(
+    "take_idx, exp_idx",
+    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
+    ids=["multi_mode", "single_mode"],
+)
+def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
+    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+    if pa.types.is_temporal(pa_dtype):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"mode not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    elif (
+        pa.types.is_boolean(pa_dtype)
+        and "multi_mode" in request.node.nodeid
+        and pa_version_under9p0
+    ):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="https://issues.apache.org/jira/browse/ARROW-17096",
+            )
+        )
+    data = data_for_grouping.take(take_idx)
+    ser = pd.Series(data)
+    result = ser.mode(dropna=dropna)
+    expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)

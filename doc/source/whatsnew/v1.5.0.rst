@@ -773,6 +773,7 @@ Other Deprecations
 - Deprecated :class:`Series` and :class:`Resampler` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) raising a ``NotImplementedError`` when the dtype is non-numric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
+- Deprecated arguments ``*args`` and ``**kwargs`` in :class:`Rolling`, :class:`Expanding`, and :class:`ExponentialMovingWindow` ops. (:issue:`47836`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -1024,6 +1025,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
 - Bug in :meth:`concat` when ``axis=1`` and ``sort=False`` where the resulting Index was a :class:`Int64Index` instead of a :class:`RangeIndex` (:issue:`46675`)
 - Bug in :meth:`wide_to_long` raises when ``stubnames`` is missing in columns and ``i`` contains string dtype column (:issue:`46044`)
+- Bug in :meth:`DataFrame.join` with categorical index results in unexpected reordering (:issue:`47812`)
 
 Sparse
 ^^^^^^
