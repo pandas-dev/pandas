@@ -55,6 +55,12 @@ is an :class:`ArrowDtype`.
 `Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ provides similar array and `data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
 support as NumPy including first-class nullability support for all data types, immutability and more.
 
+.. note::
+
+    For string types (``pyarrow.string()``, ``string[pyarrow]``), PyArrow support is still facilitated
+    by :class:`arrays.ArrowStringArray` and ``StringDtype("pyarrow")``. See the :ref:`string section <api.arrays.string>`
+    below.
+
 While individual values in an :class:`arrays.ArrowExtensionArray` are stored as a PyArrow objects, scalars are **returned**
 as Python scalars corresponding to the data type, e.g. a PyArrow int64 will be returned as Python int, or :class:`NA` for missing
 values.
