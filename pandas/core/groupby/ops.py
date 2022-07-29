@@ -735,6 +735,7 @@ class BaseGrouper:
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
+        self.keys = keys
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
