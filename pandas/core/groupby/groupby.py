@@ -645,7 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
-    keys: _KeysArgType | None = None,
+    keys: _KeysArgType | None = None
     group_keys: bool | lib.NoDefault
 
     @final
