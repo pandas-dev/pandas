@@ -1190,6 +1190,7 @@ class MultiIndex(Index):
         This could be potentially expensive on large MultiIndex objects.
         """
         names = self._validate_names(name=name, names=names, deep=deep)
+        keep_id = not deep
         if levels is not None:
             warnings.warn(
                 "parameter levels is deprecated and will be removed in a future "
@@ -1197,6 +1198,7 @@ class MultiIndex(Index):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+            keep_id = False
         if codes is not None:
             warnings.warn(
                 "parameter codes is deprecated and will be removed in a future "
@@ -1204,6 +1206,7 @@ class MultiIndex(Index):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+            keep_id = False
 
         if deep:
             from copy import deepcopy
@@ -1225,6 +1228,8 @@ class MultiIndex(Index):
         )
         new_index._cache = self._cache.copy()
         new_index._cache.pop("levels", None)  # GH32669
+        if keep_id:
+            new_index._id = self._id
 
         if dtype:
             warnings.warn(
