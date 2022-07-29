@@ -707,6 +707,10 @@ class TestQuantileExtensionDtype:
 
     # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
+    @pytest.mark.xfail(
+        np_version_under1p21,
+        reason="failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood",
+    )
     def test_quantile_ea_all_na(self, obj, index):
         obj.iloc[:] = index._na_value
 
