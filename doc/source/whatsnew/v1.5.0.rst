@@ -774,7 +774,7 @@ Other Deprecations
 - Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
 - Deprecated arguments ``*args`` and ``**kwargs`` in :class:`Rolling`, :class:`Expanding`, and :class:`ExponentialMovingWindow` ops. (:issue:`47836`)
-- Deprecated producing a single element when using :class:`Pandas.groupby` or :class:`SeriesGroupBy` with a single list element. A tuple of length one will be returned instead (:issue:`42795`)
+- Deprecated producing a single element when iterating over a :class:`Pandas.groupby` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
