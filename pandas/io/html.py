@@ -1139,7 +1139,7 @@ def read_html(
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-    .. versionadded:: 1.5.0
+        .. versionadded:: 1.5.0
 
     Returns
     -------
