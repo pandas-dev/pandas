@@ -41,6 +41,12 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.errors import (
+    CategoricalConversionWarning,
+    InvalidColumnName,
+    PossiblePrecisionLoss,
+    ValueLabelTypeMismatch,
+)
 from pandas.util._decorators import (
     Appender,
     doc,
@@ -493,32 +499,20 @@ characters.  Column '{0}' does not satisfy this restriction. Use the
 """
 
 
-class PossiblePrecisionLoss(Warning):
-    pass
-
-
-precision_loss_doc: Final = """
+precision_loss_doc = """
 Column converted from {0} to {1}, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
 
 
-class ValueLabelTypeMismatch(Warning):
-    pass
-
-
-value_label_mismatch_doc: Final = """
+value_label_mismatch_doc = """
 Stata value labels (pandas categories) must be strings. Column {0} contains
 non-string labels which will be converted to strings.  Please check that the
 Stata data file created has not lost information due to duplicate labels.
 """
 
 
-class InvalidColumnName(Warning):
-    pass
-
-
-invalid_name_doc: Final = """
+invalid_name_doc = """
 Not all pandas column names were valid Stata variable names.
 The following replacements have been made:
 
@@ -528,10 +522,6 @@ If this is not what you expect, please make sure you have Stata-compliant
 column names in your DataFrame (strings only, max 32 characters, only
 alphanumerics and underscores, no Stata reserved words)
 """
-
-
-class CategoricalConversionWarning(Warning):
-    pass
 
 
 categorical_conversion_warning = """

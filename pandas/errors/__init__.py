@@ -469,6 +469,60 @@ class DatabaseError(OSError):
     """
 
 
+class PossiblePrecisionLoss(Warning):
+    """
+    Warning is raised when calling to_stata on a column where the column value is
+    outside or equal to the int64 value and is converted to an float64.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
+    >>> df.to_stata('test') # doctest: +SKIP
+    ... # PossiblePrecisionLoss: Column converted from int64 to float64...
+    """
+
+
+class ValueLabelTypeMismatch(Warning):
+    """
+    Warning is raised when calling to_stata on a category column where the column
+    contains non-string values.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})
+    >>> df.to_stata('test') # doctest: +SKIP
+    ... # ValueLabelTypeMismatch: Stata value labels (pandas categories) must be str...
+    """
+
+
+class InvalidColumnName(Warning):
+    """
+    Warning is raised when calling to_stata on a dataframe that has a column where
+    the column contains a non-valid stata name and needs to be converted.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"0categories": pd.Series([2, 2])})
+    >>> df.to_stata('test') # doctest: +SKIP
+    ... # InvalidColumnName: Not all pandas column names were valid Stata variable...
+    """
+
+
+class CategoricalConversionWarning(Warning):
+    """
+    Warning is raised when reading a partial labeled Stata file using a iterator.
+
+    Examples
+    --------
+    >>> from pandas.io.stata import StataReader
+    >>> with StataReader('dta_file', chunksize=2) as reader: # doctest: +SKIP
+    ...   for i, block in enumerate(reader):
+    ...      print(i, block))
+    ... # CategoricalConversionWarning: One or more series with value labels...
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
