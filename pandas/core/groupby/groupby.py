@@ -645,6 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
+    keys: _KeysArgType | None = None,
     group_keys: bool | lib.NoDefault
 
     @final
@@ -821,7 +822,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        keys = self.keys # type: ignore[attr-defined]
+        keys = self.keys
         if isinstance(keys, list) and len(keys) == 1:
             warnings.warn(
                 (
