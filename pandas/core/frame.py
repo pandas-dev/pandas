@@ -10047,7 +10047,7 @@ Parrot 2  Parrot       24.0
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
-        validate: str | None = None,  
+        validate: str | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
