@@ -734,6 +734,14 @@ class TestDataFrameQuantile:
 
         assert df.iloc[0, 0] == df["A"][0]
 
+    def test_invalid_method(self):
+        with pytest.raises(ValueError, match="Invalid method: foo"):
+            DataFrame(range(1)).quantile(0.5, method="foo")
+
+    def test_table_invalid_interpolation(self):
+        with pytest.raises(ValueError, match="Invalid interpolation: foo"):
+            DataFrame(range(1)).quantile(0.5, method="table", interpolation="foo")
+
 
 class TestQuantileExtensionDtype:
     # TODO: tests for axis=1?

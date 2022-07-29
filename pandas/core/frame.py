@@ -11312,7 +11312,7 @@ Parrot 2  Parrot       24.0
                 np.arange(len(data)), q, **{np_percentile_argname: interpolation}
             )
 
-            by = data.columns.tolist()
+            by = data.columns
             if len(by) > 1:
                 keys = [data._get_label_or_level_values(x) for x in by]
                 indexer = lexsort_indexer(keys)
