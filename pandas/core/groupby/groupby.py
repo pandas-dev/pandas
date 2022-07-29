@@ -1020,6 +1020,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self.apply(curried)
 
             is_transform = name in base.transformation_kernels
+
+            if is_transform and self._obj_with_exclusions.empty:
+                return self._obj_with_exclusions
+
             result = self._python_apply_general(
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
@@ -1338,7 +1342,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             # GH#47500
-            how = "sum" if how == "add" else how
             warnings.warn(
                 f"{type(self).__name__}.{how} called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
@@ -1738,9 +1741,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 kwd_name = "numeric_only"
                 if how in ["any", "all"]:
                     kwd_name = "bool_only"
-                kernel = "sum" if how == "add" else how
                 raise NotImplementedError(
-                    f"{type(self).__name__}.{kernel} does not implement {kwd_name}."
+                    f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
             elif not is_ser:
                 data = data.get_numeric_data(copy=False)
@@ -2417,7 +2419,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = self._agg_general(
                     numeric_only=numeric_only,
                     min_count=min_count,
-                    alias="add",
+                    alias="sum",
                     npfunc=np.sum,
                 )
 
@@ -4341,8 +4343,6 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
 
 
 def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> None:
-    if how == "add":
-        how = "sum"
     if numeric_only is not lib.no_default and not numeric_only:
         # numeric_only was specified and falsey but still dropped nuisance columns
         warnings.warn(
