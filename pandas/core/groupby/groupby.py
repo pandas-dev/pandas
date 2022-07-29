@@ -827,9 +827,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             warnings.warn(
                 (
                     "In a future version of pandas, a length 1 "
-                    "tuple will be returned when grouping by a "
-                    "list of length 1. Don't supply a list with "
-                    "a single grouper to avoid this warning."
+                    "tuple will be returned when iterating over a "
+                    "a groupby with a grouper equal to a list of "
+                    "length 1. Don't supply a list with a single grouper "
+                    "to avoid this warning."
                 ),
                 FutureWarning,
                 stacklevel=find_stack_level(),

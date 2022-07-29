@@ -2799,8 +2799,9 @@ def test_groupby_none_column_name():
 
 def test_single_element_list_grouping():
     # GH 42795
-    df = DataFrame(columns=["a", "b", "c"], index=["x", "y"])
-    df.loc["y"] = Series({"a": 1, "b": 5, "c": 2})
+    df = DataFrame(
+        {"a": [np.nan, 1], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"]
+    )
     msg = (
         "In a future version of pandas, a length 1 "
         "tuple will be returned when grouping by a "
