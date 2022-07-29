@@ -727,7 +727,6 @@ class NaTType(_NaT):
         """
         Return new Timestamp object representing current time local to tz.
 
-
         Parameters
         ----------
         tz : str or timezone object, default None
