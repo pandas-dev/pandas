@@ -250,7 +250,7 @@ def network(
     return wrapper
 
 
-def can_connect(url, error_classes=None):
+def can_connect(url, error_classes=None) -> bool:
     """
     Try to connect to the given url. True if succeeds, False if OSError
     raised
@@ -424,7 +424,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 # Plotting
 
 
-def close(fignum=None):
+def close(fignum=None) -> None:
     from matplotlib.pyplot import (
         close as _close,
         get_fignums,

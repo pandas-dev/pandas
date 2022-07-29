@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import IS64
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -84,15 +85,15 @@ class TestAsUnit:
 
     def test_as_unit_non_nano(self):
         # case where we are going neither to nor from nano
-        td = Timedelta(days=1)._as_unit("D")
+        td = Timedelta(days=1)._as_unit("ms")
         assert td.days == 1
-        assert td.value == 1
+        assert td.value == 86_400_000
         assert td.components.days == 1
         assert td._d == 1
         assert td.total_seconds() == 86400
 
-        res = td._as_unit("h")
-        assert res.value == 24
+        res = td._as_unit("us")
+        assert res.value == 86_400_000_000
         assert res.components.days == 1
         assert res.components.hours == 0
         assert res._d == 1
@@ -101,18 +102,23 @@ class TestAsUnit:
 
 
 class TestNonNano:
-    @pytest.fixture(params=[7, 8, 9])
-    def unit(self, request):
-        # 7, 8, 9 correspond to second, millisecond, and microsecond, respectively
+    @pytest.fixture(params=["s", "ms", "us"])
+    def unit_str(self, request):
         return request.param
+
+    @pytest.fixture
+    def unit(self, unit_str):
+        # 7, 8, 9 correspond to second, millisecond, and microsecond, respectively
+        attr = f"NPY_FR_{unit_str}"
+        return getattr(NpyDatetimeUnit, attr).value
 
     @pytest.fixture
     def val(self, unit):
         # microsecond that would be just out of bounds for nano
         us = 9223372800000000
-        if unit == 9:
+        if unit == NpyDatetimeUnit.NPY_FR_us.value:
             value = us
-        elif unit == 8:
+        elif unit == NpyDatetimeUnit.NPY_FR_ms.value:
             value = us // 1000
         else:
             value = us // 1_000_000
@@ -166,11 +172,11 @@ class TestNonNano:
 
             assert isinstance(res, np.timedelta64)
             assert res.view("i8") == td.value
-            if unit == 7:
+            if unit == NpyDatetimeUnit.NPY_FR_s.value:
                 assert res.dtype == "m8[s]"
-            elif unit == 8:
+            elif unit == NpyDatetimeUnit.NPY_FR_ms.value:
                 assert res.dtype == "m8[ms]"
-            elif unit == 9:
+            elif unit == NpyDatetimeUnit.NPY_FR_us.value:
                 assert res.dtype == "m8[us]"
 
     def test_truediv_timedeltalike(self, td):
@@ -230,6 +236,70 @@ class TestNonNano:
         res = td // np.array(2.0)
         assert res.value == td.value // 2
         assert res._reso == td._reso
+
+    def test_addsub_mismatched_reso(self, td):
+        other = Timedelta(days=1)  # can losslessly convert to other resos
+
+        result = td + other
+        assert result._reso == td._reso
+        assert result.days == td.days + 1
+
+        result = other + td
+        assert result._reso == td._reso
+        assert result.days == td.days + 1
+
+        result = td - other
+        assert result._reso == td._reso
+        assert result.days == td.days - 1
+
+        result = other - td
+        assert result._reso == td._reso
+        assert result.days == 1 - td.days
+
+        other2 = Timedelta(500)  # can't cast losslessly
+
+        msg = (
+            "Timedelta addition/subtraction with mismatched resolutions is "
+            "not allowed when casting to the lower resolution would require "
+            "lossy rounding"
+        )
+        with pytest.raises(ValueError, match=msg):
+            td + other2
+        with pytest.raises(ValueError, match=msg):
+            other2 + td
+        with pytest.raises(ValueError, match=msg):
+            td - other2
+        with pytest.raises(ValueError, match=msg):
+            other2 - td
+
+    def test_min(self, td):
+        assert td.min <= td
+        assert td.min._reso == td._reso
+        assert td.min.value == NaT.value + 1
+
+    def test_max(self, td):
+        assert td.max >= td
+        assert td.max._reso == td._reso
+        assert td.max.value == np.iinfo(np.int64).max
+
+    def test_resolution(self, td):
+        expected = Timedelta._from_value_and_reso(1, td._reso)
+        result = td.resolution
+        assert result == expected
+        assert result._reso == expected._reso
+
+
+def test_timedelta_class_min_max_resolution():
+    # when accessed on the class (as opposed to an instance), we default
+    #  to nanoseconds
+    assert Timedelta.min == Timedelta(NaT.value + 1)
+    assert Timedelta.min._reso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    assert Timedelta.max == Timedelta(np.iinfo(np.int64).max)
+    assert Timedelta.max._reso == NpyDatetimeUnit.NPY_FR_ns.value
+
+    assert Timedelta.resolution == Timedelta(1)
+    assert Timedelta.resolution._reso == NpyDatetimeUnit.NPY_FR_ns.value
 
 
 class TestTimedeltaUnaryOps:
@@ -621,6 +691,7 @@ class TestTimedeltas:
         with pytest.raises(OverflowError, match=msg):
             Timedelta.max.ceil("s")
 
+    @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build", strict=False)
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
@@ -676,17 +747,6 @@ class TestTimedeltas:
         res = td.ceil("min")
         assert res == Timedelta("1 days 02:35:00")
         assert res._reso == td._reso
-
-    def test_contains(self):
-        # Checking for any NaT-like objects
-        # GH 13603
-        td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
-        for v in [NaT, None, float("nan"), np.nan]:
-            assert not (v in td)
-
-        td = to_timedelta([NaT])
-        for v in [NaT, None, float("nan"), np.nan]:
-            assert v in td
 
     def test_identity(self):
 

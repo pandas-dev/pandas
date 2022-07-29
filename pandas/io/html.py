@@ -10,6 +10,7 @@ from collections import abc
 import numbers
 import re
 from typing import (
+    Iterable,
     Literal,
     Pattern,
     Sequence,
@@ -1036,7 +1037,7 @@ def read_html(
     encoding: str | None = None,
     decimal: str = ".",
     converters: dict | None = None,
-    na_values=None,
+    na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,

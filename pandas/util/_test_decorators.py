@@ -27,7 +27,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import locale
-from typing import Callable
+from typing import (
+    Callable,
+    Iterator,
+)
 import warnings
 
 import numpy as np
@@ -253,7 +256,7 @@ def check_file_leaks(func) -> Callable:
 
 
 @contextmanager
-def file_leak_context():
+def file_leak_context() -> Iterator[None]:
     """
     ContextManager analogue to check_file_leaks.
     """
@@ -290,7 +293,7 @@ def async_mark():
     return async_mark
 
 
-def mark_array_manager_not_yet_implemented(request):
+def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
     request.node.add_marker(mark)
 
