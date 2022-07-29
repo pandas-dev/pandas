@@ -167,7 +167,48 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    pass
+    def test_argmin_argmax(
+        self, data_for_sorting, data_missing_for_sorting, na_value, request
+    ):
+        if pa_version_under6p0 and data_missing_for_sorting.dtype.storage == "pyarrow":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected, request
+    ):
+        if (
+            pa_version_under6p0
+            and data_missing_for_sorting.dtype.storage == "pyarrow"
+            and skipna
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        super().test_argreduce_series(
+            data_missing_for_sorting, op_name, skipna, expected
+        )
 
 
 class TestCasting(base.BaseCastingTests):
