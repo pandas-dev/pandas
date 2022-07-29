@@ -658,10 +658,6 @@ class TestQuantileExtensionDtype:
             result = obj.quantile(qs, numeric_only=False)
         return result
 
-    @pytest.mark.xfail(
-        np_version_under1p21,
-        reason="failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood",
-    )
     def test_quantile_ea(self, obj, index):
 
         # result should be invariant to shuffling
@@ -673,7 +669,7 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         exp_dtype = index.dtype
-        if index.dtype == "Int64":
+        if not np_version_under1p21 and index.dtype == "Int64":
             # match non-nullable casting behavior
             exp_dtype = "Float64"
 
@@ -707,10 +703,6 @@ class TestQuantileExtensionDtype:
 
     # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    @pytest.mark.xfail(
-        np_version_under1p21,
-        reason="failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood",
-    )
     def test_quantile_ea_all_na(self, obj, index):
         obj.iloc[:] = index._na_value
 
@@ -728,15 +720,11 @@ class TestQuantileExtensionDtype:
 
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
         expected = Series(expected, index=qs, name="A")
-        if expected.dtype == "Int64":
+        if not np_version_under1p21 and expected.dtype == "Int64":
             expected = expected.astype("Float64")
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    @pytest.mark.xfail(
-        np_version_under1p21,
-        reason="failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood",
-    )
     def test_quantile_ea_scalar(self, obj, index):
         # scalar qs
 
@@ -749,7 +737,7 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         exp_dtype = index.dtype
-        if index.dtype == "Int64":
+        if not np_version_under1p21 and index.dtype == "Int64":
             exp_dtype = "Float64"
 
         expected = Series({"A": index[4]}, dtype=exp_dtype, name=0.5)
