@@ -80,7 +80,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+    np_percentile_argname,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -11148,7 +11151,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = 0,
         numeric_only: bool | lib.NoDefault = no_default,
         interpolation: str = "linear",
-        method: str = "single",
+        method: Literal["single", "table"] = "single",
     ):
         """
         Return values at the given quantile over requested axis.
@@ -11283,16 +11286,31 @@ Parrot 2  Parrot       24.0
             res = self._constructor([], index=q, columns=cols, dtype=dtype)
             return res.__finalize__(self, method="quantile")
 
+        valid_method = {"single", "table"}
+        if method not in valid_method:
+            raise ValueError(
+                f"Invalid method: {method}. Method must be in {valid_method}."
+            )
         if method == "single":
             res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
         elif method == "table":
+            valid_interpolation = {"nearest", "lower", "higher"}
+            if interpolation not in valid_interpolation:
+                raise ValueError(
+                    f"Invalid interpolation: {interpolation}. "
+                    f"Interpolation must be in {valid_interpolation}"
+                )
             # handle degenerate case
             if len(data) == 0:
-                return self._constructor(
-                    [], index=q, columns=data.columns, dtype=np.float64
-                )
+                if data.ndim == 2:
+                    dtype = find_common_type(list(self.dtypes))
+                else:
+                    dtype = self.dtype
+                return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
-            q_idx = np.quantile(np.arange(len(data)), q, interpolation=interpolation)
+            q_idx = np.quantile(
+                np.arange(len(data)), q, **{np_percentile_argname: interpolation}
+            )
 
             by = data.columns.tolist()
             if len(by) > 1:
@@ -11305,8 +11323,6 @@ Parrot 2  Parrot       24.0
 
             res = data._mgr.take(indexer[q_idx], verify=False)
             res.axes[1] = q
-        else:
-            raise ValueError(f"Invalid quantiles method: {method}")
 
         result = self._constructor(res)
         return result.__finalize__(self, method="quantile")
