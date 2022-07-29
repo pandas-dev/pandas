@@ -3,10 +3,13 @@ from datetime import (
     timezone,
 )
 
+from pandas.compat._optional import import_optional_dependency
+
 try:
     # py39+
     import zoneinfo
     from zoneinfo import ZoneInfo
+    import_optional_dependency("tzdata", errors="raise", min_version="2022.1")
 except ImportError:
     zoneinfo = None
     ZoneInfo = None

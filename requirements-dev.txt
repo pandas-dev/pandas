@@ -39,6 +39,7 @@ s3fs
 scipy
 sqlalchemy
 tabulate
+tzdata>=2022.1
 xarray
 xlrd
 xlsxwriter

@@ -270,6 +270,15 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
+Timezones
+^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+tzdata                    2022.1             Allows the use of ``zoneinfo`` timezones with pandas
+========================= ================== =============================================================
+
 Visualization
 ^^^^^^^^^^^^^
 
