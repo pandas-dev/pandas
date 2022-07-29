@@ -821,7 +821,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        keys = self.keys
+        keys = self.keys # type: ignore[attr-defined]
         if isinstance(keys, list) and len(keys) == 1:
             warnings.warn(
                 (
