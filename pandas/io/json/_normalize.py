@@ -537,7 +537,7 @@ def _json_normalize(
                 for _ in range(repeat):
                     out.append(item)
         else:
-            out = np.array(v).repeat(lengths) # type: ignore[particular-violation]
+            out = np.array(v).repeat(lengths)  # type: ignore[particular-violation]
         result[k] = out
     return result
 
