@@ -325,16 +325,14 @@ def unique(values):
 
     Returns
     -------
-    numpy.ndarray or ExtensionArray
+    The return can be:
 
-        The return can be:
-
-        * Index : when the input is an Index
-        * Categorical : when the input is a Categorical dtype
-        * ndarray : when the input is a Series/ndarray
-
-        Return numpy.ndarray or, if the argument is a pandas
-        :ref:`extension array <extending.extension-types>` type, ExtensionArray.
+    * Index : when the input is an Index
+    * ndarray : when the input is a Series/ndarray
+    * If the argument is an :ref:` ExtensionArray <extending.extension-types>`,
+    the return type matches argument type. In pandas, classes implementing the
+    ExtensionArray interface include Categorical, PeriodArray, IntervalArray,
+    DateTimeArray, SparseArray.
 
     See Also
     --------
