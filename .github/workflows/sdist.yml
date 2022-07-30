@@ -13,6 +13,9 @@ on:
     paths-ignore:
       - "doc/**"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
@@ -62,9 +65,10 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
       with:
-        environment-file: ""
+        environment-file: false
         environment-name: pandas-sdist
-        python-version: ${{ matrix.python-version }}
+        extra-specs: |
+          python =${{ matrix.python-version }}
 
     - name: Install pandas from sdist
       run: |

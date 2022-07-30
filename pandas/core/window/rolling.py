@@ -29,6 +29,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     NDFrameT,
+    QuantileInterpolation,
     WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -78,6 +79,7 @@ from pandas.core.util.numba_ import (
 )
 from pandas.core.window.common import (
     flex_binary_moment,
+    maybe_warn_args_and_kwargs,
     zsqrt,
 )
 from pandas.core.window.doc import (
@@ -107,7 +109,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
-    from pandas.core.internals import Block  # noqa:F401
 
 
 class BaseWindow(SelectionMixin):
@@ -1658,7 +1659,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def quantile(
         self,
         quantile: float,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
         **kwargs,
     ):
@@ -2080,6 +2081,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
         nv.validate_rolling_func("sum", args, kwargs)
         return super().sum(
             numeric_only=numeric_only,
@@ -2113,6 +2115,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "max", args, kwargs)
         nv.validate_rolling_func("max", args, kwargs)
         return super().max(
             numeric_only=numeric_only,
@@ -2161,6 +2164,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "min", args, kwargs)
         nv.validate_rolling_func("min", args, kwargs)
         return super().min(
             numeric_only=numeric_only,
@@ -2216,6 +2220,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
         nv.validate_rolling_func("mean", args, kwargs)
         return super().mean(
             numeric_only=numeric_only,
@@ -2262,6 +2267,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "median", None, kwargs)
         return super().median(
             numeric_only=numeric_only,
             engine=engine,
@@ -2325,6 +2331,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "std", args, kwargs)
         nv.validate_rolling_func("std", args, kwargs)
         return super().std(
             ddof=ddof,
@@ -2390,6 +2397,7 @@ class Rolling(RollingAndExpandingMixin):
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "var", args, kwargs)
         nv.validate_rolling_func("var", args, kwargs)
         return super().var(
             ddof=ddof,
@@ -2416,6 +2424,7 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="skew",
     )
     def skew(self, numeric_only: bool = False, **kwargs):
+        maybe_warn_args_and_kwargs(type(self), "skew", None, kwargs)
         return super().skew(numeric_only=numeric_only, **kwargs)
 
     @doc(
@@ -2454,6 +2463,7 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="sem",
     )
     def sem(self, ddof: int = 1, numeric_only: bool = False, *args, **kwargs):
+        maybe_warn_args_and_kwargs(type(self), "sem", args, kwargs)
         nv.validate_rolling_func("sem", args, kwargs)
         # Raise here so error message says sem instead of std
         self._validate_numeric_only("sem", numeric_only)
@@ -2500,6 +2510,7 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="kurt",
     )
     def kurt(self, numeric_only: bool = False, **kwargs):
+        maybe_warn_args_and_kwargs(type(self), "kurt", None, kwargs)
         return super().kurt(numeric_only=numeric_only, **kwargs)
 
     @doc(
@@ -2553,10 +2564,11 @@ class Rolling(RollingAndExpandingMixin):
     def quantile(
         self,
         quantile: float,
-        interpolation: str = "linear",
+        interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "quantile", None, kwargs)
         return super().quantile(
             quantile=quantile,
             interpolation=interpolation,
@@ -2634,6 +2646,7 @@ class Rolling(RollingAndExpandingMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "rank", None, kwargs)
         return super().rank(
             method=method,
             ascending=ascending,
@@ -2680,6 +2693,7 @@ class Rolling(RollingAndExpandingMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "cov", None, kwargs)
         return super().cov(
             other=other,
             pairwise=pairwise,
@@ -2813,6 +2827,7 @@ class Rolling(RollingAndExpandingMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "corr", None, kwargs)
         return super().corr(
             other=other,
             pairwise=pairwise,

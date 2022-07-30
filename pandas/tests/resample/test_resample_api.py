@@ -859,6 +859,10 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
     expected_index = date_range("2018-12-31", periods=1, freq="Y")
     df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
     resampled = df.resample("Y")
+    if numeric_only is lib.no_default:
+        kwargs = {}
+    else:
+        kwargs = {"numeric_only": numeric_only}
 
     func = getattr(resampled, method)
     if numeric_only is lib.no_default and method not in (
@@ -882,9 +886,9 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         if isinstance(expected_data, str):
             klass = TypeError if method == "var" else ValueError
             with pytest.raises(klass, match=expected_data):
-                _ = func(numeric_only=numeric_only)
+                _ = func(**kwargs)
         else:
-            result = func(numeric_only=numeric_only)
+            result = func(**kwargs)
             expected = DataFrame(expected_data, index=expected_index)
             tm.assert_frame_equal(result, expected)
 
@@ -922,8 +926,11 @@ def test_series_downsample_method(method, numeric_only, expected_data):
 
     func = getattr(resampled, method)
     if numeric_only and numeric_only is not lib.no_default:
-        with pytest.raises(NotImplementedError, match="not implement numeric_only"):
-            func(numeric_only=numeric_only)
+        with tm.assert_produces_warning(
+            FutureWarning, match="This will raise a TypeError"
+        ):
+            with pytest.raises(NotImplementedError, match="not implement numeric_only"):
+                func(numeric_only=numeric_only)
     elif method == "prod":
         with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
             func(numeric_only=numeric_only)
