@@ -21,7 +21,7 @@ For more information about PDEPs, and how to submit one, please refer to
 
 ## PDEPs
 
-{% for pdep_type in ["under_discussion", "accepted", "implemented", "rejected"] %}
+{% for pdep_type in ["Under discussion", "Accepted", "Implemented", "Rejected"] %}
 
 <h3 id="pdeps-{{pdep_type}}">{{ pdep_type.replace("_", " ").capitalize() }}</h3>
 

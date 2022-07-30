@@ -24,6 +24,7 @@ main:
 The rest of the items in the file will be added directly to the context.
 """
 import argparse
+import collections
 import datetime
 import importlib
 import operator
@@ -194,33 +195,35 @@ class Preprocessors:
         and linked from there. This preprocessor obtains the list of
         PDEP's in different status from the directory tree and GitHub.
         """
-        context["pdeps"] = {
-            "accepted": [],
-            "rejected": [],
-            "under_discussion": [],
-            "implemented": [],
-        }
+        KNOWN_STATUS = {"Under discussion", "Accepted", "Implemented", "Rejected"}
+        context["pdeps"] = collections.defaultdict(list)
+
         # accepted, rejected and implemented
         pdeps_path = (
             pathlib.Path(context["source_path"]) / context["roadmap"]["pdeps_path"]
         )
-        for status in ("accepted", "rejected", "implemented"):
-            status_dir = pdeps_path / status
-            if not status_dir.is_dir():
+        for pdep in sorted(pdeps_path.iterdir()):
+            if pdep.suffix != ".md":
                 continue
-            for pdep in sorted(status_dir.iterdir()):
-                if pdep.suffix != ".md":
-                    continue
-                html_file = pdep.with_suffix(".html").name
-                print(pdep)
-                with pdep.open() as f:
-                    title = f.readline()[2:]  # removing markdown title "# "
-                context["pdeps"][status].append(
-                    {
-                        "title": title,
-                        "url": f"/pdeps/{status}/{html_file}",
-                    }
-                )
+            with pdep.open() as f:
+                title = f.readline()[2:]  # removing markdown title "# "
+                status = None
+                for line in f:
+                    if line.startswith("- Status: "):
+                        status = line.strip().split(": ", 1)[1]
+                        break
+                if status not in KNOWN_STATUS:
+                    raise RuntimeError(
+                        f'PDEP "{pdep}" status "{status}" is unknown. '
+                        f"Should be one of: {KNOWN_STATUS}"
+                    )
+            html_file = pdep.with_suffix(".html").name
+            context["pdeps"][status].append(
+                {
+                    "title": title,
+                    "url": f"/pdeps/{html_file}",
+                }
+            )
 
         # under discussion
         github_repo_url = context["main"]["github_repo_url"]

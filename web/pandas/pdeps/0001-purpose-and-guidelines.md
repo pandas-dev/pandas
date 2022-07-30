@@ -1,6 +1,6 @@
 # PDEP-1: Purpose and guidelines
 
-- Date: 21 June 2022
+- Created: 30 July 2022
 - Status: Under discussion
 - Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
 - Author: [Marc Garcia](https://github.com/datapythonista)
@@ -8,7 +8,7 @@
 
 ## PDEP definition, purpose and scope
 
-A PDEP (pandas enhancement proposal) is a proposal to a **major** change in
+A PDEP (pandas enhancement proposal) is a proposal for a **major** change in
 pandas, in a similar way as a Python [PEP](https://peps.python.org/pep-0001/)
 or a NumPy [NEP](https://numpy.org/neps/nep-0000.html).
 
@@ -31,7 +31,7 @@ consider when writing a PDEP are:
 
 - The core development team, who will have the final decision on whether a PDEP
   is approved or not
-- Developers of pandas and other related projects, and experienced users. Their
+- Contributors to pandas and other related projects, and experienced users. Their
   feedback is highly encouraged and appreciated, to make sure all points of views
   are taken into consideration
 - The wider pandas community, in particular users, who may or may not have feedback
@@ -48,17 +48,23 @@ be eventually moved to a PDEP.
 
 ### Workflow
 
+The possible states of a PDEP are:
+
+- Under discussion
+- Accepted
+- Implemented
+- Rejected
+
+Next is described the workflow that PDEPs can follow.
+
 #### Submitting a PDEP
 
-Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/accepted/`.
-The file is a markdown file, you can use `web/pdeps/accepted/0001.md` as a reference
+Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/`.
+The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
-By default, we expect a PDEP will be accepted, so the PR of a PDEP should be done
-in the `accepted` but we will keep `Status: Under discussion` until it is ready to
-be merged. If a PDEP is finally rejected, its status and directory will be updated
-by the core team before merging, once the decision is made. Please make sure you
-select the option `Allow edits and access to secrets by maintainers` when opening the PR.
+The initial status of a PDEP will be `Status: Under discussion`. This will be changed
+to `Status: Accepted` when the PDEP is ready and have the approval of the core team.
 
 #### Accepted PDEP
 
@@ -68,17 +74,17 @@ worth implementing. Decisions will be made based on the process detailed in the
 In general, more than one approval will be needed before the PR is merged. And
 there should not be any `Request changes` review at the time of merging.
 
-Once a PDEP is accepted, any contributions can be made toward the implementing the PDEP with an open-ended completion timeline . The
-pandas project development, with a mix of volunteers and developers paid from
-different sources, and development priorities are difficult to understand or
-forecast. For companies, institutions or individuals with interest in seeing a
-PDEP being implemented, or to in general see progress to the pandas roadmap,
-please check how you can help in the [contributing page](/contribute.html).
+Once a PDEP is accepted, any contributions can be made toward the implementation of the PDEP,
+with an open-ended completion timeline. Development of pandas is difficult to understand and
+forecast, being the contributors a mix of volunteers and developers paid from different sources,
+with different priorities. For companies, institutions or individuals with interest in seeing a
+PDEP being implemented, or to in general see progress to the pandas roadmap, please check how
+you can help in the [contributing page](/contribute.html).
 
 #### Implemented PDEP
 
 Once a PDEP is implemented and available in the main branch of pandas, its
-status will be changed to implemented, so there is visibility that the PDEP
+status will be changed to `Status: Implemented`, so there is visibility that the PDEP
 is not part of the roadmap and future plans, but a change that it already
 happened. The first pandas version in which the PDEP implementation is
 available will also be included in the PDEP.
@@ -86,7 +92,7 @@ available will also be included in the PDEP.
 #### Rejected PDEP
 
 A PDEP can be rejected when the final decision is that its implementation is
-not the best for the interests of the project. They are as useful as accepted
+not the best for the interests of the project. Rejected PDEPs are as useful as accepted
 PDEPs, since there are discussions that are worth having, and decisions about
 changes to pandas being made. They will be merged with `Status: Rejected`, so
 there is visibility on what was discussed and what was the outcome of the
@@ -118,4 +124,4 @@ changed and avoid confusion.
 
 ### PDEP-1 History
 
-- 21 June 2022: Initial version
+- 30 July 2022: Initial version
