@@ -19,11 +19,7 @@ if "dev" not in getattr(pd, "__version__", ""):
 
 
 _ALLOWLIST = [  # should be empty
-    # TODO
-    "pandas._libs.hashtable.Complex128Vector.__init__",
-    "pandas._libs.hashtable.Complex64Vector.__init__",
-    "pandas._libs.hashtable.Float32Vector.__init__",
-    "pandas._libs.hashtable.Float64Vector.__init__",
+    # TODO (child classes implement these methods)
     "pandas._libs.hashtable.HashTable.__contains__",
     "pandas._libs.hashtable.HashTable.__len__",
     "pandas._libs.hashtable.HashTable.factorize",
@@ -35,16 +31,6 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.hashtable.HashTable.set_item",
     "pandas._libs.hashtable.HashTable.sizeof",
     "pandas._libs.hashtable.HashTable.unique",
-    "pandas._libs.hashtable.Int16Vector.__init__",
-    "pandas._libs.hashtable.Int32Vector.__init__",
-    "pandas._libs.hashtable.Int64Vector.__init__",
-    "pandas._libs.hashtable.Int8Vector.__init__",
-    "pandas._libs.hashtable.ObjectVector.__init__",
-    "pandas._libs.hashtable.StringVector.__init__",
-    "pandas._libs.hashtable.UInt16Vector.__init__",
-    "pandas._libs.hashtable.UInt32Vector.__init__",
-    "pandas._libs.hashtable.UInt64Vector.__init__",
-    "pandas._libs.hashtable.UInt8Vector.__init__",
     # stubtest might be too sensitive
     "pandas._libs.lib.NoDefault",
     "pandas._libs.lib._NoDefault.no_default",
