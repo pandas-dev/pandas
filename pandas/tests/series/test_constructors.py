@@ -1200,8 +1200,8 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
     )
-    def test_constructor_interval_mixed_closed(self, data_constructor):
-        # GH 23563: mixed closed results in object dtype (not interval dtype)
+    def test_constructor_interval_mixed_inclusive(self, data_constructor):
+        # GH 23563: mixed inclusive results in object dtype (not interval dtype)
         data = [Interval(0, 1, inclusive="both"), Interval(0, 2, inclusive="neither")]
         result = Series(data_constructor(data))
         assert result.dtype == object
@@ -1877,6 +1877,28 @@ class TestSeriesConstructors:
         # GH#43018
         result = Series(index=[0], dtype="bool")
         expected = Series(True, index=[0], dtype="bool")
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_timedelta_alternative_construct(self):
+        # GH#35465
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
+        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="ns"))
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_timedelta_ns_s(self):
+        # GH#35465
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
+        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
+        # GH#35465
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
+            "int64"
+        )
+        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype(
+            "int64"
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings(

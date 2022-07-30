@@ -1479,8 +1479,7 @@ class Styler(StylerRenderer):
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
-        HTML elements.
+        Set the ``class`` attribute of ``<td>`` HTML elements.
 
         Parameters
         ----------
@@ -3173,8 +3172,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
-        Set defined CSS-properties to each ``<td>`` HTML element within the given
-        subset.
+        Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
 
         Parameters
         ----------
@@ -3213,7 +3211,7 @@ class Styler(StylerRenderer):
         cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
-        align: str | float | int | Callable = "mid",
+        align: str | float | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -3332,7 +3330,7 @@ class Styler(StylerRenderer):
         color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
-        null_color=lib.no_default,
+        null_color: str | lib.NoDefault = lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -4039,7 +4037,7 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
 
 def _bar(
     data: NDFrame,
-    align: str | float | int | Callable,
+    align: str | float | Callable,
     colors: str | list | tuple,
     cmap: Any,
     width: float,

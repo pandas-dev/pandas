@@ -278,6 +278,7 @@ Other enhancements
 - :meth:`DatetimeIndex.astype` now supports casting timezone-naive indexes to ``datetime64[s]``, ``datetime64[ms]``, and ``datetime64[us]``, and timezone-aware indexes to the corresponding ``datetime64[unit, tzname]`` dtypes (:issue:`47579`)
 - :class:`Series` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) will now successfully operate when the dtype is numeric and ``numeric_only=True`` is provided; previously this would raise a ``NotImplementedError`` (:issue:`47500`)
 - :meth:`RangeIndex.union` now can return a :class:`RangeIndex` instead of a :class:`Int64Index` if the resulting values are equally spaced (:issue:`47557`, :issue:`43885`)
+- :meth:`DataFrame.compare` now accepts an argument ``result_names`` to allow the user to specify the result's names of both left and right DataFrame which are being compared. This is by default ``'self'`` and ``'other'`` (:issue:`44354`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -772,6 +773,7 @@ Other Deprecations
 - Deprecated :class:`Series` and :class:`Resampler` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) raising a ``NotImplementedError`` when the dtype is non-numric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
+- Deprecated arguments ``*args`` and ``**kwargs`` in :class:`Rolling`, :class:`Expanding`, and :class:`ExponentialMovingWindow` ops. (:issue:`47836`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -801,6 +803,7 @@ Performance improvements
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47404`, :issue:`47405`)
+- Performance improvement in ``argmax`` and ``argmin`` for :class:`arrays.SparseArray` (:issue:`34197`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -845,7 +848,7 @@ Numeric
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
 - Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
--
+- Bug in :meth:`mean` where the optional dependency ``bottleneck`` causes precision loss linear in the length of the array. ``bottleneck`` has been disabled for :meth:`mean` improving the loss to log-linear but may result in a performance decrease. (:issue:`42878`)
 
 Conversion
 ^^^^^^^^^^
@@ -913,6 +916,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
+- Bug in :meth:`Series.map` not respecting ``na_action`` argument if mapper is a ``dict`` or :class:`Series` (:issue:`47527`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 - Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
 - Bug in :meth:`DataFrame.fillna` ignored ``axis`` when :class:`DataFrame` is single block (:issue:`47713`)
@@ -955,6 +959,7 @@ I/O
 - Bug in :func:`read_sas` that scrambled column names (:issue:`31243`)
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
 - Bug in :func:`read_parquet` with ``use_nullable_dtypes=True`` where ``float64`` dtype was returned instead of nullable ``Float64`` dtype (:issue:`45694`)
+- Bug in :meth:`DataFrame.to_json` where ``PeriodDtype`` would not make the serialization roundtrip when read back with :meth:`read_json` (:issue:`44720`)
 
 Period
 ^^^^^^
@@ -977,6 +982,7 @@ Plotting
 - The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
 - Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 - Bug in :meth:`DataFrame.plot` that led to xticks and vertical grids being improperly placed when plotting a quarterly series (:issue:`47602`)
+- Bug in :meth:`DataFrame.plot` that prevented setting y-axis label, limits and ticks for a secondary y-axis (:issue:`47753`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1018,10 +1024,13 @@ Reshaping
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 - Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
 - Bug in :meth:`concat` when ``axis=1`` and ``sort=False`` where the resulting Index was a :class:`Int64Index` instead of a :class:`RangeIndex` (:issue:`46675`)
+- Bug in :meth:`wide_to_long` raises when ``stubnames`` is missing in columns and ``i`` contains string dtype column (:issue:`46044`)
+- Bug in :meth:`DataFrame.join` with categorical index results in unexpected reordering (:issue:`47812`)
 
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
+- Bug in :meth:`SparseArray.unique` fails to keep original elements order (:issue:`47809`)
 -
 
 ExtensionArray

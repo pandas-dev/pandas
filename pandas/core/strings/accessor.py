@@ -2015,8 +2015,9 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "str_removefix"
     ] = r"""
-    Remove a %(side)s from an object series. If the %(side)s is not present,
-    the original string will be returned.
+    Remove a %(side)s from an object series.
+
+    If the %(side)s is not present, the original string will be returned.
 
     Parameters
     ----------
