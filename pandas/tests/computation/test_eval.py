@@ -1901,7 +1901,7 @@ def test_eval_no_support_column_name(request, column):
         request.node.add_marker(
             pytest.mark.xfail(
                 raises=KeyError,
-                reason="GH 47859",
+                reason=f"GH 47859 DataFrame eval not supported with {column}",
             )
         )
 
