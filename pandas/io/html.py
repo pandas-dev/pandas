@@ -17,8 +17,6 @@ from typing import (
     cast,
 )
 
-import numpy as np
-
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -32,6 +30,7 @@ from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
+from pandas import isna
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
@@ -1007,15 +1006,13 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
         try:
             df = _data_to_frame(data=table, **kwargs)
             # Cast MultiIndex header to an Index of tuples when extracting header
-            # links and replace np.nan with None.
+            # links and replace nan with None.
             # This maintains consistency of selection (e.g. df.columns.str[1])
             if extract_links in ("all", "header"):
-                idx = df.columns.values
-                idx[:] = np.vectorize(
-                    lambda cols: tuple(None if col is np.nan else col for col in cols),
-                    otypes=["object"],
-                )(idx)
-                df.columns = Index(df.columns)
+                df.columns = Index(
+                    ((col[0], None if isna(col[1]) else col[1]) for col in df.columns),
+                    tupleize_cols=False,
+                )
 
             ret.append(df)
         except EmptyDataError:  # empty table
