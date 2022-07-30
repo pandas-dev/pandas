@@ -640,9 +640,7 @@ class TestNestedToRecord:
         )
         ex_data = [[1, "foo", np.nan], [2, "foo", np.nan]]
         columns = ["rec", "meta", "nested_meta.leaf"]
-        expected = DataFrame(ex_data, columns=columns).astype(
-            {"nested_meta.leaf": "float"}
-        )
+        expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
         # If errors="raise" and nested metadata is null, we should raise with the
