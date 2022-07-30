@@ -531,7 +531,7 @@ def _json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        if v and isinstance(v[0], abc.Iterable):
+        if v and is_list_like(v[0]):
             out = []
             for item, repeat in zip(v, lengths):
                 for _ in range(repeat):
