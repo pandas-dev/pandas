@@ -1572,8 +1572,7 @@ class MultiIndex(Index):
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """
-        return if the index is monotonic increasing (only equal or
-        increasing) values.
+        Return a boolean if the values are equal or increasing.
         """
         if any(-1 in code for code in self.codes):
             return False
@@ -1605,8 +1604,7 @@ class MultiIndex(Index):
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """
-        return if the index is monotonic decreasing (only equal or
-        decreasing) values.
+        Return a boolean if the values are equal or decreasing.
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing

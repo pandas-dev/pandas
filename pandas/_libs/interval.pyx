@@ -352,8 +352,9 @@ cdef class Interval(IntervalMixin):
 
     cdef readonly str inclusive
     """
-    Whether the interval is inclusive on the left-side, right-side, both or
-    neither.
+    String describing the inclusive side the intervals.
+
+    Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
     def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
@@ -384,10 +385,11 @@ cdef class Interval(IntervalMixin):
     @property
     def closed(self):
         """
-        Whether the interval is closed on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
 
         .. deprecated:: 1.5.0
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
