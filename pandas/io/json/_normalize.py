@@ -21,6 +21,7 @@ from pandas._typing import (
     Scalar,
 )
 from pandas.util._decorators import deprecate
+from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
 from pandas import DataFrame
@@ -537,7 +538,7 @@ def _json_normalize(
                 for _ in range(repeat):
                     out.append(item)
         else:
-            out = np.array(v).repeat(lengths)  # type: ignore[particular-violation]
+            out = np.array(v).repeat(lengths)  # type: ignore[assignment]
         result[k] = out
     return result
 
