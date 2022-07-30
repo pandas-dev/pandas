@@ -1896,11 +1896,12 @@ def test_negate_lt_eq_le(engine, parser):
     DEFAULT_GLOBALS.keys(),
 )
 def test_eval_no_support_column_name(request, column):
+    # GH 44603
     if column in ["True", "False", "inf", "Inf"]:
         request.node.add_marker(
             pytest.mark.xfail(
                 raises=KeyError,
-                reason=f"DataFrame eval not supported with {column}",
+                reason="GH 47859",
             )
         )
 
