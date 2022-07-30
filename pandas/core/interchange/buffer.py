@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from packaging import version
 
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     DlpackDeviceType,
 )

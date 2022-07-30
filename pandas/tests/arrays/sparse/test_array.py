@@ -391,23 +391,36 @@ def test_setting_fill_value_updates():
 
 
 @pytest.mark.parametrize(
-    "arr, loc",
+    "arr,fill_value,loc",
     [
-        ([None, 1, 2], 0),
-        ([0, None, 2], 1),
-        ([0, 1, None], 2),
-        ([0, 1, 1, None, None], 3),
-        ([1, 1, 1, 2], -1),
-        ([], -1),
+        ([None, 1, 2], None, 0),
+        ([0, None, 2], None, 1),
+        ([0, 1, None], None, 2),
+        ([0, 1, 1, None, None], None, 3),
+        ([1, 1, 1, 2], None, -1),
+        ([], None, -1),
+        ([None, 1, 0, 0, None, 2], None, 0),
+        ([None, 1, 0, 0, None, 2], 1, 1),
+        ([None, 1, 0, 0, None, 2], 2, 5),
+        ([None, 1, 0, 0, None, 2], 3, -1),
+        ([None, 0, 0, 1, 2, 1], 0, 1),
+        ([None, 0, 0, 1, 2, 1], 1, 3),
     ],
 )
-def test_first_fill_value_loc(arr, loc):
-    result = SparseArray(arr)._first_fill_value_loc()
+def test_first_fill_value_loc(arr, fill_value, loc):
+    result = SparseArray(arr, fill_value=fill_value)._first_fill_value_loc()
     assert result == loc
 
 
 @pytest.mark.parametrize(
-    "arr", [[1, 2, np.nan, np.nan], [1, np.nan, 2, np.nan], [1, 2, np.nan]]
+    "arr",
+    [
+        [1, 2, np.nan, np.nan],
+        [1, np.nan, 2, np.nan],
+        [1, 2, np.nan],
+        [np.nan, 1, 0, 0, np.nan, 2],
+        [np.nan, 0, 0, 1, 2, 1],
+    ],
 )
 @pytest.mark.parametrize("fill_value", [np.nan, 0, 1])
 def test_unique_na_fill(arr, fill_value):

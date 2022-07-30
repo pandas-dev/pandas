@@ -271,8 +271,9 @@ _IndexT = TypeVar("_IndexT", bound="Index")
 
 class Index(IndexOpsMixin, PandasObject):
     """
-    Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects.
+    Immutable sequence used for indexing and alignment.
+
+    The basic object storing axis labels for all pandas objects.
 
     Parameters
     ----------
@@ -2290,8 +2291,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return if the index is monotonic increasing (only equal or
-        increasing) values.
+        Return a boolean if the values are equal or increasing.
 
         Examples
         --------
@@ -2307,8 +2307,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return if the index is monotonic decreasing (only equal or
-        decreasing) values.
+        Return a boolean if the values are equal or decreasing.
 
         Examples
         --------
@@ -3810,8 +3809,9 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "get_indexer"
     ] = """
-        Compute indexer and mask for new index given the current index. The
-        indexer should be then used as an input to ndarray.take to align the
+        Compute indexer and mask for new index given the current index.
+
+        The indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
 
         Parameters
@@ -4580,8 +4580,7 @@ class Index(IndexOpsMixin, PandasObject):
         sort: bool = False,
     ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         """
-        Compute join_index and indexers to conform data
-        structures to the new index.
+        Compute join_index and indexers to conform data structures to the new index.
 
         Parameters
         ----------
@@ -4682,6 +4681,7 @@ class Index(IndexOpsMixin, PandasObject):
                 not isinstance(self, ABCMultiIndex)
                 or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
             )
+            and not is_categorical_dtype(self.dtype)
         ):
             # Categorical is monotonic if data are ordered as categories, but join can
             #  not handle this in case of not lexicographically monotonic GH#38502
@@ -5977,8 +5977,9 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "get_indexer_non_unique"
     ] = """
-        Compute indexer and mask for new index given the current index. The
-        indexer should be then used as an input to ndarray.take to align the
+        Compute indexer and mask for new index given the current index.
+
+        The indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
 
         Parameters

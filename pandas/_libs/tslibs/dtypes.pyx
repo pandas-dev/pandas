@@ -289,7 +289,7 @@ def is_supported_unit(NPY_DATETIMEUNIT reso):
     )
 
 
-cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
+cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # generic -> default to nanoseconds
         return "ns"
