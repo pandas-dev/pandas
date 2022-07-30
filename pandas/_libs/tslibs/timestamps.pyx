@@ -1345,10 +1345,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None):
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None)
-
-        Passed an ordinal, translate and convert to a ts.
-        Note: by definition there cannot be any tz info on the ordinal itself.
+        Construct a timestamp from a a proleptic Gregorian ordinal.
 
         Parameters
         ----------
@@ -1358,6 +1355,10 @@ class Timestamp(_Timestamp):
             Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
+
+        Notes
+        -----
+        By definition there cannot be any tz info on the ordinal itself.
 
         Examples
         --------
@@ -1370,10 +1371,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def now(cls, tz=None):
         """
-        Timestamp.now(tz=None)
-
-        Return new Timestamp object representing current time local to
-        tz.
+        Return new Timestamp object representing current time local to tz.
 
         Parameters
         ----------
@@ -1397,10 +1395,9 @@ class Timestamp(_Timestamp):
     @classmethod
     def today(cls, tz=None):
         """
-        Timestamp.today(cls, tz=None)
+        Return the current time in the local timezone.
 
-        Return the current time in the local timezone.  This differs
-        from datetime.today() in that it can be localized to a
+        This differs from datetime.today() in that it can be localized to a
         passed timezone.
 
         Parameters
@@ -1477,10 +1474,7 @@ class Timestamp(_Timestamp):
 
     def strftime(self, format):
         """
-        Timestamp.strftime(format)
-
-        Return a string representing the given POSIX timestamp
-        controlled by an explicit format string.
+        Return a formatted string of the Timestamp.
 
         Parameters
         ----------
@@ -2052,7 +2046,9 @@ timedelta}, default 'raise'
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
-        Convert naive Timestamp to local time zone, or remove
+        Localize the Timestamp to a timezone.
+
+        Convert naive Timestamp to local time zone or remove
         timezone from timezone-aware Timestamp.
 
         Parameters
@@ -2343,6 +2339,7 @@ default 'raise'
     def to_julian_date(self) -> np.float64:
         """
         Convert TimeStamp to a Julian Date.
+
         0 Julian date is noon January 1, 4713 BC.
 
         Examples
@@ -2374,6 +2371,7 @@ default 'raise'
     def isoweekday(self):
         """
         Return the day of the week represented by the date.
+
         Monday == 1 ... Sunday == 7.
         """
         # same as super().isoweekday(), but that breaks because of how
@@ -2383,6 +2381,7 @@ default 'raise'
     def weekday(self):
         """
         Return the day of the week represented by the date.
+
         Monday == 0 ... Sunday == 6.
         """
         # same as super().weekday(), but that breaks because of how

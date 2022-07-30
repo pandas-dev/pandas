@@ -1968,8 +1968,7 @@ The repeated labels are:
 
     def variable_labels(self) -> dict[str, str]:
         """
-        Return variable labels as a dict, associating each variable name
-        with corresponding label.
+        Return a dict associating each variable name with corresponding label.
 
         Returns
         -------
@@ -1979,8 +1978,7 @@ The repeated labels are:
 
     def value_labels(self) -> dict[str, dict[float, str]]:
         """
-        Return a dict, associating each variable name a dict, associating
-        each value its corresponding label.
+        Return a nested dict associating each variable name to its value and label.
 
         Returns
         -------

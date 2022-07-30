@@ -157,8 +157,9 @@ def concat(
     copy: bool = True,
 ) -> DataFrame | Series:
     """
-    Concatenate pandas objects along a particular axis with optional set logic
-    along the other axes.
+    Concatenate pandas objects along a particular axis.
+
+    Allows optional set logic along the other axes.
 
     Can also add a layer of hierarchical indexing on the concatenation axis,
     which may be useful if the labels are the same (or overlapping) on

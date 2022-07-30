@@ -537,9 +537,10 @@ def crosstab(
     normalize=False,
 ) -> DataFrame:
     """
-    Compute a simple cross tabulation of two (or more) factors. By default
-    computes a frequency table of the factors unless an array of values and an
-    aggregation function are passed.
+    Compute a simple cross tabulation of two (or more) factors.
+
+    By default, computes a frequency table of the factors unless an
+    array of values and an aggregation function are passed.
 
     Parameters
     ----------

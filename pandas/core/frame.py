@@ -4837,14 +4837,15 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
-        Given equal-length arrays of row and column labels, return an
-        array of the values corresponding to each (row, col) pair.
 
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
             use pandas.factorize and NumPy indexing instead.
             For further details see
             :ref:`Looking up values by index/column labels <indexing.lookup>`.
+
+        Given equal-length arrays of row and column labels, return an
+        array of the values corresponding to each (row, col) pair.
 
         Parameters
         ----------

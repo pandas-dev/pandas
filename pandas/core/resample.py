@@ -362,8 +362,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def transform(self, arg, *args, **kwargs):
         """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values.
+        Call function producing a like-indexed Series on each group.
+
+        Return a Series with the transformed values.
 
         Parameters
         ----------

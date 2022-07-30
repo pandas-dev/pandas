@@ -329,8 +329,7 @@ Series or DataFrame
 """
 
 _pipe_template = """
-Apply a function `func` with arguments to this %(klass)s object and return
-the function's result.
+Apply a ``func`` with arguments to this %(klass)s object and return its result.
 
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
@@ -381,8 +380,9 @@ Examples
 """
 
 _transform_template = """
-Call function producing a same-indexed %(klass)s on each group and
-return a %(klass)s having the same indexes as the original object
+Call function producing a same-indexed %(klass)s on each group.
+
+Returns a %(klass)s having the same indexes as the original object
 filled with the transformed values.
 
 Parameters

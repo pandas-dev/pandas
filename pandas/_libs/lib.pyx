@@ -1347,8 +1347,7 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Efficiently infer the type of a passed val, or list-like
-    array of values. Return a string describing the type.
+    Return a string label of the type of a scalar or list-like of values.
 
     Parameters
     ----------

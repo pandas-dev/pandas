@@ -156,16 +156,16 @@ cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
 
 class OutOfBoundsDatetime(ValueError):
     """
-    Raised when the datetime is outside the range that
-    can be represented.
+    Raised when the datetime is outside the range that can be represented.
     """
     pass
 
 
 class OutOfBoundsTimedelta(ValueError):
     """
-    Raised when encountering a timedelta value that cannot be represented
-    as a timedelta64[ns].
+    Raised when encountering a timedelta value that cannot be represented.
+
+    Representation should be within a timedelta64[ns].
     """
     # Timedelta analogue to OutOfBoundsDatetime
     pass
