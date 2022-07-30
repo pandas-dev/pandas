@@ -2348,18 +2348,34 @@ def test_groupby_duplicate_index():
     tm.assert_series_equal(result, expected)
 
 
-def test_group_on_empty_multiindex(transformation_func):
+def test_group_on_empty_multiindex(transformation_func, request):
     # GH 47787
     # With one row, those are transforms so the schema should be the same
+    if transformation_func == "tshift":
+        mark = pytest.mark.xfail(raises=NotImplemented)
+        request.node.add_marker(mark)
     df = DataFrame(data=[[1, 2, 3, 4]], columns=["col_1", "col_2", "col_3", "col_4"])
     df = df.set_index(["col_1", "col_2"])
-    result = df.groupby(["col_1"]).fillna("")
+    if transformation_func == "fillna":
+        args = ("ffill",)
+    else:
+        args = ()
+    result = df.groupby(["col_1"]).transform(transformation_func, *args)
     assert df.index.names == result.index.names
+
+    col_3 = df["col_3"]
+    result = col_3.groupby(["col_1"]).transform(transformation_func, *args)
+    assert col_3.index.names == result.index.names
+
     # When empty, expect the same schema as well
-    df = DataFrame(data=[], columns=["col_1", "col_2", "col_3", "col_4"])
+    df = DataFrame(data=[], columns=["col_1", "col_2", "col_3", "col_4"], dtype=int)
     df = df.set_index(["col_1", "col_2"])
-    result = df.groupby(["col_1"]).fillna("")
+    result = df.groupby(["col_1"]).transform(transformation_func, *args)
     assert df.index.names == result.index.names
+
+    col_3 = df["col_3"]
+    result = col_3.groupby(["col_1"]).transform(transformation_func, *args)
+    assert col_3.index.names == result.index.names
 
 
 @pytest.mark.parametrize(
