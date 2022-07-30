@@ -546,7 +546,7 @@ class TestJSONNormalize:
 
         result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
         expected = DataFrame(
-            {"one": [1], "two": [2], "id": np.array([99], dtype="int64")}
+            {"one": [1], "two": [2], "id": np.array([99])}
         )
         tm.assert_frame_equal(result, expected)
 
