@@ -119,27 +119,30 @@ def test_number_looking_strings_not_into_datetime(data):
 
 
 @pytest.mark.parametrize(
-    "invalid_date",
+    "invalid_date, warn",
     [
-        date(1000, 1, 1),
-        datetime(1000, 1, 1),
-        "1000-01-01",
-        "Jan 1, 1000",
-        np.datetime64("1000-01-01"),
+        (date(1000, 1, 1), None),
+        (datetime(1000, 1, 1), None),
+        ("1000-01-01", None),
+        ("Jan 1, 1000", UserWarning),
+        (np.datetime64("1000-01-01"), None),
     ],
 )
 @pytest.mark.parametrize("errors", ["coerce", "raise"])
-def test_coerce_outside_ns_bounds(invalid_date, errors):
+def test_coerce_outside_ns_bounds(invalid_date, warn, errors):
     arr = np.array([invalid_date], dtype="object")
     kwargs = {"values": arr, "errors": errors}
 
     if errors == "raise":
         msg = "Out of bounds .* present at position 0"
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
+            warn, match="without a format specified"
+        ):
             tslib.array_to_datetime(**kwargs)
     else:  # coerce.
-        result, _ = tslib.array_to_datetime(**kwargs)
+        with tm.assert_produces_warning(warn, match="without a format specified"):
+            result, _ = tslib.array_to_datetime(**kwargs)
         expected = np.array([iNaT], dtype="M8[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
@@ -163,17 +166,11 @@ def test_coerce_of_invalid_datetimes(errors):
     if errors == "ignore":
         # Without coercing, the presence of any invalid
         # dates prevents any values from being converted.
-        with tm.assert_produces_warning(
-            UserWarning, match="without a format specified"
-        ):
-            result, _ = tslib.array_to_datetime(**kwargs)
+        result, _ = tslib.array_to_datetime(**kwargs)
         tm.assert_numpy_array_equal(result, arr)
     else:  # coerce.
         # With coercing, the invalid dates becomes iNaT
-        with tm.assert_produces_warning(
-            UserWarning, match="without a format specified"
-        ):
-            result, _ = tslib.array_to_datetime(arr, errors="coerce")
+        result, _ = tslib.array_to_datetime(arr, errors="coerce")
         expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
 
         tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[ns]"))

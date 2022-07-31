@@ -337,19 +337,24 @@ class TestResetIndex:
         tm.assert_frame_equal(rs, df)
 
     @pytest.mark.parametrize(
-        "name, warn",
+        "name",
         [
-            (None, UserWarning),
-            ("foo", UserWarning),
-            (2, None),
-            (3.0, None),
-            (pd.Timedelta(6), None),
-            (Timestamp("2012-12-30", tz="UTC"), FutureWarning),
-            ("2012-12-31", None),
+            None,
+            "foo",
+            2,
+            3.0,
+            pd.Timedelta(6),
+            Timestamp("2012-12-30", tz="UTC"),
+            "2012-12-31",
         ],
     )
-    def test_reset_index_with_datetimeindex_cols(self, name, warn):
+    def test_reset_index_with_datetimeindex_cols(self, name):
         # GH#5818
+        warn = None
+        if isinstance(name, Timestamp) and name.tz is not None:
+            # _deprecate_mismatched_indexing
+            warn = FutureWarning
+
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=date_range("1/1/2013", "1/2/2013"),
