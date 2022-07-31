@@ -18,7 +18,7 @@ from pandas.core.api import (
 class TestABCClasses:
     tuples = [[1, 2, 2], ["red", "blue", "red"]]
     multi_index = pd.MultiIndex.from_arrays(tuples, names=("number", "color"))
-    datetime_index = pd.to_datetime(["1/1/2000", "1/1/2010"])
+    datetime_index = pd.to_datetime(["2000/1/1", "2010/1/1"])
     timedelta_index = pd.to_timedelta(np.arange(5), unit="s")
     period_index = pd.period_range("1/1/2000", "1/1/2010", freq="M")
     categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
