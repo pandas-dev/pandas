@@ -2352,7 +2352,7 @@ def test_group_on_empty_multiindex(transformation_func, request):
     # GH 47787
     # With one row, those are transforms so the schema should be the same
     if transformation_func == "tshift":
-        mark = pytest.mark.xfail(raises=NotImplemented)
+        mark = pytest.mark.xfail(raises=NotImplementedError)
         request.node.add_marker(mark)
     df = DataFrame(data=[[1, 2, 3, 4]], columns=["col_1", "col_2", "col_3", "col_4"])
     df = df.set_index(["col_1", "col_2"])
