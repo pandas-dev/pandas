@@ -11918,10 +11918,11 @@ def _reindex_for_setitem(value: DataFrame | Series, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        dtype_list = value.dtypes.unique()
-        if len(dtype_list) == 1:
-            dtype = dtype_list[0].name.lower()
-            return value._values.astype(dtype).copy()
+        if isinstance(value, DataFrame):
+            dtype_list = value.dtypes.unique()
+            if len(dtype_list) == 1:
+                dtype = dtype_list[0].name.lower()
+                return value._values.astype(dtype).copy()
         return value._values.copy()
 
     # GH#4107
