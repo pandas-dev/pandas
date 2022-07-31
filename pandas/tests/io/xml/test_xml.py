@@ -426,7 +426,7 @@ def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
 def test_string_charset(parser):
     txt = "<中文標籤><row><c1>1</c1><c2>2</c2></row></中文標籤>"
 
-    df_str = read_xml(txt)
+    df_str = read_xml(txt, parser=parser)
 
     df_expected = DataFrame({"c1": 1, "c2": 2}, index=[0])
 
@@ -436,7 +436,7 @@ def test_string_charset(parser):
 def test_file_charset(datapath, parser):
     xml_file = datapath("io", "data", "xml", "doc_ch_utf.xml")
 
-    df_file = read_xml(datapath(xml_file))
+    df_file = read_xml(datapath(xml_file), parser=parser)
 
     df_expected = DataFrame(
         {

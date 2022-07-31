@@ -50,7 +50,10 @@ from pandas.io.parsers import TextParser
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
-    from lxml.etree import _Element
+    from lxml.etree import (
+        _Element,
+        _XSLTResultTree,
+    )
 
 
 @doc(
@@ -637,7 +640,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return doc
 
-    def _transform_doc(self) -> bytes:
+    def _transform_doc(self) -> _XSLTResultTree:
         """
         Transform original tree using stylesheet.
 
