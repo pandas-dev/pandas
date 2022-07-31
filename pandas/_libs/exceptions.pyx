@@ -11,10 +11,7 @@ cpdef int find_stack_level():
         int n
         str pkg_dir, test_dir, fname
 
-    import pandas as pd
-
-
-    pkg_dir = os.path.dirname(pd.__file__)
+    pkg_dir = os.path.dirname(os.path.dirname(__file__))
     test_dir = os.path.join(pkg_dir, "tests")
 
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
