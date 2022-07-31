@@ -40,7 +40,16 @@ import pandas
 # With template backend, matplotlib plots nothing
 matplotlib.use("template")
 
-
+# Styler methods are Jinja2 objects who's docstrings we don't own.
+IGNORE_VALIDATION = {
+    "Styler.env",
+    "Styler.template_html",
+    "Styler.template_html_style",
+    "Styler.template_html_table",
+    "Styler.template_latex",
+    "Styler.template_string",
+    "Styler.loader",
+}
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
@@ -121,6 +130,8 @@ def get_api_items(api_doc_fd):
                 position = None
                 continue
             item = line.strip()
+            if item in IGNORE_VALIDATION:
+                continue
             func = importlib.import_module(current_module)
             for part in item.split("."):
                 func = getattr(func, part)
@@ -230,7 +241,8 @@ def pandas_validate(func_name: str):
         Information about the docstring and the errors found.
     """
     func_obj = Validator._load_obj(func_name)
-    doc_obj = get_doc_object(func_obj)
+    # Some objects are instances, e.g. IndexSlice, which numpydoc can't validate
+    doc_obj = get_doc_object(func_obj, doc=func_obj.__doc__)
     doc = PandasDocstring(func_name, doc_obj)
     result = validate(doc_obj)
 
