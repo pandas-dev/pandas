@@ -2354,7 +2354,10 @@ def test_group_on_empty_multiindex(transformation_func, request):
     if transformation_func == "tshift":
         mark = pytest.mark.xfail(raises=NotImplementedError)
         request.node.add_marker(mark)
-    df = DataFrame(data=[[1, Timestamp("today"), 3, 4]], columns=["col_1", "col_2", "col_3", "col_4"])
+    df = DataFrame(
+        data=[[1, Timestamp("today"), 3, 4]],
+        columns=["col_1", "col_2", "col_3", "col_4"],
+    )
     df = df.set_index(["col_1", "col_2"])
     if transformation_func == "fillna":
         args = ("ffill",)
