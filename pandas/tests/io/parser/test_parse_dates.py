@@ -780,7 +780,9 @@ def test_nat_parse(all_parsers):
     with tm.ensure_clean("__nat_parse_.csv") as path:
         df.to_csv(path)
 
-        result = parser.read_csv(path, index_col=0, parse_dates=["B"])
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
+            # pyarrow raises, but not the others, need to figure out why
+            result = parser.read_csv(path, index_col=0, parse_dates=["B"])
         tm.assert_frame_equal(result, df)
 
 
@@ -1863,9 +1865,7 @@ def test_date_parser_and_names(all_parsers):
     # GH#33699
     parser = all_parsers
     data = StringIO("""x,y\n1,2""")
-    result = parser.read_csv_check_warnings(
-        UserWarning,
-        "Parsing datetime strings without a format specified",
+    result = parser.read_csv(
         data,
         parse_dates=["B"],
         names=["B"],
