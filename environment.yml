@@ -103,6 +103,7 @@ dependencies:
   - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
+  - sphinx-copybutton
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
@@ -127,4 +128,5 @@ dependencies:
   # build the interactive terminal
   - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b9
+      - jupyterlite==0.1.0b10
+      - sphinx-toggleprompt
