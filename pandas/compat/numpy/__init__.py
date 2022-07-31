@@ -11,7 +11,6 @@ np_version_under1p22 = _nlv < Version("1.22")
 np_version_gte1p22 = _nlv >= Version("1.22")
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.20.3"
-is_numpy_min = _nlv == Version(_min_numpy_ver)
 
 if is_numpy_dev or not np_version_under1p22:
     np_percentile_argname = "method"
