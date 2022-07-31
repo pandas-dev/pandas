@@ -773,7 +773,7 @@ def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
     df = DataFrame(
-        dict({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
+        dict({"A": np.arange(10, dtype="float64"), "B": Timestamp("2001-01-01")})
     )
     df.iloc[3:6, :] = np.nan
 
@@ -1604,7 +1604,9 @@ date,time,prn,rxstatus
             arr = [datetime.combine(d, t) for d, t in zip(dt, time)]
         return np.array(arr, dtype="datetime64[s]")
 
-    result = parser.read_csv(
+    result = parser.read_csv_with_warnings(
+        UserWarning,
+        "without a format specified",
         StringIO(data),
         date_parser=date_parser,
         parse_dates={"datetime": ["date", "time"]},
@@ -1626,12 +1628,7 @@ def test_parse_date_column_with_empty_string(all_parsers):
     # see gh-6428
     parser = all_parsers
     data = "case,opdate\n7,10/18/2006\n7,10/18/2008\n621, "
-    result = parser.read_csv_check_warnings(
-        UserWarning,
-        "Parsing datetime strings without a format specified",
-        StringIO(data),
-        parse_dates=["opdate"],
-    )
+    result = parser.read_csv(StringIO(data), parse_dates=["opdate"])
 
     expected_data = [[7, "10/18/2006"], [7, "10/18/2008"], [621, " "]]
     expected = DataFrame(expected_data, columns=["case", "opdate"])
