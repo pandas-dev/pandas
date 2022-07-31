@@ -75,6 +75,11 @@ keep_shape : bool, default False
 keep_equal : bool, default False
     If true, the result keeps values that are equal.
     Otherwise, equal values are shown as NaNs.
+
+result_names : tuple, default ('self', 'other')
+    Set the dataframes names in the comparison.
+
+    .. versionadded:: 1.5.0
 """
 
 _shared_docs[
@@ -423,7 +428,7 @@ _shared_docs[
 _shared_docs[
     "compression_options"
 ] = """compression : str or dict, default 'infer'
-    For on-the-fly compression of the output data. If 'infer' and '%s'
+    For on-the-fly compression of the output data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
     '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
     (otherwise no compression).
@@ -432,7 +437,7 @@ _shared_docs[
     to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
     key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
@@ -541,7 +546,7 @@ _shared_docs[
         string. Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
-    method : {{'pad', 'ffill', 'bfill', `None`}}
+    method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
 

@@ -92,8 +92,9 @@ def test_cython_agg_boolean():
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(NotImplementedError, match="does not implement"):
-        frame.groupby("a")["b"].mean(numeric_only=True)
+    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            frame.groupby("a")["b"].mean(numeric_only=True)
 
     with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
         frame.groupby("a")["b"].mean()
@@ -114,8 +115,9 @@ def test_cython_agg_nothing_to_agg_with_dates():
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
     )
-    with pytest.raises(NotImplementedError, match="does not implement"):
-        frame.groupby("b").dates.mean(numeric_only=True)
+    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            frame.groupby("b").dates.mean(numeric_only=True)
 
 
 def test_cython_agg_frame_columns():
@@ -164,7 +166,7 @@ def test_cython_fail_agg():
         ("mean", np.mean),
         ("median", np.median),
         ("var", np.var),
-        ("add", np.sum),
+        ("sum", np.sum),
         ("prod", np.prod),
         ("min", np.min),
         ("max", np.max),
@@ -212,7 +214,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     grps = range(0, 25, 5)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
-        "add", alt=None, numeric_only=True
+        "sum", alt=None, numeric_only=True
     )
     intervals = pd.interval_range(0, 20, freq=5, inclusive="right")
     expected = DataFrame(

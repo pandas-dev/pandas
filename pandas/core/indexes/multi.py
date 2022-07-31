@@ -308,7 +308,7 @@ class MultiIndex(Index):
         copy=False,
         name=None,
         verify_integrity: bool = True,
-    ):
+    ) -> MultiIndex:
 
         # compat with Index
         if name is not None:
@@ -363,8 +363,9 @@ class MultiIndex(Index):
         """
         null_mask = isna(level)
         if np.any(null_mask):
-            # Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[Any]]", variable has type "List[Any]")
+            # error: Incompatible types in assignment
+            # (expression has type "ndarray[Any, dtype[Any]]",
+            # variable has type "List[Any]")
             code = np.where(null_mask[code], -1, code)  # type: ignore[assignment]
         return code
 
@@ -502,7 +503,7 @@ class MultiIndex(Index):
         cls,
         tuples: Iterable[tuple[Hashable, ...]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | None = None,
+        names: Sequence[Hashable] | Hashable | None = None,
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
@@ -561,7 +562,9 @@ class MultiIndex(Index):
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
-            arrays = [[]] * len(names)
+            # error: Argument 1 to "len" has incompatible type "Hashable";
+            # expected "Sized"
+            arrays = [[]] * len(names)  # type: ignore[arg-type]
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
                 tuples = np.asarray(tuples._values)
@@ -577,7 +580,10 @@ class MultiIndex(Index):
 
     @classmethod
     def from_product(
-        cls, iterables, sortorder=None, names=lib.no_default
+        cls,
+        iterables: Sequence[Iterable[Hashable]],
+        sortorder: int | None = None,
+        names: Sequence[Hashable] | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
@@ -1184,6 +1190,7 @@ class MultiIndex(Index):
         This could be potentially expensive on large MultiIndex objects.
         """
         names = self._validate_names(name=name, names=names, deep=deep)
+        keep_id = not deep
         if levels is not None:
             warnings.warn(
                 "parameter levels is deprecated and will be removed in a future "
@@ -1191,6 +1198,7 @@ class MultiIndex(Index):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+            keep_id = False
         if codes is not None:
             warnings.warn(
                 "parameter codes is deprecated and will be removed in a future "
@@ -1198,6 +1206,7 @@ class MultiIndex(Index):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+            keep_id = False
 
         if deep:
             from copy import deepcopy
@@ -1219,6 +1228,8 @@ class MultiIndex(Index):
         )
         new_index._cache = self._cache.copy()
         new_index._cache.pop("levels", None)  # GH32669
+        if keep_id:
+            new_index._id = self._id
 
         if dtype:
             warnings.warn(
@@ -1517,8 +1528,7 @@ class MultiIndex(Index):
             return grouper, None, None
 
         values = self.get_level_values(level)
-        na_sentinel = -1 if dropna else None
-        codes, uniques = algos.factorize(values, sort=True, na_sentinel=na_sentinel)
+        codes, uniques = algos.factorize(values, sort=True, use_na_sentinel=dropna)
         assert isinstance(uniques, Index)
 
         if self.levels[level]._can_hold_na:
@@ -1562,8 +1572,7 @@ class MultiIndex(Index):
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """
-        return if the index is monotonic increasing (only equal or
-        increasing) values.
+        Return a boolean if the values are equal or increasing.
         """
         if any(-1 in code for code in self.codes):
             return False
@@ -1579,11 +1588,12 @@ class MultiIndex(Index):
             self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
-            # Argument 1 to "lexsort" has incompatible type "List[Union[ExtensionArray,
-            # ndarray[Any, Any]]]"; expected "Union[_SupportsArray[dtype[Any]],
+            # error: Argument 1 to "lexsort" has incompatible type
+            # "List[Union[ExtensionArray, ndarray[Any, Any]]]";
+            # expected "Union[_SupportsArray[dtype[Any]],
             # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
-            #  int, float, complex, str, bytes, _NestedSequence[Union[bool, int, float,
-            #  complex, str, bytes]]]"  [arg-type]
+            # int, float, complex, str, bytes, _NestedSequence[Union
+            # [bool, int, float, complex, str, bytes]]]"
             sort_order = np.lexsort(values)  # type: ignore[arg-type]
             return Index(sort_order).is_monotonic_increasing
         except TypeError:
@@ -1594,8 +1604,7 @@ class MultiIndex(Index):
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """
-        return if the index is monotonic decreasing (only equal or
-        decreasing) values.
+        Return a boolean if the values are equal or decreasing.
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
@@ -1822,7 +1831,9 @@ class MultiIndex(Index):
             result.index = self
         return result
 
-    def to_flat_index(self) -> Index:
+    # error: Return type "Index" of "to_flat_index" incompatible with return type
+    # "MultiIndex" in supertype "Index"
+    def to_flat_index(self) -> Index:  # type: ignore[override]
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
 
@@ -2642,7 +2653,10 @@ class MultiIndex(Index):
         return ci.get_indexer_for(target)
 
     def get_slice_bound(
-        self, label: Hashable | Sequence[Hashable], side: str, kind=lib.no_default
+        self,
+        label: Hashable | Sequence[Hashable],
+        side: Literal["left", "right"],
+        kind=lib.no_default,
     ) -> int:
         """
         For an ordered MultiIndex, compute slice bound
@@ -2757,7 +2771,7 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup: tuple, side="left"):
+    def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "

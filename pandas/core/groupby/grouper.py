@@ -679,15 +679,17 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_index._values
+            # error: Incompatible types in assignment (expression has type "Union
+            # [ExtensionArray, ndarray[Any, Any]]", variable has type "Categorical")
+            uniques = (
+                self.grouping_vector.result_index._values  # type: ignore[assignment]
+            )
         else:
-            # GH35667, replace dropna=False with na_sentinel=None
-            if not self._dropna:
-                na_sentinel = None
-            else:
-                na_sentinel = -1
-            codes, uniques = algorithms.factorize(
-                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
+            # GH35667, replace dropna=False with use_na_sentinel=False
+            # error: Incompatible types in assignment (expression has type "Union[
+            # ndarray[Any, Any], Index]", variable has type "Categorical")
+            codes, uniques = algorithms.factorize(  # type: ignore[assignment]
+                self.grouping_vector, sort=self._sort, use_na_sentinel=self._dropna
             )
         return codes, uniques
 
@@ -835,7 +837,11 @@ def get_grouper(
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
+
         if not _is_label_like(key):
+            if obj.ndim == 1:
+                return False
+
             # items -> .columns for DataFrame, .index for Series
             items = obj.axes[-1]
             try:

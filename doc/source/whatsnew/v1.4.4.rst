@@ -1,0 +1,46 @@
+.. _whatsnew_144:
+
+What's new in 1.4.4 (July ??, 2022)
+-----------------------------------
+
+These are the changes in pandas 1.4.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
+- Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- The :class:`errors.FutureWarning` raised when passing arguments (other than ``filepath_or_buffer``) as positional in :func:`read_csv` is now raised at the correct stacklevel (:issue:`47385`)
+- Bug in :meth:`DataFrame.to_sql` when ``method`` was a ``callable`` that did not return an ``int`` and would raise a ``TypeError`` (:issue:`46891`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.3..v1.4.4|HEAD

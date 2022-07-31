@@ -14,6 +14,9 @@ env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
 
+permissions:
+  contents: read
+
 jobs:
   web_and_docs:
     name: Doc Build and Upload
@@ -45,6 +48,11 @@ jobs:
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
+
+    - name: Build the interactive terminal
+      run: |
+        cd web/interactive_terminal
+        jupyter lite build
 
     - name: Install ssh key
       run: |

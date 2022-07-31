@@ -25,15 +25,18 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    BaseOffset,
     Resolution,
+    periods_per_day,
     timezones,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    IntervalClosedType,
+    IntervalInclusiveType,
     IntervalLeftRight,
     npt,
 )
@@ -44,9 +47,9 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_scalar,
 )
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -250,8 +253,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _typ = "datetimeindex"
 
     _data_cls = DatetimeArray
-    _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
+
+    @property
+    def _engine_type(self) -> type[libindex.DatetimeEngine]:
+        return libindex.DatetimeEngine
 
     _data: DatetimeArray
     inferred_freq: str | None
@@ -307,7 +313,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq=lib.no_default,
+        freq: str | BaseOffset | lib.NoDefault = lib.no_default,
         tz=None,
         normalize: bool = False,
         closed=None,
@@ -334,6 +340,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
             # Note in this particular case we retain non-nano.
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name)
+        elif (
+            isinstance(data, DatetimeArray)
+            and freq is lib.no_default
+            and tz is None
+            and is_dtype_equal(data.dtype, dtype)
+        ):
+            # Reached via Index.__new__ when we call .astype
+            # TODO(2.0): special casing can be removed once _from_sequence_not_strict
+            #  no longer chokes on non-nano
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
@@ -448,7 +466,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def _get_time_micros(self) -> np.ndarray:
+    def _get_time_micros(self) -> npt.NDArray[np.int64]:
         """
         Return the number of microseconds since midnight.
 
@@ -458,16 +476,29 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         values = self._data._local_timestamps()
 
-        nanos = values % (24 * 3600 * 1_000_000_000)
-        micros = nanos // 1000
+        reso = self._data._reso
+        ppd = periods_per_day(reso)
+
+        frac = values % ppd
+        if reso == NpyDatetimeUnit.NPY_FR_ns.value:
+            micros = frac // 1000
+        elif reso == NpyDatetimeUnit.NPY_FR_us.value:
+            micros = frac
+        elif reso == NpyDatetimeUnit.NPY_FR_ms.value:
+            micros = frac * 1000
+        elif reso == NpyDatetimeUnit.NPY_FR_s.value:
+            micros = frac * 1_000_000
+        else:  # pragma: no cover
+            raise NotImplementedError(reso)
 
         micros[self._isnan] = -1
         return micros
 
     def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index.
+        Create a Series with both index and values equal to the index keys.
+
+        Useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -552,7 +583,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype=DT64NS_DTYPE)
+        dta = self._data.copy()
 
         for i, v in enumerate(self):
             s = v
@@ -563,9 +594,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t0
                 else:
                     s = t1
-            snapped[i] = s
+            dta[i] = s
 
-        dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------
@@ -797,8 +827,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof: bool = False) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values at particular time of day
-        (e.g. 9:30AM).
+        Return index locations of values at particular time of day.
 
         Parameters
         ----------
@@ -838,8 +867,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
     ) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values between particular times of day
-        (e.g., 9:00-9:30AM).
+        Return index locations of values between particular times of day.
 
         Parameters
         ----------
@@ -895,7 +923,7 @@ def date_range(
     normalize: bool = False,
     name: Hashable = None,
     closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    inclusive: IntervalInclusiveType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1101,12 +1129,11 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    inclusive: IntervalInclusiveType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
-    Return a fixed frequency DatetimeIndex, with business day as the default
-    frequency.
+    Return a fixed frequency DatetimeIndex with business day as the default.
 
     Parameters
     ----------

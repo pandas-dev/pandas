@@ -1,8 +1,13 @@
 """Common utility functions for rolling operations"""
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import cast
+import warnings
 
 import numpy as np
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -165,3 +170,38 @@ def prep_binary(arg1, arg2):
     X = arg1 + 0 * arg2
     Y = arg2 + 0 * arg1
     return X, Y
+
+
+def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
+    """
+    Warn for deprecation of args and kwargs in rolling/expanding functions.
+
+    Parameters
+    ----------
+    cls : type
+        Class to warn about.
+    kernel : str
+        Operation name.
+    args : tuple or None
+        args passed by user. Will be None if and only if kernel does not have args.
+    kwargs : dict or None
+        kwargs passed by user. Will be None if and only if kernel does not have kwargs.
+    """
+    warn_args = args is not None and len(args) > 0
+    warn_kwargs = kwargs is not None and len(kwargs) > 0
+    if warn_args and warn_kwargs:
+        msg = "args and kwargs"
+    elif warn_args:
+        msg = "args"
+    elif warn_kwargs:
+        msg = "kwargs"
+    else:
+        msg = ""
+    if msg != "":
+        warnings.warn(
+            f"Passing additional {msg} to {cls.__name__}.{kernel} has "
+            "no impact on the result and is deprecated. This will "
+            "raise a TypeError in a future version of pandas.",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )

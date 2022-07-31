@@ -124,7 +124,7 @@ def group_median_float64(
         ndarray[intp_t] indexer
         float64_t* ptr
 
-    assert min_count == -1, "'min_count' only used in add and prod"
+    assert min_count == -1, "'min_count' only used in sum and prod"
 
     ngroups = len(counts)
     N, K = (<object>values).shape
@@ -502,7 +502,7 @@ def group_any_all(
 
 
 # ----------------------------------------------------------------------
-# group_add, group_prod, group_var, group_mean, group_ohlc
+# group_sum, group_prod, group_var, group_mean, group_ohlc
 # ----------------------------------------------------------------------
 
 ctypedef fused mean_t:
@@ -511,17 +511,17 @@ ctypedef fused mean_t:
     complex64_t
     complex128_t
 
-ctypedef fused add_t:
+ctypedef fused sum_t:
     mean_t
     object
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_add(
-    add_t[:, ::1] out,
+def group_sum(
+    sum_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[add_t, ndim=2] values,
+    ndarray[sum_t, ndim=2] values,
     const intp_t[::1] labels,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
@@ -531,8 +531,8 @@ def group_add(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        add_t val, t, y
-        add_t[:, ::1] sumx, compensation
+        sum_t val, t, y
+        sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
@@ -546,7 +546,7 @@ def group_add(
 
     N, K = (<object>values).shape
 
-    if add_t is object:
+    if sum_t is object:
         # NB: this does not use 'compensation' like the non-object track does.
         for i in range(N):
             lab = labels[i]
@@ -588,10 +588,10 @@ def group_add(
 
                     # not nan
                     # With dt64/td64 values, values have been cast to float64
-                    #  instead if int64 for group_add, but the logic
+                    #  instead if int64 for group_sum, but the logic
                     #  is otherwise the same as in _treat_as_na
                     if val == val and not (
-                        add_t is float64_t
+                        sum_t is float64_t
                         and is_datetimelike
                         and val == <float64_t>NPY_NAT
                     ):
@@ -677,7 +677,7 @@ def group_var(
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
-    assert min_count == -1, "'min_count' only used in add and prod"
+    assert min_count == -1, "'min_count' only used in sum and prod"
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -745,7 +745,7 @@ def group_mean(
         Array containing unique label for each group, with its
         ordering matching up to the corresponding record in `values`.
     min_count : Py_ssize_t
-        Only used in add and prod. Always -1.
+        Only used in sum and prod. Always -1.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
     mask : ndarray[bool, ndim=2], optional
@@ -766,7 +766,7 @@ def group_mean(
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
-    assert min_count == -1, "'min_count' only used in add and prod"
+    assert min_count == -1, "'min_count' only used in sum and prod"
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -821,7 +821,7 @@ def group_ohlc(
         Py_ssize_t i, j, N, K, lab
         floating val
 
-    assert min_count == -1, "'min_count' only used in add and prod"
+    assert min_count == -1, "'min_count' only used in sum and prod"
 
     if len(labels) == 0:
         return

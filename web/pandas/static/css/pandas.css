@@ -32,6 +32,13 @@ ol ol, ol ul, ul ol, ul ul {
 .pink {
     color: #e70488;
 }
+.follow-us-button {
+    font-size: 2.4rem !important;
+    color: #0d6efd !important;
+}
+.follow-us-button:hover {
+    color: #0b5ed7 !important;
+}
 .fab {
     font-size: 1.2rem;
     color: #666;
