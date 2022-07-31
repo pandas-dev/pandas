@@ -11,12 +11,12 @@ from typing import (
 )
 import warnings
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.properties import cache_readonly
 from pandas._typing import (
     F,
     T,
 )
-from pandas.util._exceptions import find_stack_level
 
 
 def deprecate(

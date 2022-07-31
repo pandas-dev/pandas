@@ -19,6 +19,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.interval import (
     Interval,
     _warning_interval,
@@ -43,7 +44,6 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,

@@ -42,6 +42,7 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
@@ -64,7 +65,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (

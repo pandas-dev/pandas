@@ -22,9 +22,9 @@ if TYPE_CHECKING:
     from pandas import DataFrame, Series
     from pandas.core.generic import NDFrame
 
+from pandas._libs.exceptions import find_stack_level
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,

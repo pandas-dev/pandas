@@ -1,6 +1,6 @@
 import warnings
 
-from pandas.util._exceptions import find_stack_level
+from pandas._libs.exceptions import find_stack_level
 
 from pandas._testing import *  # noqa:F401,F403,PDF014
 

@@ -22,6 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.interval import (
     VALID_INCLUSIVE,
     Interval,
@@ -46,7 +47,6 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (

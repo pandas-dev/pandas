@@ -21,6 +21,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs.period import Period
 from pandas._typing import (
     AnyArrayLike,
@@ -30,7 +31,6 @@ from pandas._typing import (
     T,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,

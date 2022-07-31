@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import warnings
 
-from pandas.util._exceptions import find_stack_level
+from pandas._libs.exceptions import find_stack_level
 
 from pandas.core.indexes.api import (  # noqa:F401
     CategoricalIndex,

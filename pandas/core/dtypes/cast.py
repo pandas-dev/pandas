@@ -24,6 +24,7 @@ from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -40,7 +41,6 @@ from pandas._typing import (
     Scalar,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_nansafe

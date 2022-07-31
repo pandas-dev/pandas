@@ -30,6 +30,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.join as libjoin
 from pandas._libs.lib import (
     is_datetime_array,
@@ -65,10 +66,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_exception,
-)
+from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (

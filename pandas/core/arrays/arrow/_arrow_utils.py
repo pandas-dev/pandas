@@ -6,10 +6,10 @@ import warnings
 import numpy as np
 import pyarrow
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import IntervalInclusiveType
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import deprecate_kwarg
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.arrays.interval import VALID_INCLUSIVE
 

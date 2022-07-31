@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import warnings
 
+from pandas._libs.exceptions import find_stack_level
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 
 class DirNamesMixin:

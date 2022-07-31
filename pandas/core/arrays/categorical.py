@@ -30,6 +30,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.lib import (
     NoDefault,
     no_default,
@@ -49,7 +50,6 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import coerce_indexer_dtype

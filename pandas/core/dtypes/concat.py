@@ -11,11 +11,11 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (

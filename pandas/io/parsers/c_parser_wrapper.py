@@ -11,6 +11,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
@@ -19,7 +20,6 @@ from pandas._typing import (
     ReadCsvBuffer,
 )
 from pandas.errors import DtypeWarning
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,

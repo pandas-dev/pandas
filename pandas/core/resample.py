@@ -16,6 +16,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -44,7 +45,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,

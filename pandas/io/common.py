@@ -45,6 +45,7 @@ from urllib.parse import (
 import warnings
 import zipfile
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     BaseBuffer,
     CompressionDict,
@@ -57,7 +58,6 @@ from pandas._typing import (
 from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,

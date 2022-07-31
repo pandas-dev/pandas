@@ -31,6 +31,7 @@ from pandas._libs import (
     lib,
     reduction as libreduction,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     ArrayLike,
     Manager,
@@ -43,7 +44,6 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,

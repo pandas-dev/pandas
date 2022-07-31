@@ -22,6 +22,7 @@ from pandas._libs import (
     Timedelta,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import (
     BaseOffset,
     Resolution,
@@ -35,7 +36,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,

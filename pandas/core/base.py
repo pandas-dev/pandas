@@ -20,6 +20,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
@@ -36,7 +37,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,

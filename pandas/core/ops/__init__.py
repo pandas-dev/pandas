@@ -11,10 +11,10 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 from pandas._typing import Level
 from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,

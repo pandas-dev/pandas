@@ -13,7 +13,7 @@ import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
-from pandas.util._exceptions import find_stack_level
+from pandas._libs.exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (

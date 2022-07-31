@@ -30,6 +30,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -37,7 +38,6 @@ from pandas._typing import (
     RandomState,
     T,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (

@@ -26,6 +26,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -71,7 +72,6 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_all_strings,

@@ -8,6 +8,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.lib import (
     NoDefault,
     no_default,
@@ -15,7 +16,6 @@ from pandas._libs.lib import (
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,

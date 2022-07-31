@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import is_unitless
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -23,7 +24,6 @@ from pandas._typing import (
     IgnoreRaise,
 )
 from pandas.errors import IntCastingNaNError
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,

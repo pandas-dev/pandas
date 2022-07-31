@@ -25,6 +25,7 @@ import numpy as np
 from pandas._config import option_context
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -39,7 +40,6 @@ from pandas.errors import (
     SpecificationError,
 )
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (

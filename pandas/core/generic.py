@@ -31,6 +31,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -81,7 +82,6 @@ from pandas.util._decorators import (
     doc,
     rewrite_axis_style_signature,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,

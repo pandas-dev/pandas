@@ -6,11 +6,11 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 from pandas.util._decorators import (
     Appender,
     deprecate_kwarg,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,

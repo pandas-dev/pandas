@@ -21,6 +21,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
@@ -40,7 +41,6 @@ from pandas.util._decorators import (
     Appender,
     deprecate_nonkeyword_arguments,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (

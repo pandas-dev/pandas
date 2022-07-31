@@ -25,6 +25,7 @@ import zipfile
 
 from pandas._config import config
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     DtypeArg,
@@ -44,7 +45,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,

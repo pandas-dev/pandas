@@ -24,6 +24,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
@@ -38,7 +39,6 @@ from pandas.errors import (
     ParserError,
     ParserWarning,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (

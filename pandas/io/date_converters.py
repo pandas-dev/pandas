@@ -5,9 +5,9 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import parsing
 from pandas._typing import npt
-from pandas.util._exceptions import find_stack_level
 
 
 def parse_date_time(date_col, time_col) -> npt.NDArray[np.object_]:

@@ -19,6 +19,7 @@ from pandas._libs import (
     lib,
     tslib,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -44,7 +45,6 @@ from pandas.errors import (
     OutOfBoundsDatetime,
     PerformanceWarning,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
 from pandas.core.dtypes.astype import astype_dt64_to_dt64tz

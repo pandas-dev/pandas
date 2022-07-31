@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import (
     Timestamp,
     get_unit_from_dtype,
@@ -32,7 +33,6 @@ from pandas._libs.tslibs.offsets import (
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,

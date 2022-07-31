@@ -16,6 +16,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.interval import (
     Interval,
     IntervalMixin,
@@ -39,10 +40,7 @@ from pandas.util._decorators import (
     cache_readonly,
     deprecate_kwarg,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_exception,
-)
+from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
     find_common_type,

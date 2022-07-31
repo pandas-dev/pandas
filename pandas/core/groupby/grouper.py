@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     ArrayLike,
     NDFrameT,
@@ -21,7 +22,6 @@ from pandas._typing import (
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (

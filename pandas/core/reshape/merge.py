@@ -23,6 +23,7 @@ from pandas._libs import (
     join as libjoin,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -35,7 +36,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (

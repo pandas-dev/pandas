@@ -21,6 +21,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.algos import unique_deltas
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.lib import no_default
 from pandas._typing import (
     Dtype,
@@ -31,7 +32,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,

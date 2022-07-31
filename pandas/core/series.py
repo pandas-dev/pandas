@@ -30,6 +30,7 @@ from pandas._libs import (
     reshape,
     tslibs,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
@@ -65,7 +66,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,

@@ -18,12 +18,12 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Manager,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,

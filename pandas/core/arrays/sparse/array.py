@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import (
     BlockIndex,
@@ -41,7 +42,6 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,

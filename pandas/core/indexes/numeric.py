@@ -12,6 +12,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     Dtype,
     npt,
@@ -20,7 +21,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,

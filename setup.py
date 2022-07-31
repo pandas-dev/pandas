@@ -445,6 +445,7 @@ ext_data = {
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
+    "_libs.exceptions": {"pyxfile": "_libs/exceptions"},
     "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",

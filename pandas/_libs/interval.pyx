@@ -9,7 +9,7 @@ from cpython.datetime cimport (
     import_datetime,
 )
 
-from pandas.util._exceptions import find_stack_level
+from pandas._libs.exceptions import find_stack_level
 
 import_datetime()
 

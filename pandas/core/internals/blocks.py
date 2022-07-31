@@ -21,6 +21,7 @@ from pandas._libs import (
     lib,
     writers,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
@@ -33,7 +34,6 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe

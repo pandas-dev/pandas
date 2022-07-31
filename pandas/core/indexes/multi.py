@@ -26,6 +26,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyArrayLike,
@@ -47,7 +48,6 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (

@@ -17,12 +17,12 @@ from pandas._libs import (
     algos,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.tslibs import conversion
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (

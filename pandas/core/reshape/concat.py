@@ -18,6 +18,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 from pandas._typing import (
     Axis,
     HashableT,
@@ -26,7 +27,6 @@ from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (

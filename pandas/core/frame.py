@@ -41,6 +41,7 @@ from pandas._libs import (
     lib,
     properties,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import (
     NoDefault,
@@ -89,7 +90,6 @@ from pandas.util._decorators import (
     doc,
     rewrite_axis_style_signature,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_axis_style_args,

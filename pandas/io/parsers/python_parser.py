@@ -23,6 +23,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
@@ -33,7 +34,6 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like

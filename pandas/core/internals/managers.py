@@ -19,6 +19,7 @@ from pandas._libs import (
     internals as libinternals,
     lib,
 )
+from pandas._libs.exceptions import find_stack_level
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
@@ -29,7 +30,6 @@ from pandas._typing import (
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar

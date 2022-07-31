@@ -13,6 +13,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.exceptions import find_stack_level
 import pandas._libs.lib as lib
 from pandas._typing import (
     DtypeObj,
@@ -22,7 +23,6 @@ from pandas.util._decorators import (
     Appender,
     deprecate_nonkeyword_arguments,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
