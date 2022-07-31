@@ -63,6 +63,7 @@ from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
     is_array,
 )
+from pandas.util._exceptions import find_stack_level
 
 
 cdef extern from "../src/headers/portable.h":
@@ -214,7 +215,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='MM/DD/YYYY',
                     dayfirst='True',
                 ),
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
@@ -222,7 +223,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='DD/MM/YYYY',
                     dayfirst='False (the default)',
                 ),
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
