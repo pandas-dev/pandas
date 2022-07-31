@@ -18,7 +18,7 @@ import warnings
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning: type[Warning] | bool | None = Warning | Tuple[Type[Warning], ...],
+    expected_warning: type[Warning] | Tuple[type[Warning], ...] | bool | None = Warning,
     filter_level: Literal[
         "error", "ignore", "always", "default", "module", "once"
     ] = "always",
