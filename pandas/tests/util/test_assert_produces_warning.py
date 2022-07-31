@@ -183,7 +183,6 @@ def test_match_multiple_warnings():
     with tm.assert_produces_warning(category, match=r"^Match this"):
         warnings.warn("Match this",FutureWarning )
         warnings.warn("Match this too", UserWarning)
-        warnings.warn("Do not match this", DeprecationWarning)
 
 
 
