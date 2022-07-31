@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "data,expected",
+    "data,expected,warning,message",
     [
         (
             ["01-01-2013", "01-02-2013"],
@@ -26,6 +26,8 @@ import pandas._testing as tm
                 "2013-01-01T00:00:00.000000000",
                 "2013-01-02T00:00:00.000000000",
             ],
+            None,
+            "",
         ),
         (
             ["Mon Sep 16 2013", "Tue Sep 17 2013"],
@@ -33,34 +35,39 @@ import pandas._testing as tm
                 "2013-09-16T00:00:00.000000000",
                 "2013-09-17T00:00:00.000000000",
             ],
+            UserWarning,
+            "without a format specified",
         ),
     ],
 )
-def test_parsing_valid_dates(data, expected):
+def test_parsing_valid_dates(data, expected, warning, message):
     arr = np.array(data, dtype=object)
-    result, _ = tslib.array_to_datetime(arr)
+    with tm.assert_produces_warning(warning, match=message):
+        result, _ = tslib.array_to_datetime(arr)
 
     expected = np.array(expected, dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "dt_string, expected_tz",
+    "dt_string, expected_tz, warning, message",
     [
-        ["01-01-2013 08:00:00+08:00", 480],
-        ["2013-01-01T08:00:00.000000000+0800", 480],
-        ["2012-12-31T16:00:00.000000000-0800", -480],
-        ["12-31-2012 23:00:00-01:00", -60],
+        ["01-01-2013 08:00:00+08:00", 480, UserWarning, "without a format specified"],
+        ["2013-01-01T08:00:00.000000000+0800", 480, None, ""],
+        ["2012-12-31T16:00:00.000000000-0800", -480, None, ""],
+        ["12-31-2012 23:00:00-01:00", -60, UserWarning, "without a format specified"],
     ],
 )
-def test_parsing_timezone_offsets(dt_string, expected_tz):
+def test_parsing_timezone_offsets(dt_string, expected_tz, warning, message):
     # All of these datetime strings with offsets are equivalent
     # to the same datetime after the timezone offset is added.
     arr = np.array(["01-01-2013 00:00:00"], dtype=object)
-    expected, _ = tslib.array_to_datetime(arr)
+    with tm.assert_produces_warning(UserWarning, match="without a format specified"):
+        expected, _ = tslib.array_to_datetime(arr)
 
-    arr = np.array([dt_string], dtype=object)
-    result, result_tz = tslib.array_to_datetime(arr)
+    with tm.assert_produces_warning(warning, match=message):
+        arr = np.array([dt_string], dtype=object)
+        result, result_tz = tslib.array_to_datetime(arr)
 
     tm.assert_numpy_array_equal(result, expected)
     assert result_tz is pytz.FixedOffset(expected_tz)
@@ -70,7 +77,8 @@ def test_parsing_non_iso_timezone_offset():
     dt_string = "01-01-2013T00:00:00.000000000+0000"
     arr = np.array([dt_string], dtype=object)
 
-    result, result_tz = tslib.array_to_datetime(arr)
+    with tm.assert_produces_warning(UserWarning, match="without a format specified"):
+        result, result_tz = tslib.array_to_datetime(arr)
     expected = np.array([np.datetime64("2013-01-01 00:00:00.000000000")])
 
     tm.assert_numpy_array_equal(result, expected)
@@ -82,7 +90,8 @@ def test_parsing_different_timezone_offsets():
     data = ["2015-11-18 15:30:00+05:30", "2015-11-18 15:30:00+06:30"]
     data = np.array(data, dtype=object)
 
-    result, result_tz = tslib.array_to_datetime(data)
+    with tm.assert_produces_warning(UserWarning, match="without a format specified"):
+        result, result_tz = tslib.array_to_datetime(data)
     expected = np.array(
         [
             datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 19800)),
@@ -154,11 +163,17 @@ def test_coerce_of_invalid_datetimes(errors):
     if errors == "ignore":
         # Without coercing, the presence of any invalid
         # dates prevents any values from being converted.
-        result, _ = tslib.array_to_datetime(**kwargs)
+        with tm.assert_produces_warning(
+            UserWarning, match="without a format specified"
+        ):
+            result, _ = tslib.array_to_datetime(**kwargs)
         tm.assert_numpy_array_equal(result, arr)
     else:  # coerce.
         # With coercing, the invalid dates becomes iNaT
-        result, _ = tslib.array_to_datetime(arr, errors="coerce")
+        with tm.assert_produces_warning(
+            UserWarning, match="without a format specified"
+        ):
+            result, _ = tslib.array_to_datetime(arr, errors="coerce")
         expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
 
         tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[ns]"))

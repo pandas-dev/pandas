@@ -185,7 +185,8 @@ def test_guess_datetime_format_with_parseable_formats(string, fmt):
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
 def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ambiguous_string = "01/01/2011"
-    result = parsing.guess_datetime_format(ambiguous_string, dayfirst=dayfirst)
+    with tm.assert_produces_warning(UserWarning, match="without a format specified"):
+        result = parsing.guess_datetime_format(ambiguous_string, dayfirst=dayfirst)
     assert result == expected
 
 
@@ -204,22 +205,31 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
 
 
 @pytest.mark.parametrize(
-    "invalid_dt",
+    "invalid_dt, warning, message",
     [
-        "2013",
-        "01/2013",
-        "12:00:00",
-        "1/1/1/1",
-        "this_is_not_a_datetime",
-        "51a",
-        9,
-        datetime(2011, 1, 1),
+        ("2013", UserWarning, "Parsing datetime strings without a format specified"),
+        ("01/2013", UserWarning, "Parsing datetime strings without a format specified"),
+        (
+            "12:00:00",
+            UserWarning,
+            "Parsing datetime strings without a format specified",
+        ),
+        ("1/1/1/1", UserWarning, "Parsing datetime strings without a format specified"),
+        (
+            "this_is_not_a_datetime",
+            UserWarning,
+            "Parsing datetime strings without a format specified",
+        ),
+        ("51a", UserWarning, "Parsing datetime strings without a format specified"),
+        (9, None, ""),
+        (datetime(2011, 1, 1), None, ""),
     ],
 )
-def test_guess_datetime_format_invalid_inputs(invalid_dt):
+def test_guess_datetime_format_invalid_inputs(invalid_dt, warning, message):
     # A datetime string must include a year, month and a day for it to be
     # guessable, in addition to being a string that looks like a datetime.
-    assert parsing.guess_datetime_format(invalid_dt) is None
+    with tm.assert_produces_warning(warning, match=message):
+        assert parsing.guess_datetime_format(invalid_dt) is None
 
 
 @pytest.mark.parametrize(
@@ -235,13 +245,21 @@ def test_guess_datetime_format_invalid_inputs(invalid_dt):
 )
 def test_guess_datetime_format_no_padding(string, fmt):
     # see gh-11142
-    result = parsing.guess_datetime_format(string)
+    with tm.assert_produces_warning(
+        UserWarning,
+        match="Parsing datetime strings without a format specified",
+    ):
+        result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
 def test_try_parse_dates():
     arr = np.array(["5/1/2000", "6/1/2000", "7/1/2000"], dtype=object)
-    result = parsing.try_parse_dates(arr, dayfirst=True)
+    with tm.assert_produces_warning(
+        UserWarning,
+        match="Parsing datetime strings without a format specified",
+    ):
+        result = parsing.try_parse_dates(arr, dayfirst=True)
 
     expected = np.array([parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)

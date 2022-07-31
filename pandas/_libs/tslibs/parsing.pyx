@@ -263,6 +263,18 @@ cdef inline bint does_string_look_like_time(str parse_string):
 
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
+from pandas.util._exceptions import find_stack_level
+
+
+def du_parse_with_warning(*args, **kwargs):
+    parsed = du_parse(*args, **kwargs)
+    warnings.warn(
+        "Parsing datetime strings without a format specified, "
+        "please specify a format to avoid unexpected results",
+        stacklevel=find_stack_level(),
+    )
+    return parsed
+
 
 def parse_datetime_string(
     # NB: This will break with np.str_ (GH#32264) even though
@@ -290,8 +302,12 @@ def parse_datetime_string(
 
     if does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
-        dt = du_parse(date_string, dayfirst=dayfirst,
-                      yearfirst=yearfirst, **kwargs)
+        dt = du_parse_with_warning(
+            date_string,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            **kwargs,
+        )
         return dt
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
@@ -307,8 +323,13 @@ def parse_datetime_string(
         pass
 
     try:
-        dt = du_parse(date_string, default=_DEFAULT_DATETIME,
-                      dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+        dt = du_parse_with_warning(
+            date_string,
+            default=_DEFAULT_DATETIME,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            **kwargs,
+        )
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
@@ -706,7 +727,11 @@ def try_parse_dates(
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
+        parse_date = lambda x: du_parse_with_warning(
+            x,
+            dayfirst=dayfirst,
+            default=default,
+        )
 
         # EAFP here
         try:
@@ -753,13 +778,17 @@ def try_parse_date_and_time(
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
+        parse_date = lambda x: du_parse_with_warning(
+            x,
+            dayfirst=dayfirst,
+            default=default,
+        )
 
     else:
         parse_date = date_parser
 
     if time_parser is None:
-        parse_time = lambda x: du_parse(x)
+        parse_time = lambda x: du_parse_with_warning(x)
 
     else:
         parse_time = time_parser
@@ -980,7 +1009,7 @@ def guess_datetime_format(dt_str, bint dayfirst=False):
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
     try:
-        parsed_datetime = du_parse(dt_str, dayfirst=dayfirst)
+        parsed_datetime = du_parse_with_warning(dt_str, dayfirst=dayfirst)
     except (ValueError, OverflowError):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None

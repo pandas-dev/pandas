@@ -424,6 +424,7 @@ Similarly to other of the datetime-like indices, ``DatetimeIndex`` and ``PeriodI
 Selections work similarly, with coercion on string-likes and slices:
 
 .. ipython:: python
+   :okwarning:
 
    s["1 day":"2 day"]
    s["1 day 01:00:00"]
@@ -432,6 +433,7 @@ Selections work similarly, with coercion on string-likes and slices:
 Furthermore you can use partial string selection and the range will be inferred:
 
 .. ipython:: python
+   :okwarning:
 
    s["1 day":"1 day 5 hours"]
 

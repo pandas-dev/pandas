@@ -51,8 +51,12 @@ class TestPeriodConstruction:
             Period(td, freq="D")
 
     def test_construction(self):
-        i1 = Period("1/1/2005", freq="M")
-        i2 = Period("Jan 2005")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i1 = Period("1/1/2005", freq="M")
+            i2 = Period("Jan 2005")
 
         assert i1 == i2
 
@@ -81,7 +85,11 @@ class TestPeriodConstruction:
         assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
-        i2 = Period("3/1/2005", freq="D")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("3/1/2005", freq="D")
         assert i1 == i2
 
         i3 = Period(year=2005, month=3, day=1, freq="d")
@@ -131,29 +139,57 @@ class TestPeriodConstruction:
     def test_construction_bday(self):
 
         # Biz day construction, roll forward if non-weekday
-        i1 = Period("3/10/12", freq="B")
-        i2 = Period("3/10/12", freq="D")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i1 = Period("3/10/12", freq="B")
+            i2 = Period("3/10/12", freq="D")
         assert i1 == i2.asfreq("B")
-        i2 = Period("3/11/12", freq="D")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("3/11/12", freq="D")
         assert i1 == i2.asfreq("B")
-        i2 = Period("3/12/12", freq="D")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("3/12/12", freq="D")
         assert i1 == i2.asfreq("B")
 
-        i3 = Period("3/10/12", freq="b")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i3 = Period("3/10/12", freq="b")
         assert i1 == i3
 
         i1 = Period(year=2012, month=3, day=10, freq="B")
-        i2 = Period("3/12/12", freq="B")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("3/12/12", freq="B")
         assert i1 == i2
 
     def test_construction_quarter(self):
 
         i1 = Period(year=2005, quarter=1, freq="Q")
-        i2 = Period("1/1/2005", freq="Q")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("1/1/2005", freq="Q")
         assert i1 == i2
 
         i1 = Period(year=2005, quarter=3, freq="Q")
-        i2 = Period("9/1/2005", freq="Q")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("9/1/2005", freq="Q")
         assert i1 == i2
 
         i1 = Period("2005Q1")
@@ -185,20 +221,36 @@ class TestPeriodConstruction:
     def test_construction_month(self):
 
         expected = Period("2007-01", freq="M")
-        i1 = Period("200701", freq="M")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i1 = Period("200701", freq="M")
         assert i1 == expected
 
-        i1 = Period("200701", freq="M")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i1 = Period("200701", freq="M")
         assert i1 == expected
 
-        i1 = Period(200701, freq="M")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i1 = Period(200701, freq="M")
         assert i1 == expected
 
         i1 = Period(ordinal=200701, freq="M")
         assert i1.year == 18695
 
         i1 = Period(datetime(2007, 1, 1), freq="M")
-        i2 = Period("200701", freq="M")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("200701", freq="M")
         assert i1 == i2
 
         i1 = Period(date(2007, 1, 1), freq="M")
@@ -212,15 +264,27 @@ class TestPeriodConstruction:
         assert i1 == i5
 
     def test_period_constructor_offsets(self):
-        assert Period("1/1/2005", freq=offsets.MonthEnd()) == Period(
-            "1/1/2005", freq="M"
-        )
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            assert Period("1/1/2005", freq=offsets.MonthEnd()) == Period(
+                "1/1/2005", freq="M"
+            )
         assert Period("2005", freq=offsets.YearEnd()) == Period("2005", freq="A")
         assert Period("2005", freq=offsets.MonthEnd()) == Period("2005", freq="M")
-        assert Period("3/10/12", freq=offsets.BusinessDay()) == Period(
-            "3/10/12", freq="B"
-        )
-        assert Period("3/10/12", freq=offsets.Day()) == Period("3/10/12", freq="D")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            assert Period("3/10/12", freq=offsets.BusinessDay()) == Period(
+                "3/10/12", freq="B"
+            )
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            assert Period("3/10/12", freq=offsets.Day()) == Period("3/10/12", freq="D")
 
         assert Period(
             year=2005, quarter=1, freq=offsets.QuarterEnd(startingMonth=12)
@@ -244,7 +308,11 @@ class TestPeriodConstruction:
             year=2012, month=3, day=10, freq="3B"
         )
 
-        assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
 
         i1 = Period(ordinal=200701, freq=offsets.MonthEnd())
         i2 = Period(ordinal=200701, freq="M")
@@ -253,7 +321,11 @@ class TestPeriodConstruction:
         assert i2.year == 18695
 
         i1 = Period(datetime(2007, 1, 1), freq="M")
-        i2 = Period("200701", freq="M")
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="Parsing datetime strings without a format specified",
+        ):
+            i2 = Period("200701", freq="M")
         assert i1 == i2
 
         i1 = Period(date(2007, 1, 1), freq="M")
@@ -580,8 +652,8 @@ class TestPeriodMethods:
     def test_to_timestamp_tz_arg(self, tzstr):
         # GH#34522 tz kwarg deprecated
         with tm.assert_produces_warning(FutureWarning):
-            p = Period("1/1/2005", freq="M").to_timestamp(tz=tzstr)
-        exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
+            p = Period("01/01/2005", freq="M").to_timestamp(tz=tzstr)
+        exp = Timestamp("01/01/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
         assert p == exp
