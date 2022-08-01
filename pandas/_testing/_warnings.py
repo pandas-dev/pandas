@@ -196,7 +196,7 @@ def _assert_caught_no_extra_warnings(
 
 def _is_unexpected_warning(
     actual_warning: warnings.WarningMessage,
-    expected_warning: type[Warning] | bool | None,
+    expected_warning: type[Warning] | bool | Tuple[type[Warning], ...] |  None,
 ) -> bool:
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:
