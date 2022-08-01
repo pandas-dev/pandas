@@ -176,3 +176,13 @@ def test_nonstring_object():
     col = df.__dataframe__().get_column_by_name("A")
     with pytest.raises(NotImplementedError, match="not supported yet"):
         col.dtype
+
+
+def test_datetime():
+    df = pd.DataFrame({"A": [pd.Timestamp("2022-01-01"), pd.NaT]})
+    col = df.__dataframe__().get_column_by_name("A")
+
+    assert col.size == 2
+    assert col.null_count == 1
+    assert col.dtype[0] == DtypeKind.DATETIME
+    assert col.describe_null == (ColumnNullType.USE_SENTINEL, pd.NaT)
