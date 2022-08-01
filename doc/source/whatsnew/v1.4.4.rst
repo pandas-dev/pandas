@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
+- Fixed regression in :meth:`loc.__getitem__` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
 -
 
 .. ---------------------------------------------------------------------------
