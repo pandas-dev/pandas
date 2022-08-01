@@ -1480,7 +1480,6 @@ class StylerRenderer:
             display_funcs_, obj = self._display_funcs_columns, self.columns
             hidden_labels, hidden_lvls = self.hidden_columns, self.hide_columns_
         visible_len = len(obj) - len(set(hidden_labels))
-        # visible_lvls = obj.nlevels - sum(hidden_lvls)
         if len(labels) != visible_len:
             raise ValueError(
                 "``labels`` must be of length equal to the number of "
