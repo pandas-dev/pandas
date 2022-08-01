@@ -834,14 +834,7 @@ def test_zfill_with_leading_sign():
 def test_get_with_non_integer_argument(arg):
     # GH47911
     s = Series(
-        [
-            "String",
-            (1, 2, 3),
-            ["a", "b", "c"],
-            123,
-            -456,
-            {1: "Hello", "2": "World"}
-        ]
+        ["String", (1, 2, 3), ["a", "b", "c"], 123, -456, {1: "Hello", "2": "World"}]
     )
     msg = f"i must be of integer type, not {type(arg).__name__}"
     with pytest.raises(TypeError, match=msg):
