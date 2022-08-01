@@ -444,9 +444,9 @@ def to_parquet(
 
 @doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
-    path,
+    path: FilePath | ReadBuffer[bytes],
     engine: str = "auto",
-    columns=None,
+    columns: list[str] | None = None,
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
     **kwargs,

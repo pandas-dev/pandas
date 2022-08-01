@@ -1254,8 +1254,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def left(self):
         """
-        Return the left endpoints of each Interval in the IntervalArray as
-        an Index.
+        Return the left endpoints of each Interval in the IntervalArray as an Index.
         """
         from pandas import Index
 
@@ -1264,8 +1263,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def right(self):
         """
-        Return the right endpoints of each Interval in the IntervalArray as
-        an Index.
+        Return the right endpoints of each Interval in the IntervalArray as an Index.
         """
         from pandas import Index
 
@@ -1274,8 +1272,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def length(self) -> Index:
         """
-        Return an Index with entries denoting the length of each Interval in
-        the IntervalArray.
+        Return an Index with entries denoting the length of each Interval.
         """
         return self.right - self.left
 
@@ -1367,16 +1364,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def inclusive(self) -> IntervalInclusiveType:
         """
-        Whether the intervals are inclusive on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         return self.dtype.inclusive
 
     @property
     def closed(self) -> IntervalInclusiveType:
         """
-        Whether the intervals are closed on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
+
+        Either ``left``, ``right``, ``both`` or ``neither`.
         """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
@@ -1387,8 +1386,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
-        Return an %(klass)s identical to the current one, but closed on the
-        specified side.
+        Return an identical %(klass)s closed on the specified side.
 
         .. deprecated:: 1.5.0
 
@@ -1440,8 +1438,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     _interval_shared_docs["set_inclusive"] = textwrap.dedent(
         """
-        Return an %(klass)s identical to the current one, but closed on the
-        specified side.
+        Return an identical %(klass)s but closed on the specified side.
 
         .. versionadded:: 1.5
 
@@ -1497,9 +1494,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _interval_shared_docs[
         "is_non_overlapping_monotonic"
     ] = """
-        Return True if the %(klass)s is non-overlapping (no Intervals share
-        points) and is either monotonic increasing or monotonic decreasing,
-        else False.
+        Return a boolean whether the %(klass)s is non-overlapping and monotonic.
+
+        Non-overlapping means (no Intervals share points), and monotonic means
+        either monotonic increasing or monotonic decreasing.
         """
 
     # https://github.com/python/mypy/issues/1362

@@ -220,8 +220,8 @@ import pandas.plotting
 
 if TYPE_CHECKING:
 
-    from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
 
@@ -819,7 +819,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, nan_as_null: bool = False, allow_copy: bool = True
     ) -> DataFrameXchg:
         """
-        Return the dataframe exchange object implementing the exchange protocol.
+        Return the dataframe interchange object implementing the interchange protocol.
 
         Parameters
         ----------
@@ -832,19 +832,19 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame exchange object
+        DataFrame interchange object
             The object which consuming library can use to ingress the dataframe.
 
         Notes
         -----
-        Details on the exchange protocol:
+        Details on the interchange protocol:
         https://data-apis.org/dataframe-protocol/latest/index.html
 
         `nan_as_null` currently has no effect; once support for nullable extension
         dtypes is added, this value should be propagated to columns.
         """
 
-        from pandas.core.exchange.dataframe import PandasDataFrameXchg
+        from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
         return PandasDataFrameXchg(self, nan_as_null, allow_copy)
 
@@ -2563,7 +2563,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
+        value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -4837,14 +4837,15 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
-        Given equal-length arrays of row and column labels, return an
-        array of the values corresponding to each (row, col) pair.
 
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
             use pandas.factorize and NumPy indexing instead.
             For further details see
             :ref:`Looking up values by index/column labels <indexing.lookup>`.
+
+        Given equal-length arrays of row and column labels, return an
+        array of the values corresponding to each (row, col) pair.
 
         Parameters
         ----------
@@ -11010,7 +11011,8 @@ Parrot 2  Parrot       24.0
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        return final_result.__finalize__(self, method="idxmin")
 
     @doc(_shared_docs["idxmax"], numeric_only_default="False")
     def idxmax(
@@ -11035,7 +11037,8 @@ Parrot 2  Parrot       24.0
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
-        return data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
+        return final_result.__finalize__(self, method="idxmax")
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """
