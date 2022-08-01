@@ -33,6 +33,7 @@ from pandas.plotting._matplotlib.groupby import (
     create_iter_data_given_by,
     reformat_hist_y_given_by,
 )
+from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -67,7 +68,8 @@ class HistPlot(LinePlot):
         # where subplots are created based on by argument
         if is_integer(self.bins):
             if self.by is not None:
-                grouped = self.data.groupby(self.by)[self.columns]
+                by_modified = unpack_single_str_list(self.by)
+                grouped = self.data.groupby(by_modified)[self.columns]
                 self.bins = [self._calculate_bins(group) for key, group in grouped]
             else:
                 self.bins = self._calculate_bins(self.data)
