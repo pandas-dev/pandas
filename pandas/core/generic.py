@@ -3168,6 +3168,62 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return xarray.Dataset.from_dataframe(self)
 
+    @overload
+    def to_latex(
+        self,
+        buf: None = ...,
+        columns: Sequence[Hashable] | None = ...,
+        col_space: ColspaceArgType | None = ...,
+        header: bool_t | Sequence[str] = ...,
+        index: bool_t = ...,
+        na_rep: str = ...,
+        formatters: FormattersType | None = ...,
+        float_format: FloatFormatType | None = ...,
+        sparsify: bool_t | None = ...,
+        index_names: bool_t = ...,
+        bold_rows: bool_t = ...,
+        column_format: str | None = ...,
+        longtable: bool_t | None = ...,
+        escape: bool_t | None = ...,
+        encoding: str | None = ...,
+        decimal: str = ...,
+        multicolumn: bool_t | None = ...,
+        multicolumn_format: str | None = ...,
+        multirow: bool_t | None = ...,
+        caption: str | None = ...,
+        label: str | None = ...,
+        position: str | None = ...,
+    ) -> str:
+        ...
+
+    @overload
+    def to_latex(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        columns: Sequence[Hashable] | None = ...,
+        col_space: ColspaceArgType | None = ...,
+        header: bool_t | Sequence[str] = ...,
+        index: bool_t = ...,
+        na_rep: str = ...,
+        formatters: FormattersType | None = ...,
+        float_format: FloatFormatType | None = ...,
+        sparsify: bool_t | None = ...,
+        index_names: bool_t = ...,
+        bold_rows: bool_t = ...,
+        column_format: str | None = ...,
+        longtable: bool_t | None = ...,
+        escape: bool_t | None = ...,
+        encoding: str | None = ...,
+        decimal: str = ...,
+        multicolumn: bool_t | None = ...,
+        multicolumn_format: str | None = ...,
+        multirow: bool_t | None = ...,
+        caption: str | None = ...,
+        label: str | None = ...,
+        position: str | None = ...,
+    ) -> None:
+        ...
+
     @final
     @doc(returns=fmt.return_docstring)
     def to_latex(
