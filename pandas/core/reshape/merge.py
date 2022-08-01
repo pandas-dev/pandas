@@ -150,7 +150,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby:
+    for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
 
         if rby is None:
             rhs = right
