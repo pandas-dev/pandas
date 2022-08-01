@@ -810,8 +810,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @dtl.ravel_compat
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeArray:
         """
-        Localize tz-naive Datetime Array/Index to tz-aware
-        Datetime Array/Index.
+        Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index.
 
         This method takes a time zone (tz) naive Datetime Array/Index object
         and makes this time zone aware. It does not move the time to another
@@ -993,8 +992,7 @@ default 'raise'
 
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
-        Return Datetime Array/Index as object ndarray of datetime.datetime
-        objects.
+        Return an ndarray of datetime.datetime objects.
 
         Returns
         -------
@@ -1122,9 +1120,9 @@ default 'raise'
 
     def to_perioddelta(self, freq) -> TimedeltaArray:
         """
-        Calculate TimedeltaArray of difference between index
-        values and index converted to PeriodArray at specified
-        freq. Used for vectorized offsets.
+        Calculate deltas between self values and self converted to Periods at a freq.
+
+        Used for vectorized offsets.
 
         Parameters
         ----------
@@ -1157,8 +1155,7 @@ default 'raise'
 
     def month_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
-        Return the month names of the :class:`~pandas.Series` or
-        :class:`~pandas.DatetimeIndex` with specified locale.
+        Return the month names with specified locale.
 
         Parameters
         ----------
@@ -1202,8 +1199,7 @@ default 'raise'
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
-        Return the day names of the :class:`~pandas.Series` or
-        :class:`~pandas.DatetimeIndex` with specified locale.
+        Return the day names with specified locale.
 
         Parameters
         ----------
@@ -1262,8 +1258,7 @@ default 'raise'
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of :class:`datetime.time` objects with timezone
-        information.
+        Returns numpy array of :class:`datetime.time` objects with timezones.
 
         The time part of the Timestamps.
         """

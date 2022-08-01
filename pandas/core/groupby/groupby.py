@@ -329,8 +329,7 @@ Series or DataFrame
 """
 
 _pipe_template = """
-Apply a function `func` with arguments to this %(klass)s object and return
-the function's result.
+Apply a ``func`` with arguments to this %(klass)s object and return its result.
 
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
@@ -381,8 +380,9 @@ Examples
 """
 
 _transform_template = """
-Call function producing a same-indexed %(klass)s on each group and
-return a %(klass)s having the same indexes as the original object
+Call function producing a same-indexed %(klass)s on each group.
+
+Returns a %(klass)s having the same indexes as the original object
 filled with the transformed values.
 
 Parameters
@@ -645,6 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
+    keys: _KeysArgType | None = None
     group_keys: bool | lib.NoDefault
 
     @final
@@ -821,6 +822,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
+        keys = self.keys
+        if isinstance(keys, list) and len(keys) == 1:
+            warnings.warn(
+                (
+                    "In a future version of pandas, a length 1 "
+                    "tuple will be returned when iterating over a "
+                    "a groupby with a grouper equal to a list of "
+                    "length 1. Don't supply a list with a single grouper "
+                    "to avoid this warning."
+                ),
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
 
