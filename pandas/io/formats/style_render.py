@@ -48,7 +48,7 @@ from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
-CSSPair = Tuple[str, Union[str, int, float]]
+CSSPair = Tuple[str, Union[str, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
 
@@ -62,24 +62,18 @@ CSSStyles = List[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 
-def _gl01_adjust(obj: Any) -> Any:
-    """Adjust docstrings for Numpydoc GLO1."""
-    obj.__doc__ = "\n" + obj.__doc__
-    return obj
-
-
 class StylerRenderer:
     """
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = _gl01_adjust(jinja2.PackageLoader("pandas", "io/formats/templates"))
-    env = _gl01_adjust(jinja2.Environment(loader=loader, trim_blocks=True))
-    template_html = _gl01_adjust(env.get_template("html.tpl"))
-    template_html_table = _gl01_adjust(env.get_template("html_table.tpl"))
-    template_html_style = _gl01_adjust(env.get_template("html_style.tpl"))
-    template_latex = _gl01_adjust(env.get_template("latex.tpl"))
-    template_string = _gl01_adjust(env.get_template("string.tpl"))
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    template_html = env.get_template("html.tpl")
+    template_html_table = env.get_template("html_table.tpl")
+    template_html_style = env.get_template("html_style.tpl")
+    template_latex = env.get_template("latex.tpl")
+    template_string = env.get_template("string.tpl")
 
     def __init__(
         self,
@@ -2055,7 +2049,7 @@ def _parse_latex_header_span(
         return display_val
 
 
-def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
+def _parse_latex_options_strip(value: str | float, arg: str) -> str:
     """
     Strip a css_value which may have latex wrapping arguments, css comment identifiers,
     and whitespaces, to a valid string for latex options parsing.

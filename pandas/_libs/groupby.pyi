@@ -50,7 +50,7 @@ def group_any_all(
     val_test: Literal["any", "all"],
     skipna: bool,
 ) -> None: ...
-def group_add(
+def group_sum(
     out: np.ndarray,  # complexfloating_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[complexfloating_t, ndim=2]
