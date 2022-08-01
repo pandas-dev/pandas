@@ -11,7 +11,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.4'
+    rev: 'v2.5'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -46,7 +46,7 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 5.0.1
     hooks:
     -   id: flake8
         additional_dependencies: &flake8_dependencies
@@ -59,7 +59,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.34.0
+    rev: v2.37.3
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
