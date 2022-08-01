@@ -1045,6 +1045,9 @@ class StringMethods(NoNewAttributesMixin):
         5    None
         dtype: object
         """
+        if not is_integer(i):
+            msg = f"i must be of integer type, not {type(i).__name__}"
+            raise TypeError(msg)
         result = self._data.array._str_get(i)
         return self._wrap_result(result)
 
