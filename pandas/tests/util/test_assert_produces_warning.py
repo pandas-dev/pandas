@@ -179,6 +179,7 @@ def test_same_category_different_messages_last_match():
         warnings.warn("Match this", category)
 
 def test_match_multiple_warnings():
+    #https://github.com/pandas-dev/pandas/issues/47829
     category = (FutureWarning, UserWarning)
     with tm.assert_produces_warning(category, match=r"^Match this"):
         warnings.warn("Match this",FutureWarning )
