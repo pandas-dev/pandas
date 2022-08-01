@@ -652,7 +652,8 @@ cpdef array_to_datetime(
                     else:
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            except OutOfBoundsDatetime:
+            except OutOfBoundsDatetime as ex:
+                ex.args = (str(ex) + f" present at position {i}", )
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
