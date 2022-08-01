@@ -1479,8 +1479,7 @@ class Styler(StylerRenderer):
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
-        HTML elements.
+        Set the ``class`` attribute of ``<td>`` HTML elements.
 
         Parameters
         ----------
@@ -3173,8 +3172,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
-        Set defined CSS-properties to each ``<td>`` HTML element within the given
-        subset.
+        Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
 
         Parameters
         ----------

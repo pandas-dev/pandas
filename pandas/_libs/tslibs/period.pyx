@@ -2322,12 +2322,12 @@ cdef class _Period(PeriodMixin):
 
     def strftime(self, fmt: str) -> str:
         r"""
-        Returns the string representation of the :class:`Period`, depending
-        on the selected ``fmt``. ``fmt`` must be a string
-        containing one or several directives.  The method recognizes the same
-        directives as the :func:`time.strftime` function of the standard Python
-        distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        Returns a formatted string representation of the :class:`Period`.
+
+        ``fmt`` must be a string containing one or several directives.
+        The method recognizes the same directives as the :func:`time.strftime`
+        function of the standard Python distribution, as well as the specific
+        additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
         (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+

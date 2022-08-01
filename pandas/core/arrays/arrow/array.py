@@ -180,6 +180,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     """  # noqa: E501
 
     _data: pa.ChunkedArray
+    _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if pa_version_under1p01:
