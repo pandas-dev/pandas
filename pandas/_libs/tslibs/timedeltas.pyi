@@ -85,7 +85,7 @@ class Timedelta(timedelta):
     def __new__(
         cls: type[_S],
         value=...,
-        unit: str = ...,
+        unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
     ) -> _S: ...
     # GH 46171
