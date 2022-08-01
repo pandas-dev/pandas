@@ -108,6 +108,10 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     Length: 4, dtype: string
     """
 
+    # error: Incompatible types in assignment (expression has type "StringDtype",
+    # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
+    _dtype: StringDtype  # type: ignore[assignment]
+
     def __init__(self, values) -> None:
         super().__init__(values)
         # TODO: Migrate to ArrowDtype instead

@@ -144,7 +144,7 @@ class BaseWindow(SelectionMixin):
         self._win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
-        self._win_freq_i8 = None
+        self._win_freq_i8: int | None = None
         if self.on is None:
             if self.axis == 0:
                 self._on = self.obj.index
@@ -1838,15 +1838,13 @@ class Rolling(RollingAndExpandingMixin):
                     "compatible with a datetimelike index"
                 ) from err
             if isinstance(self._on, PeriodIndex):
-                # error: Incompatible types in assignment (expression has type "float",
-                # variable has type "None")
+                # error: Incompatible types in assignment (expression has type
+                # "float", variable has type "Optional[int]")
                 self._win_freq_i8 = freq.nanos / (  # type: ignore[assignment]
                     self._on.freq.nanos / self._on.freq.n
                 )
             else:
-                # error: Incompatible types in assignment (expression has type "int",
-                # variable has type "None")
-                self._win_freq_i8 = freq.nanos  # type: ignore[assignment]
+                self._win_freq_i8 = freq.nanos
 
             # min_periods must be an integer
             if self.min_periods is None:
@@ -2867,7 +2865,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             window = self.window
         elif self._win_freq_i8 is not None:
             rolling_indexer = VariableWindowIndexer
-            window = self._win_freq_i8
+            # error: Incompatible types in assignment (expression has type
+            # "int", variable has type "BaseIndexer")
+            window = self._win_freq_i8  # type: ignore[assignment]
         else:
             rolling_indexer = FixedWindowIndexer
             window = self.window
