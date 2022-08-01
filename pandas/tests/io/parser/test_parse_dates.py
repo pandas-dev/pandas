@@ -1948,6 +1948,39 @@ def test_dayfirst_warnings():
     tm.assert_index_equal(expected, res8)
 
 
+@pytest.mark.parametrize(
+    "date_string, dayfirst",
+    [
+        pytest.param(
+            "31/1/2014",
+            False,
+            id="second date is single-digit",
+        ),
+        pytest.param(
+            "1/31/2014",
+            True,
+            id="first date is single-digit",
+        ),
+    ],
+)
+def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
+    # GH47880
+    initial_value = f"date\n{date_string}"
+    expected = DatetimeIndex(
+        ["2014-01-31"], dtype="datetime64[ns]", freq=None, name="date"
+    )
+    with tm.assert_produces_warning(
+        UserWarning, match=r"may lead to inconsistently parsed dates"
+    ):
+        res = read_csv(
+            StringIO(initial_value),
+            parse_dates=["date"],
+            index_col="date",
+            dayfirst=dayfirst,
+        ).index
+    tm.assert_index_equal(expected, res)
+
+
 @skip_pyarrow
 def test_infer_first_column_as_index(all_parsers):
     # GH#11019
