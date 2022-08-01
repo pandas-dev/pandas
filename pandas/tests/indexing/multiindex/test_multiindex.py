@@ -227,3 +227,17 @@ class TestMultiIndexBasic:
             ],
             Series([1, 1, 2, 2], MultiIndex.from_arrays([["a", "a", "b", "b"]])),
         )
+
+    @pytest.mark.parametrize("data_type", ["int64", "int32", "float64", "float32"])
+    def test_multiindex_dataframe_incorrect_type(self, data_type):
+        # GH 46896
+        df = DataFrame(
+            columns=MultiIndex.from_tuples([("a", "c"), ("a", "d")]),
+            data=[[1, 2], [3, 4]],
+        )
+        df["a"] = df["a"].astype(data_type)
+
+        result = df.dtypes
+        expected = Series(data=[data_type, data_type], index=[["a", "a"], ["c", "d"]])
+
+        tm.assert_series_equal(result, expected)
