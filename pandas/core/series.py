@@ -2642,6 +2642,7 @@ Name: Max Speed, dtype: float64
     def corr(self, other, method="pearson", min_periods=None) -> float:
         """
         Compute correlation with `other` Series, excluding missing values.
+
         The two `Series` objects are not required to be the same length and will be
         aligned internally before the correlation function is applied.
 
@@ -2716,6 +2717,7 @@ Name: Max Speed, dtype: float64
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.
+
         The two `Series` objects are not required to be the same length and
         will be aligned internally before the covariance is calculated.
 
