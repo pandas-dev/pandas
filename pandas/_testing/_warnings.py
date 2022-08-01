@@ -158,7 +158,7 @@ def _assert_caught_expected_warning(
 def _assert_caught_no_extra_warnings(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: type[Warning] | bool | None,
+    expected_warning: type[Warning] | bool | Tuple[type[Warning], ...] | None,
 ) -> None:
     """Assert that no extra warnings apart from the expected ones are caught."""
     extra_warnings = []
