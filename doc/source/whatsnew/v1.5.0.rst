@@ -32,7 +32,8 @@ initialized with a ``pyarrow.DataType``
     ser_float = pd.Series([1.0, 2.0, None], dtype="float32[pyarrow]")
     ser_float
 
-    ser_list = pd.Series([[1, 2]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+    list_of_int_type = pd.ArrowDtype(pa.list_(pa.int64()))
+    ser_list = pd.Series([[1, 2], [3, None]], dtype=list_of_int_type)
     ser_list
 
 Most operations are supported and have been implemented using `pyarrow compute <https://arrow.apache.org/docs/python/api/compute.html>`__ functions.
@@ -40,7 +41,7 @@ We recommend installing the latest version of PyArrow to access the most recentl
 
 .. ipython:: python
 
-    ser_list.take([0, 0])
+    ser_list.take([1, 0])
     ser_float * 5
     ser_float.mean()
     ser_float.dropna()

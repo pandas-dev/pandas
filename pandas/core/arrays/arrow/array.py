@@ -163,7 +163,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     Parameters
     ----------
-    values: pyarrow.Array or pyarrow.ChunkedArray
+    values : pyarrow.Array or pyarrow.ChunkedArray
 
     Returns
     -------
@@ -175,9 +175,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     Some methods may either raise an exception or raise a ``PerformanceWarning`` if an
     associated compute function is not available based on the installed version of PyArrow.
 
-    Please install the latest version of PyArrow to enable this functionality and avoid
+    Please install the latest version of PyArrow to enable the best functionality and avoid
     potential bugs in prior versions of PyArrow.
-    """  # noqa: E501
+    """  # noqa: E501 (http link too long)
 
     _data: pa.ChunkedArray
     _dtype: ArrowDtype
