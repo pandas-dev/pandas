@@ -6,8 +6,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1316,12 +1314,6 @@ class TestDataFrameReplace:
     )
     def test_replace_replacer_dtype(self, request, replacer):
         # GH26632
-        if np.isscalar(replacer) and replacer.dtype.itemsize < 8:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    np_version_under1p20, reason="np.putmask doesn't coerce dtype"
-                )
-            )
         df = DataFrame(["a"])
         result = df.replace({"a": replacer, "b": replacer})
         expected = DataFrame([replacer])

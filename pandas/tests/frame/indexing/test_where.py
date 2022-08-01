@@ -4,8 +4,6 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -1006,7 +1004,6 @@ def _check_where_equivalences(df, mask, other, expected):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.xfail(np_version_under1p20, reason="failed on Numpy 1.19.5")
 def test_where_dt64_2d():
     dti = date_range("2016-01-01", periods=6)
     dta = dti._data.reshape(3, 2)
