@@ -245,6 +245,14 @@ and attributes without holding entire tree in memory (:issue:`45442`).
 .. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
 .. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
 
+.. _whatsnew_150.enhancements.pandas-stubs:
+
+``pandas-stubs``
+^^^^^^^^^^^^^^^^
+
+The ``pandas-stubs`` library is now supported by the pandas development team, providing type stubs for the pandas API. Please visit
+https://github.com/pandas-dev/pandas-stubs for more information.
+
 .. _whatsnew_150.enhancements.other:
 
 Other enhancements
@@ -498,6 +506,14 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+.. warning::
+
+    In the next major release, 2.0, several larger API changes are being considered without a formal deprecation such as
+    making the standard library ``zoneinfo.ZoneInfo`` the default timezone instead of ``pytz``, having one :class:`Index`
+    support all data types instead of having multiple subclasses (:class:`CategoricalIndex`, :class:`Int64Index`, etc.), and more.
+    The changes under consideration are logged in `this Github issue <https://github.com/pandas-dev/pandas/issues/44823>`_, and any
+    feedback or concerns are welcome.
 
 .. _whatsnew_150.deprecations.int_slicing_series:
 
