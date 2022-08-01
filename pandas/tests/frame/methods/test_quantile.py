@@ -670,7 +670,7 @@ class TestQuantileExtensionDtype:
 
         if np_version_under1p21 and index.dtype == "timedelta64[ns]":
             msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg)
+            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
             request.node.add_marker(mark)
 
         exp_dtype = index.dtype
@@ -725,7 +725,7 @@ class TestQuantileExtensionDtype:
 
         if np_version_under1p21 and index.dtype == "timedelta64[ns]":
             msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg)
+            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
             request.node.add_marker(mark)
 
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
@@ -748,7 +748,7 @@ class TestQuantileExtensionDtype:
 
         if np_version_under1p21 and index.dtype == "timedelta64[ns]":
             msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg)
+            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
             request.node.add_marker(mark)
 
         exp_dtype = index.dtype
