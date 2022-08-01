@@ -975,8 +975,7 @@ class TestToDatetime:
 
         if format is not None:
             msg = (
-                "is a bad directive in format|"
-                "Out of bounds .* present at position 0"
+                "is a bad directive in format|" "Out of bounds .* present at position 0"
             )
             with pytest.raises(ValueError, match=msg):
                 to_datetime(
