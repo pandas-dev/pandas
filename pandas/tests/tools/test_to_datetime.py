@@ -974,9 +974,7 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = (
-                "is a bad directive in format|" "Out of bounds .* present at position 0"
-            )
+            msg = "is a bad directive in format|Out of bounds .* present at position 0"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
@@ -2596,7 +2594,10 @@ class TestOrigin:
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
         # see gh-23830
-        msg = "Out of bounds nanosecond timestamp: 2417-10-27 00:00:00 present at position 0"
+        msg = (
+            "Out of bounds nanosecond timestamp: 2417-10-27 00:00:00 "
+            "present at position 0"
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime("2417-10-27 00:00:00", format=format)
 
