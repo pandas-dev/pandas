@@ -773,7 +773,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def swapaxes(
-        self: NDFrameT, axis1: Axis, axis2: Axis, copy: bool = True
+        self: NDFrameT, axis1: Axis, axis2: Axis, copy: bool_t = True
     ) -> NDFrameT:
         """
         Interchange axes and swap values axes appropriately.
