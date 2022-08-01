@@ -856,8 +856,8 @@ class ExcelFormatter:
         sheet_name: str = "Sheet1",
         startrow: int = 0,
         startcol: int = 0,
-        freeze_panes=None,
-        engine=None,
+        freeze_panes: tuple[int, int] | None = None,
+        engine: str | None = None,
         storage_options: StorageOptions = None,
     ) -> None:
         """

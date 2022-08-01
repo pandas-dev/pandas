@@ -28,6 +28,7 @@ import pandas._libs.lib as lib
 from pandas._typing import (
     DateTimeErrorChoices,
     DtypeArg,
+    IndexLabel,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -603,7 +604,7 @@ def to_sql(
     schema: str | None = None,
     if_exists: str = "fail",
     index: bool = True,
-    index_label=None,
+    index_label: IndexLabel = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: str | None = None,
