@@ -766,7 +766,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()

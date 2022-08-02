@@ -561,7 +561,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
         """
         Override generic, we want to set the _typ here.
 
