@@ -491,7 +491,7 @@ Other API changes
 - :func:`read_json` now raises ``FileNotFoundError`` (previously ``ValueError``) when input is a string ending in ``.json``, ``.json.gz``, ``.json.bz2``, etc. but no such file exists. (:issue:`29102`)
 - Operations with :class:`Timestamp` or :class:`Timedelta` that would previously raise ``OverflowError`` instead raise ``OutOfBoundsDatetime`` or ``OutOfBoundsTimedelta`` where appropriate (:issue:`47268`)
 - When :func:`read_sas` previously returned ``None``, it now returns an empty :class:`DataFrame` (:issue:`47410`)
--
+- :class:`DataFrame` constructor raises if ``index`` or ``columns`` arguments are sets (:issue:`47215`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.deprecations:
