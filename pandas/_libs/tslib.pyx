@@ -824,7 +824,8 @@ cdef _array_to_datetime_object(
                                                    yearfirst=yearfirst)
                     pydatetime_to_dt64(oresult[i], &dts)
                     check_dts_bounds(&dts)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError) as ex:
+                ex.args = (str(ex) + f" present at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue
