@@ -21,6 +21,7 @@ def test_add_prefix_suffix(float_frame):
 
 
 def test_add_prefix_suffix_copy(float_frame):
+    # GH#47934
     with_prefix = float_frame.add_prefix("foo#", copy=True)
     expected = Index([f"foo#{c}" for c in float_frame.columns])
     tm.assert_index_equal(with_prefix.columns, expected)
