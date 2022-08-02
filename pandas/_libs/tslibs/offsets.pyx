@@ -367,7 +367,23 @@ cdef class BaseOffset:
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
         self.n = n
+        """
+        Number of multiples of the frequency.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour(5).n
+        5
+        """
         self.normalize = normalize
+        """
+        Return boolean whether the frequency can align with midnight.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour(5).normalize
+        False
+        """
         self._cache = {}
 
     def __eq__(self, other) -> bool:
@@ -417,6 +433,20 @@ cdef class BaseOffset:
 
     @property
     def kwds(self) -> dict:
+        """
+        Return a dict of extra parameters for the offset.
+
+        Examples
+        --------
+        >>> pd.DateOffset(5).kwds
+        {}
+
+        >>> pd.offsets.FY5253Quarter().kwds
+        {'weekday': 0,
+         'startingMonth': 1,
+         'qtr_with_extra_week': 1,
+         'variation': 'nearest'}
+        """
         # for backwards-compatibility
         kwds = {name: getattr(self, name, None) for name in self._attributes
                 if name not in ["n", "normalize"]}
@@ -506,6 +536,16 @@ cdef class BaseOffset:
     def copy(self):
         # Note: we are deferring directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
+        """
+        Return a copy of the frequency.
+
+        Examples
+        --------
+        >>> freq = pd.DateOffset(1)
+        >>> freq_copy = freq.copy()
+        >>> freq is freq_copy
+        False
+        """
         return self * 1
 
     # ------------------------------------------------------------------
@@ -547,6 +587,14 @@ cdef class BaseOffset:
 
     @property
     def name(self) -> str:
+        """
+        Return a string representing the base frequency.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour(5).name
+        'H'
+        """
         return self.rule_code
 
     @property
@@ -559,6 +607,20 @@ cdef class BaseOffset:
 
     @cache_readonly
     def freqstr(self) -> str:
+        """
+        Return a string representing the frequency.
+
+        Examples
+        --------
+        >>> pd.DateOffset(5).freqstr
+        '<5 * DateOffsets>'
+
+        >>> pd.offsets.BusinessHour(2).freqstr
+        '2BH'
+
+        >>> pd.offsets.Nano(-3).freqstr
+        '-3N'
+        """
         try:
             code = self.rule_code
         except NotImplementedError:
@@ -655,6 +717,21 @@ cdef class BaseOffset:
         return get_day_of_month(&dts, self._day_opt)
 
     def is_on_offset(self, dt: datetime) -> bool:
+        """
+        Return boolean whether a timestamp intersects with this frequency.
+
+        Parameters
+        ----------
+        dt: datetime.datetime
+            Timestamp to check intersections with frequency.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Day(1)
+        >>> freq.is_on_offset(ts)
+        True
+        """
         if self.normalize and not _is_normalized(dt):
             return False
 
@@ -745,26 +822,96 @@ cdef class BaseOffset:
     def is_anchored(self) -> bool:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what is_anchored means.
+        """
+        Return boolean whether the frequency is a unit frequency.
+
+        Examples
+        --------
+        >>> pd.DateOffset().is_anchored()
+        True
+        >>> pd.DateOffset(2).is_anchored()
+        False
+        """
         return self.n == 1
 
     # ------------------------------------------------------------------
 
     def is_month_start(self, _Timestamp ts):
+        """
+        Return boolean whether a timestamp occurs on the month start.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Hour(5)
+        >>> freq.is_month_start(ts)
+        True
+        """
         return ts._get_start_end_field("is_month_start", self)
 
     def is_month_end(self, _Timestamp ts):
+        """
+        Return boolean whether a timestamp occurs on the month end.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Hour(5)
+        >>> freq.is_month_end(ts)
+        False
+        """
         return ts._get_start_end_field("is_month_end", self)
 
     def is_quarter_start(self, _Timestamp ts):
+        """
+        Return boolean whether a timestamp occurs on the quarter start.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Hour(5)
+        >>> freq.is_quarter_start(ts)
+        True
+        """
         return ts._get_start_end_field("is_quarter_start", self)
 
     def is_quarter_end(self, _Timestamp ts):
+        """
+        Return boolean whether a timestamp occurs on the quarter end.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Hour(5)
+        >>> freq.is_quarter_end(ts)
+        False
+        """
         return ts._get_start_end_field("is_quarter_end", self)
 
     def is_year_start(self, _Timestamp ts):
+        """
+        Return boolean whether a timestamp occurs on the year start.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Hour(5)
+        >>> freq.is_year_start(ts)
+        True
+        """
         return ts._get_start_end_field("is_year_start", self)
 
     def is_year_end(self, _Timestamp ts):
+        """
+        Return boolean whether a timestamp occurs on the year end.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2022, 1, 1)
+        >>> freq = pd.offsets.Hour(5)
+        >>> freq.is_year_end(ts)
+        False
+        """
         return ts._get_start_end_field("is_year_end", self)
 
 
@@ -837,6 +984,19 @@ cdef class Tick(SingleConstructorOffset):
 
     @property
     def nanos(self) -> int64_t:
+        """
+        Return an integer of the total number of nanoseconds.
+
+        Raises
+        ------
+        ValueError
+            If the frequency is non-fixed.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour(5).nanos
+        18000000000000
+        """
         return self.n * self._nanos_inc
 
     def is_on_offset(self, dt: datetime) -> bool:
