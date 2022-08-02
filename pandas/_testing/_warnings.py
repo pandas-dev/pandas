@@ -27,9 +27,9 @@ def assert_produces_warning(
 ):
     """
     Context manager for running code expected to either raise a specific warning,
-    multiple specific warnings , or not raise any warnings. Verifies that the code
-    raises the expected warnings, and that it does not raise any other unexpected
-    warnings.It is basically a wrapper around ``warnings.catch_warnings``.
+    multiple specific warnings, or not raise any warnings. Verifies that the code
+    raises the expected warning(s), and that it does not raise any other unexpected
+    warnings. It is basically a wrapper around ``warnings.catch_warnings``.
 
     Parameters
     ----------
