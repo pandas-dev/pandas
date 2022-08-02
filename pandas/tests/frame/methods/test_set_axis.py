@@ -24,6 +24,37 @@ class SharedSetAxisTests:
         result = obj.set_axis(new_index, axis=0, inplace=False)
         tm.assert_equal(expected, result)
 
+    def test_set_axis_copy(self, obj):
+        # Test copy keyword
+        new_index = list("abcd")[: len(obj)]
+
+        expected = obj.copy()
+        expected.index = new_index
+
+        with pytest.raises(
+            ValueError, match="Cannot specify both inplace=True and copy=True"
+        ):
+            obj.set_axis(new_index, axis=0, inplace=True, copy=True)
+
+        result = obj.set_axis(new_index, axis=0, copy=True)
+        tm.assert_equal(expected, result)
+        assert result is not obj
+        # check we DID make a copy
+        assert not tm.shares_memory(result, obj)
+
+        result = obj.set_axis(new_index, axis=0, copy=False)
+        tm.assert_equal(expected, result)
+        assert result is not obj
+        # check we did NOT make a copy
+        assert tm.shares_memory(result, obj)
+
+        # copy defaults to True
+        result = obj.set_axis(new_index, axis=0)
+        tm.assert_equal(expected, result)
+        assert result is not obj
+        # check we DID make a copy
+        assert not tm.shares_memory(result, obj)
+
     @pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
     def test_set_axis_inplace_axis(self, axis, obj):
         # GH#14636

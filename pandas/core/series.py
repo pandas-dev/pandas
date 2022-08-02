@@ -4926,17 +4926,34 @@ Keep all original rows and also all original values
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
     @overload
-    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        copy: bool | lib.NoDefault = ...,
+    ) -> None:
         ...
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: bool = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -4968,9 +4985,13 @@ Keep all original rows and also all original values
     )
     @Appender(NDFrame.set_axis.__doc__)
     def set_axis(  # type: ignore[override]
-        self, labels, axis: Axis = 0, inplace: bool = False
+        self,
+        labels,
+        axis: Axis = 0,
+        inplace: bool = False,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
-        return super().set_axis(labels, axis=axis, inplace=inplace)
+        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
 
     # error: Cannot determine type of 'reindex'
     @doc(
