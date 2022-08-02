@@ -1,12 +1,9 @@
-from typing import (
-    Optional,
-    Tuple,
-)
+from __future__ import annotations
 
 import numpy as np
 from packaging import version
 
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     DlpackDeviceType,
 )
@@ -60,7 +57,7 @@ class PandasBuffer(Buffer):
             return self._x.__dlpack__()
         raise NotImplementedError("__dlpack__")
 
-    def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
+    def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
         """
         Device type and device ID for where the data in the buffer resides.
         """
