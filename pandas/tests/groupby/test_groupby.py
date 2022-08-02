@@ -2366,11 +2366,11 @@ def test_group_on_empty_multiindex(transformation_func, request):
     else:
         args = ()
     result = df.groupby(["col_1"]).transform(transformation_func, *args)
-    assert df.index.names == result.index.names
+    tm.assert_index_equal(df.index, result.index)
 
     col_3 = df["col_3"]
     result = col_3.groupby(["col_1"]).transform(transformation_func, *args)
-    assert col_3.index.names == result.index.names
+    tm.assert_index_equal(col_3.index, result.index)
 
     # When empty, expect the same schema as well
     df = DataFrame(data=[], columns=["col_1", "col_2", "col_3", "col_4"], dtype=int)
