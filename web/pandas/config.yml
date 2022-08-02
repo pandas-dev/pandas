@@ -51,6 +51,8 @@ navbar:
       target: /community/ecosystem.html
   - name: "Contribute"
     target: /contribute.html
+  - name: "Donate"
+    taget: /donate.html
 blog:
   num_posts: 50
   posts_path: community/blog
