@@ -67,7 +67,7 @@ flake8==4.0.1
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.960
+mypy==0.971
 pre-commit>=2.15.0
 pycodestyle
 pyupgrade
@@ -80,6 +80,7 @@ pydata-sphinx-theme==0.8.0
 pytest-cython
 sphinx
 sphinx-panels
+sphinx-copybutton
 types-python-dateutil
 types-PyMySQL
 types-pytz
@@ -98,4 +99,5 @@ pyyaml
 requests
 jupyterlab >=3.4,<4
 jupyterlite==0.1.0b10
+sphinx-toggleprompt
 setuptools>=51.0.0
