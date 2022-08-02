@@ -8575,7 +8575,9 @@ Parrot 2  Parrot       24.0
         margins : bool, default False
             Add all row / columns (e.g. for subtotal / grand totals).
         dropna : bool, default True
-            Do not include columns whose entries are all NaN.
+            Do not include columns whose entries are all NaN. If True,
+            rows with a NaN value in any column will be omitted before
+            computing margins.
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.

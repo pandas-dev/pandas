@@ -416,9 +416,9 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| numpy           | 1.19.5          |    X     |    X    |
+| numpy           | 1.20.3          |    X     |    X    |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.960           |          |    X    |
+| mypy (dev)      | 0.971           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.9.3           |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -770,10 +770,13 @@ Other Deprecations
 - Deprecated the argument ``na_sentinel`` in :func:`factorize`, :meth:`Index.factorize`, and :meth:`.ExtensionArray.factorize`; pass ``use_na_sentinel=True`` instead to use the sentinel ``-1`` for NaN values and ``use_na_sentinel=False`` instead of ``na_sentinel=None`` to encode NaN values (:issue:`46910`)
 - Deprecated :meth:`DataFrameGroupBy.transform` not aligning the result when the UDF returned DataFrame (:issue:`45648`)
 - Clarified warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument (:issue:`46210`)
+- Emit warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument even for dates where leading zero is omitted (e.g. ``31/1/2001``) (:issue:`47880`)
 - Deprecated :class:`Series` and :class:`Resampler` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) raising a ``NotImplementedError`` when the dtype is non-numric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
 - Deprecated arguments ``*args`` and ``**kwargs`` in :class:`Rolling`, :class:`Expanding`, and :class:`ExponentialMovingWindow` ops. (:issue:`47836`)
+- Deprecated unused arguments ``encoding`` and ``verbose`` in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:issue:`47912`)
+- Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -910,6 +913,7 @@ Indexing
 - Bug in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` not always propagating metadata (:issue:`28283`)
 - Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
 - Bug in :class:`IntervalTree` that lead to an infinite recursion. (:issue:`46658`)
+- Bug in :class:`PeriodIndex` raising ``AttributeError`` when indexing on ``NA``, rather than putting ``NaT`` in its place. (:issue:`46673`)
 -
 
 Missing
@@ -1045,6 +1049,7 @@ Styler
 - Bug in :meth:`Styler.set_sticky` leading to white text on white background in dark mode (:issue:`46984`)
 - Bug in :meth:`Styler.to_latex` causing ``UnboundLocalError`` when ``clines="all;data"`` and the ``DataFrame`` has no rows. (:issue:`47203`)
 - Bug in :meth:`Styler.to_excel` when using ``vertical-align: middle;`` with ``xlsxwriter`` engine (:issue:`30107`)
+- Bug when applying styles to a DataFrame with boolean column labels (:issue:`47838`)
 
 Metadata
 ^^^^^^^^
