@@ -2591,6 +2591,11 @@ class TestOrigin:
         with pytest.raises(ValueError, match="must be tz-naive"):
             to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
+    def test_incorrect_value_exception(self):
+        # GH47495
+        with pytest.raises(ValueError, match="Unknown string format: today"):
+            to_datetime(["today", "yesterday"])
+
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
         # see gh-23830
