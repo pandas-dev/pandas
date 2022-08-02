@@ -2593,7 +2593,9 @@ class TestOrigin:
 
     def test_incorrect_value_exception(self):
         # GH47495
-        with pytest.raises(ValueError, match="Unknown string format: yesterday present at position 1"):
+        with pytest.raises(
+            ValueError, match="Unknown string format: yesterday present at position 1"
+        ):
             to_datetime(["today", "yesterday"])
 
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
