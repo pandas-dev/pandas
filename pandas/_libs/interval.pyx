@@ -414,9 +414,8 @@ cdef class Interval(IntervalMixin):
         if isinstance(key, Interval):
             return ((self.left < key.left if self.open_left and key.closed_left else self.left <= key.left) and
                     (key.right < self.right if self.open_right and key.closed_right else key.right <= self.right))
-        elif isinstance(key, _Timestamp) or is_timedelta64_object(key) or is_float_object(key) or is_integer_object(key):
-            return ((self.left < key if self.open_left else self.left <= key) and
-                    (key < self.right if self.open_right else key <= self.right))
+        return ((self.left < key if self.open_left else self.left <= key) and
+                (key < self.right if self.open_right else key <= self.right))
 
     def __richcmp__(self, other, op: int):
         if isinstance(other, Interval):
