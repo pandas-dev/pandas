@@ -416,9 +416,9 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| numpy           | 1.19.5          |    X     |    X    |
+| numpy           | 1.20.3          |    X     |    X    |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.960           |          |    X    |
+| mypy (dev)      | 0.971           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.9.3           |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -776,6 +776,7 @@ Other Deprecations
 - Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
 - Deprecated arguments ``*args`` and ``**kwargs`` in :class:`Rolling`, :class:`Expanding`, and :class:`ExponentialMovingWindow` ops. (:issue:`47836`)
 - Deprecated unused arguments ``encoding`` and ``verbose`` in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:issue:`47912`)
+- Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -912,6 +913,7 @@ Indexing
 - Bug in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` not always propagating metadata (:issue:`28283`)
 - Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
 - Bug in :class:`IntervalTree` that lead to an infinite recursion. (:issue:`46658`)
+- Bug in :class:`PeriodIndex` raising ``AttributeError`` when indexing on ``NA``, rather than putting ``NaT`` in its place. (:issue:`46673`)
 -
 
 Missing

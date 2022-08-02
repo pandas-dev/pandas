@@ -43,6 +43,7 @@ from libc.time cimport (
 import_datetime()
 
 cimport pandas._libs.tslibs.util as util
+from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
@@ -1470,7 +1471,7 @@ cdef inline int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
     cdef:
         int64_t ordinal
 
-    if checknull_with_nat(item):
+    if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
         if item == NPY_NAT:
