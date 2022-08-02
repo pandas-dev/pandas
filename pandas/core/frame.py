@@ -25,6 +25,7 @@ from typing import (
     Iterable,
     Iterator,
     Literal,
+    Mapping,
     Sequence,
     cast,
     overload,
@@ -4982,12 +4983,12 @@ class DataFrame(NDFrame, OpsMixin):
     def align(
         self,
         other,
-        join: str = "outer",
+        join: Literal["outer", "inner", "left", "right"] = "outer",
         axis: Axis | None = None,
         level: Level | None = None,
         copy: bool = True,
         fill_value=None,
-        method: str | None = None,
+        method: FillnaOptions | None = None,
         limit=None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
@@ -5465,128 +5466,53 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value=...,
+        value: Hashable | Mapping | Series | DataFrame = ...,
+        *,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> DataFrame:
         ...
 
     @overload
     def fillna(
         self,
-        value,
-        method: FillnaOptions | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
+        value: Hashable | Mapping | Series | DataFrame = ...,
         *,
+        method: FillnaOptions | None = ...,
+        axis: Axis | None = ...,
         inplace: Literal[True],
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> None:
         ...
 
     @overload
     def fillna(
         self,
-        value,
+        value: Hashable | Mapping | Series | DataFrame = ...,
         *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        method: FillnaOptions | None,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value=...,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> DataFrame | None:
         ...
 
+    # error: Signature of "fillna" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(
+    def fillna(  # type: ignore[override]
         self,
-        value: object | ArrayLike | None = None,
+        value: Hashable | Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
-        limit=None,
-        downcast=None,
+        limit: int | None = None,
+        downcast: dict | None = None,
     ) -> DataFrame | None:
         return super().fillna(
             value=value,
