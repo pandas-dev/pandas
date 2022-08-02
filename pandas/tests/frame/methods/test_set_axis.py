@@ -25,7 +25,7 @@ class SharedSetAxisTests:
         tm.assert_equal(expected, result)
 
     def test_set_axis_copy(self, obj):
-        # Test copy keyword
+        # Test copy keyword GH#47932
         new_index = list("abcd")[: len(obj)]
 
         expected = obj.copy()
