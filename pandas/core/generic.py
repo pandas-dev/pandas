@@ -744,6 +744,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         axis: Axis = 0,
         inplace: bool_t = False,
+        *,
         copy: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
         """

@@ -40,20 +40,38 @@ class SharedSetAxisTests:
         tm.assert_equal(expected, result)
         assert result is not obj
         # check we DID make a copy
-        assert not tm.shares_memory(result, obj)
+        if obj.ndim == 1:
+            assert not tm.shares_memory(result, obj)
+        else:
+            assert not any(
+                tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                for i in range(obj.shape[1])
+            )
 
         result = obj.set_axis(new_index, axis=0, copy=False)
         tm.assert_equal(expected, result)
         assert result is not obj
         # check we did NOT make a copy
-        assert tm.shares_memory(result, obj)
+        if obj.ndim == 1:
+            assert not tm.shares_memory(result, obj)
+        else:
+            assert not any(
+                tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                for i in range(obj.shape[1])
+            )
 
         # copy defaults to True
         result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
         assert result is not obj
         # check we DID make a copy
-        assert not tm.shares_memory(result, obj)
+        if obj.ndim == 1:
+            assert not tm.shares_memory(result, obj)
+        else:
+            assert not any(
+                tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                for i in range(obj.shape[1])
+            )
 
     @pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
     def test_set_axis_inplace_axis(self, axis, obj):
