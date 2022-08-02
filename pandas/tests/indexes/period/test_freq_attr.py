@@ -17,5 +17,6 @@ class TestFreq:
             idx.freq
 
         # warning for setter
-        with pytest.raises(AttributeError, match="can't set attribute"):
+        msg = "can't set attribute|property .* of .* object has no setter"
+        with pytest.raises(AttributeError, match=msg):
             idx.freq = offsets.Day()

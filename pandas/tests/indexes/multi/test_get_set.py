@@ -139,7 +139,7 @@ def test_set_levels_codes_directly(idx):
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
-    msg = "[Cc]an't set attribute"
+    msg = "[Cc]an't set attribute|property .* of .* object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
     with pytest.raises(AttributeError, match=msg):

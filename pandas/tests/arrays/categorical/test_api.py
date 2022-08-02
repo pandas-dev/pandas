@@ -53,7 +53,7 @@ class TestCategoricalAPI:
         assert not cat2.ordered
 
         # removed in 0.19.0
-        msg = "can't set attribute"
+        msg = "can't set attribute|property .* of .* object has no setter"
         with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
         with pytest.raises(AttributeError, match=msg):
@@ -507,7 +507,8 @@ class TestPrivateCategoricalAPI:
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        with pytest.raises(AttributeError, match="can't set attribute"):
+        msg = "can't set attribute|property .* of .* object has no setter"
+        with pytest.raises(AttributeError, match=msg):
             c.codes = np.array([0, 1, 2, 0, 1], dtype="int8")
 
         # changes in the codes array should raise
