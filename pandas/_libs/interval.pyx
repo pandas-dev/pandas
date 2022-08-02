@@ -297,9 +297,11 @@ cdef class Interval(IntervalMixin):
     >>> iv
     Interval(0, 5, inclusive='right')
 
-    You can check if an element belongs to it
+    You can check if an element belongs to it, or if it contains another interval:
 
     >>> 2.5 in iv
+    True
+    >>> pd.Interval(left=2, right=5, inclusive='both') in iv
     True
 
     You can test the bounds (``inclusive='right'``, so ``0 < x <= 5``):
@@ -409,10 +411,12 @@ cdef class Interval(IntervalMixin):
         return hash((self.left, self.right, self.inclusive))
 
     def __contains__(self, key) -> bool:
-        if _interval_like(key):
-            raise TypeError("__contains__ not defined for two intervals")
-        return ((self.left < key if self.open_left else self.left <= key) and
-                (key < self.right if self.open_right else key <= self.right))
+        if isinstance(key, Interval):
+            return ((self.left < key.left if self.open_left and key.closed_left else self.left <= key.left) and
+                    (key.right < self.right if self.open_right and key.closed_right else key.right <= self.right))
+        elif isinstance(key, _Timestamp) or is_timedelta64_object(key) or is_float_object(key) or is_integer_object(key):
+            return ((self.left < key if self.open_left else self.left <= key) and
+                    (key < self.right if self.open_right else key <= self.right))
 
     def __richcmp__(self, other, op: int):
         if isinstance(other, Interval):
