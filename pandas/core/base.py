@@ -843,6 +843,10 @@ class IndexOpsMixin(OpsMixin):
                     f"{na_action} was passed"
                 )
                 raise ValueError(msg)
+
+            if na_action == "ignore":
+                mapper = mapper[mapper.index.notna()]
+
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
             if is_categorical_dtype(self.dtype):
@@ -1050,8 +1054,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_increasing.
+        Return boolean if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1068,8 +1071,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_increasing.
+        Return boolean if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1082,8 +1084,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_decreasing.
+        Return boolean if values in the object are monotonically decreasing.
 
         Returns
         -------

@@ -331,7 +331,7 @@ class CSSToExcelConverter:
 
     def build_font(
         self, props: Mapping[str, str]
-    ) -> dict[str, bool | int | float | str | None]:
+    ) -> dict[str, bool | float | str | None]:
         font_names = self._get_font_names(props)
         decoration = self._get_decoration(props)
         return {
@@ -853,11 +853,11 @@ class ExcelFormatter:
     def write(
         self,
         writer,
-        sheet_name="Sheet1",
-        startrow=0,
-        startcol=0,
-        freeze_panes=None,
-        engine=None,
+        sheet_name: str = "Sheet1",
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: tuple[int, int] | None = None,
+        engine: str | None = None,
         storage_options: StorageOptions = None,
     ) -> None:
         """

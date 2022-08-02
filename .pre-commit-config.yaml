@@ -85,38 +85,42 @@ repos:
 -   repo: local
     hooks:
     -   id: pyright
+        # note: assumes python env is setup and activated
         name: pyright
         entry: pyright
-        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.258
--   repo: local
-    hooks:
+        - pyright@1.1.264
     -   id: pyright_reportGeneralTypeIssues
+        # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
-        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
         additional_dependencies: *pyright_dependencies
--   repo: local
-    hooks:
     -   id: mypy
+        # note: assumes python env is setup and activated
         name: mypy
         entry: mypy
-        # note: assumes python env is setup and activated
         language: system
         pass_filenames: false
         types: [python]
         stages: [manual]
--   repo: local
-    hooks:
+    -   id: stubtest
+        # note: assumes python env is setup and activated
+        # note: requires pandas dev to be installed
+        name: mypy (stubtest)
+        entry: python
+        language: system
+        pass_filenames: false
+        types: [pyi]
+        args: [scripts/run_stubtest.py]
+        stages: [manual]
     -   id: flake8-rst
         name: flake8-rst
         description: Run flake8 on code snippets in docstrings or RST files
@@ -236,4 +240,16 @@ repos:
         language: python
         additional_dependencies:
         - flake8==4.0.1
-        - flake8-pyi==22.5.1
+        - flake8-pyi==22.7.0
+    -   id: future-annotations
+        name: import annotations from __future__
+        entry: 'from __future__ import annotations'
+        language: pygrep
+        args: [--negate]
+        files: ^pandas/
+        types: [python]
+        exclude: |
+            (?x)
+            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
+            |/tests/
+            |/_testing/
