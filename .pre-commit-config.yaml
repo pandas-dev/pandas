@@ -85,31 +85,41 @@ repos:
 -   repo: local
     hooks:
     -   id: pyright
+        # note: assumes python env is setup and activated
         name: pyright
         entry: pyright
-        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.262
+        - pyright@1.1.264
     -   id: pyright_reportGeneralTypeIssues
+        # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
-        # note: assumes python env is setup and activated
         language: node
         pass_filenames: false
         types: [python]
         stages: [manual]
         additional_dependencies: *pyright_dependencies
     -   id: mypy
+        # note: assumes python env is setup and activated
         name: mypy
         entry: mypy
-        # note: assumes python env is setup and activated
         language: system
         pass_filenames: false
         types: [python]
+        stages: [manual]
+    -   id: stubtest
+        # note: assumes python env is setup and activated
+        # note: requires pandas dev to be installed
+        name: mypy (stubtest)
+        entry: python
+        language: system
+        pass_filenames: false
+        types: [pyi]
+        args: [scripts/run_stubtest.py]
         stages: [manual]
     -   id: flake8-rst
         name: flake8-rst

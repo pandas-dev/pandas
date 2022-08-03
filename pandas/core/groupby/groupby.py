@@ -329,8 +329,7 @@ Series or DataFrame
 """
 
 _pipe_template = """
-Apply a function `func` with arguments to this %(klass)s object and return
-the function's result.
+Apply a ``func`` with arguments to this %(klass)s object and return its result.
 
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
@@ -381,8 +380,9 @@ Examples
 """
 
 _transform_template = """
-Call function producing a same-indexed %(klass)s on each group and
-return a %(klass)s having the same indexes as the original object
+Call function producing a same-indexed %(klass)s on each group.
+
+Returns a %(klass)s having the same indexes as the original object
 filled with the transformed values.
 
 Parameters
@@ -645,6 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
+    keys: _KeysArgType | None = None
     group_keys: bool | lib.NoDefault
 
     @final
@@ -821,6 +822,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
+        keys = self.keys
+        if isinstance(keys, list) and len(keys) == 1:
+            warnings.warn(
+                (
+                    "In a future version of pandas, a length 1 "
+                    "tuple will be returned when iterating over a "
+                    "a groupby with a grouper equal to a list of "
+                    "length 1. Don't supply a list with a single grouper "
+                    "to avoid this warning."
+                ),
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
 
@@ -1338,7 +1352,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             # GH#47500
-            how = "sum" if how == "add" else how
             warnings.warn(
                 f"{type(self).__name__}.{how} called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
@@ -1738,9 +1751,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 kwd_name = "numeric_only"
                 if how in ["any", "all"]:
                     kwd_name = "bool_only"
-                kernel = "sum" if how == "add" else how
                 raise NotImplementedError(
-                    f"{type(self).__name__}.{kernel} does not implement {kwd_name}."
+                    f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
             elif not is_ser:
                 data = data.get_numeric_data(copy=False)
@@ -2417,7 +2429,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = self._agg_general(
                     numeric_only=numeric_only,
                     min_count=min_count,
-                    alias="add",
+                    alias="sum",
                     npfunc=np.sum,
                 )
 
@@ -4341,8 +4353,6 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
 
 
 def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> None:
-    if how == "add":
-        how = "sum"
     if numeric_only is not lib.no_default and not numeric_only:
         # numeric_only was specified and falsey but still dropped nuisance columns
         warnings.warn(
