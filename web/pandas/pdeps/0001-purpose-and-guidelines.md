@@ -1,6 +1,6 @@
 # PDEP-1: Purpose and guidelines
 
-- Created: 30 July 2022
+- Created: 3 August 2022
 - Status: Under discussion
 - Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
 - Author: [Marc Garcia](https://github.com/datapythonista)
@@ -87,7 +87,8 @@ Once a PDEP is implemented and available in the main branch of pandas, its
 status will be changed to `Status: Implemented`, so there is visibility that the PDEP
 is not part of the roadmap and future plans, but a change that has already
 happened. The first pandas version in which the PDEP implementation is
-available will also be included in the PDEP.
+available will also be included in the PDEP header with for example
+`Implemented: v2.0.0`.
 
 #### Rejected PDEP
 
@@ -124,4 +125,4 @@ changed and avoid confusion.
 
 ### PDEP-1 History
 
-- 30 July 2022: Initial version
+- 3 August 2022: Initial version

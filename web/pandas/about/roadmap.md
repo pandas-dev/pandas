@@ -39,7 +39,7 @@ For more information about PDEPs, and how to submit one, please refer to
 
 <div class="alert alert-warning" role="alert">
   pandas is in the process of moving roadmap points to PDEPs (implemented in
-  June 2022). During the transition, some roadmap points will exist as PDEPs,
+  August 2022). During the transition, some roadmap points will exist as PDEPs,
   while others will exist as sections below.
 </div>
 
