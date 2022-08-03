@@ -135,7 +135,7 @@ class RangeIndex(NumericIndex):
 
         # validate the arguments
         if com.all_none(start, stop, step):
-            raise TypeError("RangeIndex(...) must be called with integers/floats")
+            raise TypeError("RangeIndex(...) must be called with integers")
 
         start = ensure_python_int(start) if start is not None else 0
 
