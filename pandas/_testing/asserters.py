@@ -609,6 +609,43 @@ def assert_interval_array_equal(
     assert_attr_equal("inclusive", left, right, obj=obj)
 
 
+def assert_interval_array_almost_equal(
+    left, right, rtol, atol, obj="IntervalArray"
+) -> None:
+    """
+    Test that two IntervalArrays are within tolerance.
+
+    Parameters
+    ----------
+    left, right : IntervalArray
+        The IntervalArrays to compare.
+    rtol : float, default 1e-5
+        Relative tolerance.
+
+        .. versionadded:: 1.1.0
+    atol : float, default 1e-8
+        Absolute tolerance.
+
+        .. versionadded:: 1.1.0
+    obj : str, default 'IntervalArray'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
+    """
+    _check_isinstance(left, right, IntervalArray)
+
+    kwargs = {}
+    if left._left.dtype.kind in ["m", "M"]:
+        # We have a DatetimeArray or TimedeltaArray
+        kwargs["check_freq"] = False
+
+    assert_almost_equal(
+        left._left, right._left, rtol=rtol, atol=atol, obj=f"{obj}.left", **kwargs
+    )
+    assert_almost_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+
+    assert_attr_equal("inclusive", left, right, obj=obj)
+
+
 def assert_period_array_equal(left, right, obj="PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
@@ -1061,8 +1098,14 @@ def assert_series_equal(
                 f"is not equal to {right._values}."
             )
             raise AssertionError(msg)
-    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
+    elif (
+        check_exact and is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype)
+    ):  # check_exact and
         assert_interval_array_equal(left.array, right.array)
+    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
+        assert_interval_array_almost_equal(
+            left.array, right.array, rtol=rtol, atol=atol
+        )
     elif isinstance(left.dtype, CategoricalDtype) or isinstance(
         right.dtype, CategoricalDtype
     ):
