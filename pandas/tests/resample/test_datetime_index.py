@@ -61,7 +61,7 @@ def test_custom_grouper(index):
 
     # check all cython functions work
     g.ohlc()  # doesn't use _cython_agg_general
-    funcs = ["add", "mean", "prod", "min", "max", "var"]
+    funcs = ["sum", "mean", "prod", "min", "max", "var"]
     for f in funcs:
         g._cython_agg_general(f, alt=None, numeric_only=True)
 
@@ -69,7 +69,7 @@ def test_custom_grouper(index):
     g = s.groupby(b)
     # check all cython functions work
     g.ohlc()  # doesn't use _cython_agg_general
-    funcs = ["add", "mean", "prod", "min", "max", "var"]
+    funcs = ["sum", "mean", "prod", "min", "max", "var"]
     for f in funcs:
         g._cython_agg_general(f, alt=None, numeric_only=True)
 
@@ -414,7 +414,7 @@ def test_resample_upsampling_picked_but_not_correct():
     tm.assert_series_equal(result2, expected)
 
 
-@pytest.mark.parametrize("f", ["add", "mean", "prod", "min", "max", "var"])
+@pytest.mark.parametrize("f", ["sum", "mean", "prod", "min", "max", "var"])
 def test_resample_frame_basic_cy_funcs(f):
     df = tm.makeTimeDataFrame()
 

@@ -17,7 +17,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -415,12 +414,9 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
             result = df.astype(object)
         assert is_object_dtype(result._mgr.arrays[0].dtype)
 
-        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
-        #  instead of returning False
-        if not np_version_under1p20:
-            # check that we can compare the dtypes
-            comp = result.dtypes == df.dtypes
-            assert not comp.any()
+        # check that we can compare the dtypes
+        comp = result.dtypes == df.dtypes
+        assert not comp.any()
 
     def test_astype_str(self, data):
         with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):

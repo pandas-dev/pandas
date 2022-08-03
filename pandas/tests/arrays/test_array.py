@@ -298,7 +298,7 @@ def test_array_inference(data, expected):
     [
         # mix of frequencies
         [pd.Period("2000", "D"), pd.Period("2001", "A")],
-        # mix of closed
+        # mix of inclusive
         [pd.Interval(0, 1, "left"), pd.Interval(1, 2, "right")],
         # Mix of timezones
         [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000", tz="UTC")],
