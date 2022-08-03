@@ -3380,6 +3380,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
+        if column_format is not None and not isinstance(column_format, str):
+            raise ValueError("`column_format` must be str or unicode")
+
         # Refactor formatters/float_format/decimal/na_rep/escape to Styler structure
         base_format_ = {
             "na_rep": na_rep,
@@ -3421,8 +3424,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             formatters = functools.partial(_wrap, alt_format_=lambda v: v)
         else:
             formatters = None
+        format_index_ = [index_format_, column_format_]
 
-        hide, relabel = [], []
+        hide, relabel_index = [], []
         if columns:
             hide.append(
                 {
@@ -3433,7 +3437,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if header is False:
             hide.append({"axis": "columns"})
         elif isinstance(header, (list, tuple)):
-            relabel = {"labels": header, "axis": "columns"}
+            relabel_index = {"labels": header, "axis": "columns"}
+            format_index_ = [index_format_]  # column_format is overwritten
 
         if index is False:
             hide.append({"axis": "index"})
@@ -3462,9 +3467,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._to_latex_via_styler(
             buf,
             hide=hide,
-            relabel=relabel,
+            relabel_index=relabel_index,
             format={"formatter": formatters, **base_format_},
-            format_index=[index_format_, column_format_],
+            format_index=format_index_,
             render_kwargs=render_kwargs,
         )
 
@@ -3473,7 +3478,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         buf=None,
         *,
         hide: dict | list[dict] | None = None,
-        relabel: dict | list[dict] | None = None,
+        relabel_index: dict | list[dict] | None = None,
         format: dict | list[dict] | None = None,
         format_index: dict | list[dict] | None = None,
         render_kwargs: dict = {},
@@ -3484,6 +3489,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. code-block:: python
            styler = Styler(DataFrame)
            styler.hide(**hide)
+           styler.relabel_index(**relabel_index)
            styler.format(**format)
            styler.format_index(**format_index)
            styler.to_latex(buf=buf, **render_kwargs)
@@ -3494,7 +3500,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         hide : dict, list of dict
             Keyword args to pass to the method call of ``Styler.hide``. If a list will
             call the method numerous times.
-        relabel : dict, list of dict
+        relabel_index : dict, list of dict
             Keyword args to pass to the method of ``Styler.relabel_index``. If a list
             will call the method numerous times.
         format : dict, list of dict
@@ -3540,7 +3546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self = cast("DataFrame", self)
         styler = Styler(self, uuid="")
 
-        for kw_name in ["hide", "relabel", "format", "format_index"]:
+        for kw_name in ["hide", "relabel_index", "format", "format_index"]:
             kw = vars()[kw_name]
             if isinstance(kw, dict):
                 getattr(styler, kw_name)(**kw)
