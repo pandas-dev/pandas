@@ -1,7 +1,7 @@
 # PDEP-1: Purpose and guidelines
 
 - Created: 3 August 2022
-- Status: Under discussion
+- Status: Accepted
 - Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
 - Author: [Marc Garcia](https://github.com/datapythonista)
 - Revision: 1
