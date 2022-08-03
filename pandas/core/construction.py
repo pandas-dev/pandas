@@ -439,7 +439,7 @@ def extract_array(
     To extract all the way down to the ndarray, pass ``extract_numpy=True``.
 
     >>> extract_array(pd.Series([1, 2, 3]), extract_numpy=True)
-    array([1, 2, 3])
+    array([1, 2, 3], dtype=int64)
     """
     if isinstance(obj, (ABCIndex, ABCSeries)):
         if isinstance(obj, ABCRangeIndex):

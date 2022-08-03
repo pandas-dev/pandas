@@ -1210,10 +1210,10 @@ class IndexOpsMixin(OpsMixin):
         array([0, 3])
 
         >>> ser.searchsorted([1, 3], side='left')
-        array([0, 2])
+        array([0, 2], dtype=int64)
 
         >>> ser.searchsorted([1, 3], side='right')
-        array([1, 3])
+        array([1, 3], dtype=int64)
 
         >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
         >>> ser

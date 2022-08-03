@@ -254,7 +254,7 @@ class Grouper:
     2000-10-01 23:50:00    36
     2000-10-02 00:07:00    39
     2000-10-02 00:24:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17T, dtype: int32
     """
 
     axis: int
