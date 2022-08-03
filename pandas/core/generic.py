@@ -3626,7 +3626,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']}})
         >>> df.to_csv(index=False)
-        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
+        'name,mask,weapon\r\nRaphael,red,sai\r\nDonatello,purple,bo staff\r\n'
 
         Create 'out.zip' containing 'out.csv'
 
@@ -8614,7 +8614,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:12:00    18
         2000-10-02 00:19:00    21
         2000-10-02 00:26:00    24
-        Freq: 7T, dtype: int64
+        Freq: 7T, dtype: int32
 
         >>> ts.resample('17min').sum()
         2000-10-01 23:14:00     0
@@ -8622,7 +8622,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:48:00    21
         2000-10-02 00:05:00    54
         2000-10-02 00:22:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         >>> ts.resample('17min', origin='epoch').sum()
         2000-10-01 23:18:00     0
@@ -8630,14 +8630,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:52:00    27
         2000-10-02 00:09:00    39
         2000-10-02 00:26:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         >>> ts.resample('17min', origin='2000-01-01').sum()
         2000-10-01 23:24:00     3
         2000-10-01 23:41:00    15
         2000-10-01 23:58:00    45
         2000-10-02 00:15:00    45
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         If you want to adjust the start of the bins with an `offset` Timedelta, the two
         following lines are equivalent:
@@ -8647,14 +8647,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         >>> ts.resample('17min', offset='23h30min').sum()
         2000-10-01 23:30:00     9
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         If you want to take the largest Timestamp as the end of the bins:
 
@@ -8663,7 +8663,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:52:00    18
         2000-10-02 00:09:00    27
         2000-10-02 00:26:00    63
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         In contrast with the `start_day`, you can use `end_day` to take the ceiling
         midnight of the largest Timestamp as the end of the bins and drop the bins
@@ -8674,7 +8674,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:55:00    15
         2000-10-02 00:12:00    45
         2000-10-02 00:29:00    45
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         To replace the use of the deprecated `base` argument, you can now use `offset`,
         in this example it is equivalent to have `base=2`:
@@ -8685,7 +8685,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:50:00    36
         2000-10-02 00:07:00    39
         2000-10-02 00:24:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
 
         To replace the use of the deprecated `loffset` argument:
 
@@ -8699,7 +8699,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:07:00    21
         2000-10-02 00:24:00    54
         2000-10-02 00:41:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17T, dtype: int32
         """
         from pandas.core.resample import get_resampler
 

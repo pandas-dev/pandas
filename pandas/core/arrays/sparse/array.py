@@ -1296,7 +1296,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [nan, nan, 1.0, 2.0]
         Fill: nan
         IntIndex
-        Indices: array([2, 3], dtype=int32)
+        Indices: array([2, 3])
 
         Using a SparseDtype, you can also change the fill value as well.
 
@@ -1370,7 +1370,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [10, 11, 12]
         Fill: 10
         IntIndex
-        Indices: array([1, 2], dtype=int32)
+        Indices: array([1, 2])
         """
         # this is used in apply.
         # We get hit since we're an "is_extension_type" but regular extension

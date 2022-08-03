@@ -303,7 +303,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     >>> ser
     0    999
     1      2
-    dtype: int64
+    dtype: int32
 
     Due to input data type the Series has a `view` on
     the original data, so
@@ -682,7 +682,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         Examples
         --------
         >>> pd.Series([1, 2, 3]).values
-        array([1, 2, 3])
+        array([1, 2, 3], dtype=int64)
 
         >>> pd.Series(list('aabc')).values
         array(['a', 'a', 'b', 'c'], dtype=object)
@@ -868,7 +868,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         --------
         >>> ser = pd.Series([1, 2, 3])
         >>> np.asarray(ser)
-        array([1, 2, 3])
+        array([1, 2, 3], dtype=int64)
 
         For timezone-aware data, the timezones may be retained with
         ``dtype='object'``
@@ -2172,7 +2172,7 @@ Name: Max Speed, dtype: float64
         Examples
         --------
         >>> pd.Series([2, 1, 3, 3], name='A').unique()
-        array([2, 1, 3])
+        array([2, 1, 3], dtype=int64)
 
         >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
         array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
@@ -2940,7 +2940,7 @@ Name: Max Speed, dtype: float64
         dtype: int64
         >>> arr = np.array([[0, 1], [-2, 3], [4, -5], [6, 7]])
         >>> s.dot(arr)
-        array([24, 14])
+        array([24, 14], dtype=int64)
         """
         if isinstance(other, (Series, ABCDataFrame)):
             common = self.index.union(other.index)
@@ -5096,13 +5096,13 @@ Keep all original rows and also all original values
         A  0
         B  1
         C  2
-        dtype: int64
+        dtype: int32
 
         Drop labels B en C
 
         >>> s.drop(labels=['B', 'C'])
         A  0
-        dtype: int64
+        dtype: int32
 
         Drop 2nd level label in MultiIndex Series
 

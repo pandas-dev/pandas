@@ -1781,7 +1781,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> pd.DataFrame({"A": [1, 2], "B": [3, 4]}).to_numpy()
         array([[1, 3],
-               [2, 4]])
+               [2, 4]], dtype=int64)
 
         With heterogeneous data, the lowest common type will have to
         be used.
@@ -11619,7 +11619,7 @@ Parrot 2  Parrot       24.0
         dtype: object
         >>> df.values
         array([[  3,  94,  31],
-               [ 29, 170, 115]])
+               [ 29, 170, 115]], dtype=int64)
 
         A DataFrame with mixed type columns(e.g., str/object, int64, float32)
         results in an ndarray of the broadest type that accommodates these
