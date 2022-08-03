@@ -21,6 +21,7 @@ import_array()
 
 from pandas._libs.util cimport is_nan
 
+
 cdef enum:
     cROUNDS = 2
     dROUNDS = 4
