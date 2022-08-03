@@ -6678,8 +6678,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     result.loc[:, k] = (
                         result[k].fillna(v, limit=limit, downcast=downcast_k).values
                     )
-                    # TODO: Revert to result.loc[:, k] = result[k].fillna(...)
-                    # when issue GH45751 is fixed
+                    # TODO: result.loc[:, k] = result.loc[:, k].fillna(
+                    #     v, limit=limit, downcast=downcast_k
+                    # )
+                    # Revert when GH45751 is fixed
                 return result if not inplace else None
 
             elif not is_list_like(value):
