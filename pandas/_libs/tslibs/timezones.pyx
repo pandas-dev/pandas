@@ -9,7 +9,6 @@ try:
     # py39+
     import zoneinfo
     from zoneinfo import ZoneInfo
-    import_optional_dependency("tzdata", errors="raise", min_version="2022.1")
 except ImportError:
     zoneinfo = None
     ZoneInfo = None
@@ -70,6 +69,9 @@ cdef inline bint is_utc_zoneinfo(tzinfo tz):
             utc_zoneinfo = ZoneInfo("UTC")
         except zoneinfo.ZoneInfoNotFoundError:
             return False
+        # Warn if tzdata is too old, even if there is a system tzdata to alert
+        # users about the mismatch between local/system tzdata
+        import_optional_dependency("tzdata", errors="warn", min_version="2022.1")
 
     return tz is utc_zoneinfo
 
