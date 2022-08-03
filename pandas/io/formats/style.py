@@ -25,9 +25,11 @@ from pandas._typing import (
     Axis,
     FilePath,
     IndexLabel,
+    IntervalInclusiveType,
     Level,
     QuantileInterpolation,
     Scalar,
+    StorageOptions,
     WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -549,6 +551,7 @@ class Styler(StylerRenderer):
         NDFrame.to_excel,
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
+        storage_options_versionadded="1.5.0",
     )
     def to_excel(
         self,
@@ -568,6 +571,7 @@ class Styler(StylerRenderer):
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
+        storage_options: StorageOptions = None,
     ) -> None:
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -590,6 +594,7 @@ class Styler(StylerRenderer):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+            storage_options=storage_options,
         )
 
     @overload
@@ -1474,8 +1479,7 @@ class Styler(StylerRenderer):
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
-        Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
-        HTML elements.
+        Set the ``class`` attribute of ``<td>`` HTML elements.
 
         Parameters
         ----------
@@ -2972,6 +2976,12 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    def _get_numeric_subset_default(self):
+        # Returns a boolean mask indicating where `self.data` has numerical columns.
+        # Choosing a mask as opposed to the column names also works for
+        # boolean column labels (GH47838).
+        return self.data.columns.isin(self.data.select_dtypes(include=np.number))
+
     @doc(
         name="background",
         alt="text",
@@ -3115,7 +3125,7 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         self.apply(
             _background_gradient,
@@ -3150,7 +3160,7 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         if subset is None and gmap is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         return self.apply(
             _background_gradient,
@@ -3168,8 +3178,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
-        Set defined CSS-properties to each ``<td>`` HTML element within the given
-        subset.
+        Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
 
         Parameters
         ----------
@@ -3208,7 +3217,7 @@ class Styler(StylerRenderer):
         cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
-        align: str | float | int | Callable = "mid",
+        align: str | float | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -3303,7 +3312,7 @@ class Styler(StylerRenderer):
             raise ValueError(f"`height` must be a value in [0, 100], got {height}")
 
         if subset is None:
-            subset = self.data.select_dtypes(include=np.number).columns
+            subset = self._get_numeric_subset_default()
 
         self.apply(
             _bar,
@@ -3327,7 +3336,7 @@ class Styler(StylerRenderer):
         color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
-        null_color=lib.no_default,
+        null_color: str | lib.NoDefault = lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -3479,7 +3488,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: str = "both",
+        inclusive: IntervalInclusiveType = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3584,7 +3593,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: QuantileInterpolation = "linear",
-        inclusive: str = "both",
+        inclusive: IntervalInclusiveType = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3969,7 +3978,7 @@ def _highlight_between(
     props: str,
     left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
     right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
-    inclusive: bool | str = True,
+    inclusive: bool | IntervalInclusiveType = True,
 ) -> np.ndarray:
     """
     Return an array of css props based on condition of data values within given range.
@@ -4034,7 +4043,7 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
 
 def _bar(
     data: NDFrame,
-    align: str | float | int | Callable,
+    align: str | float | Callable,
     colors: str | list | tuple,
     cmap: Any,
     width: float,

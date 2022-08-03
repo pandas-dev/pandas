@@ -1577,3 +1577,29 @@ def test_apply_type():
     result = df.apply(type, axis=1)
     expected = Series({"a": Series, "b": Series, "c": Series})
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_on_empty_dataframe():
+    # GH 39111
+    df = DataFrame({"a": [1, 2], "b": [3, 0]})
+    result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1)
+    expected = Series([])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "test, constant",
+    [
+        ({"a": [1, 2, 3], "b": [1, 1, 1]}, {"a": [1, 2, 3], "b": [1]}),
+        ({"a": [2, 2, 2], "b": [1, 1, 1]}, {"a": [2], "b": [1]}),
+    ],
+)
+def test_unique_agg_type_is_series(test, constant):
+    # GH#22558
+    df1 = DataFrame(test)
+    expected = Series(data=constant, index=["a", "b"], dtype="object")
+    aggregation = {"a": "unique", "b": "unique"}
+
+    result = df1.agg(aggregation)
+
+    tm.assert_series_equal(result, expected)

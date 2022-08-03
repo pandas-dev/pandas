@@ -42,9 +42,10 @@ from pandas.core.indexes.base import (
 
 class NumericIndex(Index):
     """
-    Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects. NumericIndex is a special case
-    of `Index` with purely numpy int/uint/float labels.
+    Immutable numeric sequence used for indexing and alignment.
+
+    The basic object storing axis labels for all pandas objects.
+    NumericIndex is a special case of `Index` with purely numpy int/uint/float labels.
 
     .. versionadded:: 1.4.0
 
@@ -106,7 +107,7 @@ class NumericIndex(Index):
     }
 
     @property
-    def _engine_type(self):
+    def _engine_type(self) -> type[libindex.IndexEngine]:
         # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
         # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
         return self._engine_types[self.dtype]  # type: ignore[index]
@@ -120,7 +121,9 @@ class NumericIndex(Index):
             "c": "complex",
         }[self.dtype.kind]
 
-    def __new__(cls, data=None, dtype: Dtype | None = None, copy=False, name=None):
+    def __new__(
+        cls, data=None, dtype: Dtype | None = None, copy=False, name=None
+    ) -> NumericIndex:
         name = maybe_extract_name(name, data, cls)
 
         subarr = cls._ensure_array(data, dtype, copy)
@@ -307,13 +310,14 @@ _num_index_shared_docs = {}
 _num_index_shared_docs[
     "class_descr"
 ] = """
-    Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s.
+    Immutable sequence used for indexing and alignment.
 
     .. deprecated:: 1.4.0
         In pandas v2.0 %(klass)s will be removed and :class:`NumericIndex` used instead.
         %(klass)s will remain fully functional for the duration of pandas 1.x.
+
+    The basic object storing axis labels for all pandas objects.
+    %(klass)s is a special case of `Index` with purely %(ltype)s labels. %(extra)s.
 
     Parameters
     ----------
@@ -371,9 +375,12 @@ class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "int64index"
-    _engine_type = libindex.Int64Engine
     _default_dtype = np.dtype(np.int64)
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
+
+    @property
+    def _engine_type(self) -> type[libindex.Int64Engine]:
+        return libindex.Int64Engine
 
 
 class UInt64Index(IntegerIndex):
@@ -386,9 +393,12 @@ class UInt64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "uint64index"
-    _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
+
+    @property
+    def _engine_type(self) -> type[libindex.UInt64Engine]:
+        return libindex.UInt64Engine
 
 
 class Float64Index(NumericIndex):
@@ -401,7 +411,10 @@ class Float64Index(NumericIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
     _typ = "float64index"
-    _engine_type = libindex.Float64Engine
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
     _is_backward_compat_public_numeric_index: bool = False
+
+    @property
+    def _engine_type(self) -> type[libindex.Float64Engine]:
+        return libindex.Float64Engine

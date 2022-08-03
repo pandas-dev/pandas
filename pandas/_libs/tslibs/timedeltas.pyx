@@ -35,10 +35,7 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     precision_from_unit,
 )
-from pandas._libs.tslibs.dtypes cimport (
-    get_conversion_factor,
-    npy_unit_to_abbrev,
-)
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -50,6 +47,8 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_ns,
     cmp_dtstructs,
     cmp_scalar,
+    convert_reso,
+    get_conversion_factor,
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
@@ -59,7 +58,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedeltastruct,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
 from pandas._libs.tslibs.util cimport (
@@ -242,6 +244,11 @@ cpdef int64_t delta_to_nanoseconds(
 
     elif is_timedelta64_object(delta):
         in_reso = get_datetime64_unit(delta)
+        if in_reso == NPY_DATETIMEUNIT.NPY_FR_Y or in_reso == NPY_DATETIMEUNIT.NPY_FR_M:
+            raise ValueError(
+                "delta_to_nanoseconds does not support Y or M units, "
+                "as their duration in nanoseconds is ambiguous."
+            )
         n = get_timedelta64_value(delta)
 
     elif PyDelta_Check(delta):
@@ -258,26 +265,15 @@ cpdef int64_t delta_to_nanoseconds(
     else:
         raise TypeError(type(delta))
 
-    if reso < in_reso:
-        # e.g. ns -> us
-        factor = get_conversion_factor(reso, in_reso)
-        div, mod = divmod(n, factor)
-        if mod > 0 and not round_ok:
-            raise ValueError("Cannot losslessly convert units")
-
-        # Note that when mod > 0, we follow np.timedelta64 in always
-        #  rounding down.
-        value = div
-    else:
-        factor = get_conversion_factor(in_reso, reso)
-        try:
-            with cython.overflowcheck(True):
-                value = n * factor
-        except OverflowError as err:
-            unit_str = npy_unit_to_abbrev(reso)
-            raise OutOfBoundsTimedelta(
-                f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
-            ) from err
+    try:
+        return convert_reso(n, in_reso, reso, round_ok=round_ok)
+    except (OutOfBoundsDatetime, OverflowError) as err:
+        # Catch OutOfBoundsDatetime bc convert_reso can call check_dts_bounds
+        #  for Y/M-resolution cases
+        unit_str = npy_unit_to_abbrev(reso)
+        raise OutOfBoundsTimedelta(
+            f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
+        ) from err
 
     return value
 
@@ -950,14 +946,18 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
     cdef:
         _Timedelta td_base
 
+    # For millisecond and second resos, we cannot actually pass int(value) because
+    #  many cases would fall outside of the pytimedelta implementation bounds.
+    #  We pass 0 instead, and override seconds, microseconds, days.
+    #  In principle we could pass 0 for ns and us too.
     if reso == NPY_FR_ns:
         td_base = _Timedelta.__new__(Timedelta, microseconds=int(value) // 1000)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(Timedelta, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        td_base = _Timedelta.__new__(Timedelta, milliseconds=int(value))
+        td_base = _Timedelta.__new__(Timedelta, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        td_base = _Timedelta.__new__(Timedelta, seconds=int(value))
+        td_base = _Timedelta.__new__(Timedelta, seconds=0)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
     #    td_base = _Timedelta.__new__(Timedelta, minutes=int(value))
@@ -977,6 +977,34 @@ cdef _timedelta_from_value_and_reso(int64_t value, NPY_DATETIMEUNIT reso):
     return td_base
 
 
+class MinMaxReso:
+    """
+    We need to define min/max/resolution on both the Timedelta _instance_
+    and Timedelta class.  On an instance, these depend on the object's _reso.
+    On the class, we default to the values we would get with nanosecond _reso.
+    """
+    def __init__(self, name):
+        self._name = name
+
+    def __get__(self, obj, type=None):
+        if self._name == "min":
+            val = np.iinfo(np.int64).min + 1
+        elif self._name == "max":
+            val = np.iinfo(np.int64).max
+        else:
+            assert self._name == "resolution"
+            val = 1
+
+        if obj is None:
+            # i.e. this is on the class, default to nanos
+            return Timedelta(val)
+        else:
+            return Timedelta._from_value_and_reso(val, obj._reso)
+
+    def __set__(self, obj, value):
+        raise AttributeError(f"{self._name} is not settable.")
+
+
 # Similar to Timestamp/datetime, this is a construction requirement for
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
@@ -990,6 +1018,36 @@ cdef class _Timedelta(timedelta):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+    min = MinMaxReso("min")
+    max = MinMaxReso("max")
+    resolution = MinMaxReso("resolution")
+
+    @property
+    def days(self) -> int:  # TODO(cython3): make cdef property
+        # NB: using the python C-API PyDateTime_DELTA_GET_DAYS will fail
+        #  (or be incorrect)
+        self._ensure_components()
+        return self._d
+
+    @property
+    def seconds(self) -> int:  # TODO(cython3): make cdef property
+        # NB: using the python C-API PyDateTime_DELTA_GET_SECONDS will fail
+        #  (or be incorrect)
+        self._ensure_components()
+        return self._h * 3600 + self._m * 60 + self._s
+
+    @property
+    def microseconds(self) -> int:  # TODO(cython3): make cdef property
+        # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
+        #  (or be incorrect)
+        self._ensure_components()
+        return self._ms * 1000 + self._us
+
+    def total_seconds(self) -> float:
+        """Total seconds in the duration."""
+        # We need to override bc we overrided days/seconds/microseconds
+        # TODO: add nanos/1e9?
+        return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
 
     @property
     def freq(self) -> None:
@@ -1406,7 +1464,8 @@ cdef class _Timedelta(timedelta):
 
     def isoformat(self) -> str:
         """
-        Format Timedelta as ISO 8601 Duration like
+        Format the Timedelta as ISO 8601 Duration.
+
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
         values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
 
@@ -1478,21 +1537,7 @@ cdef class _Timedelta(timedelta):
         if reso == self._reso:
             return self
 
-        if reso < self._reso:
-            # e.g. ns -> us
-            mult = get_conversion_factor(reso, self._reso)
-            div, mod = divmod(self.value, mult)
-            if mod > 0 and not round_ok:
-                raise ValueError("Cannot losslessly convert units")
-
-            # Note that when mod > 0, we follow np.timedelta64 in always
-            #  rounding down.
-            value = div
-        else:
-            mult = get_conversion_factor(self._reso, reso)
-            with cython.overflowcheck(True):
-                # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
-                value = self.value * mult
+        value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
         return type(self)._from_value_and_reso(value, reso=reso)
 
 
@@ -1979,9 +2024,3 @@ cdef _broadcast_floordiv_td64(
         res = res.astype('f8')
         res[mask] = np.nan
     return res
-
-
-# resolution in ns
-Timedelta.min = Timedelta(np.iinfo(np.int64).min + 1)
-Timedelta.max = Timedelta(np.iinfo(np.int64).max)
-Timedelta.resolution = Timedelta(nanoseconds=1)
