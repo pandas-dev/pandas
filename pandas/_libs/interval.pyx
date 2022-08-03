@@ -414,8 +414,15 @@ cdef class Interval(IntervalMixin):
         if _interval_like(key):
             key_closed_left = key.inclusive in ('left', 'both')
             key_closed_right = key.inclusive in ('right', 'both')
-            return ((self.left < key.left if self.open_left and key_closed_left else self.left <= key.left) and
-                    (key.right < self.right if self.open_right and key_closed_right else key.right <= self.right))
+            if self.open_left and key_closed_left:
+                left_contained = self.left < key.left
+            else:
+                left_contained = self.left <= key.left
+            if self.open_right and key_closed_right:
+                right_contained = key.right < self.right
+            else:
+                right_contained = key.right <= self.right
+            return left_contained and right_contained
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
