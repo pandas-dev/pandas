@@ -488,7 +488,6 @@ class PossiblePrecisionLoss(Warning):
 
     Examples
     --------
-    >>> import numpy as np
     >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
     >>> df.to_stata('test') # doctest: +SKIP
     ... # PossiblePrecisionLoss: Column converted from int64 to float64...
