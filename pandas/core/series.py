@@ -561,7 +561,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels: AnyArrayLike | Sequence) -> None:
+    def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
         """
         Override generic, we want to set the _typ here.
 
@@ -2642,6 +2642,7 @@ Name: Max Speed, dtype: float64
     def corr(self, other, method="pearson", min_periods=None) -> float:
         """
         Compute correlation with `other` Series, excluding missing values.
+
         The two `Series` objects are not required to be the same length and will be
         aligned internally before the correlation function is applied.
 
@@ -2716,6 +2717,7 @@ Name: Max Speed, dtype: float64
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.
+
         The two `Series` objects are not required to be the same length and
         will be aligned internally before the covariance is calculated.
 
