@@ -171,7 +171,6 @@ from pandas.core.window import (
     Window,
 )
 
-from pandas.io.formats import format as fmt
 from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
@@ -2121,7 +2120,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if config.get_option("display.latex.repr"):
+        if config.get_option("styler.render.repr") == "latex":
             return self.to_latex()
         else:
             return None
@@ -3225,7 +3224,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
-    @doc(returns=fmt.return_docstring)
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -3368,15 +3366,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         \bottomrule
         \end{{tabular}}
         """
-        msg = (
-            "In future versions `DataFrame.to_latex` is expected to utilise the base "
-            "implementation of `Styler.to_latex` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead "
-            "to use `DataFrame.style.to_latex` which also contains additional "
-            "functionality."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
@@ -3391,34 +3380,179 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
+        # Refactor formatters/float_format/decimal/na_rep/escape to Styler structure
+        base_format_ = {
+            "na_rep": na_rep,
+            "escape": "latex" if escape else None,
+            "decimal": decimal,
+        }
+        index_format_: dict[str, Any] = {"axis": 0, **base_format_}
+        column_format_: dict[str, Any] = {"axis": 1, **base_format_}
+
+        if isinstance(float_format, str):
+            float_format_ = lambda x: float_format % x
+        else:
+            float_format_ = float_format
+
+        def _wrap(x, alt_format_):
+            if isinstance(x, (float, complex)) and float_format_ is not None:
+                return float_format_(x)
+            else:
+                return alt_format_(x)
+
+        if isinstance(formatters, list):
+            formatters = {
+                c: functools.partial(_wrap, alt_format_=formatters[i])
+                for i, c in enumerate(self.columns)
+            }
+        elif isinstance(formatters, dict):
+            index_formatter = formatters.pop("__index__", None)
+            column_formatter = formatters.pop("__columns__", None)
+            if index_formatter is not None:
+                index_format_.update({"formatter": index_formatter})
+            if column_formatter is not None:
+                column_format_.update({"formatter": column_formatter})
+
+            formatters = {
+                k: functools.partial(_wrap, alt_format_=v)
+                for k, v in formatters.items()
+            }
+        elif formatters is None and float_format is not None:
+            formatters = functools.partial(_wrap, alt_format_=lambda v: v)
+        else:
+            formatters = None
+
+        hide, relabel = [], []
+        if columns:
+            hide.append(
+                {
+                    "subset": [c for c in self.columns if c not in columns],
+                    "axis": "columns",
+                }
+            )
+        if header is False:
+            hide.append({"axis": "columns"})
+        elif isinstance(header, (list, tuple)):
+            relabel = {"labels": header, "axis": "columns"}
+
+        if index is False:
+            hide.append({"axis": "index"})
+        if index_names is False:
+            hide.append({"names": True, "axis": "index"})
+
+        render_kwargs = {
+            "hrules": True,
+            "sparse_index": sparsify,
+            "sparse_columns": sparsify,
+            "environment": "longtable" if longtable else None,
+            "column_format": column_format,
+            "multicol_align": multicolumn_format
+            if multicolumn
+            else f"naive-{multicolumn_format}",
+            "multirow_align": "t" if multirow else "naive",
+            "encoding": encoding,
+            "caption": caption,
+            "label": label,
+            "position": position,
+            "column_format": column_format,
+            "clines": "skip-last;data" if multirow else None,
+            "bold_rows": bold_rows,
+        }
+
+        return self._to_latex_via_styler(
+            buf,
+            hide=hide,
+            relabel=relabel,
+            format={"formatter": formatters, **base_format_},
+            format_index=[index_format_, column_format_],
+            render_kwargs=render_kwargs,
+        )
+
+    def _to_latex_via_styler(
+        self,
+        buf=None,
+        *,
+        hide: dict | list[dict] | None = None,
+        relabel: dict | list[dict] | None = None,
+        format: dict | list[dict] | None = None,
+        format_index: dict | list[dict] | None = None,
+        render_kwargs: dict = {},
+    ):
+        """
+        Render object to a LaTeX tabular, longtable, or nested table.
+        Uses the ``Styler`` implementation with the following, ordered, method chaining:
+        .. code-block:: python
+           styler = Styler(DataFrame)
+           styler.hide(**hide)
+           styler.format(**format)
+           styler.format_index(**format_index)
+           styler.to_latex(buf=buf, **render_kwargs)
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        hide : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.hide``. If a list will
+            call the method numerous times.
+        relabel : dict, list of dict
+            Keyword args to pass to the method of ``Styler.relabel_index``. If a list
+            will call the method numerous times.
+        format : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format``. If a list will
+            call the method numerous times.
+        format_index : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format_index``. If a
+            list will call the method numerous times.
+        render_kwargs : dict
+            Keyword args to pass to the method call of ``Styler.to_latex``.
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+        See Also
+        --------
+        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
+        DataFrame.to_string : Render a DataFrame to a console-friendly
+            tabular output.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+        Examples
+        --------
+        Convert a general DataFrame to LaTeX with formatting:
+        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
+        ...                        age=[26, 45],
+        ...                        height=[181.23, 177.65]))
+        >>> print(df.to_latex(hide={"axis": "index"},
+        ...                   format={"formatter": {"name": str.upper},
+        ...                           "precision": 1},
+        ...                   render_kwargs={"hrules": True}
+        ... )  # doctest: +SKIP
+        \begin{{tabular}}{{lrr}}
+        \toprule
+        name & age & height \\
+        \\midrule
+        RAPHAEL & 26 & 181.2 \\
+        DONATELLO & 45 & 177.7 \\
+        \bottomrule
+        \\end{{tabular}}
+        """
+        from pandas.io.formats.style import Styler
+
         self = cast("DataFrame", self)
-        formatter = DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            header=header,
-            index=index,
-            formatters=formatters,
-            float_format=float_format,
-            bold_rows=bold_rows,
-            sparsify=sparsify,
-            index_names=index_names,
-            escape=escape,
-            decimal=decimal,
-        )
-        return DataFrameRenderer(formatter).to_latex(
-            buf=buf,
-            column_format=column_format,
-            longtable=longtable,
-            encoding=encoding,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
-        )
+        styler = Styler(self, uuid="")
+
+        for kw_name in ["hide", "relabel", "format", "format_index"]:
+            kw = vars()[kw_name]
+            if isinstance(kw, dict):
+                getattr(styler, kw_name)(**kw)
+            elif isinstance(kw, list):
+                for sub_kw in kw:
+                    getattr(styler, kw_name)(**sub_kw)
+
+        # bold_rows is not a direct kwarg of Styler.to_latex
+        if render_kwargs.pop("bold_rows"):
+            styler.applymap_index(lambda v: "textbf:--rwrap;")
+
+        return styler.to_latex(buf=buf, **render_kwargs)
 
     @overload
     def to_csv(
