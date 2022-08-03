@@ -830,12 +830,11 @@ def test_zfill_with_leading_sign():
     tm.assert_series_equal(value.str.zfill(5), expected)
 
 
-@pytest.mark.parametrize("arg", [{1: 1}, [1, 2], (1, 2), "0"])
-def test_get_with_non_integer_argument(arg):
+def test_get_with_dict_label():
     # GH47911
     s = Series(
-        ["String", (1, 2, 3), ["a", "b", "c"], 123, -456, {1: "Hello", "2": "World"}]
+        [{"name": "Hello", "value": "World"}, {"name": "Goodbye", "value": "Planet"}]
     )
-    msg = f"i must be of integer type, not {type(arg).__name__}"
-    with pytest.raises(TypeError, match=msg):
-        s.str.get(arg)
+    result = s.str.get("name")
+    expected = Series(["Hello", "Goodbye"])
+    tm.assert_series_equal(result, expected)
