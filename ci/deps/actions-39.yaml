@@ -26,7 +26,6 @@ dependencies:
   - fastparquet
   - fsspec
   - html5lib
-  - hypothesis=6.52.3
   - gcsfs
   - jinja2
   - lxml
@@ -52,3 +51,5 @@ dependencies:
   - xlsxwriter
   - xlwt
   - zstandard
+  - pip:
+    - hypothesis==6.52.3
