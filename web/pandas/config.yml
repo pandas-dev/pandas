@@ -11,6 +11,7 @@ main:
   - pandas_web.Preprocessors.blog_add_posts
   - pandas_web.Preprocessors.maintainers_add_info
   - pandas_web.Preprocessors.home_add_releases
+  - pandas_web.Preprocessors.roadmap_pdeps
   markdown_extensions:
   - toc
   - tables
@@ -177,3 +178,5 @@ sponsors:
   - name: "Gousto"
     url: https://www.gousto.co.uk/
     kind: partner
+roadmap:
+  pdeps_path: pdeps
