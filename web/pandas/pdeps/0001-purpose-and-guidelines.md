@@ -104,8 +104,8 @@ implementing.
 
 For submitted PDEPs that do not contain proper documentation, are out of scope, or
 are not useful to the community for any other reason, the PR will be closed after
-discussion with the author, instead of merging them as rejected. This is to not
-add noise to the list of rejected PDEPs, which should contain documentation as
+discussion with the author, instead of merging them as rejected. This is to avoid
+adding noise to the list of rejected PDEPs, which should contain documentation as
 good as an accepted PDEP, but where the final decision was to not implement the changes.
 
 ## Evolution of PDEPs
