@@ -76,7 +76,7 @@ there should not be any `Request changes` review at the time of merging.
 
 Once a PDEP is accepted, any contributions can be made toward the implementation of the PDEP,
 with an open-ended completion timeline. Development of pandas is difficult to understand and
-forecast, being the contributors a mix of volunteers and developers paid from different sources,
+forecast, being that the contributors to pandas are a mix of volunteers and developers paid from different sources,
 with different priorities. For companies, institutions or individuals with interest in seeing a
 PDEP being implemented, or to in general see progress to the pandas roadmap, please check how
 you can help in the [contributing page](/contribute.html).
