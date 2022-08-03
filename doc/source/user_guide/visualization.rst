@@ -6,6 +6,11 @@
 Chart visualization
 *******************
 
+
+.. note::
+
+   And the examples below assume that `jupyter <https://jupyter.org/>`_ is being used.
+
 This section demonstrates visualization through charting. For information on
 visualization of tabular data please see the section on `Table Visualization <style.ipynb>`_.
 
