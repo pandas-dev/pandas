@@ -1980,6 +1980,12 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
+    if isinstance(origin, Timestamp):
+        first, last = _adjust_dates_anchored(
+            first, last, freq, closed=closed, origin=origin, offset=offset
+        )
+        return first, last
+
     if isinstance(freq, Tick):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
@@ -2114,7 +2120,10 @@ def _adjust_dates_anchored(
         origin_nanos = origin.value
     elif origin in ["end", "end_day"]:
         origin = last if origin == "end" else last.ceil("D")
-        sub_freq_times = (origin.value - first.value) // freq.nanos
+        if isinstance(freq, Tick):
+            sub_freq_times = (origin.value - first.value) // freq.nanos
+        else:
+            sub_freq_times = origin.value - first.value
         if closed == "left":
             sub_freq_times += 1
         first = origin - sub_freq_times * freq
@@ -2131,19 +2140,29 @@ def _adjust_dates_anchored(
     if last_tzinfo is not None:
         last = last.tz_convert("UTC")
 
-    foffset = (first.value - origin_nanos) % freq.nanos
-    loffset = (last.value - origin_nanos) % freq.nanos
+    if isinstance(freq, Tick):
+        foffset = (first.value - origin_nanos) % freq.nanos
+        loffset = (last.value - origin_nanos) % freq.nanos
+    else:
+        foffset = first.value - origin_nanos
+        loffset = last.value - origin_nanos
 
     if closed == "right":
         if foffset > 0:
             # roll back
             fresult_int = first.value - foffset
         else:
-            fresult_int = first.value - freq.nanos
+            if isinstance(freq, Tick):
+                fresult_int = first.value - freq.nanos
+            else:
+                fresult_int = first.value
 
         if loffset > 0:
-            # roll forward
-            lresult_int = last.value + (freq.nanos - loffset)
+            if isinstance(freq, Tick):
+                # roll forward
+                lresult_int = last.value + (freq.nanos - loffset)
+            else:
+                lresult_int = last.value - loffset
         else:
             # already the end of the road
             lresult_int = last.value
@@ -2155,10 +2174,16 @@ def _adjust_dates_anchored(
             fresult_int = first.value
 
         if loffset > 0:
-            # roll forward
-            lresult_int = last.value + (freq.nanos - loffset)
+            if isinstance(freq, Tick):
+                # roll forward
+                lresult_int = last.value + (freq.nanos - loffset)
+            else:
+                lresult_int = last.value - loffset
         else:
-            lresult_int = last.value + freq.nanos
+            if isinstance(freq, Tick):
+                lresult_int = last.value + freq.nanos
+            else:
+                lresult_int = last.value
     fresult = Timestamp(fresult_int)
     lresult = Timestamp(lresult_int)
     if first_tzinfo is not None:

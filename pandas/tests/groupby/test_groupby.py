@@ -38,6 +38,31 @@ def test_repr():
     assert result == expected
 
 
+def test_origin_param_no_effect():
+    # GH 47653
+    df = DataFrame(
+        [
+            {"A": A, "datadate": datadate}
+            for A in range(1, 3)
+            for datadate in date_range(start="1/2/2022", end="2/1/2022", freq="D")
+        ]
+    )
+
+    result = df.groupby(["A", Grouper(key="datadate", freq="W", origin="start")])
+
+    # for i, dfg in result:
+    #     print(dfg[["A", "datadate"]])..
+    #     print("-----------------------")
+
+    expected = df.groupby(["A", Grouper(key="datadate", freq="W", origin="1/5/2022")])
+
+    # for i, dfg in expected:
+    #     print(dfg[["A", "datadate"]])
+    #     print("-----------------------")
+
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
 def test_basic(dtype):
 
