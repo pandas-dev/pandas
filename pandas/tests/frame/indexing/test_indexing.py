@@ -1318,7 +1318,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(view, expected)
 
     def test_loc_internals_not_updated_correctly(self):
-        # GH#47867
+        # GH#47867 all steps are necessary to reproduce the initial bug
         df = DataFrame(
             {"bool_col": True, "a": 1, "b": 2.5},
             index=MultiIndex.from_arrays([[1, 2], [1, 2]], names=["idx1", "idx2"]),
