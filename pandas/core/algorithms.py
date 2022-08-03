@@ -677,8 +677,7 @@ def factorize(
     array(['b', 'a', 'c'], dtype=object)
 
     Thus far, we've only factorized lists (which are internally coerced to
-    NumPy arrays). When factorizcodes, uniques =
-    pd.factorize(valuing pandas objects, the type of `uniques`
+    NumPy arrays). When factorizing pandas objects, the type of `uniques`
     will differ. For Categoricals, a `Categorical` is returned.
 
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
