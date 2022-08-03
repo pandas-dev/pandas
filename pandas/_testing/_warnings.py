@@ -131,7 +131,7 @@ def _assert_caught_expected_warning(
             saw_warning = True
 
             if check_stacklevel and issubclass(
-                actual_warning.category, (FutureWarning, DeprecationWarning)
+                actual_warning.category, (tuple(Warning.__subclasses__()))
             ):
                 _assert_raised_with_correct_stacklevel(actual_warning)
 
