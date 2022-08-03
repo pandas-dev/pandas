@@ -510,7 +510,7 @@ class InvalidColumnName(Warning):
     """
     Warning raised by to_stata the column contains a non-valid stata name.
 
-    Because the column name is invalid Stata variable, the name needs to be
+    Because the column name is an invalid Stata variable, the name needs to be
     converted.
 
     Examples
