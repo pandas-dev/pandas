@@ -213,7 +213,7 @@ class TestToLatexLongtable:
             \midrule
             \endhead
             \midrule
-            \multicolumn{1}{r}{Continued on next page} \\
+            \multicolumn{0}{r}{Continued on next page} \\
             \midrule
             \endfoot
             \bottomrule
@@ -377,7 +377,7 @@ class TestToLatexHeader:
     ):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        msg = "``aliases`` must be of length equal to the number of visible labels"
+        msg = f"Writing 2 cols but got {num_aliases} aliases"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(header=header)
 
@@ -1175,7 +1175,7 @@ class TestToLatexMultiindex:
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.groupby("a").describe().to_latex(format={"precision": 1})
+        result = df.groupby("a").describe().to_latex(float_format="{:.1f}".format)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrrrrr}
