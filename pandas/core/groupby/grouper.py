@@ -226,7 +226,7 @@ class Grouper:
     2000-10-01 23:41:00    15
     2000-10-01 23:58:00    45
     2000-10-02 00:15:00    45
-    Freq: 17T, dtype: int64
+    Freq: 17T, dtype: int32
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
