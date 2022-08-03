@@ -8202,7 +8202,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         rule,
         axis=0,
-        closed: str | None = None,
+        inclusive: str | None = None,
         label: str | None = None,
         convention: str = "start",
         kind: str | None = None,
@@ -8230,7 +8230,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Which axis to use for up- or down-sampling. For `Series` this parameter
             is unused and defaults to 0. Must be
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-        closed : {{'right', 'left'}}, default None
+        inclusive : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
@@ -8365,7 +8365,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> series.resample('3T', label='right', closed='right').sum()
+        >>> series.resample('3T', label='right', inclusive='right').sum()
         2000-01-01 00:00:00     0
         2000-01-01 00:03:00     6
         2000-01-01 00:06:00    15
@@ -8627,7 +8627,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             freq=rule,
             label=label,
-            closed=closed,
+            inclusive=inclusive,
             axis=axis,
             kind=kind,
             loffset=loffset,
@@ -11738,7 +11738,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         win_type: str | None = None,
         on: str | None = None,
         axis: Axis = 0,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
@@ -11753,7 +11753,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 win_type=win_type,
                 on=on,
                 axis=axis,
-                closed=closed,
+                inclusive=inclusive,
                 step=step,
                 method=method,
             )
@@ -11766,7 +11766,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             win_type=win_type,
             on=on,
             axis=axis,
-            closed=closed,
+            inclusive=inclusive,
             step=step,
             method=method,
         )

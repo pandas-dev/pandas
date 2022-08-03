@@ -133,7 +133,7 @@ class Resampler(BaseGroupBy, PandasObject):
     _attributes = [
         "freq",
         "axis",
-        "closed",
+        "inclusive",
         "label",
         "convention",
         "loffset",
@@ -1290,7 +1290,7 @@ class DatetimeIndexResampler(Resampler):
 
         The range of a new index should not be outside specified range
         """
-        if self.closed == "right":
+        if self.inclusive == "right":
             binner = binner[1:]
         else:
             binner = binner[:-1]
@@ -1539,14 +1539,14 @@ class TimeGrouper(Grouper):
     Parameters
     ----------
     freq : pandas date offset or offset alias for identifying bin edges
-    closed : closed end of interval; 'left' or 'right'
+    inclusive : inclusive end of interval; 'left' or 'right'
     label : interval boundary to use for labeling; 'left' or 'right'
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
     """
 
     _attributes = Grouper._attributes + (
-        "closed",
+        "inclusive",
         "label",
         "how",
         "loffset",
@@ -1559,7 +1559,7 @@ class TimeGrouper(Grouper):
     def __init__(
         self,
         freq="Min",
-        closed: Literal["left", "right"] | None = None,
+        inclusive: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
         how="mean",
         axis=0,
@@ -1578,8 +1578,8 @@ class TimeGrouper(Grouper):
         # otherwise silently use the default if misspelled
         if label not in {None, "left", "right"}:
             raise ValueError(f"Unsupported value {label} for `label`")
-        if closed not in {None, "left", "right"}:
-            raise ValueError(f"Unsupported value {closed} for `closed`")
+        if inclusive not in {None, "left", "right"}:
+            raise ValueError(f"Unsupported value {inclusive} for `inclusive`")
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
@@ -1588,8 +1588,8 @@ class TimeGrouper(Grouper):
         end_types = {"M", "A", "Q", "BM", "BA", "BQ", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
-            if closed is None:
-                closed = "right"
+            if inclusive is None:
+                inclusive = "right"
             if label is None:
                 label = "right"
         else:
@@ -1600,17 +1600,17 @@ class TimeGrouper(Grouper):
             # the current ``Timestamp`` minus ``freq`` to the current
             # ``Timestamp`` with a right close.
             if origin in ["end", "end_day"]:
-                if closed is None:
-                    closed = "right"
+                if inclusive is None:
+                    inclusive = "right"
                 if label is None:
                     label = "right"
             else:
-                if closed is None:
-                    closed = "left"
+                if inclusive is None:
+                    inclusive = "left"
                 if label is None:
                     label = "left"
 
-        self.closed = closed
+        self.inclusive = inclusive
         self.label = label
         self.kind = kind
         self.convention = convention if convention is not None else "e"
@@ -1721,7 +1721,7 @@ class TimeGrouper(Grouper):
             ax.min(),
             ax.max(),
             self.freq,
-            closed=self.closed,
+            inclusive=self.inclusive,
             origin=self.origin,
             offset=self.offset,
         )
@@ -1747,10 +1747,10 @@ class TimeGrouper(Grouper):
 
         # general version, knowing nothing about relative frequencies
         bins = lib.generate_bins_dt64(
-            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+            ax_values, bin_edges, self.inclusive, hasnans=ax.hasnans
         )
 
-        if self.closed == "right":
+        if self.inclusive == "right":
             labels = binner
             if self.label == "right":
                 labels = labels[1:]
@@ -1773,7 +1773,7 @@ class TimeGrouper(Grouper):
         # Some hacks for > daily data, see #1471, #1458, #1483
 
         if self.freq != "D" and is_superperiod(self.freq, "D"):
-            if self.closed == "right":
+            if self.inclusive == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 bin_edges = binner.tz_localize(None)
                 bin_edges = bin_edges + timedelta(1) - Nano(1)
@@ -1802,7 +1802,7 @@ class TimeGrouper(Grouper):
 
         start, end = ax.min(), ax.max()
 
-        if self.closed == "right":
+        if self.inclusive == "right":
             end += self.freq
 
         labels = binner = timedelta_range(
@@ -1810,10 +1810,10 @@ class TimeGrouper(Grouper):
         )
 
         end_stamps = labels
-        if self.closed == "left":
+        if self.inclusive == "left":
             end_stamps += self.freq
 
-        bins = ax.searchsorted(end_stamps, side=self.closed)
+        bins = ax.searchsorted(end_stamps, side=self.inclusive)
 
         if self.offset:
             # GH 10530 & 31809
@@ -1885,7 +1885,7 @@ class TimeGrouper(Grouper):
                 start,
                 end,
                 self.freq,
-                closed=self.closed,
+                inclusive=self.inclusive,
                 origin=self.origin,
                 offset=self.offset,
             )
@@ -1945,7 +1945,7 @@ def _get_timestamp_range_edges(
     first: Timestamp,
     last: Timestamp,
     freq: BaseOffset,
-    closed: Literal["right", "left"] = "left",
+    inclusive: Literal["right", "left"] = "left",
     origin="start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
@@ -1954,7 +1954,7 @@ def _get_timestamp_range_edges(
     the provided offset. Adjust the `last` Timestamp to the following
     Timestamp that resides on the provided offset. Input Timestamps that
     already reside on the offset will be adjusted depending on the type of
-    offset and the `closed` parameter.
+    offset and the `inclusive` parameter.
 
     Parameters
     ----------
@@ -1964,7 +1964,7 @@ def _get_timestamp_range_edges(
         The ending Timestamp of the range to be adjusted.
     freq : pd.DateOffset
         The dateoffset to which the Timestamps will be adjusted.
-    closed : {'right', 'left'}, default "left"
+    inclusive : {'right', 'left'}, default "left"
         Which side of bin interval is closed.
     origin : {'epoch', 'start', 'start_day'} or Timestamp, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
@@ -2000,7 +2000,7 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset
+            first, last, freq, inclusive=inclusive, origin=origin, offset=offset
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -2009,7 +2009,7 @@ def _get_timestamp_range_edges(
         first = first.normalize()
         last = last.normalize()
 
-        if closed == "left":
+        if inclusive == "left":
             first = Timestamp(freq.rollback(first))
         else:
             first = Timestamp(first - freq)
@@ -2023,7 +2023,7 @@ def _get_period_range_edges(
     first: Period,
     last: Period,
     freq: BaseOffset,
-    closed: Literal["right", "left"] = "left",
+    inclusive: Literal["right", "left"] = "left",
     origin="start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
@@ -2039,7 +2039,7 @@ def _get_period_range_edges(
         The ending Period of the range to be adjusted.
     freq : pd.DateOffset
         The freq to which the Periods will be adjusted.
-    closed : {'right', 'left'}, default "left"
+    inclusive : {'right', 'left'}, default "left"
         Which side of bin interval is closed.
     origin : {'epoch', 'start', 'start_day'}, Timestamp, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
@@ -2067,7 +2067,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last_ts)
 
     first_ts, last_ts = _get_timestamp_range_edges(
-        first_ts, last_ts, freq, closed=closed, origin=origin, offset=offset
+        first_ts, last_ts, freq, inclusive=inclusive, origin=origin, offset=offset
     )
 
     first = (first_ts + int(adjust_first) * freq).to_period(freq)
@@ -2097,7 +2097,7 @@ def _adjust_dates_anchored(
     first: Timestamp,
     last: Timestamp,
     freq: Tick,
-    closed: Literal["right", "left"] = "right",
+    inclusive: Literal["right", "left"] = "right",
     origin="start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
@@ -2116,7 +2116,7 @@ def _adjust_dates_anchored(
     elif origin in ["end", "end_day"]:
         origin = last if origin == "end" else last.ceil("D")
         sub_freq_times = (origin.value - first.value) // freq.nanos
-        if closed == "left":
+        if inclusive == "left":
             sub_freq_times += 1
         first = origin - sub_freq_times * freq
         origin_nanos = first.value
@@ -2135,7 +2135,7 @@ def _adjust_dates_anchored(
     foffset = (first.value - origin_nanos) % freq.nanos
     loffset = (last.value - origin_nanos) % freq.nanos
 
-    if closed == "right":
+    if inclusive == "right":
         if foffset > 0:
             # roll back
             fresult_int = first.value - foffset
