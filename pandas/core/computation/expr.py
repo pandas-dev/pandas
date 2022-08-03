@@ -548,13 +548,13 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Name(self, node, **kwargs):
         return self.term_type(node.id, self.env, **kwargs)
 
-    def visit_NameConstant(self, node, **kwargs):
+    def visit_NameConstant(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
-    def visit_Num(self, node, **kwargs):
+    def visit_Num(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
-    def visit_Constant(self, node, **kwargs):
+    def visit_Constant(self, node, **kwargs) -> Term:
         return self.const_type(node.n, self.env)
 
     def visit_Str(self, node, **kwargs):
@@ -774,7 +774,9 @@ class PandasExprVisitor(BaseExprVisitor):
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(["Not"]))
 class PythonExprVisitor(BaseExprVisitor):
-    def __init__(self, env, engine, parser, preparser=lambda x: x) -> None:
+    def __init__(
+        self, env, engine, parser, preparser=lambda source, f=None: source
+    ) -> None:
         super().__init__(env, engine, parser, preparser=preparser)
 
 

@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
-    Type,
     TypeVar,
     overload,
 )
@@ -84,10 +83,10 @@ class Timedelta(timedelta):
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
     def __new__(
-        cls: Type[_S],
+        cls: type[_S],
         value=...,
-        unit: str = ...,
-        **kwargs: int | float | np.integer | np.floating,
+        unit: str | None = ...,
+        **kwargs: float | np.integer | np.floating,
     ) -> _S: ...
     # GH 46171
     # While Timedelta can return pd.NaT, having the constructor return
@@ -124,7 +123,7 @@ class Timedelta(timedelta):
     @overload  # type: ignore[override]
     def __floordiv__(self, other: timedelta) -> int: ...
     @overload
-    def __floordiv__(self, other: int | float) -> Timedelta: ...
+    def __floordiv__(self, other: float) -> Timedelta: ...
     @overload
     def __floordiv__(
         self, other: npt.NDArray[np.timedelta64]

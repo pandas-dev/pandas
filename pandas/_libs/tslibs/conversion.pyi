@@ -5,8 +5,6 @@ from datetime import (
 
 import numpy as np
 
-from pandas._typing import npt
-
 DT64NS_DTYPE: np.dtype
 TD64NS_DTYPE: np.dtype
 

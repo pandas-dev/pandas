@@ -607,7 +607,7 @@ class TestDataFramePlots(TestPlotBase):
         expected = [Text(0, 0, "([0, 1],)"), Text(1, 0, "([1, 2],)")]
         s = Series(
             [1, 2],
-            index=[interval_range(0, 2)],
+            index=[interval_range(0, 2, inclusive="both")],
         )
         _check_plot_works(s.plot.bar)
         assert all(

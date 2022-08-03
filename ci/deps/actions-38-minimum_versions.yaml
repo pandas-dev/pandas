@@ -7,7 +7,7 @@ dependencies:
   - python=3.8.0
 
   # test dependencies
-  - cython=0.29.30
+  - cython>=0.29.30
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -17,7 +17,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil=2.8.1
-  - numpy=1.19.5
+  - numpy=1.20.3
   - pytz=2020.1
 
   # optional dependencies

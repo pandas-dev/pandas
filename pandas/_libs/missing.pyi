@@ -1,7 +1,8 @@
 import numpy as np
 from numpy import typing as npt
 
-class NAType: ...
+class NAType:
+    def __new__(cls, *args, **kwargs): ...
 
 NA: NAType
 
