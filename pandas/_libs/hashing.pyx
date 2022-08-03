@@ -21,8 +21,9 @@ import_array()
 
 from pandas._libs.util cimport is_nan
 
-DEF cROUNDS = 2
-DEF dROUNDS = 4
+cdef enum:
+    cROUNDS = 2
+    dROUNDS = 4
 
 
 @cython.boundscheck(False)
