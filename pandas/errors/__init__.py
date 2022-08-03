@@ -481,8 +481,10 @@ class DatabaseError(OSError):
 
 class PossiblePrecisionLoss(Warning):
     """
-    Warning is raised when calling to_stata on a column where the column value is
-    outside or equal to the int64 value and is converted to an float64.
+    Warning raised by to_stata on a column with a value outside or equal to int64.
+
+    When the column value is outside or equal to the int64 value the column is
+    converted to a float64 dtype.
 
     Examples
     --------
@@ -495,8 +497,7 @@ class PossiblePrecisionLoss(Warning):
 
 class ValueLabelTypeMismatch(Warning):
     """
-    Warning is raised when calling to_stata on a category column where the column
-    contains non-string values.
+    Warning raised by to_stata on a category column that contains non-string values.
 
     Examples
     --------
@@ -508,8 +509,10 @@ class ValueLabelTypeMismatch(Warning):
 
 class InvalidColumnName(Warning):
     """
-    Warning is raised when calling to_stata on a dataframe that has a column where
-    the column contains a non-valid stata name and needs to be converted.
+    Warning raised by to_stata the column contains a non-valid stata name.
+
+    Because the column name is invalid Stata variable, the name needs to be
+    converted.
 
     Examples
     --------
