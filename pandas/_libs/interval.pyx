@@ -411,9 +411,11 @@ cdef class Interval(IntervalMixin):
         return hash((self.left, self.right, self.inclusive))
 
     def __contains__(self, key) -> bool:
-        if isinstance(key, Interval):
-            return ((self.left < key.left if self.open_left and key.closed_left else self.left <= key.left) and
-                    (key.right < self.right if self.open_right and key.closed_right else key.right <= self.right))
+        if _interval_like(key):
+            key_closed_left = key.inclusive in ('left', 'both')
+            key_closed_right = key.inclusive in ('right', 'both')
+            return ((self.left < key.left if self.open_left and key_closed_left else self.left <= key.left) and
+                    (key.right < self.right if self.open_right and key_closed_right else key.right <= self.right))
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
