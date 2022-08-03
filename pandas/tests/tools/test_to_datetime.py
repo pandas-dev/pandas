@@ -2787,4 +2787,8 @@ def test_to_datetime_cache_coerce_50_lines(series_length):
     )
     result = to_datetime(s, errors="coerce", utc=True)
 
-    assert result[0] is NaT
+    expected = Series(
+        [NaT] + ([Timestamp("1991-10-20 00:00:00+00:00")] * series_length)
+    )
+
+    tm.assert_series_equal(result, expected)
