@@ -92,7 +92,7 @@ available will also be included in the PDEP.
 #### Rejected PDEP
 
 A PDEP can be rejected when the final decision is that its implementation is
-not the best for the interests of the project. Rejected PDEPs are as useful as accepted
+not in the best interests of the project. Rejected PDEPs are as useful as accepted
 PDEPs, since there are discussions that are worth having, and decisions about
 changes to pandas being made. They will be merged with `Status: Rejected`, so
 there is visibility on what was discussed and what was the outcome of the
