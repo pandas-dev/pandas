@@ -236,14 +236,14 @@ class Grouper:
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17T, dtype: int32
 
     >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17T, dtype: int32
 
     To replace the use of the deprecated `base` argument, you can now use `offset`,
     in this example it is equivalent to have `base=2`:
