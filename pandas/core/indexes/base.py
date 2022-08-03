@@ -43,8 +43,8 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._typing import (
-    AnyArrayLike,
     ArrayLike,
+    Axes,
     Dtype,
     DtypeObj,
     F,
@@ -258,6 +258,10 @@ def _new_Index(cls, d):
         if "labels" in d and "codes" not in d:
             # GH#23752 "labels" kwarg has been replaced with "codes"
             d["codes"] = d.pop("labels")
+
+        # Since this was a valid MultiIndex at pickle-time, we don't need to
+        #  check validty at un-pickle time.
+        d["verify_integrity"] = False
 
     elif "dtype" not in d and "data" in d:
         # Prevent Index.__new__ from conducting inference;
@@ -7277,7 +7281,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Index:
+def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     """
     Ensure that we have an index from some index-like object.
 
