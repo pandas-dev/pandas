@@ -20,9 +20,6 @@ from pandas.io.formats.latex import (
 )
 
 pytest.importorskip("jinja2")
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Deprecated arguments supplied:FutureWarning"
-)
 
 
 def _dedent(string):

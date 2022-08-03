@@ -3440,6 +3440,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             formatters = None
         format_index_ = [index_format_, column_format_]
 
+        # Deal with hiding indexes and relabelling column names
         hide, relabel_index = [], []
         if columns:
             hide.append(
