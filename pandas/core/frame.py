@@ -626,6 +626,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = get_option("mode.data_manager")
 
+        # GH47215
+        if index is not None and isinstance(index, set):
+            raise ValueError("index cannot be a set")
+        if columns is not None and isinstance(columns, set):
+            raise ValueError("columns cannot be a set")
+
         if copy is None:
             if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
@@ -729,10 +735,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
-                        # error: Argument 1 to "ensure_index" has incompatible type
-                        # "Collection[Any]"; expected "Union[Union[Union[ExtensionArray,
-                        # ndarray], Index, Series], Sequence[Any]]"
-                        columns = ensure_index(columns)  # type: ignore[arg-type]
+                        columns = ensure_index(columns)
                     arrays, columns, index = nested_data_to_arrays(
                         # error: Argument 3 to "nested_data_to_arrays" has incompatible
                         # type "Optional[Collection[Any]]"; expected "Optional[Index]"
@@ -770,14 +773,8 @@ class DataFrame(NDFrame, OpsMixin):
             if index is None or columns is None:
                 raise ValueError("DataFrame constructor not properly called!")
 
-            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
-            # expected "Union[Union[Union[ExtensionArray, ndarray],
-            # Index, Series], Sequence[Any]]"
-            index = ensure_index(index)  # type: ignore[arg-type]
-            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
-            # expected "Union[Union[Union[ExtensionArray, ndarray],
-            # Index, Series], Sequence[Any]]"
-            columns = ensure_index(columns)  # type: ignore[arg-type]
+            index = ensure_index(index)
+            columns = ensure_index(columns)
 
             if not dtype:
                 dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
