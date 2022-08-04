@@ -30,7 +30,6 @@ global-exclude *.odt
 global-exclude *.orc
 global-exclude *.sas7bdat
 global-exclude *.sav
-global-exclude *.so
 global-exclude *.xls
 global-exclude *.xlsb
 global-exclude *.xlsm
