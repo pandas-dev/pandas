@@ -9,7 +9,7 @@ Chart visualization
 
 .. note::
 
-   The examples below assume that you're using `jupyter <https://jupyter.org/>`_.
+   The examples below assume that you're using `Jupyter <https://jupyter.org/>`_.
 
 This section demonstrates visualization through charting. For information on
 visualization of tabular data please see the section on `Table Visualization <style.ipynb>`_.
