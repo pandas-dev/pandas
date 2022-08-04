@@ -3367,7 +3367,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
 
         .. note::
-           As of v1.5.0 this method has changed to use the Styler implementation of
+           As of v1.5.0 this method has changed to use the ``Styler`` implementation of
            ``to_latex`` and no longer uses the DataFrameRenderer. It is advised that
            users switch to using Styler, since this implementation is more frequently
            updated and contains much more flexibility with the output. The following
@@ -3394,7 +3394,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                formatter={"name": str.upper}, na_rep="-", precision=1, escape="latex"
            )
 
-        To control other aspects we use the ``Styler.to_latex`` arguments such as,
+        To control other aspects we use the ``Styler.to_latex`` arguments, as
+        documented, such as,
 
         .. code-block:: python
 
@@ -3413,14 +3414,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                   formatters={"name": str.upper},
         ...                   float_format="{:.1f}".format,
         ... )  # doctest: +SKIP
-        \begin{{tabular}}{{lrr}}
+        \begin{tabular}{lrr}
         \toprule
         name & age & height \\
-        \\midrule
+        \midrule
         RAPHAEL & 26 & 181.2 \\
         DONATELLO & 45 & 177.7 \\
         \bottomrule
-        \end{{tabular}}
+        \end{tabular}
         """
         msg = (
             "`col_space` is deprecated. Whitespace in LaTeX does not impact "
