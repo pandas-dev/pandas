@@ -3263,6 +3263,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
+        .. versionchanged:: 1.5.0
+           Refactored to use the Styler implementation via jinja2 templating.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3347,7 +3350,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``\begin{{}}`` in the output.
 
             .. versionadded:: 1.2.0
-        {returns}
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+
         See Also
         --------
         Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
@@ -3355,18 +3363,62 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
 
+        Notes
+        -----
+
+        .. note::
+           As of v1.5.0 this method has changed to use the Styler implementation of
+           ``to_latex`` and no longer uses the DataFrameRenderer. It is advised that
+           users switch to using Styler, since this implementation is more frequently
+           updated and contains much more flexibility with the output. The following
+           examples indicate how this method now replicates the Styler implementation
+           for its legacy arguments.
+
+        .. code-block:: python
+
+           styler = df.style
+
+        Styler methods are designed to be chained, so we can build complex combinations
+        of displays. To hide ``index`` and ``columns`` headers we use,
+
+        .. code-block:: python
+
+           styler.hide(axis="index").hide(axis="columns")
+
+        To use ``formatters``, ``na_rep``, ``decimal`` and ``float_format``,
+        ``escape`` we use,
+
+        .. code-block:: python
+
+           styler.format(
+               formatter={"name": str.upper}, na_rep="-", precision=1, escape="latex"
+           )
+
+        To control other aspects we use the ``Styler.to_latex`` arguments such as,
+
+        .. code-block:: python
+
+           styler.to_latex(
+               column_format="lrr", caption="my table", environment="longtable"
+           )
+
         Examples
         --------
+        Convert a general DataFrame to LaTeX with formatting:
+
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                   mask=['red', 'purple'],
-        ...                   weapon=['sai', 'bo staff']))
-        >>> print(df.to_latex(index=False))  # doctest: +SKIP
-        \begin{{tabular}}{{lll}}
-         \toprule
-               name &    mask &    weapon \\
-         \midrule
-            Raphael &     red &       sai \\
-          Donatello &  purple &  bo staff \\
+        ...                        age=[26, 45],
+        ...                        height=[181.23, 177.65]))
+        >>> print(df.to_latex(index=False,
+        ...                   formatters={"name": str.upper},
+        ...                   float_format="{:.1f}".format,
+        ... )  # doctest: +SKIP
+        \begin{{tabular}}{{lrr}}
+        \toprule
+        name & age & height \\
+        \\midrule
+        RAPHAEL & 26 & 181.2 \\
+        DONATELLO & 45 & 177.7 \\
         \bottomrule
         \end{{tabular}}
         """
@@ -3430,10 +3482,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if column_formatter is not None:
                 column_format_.update({"formatter": column_formatter})
 
-            formatters = {
-                k: functools.partial(_wrap, alt_format_=v)
-                for k, v in formatters.items()
-            }
+            float_columns = self.select_dtypes(include="float").columns
+            for col in [c for c in float_columns if c not in formatters.keys()]:
+                formatters.update({col: float_format_})
         elif formatters is None and float_format is not None:
             formatters = functools.partial(_wrap, alt_format_=lambda v: v)
         else:
