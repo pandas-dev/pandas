@@ -73,7 +73,6 @@ __pycache__
 # pytest-monkeytype
 monkeytype.sqlite3
 
-
 # OS generated files #
 ######################
 .directory
