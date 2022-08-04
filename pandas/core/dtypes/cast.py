@@ -978,7 +978,7 @@ def maybe_upcast(
     return upcast_values, fill_value  # type: ignore[return-value]
 
 
-def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
+def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
     """
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
@@ -995,7 +995,7 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
 
-def coerce_indexer_dtype(indexer, categories):
+def coerce_indexer_dtype(indexer, categories) -> np.ndarray:
     """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
     if length < _int8_max:
@@ -1709,7 +1709,9 @@ def construct_1d_arraylike_from_scalar(
             value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
-        subarr.fill(value)
+        if length:
+            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+            subarr.fill(value)
 
     return subarr
 

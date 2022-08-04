@@ -150,7 +150,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby:
+    for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
 
         if rby is None:
             rhs = right
@@ -1200,23 +1200,27 @@ class _MergeOperation:
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
-                    if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
-                        warnings.warn(
-                            "You are merging on int and float "
-                            "columns where the float values "
-                            "are not equal to their int representation.",
-                            UserWarning,
-                        )
+                    # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
+                    with np.errstate(invalid="ignore"):
+                        if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
+                            warnings.warn(
+                                "You are merging on int and float "
+                                "columns where the float values "
+                                "are not equal to their int representation.",
+                                UserWarning,
+                            )
                     continue
 
                 elif is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
-                    if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
-                        warnings.warn(
-                            "You are merging on int and float "
-                            "columns where the float values "
-                            "are not equal to their int representation.",
-                            UserWarning,
-                        )
+                    # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
+                    with np.errstate(invalid="ignore"):
+                        if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
+                            warnings.warn(
+                                "You are merging on int and float "
+                                "columns where the float values "
+                                "are not equal to their int representation.",
+                                UserWarning,
+                            )
                     continue
 
                 # let's infer and see if we are ok

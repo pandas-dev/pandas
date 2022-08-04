@@ -43,14 +43,13 @@ from libc.time cimport (
 import_datetime()
 
 cimport pandas._libs.tslibs.util as util
+from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
-    dt64_to_dtstruct,
-    dtstruct_to_dt64,
     get_timedelta64_value,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -813,7 +812,7 @@ cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogi
 
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, dts)
 
-    dt64_to_dtstruct(nanos, &dts2)
+    pandas_datetime_to_datetimestruct(nanos, NPY_DATETIMEUNIT.NPY_FR_ns, &dts2)
     dts.hour = dts2.hour
     dts.min = dts2.min
     dts.sec = dts2.sec
@@ -1149,7 +1148,7 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     get_date_info(ordinal, freq, &dts)
 
     check_dts_bounds(&dts)
-    return dtstruct_to_dt64(&dts)
+    return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
@@ -1472,7 +1471,7 @@ cdef inline int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
     cdef:
         int64_t ordinal
 
-    if checknull_with_nat(item):
+    if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
         if item == NPY_NAT:
@@ -1645,7 +1644,7 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int, freq) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, freq) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """
@@ -2324,12 +2323,12 @@ cdef class _Period(PeriodMixin):
 
     def strftime(self, fmt: str) -> str:
         r"""
-        Returns the string representation of the :class:`Period`, depending
-        on the selected ``fmt``. ``fmt`` must be a string
-        containing one or several directives.  The method recognizes the same
-        directives as the :func:`time.strftime` function of the standard Python
-        distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        Returns a formatted string representation of the :class:`Period`.
+
+        ``fmt`` must be a string containing one or several directives.
+        The method recognizes the same directives as the :func:`time.strftime`
+        function of the standard Python distribution, as well as the specific
+        additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
         (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+

@@ -3,7 +3,10 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
-from functools import reduce
+from functools import (
+    lru_cache,
+    reduce,
+)
 import itertools
 import re
 from typing import (
@@ -85,12 +88,15 @@ class CssExcelCell(ExcelCell):
         **kwargs,
     ) -> None:
         if css_styles and css_converter:
-            css = ";".join(
-                [a + ":" + str(v) for (a, v) in css_styles[css_row, css_col]]
-            )
-            style = css_converter(css)
+            # Use dict to get only one (case-insensitive) declaration per property
+            declaration_dict = {
+                prop.lower(): val for prop, val in css_styles[css_row, css_col]
+            }
+            # Convert to frozenset for order-invariant caching
+            unique_declarations = frozenset(declaration_dict.items())
+            style = css_converter(unique_declarations)
 
-        return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
+        super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
 
 class CSSToExcelConverter:
@@ -166,15 +172,19 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    def __call__(self, declarations_str: str) -> dict[str, dict[str, str]]:
+    @lru_cache(maxsize=None)
+    def __call__(
+        self, declarations: str | frozenset[tuple[str, str]]
+    ) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
         Parameters
         ----------
-        declarations_str : str
-            List of CSS declarations.
-            e.g. "font-weight: bold; background: blue"
+        declarations : str | frozenset[tuple[str, str]]
+            CSS string or set of CSS declaration tuples.
+            e.g. "font-weight: bold; background: blue" or
+            {("font-weight", "bold"), ("background", "blue")}
 
         Returns
         -------
@@ -182,8 +192,7 @@ class CSSToExcelConverter:
             A style as interpreted by ExcelWriter when found in
             ExcelCell.style.
         """
-        # TODO: memoize?
-        properties = self.compute_css(declarations_str, self.inherited)
+        properties = self.compute_css(declarations, self.inherited)
         return self.build_xlstyle(properties)
 
     def build_xlstyle(self, props: Mapping[str, str]) -> dict[str, dict[str, str]]:
@@ -197,7 +206,7 @@ class CSSToExcelConverter:
 
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
-        def remove_none(d: dict[str, str]) -> None:
+        def remove_none(d: dict[str, str | None]) -> None:
             """Remove key where value is None, through nested dicts"""
             for k, v in list(d.items()):
                 if v is None:
@@ -322,7 +331,7 @@ class CSSToExcelConverter:
 
     def build_font(
         self, props: Mapping[str, str]
-    ) -> dict[str, bool | int | float | str | None]:
+    ) -> dict[str, bool | float | str | None]:
         font_names = self._get_font_names(props)
         decoration = self._get_decoration(props)
         return {
@@ -528,7 +537,7 @@ class ExcelFormatter:
         self.inf_rep = inf_rep
 
     @property
-    def header_style(self):
+    def header_style(self) -> dict[str, dict[str, str | bool]]:
         return {
             "font": {"bold": True},
             "borders": {
@@ -844,13 +853,13 @@ class ExcelFormatter:
     def write(
         self,
         writer,
-        sheet_name="Sheet1",
-        startrow=0,
-        startcol=0,
-        freeze_panes=None,
-        engine=None,
+        sheet_name: str = "Sheet1",
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: tuple[int, int] | None = None,
+        engine: str | None = None,
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         """
         writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter

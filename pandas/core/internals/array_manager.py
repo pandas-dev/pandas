@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     TypeVar,
 )
 
@@ -170,13 +171,13 @@ class BaseArrayManager(DataManager):
         axis = self._normalize_axis(axis)
         self._axes[axis] = new_labels
 
-    def get_dtypes(self):
+    def get_dtypes(self) -> np.ndarray:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
     def __getstate__(self):
         return self.arrays, self._axes
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         self.arrays = state[0]
         self._axes = state[1]
 
@@ -347,7 +348,7 @@ class BaseArrayManager(DataManager):
     def setitem(self: T, indexer, value) -> T:
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True):
+    def putmask(self: T, mask, new, align: bool = True) -> T:
         if align:
             align_keys = ["new", "mask"]
         else:
@@ -450,7 +451,7 @@ class BaseArrayManager(DataManager):
             regex=regex,
         )
 
-    def to_native_types(self, **kwargs):
+    def to_native_types(self: T, **kwargs) -> T:
         return self.apply(to_native_types, **kwargs)
 
     @property
@@ -704,7 +705,9 @@ class BaseArrayManager(DataManager):
 
 
 class ArrayManager(BaseArrayManager):
-    ndim = 2
+    @property
+    def ndim(self) -> Literal[2]:
+        return 2
 
     def __init__(
         self,
@@ -812,7 +815,7 @@ class ArrayManager(BaseArrayManager):
 
     def iset(
         self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
-    ):
+    ) -> None:
         """
         Set new column(s).
 
@@ -920,7 +923,7 @@ class ArrayManager(BaseArrayManager):
         self.arrays = arrays
         self._axes[1] = new_axis
 
-    def idelete(self, indexer):
+    def idelete(self, indexer) -> ArrayManager:
         """
         Delete selected locations in-place (new block and array, same BlockManager)
         """
@@ -1129,7 +1132,7 @@ class ArrayManager(BaseArrayManager):
         self,
         dtype=None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
@@ -1191,7 +1194,9 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     arrays: list[np.ndarray | ExtensionArray]
     _axes: list[Index]
 
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     def __init__(
         self,
@@ -1235,7 +1240,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         return type(self)([array], axes)
 
     @classmethod
-    def from_array(cls, array, index):
+    def from_array(cls, array, index) -> SingleArrayManager:
         return cls([array], [index])
 
     @property
@@ -1300,7 +1305,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             new_array = getattr(self.array, func)(**kwargs)
         return type(self)([new_array], self._axes)
 
-    def setitem(self, indexer, value):
+    def setitem(self, indexer, value) -> SingleArrayManager:
         """
         Set values with indexer.
 
@@ -1331,7 +1336,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         else:
             return self.make_empty()
 
-    def set_values(self, values: ArrayLike):
+    def set_values(self, values: ArrayLike) -> None:
         """
         Set (replace) the values of the SingleArrayManager in place.
 
@@ -1367,7 +1372,7 @@ class NullArrayProxy:
         self.n = n
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int]:
         return (self.n,)
 
     def to_array(self, dtype: DtypeObj) -> ArrayLike:

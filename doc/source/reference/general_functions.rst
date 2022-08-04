@@ -23,6 +23,7 @@ Data manipulations
    merge_asof
    concat
    get_dummies
+   from_dummies
    factorize
    unique
    wide_to_long
@@ -84,4 +85,4 @@ Importing from other DataFrame libraries
 .. autosummary::
    :toctree: api/
 
-   api.exchange.from_dataframe
+   api.interchange.from_dataframe

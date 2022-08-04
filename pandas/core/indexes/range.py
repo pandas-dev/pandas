@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterator,
     List,
     cast,
 )
@@ -19,6 +20,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.algos import unique_deltas
 from pandas._libs.lib import no_default
 from pandas._typing import (
     Dtype,
@@ -43,6 +45,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
+from pandas.core.algorithms import resolve_na_sentinel
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
@@ -101,10 +104,13 @@ class RangeIndex(NumericIndex):
     """
 
     _typ = "rangeindex"
-    _engine_type = libindex.Int64Engine
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
     _is_backward_compat_public_numeric_index: bool = False
+
+    @property
+    def _engine_type(self) -> type[libindex.Int64Engine]:
+        return libindex.Int64Engine
 
     # --------------------------------------------------------------------
     # Constructors
@@ -425,7 +431,7 @@ class RangeIndex(NumericIndex):
         return list(self._range)
 
     @doc(Int64Index.__iter__)
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
@@ -434,7 +440,15 @@ class RangeIndex(NumericIndex):
 
         if values.dtype.kind == "f":
             return Float64Index(values, name=name)
-        return Int64Index._simple_new(values, name=name)
+        # GH 46675 & 43885: If values is equally spaced, return a
+        # more memory-compact RangeIndex instead of Int64Index
+        unique_diffs = unique_deltas(values)
+        if len(unique_diffs) == 1 and unique_diffs[0] != 0:
+            diff = unique_diffs[0]
+            new_range = range(values[0], values[-1] + diff, diff)
+            return type(self)._simple_new(new_range, name=name)
+        else:
+            return Int64Index._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
         result = type(self)._simple_new(self._range, name=self._name)
@@ -510,8 +524,13 @@ class RangeIndex(NumericIndex):
         return result
 
     def factorize(
-        self, sort: bool = False, na_sentinel: int | None = -1
+        self,
+        sort: bool = False,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
+        # resolve to emit warning if appropriate
+        resolve_na_sentinel(na_sentinel, use_na_sentinel)
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -631,6 +650,17 @@ class RangeIndex(NumericIndex):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
+    def _range_in_self(self, other: range) -> bool:
+        """Check if other range is contained in self"""
+        # https://stackoverflow.com/a/32481015
+        if not other:
+            return True
+        if not self._range:
+            return False
+        if len(other) > 1 and other.step % self._range.step:
+            return False
+        return other.start in self._range and other[-1] in self._range
+
     def _union(self, other: Index, sort):
         """
         Form the union of two Index objects and sorts if possible
@@ -640,10 +670,12 @@ class RangeIndex(NumericIndex):
         other : Index or array-like
 
         sort : False or None, default None
-            Whether to sort resulting index. ``sort=None`` returns a
-            monotonically increasing ``RangeIndex`` if possible or a sorted
-            ``Int64Index`` if not. ``sort=False`` always returns an
-            unsorted ``Int64Index``
+            Whether to sort (monotonically increasing) the resulting index.
+            ``sort=None`` returns a ``RangeIndex`` if possible or a sorted
+            ``Int64Index`` if not.
+            ``sort=False`` can return a ``RangeIndex`` if self is monotonically
+            increasing and other is fully contained in self. Otherwise, returns
+            an unsorted ``Int64Index``
 
             .. versionadded:: 0.25.0
 
@@ -651,53 +683,58 @@ class RangeIndex(NumericIndex):
         -------
         union : Index
         """
-        if isinstance(other, RangeIndex) and sort is None:
-            start_s, step_s = self.start, self.step
-            end_s = self.start + self.step * (len(self) - 1)
-            start_o, step_o = other.start, other.step
-            end_o = other.start + other.step * (len(other) - 1)
-            if self.step < 0:
-                start_s, step_s, end_s = end_s, -step_s, start_s
-            if other.step < 0:
-                start_o, step_o, end_o = end_o, -step_o, start_o
-            if len(self) == 1 and len(other) == 1:
-                step_s = step_o = abs(self.start - other.start)
-            elif len(self) == 1:
-                step_s = step_o
-            elif len(other) == 1:
-                step_o = step_s
-            start_r = min(start_s, start_o)
-            end_r = max(end_s, end_o)
-            if step_o == step_s:
-                if (
-                    (start_s - start_o) % step_s == 0
-                    and (start_s - end_o) <= step_s
-                    and (start_o - end_s) <= step_s
-                ):
-                    return type(self)(start_r, end_r + step_s, step_s)
-                if (
-                    (step_s % 2 == 0)
-                    and (abs(start_s - start_o) == step_s / 2)
-                    and (abs(end_s - end_o) == step_s / 2)
-                ):
-                    # e.g. range(0, 10, 2) and range(1, 11, 2)
-                    #  but not range(0, 20, 4) and range(1, 21, 4) GH#44019
-                    return type(self)(start_r, end_r + step_s / 2, step_s / 2)
+        if isinstance(other, RangeIndex):
+            if sort is None or (
+                sort is False and self.step > 0 and self._range_in_self(other._range)
+            ):
+                # GH 47557: Can still return a RangeIndex
+                # if other range in self and sort=False
+                start_s, step_s = self.start, self.step
+                end_s = self.start + self.step * (len(self) - 1)
+                start_o, step_o = other.start, other.step
+                end_o = other.start + other.step * (len(other) - 1)
+                if self.step < 0:
+                    start_s, step_s, end_s = end_s, -step_s, start_s
+                if other.step < 0:
+                    start_o, step_o, end_o = end_o, -step_o, start_o
+                if len(self) == 1 and len(other) == 1:
+                    step_s = step_o = abs(self.start - other.start)
+                elif len(self) == 1:
+                    step_s = step_o
+                elif len(other) == 1:
+                    step_o = step_s
+                start_r = min(start_s, start_o)
+                end_r = max(end_s, end_o)
+                if step_o == step_s:
+                    if (
+                        (start_s - start_o) % step_s == 0
+                        and (start_s - end_o) <= step_s
+                        and (start_o - end_s) <= step_s
+                    ):
+                        return type(self)(start_r, end_r + step_s, step_s)
+                    if (
+                        (step_s % 2 == 0)
+                        and (abs(start_s - start_o) == step_s / 2)
+                        and (abs(end_s - end_o) == step_s / 2)
+                    ):
+                        # e.g. range(0, 10, 2) and range(1, 11, 2)
+                        #  but not range(0, 20, 4) and range(1, 21, 4) GH#44019
+                        return type(self)(start_r, end_r + step_s / 2, step_s / 2)
 
-            elif step_o % step_s == 0:
-                if (
-                    (start_o - start_s) % step_s == 0
-                    and (start_o + step_s >= start_s)
-                    and (end_o - step_s <= end_s)
-                ):
-                    return type(self)(start_r, end_r + step_s, step_s)
-            elif step_s % step_o == 0:
-                if (
-                    (start_s - start_o) % step_o == 0
-                    and (start_s + step_o >= start_o)
-                    and (end_s - step_o <= end_o)
-                ):
-                    return type(self)(start_r, end_r + step_o, step_o)
+                elif step_o % step_s == 0:
+                    if (
+                        (start_o - start_s) % step_s == 0
+                        and (start_o + step_s >= start_s)
+                        and (end_o - step_s <= end_s)
+                    ):
+                        return type(self)(start_r, end_r + step_s, step_s)
+                elif step_s % step_o == 0:
+                    if (
+                        (start_s - start_o) % step_o == 0
+                        and (start_s + step_o >= start_o)
+                        and (end_s - step_o <= end_o)
+                    ):
+                        return type(self)(start_r, end_r + step_o, step_o)
 
         return super()._union(other, sort=sort)
 

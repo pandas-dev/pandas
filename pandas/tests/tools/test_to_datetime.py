@@ -284,6 +284,8 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
+            # The 3 tests below are locale-dependent.
+            # They pass, except when the machine locale is zh_CN or it_IT .
             pytest.param(
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
@@ -291,6 +293,7 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+                    strict=False,
                 ),
             ),
             pytest.param(
@@ -300,6 +303,7 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+                    strict=False,
                 ),
             ),
             pytest.param(
@@ -309,6 +313,7 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+                    strict=False,
                 ),
             ),
         ],
@@ -683,9 +688,10 @@ class TestToDatetime:
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
     )
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = f"Out of bounds nanosecond timestamp: {dt}"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(dt, errors="raise")
+        msg = f"Out of bounds nanosecond timestamp: {dt}"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(dt)
         assert to_datetime(dt, errors="coerce", cache=cache) is NaT
@@ -968,13 +974,13 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = "is a bad directive in format|Out of bounds nanosecond timestamp"
+            msg = "is a bad directive in format|Out of bounds .* present at position 0"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
                 )
         else:
-            msg = "Out of bounds nanosecond timestamp"
+            msg = "Out of bounds .* present at position 0"
             with pytest.raises(OutOfBoundsDatetime, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
@@ -1695,7 +1701,7 @@ class TestToDatetimeMisc:
         # in an in-bounds datetime
         arr = np.array(["2262-04-11 23:47:16.854775808"], dtype=object)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr)
 
@@ -1964,8 +1970,9 @@ class TestToDatetimeMisc:
     def test_dayfirst_warnings_valid_input(self):
         # GH 12585
         warning_msg_day_first = (
-            "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
-            "format or specify infer_datetime_format=True for consistent parsing."
+            r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) "
+            "was specified. This may lead to inconsistently parsed dates! Specify a "
+            "format to ensure consistent parsing."
         )
 
         # CASE 1: valid input
@@ -2001,12 +2008,14 @@ class TestToDatetimeMisc:
         # cannot consistently process with single format
         # warnings *always* raised
         warning_msg_day_first = (
-            "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
-            "format or specify infer_datetime_format=True for consistent parsing."
+            r"Parsing dates in DD/MM/YYYY format when dayfirst=False \(the default\) "
+            "was specified. This may lead to inconsistently parsed dates! Specify a "
+            "format to ensure consistent parsing."
         )
         warning_msg_month_first = (
-            "Parsing '03/30/2011' in MM/DD/YYYY format. Provide "
-            "format or specify infer_datetime_format=True for consistent parsing."
+            r"Parsing dates in MM/DD/YYYY format when dayfirst=True "
+            "was specified. This may lead to inconsistently parsed dates! Specify a "
+            "format to ensure consistent parsing."
         )
 
         arr = ["31/12/2014", "03/30/2011"]
@@ -2585,7 +2594,10 @@ class TestOrigin:
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
         # see gh-23830
-        msg = "Out of bounds nanosecond timestamp"
+        msg = (
+            "Out of bounds nanosecond timestamp: 2417-10-27 00:00:00 "
+            "present at position 0"
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime("2417-10-27 00:00:00", format=format)
 

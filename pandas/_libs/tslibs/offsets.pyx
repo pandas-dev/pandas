@@ -585,9 +585,7 @@ cdef class BaseOffset:
 
     def apply_index(self, dtindex):
         """
-        Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplementedError for offsets without a
-        vectorized implementation.
+        Vectorized apply of DateOffset to DatetimeIndex.
 
         .. deprecated:: 1.1.0
 
@@ -796,6 +794,7 @@ cdef class SingleConstructorOffset(BaseOffset):
 cdef class Tick(SingleConstructorOffset):
     _adjust_dst = False
     _prefix = "undefined"
+    _td64_unit = "undefined"
     _attributes = tuple(["n", "normalize"])
 
     def __init__(self, n=1, normalize=False):
@@ -968,6 +967,7 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(Tick):
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
+    _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _reso = NPY_DATETIMEUNIT.NPY_FR_D
 
@@ -975,6 +975,7 @@ cdef class Day(Tick):
 cdef class Hour(Tick):
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
+    _td64_unit = "h"
     _period_dtype_code = PeriodDtypeCode.H
     _reso = NPY_DATETIMEUNIT.NPY_FR_h
 
@@ -982,6 +983,7 @@ cdef class Hour(Tick):
 cdef class Minute(Tick):
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
+    _td64_unit = "m"
     _period_dtype_code = PeriodDtypeCode.T
     _reso = NPY_DATETIMEUNIT.NPY_FR_m
 
@@ -989,6 +991,7 @@ cdef class Minute(Tick):
 cdef class Second(Tick):
     _nanos_inc = 1_000_000_000
     _prefix = "S"
+    _td64_unit = "s"
     _period_dtype_code = PeriodDtypeCode.S
     _reso = NPY_DATETIMEUNIT.NPY_FR_s
 
@@ -996,6 +999,7 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     _nanos_inc = 1_000_000
     _prefix = "L"
+    _td64_unit = "ms"
     _period_dtype_code = PeriodDtypeCode.L
     _reso = NPY_DATETIMEUNIT.NPY_FR_ms
 
@@ -1003,6 +1007,7 @@ cdef class Milli(Tick):
 cdef class Micro(Tick):
     _nanos_inc = 1000
     _prefix = "U"
+    _td64_unit = "us"
     _period_dtype_code = PeriodDtypeCode.U
     _reso = NPY_DATETIMEUNIT.NPY_FR_us
 
@@ -1010,6 +1015,7 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     _nanos_inc = 1
     _prefix = "N"
+    _td64_unit = "ns"
     _period_dtype_code = PeriodDtypeCode.N
     _reso = NPY_DATETIMEUNIT.NPY_FR_ns
 
@@ -1566,8 +1572,9 @@ cdef class BusinessHour(BusinessMixin):
 
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
+        # Use python string formatting to be faster than strftime
         hours = ",".join(
-            f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
+            f'{st.hour:02d}:{st.minute:02d}-{en.hour:02d}:{en.minute:02d}'
             for st, en in zip(self.start, self.end)
         )
         attrs = [f"{self._prefix}={hours}"]
@@ -2439,8 +2446,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
 cdef class SemiMonthEnd(SemiMonthOffset):
     """
-    Two DateOffset's per month repeating on the last
-    day of the month and day_of_month.
+    Two DateOffset's per month repeating on the last day of the month & day_of_month.
 
     Parameters
     ----------
@@ -2461,8 +2467,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
 
 cdef class SemiMonthBegin(SemiMonthOffset):
     """
-    Two DateOffset's per month repeating on the first
-    day of the month and day_of_month.
+    Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
     Parameters
     ----------
@@ -2695,8 +2700,9 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
 cdef class LastWeekOfMonth(WeekOfMonthMixin):
     """
-    Describes monthly dates in last week of month like "the last Tuesday of
-    each month".
+    Describes monthly dates in last week of month.
+
+    For example "the last Tuesday of each month".
 
     Parameters
     ----------
@@ -2982,8 +2988,9 @@ cdef class FY5253(FY5253Mixin):
 
 cdef class FY5253Quarter(FY5253Mixin):
     """
-    DateOffset increments between business quarter dates
-    for 52-53 week fiscal year (also known as a 4-4-5 calendar).
+    DateOffset increments between business quarter dates for 52-53 week fiscal year.
+
+    Also known as a 4-4-5 calendar.
 
     It is used by companies that desire that their
     fiscal year always end on the same day of the week.
@@ -3593,8 +3600,7 @@ def _get_offset(name: str) -> BaseOffset:
 
 cpdef to_offset(freq):
     """
-    Return DateOffset object from string or tuple representation
-    or datetime.timedelta object.
+    Return DateOffset object from string or datetime.timedelta object.
 
     Parameters
     ----------

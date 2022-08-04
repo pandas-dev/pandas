@@ -367,7 +367,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result = {}
+    result: dict = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
@@ -400,7 +400,15 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                     arrs  # type: ignore[arg-type]
                 )
             else:
-                result[name] = np.concatenate(arrs)
+                # error: Argument 1 to "concatenate" has incompatible
+                # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
+                # ; expected "Union[_SupportsArray[dtype[Any]],
+                # Sequence[_SupportsArray[dtype[Any]]],
+                # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
+                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
+                # , Sequence[Sequence[Sequence[Sequence[
+                # _SupportsArray[dtype[Any]]]]]]]"
+                result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
 
     if warning_columns:
         warning_names = ",".join(warning_columns)

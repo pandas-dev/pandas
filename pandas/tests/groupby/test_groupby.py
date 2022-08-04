@@ -2773,3 +2773,38 @@ def test_by_column_values_with_same_starting_value():
     ).set_index("Name")
 
     tm.assert_frame_equal(result, expected_result)
+
+
+def test_groupby_none_in_first_mi_level():
+    # GH#47348
+    arr = [[None, 1, 0, 1], [2, 3, 2, 3]]
+    ser = Series(1, index=MultiIndex.from_arrays(arr, names=["a", "b"]))
+    result = ser.groupby(level=[0, 1]).sum()
+    expected = Series(
+        [1, 2], MultiIndex.from_tuples([(0.0, 2), (1.0, 3)], names=["a", "b"])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_none_column_name():
+    # GH#47348
+    df = DataFrame({None: [1, 1, 2, 2], "b": [1, 1, 2, 3], "c": [4, 5, 6, 7]})
+    result = df.groupby(by=[None]).sum()
+    expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=None))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_single_element_list_grouping():
+    # GH 42795
+    df = DataFrame(
+        {"a": [np.nan, 1], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"]
+    )
+    msg = (
+        "In a future version of pandas, a length 1 "
+        "tuple will be returned when iterating over a "
+        "a groupby with a grouper equal to a list of "
+        "length 1. Don't supply a list with a single grouper "
+        "to avoid this warning."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        values, _ = next(iter(df.groupby(["a"])))

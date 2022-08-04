@@ -40,7 +40,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_ns,
     astype_overflowsafe,
     check_dts_bounds,
-    dt64_to_dtstruct,
     dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
@@ -145,9 +144,13 @@ cpdef inline (int64_t, int) precision_from_unit(str unit):
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
+        # each 400 years we have 97 leap years, for an average of 97/400=.2425
+        #  extra days each year. We get 31556952 by writing
+        #  3600*24*365.2425=31556952
         m = 1_000_000_000 * 31556952
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
+        # 2629746 comes from dividing the "Y" case by 12.
         m = 1_000_000_000 * 2629746
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
@@ -248,7 +251,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     elif is_datetime64_object(ts):
         obj.value = get_datetime64_nanos(ts)
         if obj.value != NPY_NAT:
-            dt64_to_dtstruct(obj.value, &obj.dts)
+            pandas_datetime_to_datetimestruct(obj.value, NPY_FR_ns, &obj.dts)
     elif is_integer_object(ts):
         try:
             ts = <int64_t>ts
@@ -266,7 +269,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
 
             ts = ts * cast_from_unit(None, unit)
             obj.value = ts
-            dt64_to_dtstruct(ts, &obj.dts)
+            pandas_datetime_to_datetimestruct(ts, NPY_FR_ns, &obj.dts)
     elif is_float_object(ts):
         if ts != ts or ts == NPY_NAT:
             obj.value = NPY_NAT
@@ -289,7 +292,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
 
             ts = cast_from_unit(ts, unit)
             obj.value = ts
-            dt64_to_dtstruct(ts, &obj.dts)
+            pandas_datetime_to_datetimestruct(ts, NPY_FR_ns, &obj.dts)
     elif PyDateTime_Check(ts):
         return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):

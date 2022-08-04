@@ -85,8 +85,9 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
 
 PARSING_WARNING_MSG = (
-    "Parsing '{date_string}' in {format} format. Provide format "
-    "or specify infer_datetime_format=True for consistent parsing."
+    "Parsing dates in {format} format when dayfirst={dayfirst} was specified. "
+    "This may lead to inconsistently parsed dates! Specify a format "
+    "to ensure consistent parsing."
 )
 
 cdef:
@@ -98,8 +99,14 @@ cdef:
     int MAX_DAYS_IN_MONTH = 31, MAX_MONTH = 12
 
 
-cdef inline bint _is_not_delimiter(const char ch):
-    return strchr(delimiters, ch) == NULL
+cdef inline bint _is_delimiter(const char ch):
+    return strchr(delimiters, ch) != NULL
+
+
+cdef inline int _parse_1digit(const char* s):
+    cdef int result = 0
+    result += getdigit_ascii(s[0], -10) * 1
+    return result
 
 
 cdef inline int _parse_2digit(const char* s):
@@ -150,18 +157,37 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         bint can_swap = 0
 
     buf = get_c_string_buf_and_size(date_string, &length)
-    if length == 10:
+    if length == 10 and _is_delimiter(buf[2]) and _is_delimiter(buf[5]):
         # parsing MM?DD?YYYY and DD?MM?YYYY dates
-        if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
-            return None, None
         month = _parse_2digit(buf)
         day = _parse_2digit(buf + 3)
         year = _parse_4digit(buf + 6)
         reso = 'day'
         can_swap = 1
-    elif length == 7:
+    elif length == 9 and _is_delimiter(buf[1]) and _is_delimiter(buf[4]):
+        # parsing M?DD?YYYY and D?MM?YYYY dates
+        month = _parse_1digit(buf)
+        day = _parse_2digit(buf + 2)
+        year = _parse_4digit(buf + 5)
+        reso = 'day'
+        can_swap = 1
+    elif length == 9 and _is_delimiter(buf[2]) and _is_delimiter(buf[4]):
+        # parsing MM?D?YYYY and DD?M?YYYY dates
+        month = _parse_2digit(buf)
+        day = _parse_1digit(buf + 3)
+        year = _parse_4digit(buf + 5)
+        reso = 'day'
+        can_swap = 1
+    elif length == 8 and _is_delimiter(buf[1]) and _is_delimiter(buf[3]):
+        # parsing M?D?YYYY and D?M?YYYY dates
+        month = _parse_1digit(buf)
+        day = _parse_1digit(buf + 2)
+        year = _parse_4digit(buf + 4)
+        reso = 'day'
+        can_swap = 1
+    elif length == 7 and _is_delimiter(buf[2]):
         # parsing MM?YYYY dates
-        if buf[2] == b'.' or _is_not_delimiter(buf[2]):
+        if buf[2] == b'.':
             # we cannot reliably tell whether e.g. 10.2010 is a float
             # or a date, thus we refuse to parse it here
             return None, None
@@ -185,16 +211,16 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         if dayfirst and not swapped_day_and_month:
             warnings.warn(
                 PARSING_WARNING_MSG.format(
-                    date_string=date_string,
-                    format='MM/DD/YYYY'
+                    format='MM/DD/YYYY',
+                    dayfirst='True',
                 ),
                 stacklevel=4,
             )
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
                 PARSING_WARNING_MSG.format(
-                    date_string=date_string,
-                    format='DD/MM/YYYY'
+                    format='DD/MM/YYYY',
+                    dayfirst='False (the default)',
                 ),
                 stacklevel=4,
             )

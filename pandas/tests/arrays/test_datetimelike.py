@@ -564,7 +564,7 @@ class SharedTests:
 
         expected = arr.copy()
         if self.array_cls is PeriodArray:
-            fill_val = PeriodArray._scalar_type._from_ordinal(1, freq=arr.freq)
+            fill_val = arr._scalar_type._from_ordinal(1, freq=arr.freq)
         else:
             fill_val = arr._scalar_type(1)
         expected[0] = fill_val
