@@ -7,14 +7,14 @@ from typing import Any
 import numpy as np
 
 import pandas as pd
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     Column,
     ColumnNullType,
     DataFrame as DataFrameXchg,
     DtypeKind,
 )
-from pandas.core.exchange.utils import (
+from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
 )
@@ -34,7 +34,7 @@ def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
     Parameters
     ----------
     df : DataFrameXchg
-        Object supporting the exchange protocol, i.e. `__dataframe__` method.
+        Object supporting the interchange protocol, i.e. `__dataframe__` method.
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).
@@ -54,12 +54,12 @@ def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
 
 def _from_dataframe(df: DataFrameXchg, allow_copy=True):
     """
-    Build a ``pd.DataFrame`` from the DataFrame exchange object.
+    Build a ``pd.DataFrame`` from the DataFrame interchange object.
 
     Parameters
     ----------
     df : DataFrameXchg
-        Object supporting the exchange protocol, i.e. `__dataframe__` method.
+        Object supporting the interchange protocol, i.e. `__dataframe__` method.
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).
@@ -91,7 +91,7 @@ def _from_dataframe(df: DataFrameXchg, allow_copy=True):
 
 def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     """
-    Convert exchange protocol chunk to ``pd.DataFrame``.
+    Convert interchange protocol chunk to ``pd.DataFrame``.
 
     Parameters
     ----------
@@ -131,7 +131,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
         buffers.append(buf)
 
     pandas_df = pd.DataFrame(columns)
-    pandas_df.attrs["_EXCHANGE_PROTOCOL_BUFFERS"] = buffers
+    pandas_df.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"] = buffers
     return pandas_df
 
 

@@ -96,7 +96,7 @@ class CssExcelCell(ExcelCell):
             unique_declarations = frozenset(declaration_dict.items())
             style = css_converter(unique_declarations)
 
-        return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
+        super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
 
 class CSSToExcelConverter:
@@ -856,8 +856,8 @@ class ExcelFormatter:
         sheet_name: str = "Sheet1",
         startrow: int = 0,
         startcol: int = 0,
-        freeze_panes=None,
-        engine=None,
+        freeze_panes: tuple[int, int] | None = None,
+        engine: str | None = None,
         storage_options: StorageOptions = None,
     ) -> None:
         """

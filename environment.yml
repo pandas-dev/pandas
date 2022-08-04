@@ -88,7 +88,7 @@ dependencies:
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.960
+  - mypy=0.971
   - pre-commit>=2.15.0
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -103,6 +103,7 @@ dependencies:
   - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
+  - sphinx-copybutton
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
@@ -128,3 +129,4 @@ dependencies:
   - jupyterlab >=3.4,<4
   - pip:
       - jupyterlite==0.1.0b10
+      - sphinx-toggleprompt
