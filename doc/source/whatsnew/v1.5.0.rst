@@ -14,23 +14,23 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_150.enhancements.dataframe_exchange:
+.. _whatsnew_150.enhancements.dataframe_interchange:
 
-DataFrame exchange protocol implementation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DataFrame interchange protocol implementation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now implement the DataFrame exchange API spec.
+Pandas now implement the DataFrame interchange API spec.
 See the full details on the API at https://data-apis.org/dataframe-protocol/latest/index.html
 
 The protocol consists of two parts:
 
-  - New method :meth:`DataFrame.__dataframe__` which produces the exchange object.
-    It effectively "exports" the Pandas dataframe as an exchange object so
-    any other library which has the protocol implemented can "import" that dataframe
-    without knowing anything about the producer except that it makes an exchange object.
-  - New function :func:`pandas.api.exchange.from_dataframe` which can take
-    an arbitrary exchange object from any conformant library and construct a
-    Pandas DataFrame out of it.
+- New method :meth:`DataFrame.__dataframe__` which produces the interchange object.
+  It effectively "exports" the pandas dataframe as an interchange object so
+  any other library which has the protocol implemented can "import" that dataframe
+  without knowing anything about the producer except that it makes an interchange object.
+- New function :func:`pandas.api.interchange.from_dataframe` which can take
+  an arbitrary interchange object from any conformant library and construct a
+  pandas DataFrame out of it.
 
 .. _whatsnew_150.enhancements.styler:
 
@@ -43,6 +43,9 @@ e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
 
 Additionally there is an alternative output method :meth:`.Styler.to_string`,
 which allows using the Styler's formatting methods to create, for example, CSVs (:issue:`44502`).
+
+A new feature :meth:`.Styler.relabel_index` is also made available to provide full customisation of the display of
+index or column headers (:issue:`47864`)
 
 Minor feature improvements are:
 
@@ -491,7 +494,7 @@ Other API changes
 - :func:`read_json` now raises ``FileNotFoundError`` (previously ``ValueError``) when input is a string ending in ``.json``, ``.json.gz``, ``.json.bz2``, etc. but no such file exists. (:issue:`29102`)
 - Operations with :class:`Timestamp` or :class:`Timedelta` that would previously raise ``OverflowError`` instead raise ``OutOfBoundsDatetime`` or ``OutOfBoundsTimedelta`` where appropriate (:issue:`47268`)
 - When :func:`read_sas` previously returned ``None``, it now returns an empty :class:`DataFrame` (:issue:`47410`)
--
+- :class:`DataFrame` constructor raises if ``index`` or ``columns`` arguments are sets (:issue:`47215`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.deprecations:
@@ -880,7 +883,6 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :meth:`loc.__getitem__` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
 - Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
 - Bug in :meth:`DataFrame.__getitem__` returning copy when :class:`DataFrame` has duplicated columns even if a unique column is selected (:issue:`45316`, :issue:`41062`)
 - Bug in :meth:`Series.align` does not create :class:`MultiIndex` with union of levels when both MultiIndexes intersections are identical (:issue:`45224`)
