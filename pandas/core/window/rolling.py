@@ -127,7 +127,7 @@ class BaseWindow(SelectionMixin):
         win_type: str | None = None,
         axis: Axis = 0,
         on: str | Index | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
         method: str = "single",
         *,
@@ -135,7 +135,7 @@ class BaseWindow(SelectionMixin):
     ) -> None:
         self.obj = obj
         self.on = on
-        self.closed = closed
+        self.inclusive = inclusive
         self.step = step
         self.window = window
         self.min_periods = min_periods
@@ -205,13 +205,13 @@ class BaseWindow(SelectionMixin):
                 raise ValueError(
                     f"min_periods {self.min_periods} must be <= window {self.window}"
                 )
-        if self.closed is not None and self.closed not in [
+        if self.inclusive is not None and self.inclusive not in [
             "right",
             "both",
             "left",
             "neither",
         ]:
-            raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
+            raise ValueError("inclusive must be 'right', 'left', 'both' or 'neither'")
         if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
             raise TypeError(f"invalid type: {type(self)}")
         if isinstance(self.window, BaseIndexer):
@@ -378,7 +378,7 @@ class BaseWindow(SelectionMixin):
             num_values=len(obj),
             min_periods=self.min_periods,
             center=self.center,
-            closed=self.closed,
+            inclusive=self.inclusive,
             step=self.step,
         )
         self._check_window_bounds(start, end, len(obj))
@@ -647,7 +647,7 @@ class BaseWindow(SelectionMixin):
                     num_values=len(x),
                     min_periods=min_periods,
                     center=self.center,
-                    closed=self.closed,
+                    inclusive=self.inclusive,
                     step=self.step,
                 )
                 self._check_window_bounds(start, end, len(x))
@@ -686,7 +686,7 @@ class BaseWindow(SelectionMixin):
             num_values=len(values),
             min_periods=min_periods,
             center=self.center,
-            closed=self.closed,
+            inclusive=self.inclusive,
             step=self.step,
         )
         self._check_window_bounds(start, end, len(values))
@@ -935,7 +935,7 @@ class Window(BaseWindow):
 
         If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
-        keyword arguments, namely ``min_periods``, ``center``, ``closed`` and
+        keyword arguments, namely ``min_periods``, ``center``, ``inclusive`` and
         ``step`` will be passed to ``get_window_bounds``.
 
     min_periods : int, default None
@@ -976,7 +976,7 @@ class Window(BaseWindow):
 
         For `Series` this parameter is unused and defaults to 0.
 
-    closed : str, default None
+    inclusive : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
 
         If ``'left'``, the last point in the window is excluded from calculations.
@@ -1150,7 +1150,7 @@ class Window(BaseWindow):
         "win_type",
         "axis",
         "on",
-        "closed",
+        "inclusive",
         "step",
         "method",
     ]
@@ -1724,7 +1724,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
-                closed=self.closed,
+                inclusive=self.inclusive,
                 step=self.step,
             )
             self._check_window_bounds(start, end, len(x_array))
@@ -1772,7 +1772,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
-                closed=self.closed,
+                inclusive=self.inclusive,
                 step=self.step,
             )
             self._check_window_bounds(start, end, len(x_array))
@@ -1813,7 +1813,7 @@ class Rolling(RollingAndExpandingMixin):
         "win_type",
         "axis",
         "on",
-        "closed",
+        "inclusive",
         "step",
         "method",
     ]

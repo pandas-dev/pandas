@@ -25,8 +25,8 @@ min_periods : int, default None
     min_periods passed from the top level rolling API
 center : bool, default None
     center passed from the top level rolling API
-closed : str, default None
-    closed passed from the top level rolling API
+inclusive : str, default None
+    inclusive passed from the top level rolling API
 step : int, default None
     step passed from the top level rolling API
     .. versionadded:: 1.5
@@ -64,7 +64,7 @@ class BaseIndexer:
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
@@ -80,7 +80,7 @@ class FixedWindowIndexer(BaseIndexer):
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
@@ -91,9 +91,9 @@ class FixedWindowIndexer(BaseIndexer):
 
         end = np.arange(1 + offset, num_values + 1 + offset, step, dtype="int64")
         start = end - self.window_size
-        if closed in ["left", "both"]:
+        if inclusive in ["left", "both"]:
             start -= 1
-        if closed in ["left", "neither"]:
+        if inclusive in ["left", "neither"]:
             end -= 1
 
         end = np.clip(end, 0, num_values)
@@ -111,7 +111,7 @@ class VariableWindowIndexer(BaseIndexer):
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
@@ -124,7 +124,7 @@ class VariableWindowIndexer(BaseIndexer):
             self.window_size,
             min_periods,
             center,  # type: ignore[arg-type]
-            closed,
+            inclusive,
             self.index_array,  # type: ignore[arg-type]
         )
 
@@ -150,7 +150,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
@@ -160,11 +160,11 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             return np.empty(0, dtype="int64"), np.empty(0, dtype="int64")
 
         # if windows is variable, default is 'right', otherwise default is 'both'
-        if closed is None:
-            closed = "right" if self.index is not None else "both"
+        if inclusive is None:
+            inclusive = "right" if self.index is not None else "both"
 
-        right_closed = closed in ["right", "both"]
-        left_closed = closed in ["left", "both"]
+        right_closed = inclusive in ["right", "both"]
+        left_closed = inclusive in ["left", "both"]
 
         if self.index[num_values - 1] < self.index[0]:
             index_growth_sign = -1
@@ -226,7 +226,7 @@ class ExpandingIndexer(BaseIndexer):
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
@@ -267,15 +267,15 @@ class FixedForwardWindowIndexer(BaseIndexer):
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         if center:
             raise ValueError("Forward-looking windows can't have center=True")
-        if closed is not None:
+        if inclusive is not None:
             raise ValueError(
-                "Forward-looking windows don't support setting the closed argument"
+                "Forward-looking windows don't support setting the inclusive argument"
             )
         if step is None:
             step = 1
@@ -333,7 +333,7 @@ class GroupbyIndexer(BaseIndexer):
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
@@ -356,7 +356,7 @@ class GroupbyIndexer(BaseIndexer):
                 **self.indexer_kwargs,
             )
             start, end = indexer.get_window_bounds(
-                len(indices), min_periods, center, closed, step
+                len(indices), min_periods, center, inclusive, step
             )
             start = start.astype(np.int64)
             end = end.astype(np.int64)
@@ -391,7 +391,7 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
-        closed: str | None = None,
+        inclusive: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
