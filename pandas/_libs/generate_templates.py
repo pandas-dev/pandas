@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from Cython import Tempita
 
 if __name__ == "__main__":
