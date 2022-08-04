@@ -771,8 +771,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
-        Return Timedelta Array/Index as object ndarray of datetime.timedelta
-        objects.
+        Return an ndarray of datetime.timedelta objects.
 
         Returns
         -------
@@ -800,8 +799,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     @property
     def components(self) -> DataFrame:
         """
-        Return a dataframe of the components (days, hours, minutes,
-        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
+        Return a DataFrame of the individual resolution components of the Timedeltas.
+
+        The components (days, hours, minutes seconds, milliseconds, microseconds,
+        nanoseconds) are returned as columns in a DataFrame.
 
         Returns
         -------

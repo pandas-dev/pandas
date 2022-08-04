@@ -107,9 +107,10 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
 
-  Note: ``index_col=False`` can be used to force pandas to *not* use the first
-  column as the index, e.g. when you have a malformed file with delimiters at
-  the end of each line.
+  .. note::
+     ``index_col=False`` can be used to force pandas to *not* use the first
+     column as the index, e.g. when you have a malformed file with delimiters at
+     the end of each line.
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
@@ -182,15 +183,16 @@ General parsing configuration
 +++++++++++++++++++++++++++++
 
 dtype : Type name or dict of column -> type, default ``None``
-  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
-  (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
-  with suitable ``na_values`` settings to preserve and
-  not interpret dtype.
+  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
+  Use ``str`` or ``object`` together with suitable ``na_values`` settings to preserve
+  and not interpret dtype. If converters are specified, they will be applied INSTEAD
+  of dtype conversion.
+
   .. versionadded:: 1.5.0
 
-    Support for defaultdict was added. Specify a defaultdict as input where
-    the default determines the dtype of the columns which are not explicitly
-    listed.
+     Support for defaultdict was added. Specify a defaultdict as input where
+     the default determines the dtype of the columns which are not explicitly
+     listed.
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by
@@ -283,7 +285,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
   * If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
     column.
   * If ``{'foo': [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
-    A fast-path exists for iso8601-formatted dates.
+
+  .. note::
+     A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default ``False``
   If ``True`` and parse_dates is enabled for a column, attempt to infer the
   datetime format to speed up the processing.
@@ -1593,8 +1597,10 @@ of multi-columns indices.
 
    pd.read_csv("mi2.csv", header=[0, 1], index_col=0)
 
-Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will be *lost*.
+.. note::
+   If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
+   with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will
+   be *lost*.
 
 .. ipython:: python
    :suppress:
@@ -3048,15 +3054,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
    df = pd.read_xml(bio)
    df
 
-Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
+Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
+Biomedical and Life Science Jorurnals:
 
 .. ipython:: python
    :okwarning:
 
    df = pd.read_xml(
-       "s3://irs-form-990/201923199349319487_public.xml",
-       xpath=".//irs:Form990PartVIISectionAGrp",
-       namespaces={"irs": "http://www.irs.gov/efile"}
+       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+       xpath=".//journal-meta",
    )
    df
 

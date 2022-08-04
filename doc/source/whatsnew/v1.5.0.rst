@@ -14,23 +14,23 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_150.enhancements.dataframe_exchange:
+.. _whatsnew_150.enhancements.dataframe_interchange:
 
-DataFrame exchange protocol implementation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DataFrame interchange protocol implementation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now implement the DataFrame exchange API spec.
+Pandas now implement the DataFrame interchange API spec.
 See the full details on the API at https://data-apis.org/dataframe-protocol/latest/index.html
 
 The protocol consists of two parts:
 
-  - New method :meth:`DataFrame.__dataframe__` which produces the exchange object.
-    It effectively "exports" the Pandas dataframe as an exchange object so
-    any other library which has the protocol implemented can "import" that dataframe
-    without knowing anything about the producer except that it makes an exchange object.
-  - New function :func:`pandas.api.exchange.from_dataframe` which can take
-    an arbitrary exchange object from any conformant library and construct a
-    Pandas DataFrame out of it.
+- New method :meth:`DataFrame.__dataframe__` which produces the interchange object.
+  It effectively "exports" the pandas dataframe as an interchange object so
+  any other library which has the protocol implemented can "import" that dataframe
+  without knowing anything about the producer except that it makes an interchange object.
+- New function :func:`pandas.api.interchange.from_dataframe` which can take
+  an arbitrary interchange object from any conformant library and construct a
+  pandas DataFrame out of it.
 
 .. _whatsnew_150.enhancements.styler:
 
@@ -43,6 +43,9 @@ e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
 
 Additionally there is an alternative output method :meth:`.Styler.to_string`,
 which allows using the Styler's formatting methods to create, for example, CSVs (:issue:`44502`).
+
+A new feature :meth:`.Styler.relabel_index` is also made available to provide full customisation of the display of
+index or column headers (:issue:`47864`)
 
 Minor feature improvements are:
 
@@ -416,9 +419,9 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| numpy           | 1.19.5          |    X     |    X    |
+| numpy           | 1.20.3          |    X     |    X    |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.960           |          |    X    |
+| mypy (dev)      | 0.971           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.9.3           |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -491,7 +494,7 @@ Other API changes
 - :func:`read_json` now raises ``FileNotFoundError`` (previously ``ValueError``) when input is a string ending in ``.json``, ``.json.gz``, ``.json.bz2``, etc. but no such file exists. (:issue:`29102`)
 - Operations with :class:`Timestamp` or :class:`Timedelta` that would previously raise ``OverflowError`` instead raise ``OutOfBoundsDatetime`` or ``OutOfBoundsTimedelta`` where appropriate (:issue:`47268`)
 - When :func:`read_sas` previously returned ``None``, it now returns an empty :class:`DataFrame` (:issue:`47410`)
--
+- :class:`DataFrame` constructor raises if ``index`` or ``columns`` arguments are sets (:issue:`47215`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.deprecations:
@@ -770,9 +773,13 @@ Other Deprecations
 - Deprecated the argument ``na_sentinel`` in :func:`factorize`, :meth:`Index.factorize`, and :meth:`.ExtensionArray.factorize`; pass ``use_na_sentinel=True`` instead to use the sentinel ``-1`` for NaN values and ``use_na_sentinel=False`` instead of ``na_sentinel=None`` to encode NaN values (:issue:`46910`)
 - Deprecated :meth:`DataFrameGroupBy.transform` not aligning the result when the UDF returned DataFrame (:issue:`45648`)
 - Clarified warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument (:issue:`46210`)
+- Emit warning from :func:`to_datetime` when delimited dates can't be parsed in accordance to specified ``dayfirst`` argument even for dates where leading zero is omitted (e.g. ``31/1/2001``) (:issue:`47880`)
 - Deprecated :class:`Series` and :class:`Resampler` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) raising a ``NotImplementedError`` when the dtype is non-numric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated :meth:`Series.rank` returning an empty result when the dtype is non-numeric and ``numeric_only=True`` is provided; this will raise a ``TypeError`` in a future version (:issue:`47500`)
 - Deprecated argument ``errors`` for :meth:`Series.mask`, :meth:`Series.where`, :meth:`DataFrame.mask`, and :meth:`DataFrame.where` as ``errors`` had no effect on this methods (:issue:`47728`)
+- Deprecated arguments ``*args`` and ``**kwargs`` in :class:`Rolling`, :class:`Expanding`, and :class:`ExponentialMovingWindow` ops. (:issue:`47836`)
+- Deprecated unused arguments ``encoding`` and ``verbose`` in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:issue:`47912`)
+- Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -802,6 +809,7 @@ Performance improvements
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47404`, :issue:`47405`)
+- Performance improvement in ``argmax`` and ``argmin`` for :class:`arrays.SparseArray` (:issue:`34197`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -875,7 +883,6 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :meth:`loc.__getitem__` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
 - Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
 - Bug in :meth:`DataFrame.__getitem__` returning copy when :class:`DataFrame` has duplicated columns even if a unique column is selected (:issue:`45316`, :issue:`41062`)
 - Bug in :meth:`Series.align` does not create :class:`MultiIndex` with union of levels when both MultiIndexes intersections are identical (:issue:`45224`)
@@ -908,12 +915,14 @@ Indexing
 - Bug in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` not always propagating metadata (:issue:`28283`)
 - Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
 - Bug in :class:`IntervalTree` that lead to an infinite recursion. (:issue:`46658`)
+- Bug in :class:`PeriodIndex` raising ``AttributeError`` when indexing on ``NA``, rather than putting ``NaT`` in its place. (:issue:`46673`)
 -
 
 Missing
 ^^^^^^^
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
+- Bug in :meth:`Series.map` not respecting ``na_action`` argument if mapper is a ``dict`` or :class:`Series` (:issue:`47527`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 - Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
 - Bug in :meth:`DataFrame.fillna` ignored ``axis`` when :class:`DataFrame` is single block (:issue:`47713`)
@@ -1022,10 +1031,12 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
 - Bug in :meth:`concat` when ``axis=1`` and ``sort=False`` where the resulting Index was a :class:`Int64Index` instead of a :class:`RangeIndex` (:issue:`46675`)
 - Bug in :meth:`wide_to_long` raises when ``stubnames`` is missing in columns and ``i`` contains string dtype column (:issue:`46044`)
+- Bug in :meth:`DataFrame.join` with categorical index results in unexpected reordering (:issue:`47812`)
 
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
+- Bug in :meth:`SparseArray.unique` fails to keep original elements order (:issue:`47809`)
 -
 
 ExtensionArray
@@ -1040,6 +1051,7 @@ Styler
 - Bug in :meth:`Styler.set_sticky` leading to white text on white background in dark mode (:issue:`46984`)
 - Bug in :meth:`Styler.to_latex` causing ``UnboundLocalError`` when ``clines="all;data"`` and the ``DataFrame`` has no rows. (:issue:`47203`)
 - Bug in :meth:`Styler.to_excel` when using ``vertical-align: middle;`` with ``xlsxwriter`` engine (:issue:`30107`)
+- Bug when applying styles to a DataFrame with boolean column labels (:issue:`47838`)
 
 Metadata
 ^^^^^^^^
