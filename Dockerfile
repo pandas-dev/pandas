@@ -2,7 +2,7 @@ FROM quay.io/condaforge/miniforge3
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
-ARG gh_username=WillAyd
+ARG gh_username=pandas-dev
 ARG pandas_home="/home/pandas"
 
 # Avoid warnings by switching to noninteractive
@@ -18,7 +18,7 @@ RUN apt-get update \
     && dpkg-reconfigure -f noninteractive tzdata \
     #
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
-    && apt-get -y install build-essential git iproute2 procps iproute2 lsb-release \
+    && apt-get -y install git iproute2 procps iproute2 lsb-release \
     #
     # cleanup
     && apt-get autoremove -y \
@@ -28,18 +28,10 @@ RUN apt-get update \
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog
 
-# Without this versioneer will not be able to determine the pandas version.
-# This is because of a security update to git that blocks it from reading the config folder if
-# it is not owned by the current user. We hit this since the "mounted" folder is not hit by the
-# Docker container.
-# xref https://github.com/pypa/manylinux/issues/1309
-RUN git config --global --add safe.directory "$pandas_home"
-
 # Clone pandas repo
 RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
-    && git checkout cmake-build \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
     && git pull upstream main
 
