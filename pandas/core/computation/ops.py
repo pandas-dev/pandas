@@ -10,6 +10,7 @@ import operator
 from typing import (
     Callable,
     Iterable,
+    Literal,
 )
 
 import numpy as np
@@ -559,7 +560,7 @@ class UnaryOp(Op):
         * If no function associated with the passed operator token is found.
     """
 
-    def __init__(self, op: str, operand) -> None:
+    def __init__(self, op: Literal["+", "-", "~", "not"], operand) -> None:
         super().__init__(op, (operand,))
         self.operand = operand
 
