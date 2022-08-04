@@ -1049,12 +1049,57 @@ def test_where_mask_deprecated(frame_or_series):
 
     with tm.assert_produces_warning(FutureWarning):
         obj.mask(mask, -1, errors="raise")
+        
+@pytest.mark.parametrize(
+        "arg, arg2",
+        [
+            [
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": np.random.randint(10, size=10),
+                },
+            ],
+            [
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": np.random.randint(10, size=10),
+                },
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+            ],
+            [
+                {
+                    "a": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": np.random.randint(10, size=10),
+                },
+            ],
+            [
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+                {
+                    "a": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+            ],
+        ],
+    )
+    def test_consitency_inplace():
+        df = pd.DataFrame({"M": [""]}, dtype="string")
+        df2 = pd.DataFrame({"M": [""]}, dtype="string")
+        df2.where(df2 != "", np.nan, inplace=True)
+        df = df.where(df != "", np.nan)
 
-def test_consitency_inplace():
-    df = pd.DataFrame({"M": [""]}, dtype="string")
-    df2 = pd.DataFrame({"M": [""]}, dtype="string")
-    df2.where(df2 != "", np.nan, inplace=True)
-    df = df.where(df != "", np.nan)
-    
-    
-    tm.assert_frame_equal(df,df2)
+
+        tm.assert_frame_equal(df,df2)
