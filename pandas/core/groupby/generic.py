@@ -11,6 +11,7 @@ from collections import abc
 from functools import partial
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -72,7 +73,6 @@ from pandas.core.apply import (
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
@@ -92,6 +92,9 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
