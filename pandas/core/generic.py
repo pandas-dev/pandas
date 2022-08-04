@@ -9500,11 +9500,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self._check_inplace_setting(other)
             new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor(new_data)
-            for i in range(len(result.dtypes)):
-                if result.dtypes[i] != 'object':
-                    result[result.columns[i]] = (
-                        result[result.columns[i]].convert_dtypes()
-                    )
             return self._update_inplace(result)
 
         else:
