@@ -3500,7 +3500,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ):
         """
         Render object to a LaTeX tabular, longtable, or nested table.
+
         Uses the ``Styler`` implementation with the following, ordered, method chaining:
+
         .. code-block:: python
            styler = Styler(DataFrame)
            styler.hide(**hide)
@@ -3508,6 +3510,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
            styler.format(**format)
            styler.format_index(**format_index)
            styler.to_latex(buf=buf, **render_kwargs)
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3526,35 +3529,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             list will call the method numerous times.
         render_kwargs : dict
             Keyword args to pass to the method call of ``Styler.to_latex``.
+
         Returns
         -------
         str or None
             If buf is None, returns the result as a string. Otherwise returns None.
-        See Also
-        --------
-        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
-        DataFrame.to_string : Render a DataFrame to a console-friendly
-            tabular output.
-        DataFrame.to_html : Render a DataFrame as an HTML table.
-        Examples
-        --------
-        Convert a general DataFrame to LaTeX with formatting:
-        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                        age=[26, 45],
-        ...                        height=[181.23, 177.65]))
-        >>> print(df.to_latex(hide={"axis": "index"},
-        ...                   format={"formatter": {"name": str.upper},
-        ...                           "precision": 1},
-        ...                   render_kwargs={"hrules": True}
-        ... )  # doctest: +SKIP
-        \begin{{tabular}}{{lrr}}
-        \toprule
-        name & age & height \\
-        \\midrule
-        RAPHAEL & 26 & 181.2 \\
-        DONATELLO & 45 & 177.7 \\
-        \bottomrule
-        \\end{{tabular}}
         """
         from pandas.io.formats.style import Styler
 
