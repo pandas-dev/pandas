@@ -1086,9 +1086,17 @@ class Series(base.IndexOpsMixin, NDFrame):
         if takeable:
             return self._values[label]
 
+        index = self.index
+
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
-        return self.index._get_values_for_loc(self, loc, label)
+        res_values = self._values[loc]
+        if is_integer(loc):
+            return res_values
+
+        res_index = index.get_loc_result_index(loc, label)
+        result = self._constructor(res_values, index=res_index, name=self.name)
+        return result.__finalize__(self)
 
     def __setitem__(self, key, value) -> None:
         check_deprecated_indexers(key)
