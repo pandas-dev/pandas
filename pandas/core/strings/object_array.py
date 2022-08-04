@@ -354,7 +354,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep="|", dtype=np.int64):
         from pandas import Series
 
         arr = Series(self).fillna("")
@@ -368,7 +368,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 
-        dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
+        dummies = np.empty((len(arr), len(tags2)), dtype=dtype)
 
         for i, t in enumerate(tags2):
             pat = sep + t + sep

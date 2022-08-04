@@ -2136,7 +2136,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def get_dummies(self, sep="|"):
+    def get_dummies(self, sep="|", dtype=np.int64):
         """
         Return DataFrame of dummy/indicator variables for Series.
 
@@ -2147,6 +2147,8 @@ class StringMethods(NoNewAttributesMixin):
         ----------
         sep : str, default "|"
             String to split on.
+        dtype : numpy.dtype, default np.int64
+            The numpy dtype to use for the result ndarray.
 
         Returns
         -------
@@ -2174,7 +2176,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        result, name = self._data.array._str_get_dummies(sep)
+        result, name = self._data.array._str_get_dummies(sep, dtype=dtype)
         return self._wrap_result(
             result,
             name=name,
