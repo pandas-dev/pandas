@@ -462,6 +462,7 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
         copy=True,
         indicator=False,
         validate=None,
+        preserve_index = None,
     )
 
 * ``left``: A DataFrame or named Series object.
@@ -510,6 +511,13 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
     * "many_to_one" or "m:1": checks if merge keys are unique in right
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
+
+* ``preserve_index`` : string, default None.
+  If specified, preserves one index when merging two DataFrames.
+
+    * "left": preserves index of the left DataFrame.
+    * "right": preserves index of the right DataFrame.
+
 
 .. note::
 
@@ -788,6 +796,33 @@ The ``indicator`` argument will also accept string arguments, in which case the 
 .. ipython:: python
 
    pd.merge(df1, df2, on="col1", how="outer", indicator="indicator_column")
+
+.. _merging.preserve_index:
+
+Preserving DataFrame Index
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Users can use the ``preserve_index`` argument to preseve one of the DataFrames indices.
+
+In the following example, the index of the left data frame is preserved.
+
+.. ipython:: python
+
+  left = pd.DataFrame({'a': ['foo', 'bar', 'baz],'b': [1, 2, 3]}, index=list(string.ascii_lowercase[:3]))
+  right = pd.DataFrame({'a': ['foo', 'bar', 'baz'],'c': [5, 6, 7]}, index = range (6,9))
+
+.. code-block:: ipython
+
+  In [53]: result = pd.merge(left, right, on="a", preserve_index = "left")
+  ...
+
+
+If the user wants to preserve the index of the right DataFrame,
+one can use the ``preserve_index='right'`` argument instead.
+
+.. ipython:: python
+
+   pd.merge(left, right, on="a", preserve_index="right")
 
 
 .. _merging.dtypes:

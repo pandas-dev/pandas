@@ -1412,6 +1412,67 @@ class TestMerge:
             arr.flags.writeable = False
 
         data1.merge(data2)  # no error
+    
+    def test_preserve_index(self):
+        left = DataFrame({"a": range(5), "b": range(10, 15)}, index =['a', 'b', 'c', 'd', 'e'])
+        right = DataFrame({"a": range(5), "c": ['A', 'B', 'C', 'D', 'E']}, index = range(5,10))
+
+        # No side effects.
+        left_copy = left.copy()
+        right_copy = right.copy()
+
+        tm.assert_frame_equal(left, left_copy)
+        tm.assert_frame_equal(right, right_copy)
+        
+        #make sure merge is intact 
+        expected = DataFrame(
+            {
+            "a": [0,1,2,3,4],
+            "b": [10, 11, 12, 13, 14],
+            "c": ["A", "B", "C", "D", "E"],
+            }
+        )
+        result = merge(left, right, on = 'a', preserve_index = None)
+        tm.assert_frame_equal(result, expected)
+        
+        #preserving left
+        expected_left = DataFrame(
+            {
+            "a": [0,1,2,3,4],
+            "b": [10, 11, 12, 13, 14],
+            "c": ["A", "B", "C", "D", "E"],
+            },
+            index = ['a', 'b', 'c', 'd', 'e']
+        )
+
+        result = merge(left, right, on="a", preserve_index = "left")
+        tm.assert_frame_equal(left, left_copy)
+        tm.assert_frame_equal(right, right_copy)
+        tm.assert_frame_equal(result, expected_left)
+
+        #preserving right
+        expected_right = DataFrame(
+            {
+            "a": [0,1,2,3,4],
+            "b": [10, 11, 12, 13, 14],
+            "c": ["A", "B", "C", "D", "E"],
+            },
+            index = [5,6,7,8,9]
+        )
+        result = merge(left, right, on="a", preserve_index = "right")
+        tm.assert_frame_equal(left, left_copy)
+        tm.assert_frame_equal(right, right_copy)
+        tm.assert_frame_equal(result, expected_right)
+
+        #mismatched lengths
+        obj = merge(left, right, left_index=True, right_index=True, preserve_index = "left")
+        msg = (
+            f"Length mismatch: Expected {len(obj)} rows, "
+            f"recieved array of length {len(left.index)}"
+            )
+        msg = "Length mismatch: Expected 0 rows, received array of length 5"
+        with pytest.raises(MergeError, match=msg):
+            obj = merge(left, right, left_index=True, right_index=True, preserve_index = "left")
 
 
 def _check_merge(x, y):

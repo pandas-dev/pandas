@@ -104,6 +104,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate: str | None = None,
+    preserve_index: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
         left,
@@ -119,6 +120,7 @@ def merge(
         copy=copy,
         indicator=indicator,
         validate=validate,
+        preserve_index=preserve_index,
     )
     return op.get_result()
 
@@ -625,6 +627,7 @@ class _MergeOperation:
         copy: bool = True,
         indicator: bool = False,
         validate: str | None = None,
+        preserve_index: str | None = None,
     ) -> None:
         _left = _validate_operand(left)
         _right = _validate_operand(right)
@@ -647,7 +650,8 @@ class _MergeOperation:
 
         self.left_index = left_index
         self.right_index = right_index
-
+        self.preserve_index = preserve_index
+        
         self.indicator = indicator
 
         self.indicator_name: str | None
@@ -709,6 +713,8 @@ class _MergeOperation:
         # are in fact unique.
         if validate is not None:
             self._validate(validate)
+        if preserve_index is not None:
+            self._preserve_index(preserve_index)
 
     def get_result(self) -> DataFrame:
         if self.indicator:
@@ -1454,7 +1460,27 @@ class _MergeOperation:
 
         else:
             raise ValueError("Not a valid argument for validate")
-
+        
+    def _preserve_index(self, preserve_index: str) -> None:
+        result = self.result._finalize_(self, method = "merge")
+        #check lengths for operation
+        
+        if preserve_index != None:
+            if len(self.left.index) or len(self.right.index) != len(result):
+                raise MergeError("index must be the same length as DataFrame")
+            else:
+                if preserve_index == 'left':
+                    self.left.reset_index()
+                    result = result.set_index(self.left.index)
+                elif preserve_index == 'right':
+                    self.right.reset_index()
+                    result = result.set_index(self.left.index)
+                else:
+                    raise ValueError("Not a valid arguement for preserve_index")
+        else:
+            pass
+        return result
+        
 
 def get_join_indexers(
     left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs

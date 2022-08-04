@@ -350,6 +350,11 @@ validate : str, optional
     * "many_to_one" or "m:1": check if merge keys are unique in right
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
+preserve_index: str, optional
+    If specified, preserves one index when merging two DataFrames.
+    
+    * "left": preserves index of the left DataFrame.
+    * "right": preserves index of the right DataFrame.
 
 Returns
 -------
@@ -458,6 +463,33 @@ ValueError: columns overlap but no suffix specified:
 1   foo      8
 2   bar      7
 3   bar      8
+
+Merge DataFrames df1 and df2 with specified left and right indicies preserved.
+
+>>> df1 = pd.DataFrame({'a': ['foo', 'bar', 'baz],
+...                     'b': [1, 2, 3]}, index=list(string.ascii_lowercase[:3]))
+>>> df2 = pd.DataFrame({'a': ['foo', 'bar', 'baz'],
+...                     'c': [5, 6, 7]}, index = range (6,9))
+>>> df1
+     a    b
+a   foo   1
+b   bar   2
+c   baz   3
+>>> df2
+     a    c
+6   foo   5
+7   bar   6
+8   baz   7
+
+>>> df1.merge(df2, on = 'a', preserve_index = "left")
+    a    b    c
+a  foo   1    5
+b  bar   2    6
+c  baz   3    7
+>>> df1.merge(df2, on = 'a', preserve_index = "right")
+6  foo   1    5
+7  bar   2    6
+8  baz   3    7
 """
 
 
@@ -9786,6 +9818,7 @@ Parrot 2  Parrot       24.0
         rsuffix: str = "",
         sort: bool = False,
         validate: str | None = None,
+        preserve_index: str | None = None,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -10047,6 +10080,7 @@ Parrot 2  Parrot       24.0
         copy: bool = True,
         indicator: bool = False,
         validate: str | None = None,
+        preserve_index: str | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
@@ -10064,6 +10098,7 @@ Parrot 2  Parrot       24.0
             copy=copy,
             indicator=indicator,
             validate=validate,
+            preserve_index = preserve_index,
         )
 
     def round(
