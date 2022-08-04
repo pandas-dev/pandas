@@ -608,3 +608,11 @@ def test_setitem_scalar_with_mask_validation(dtype):
         msg = "Scalar must be NA or str"
     with pytest.raises(ValueError, match=msg):
         ser[mask] = 1
+
+
+def test_consitency_inplace():
+    df = pd.DataFrame({"M": [""]}, dtype="string")
+    df2 = pd.DataFrame({"M": [""]}, dtype="string")
+    df2.where(df2 != "", np.nan, inplace=True)
+    df = df.where(df != "", np.nan)
+    tm.assert_frame_equal(df, df2)

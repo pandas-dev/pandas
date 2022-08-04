@@ -828,12 +828,3 @@ def test_zfill_with_leading_sign():
     value = Series(["-cat", "-1", "+dog"])
     expected = Series(["-0cat", "-0001", "+0dog"])
     tm.assert_series_equal(value.str.zfill(5), expected)
-
-
-def test_consitency_inplace():
-    df = DataFrame({"M": [""]}, dtype="string")
-    df2 = DataFrame({"M": [""]}, dtype="string")
-    df2.where(df2 != "", np.nan, inplace=True)
-    df = df.where(df != "", np.nan)
-
-    tm.assert_frame_equal(df, df2)
