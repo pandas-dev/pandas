@@ -5086,6 +5086,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         axis: Axis = 0,
         inplace: bool = False,
+        *,
         copy: bool | lib.NoDefault = lib.no_default,
     ):
         return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
