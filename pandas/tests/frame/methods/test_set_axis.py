@@ -53,9 +53,9 @@ class SharedSetAxisTests:
         assert result is not obj
         # check we did NOT make a copy
         if obj.ndim == 1:
-            assert not tm.shares_memory(result, obj)
+            assert tm.shares_memory(result, obj)
         else:
-            assert not any(
+            assert all(
                 tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
                 for i in range(obj.shape[1])
             )
