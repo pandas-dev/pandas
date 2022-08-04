@@ -7,6 +7,7 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -59,7 +60,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import DataFrame
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.api import (
@@ -71,6 +71,9 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.date_converters import generic_parser
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 class ParserBase:

@@ -8,6 +8,7 @@ from abc import (
     abstractmethod,
 )
 from typing import (
+    TYPE_CHECKING,
     Iterator,
     Sequence,
 )
@@ -16,7 +17,8 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import DataFrameFormatter
+if TYPE_CHECKING:
+    from pandas.io.formats.format import DataFrameFormatter
 
 
 def _split_into_full_short_caption(

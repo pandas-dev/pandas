@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import datetime
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
     Tuple,
@@ -21,7 +22,9 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
-from pandas.io.formats.excel import ExcelCell
+
+if TYPE_CHECKING:
+    from pandas.io.formats.excel import ExcelCell
 
 
 class ODSWriter(ExcelWriter):

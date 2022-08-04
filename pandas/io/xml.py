@@ -34,7 +34,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
@@ -54,6 +53,8 @@ if TYPE_CHECKING:
         _Element,
         _XSLTResultTree,
     )
+
+    from pandas import DataFrame
 
 
 @doc(

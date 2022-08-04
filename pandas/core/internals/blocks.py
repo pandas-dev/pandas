@@ -98,7 +98,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -115,6 +114,7 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")

@@ -22,8 +22,6 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core.frame import DataFrame
-
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (
     LinePlot,
@@ -43,6 +41,8 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+
+    from pandas import DataFrame
 
 
 class HistPlot(LinePlot):

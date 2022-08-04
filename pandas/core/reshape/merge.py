@@ -73,7 +73,6 @@ from pandas import (
     MultiIndex,
     Series,
 )
-from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -85,6 +84,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
 
 
