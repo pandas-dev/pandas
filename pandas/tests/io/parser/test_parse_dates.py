@@ -1776,6 +1776,26 @@ def test_missing_parse_dates_column_raises(
         )
 
 
+def test_parse_missing_values(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/47950
+    parser = all_parsers
+    content = StringIO("""A,B\n2,2000-01-01\n,""")
+    result = parser.read_csv(content, parse_dates=["B"], usecols=["B"])
+    expected = DataFrame({"B": {0: Timestamp("2000-01-01 00:00:00"), 1: pd.NaT}})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_dates_with_missing_values():
+    # https://github.com/pandas-dev/pandas/issues/47950
+    # TODO: add test which gets here from read_csv, once
+    # https://github.com/pandas-dev/pandas/issues/47961 is addressed
+    dates = np.array(["3/31/2019", None], dtype=object)
+    times = np.array(["11:20", "10:45"], dtype=object)
+    result = pd._libs.tslibs.parsing.concat_date_cols((dates, times))
+    expected = np.array(["3/31/2019 11:20", None], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 @skip_pyarrow
 def test_date_parser_and_names(all_parsers):
     # GH#33699

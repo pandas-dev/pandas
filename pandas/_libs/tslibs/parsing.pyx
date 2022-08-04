@@ -1140,6 +1140,7 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndar
         flatiter it
         cnp.ndarray[object] result
         object[::1] result_view
+        bint missing_row
 
     if col_count == 0:
         return np.zeros(0, dtype=object)
@@ -1156,8 +1157,11 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndar
         it = <flatiter>PyArray_IterNew(array)
         for row_idx in range(rows_count):
             item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-            result_view[row_idx] = convert_to_unicode(item,
-                                                      keep_trivial_numbers)
+            if item is None:
+                result_view[row_idx] = item
+            else:
+                result_view[row_idx] = convert_to_unicode(item,
+                                                          keep_trivial_numbers)
             PyArray_ITER_NEXT(it)
     else:
         # create fixed size list - more efficient memory allocation
@@ -1172,14 +1176,21 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndar
 
         # array elements that are on the same line are converted to one string
         for row_idx in range(rows_count):
+            missing_row = 0
             for col_idx, array in enumerate(date_cols):
                 # this cast is needed, because we did not find a way
                 # to efficiently store `flatiter` type objects in ndarray
                 it = <flatiter>iters_view[col_idx]
                 item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
-                list_to_join[col_idx] = convert_to_unicode(item, False)
+                if item is None:
+                    missing_row = 1
+                else:
+                    list_to_join[col_idx] = convert_to_unicode(item, False)
                 PyArray_ITER_NEXT(it)
-            result_view[row_idx] = " ".join(list_to_join)
+            if missing_row:
+                result_view[row_idx] = None
+            else:
+                result_view[row_idx] = " ".join(list_to_join)
 
     return result
 
