@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.errors import DateTimeWarning
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -511,6 +512,15 @@ class TestPeriodIndex:
 
         # lastly, values should compare equal
         tm.assert_index_equal(res, expected)
+
+    def test_range_tz(self):
+        # GH 47005 Time zone should be ignored with warning.
+        with tm.assert_produces_warning(DateTimeWarning):
+            pi_tz = period_range(
+                "2022-01-01 06:00:00+02:00", "2022-01-01 09:00:00+02:00", freq="H"
+            )
+        pi_naive = period_range("2022-01-01 06:00:00", "2022-01-01 09:00:00", freq="H")
+        tm.assert_index_equal(pi_tz, pi_naive)
 
 
 class TestShallowCopy:

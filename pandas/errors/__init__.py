@@ -479,6 +479,12 @@ class DatabaseError(OSError):
     """
 
 
+class DateTimeWarning(UserWarning):
+    """
+    Warning raised for issues with interpreting dates and times.
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -487,6 +493,7 @@ __all__ = [
     "CSSWarning",
     "DatabaseError",
     "DataError",
+    "DateTimeWarning",
     "DtypeWarning",
     "DuplicateLabelError",
     "EmptyDataError",

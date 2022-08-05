@@ -25,7 +25,10 @@ from pandas._libs.tslibs.timezones import (
     maybe_get_tz,
     tz_compare,
 )
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    DateTimeWarning,
+    OutOfBoundsDatetime,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -661,7 +664,7 @@ class TestTimestampConversion:
         # GH#21333 make sure a warning is issued when timezone
         # info is lost
         ts = Timestamp("2009-04-15 16:17:18", tz="US/Eastern")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(DateTimeWarning):
             # warning that timezone info will be lost
             ts.to_period("D")
 

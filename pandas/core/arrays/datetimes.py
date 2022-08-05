@@ -41,6 +41,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import npt
 from pandas.errors import (
+    DateTimeWarning,
     OutOfBoundsDatetime,
     PerformanceWarning,
 )
@@ -1097,7 +1098,7 @@ default 'raise'
             warnings.warn(
                 "Converting to PeriodArray/Index representation "
                 "will drop timezone information.",
-                UserWarning,
+                DateTimeWarning,
             )
 
         if freq is None:
