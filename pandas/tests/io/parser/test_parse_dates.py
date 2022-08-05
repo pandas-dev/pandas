@@ -780,9 +780,7 @@ def test_nat_parse(all_parsers):
     with tm.ensure_clean("__nat_parse_.csv") as path:
         df.to_csv(path)
 
-        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
-            # pyarrow raises, but not the others, need to figure out why
-            result = parser.read_csv(path, index_col=0, parse_dates=["B"])
+        result = parser.read_csv(path, index_col=0, parse_dates=["B"])
         tm.assert_frame_equal(result, df)
 
 
