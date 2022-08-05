@@ -443,13 +443,11 @@ meaning and certain operations are possible. If the categorical is unordered, th
 but ``.min()/.max()`` will raise a ``TypeError``.
 
 .. ipython:: python
+    :okexcept:
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "a"], ordered=False))
     s.sort_values(ascending=False)
-    try:
-        s.min()
-    except TypeError as e:
-        print(f"TypeError: {e}")
+    s.min()
     s = s.astype(CategoricalDtype(ordered=True))
     s.sort_values()
     s.min(), s.max()
