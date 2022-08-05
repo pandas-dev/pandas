@@ -917,10 +917,7 @@ def test_multi_index_parse_dates(all_parsers, index_col):
         columns=["A", "B", "C"],
         index=index,
     )
-    with tm.assert_produces_warning(
-        UserWarning, match="Parsing datetime strings without a format specified"
-    ):
-        result = parser.read_csv(StringIO(data), index_col=index_col, parse_dates=True)
+    result = parser.read_csv(StringIO(data), index_col=index_col, parse_dates=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1168,15 +1165,16 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         columns=["nominal", "ID", "actualTime", "A", "B", "C", "D", "E"],
     )
     expected = expected.set_index("nominal")
-    with parser.read_csv_check_warnings(
-        UserWarning,
-        "Parsing datetime strings without a format specified",
+    with parser.read_csv(
         StringIO(data),
         parse_dates={"nominal": [1, 2]},
         index_col="nominal",
         chunksize=2,
     ) as reader:
-        chunks = list(reader)
+        with tm.assert_produces_warning(
+            UserWarning, match="without a format specified"
+        ):
+            chunks = list(reader)
 
     tm.assert_frame_equal(chunks[0], expected[:2])
     tm.assert_frame_equal(chunks[1], expected[2:4])
@@ -1592,9 +1590,7 @@ date,time,prn,rxstatus
             arr = [datetime.combine(d, t) for d, t in zip(dt, time)]
         return np.array(arr, dtype="datetime64[s]")
 
-    result = parser.read_csv_with_warnings(
-        UserWarning,
-        "without a format specified",
+    result = parser.read_csv(
         StringIO(data),
         date_parser=date_parser,
         parse_dates={"datetime": ["date", "time"]},
@@ -1678,34 +1674,13 @@ def test_parse_timezone(all_parsers):
 
 @skip_pyarrow
 @pytest.mark.parametrize(
-    "date_string, warning, msg",
-    [
-        ("32/32/2019", None, ""),
-        ("02/30/2019", None, ""),
-        ("13/13/2019", None, ""),
-        ("13/2019", None, ""),
-        (
-            "a3/11/2018",
-            UserWarning,
-            "Parsing datetime strings without a format specified",
-        ),
-        (
-            "10/11/2o17",
-            UserWarning,
-            "Parsing datetime strings without a format specified",
-        ),
-    ],
+    "date_string",
+    ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
 )
-def test_invalid_parse_delimited_date(all_parsers, date_string, warning, msg):
+def test_invalid_parse_delimited_date(all_parsers, date_string):
     parser = all_parsers
     expected = DataFrame({0: [date_string]}, dtype="object")
-    result = parser.read_csv_check_warnings(
-        warning,
-        msg,
-        StringIO(date_string),
-        header=None,
-        parse_dates=[0],
-    )
+    result = parser.read_csv(StringIO(date_string), header=None, parse_dates=[0])
     tm.assert_frame_equal(result, expected)
 
 
