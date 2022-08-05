@@ -688,9 +688,19 @@ def test_selection_api_validation():
 
 
 @pytest.mark.parametrize(
-    "col_name", ["t2", "t2x", "t2q", "T_2M", "t2p", "t2m", "t2m1", "T2M"]
+    "col_name, warn",
+    [
+        ("t2", None),
+        ("t2x", None),
+        ("t2q", None),
+        ("T_2M", None),
+        ("t2p", None),
+        ("t2m", UserWarning),
+        ("t2m1", UserWarning),
+        ("T2M", UserWarning),
+    ],
 )
-def test_agg_with_datetime_index_list_agg_func(col_name):
+def test_agg_with_datetime_index_list_agg_func(col_name, warn):
     # GH 22660
     # The parametrized column names would get converted to dates by our
     # date parser. Some would result in OutOfBoundsError (ValueError) while
@@ -703,7 +713,8 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         ),
         columns=[col_name],
     )
-    result = df.resample("1d").aggregate(["mean"])
+    with tm.assert_produces_warning(warn, match="without a format specified"):
+        result = df.resample("1d").aggregate(["mean"])
     expected = DataFrame(
         [47.5, 143.5, 195.5],
         index=date_range(start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"),

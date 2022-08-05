@@ -632,12 +632,14 @@ class TestLocBaseIndependent:
         ]
         df = DataFrame(values, index=mi, columns=cols)
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = (
+            "will attempt to set the values inplace instead|without a format specified"
+        )
+        with tm.assert_produces_warning((FutureWarning, UserWarning), match=msg):
             df.loc[:, ("Respondent", "StartDate")] = to_datetime(
                 df.loc[:, ("Respondent", "StartDate")]
             )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning((FutureWarning, UserWarning), match=msg):
             df.loc[:, ("Respondent", "EndDate")] = to_datetime(
                 df.loc[:, ("Respondent", "EndDate")]
             )
