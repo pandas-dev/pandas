@@ -143,42 +143,43 @@ def test_parsers_month_freq(date_str, expected):
 
 @td.skip_if_not_us_locale
 @pytest.mark.parametrize(
-    "string,fmt",
+    "string,fmt,warn",
     [
-        ("20111230", "%Y%m%d"),
-        ("2011-12-30", "%Y-%m-%d"),
-        ("30-12-2011", "%d-%m-%Y"),
-        ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
-        ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
-        ("2011-12-30T00:00:00UTC", "%Y-%m-%dT%H:%M:%S%Z"),
-        ("2011-12-30T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+9", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+09", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+090", None),
-        ("2011-12-30T00:00:00+0900", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00-0900", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+09:00", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+09:000", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+9:0", "%Y-%m-%dT%H:%M:%S%z"),
-        ("2011-12-30T00:00:00+09:", None),
-        ("2011-12-30T00:00:00.000000UTC", "%Y-%m-%dT%H:%M:%S.%f%Z"),
-        ("2011-12-30T00:00:00.000000Z", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+9", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+09", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+090", None),
-        ("2011-12-30T00:00:00.000000+0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000-0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+09:00", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+09:000", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+9:0", "%Y-%m-%dT%H:%M:%S.%f%z"),
-        ("2011-12-30T00:00:00.000000+09:", None),
-        ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f"),
-        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p"),
-        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
+        ("20111230", "%Y%m%d", UserWarning),
+        ("2011-12-30", "%Y-%m-%d", UserWarning),
+        ("30-12-2011", "%d-%m-%Y", UserWarning),
+        ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S", UserWarning),
+        ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S", UserWarning),
+        ("2011-12-30T00:00:00UTC", "%Y-%m-%dT%H:%M:%S%Z", UserWarning),
+        ("2011-12-30T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00+9", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00+09", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00+090", None, None),
+        ("2011-12-30T00:00:00+0900", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00-0900", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00+09:00", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00+09:000", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00+9:0", "%Y-%m-%dT%H:%M:%S%z", UserWarning),
+        ("2011-12-30T00:00:00+09:", None, None),
+        ("2011-12-30T00:00:00.000000UTC", "%Y-%m-%dT%H:%M:%S.%f%Z", UserWarning),
+        ("2011-12-30T00:00:00.000000Z", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000+9", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000+09", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000+090", None, None),
+        ("2011-12-30T00:00:00.000000+0900", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000-0900", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000+09:00", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000+09:000", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000+9:0", "%Y-%m-%dT%H:%M:%S.%f%z", UserWarning),
+        ("2011-12-30T00:00:00.000000+09:", None, None),
+        ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f", UserWarning),
+        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p", UserWarning),
+        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p", UserWarning),
     ],
 )
-def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    result = parsing.guess_datetime_format(string)
+def test_guess_datetime_format_with_parseable_formats(string, fmt, warn):
+    with tm.assert_produces_warning(warn, match="without a format specified"):
+        result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
@@ -200,7 +201,8 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ],
 )
 def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
-    result = parsing.guess_datetime_format(string)
+    with tm.assert_produces_warning(UserWarning, match="without a format specified"):
+        result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
