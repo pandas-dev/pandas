@@ -844,7 +844,13 @@ def test_yy_format_with_year_first(all_parsers, parse_dates):
 090331,0830,5,6
 """
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), index_col=0, parse_dates=parse_dates)
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "without a format specified",
+        StringIO(data),
+        index_col=0,
+        parse_dates=parse_dates,
+    )
     index = DatetimeIndex(
         [
             datetime(2009, 1, 31, 0, 10, 0),
