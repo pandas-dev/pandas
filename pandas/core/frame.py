@@ -4531,8 +4531,8 @@ class DataFrame(NDFrame, OpsMixin):
         # or through loc single_block_path
         if isinstance(value, DataFrame):
             return _reindex_for_setitem(value, self.index)
-        elif is_dict_like(value):
-            return _reindex_for_setitem(Series(value), self.index)
+        elif isinstance(value, Series):
+            return _reindex_for_setitem(value, self.index)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
