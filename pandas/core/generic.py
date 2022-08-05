@@ -3227,7 +3227,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        *,
         columns: Sequence[Hashable] | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool_t | Sequence[str] = True,
@@ -3460,7 +3459,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         column_format_: dict[str, Any] = {"axis": 1, **base_format_}
 
         if isinstance(float_format, str):
-            float_format_ = lambda x: float_format % x
+            float_format_: Callable | None = lambda x: float_format % x
         else:
             float_format_ = float_format
 
@@ -3470,8 +3469,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 return alt_format_(x)
 
+        formatters_: list | tuple | dict | Callable | None = None
         if isinstance(formatters, list):
-            formatters = {
+            formatters_ = {
                 c: functools.partial(_wrap, alt_format_=formatters[i])
                 for i, c in enumerate(self.columns)
             }
@@ -3483,36 +3483,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if column_formatter is not None:
                 column_format_.update({"formatter": column_formatter})
 
+            formatters_ = formatters
             float_columns = self.select_dtypes(include="float").columns
             for col in [c for c in float_columns if c not in formatters.keys()]:
-                formatters.update({col: float_format_})
+                formatters_.update({col: float_format_})
         elif formatters is None and float_format is not None:
-            formatters = functools.partial(_wrap, alt_format_=lambda v: v)
-        else:
-            formatters = None
+            formatters_ = functools.partial(_wrap, alt_format_=lambda v: v)
         format_index_ = [index_format_, column_format_]
 
         # Deal with hiding indexes and relabelling column names
-        hide, relabel_index = [], []
+        hide_: list[dict] = []
+        relabel_index_: list[dict] = []
         if columns:
-            hide.append(
+            hide_.append(
                 {
                     "subset": [c for c in self.columns if c not in columns],
                     "axis": "columns",
                 }
             )
         if header is False:
-            hide.append({"axis": "columns"})
+            hide_.append({"axis": "columns"})
         elif isinstance(header, (list, tuple)):
-            relabel_index = {"labels": header, "axis": "columns"}
+            relabel_index_.append({"labels": header, "axis": "columns"})
             format_index_ = [index_format_]  # column_format is overwritten
 
         if index is False:
-            hide.append({"axis": "index"})
+            hide_.append({"axis": "index"})
         if index_names is False:
-            hide.append({"names": True, "axis": "index"})
+            hide_.append({"names": True, "axis": "index"})
 
-        render_kwargs = {
+        render_kwargs_ = {
             "hrules": True,
             "sparse_index": sparsify,
             "sparse_columns": sparsify,
@@ -3533,11 +3533,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return self._to_latex_via_styler(
             buf,
-            hide=hide,
-            relabel_index=relabel_index,
-            format={"formatter": formatters, **base_format_},
+            hide=hide_,
+            relabel_index=relabel_index_,
+            format={"formatter": formatters_, **base_format_},
             format_index=format_index_,
-            render_kwargs=render_kwargs,
+            render_kwargs=render_kwargs_,
         )
 
     def _to_latex_via_styler(
