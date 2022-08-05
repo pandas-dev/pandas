@@ -1168,12 +1168,13 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         columns=["nominal", "ID", "actualTime", "A", "B", "C", "D", "E"],
     )
     expected = expected.set_index("nominal")
-    with parser.read_csv(
+    with parser.read_csv_check_warnings(
+        UserWarning,
+        "Parsing datetime strings without a format specified",
         StringIO(data),
         parse_dates={"nominal": [1, 2]},
         index_col="nominal",
         chunksize=2,
-        date_parser=lambda x: pd.to_datetime(x, format="%Y%m%d  %H:%M:%S"),
     ) as reader:
         chunks = list(reader)
 
@@ -1195,17 +1196,19 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
 
-    with_indices = parser.read_csv(
+    with_indices = parser.read_csv_check_warnings(
+        UserWarning,
+        "without a format specified",
         StringIO(data),
         parse_dates={"nominal": [1, 2]},
         index_col="nominal",
-        date_parser=lambda x: pd.to_datetime(x, format="%Y%m%d  %H:%M:%S"),
     )
-    with_names = parser.read_csv(
+    with_names = parser.read_csv_check_warnings(
+        UserWarning,
+        "without a format specified",
         StringIO(data),
         index_col="nominal",
         parse_dates={"nominal": ["date", "nominalTime"]},
-        date_parser=lambda x: pd.to_datetime(x, format="%Y%m%d  %H:%M:%S"),
     )
     tm.assert_frame_equal(with_indices, with_names)
 
@@ -1222,16 +1225,18 @@ KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "without a format specified",
         StringIO(data),
         index_col=["nominal", "ID"],
         parse_dates={"nominal": [1, 2]},
-        date_parser=lambda x: pd.to_datetime(x, format="%Y%m%d  %H:%M:%S"),
     )
-    expected = parser.read_csv(
+    expected = parser.read_csv_check_warnings(
+        UserWarning,
+        "without a format specified",
         StringIO(data),
         parse_dates={"nominal": [1, 2]},
-        date_parser=lambda x: pd.to_datetime(x, format="%Y%m%d  %H:%M:%S"),
     )
 
     expected = expected.set_index(["nominal", "ID"])
@@ -1268,38 +1273,21 @@ def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
 
 
 @pytest.mark.parametrize("cache_dates", [True, False])
-@pytest.mark.parametrize(
-    "value, warning",
-    [
-        (
-            "nan",
-            (None, ""),
-        ),
-        (
-            "0",
-            (UserWarning, "Parsing datetime strings without a format specified"),
-        ),
-        (
-            "",
-            (None, ""),
-        ),
-    ],
-)
-def test_bad_date_parse(all_parsers, cache_dates, value, warning):
+@pytest.mark.parametrize("value", ["nan", "0", ""])
+def test_bad_date_parse(all_parsers, cache_dates, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly
     parser = all_parsers
     s = StringIO((f"{value},\n") * 50000)
 
-    with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
-        parser.read_csv(
-            s,
-            header=None,
-            names=["foo", "bar"],
-            parse_dates=["foo"],
-            infer_datetime_format=False,
-            cache_dates=cache_dates,
-        )
+    parser.read_csv(
+        s,
+        header=None,
+        names=["foo", "bar"],
+        parse_dates=["foo"],
+        infer_datetime_format=False,
+        cache_dates=cache_dates,
+    )
 
 
 @xfail_pyarrow
