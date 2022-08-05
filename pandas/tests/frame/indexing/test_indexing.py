@@ -1340,6 +1340,22 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("val", [None, [None], pd.NA, [pd.NA]])
+    def test_iloc_setitem_string_list_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[[0], :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("val", [None, pd.NA])
+    def test_iloc_setitem_string_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[0, :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
