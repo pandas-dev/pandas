@@ -706,10 +706,6 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [np.nan, 10]})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame({"a": [1, 2]})
-        df.isetitem(0, DataFrame({"a": [10, 11]}, index=[1, 2]))
-        tm.assert_frame_equal(df, expected)
-
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
