@@ -10,6 +10,7 @@ from __future__ import annotations
 import collections
 import functools
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Generic,
     Hashable,
@@ -77,7 +78,6 @@ from pandas.core.arrays.masked import (
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
     CategoricalIndex,
@@ -94,6 +94,9 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 
 class WrappedCythonOp:
