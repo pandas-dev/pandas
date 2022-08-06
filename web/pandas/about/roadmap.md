@@ -17,7 +17,7 @@ tracked on our [issue tracker](https://github.com/pandas-dev/pandas/issues).
 
 The roadmap is defined as a set of major enhancement proposals named PDEPs.
 For more information about PDEPs, and how to submit one, please refer to
-[PEDP-1](/pdeps/accepted/0001-puropose-and-guidelines.html).
+[PEDP-1](/pdeps/0001-purpose-and-guidelines.html).
 
 ## PDEPs
 
