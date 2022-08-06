@@ -5141,6 +5141,7 @@ Keep all original rows and also all original values
             level=level,
             inplace=inplace,
             errors=errors,
+            copy=lib.no_default,
         )
 
     @overload

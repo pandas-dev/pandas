@@ -4376,6 +4376,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
+        copy: bool_t | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -4390,6 +4391,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
+        copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
 
@@ -4404,6 +4406,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = ...,
         inplace: bool_t = ...,
         errors: IgnoreRaise = ...,
+        copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
 
@@ -4417,9 +4420,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         inplace: bool_t = False,
         errors: IgnoreRaise = "raise",
+        *,
+        copy: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if copy is not lib.no_default:
+                raise ValueError("Cannot pass both inplace=True and copy")
+            copy = True
+        elif copy is lib.no_default:
+            copy = True
 
         if labels is not None:
             if index is not None or columns is not None:
@@ -4437,7 +4448,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         for axis, labels in axes.items():
             if labels is not None:
-                obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+                obj = obj._drop_axis(
+                    labels, axis, level=level, errors=errors, only_slice=not copy
+                )
 
         if inplace:
             self._update_inplace(obj)

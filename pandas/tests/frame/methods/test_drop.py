@@ -67,6 +67,25 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
 
 
 class TestDataFrameDrop:
+    def test_drop_copy(self):
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5], [5, 6, 7]],
+            index=["a", "b", "c"],
+            columns=["d", "e", "f"],
+        )
+
+        msg = "Cannot pass both inplace=True and copy"
+        with pytest.raises(ValueError, match=msg):
+            df.drop("d", axis=1, inplace=True, copy=True)
+        with pytest.raises(ValueError, match=msg):
+            df.drop("d", axis=1, inplace=True, copy=False)
+
+        res = df.drop("d", axis=1, copy=True)
+        assert not any(tm.shares_memory(res[c], df[c]) for c in res.columns)
+
+        res = df.drop("d", axis=1, copy=False)
+        assert all(tm.shares_memory(res[c], df[c]) for c in res.columns)
+
     def test_drop_names(self):
         df = DataFrame(
             [[1, 2, 3], [3, 4, 5], [5, 6, 7]],

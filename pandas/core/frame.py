@@ -5096,6 +5096,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5110,6 +5111,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -5124,6 +5126,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level | None = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -5139,6 +5142,8 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
+        *,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Drop specified labels from rows or columns.
@@ -5171,6 +5176,10 @@ class DataFrame(NDFrame, OpsMixin):
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
+        copy : bool, default True
+            If False and axis == 1, do not make a copy of the underlying data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5285,6 +5294,7 @@ class DataFrame(NDFrame, OpsMixin):
             level=level,
             inplace=inplace,
             errors=errors,
+            copy=copy,
         )
 
     @overload
