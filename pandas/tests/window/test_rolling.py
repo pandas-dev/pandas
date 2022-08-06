@@ -170,19 +170,19 @@ def test_numpy_compat(method):
             getattr(r, method)(dtype=np.float64)
 
 
-@pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
-def test_closed_fixed(closed, arithmetic_win_operators):
+@pytest.mark.parametrize("inclusive", ["right", "left", "both", "neither"])
+def test_closed_fixed(inclusive, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
     df_fixed = DataFrame({"A": [0, 1, 2, 3, 4]})
     df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
 
     result = getattr(
-        df_fixed.rolling(2, closed=closed, min_periods=1),
+        df_fixed.rolling(2, inclusive=inclusive, min_periods=1),
         func_name,
     )()
     expected = getattr(
-        df_time.rolling("2D", closed=closed, min_periods=1),
+        df_time.rolling("2D", inclusive=inclusive, min_periods=1),
         func_name,
     )().reset_index(drop=True)
 
@@ -190,7 +190,7 @@ def test_closed_fixed(closed, arithmetic_win_operators):
 
 
 @pytest.mark.parametrize(
-    "closed, window_selections",
+    "inclusive, window_selections",
     [
         (
             "both",
@@ -235,7 +235,7 @@ def test_closed_fixed(closed, arithmetic_win_operators):
     ],
 )
 def test_datetimelike_centered_selections(
-    closed, window_selections, arithmetic_win_operators
+    inclusive, window_selections, arithmetic_win_operators
 ):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -254,7 +254,7 @@ def test_datetimelike_centered_selections(
         kwargs = {}
 
     result = getattr(
-        df_time.rolling("2D", closed=closed, min_periods=1, center=True),
+        df_time.rolling("2D", inclusive=inclusive, min_periods=1, center=True),
         func_name,
     )(**kwargs)
 
@@ -262,7 +262,7 @@ def test_datetimelike_centered_selections(
 
 
 @pytest.mark.parametrize(
-    "window,closed,expected",
+    "window,inclusive,expected",
     [
         ("3s", "right", [3.0, 3.0, 3.0]),
         ("3s", "both", [3.0, 3.0, 3.0]),
@@ -275,7 +275,7 @@ def test_datetimelike_centered_selections(
     ],
 )
 def test_datetimelike_centered_offset_covers_all(
-    window, closed, expected, frame_or_series
+    window, inclusive, expected, frame_or_series
 ):
     # GH 42753
 
@@ -286,13 +286,13 @@ def test_datetimelike_centered_offset_covers_all(
     ]
     df = frame_or_series([1, 1, 1], index=index)
 
-    result = df.rolling(window, closed=closed, center=True).sum()
+    result = df.rolling(window, inclusive=inclusive, center=True).sum()
     expected = frame_or_series(expected, index=index)
     tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "window,closed,expected",
+    "window,inclusive,expected",
     [
         ("2D", "right", [4, 4, 4, 4, 4, 4, 2, 2]),
         ("2D", "left", [2, 2, 4, 4, 4, 4, 4, 4]),
@@ -301,7 +301,7 @@ def test_datetimelike_centered_offset_covers_all(
     ],
 )
 def test_datetimelike_nonunique_index_centering(
-    window, closed, expected, frame_or_series
+    window, inclusive, expected, frame_or_series
 ):
     index = DatetimeIndex(
         [
@@ -319,7 +319,7 @@ def test_datetimelike_nonunique_index_centering(
     df = frame_or_series([1] * 8, index=index, dtype=float)
     expected = frame_or_series(expected, index=index, dtype=float)
 
-    result = df.rolling(window, center=True, closed=closed).sum()
+    result = df.rolling(window, center=True, inclusive=inclusive).sum()
 
     tm.assert_equal(result, expected)
 
@@ -358,18 +358,18 @@ def test_closed_fixed_binary_col(center, step):
     )[::step]
 
     rolling = df.rolling(
-        window=len(df), closed="left", min_periods=1, center=center, step=step
+        window=len(df), inclusive="left", min_periods=1, center=center, step=step
     )
     result = rolling.mean()
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("closed", ["neither", "left"])
-def test_closed_empty(closed, arithmetic_win_operators):
+@pytest.mark.parametrize("inclusive", ["neither", "left"])
+def test_closed_empty(inclusive, arithmetic_win_operators):
     # GH 26005
     func_name = arithmetic_win_operators
     ser = Series(data=np.arange(5), index=date_range("2000", periods=5, freq="2D"))
-    roll = ser.rolling("1D", closed=closed)
+    roll = ser.rolling("1D", inclusive=inclusive)
 
     result = getattr(roll, func_name)()
     expected = Series([np.nan] * 5, index=ser.index)
@@ -380,7 +380,7 @@ def test_closed_empty(closed, arithmetic_win_operators):
 def test_closed_one_entry(func):
     # GH24718
     ser = Series(data=[2], index=date_range("2000", periods=1))
-    result = getattr(ser.rolling("10D", closed="left"), func)()
+    result = getattr(ser.rolling("10D", inclusive="left"), func)()
     tm.assert_series_equal(result, Series([np.nan], index=ser.index))
 
 
@@ -392,7 +392,7 @@ def test_closed_one_entry_groupby(func):
         index=date_range("2000", periods=3),
     )
     result = getattr(
-        ser.groupby("A", sort=False)["B"].rolling("10D", closed="left"), func
+        ser.groupby("A", sort=False)["B"].rolling("10D", inclusive="left"), func
     )()
     exp_idx = MultiIndex.from_arrays(arrays=[[1, 1, 2], ser.index], names=("A", None))
     expected = Series(data=[np.nan, 3, np.nan], index=exp_idx, name="B")
@@ -401,7 +401,7 @@ def test_closed_one_entry_groupby(func):
 
 @pytest.mark.parametrize("input_dtype", ["int", "float"])
 @pytest.mark.parametrize(
-    "func,closed,expected",
+    "func,inclusive,expected",
     [
         ("min", "right", [0.0, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
         ("min", "both", [0.0, 0, 0, 0, 1, 2, 3, 4, 5, 6]),
@@ -413,14 +413,14 @@ def test_closed_one_entry_groupby(func):
         ("max", "left", [np.nan, 0, 1, 2, 3, 4, 5, 6, 7, 8]),
     ],
 )
-def test_closed_min_max_datetime(input_dtype, func, closed, expected):
+def test_closed_min_max_datetime(input_dtype, func, inclusive, expected):
     # see gh-21704
     ser = Series(
         data=np.arange(10).astype(input_dtype),
         index=date_range("2000", periods=10),
     )
 
-    result = getattr(ser.rolling("3D", closed=closed), func)()
+    result = getattr(ser.rolling("3D", inclusive=inclusive), func)()
     expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
@@ -431,13 +431,13 @@ def test_closed_uneven():
 
     # uneven
     ser = ser.drop(index=ser.index[[1, 5]])
-    result = ser.rolling("3D", closed="left").min()
+    result = ser.rolling("3D", inclusive="left").min()
     expected = Series([np.nan, 0, 0, 2, 3, 4, 6, 6], index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "func,closed,expected",
+    "func,inclusive,expected",
     [
         ("min", "right", [np.nan, 0, 0, 1, 2, 3, 4, 5, np.nan, np.nan]),
         ("min", "both", [np.nan, 0, 0, 0, 1, 2, 3, 4, 5, np.nan]),
@@ -449,17 +449,17 @@ def test_closed_uneven():
         ("max", "left", [np.nan, np.nan, 1, 2, 3, 4, 5, 6, 6, np.nan]),
     ],
 )
-def test_closed_min_max_minp(func, closed, expected):
+def test_closed_min_max_minp(func, inclusive, expected):
     # see gh-21704
     ser = Series(data=np.arange(10), index=date_range("2000", periods=10))
     ser[ser.index[-3:]] = np.nan
-    result = getattr(ser.rolling("3D", min_periods=2, closed=closed), func)()
+    result = getattr(ser.rolling("3D", min_periods=2, inclusive=inclusive), func)()
     expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "closed,expected",
+    "inclusive,expected",
     [
         ("right", [0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8]),
         ("both", [0, 0.5, 1, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]),
@@ -467,10 +467,10 @@ def test_closed_min_max_minp(func, closed, expected):
         ("left", [np.nan, 0, 0.5, 1, 2, 3, 4, 5, 6, 7]),
     ],
 )
-def test_closed_median_quantile(closed, expected):
+def test_closed_median_quantile(inclusive, expected):
     # GH 26005
     ser = Series(data=np.arange(10), index=date_range("2000", periods=10))
-    roll = ser.rolling("3D", closed=closed)
+    roll = ser.rolling("3D", inclusive=inclusive)
     expected = Series(expected, index=ser.index)
 
     result = roll.median()
@@ -707,7 +707,7 @@ def test_rolling_window_as_string(center, expected_data):
     df = DataFrame({"DateCol": days, "metric": data})
 
     df.set_index("DateCol", inplace=True)
-    result = df.rolling(window="21D", min_periods=2, closed="left", center=center)[
+    result = df.rolling(window="21D", min_periods=2, inclusive="left", center=center)[
         "metric"
     ].agg("max")
 
@@ -1176,7 +1176,7 @@ def test_rolling_on_df_transposed():
 def test_rolling_period_index(index, window, func, values):
     # GH: 34225
     ds = Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
-    result = getattr(ds.rolling(window, closed="left"), func)()
+    result = getattr(ds.rolling(window, inclusive="left"), func)()
     expected = Series(values, index=index)
     tm.assert_series_equal(result, expected)
 
@@ -1290,7 +1290,7 @@ def test_rolling_decreasing_indices(method):
 
 
 @pytest.mark.parametrize(
-    "window,closed,expected",
+    "window,inclusive,expected",
     [
         ("2s", "right", [1.0, 3.0, 5.0, 3.0]),
         ("2s", "left", [0.0, 1.0, 3.0, 5.0]),
@@ -1302,7 +1302,9 @@ def test_rolling_decreasing_indices(method):
         ("3s", "neither", [1.0, 3.0, 6.0, 5.0]),
     ],
 )
-def test_rolling_decreasing_indices_centered(window, closed, expected, frame_or_series):
+def test_rolling_decreasing_indices_centered(
+    window, inclusive, expected, frame_or_series
+):
     """
     Ensure that a symmetrical inverted index return same result as non-inverted.
     """
@@ -1315,8 +1317,8 @@ def test_rolling_decreasing_indices_centered(window, closed, expected, frame_or_
     expected_inc = frame_or_series(expected, index=index)
     expected_dec = frame_or_series(expected, index=index[::-1])
 
-    result_inc = df_inc.rolling(window, closed=closed, center=True).sum()
-    result_dec = df_dec.rolling(window, closed=closed, center=True).sum()
+    result_inc = df_inc.rolling(window, inclusive=inclusive, center=True).sum()
+    result_dec = df_dec.rolling(window, inclusive=inclusive, center=True).sum()
 
     tm.assert_equal(result_inc, expected_inc)
     tm.assert_equal(result_dec, expected_dec)
@@ -1335,7 +1337,7 @@ def test_rolling_center_nanosecond_resolution(
     index = date_range("2020", periods=4, freq="1ns")
     df = frame_or_series([1, 1, 1, 1], index=index, dtype=float)
     expected = frame_or_series(expected, index=index, dtype=float)
-    result = df.rolling(window, closed=closed, center=True).sum()
+    result = df.rolling(window, inclusive=closed, center=True).sum()
     tm.assert_equal(result, expected)
 
 
@@ -1405,7 +1407,7 @@ def test_rolling_non_monotonic(method, expected):
     df = DataFrame({"values": np.arange(len(use_expanding)) ** 2})
 
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed, step):
+        def get_window_bounds(self, num_values, min_periods, center, inclusive, step):
             start = np.empty(num_values, dtype=np.int64)
             end = np.empty(num_values, dtype=np.int64)
             for i in range(num_values):
@@ -1500,11 +1502,11 @@ def test_rolling_descending_date_order_with_offset(window, frame_or_series):
     # GH#40002
     idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
     obj = frame_or_series(range(1, 4), index=idx)
-    result = obj.rolling("1d", closed="left").sum()
+    result = obj.rolling("1d", inclusive="left").sum()
     expected = frame_or_series([np.nan, 1, 2], index=idx)
     tm.assert_equal(result, expected)
 
-    result = obj.iloc[::-1].rolling("1d", closed="left").sum()
+    result = obj.iloc[::-1].rolling("1d", inclusive="left").sum()
     idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1d")
     expected = frame_or_series([np.nan, 3, 2], index=idx)
     tm.assert_equal(result, expected)

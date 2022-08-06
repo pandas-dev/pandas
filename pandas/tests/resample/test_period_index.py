@@ -497,7 +497,7 @@ class TestPeriodIndex:
         )
         s = Series([1, 2], index=idx)
 
-        result = s.resample("D", closed="right", label="right").mean()
+        result = s.resample("D", inclusive="right", label="right").mean()
         ex_index = date_range("2001-09-21", periods=1, freq="D", tz="Australia/Sydney")
         expected = Series([1.5], index=ex_index)
 
@@ -538,12 +538,12 @@ class TestPeriodIndex:
         )
         s[0] = np.nan
 
-        result = s.resample("10min", closed="left", label="right").mean()
-        exp = s[1:].resample("10min", closed="left", label="right").mean()
+        result = s.resample("10min", inclusive="left", label="right").mean()
+        exp = s[1:].resample("10min", inclusive="left", label="right").mean()
         tm.assert_series_equal(result, exp)
 
-        result = s.resample("10min", closed="left", label="left").mean()
-        exp = s[1:].resample("10min", closed="left", label="left").mean()
+        result = s.resample("10min", inclusive="left", label="left").mean()
+        exp = s[1:].resample("10min", inclusive="left", label="left").mean()
 
         ex_index = date_range(start="1/1/2012 9:30", freq="10min", periods=3)
 
@@ -566,7 +566,7 @@ class TestPeriodIndex:
         df = DataFrame(data, columns=["open", "high", "low", "close", "vol"], index=ind)
 
         # it works!
-        df.resample("W-MON", closed="left", label="left").first()
+        df.resample("W-MON", inclusive="left", label="left").first()
 
     def test_resample_with_dst_time_change(self):
         # GH 15549
@@ -576,7 +576,7 @@ class TestPeriodIndex:
             .tz_convert("America/Chicago")
         )
         df = DataFrame([1, 2], index=index)
-        result = df.resample("12h", closed="right", label="right").last().ffill()
+        result = df.resample("12h", inclusive="right", label="right").last().ffill()
 
         expected_index_values = [
             "2016-03-09 12:00:00-06:00",
@@ -634,7 +634,7 @@ class TestPeriodIndex:
 
         resampled = df.resample(to_freq).mean()
         tm.assert_frame_equal(
-            resampled, df.resample(to_freq, closed="right", label="right").mean()
+            resampled, df.resample(to_freq, inclusive="right", label="right").mean()
         )
 
     @pytest.mark.parametrize(
@@ -647,7 +647,7 @@ class TestPeriodIndex:
 
         resampled = df.resample(to_freq).mean()
         tm.assert_frame_equal(
-            resampled, df.resample(to_freq, closed="left", label="left").mean()
+            resampled, df.resample(to_freq, inclusive="left", label="left").mean()
         )
 
     def test_all_values_single_bin(self):

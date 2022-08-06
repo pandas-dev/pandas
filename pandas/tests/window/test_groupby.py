@@ -452,7 +452,7 @@ class TestRolling:
                 num_values=0,
                 min_periods=None,
                 center=None,
-                closed=None,
+                inclusive=None,
                 step=None,
             ):
                 min_periods = self.window_size if min_periods is None else 0
@@ -483,7 +483,9 @@ class TestRolling:
             }
         )
         result = (
-            df.groupby("group").rolling("1D", on="date", closed="left")["column1"].sum()
+            df.groupby("group")
+            .rolling("1D", on="date", inclusive="left")["column1"]
+            .sum()
         )
         expected = Series(
             [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
@@ -509,7 +511,7 @@ class TestRolling:
 
         result = (
             df.groupby("group")[["column1", "date"]]
-            .rolling("1D", on="date", closed="left")["column1"]
+            .rolling("1D", on="date", inclusive="left")["column1"]
             .sum()
         )
         expected = Series(
@@ -629,7 +631,7 @@ class TestRolling:
         )
         result = (
             df.groupby("group")
-            .rolling("3d", on="date", closed="left")["column1"]
+            .rolling("3d", on="date", inclusive="left")["column1"]
             .count()
         )
         expected = Series(
@@ -796,7 +798,7 @@ class TestRolling:
         assert not g.grouper.mutated
 
     @pytest.mark.parametrize(
-        ("window", "min_periods", "closed", "expected"),
+        ("window", "min_periods", "inclusive", "expected"),
         [
             (2, 0, "left", [None, 0.0, 1.0, 1.0, None, 0.0, 1.0, 1.0]),
             (2, 2, "left", [None, None, 1.0, 1.0, None, None, 1.0, 1.0]),
@@ -804,11 +806,11 @@ class TestRolling:
             (4, 4, "right", [None, None, None, 5.0, None, None, None, 5.0]),
         ],
     )
-    def test_groupby_rolling_var(self, window, min_periods, closed, expected):
+    def test_groupby_rolling_var(self, window, min_periods, inclusive, expected):
         df = DataFrame([1, 2, 3, 4, 5, 6, 7, 8])
         result = (
             df.groupby([1, 2, 1, 2, 1, 2, 1, 2])
-            .rolling(window=window, min_periods=min_periods, closed=closed)
+            .rolling(window=window, min_periods=min_periods, inclusive=inclusive)
             .var(0)
         )
         expected_result = DataFrame(

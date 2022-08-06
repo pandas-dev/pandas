@@ -358,7 +358,7 @@ def test_dont_modify_attributes_after_methods(
 ):
     # GH 39554
     roll_obj = Series(range(1)).rolling(
-        1, center=center, closed=closed, min_periods=min_periods, step=step
+        1, center=center, inclusive=closed, min_periods=min_periods, step=step
     )
     expected = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
     getattr(roll_obj, arithmetic_win_operators)()

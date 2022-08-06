@@ -11287,7 +11287,7 @@ Parrot 2  Parrot       24.0
         self,
         rule,
         axis=0,
-        closed: str | None = None,
+        inclusive: str | None = None,
         label: str | None = None,
         convention: str = "start",
         kind: str | None = None,
@@ -11302,7 +11302,7 @@ Parrot 2  Parrot       24.0
         return super().resample(
             rule=rule,
             axis=axis,
-            closed=closed,
+            inclusive=inclusive,
             label=label,
             convention=convention,
             kind=kind,

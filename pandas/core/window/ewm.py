@@ -368,7 +368,7 @@ class ExponentialMovingWindow(BaseWindow):
             min_periods=1 if min_periods is None else max(int(min_periods), 1),
             on=None,
             center=False,
-            closed=None,
+            inclusive=None,
             method=method,
             axis=axis,
             selection=selection,
@@ -779,7 +779,7 @@ class ExponentialMovingWindow(BaseWindow):
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
-                closed=self.closed,
+                inclusive=self.inclusive,
                 step=self.step,
             )
             result = window_aggregations.ewmcov(
@@ -853,7 +853,7 @@ class ExponentialMovingWindow(BaseWindow):
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
-                closed=self.closed,
+                inclusive=self.inclusive,
                 step=self.step,
             )
 

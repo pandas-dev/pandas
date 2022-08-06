@@ -112,7 +112,7 @@ def test_resample_loffset(loffset):
 
     with tm.assert_produces_warning(FutureWarning):
         result = s.resample(
-            "5min", closed="right", label="right", loffset=loffset
+            "5min", inclusive="right", label="right", loffset=loffset
         ).mean()
     idx = date_range("1/1/2000", periods=4, freq="5min")
     expected = Series(
@@ -141,7 +141,7 @@ def test_resample_loffset_upsample():
 
     with tm.assert_produces_warning(FutureWarning):
         result = s.resample(
-            "5min", closed="right", label="right", loffset=timedelta(minutes=1)
+            "5min", inclusive="right", label="right", loffset=timedelta(minutes=1)
         ).ffill()
     idx = date_range("1/1/2000", periods=4, freq="5min")
     expected = Series([s[0], s[5], s[10], s[-1]], index=idx + timedelta(minutes=1))

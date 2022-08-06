@@ -65,7 +65,7 @@ def test_custom_grouper(index):
     for f in funcs:
         g._cython_agg_general(f, alt=None, numeric_only=True)
 
-    b = Grouper(freq=Minute(5), closed="right", label="right")
+    b = Grouper(freq=Minute(5), inclusive="right", label="right")
     g = s.groupby(b)
     # check all cython functions work
     g.ohlc()  # doesn't use _cython_agg_general
@@ -89,7 +89,7 @@ def test_custom_grouper(index):
 
 
 def test_custom_grouper_df(index):
-    b = Grouper(freq=Minute(5), closed="right", label="right")
+    b = Grouper(freq=Minute(5), inclusive="right", label="right")
     dti = index
     df = DataFrame(np.random.rand(len(dti), 10), index=dti, dtype="float64")
     r = df.groupby(b).agg(np.sum)
@@ -103,7 +103,7 @@ def test_custom_grouper_df(index):
     [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
 )
 @pytest.mark.parametrize(
-    "closed, expected",
+    "inclusive, expected",
     [
         (
             "right",
@@ -123,10 +123,10 @@ def test_custom_grouper_df(index):
         ),
     ],
 )
-def test_resample_basic(series, closed, expected):
+def test_resample_basic(series, inclusive, expected):
     s = series
     expected = expected(s)
-    result = s.resample("5min", closed=closed, label="right").mean()
+    result = s.resample("5min", inclusive=inclusive, label="right").mean()
     tm.assert_series_equal(result, expected)
 
 
@@ -155,7 +155,7 @@ def test_resample_integerarray():
 def test_resample_basic_grouper(series):
     s = series
     result = s.resample("5Min").last()
-    grouper = Grouper(freq=Minute(5), closed="left", label="left")
+    grouper = Grouper(freq=Minute(5), inclusive="left", label="left")
     expected = s.groupby(grouper).agg(lambda x: x[-1])
     tm.assert_series_equal(result, expected)
 
@@ -166,7 +166,7 @@ def test_resample_basic_grouper(series):
 )
 @pytest.mark.parametrize(
     "keyword,value",
-    [("label", "righttt"), ("closed", "righttt"), ("convention", "starttt")],
+    [("label", "righttt"), ("inclusive", "righttt"), ("convention", "starttt")],
 )
 def test_resample_string_kwargs(series, keyword, value):
     # see gh-19303
@@ -194,7 +194,7 @@ def test_resample_how(series, downsample_method):
     expected.index = date_range("1/1/2000", periods=4, freq="5min", name="index")
 
     result = getattr(
-        s.resample("5min", closed="right", label="right"), downsample_method
+        s.resample("5min", inclusive="right", label="right"), downsample_method
     )()
     tm.assert_series_equal(result, expected)
 
@@ -222,7 +222,7 @@ def test_resample_how_ohlc(series):
         columns=["open", "high", "low", "close"],
     )
 
-    result = s.resample("5min", closed="right", label="right").ohlc()
+    result = s.resample("5min", inclusive="right", label="right").ohlc()
     tm.assert_frame_equal(result, expected)
 
 
@@ -635,7 +635,7 @@ def test_resample_dup_index():
 def test_resample_reresample():
     dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D")
     s = Series(np.random.rand(len(dti)), dti)
-    bs = s.resample("B", closed="right", label="right").mean()
+    bs = s.resample("B", inclusive="right", label="right").mean()
     result = bs.resample("8H").mean()
     assert len(result) == 22
     assert isinstance(result.index.freq, offsets.DateOffset)
@@ -668,7 +668,7 @@ def test_ohlc_5min():
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 5:59:50", freq="10s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    resampled = ts.resample("5min", closed="right", label="right").ohlc()
+    resampled = ts.resample("5min", inclusive="right", label="right").ohlc()
 
     assert (resampled.loc["1/1/2000 00:00"] == ts[0]).all()
 
@@ -723,8 +723,8 @@ def test_resample_anchored_ticks(freq):
     rng = date_range("1/1/2000 04:00:00", periods=86400, freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
     ts[:2] = np.nan  # so results are the same
-    result = ts[2:].resample(freq, closed="left", label="left").mean()
-    expected = ts.resample(freq, closed="left", label="left").mean()
+    result = ts[2:].resample(freq, inclusive="left", label="left").mean()
+    expected = ts.resample(freq, inclusive="left", label="left").mean()
     tm.assert_series_equal(result, expected)
 
 
@@ -951,8 +951,8 @@ def test_resample_daily_anchored():
     ts = Series(np.random.randn(len(rng)), index=rng)
     ts[:2] = np.nan  # so results are the same
 
-    result = ts[2:].resample("D", closed="left", label="left").mean()
-    expected = ts.resample("D", closed="left", label="left").mean()
+    result = ts[2:].resample("D", inclusive="left", label="left").mean()
+    expected = ts.resample("D", inclusive="left", label="left").mean()
     tm.assert_series_equal(result, expected)
 
 
@@ -1083,7 +1083,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     assert expected.index.freq == "M"
     tm.assert_frame_equal(result, expected)
 
-    result = df.resample("M", closed="left").mean()
+    result = df.resample("M", inclusive="left").mean()
     exp = df.shift(1, freq="D").resample("M", kind="period").mean()
     exp = exp.to_timestamp(how="end")
 
@@ -1102,8 +1102,10 @@ def test_resample_anchored_intraday(simple_date_range_series):
     expected.index._freq = lib.no_default
     tm.assert_frame_equal(result, expected)
 
-    result = df.resample("Q", closed="left").mean()
-    expected = df.shift(1, freq="D").resample("Q", kind="period", closed="left").mean()
+    result = df.resample("Q", inclusive="left").mean()
+    expected = (
+        df.shift(1, freq="D").resample("Q", kind="period", inclusive="left").mean()
+    )
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "Q"
@@ -1146,7 +1148,7 @@ def test_corner_cases():
     rng = date_range("1/1/2000", periods=12, freq="t")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    result = ts.resample("5t", closed="right", label="left").mean()
+    result = ts.resample("5t", inclusive="right", label="left").mean()
     ex_index = date_range("1999-12-31 23:55", periods=4, freq="5t")
     tm.assert_index_equal(result.index, ex_index)
 

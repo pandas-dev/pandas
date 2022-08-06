@@ -29,13 +29,13 @@ def test_str():
 
     r = test_series.resample("H")
     assert (
-        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "DatetimeIndexResampler [freq=<Hour>, axis=0, inclusive=left, "
         "label=left, convention=start, origin=start_day]" in str(r)
     )
 
     r = test_series.resample("H", origin="2000-01-01")
     assert (
-        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "DatetimeIndexResampler [freq=<Hour>, axis=0, inclusive=left, "
         "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
     )
 
@@ -737,7 +737,7 @@ def test_resample_agg_readonly():
 
 
 @pytest.mark.parametrize(
-    "start,end,freq,data,resample_freq,origin,closed,exp_data,exp_end,exp_periods",
+    "start,end,freq,data,resample_freq,origin,inclusive,exp_data,exp_end,exp_periods",
     [
         (
             "2000-10-01 23:30:00",
@@ -796,7 +796,7 @@ def test_end_and_end_day_origin(
     data,
     resample_freq,
     origin,
-    closed,
+    inclusive,
     exp_data,
     exp_end,
     exp_periods,
@@ -804,7 +804,7 @@ def test_end_and_end_day_origin(
     rng = date_range(start, end, freq=freq)
     ts = Series(data, index=rng)
 
-    res = ts.resample(resample_freq, origin=origin, closed=closed).sum()
+    res = ts.resample(resample_freq, origin=origin, inclusive=inclusive).sum()
     expected = Series(
         exp_data,
         index=date_range(end=exp_end, freq=resample_freq, periods=exp_periods),

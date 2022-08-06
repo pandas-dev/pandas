@@ -66,7 +66,7 @@ class TestFrameAsof:
 
         # B gives df.asof
         result = df.asof(dates, subset="B")
-        expected = df.resample("25s", closed="right").ffill().reindex(dates)
+        expected = df.resample("25s", inclusive="right").ffill().reindex(dates)
         expected.iloc[20:] = 9
         # no "missing", so "B" can retain int dtype (df["A"].dtype platform-dependent)
         expected["B"] = expected["B"].astype(df["B"].dtype)
