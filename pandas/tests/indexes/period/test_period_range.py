@@ -20,7 +20,7 @@ class TestPeriodRange:
         with pytest.raises(ValueError, match=msg):
             period_range("2011-1-1", "2012-1-1", "B")
 
-    @pytest.mark.parametrize("freq", ["D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["D", "M", "Q", "A"])
     def test_construction_from_string(self, freq):
         # non-empty
         expected = date_range(

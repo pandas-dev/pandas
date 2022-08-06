@@ -1,5 +1,7 @@
 import warnings
 
+from pandas.errors import DateTimeWarning
+
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -2585,6 +2587,13 @@ class Period(_Period):
                     reso = 'nanosecond'
             if dt is NaT:
                 ordinal = NPY_NAT
+            elif dt.tzinfo:
+                # GH 47005
+                warnings.warn(
+                    "The pandas.Period class does not support timezones. "
+                    "The timezone given in '%s' will be ignored." % value,
+                    DateTimeWarning
+                )
 
             if freq is None:
                 try:
