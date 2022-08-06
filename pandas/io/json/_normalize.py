@@ -21,6 +21,7 @@ from pandas._typing import (
     Scalar,
 )
 from pandas.util._decorators import deprecate
+
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
