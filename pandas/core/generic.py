@@ -1742,7 +1742,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(msg)
 
     @final
-    def _get_label_or_level_values(self, key: str, axis: int = 0) -> np.ndarray:
+    def _get_label_or_level_values(self, key: Level, axis: int = 0) -> np.ndarray:
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -6586,7 +6586,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @overload
     def fillna(
-        self: NDFrameT,
+        self,
         value: Hashable | Mapping | Series | DataFrame = ...,
         *,
         method: FillnaOptions | None = ...,
