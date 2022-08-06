@@ -26,6 +26,7 @@ from pandas._libs.tslibs.timezones import (
     dateutil_gettz,
     maybe_get_tz,
 )
+from pandas.errors import DateTimeWarning
 
 import pandas as pd
 from pandas import (
@@ -1616,3 +1617,18 @@ def test_invalid_frequency_error_message():
     msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
     with pytest.raises(ValueError, match=msg):
         Period("2012-01-02", freq="WOM-1MON")
+
+
+@pytest.mark.parametrize(
+    "val",
+    [
+        ("20220101T123456", "Z"),
+        ("2012-12-12T06:06:06", "-06:00"),
+    ],
+)
+def test_period_with_timezone(val):
+    # GH 47005 Time zone should be ignored with warning.
+    with tm.assert_produces_warning(DateTimeWarning):
+        p_tz = Period("".join(val), freq="s")
+    p_naive = Period(val[0], freq="s")
+    assert p_tz == p_naive
