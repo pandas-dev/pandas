@@ -2585,13 +2585,6 @@ class Period(_Period):
                     reso = 'nanosecond'
             if dt is NaT:
                 ordinal = NPY_NAT
-            elif dt.tzinfo:
-                # GH 47005
-                warnings.warn(
-                    "The pandas.Period class does not support timezones. "
-                    "The timezone given in '%s' will be ignored." % value,
-                    UserWarning
-                )
 
             if freq is None:
                 try:
@@ -2621,6 +2614,13 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
+            if dt.tzinfo:
+                # GH 47005
+                warnings.warn(
+                    "The pandas.Period class does not support timezones. "
+                    "The timezone given in '%s' will be ignored." % value,
+                    UserWarning
+                )
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,

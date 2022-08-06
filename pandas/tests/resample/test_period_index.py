@@ -267,10 +267,12 @@ class TestPeriodIndex:
         with tm.assert_produces_warning(UserWarning):
             result = series.resample("D", kind="period").mean()
 
-        # Create the expected series
-        # Index is moved back a day with the timezone conversion from UTC to
-        # Pacific
-        expected_index = period_range(start=start, end=end, freq="D") - offsets.Day()
+            # Create the expected series
+            # Index is moved back a day with the timezone conversion from UTC to
+            # Pacific
+            expected_index = (
+                period_range(start=start, end=end, freq="D") - offsets.Day()
+            )
         expected = Series(1.0, index=expected_index)
         tm.assert_series_equal(result, expected)
 
@@ -306,14 +308,16 @@ class TestPeriodIndex:
 
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
-        result = series.resample("D", kind="period").mean()
+        # see gh-47005
+        with tm.assert_produces_warning(UserWarning):
+            result = series.resample("D", kind="period").mean()
 
-        # Create the expected series
-        # Index is moved back a day with the timezone conversion from UTC to
-        # Pacific
-        expected_index = (
-            period_range(start=start, end=end, freq="D", name="idx") - offsets.Day()
-        )
+            # Create the expected series
+            # Index is moved back a day with the timezone conversion from UTC to
+            # Pacific
+            expected_index = (
+                period_range(start=start, end=end, freq="D", name="idx") - offsets.Day()
+            )
         expected = Series(1.0, index=expected_index)
         tm.assert_series_equal(result, expected)
 
@@ -506,7 +510,10 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         # for good measure
-        result = s.resample("D", kind="period").mean()
+        # see gh-47005
+        with tm.assert_produces_warning(UserWarning):
+            result = s.resample("D", kind="period").mean()
+
         ex_index = period_range("2001-09-20", periods=1, freq="D")
         expected = Series([1.5], index=ex_index)
         tm.assert_series_equal(result, expected)

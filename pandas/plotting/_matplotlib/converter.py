@@ -14,6 +14,7 @@ from typing import (
     Iterator,
     cast,
 )
+import warnings
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -261,7 +262,9 @@ def get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, pydt.time, np.datetime64)):
-        return Period(date, freq).ordinal
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            return Period(date, freq).ordinal
     elif (
         is_integer(date)
         or is_float(date)

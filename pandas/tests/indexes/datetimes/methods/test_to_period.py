@@ -117,11 +117,13 @@ class TestToPeriod:
         )
 
         with tm.assert_produces_warning(UserWarning):
-            # warning that timezone info will be lost
+            # GH 21333 - warning that timezone info will be lost
             period = index.to_period(freq="L")
         assert 2 == len(period)
-        assert period[0] == Period("2007-01-01 10:11:12.123Z", "L")
-        assert period[1] == Period("2007-01-01 10:11:13.789Z", "L")
+        with tm.assert_produces_warning(UserWarning):
+            # GH 47005 - warning that timezone info will be lost
+            assert period[0] == Period("2007-01-01 10:11:12.123Z", "L")
+            assert period[1] == Period("2007-01-01 10:11:13.789Z", "L")
 
     def test_to_period_microsecond(self):
         index = DatetimeIndex(
@@ -132,11 +134,13 @@ class TestToPeriod:
         )
 
         with tm.assert_produces_warning(UserWarning):
-            # warning that timezone info will be lost
+            # GH 21333 - warning that timezone info will be lost
             period = index.to_period(freq="U")
         assert 2 == len(period)
-        assert period[0] == Period("2007-01-01 10:11:12.123456Z", "U")
-        assert period[1] == Period("2007-01-01 10:11:13.789123Z", "U")
+        with tm.assert_produces_warning(UserWarning):
+            # GH 47005 - warning that timezone info will be lost
+            assert period[0] == Period("2007-01-01 10:11:12.123456Z", "U")
+            assert period[1] == Period("2007-01-01 10:11:13.789123Z", "U")
 
     @pytest.mark.parametrize(
         "tz",

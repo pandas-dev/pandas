@@ -1070,7 +1070,7 @@ class TestPeriodArray(SharedTests):
     index_cls = PeriodIndex
     array_cls = PeriodArray
     scalar_type = Period
-    example_dtype = PeriodIndex([], freq="W").dtype
+    example_dtype = PeriodIndex([], freq="Q").dtype
 
     @pytest.fixture
     def arr1d(self, period_index):
