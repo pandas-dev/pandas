@@ -234,7 +234,7 @@ def test_null_byte_char(all_parsers):
     if parser.engine == "c" or (parser.engine == "python" and PY311):
         expected = DataFrame([[np.nan, "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)
-        tm.assert_frame_equal(out, expected)
+        tm.assert_frame_equal(out, expected, check_dtype=False)  # debug
     else:
         msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):

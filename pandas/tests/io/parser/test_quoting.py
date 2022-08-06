@@ -82,7 +82,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
     if quoting != csv.QUOTE_NONE:
         # Sanity checking.
         msg = (
-            "quotechar must be set if quoting enabled"
+            '"quotechar" must be a 1-character string'
             if PY311 and all_parsers.engine == "python"
             else "quotechar must be set if quoting enabled"
         )
