@@ -545,7 +545,9 @@ class TestJSONNormalize:
         data = """[{"id": 99, "data": [{"one": 1, "two": 2}]}]"""
 
         result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
-        expected = DataFrame({"one": [1], "two": [2], "id": np.array([99], dtype="int64")})
+        expected = DataFrame(
+            {"one": [1], "two": [2], "id": np.array([99], dtype="int64")}
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_generator(self, state_data):
