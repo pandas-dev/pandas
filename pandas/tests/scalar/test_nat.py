@@ -9,7 +9,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import PY311
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -315,7 +314,6 @@ def test_overlap_public_nat_methods(klass, expected):
     assert _get_overlap_public_nat_methods(klass) == expected
 
 
-@pytest.mark.xfail(PY311, reason="error in Python 3.11", raises=TypeError)
 @pytest.mark.parametrize(
     "compare",
     (
