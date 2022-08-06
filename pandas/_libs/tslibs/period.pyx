@@ -1,7 +1,5 @@
 import warnings
 
-from pandas.errors import DateTimeWarning
-
 cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
@@ -2592,7 +2590,7 @@ class Period(_Period):
                 warnings.warn(
                     "The pandas.Period class does not support timezones. "
                     "The timezone given in '%s' will be ignored." % value,
-                    DateTimeWarning
+                    UserWarning
                 )
 
             if freq is None:

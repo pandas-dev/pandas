@@ -10,10 +10,7 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
 )
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.errors import (
-    DateTimeWarning,
-    InvalidIndexError,
-)
+from pandas.errors import InvalidIndexError
 
 import pandas as pd
 from pandas import (
@@ -267,7 +264,7 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
         # see gh-47005
-        with tm.assert_produces_warning(DateTimeWarning):
+        with tm.assert_produces_warning(UserWarning):
             result = series.resample("D", kind="period").mean()
 
         # Create the expected series

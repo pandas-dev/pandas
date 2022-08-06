@@ -26,7 +26,6 @@ from pandas._libs.tslibs.timezones import (
     dateutil_gettz,
     maybe_get_tz,
 )
-from pandas.errors import DateTimeWarning
 
 import pandas as pd
 from pandas import (
@@ -1628,7 +1627,7 @@ def test_invalid_frequency_error_message():
 )
 def test_period_with_timezone(val):
     # GH 47005 Time zone should be ignored with warning.
-    with tm.assert_produces_warning(DateTimeWarning):
+    with tm.assert_produces_warning(UserWarning):
         p_tz = Period("".join(val), freq="s")
     p_naive = Period(val[0], freq="s")
     assert p_tz == p_naive
