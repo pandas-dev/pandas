@@ -18,7 +18,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.nanops as nanops
-from pandas.tests.groupby import get_method_args
+from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
 
@@ -571,7 +571,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
     groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
     gb = df.groupby(groups)
     method = getattr(gb, groupby_func)
-    args = get_method_args(groupby_func, df)
+    args = get_groupby_method_args(groupby_func, df)
     kwargs = {"axis": 1}
     if numeric_only is not None:
         # when numeric_only is None we don't pass any argument
@@ -1367,7 +1367,7 @@ def test_deprecate_numeric_only(
     # has_arg: Whether the op has a numeric_only arg
     df = DataFrame({"a1": [1, 1], "a2": [2, 2], "a3": [5, 6], "b": 2 * [object]})
 
-    args = get_method_args(kernel, df)
+    args = get_groupby_method_args(kernel, df)
     kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
 
     gb = df.groupby(keys)
@@ -1447,7 +1447,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     expected_gb = expected_ser.groupby(grouper)
     expected_method = getattr(expected_gb, groupby_func)
 
-    args = get_method_args(groupby_func, ser)
+    args = get_groupby_method_args(groupby_func, ser)
 
     fails_on_numeric_object = (
         "corr",

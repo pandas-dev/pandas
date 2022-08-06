@@ -14,7 +14,7 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
-from pandas.tests.groupby import get_method_args
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
@@ -1374,7 +1374,7 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
             "value": [0.1] * 4,
         }
     )
-    args = get_method_args(reduction_func, df)
+    args = get_groupby_method_args(reduction_func, df)
 
     expected_length = 4 if observed else 16
 
@@ -1410,7 +1410,7 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         }
     )
     unobserved = [tuple("AC"), tuple("BC"), tuple("CA"), tuple("CB"), tuple("CC")]
-    args = get_method_args(reduction_func, df)
+    args = get_groupby_method_args(reduction_func, df)
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
     agg = getattr(series_groupby, reduction_func)
@@ -1451,7 +1451,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
     df_grp = df.groupby(["cat_1", "cat_2"], observed=True)
 
-    args = get_method_args(reduction_func, df)
+    args = get_groupby_method_args(reduction_func, df)
     with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
         res = getattr(df_grp, reduction_func)(*args)
 
@@ -1483,7 +1483,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
     df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
 
-    args = get_method_args(reduction_func, df)
+    args = get_groupby_method_args(reduction_func, df)
     with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
         res = getattr(df_grp, reduction_func)(*args)
 

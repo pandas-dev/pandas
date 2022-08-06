@@ -10,7 +10,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
-from pandas.tests.groupby import get_method_args
+from pandas.tests.groupby import get_groupby_method_args
 
 
 @pytest.mark.parametrize(
@@ -35,7 +35,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     # Groups should preserve subclass type
     assert isinstance(grouped.get_group(0), type(obj))
 
-    args = get_method_args(groupby_func, obj)
+    args = get_groupby_method_args(groupby_func, obj)
 
     with tm.assert_produces_warning(warn, match="is deprecated"):
         result1 = getattr(grouped, groupby_func)(*args)
