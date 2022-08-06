@@ -31,7 +31,6 @@ Exceptions and warnings
    errors.CSSWarning
    errors.DatabaseError
    errors.DataError
-   errors.DateTimeWarning
    errors.DtypeWarning
    errors.DuplicateLabelError
    errors.EmptyDataError
