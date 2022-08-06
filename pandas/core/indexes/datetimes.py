@@ -616,7 +616,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        per = Period(parsed, freq=reso.attr_abbrev)
+        with warnings.catch_warnings():
+            # Period looses tzinfo. We ignore the corresponding warning here,
+            # and add the lost tzinfo below.
+            warnings.simplefilter("ignore", UserWarning)
+            per = Period(parsed, freq=reso.attr_abbrev)
         start, end = per.start_time, per.end_time
 
         # GH 24076

@@ -168,3 +168,11 @@ class TestDatetimeIndex:
             ],
         )
         tm.assert_equal(result, expected)
+
+
+def test_slice_with_datestring_tz():
+    # GH 24076
+    # GH 16785
+    df = DataFrame([0], index=pd.DatetimeIndex(["2019-01-01"], tz="US/Pacific"))
+    sliced = df["2019-01-01 12:00:00+04:00":"2019-01-01 13:00:00+04:00"]
+    tm.assert_frame_equal(sliced, df)
