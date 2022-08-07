@@ -15,6 +15,8 @@ import matplotlib.cm as cm
 import matplotlib.colors
 import numpy as np
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import is_list_like
 
 import pandas.core.common as com
@@ -121,7 +123,8 @@ def _derive_colors(
     elif color is not None:
         if colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
+                stacklevel=find_stack_level(),
             )
         return _get_colors_from_color(color)
     else:

@@ -1208,6 +1208,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
+                                stacklevel=find_stack_level(),
                             )
                     continue
 
@@ -1220,6 +1221,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
+                                stacklevel=find_stack_level(),
                             )
                     continue
 

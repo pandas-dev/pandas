@@ -1034,7 +1034,7 @@ def mode(
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
-        warnings.warn(f"Unable to sort modes: {err}")
+        warnings.warn(f"Unable to sort modes: {err}", stacklevel=find_stack_level())
 
     result = _reconstruct_data(npresult, original.dtype, original)
     return result
