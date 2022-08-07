@@ -393,6 +393,48 @@ upon serialization. (Related issue :issue:`12997`)
     # Roundtripping now works
     pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
 
+
+.. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
+
+DataFrameGroupBy.value_counts with non-grouping categorical columns and ``observed=True``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Calling :meth:`.DataFrameGroupBy.value_counts` with ``observed=True`` would incorrectly drop non-observed categories of non-grouping columns (:issue:`46357`).
+
+.. code-block:: ipython
+
+    In [6]: df = pd.DataFrame(["a", "b", "c"], dtype="category").iloc[0:2]
+    In [7]: df
+    Out[7]:
+       0
+    0  a
+    1  b
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [8]: df.groupby(level=0, observed=True).value_counts()
+    Out[8]:
+    0  a    1
+    1  b    1
+    dtype: int64
+
+
+*New Behavior*
+
+.. code-block:: ipython
+
+    In [9]: df.groupby(level=0, observed=True).value_counts()
+    Out[9]:
+    0  a    1
+    1  a    0
+       b    1
+    0  b    0
+       c    0
+    1  c    0
+    dtype: int64
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:
 
@@ -820,9 +862,8 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :meth:`.Categorical.view` not accepting integer dtypes (:issue:`25464`)
-- Bug in :meth:`.CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
--
+- Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
+- Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
 
 Datetimelike
 ^^^^^^^^^^^^
