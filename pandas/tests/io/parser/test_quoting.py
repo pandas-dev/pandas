@@ -83,7 +83,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
         # Sanity checking.
         msg = (
             '"quotechar" must be a 1-character string'
-            if PY311 and all_parsers.engine == "python"
+            if PY311 and all_parsers.engine == "python" and quote_char == ""
             else "quotechar must be set if quoting enabled"
         )
 
