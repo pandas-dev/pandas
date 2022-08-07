@@ -1,6 +1,8 @@
 import collections
 import warnings
 
+from pandas.util._exceptions import find_stack_level
+
 cimport cython
 from cpython.object cimport (
     Py_EQ,
@@ -683,7 +685,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
             "Units 'M', 'Y' and 'y' do not represent unambiguous "
             "timedelta values and will be removed in a future version.",
             FutureWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(),
         )
 
     if unit == 'M':
@@ -1055,7 +1057,7 @@ cdef class _Timedelta(timedelta):
         warnings.warn(
             "Timedelta.freq is deprecated and will be removed in a future version",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(),
         )
         return None
 
@@ -1065,7 +1067,7 @@ cdef class _Timedelta(timedelta):
         warnings.warn(
             "Timedelta.is_populated is deprecated and will be removed in a future version",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(),
         )
         return self._is_populated
 
@@ -1269,7 +1271,7 @@ cdef class _Timedelta(timedelta):
         warnings.warn(
             "Timedelta.delta is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(),
         )
         return self.value
 

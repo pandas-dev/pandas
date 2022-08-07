@@ -6,7 +6,7 @@
 # This is useful to detect features that have been deprecated, and should be
 # removed from the code. For example, if a line of code contains:
 #
-#     warning.warn('Method deprecated', FutureWarning, stacklevel=2)
+#     warning.warn('Method deprecated', FutureWarning, stacklevel=find_stack_level())
 #
 # Which is released in Pandas 0.20.0, then it is expected that the method
 # is removed before releasing Pandas 0.24.0, including the warning. If it

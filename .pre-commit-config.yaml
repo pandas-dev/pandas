@@ -146,6 +146,9 @@ repos:
 
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
+
+            # Check for ``stacklevel=5`` instead of ``stacklevel=find_stack_level()``
+            |stacklevel=\d+
         types_or: [python, cython, rst]
     -   id: cython-casting
         name: Check Cython casting is `<type>obj`, not `<type> obj`

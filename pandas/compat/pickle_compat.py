@@ -17,6 +17,7 @@ import numpy as np
 
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
+from pandas.util._exceptions import find_stack_level
 
 from pandas import Index
 from pandas.core.arrays import (
@@ -87,7 +88,7 @@ class _LoadSparseSeries:
         warnings.warn(
             _sparse_msg.format(cls="SparseSeries", new="Series"),
             FutureWarning,
-            stacklevel=6,
+            stacklevel=find_stack_level(),
         )
 
         return Series(dtype=object)
@@ -105,7 +106,7 @@ class _LoadSparseFrame:
         warnings.warn(
             _sparse_msg.format(cls="SparseDataFrame", new="DataFrame"),
             FutureWarning,
-            stacklevel=6,
+            stacklevel=find_stack_level(),
         )
 
         return DataFrame()

@@ -47,6 +47,7 @@ import_datetime()
 
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas.util._exceptions import find_stack_level
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
@@ -253,7 +254,7 @@ cdef class _Timestamp(ABCTimestamp):
         warnings.warn(
             "Timestamp.freq is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(),
         )
         return self._freq
 
@@ -365,7 +366,7 @@ cdef class _Timestamp(ABCTimestamp):
                 "In a future version these will be considered non-comparable. "
                 "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(),
             )
             return NotImplemented
         else:
@@ -666,7 +667,7 @@ cdef class _Timestamp(ABCTimestamp):
                     "version. When you have a freq, use "
                     f"freq.{field}(timestamp) instead.",
                     FutureWarning,
-                    stacklevel=1,
+                    stacklevel=find_stack_level(),
                 )
 
     @property
@@ -1172,7 +1173,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.nanosecond != 0 and warn:
             warnings.warn("Discarding nonzero nanoseconds in conversion.",
-                          UserWarning, stacklevel=2)
+                          UserWarning, stacklevel=find_stack_level())
 
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
@@ -1259,7 +1260,7 @@ cdef class _Timestamp(ABCTimestamp):
                 "In a future version, calling 'Timestamp.to_period()' without "
                 "passing a 'freq' will raise an exception.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         return Period(self, freq=freq)
@@ -1451,7 +1452,7 @@ class Timestamp(_Timestamp):
             "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
             "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(),
         )
         return cls(datetime.utcfromtimestamp(ts))
 
@@ -1687,7 +1688,7 @@ class Timestamp(_Timestamp):
                 "as a wall time, not a UTC time.  To interpret as a UTC time, "
                 "use `Timestamp(dt64).tz_localize('UTC').tz_convert(tz)`",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(),
             )
             # Once this deprecation is enforced, we can do
             #  return Timestamp(ts_input).tz_localize(tzobj)
@@ -1704,7 +1705,7 @@ class Timestamp(_Timestamp):
                 "The 'freq' argument in Timestamp is deprecated and will be "
                 "removed in a future version.",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(),
             )
             if not is_offset_object(freq):
                 freq = to_offset(freq)
@@ -2040,7 +2041,7 @@ timedelta}, default 'raise'
         warnings.warn(
             "Timestamp.freqstr is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(),
         )
         return self._freqstr
 

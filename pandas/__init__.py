@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pandas.util._exceptions import find_stack_level
+
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -202,7 +204,7 @@ def __getattr__(name):
             "and will be removed from pandas in a future version. "
             "Use pandas.Index with the appropriate dtype instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         from pandas.core.api import Float64Index, Int64Index, UInt64Index
 
@@ -217,7 +219,7 @@ def __getattr__(name):
             "and will be removed from pandas in a future version. "
             "Import from datetime module instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
 
         from datetime import datetime as dt
@@ -231,7 +233,7 @@ def __getattr__(name):
             "and will be removed from pandas in a future version. "
             "Import numpy directly instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         import numpy as np
 
@@ -242,7 +244,7 @@ def __getattr__(name):
             f"The {name} class is removed from pandas. Accessing it from "
             "the top-level namespace will also be removed in the next version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
 
         return type(name, (), {})
@@ -254,7 +256,7 @@ def __getattr__(name):
             "and will be removed from pandas in a future version. "
             "Use pandas.arrays.SparseArray instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         from pandas.core.arrays.sparse import SparseArray as _SparseArray
 
