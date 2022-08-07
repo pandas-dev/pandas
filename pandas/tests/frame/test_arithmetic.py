@@ -2080,7 +2080,4 @@ def test_series_add_dataframe_align():
     result = s.add(df, axis=0)
     expected = df.add(s, axis=0)
 
-    print(result)
-    print(expected)
-
     tm.assert_frame_equal(result, expected)
