@@ -18,7 +18,7 @@ test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods
 
 
 def test_apply():
-    grouper = Grouper(freq="A", label="right", closed="right")
+    grouper = Grouper(freq="A", label="right", inclusive="right")
 
     grouped = test_series.groupby(grouper)
 
@@ -38,7 +38,7 @@ def test_count():
 
     expected = test_series.groupby(lambda x: x.year).count()
 
-    grouper = Grouper(freq="A", label="right", closed="right")
+    grouper = Grouper(freq="A", label="right", inclusive="right")
     result = test_series.groupby(grouper).count()
     expected.index = result.index
     tm.assert_series_equal(result, expected)
@@ -49,7 +49,7 @@ def test_count():
 
 
 def test_numpy_reduction():
-    result = test_series.resample("A", closed="right").prod()
+    result = test_series.resample("A", inclusive="right").prod()
 
     expected = test_series.groupby(lambda x: x.year).agg(np.prod)
     expected.index = result.index
@@ -267,7 +267,7 @@ def test_repr():
     result = repr(Grouper(key="A", freq="H"))
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
-        "closed='left', label='left', how='mean', "
+        "inclusive='left', label='left', how='mean', "
         "convention='e', origin='start_day')"
     )
     assert result == expected
@@ -275,7 +275,7 @@ def test_repr():
     result = repr(Grouper(key="A", freq="H", origin="2000-01-01"))
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
-        "closed='left', label='left', how='mean', "
+        "inclusive='left', label='left', how='mean', "
         "convention='e', origin=Timestamp('2000-01-01 00:00:00'))"
     )
     assert result == expected

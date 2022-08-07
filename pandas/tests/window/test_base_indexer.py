@@ -46,7 +46,7 @@ def test_indexer_constructor_arg():
     df = DataFrame({"values": range(5)})
 
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed, step):
+        def get_window_bounds(self, num_values, min_periods, center, inclusive, step):
             start = np.empty(num_values, dtype=np.int64)
             end = np.empty(num_values, dtype=np.int64)
             for i in range(num_values):
@@ -68,14 +68,14 @@ def test_indexer_accepts_rolling_args():
     df = DataFrame({"values": range(5)})
 
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed, step):
+        def get_window_bounds(self, num_values, min_periods, center, inclusive, step):
             start = np.empty(num_values, dtype=np.int64)
             end = np.empty(num_values, dtype=np.int64)
             for i in range(num_values):
                 if (
                     center
                     and min_periods == 1
-                    and closed == "both"
+                    and inclusive == "both"
                     and step == 1
                     and i == 2
                 ):
@@ -88,7 +88,7 @@ def test_indexer_accepts_rolling_args():
 
     indexer = CustomIndexer(window_size=1)
     result = df.rolling(
-        indexer, center=True, min_periods=1, closed="both", step=1
+        indexer, center=True, min_periods=1, inclusive="both", step=1
     ).sum()
     expected = DataFrame({"values": [0.0, 1.0, 10.0, 3.0, 4.0]})
     tm.assert_frame_equal(result, expected)
@@ -161,9 +161,9 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs,
         rolling = constructor(values).rolling(window=indexer, center=True)
         getattr(rolling, func)()
 
-    match = "Forward-looking windows don't support setting the closed argument"
+    match = "Forward-looking windows don't support setting the inclusive argument"
     with pytest.raises(ValueError, match=match):
-        rolling = constructor(values).rolling(window=indexer, closed="right")
+        rolling = constructor(values).rolling(window=indexer, inclusive="right")
         getattr(rolling, func)()
 
     rolling = constructor(values).rolling(window=indexer, min_periods=2, step=step)
@@ -253,18 +253,18 @@ def test_rolling_forward_cov_corr(func, expected):
 
 
 @pytest.mark.parametrize(
-    "closed,expected_data",
+    "inclusive,expected_data",
     [
         ["right", [0.0, 1.0, 2.0, 3.0, 7.0, 12.0, 6.0, 7.0, 8.0, 9.0]],
         ["left", [0.0, 0.0, 1.0, 2.0, 5.0, 9.0, 5.0, 6.0, 7.0, 8.0]],
     ],
 )
-def test_non_fixed_variable_window_indexer(closed, expected_data):
+def test_non_fixed_variable_window_indexer(inclusive, expected_data):
     index = date_range("2020", periods=10)
     df = DataFrame(range(10), index=index)
     offset = BusinessDay(1)
     indexer = VariableOffsetWindowIndexer(index=index, offset=offset)
-    result = df.rolling(indexer, closed=closed).sum()
+    result = df.rolling(indexer, inclusive=inclusive).sum()
     expected = DataFrame(expected_data, index=index)
     tm.assert_frame_equal(result, expected)
 
@@ -285,7 +285,7 @@ def test_fixed_forward_indexer_count(step):
 def test_indexer_quantile_sum(end_value, values, func, args):
     # GH 37153
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed, step):
+        def get_window_bounds(self, num_values, min_periods, center, inclusive, step):
             start = np.empty(num_values, dtype=np.int64)
             end = np.empty(num_values, dtype=np.int64)
             for i in range(num_values):
@@ -466,7 +466,7 @@ def test_rolling_groupby_with_fixed_forward_many(group_keys, window_size):
 
 def test_unequal_start_end_bounds():
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed, step):
+        def get_window_bounds(self, num_values, min_periods, center, inclusive, step):
             return np.array([1]), np.array([1, 2])
 
     indexer = CustomIndexer()
@@ -488,7 +488,7 @@ def test_unequal_start_end_bounds():
 def test_unequal_bounds_to_object():
     # GH 44470
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed, step):
+        def get_window_bounds(self, num_values, min_periods, center, inclusive, step):
             return np.array([1]), np.array([2])
 
     indexer = CustomIndexer()

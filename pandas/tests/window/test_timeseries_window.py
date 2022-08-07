@@ -273,14 +273,14 @@ class TestRollingTS:
             ],
         )
 
-        # closed must be 'right', 'left', 'both', 'neither'
-        msg = "closed must be 'right', 'left', 'both' or 'neither'"
+        # inclusive must be 'right', 'left', 'both', 'neither'
+        msg = "inclusive must be 'right', 'left', 'both' or 'neither'"
         with pytest.raises(ValueError, match=msg):
-            regular.rolling(window="2s", closed="blabla")
+            regular.rolling(window="2s", inclusive="blabla")
 
         expected = df.copy()
         expected["A"] = [1.0, 2, 2, 2, 1]
-        result = df.rolling("2s", closed="right").sum()
+        result = df.rolling("2s", inclusive="right").sum()
         tm.assert_frame_equal(result, expected)
 
         # default should be 'right'
@@ -289,17 +289,17 @@ class TestRollingTS:
 
         expected = df.copy()
         expected["A"] = [1.0, 2, 3, 3, 2]
-        result = df.rolling("2s", closed="both").sum()
+        result = df.rolling("2s", inclusive="both").sum()
         tm.assert_frame_equal(result, expected)
 
         expected = df.copy()
         expected["A"] = [np.nan, 1.0, 2, 2, 1]
-        result = df.rolling("2s", closed="left").sum()
+        result = df.rolling("2s", inclusive="left").sum()
         tm.assert_frame_equal(result, expected)
 
         expected = df.copy()
         expected["A"] = [np.nan, 1.0, 1, 1, np.nan]
-        result = df.rolling("2s", closed="neither").sum()
+        result = df.rolling("2s", inclusive="neither").sum()
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_sum(self, ragged):
