@@ -2186,7 +2186,7 @@ def _factorize_keys(
     `sort=True`, the encoding will be `{0: 'a', 1: 'b', 2: 'c'}`:
 
     >>> pd.core.reshape.merge._factorize_keys(lk, rk)
-    (array([0, 2, 1], dtype=int64), array([0, 2], dtype=int64), 3)
+    (array([0, 2, 1]), array([0, 2]), 3)
 
     With the `sort=False`, the encoding will correspond to the order
     in which the unique elements first appear: `{0: 'a', 1: 'c', 2: 'b'}`:

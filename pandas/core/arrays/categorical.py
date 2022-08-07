@@ -1831,7 +1831,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Examples
         --------
         >>> pd.Categorical(['b', 'b', 'a', 'c']).argsort()
-        array([2, 0, 1, 3], dtype=int64)
+        array([2, 0, 1, 3])
 
         >>> cat = pd.Categorical(['b', 'b', 'a', 'c'],
         ...                      categories=['c', 'b', 'a'],
@@ -2248,8 +2248,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c.codes
         array([0, 0, 1, 2, 0], dtype=int8)
         >>> c._reverse_indexer()
-        {'a': array([0, 1, 4], dtype=int64), 'b':
-        array([2], dtype=int64), 'c': array([3], dtype=int64)}
+        {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
 
         """
         categories = self.categories

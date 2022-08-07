@@ -343,10 +343,10 @@ def unique(values):
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))
-    array([2, 1, 3], dtype=int64)
+    array([2, 1, 3])
 
     >>> pd.unique(pd.Series([2] + [1] * 5))
-    array([2, 1], dtype=int64)
+    array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
@@ -707,13 +707,13 @@ def factorize(
     >>> values = np.array([1, 2, 1, np.nan])
     >>> codes, uniques = pd.factorize(values)  # default: use_na_sentinel=True
     >>> codes
-    array([ 0,  1,  0, -1], dtype=int64)
+    array([ 0,  1,  0, -1])
     >>> uniques
     array([1., 2.])
 
     >>> codes, uniques = pd.factorize(values, use_na_sentinel=False)
     >>> codes
-    array([0, 1, 0, 2], dtype=int64)
+    array([0, 1, 0, 2])
     >>> uniques
     array([ 1.,  2., nan])
     """

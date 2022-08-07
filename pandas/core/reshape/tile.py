@@ -182,7 +182,7 @@ def cut(
     ``labels=False`` implies you just want the bins back.
 
     >>> pd.cut([0, 1, 1, 2], bins=4, labels=False)
-    array([0, 1, 1, 3], dtype=int64)
+    array([0, 1, 1, 3])
 
     Passing a Series as an input returns a Series with categorical dtype:
 
@@ -364,7 +364,7 @@ def qcut(
     Categories (3, object): [good < medium < bad]
 
     >>> pd.qcut(range(5), 4, labels=False)
-    array([0, 0, 1, 2, 3], dtype=int64)
+    array([0, 0, 1, 2, 3])
     """
     original = x
     x = _preprocess_for_cut(x)
