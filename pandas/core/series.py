@@ -1380,9 +1380,21 @@ class Series(base.IndexOpsMixin, NDFrame):
     @overload
     def reset_index(
         self,
-        level: Level = ...,
+        level: IndexLabel = ...,
         *,
-        drop: bool = ...,
+        drop: Literal[False] = ...,
+        name: Level = ...,
+        inplace: Literal[False] = ...,
+        allow_duplicates: bool = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def reset_index(
+        self,
+        level: IndexLabel = ...,
+        *,
+        drop: Literal[True],
         name: Level = ...,
         inplace: Literal[False] = ...,
         allow_duplicates: bool = ...,
@@ -1392,7 +1404,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     @overload
     def reset_index(
         self,
-        level: Level = ...,
+        level: IndexLabel = ...,
         *,
         drop: bool = ...,
         name: Level = ...,
@@ -1404,12 +1416,12 @@ class Series(base.IndexOpsMixin, NDFrame):
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
-        level: Level = None,
+        level: IndexLabel = None,
         drop: bool = False,
         name: Level = lib.no_default,
         inplace: bool = False,
         allow_duplicates: bool = False,
-    ) -> Series | None:
+    ) -> DataFrame | Series | None:
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1554,9 +1566,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            # error: Incompatible return value type (got "DataFrame", expected
-            # "Optional[Series]")
-            return df.reset_index(  # type: ignore[return-value]
+            return df.reset_index(
                 level=level, drop=drop, allow_duplicates=allow_duplicates
             )
         return None
@@ -3741,7 +3751,7 @@ Keep all original rows and also all original values
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
@@ -3757,7 +3767,7 @@ Keep all original rows and also all original values
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
@@ -3773,7 +3783,7 @@ Keep all original rows and also all original values
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: bool = ...,
         kind: SortKind = ...,
@@ -3789,7 +3799,7 @@ Keep all original rows and also all original values
     def sort_index(  # type: ignore[override]
         self,
         axis: Axis = 0,
-        level: Level | None = None,
+        level: IndexLabel = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
