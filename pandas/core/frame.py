@@ -7573,7 +7573,6 @@ class DataFrame(NDFrame, OpsMixin):
         axis = 1  # only relevant for Series other case
         other = ops.maybe_prepare_scalar_for_op(other, (self.shape[axis],))
 
-        axis = 0
         self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)

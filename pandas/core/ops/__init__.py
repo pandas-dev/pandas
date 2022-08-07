@@ -194,6 +194,7 @@ def flex_method_SERIES(op):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
+            self, other = align_method_FRAME(other, self, axis, flex=True, level=level)
             return op(self, other)
 
     flex_wrapper.__name__ = name
