@@ -2063,3 +2063,24 @@ def test_enum_column_equality():
     expected = Series([True, True, True], name=Cols.col1)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_series_add_dataframe_align():
+    # GH 46179
+    df = DataFrame(
+        {2010: [1], 2020: [3]},
+        index=MultiIndex.from_product([["a"], ["b"]], names=["scen", "mod"]),
+    )
+    s = Series(
+        [10.0, 20.0, 30.0],
+        index=MultiIndex.from_product(
+            [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+        ),
+    )
+    result = s.add(df, axis=0)
+    expected = df.add(s, axis=0)
+
+    print(result)
+    print(expected)
+
+    tm.assert_frame_equal(result, expected)
