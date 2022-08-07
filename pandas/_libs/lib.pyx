@@ -29,6 +29,7 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from pandas.util._exceptions import find_stack_level
 
 import_datetime()
 
@@ -352,6 +353,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
                 "The values in the array are unorderable. "
                 "Pass `sort=False` to suppress this warning.",
                 RuntimeWarning,
+                stacklevel=find_stack_level(),
             )
             pass
 

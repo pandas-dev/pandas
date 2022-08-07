@@ -1252,6 +1252,7 @@ cdef class _Timestamp(ABCTimestamp):
             warnings.warn(
                 "Converting to Period representation will drop timezone information.",
                 UserWarning,
+                stacklevel=find_stack_level(),
             )
 
         if freq is None:
