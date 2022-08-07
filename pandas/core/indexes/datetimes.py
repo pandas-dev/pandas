@@ -250,6 +250,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
     """
 
+    # from inherit_names
+    dayofweek: Literal[0, 1, 2, 3, 4, 5, 6]
+
     _typ = "datetimeindex"
 
     _data_cls = DatetimeArray

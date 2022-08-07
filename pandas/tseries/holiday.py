@@ -4,6 +4,10 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+)
 import warnings
 
 from dateutil.relativedelta import (
@@ -32,6 +36,9 @@ from pandas.tseries.offsets import (
     Day,
     Easter,
 )
+
+if TYPE_CHECKING:
+    from pandas._libs.tslibs import BaseOffset
 
 
 def next_monday(dt: datetime) -> datetime:
@@ -152,14 +159,14 @@ class Holiday:
     def __init__(
         self,
         name,
-        year=None,
-        month=None,
-        day=None,
-        offset=None,
+        year: int | None = None,
+        month: int = 1,
+        day: int = 1,
+        offset: BaseOffset | Sequence[BaseOffset] | None = None,
         observance=None,
         start_date=None,
         end_date=None,
-        days_of_week=None,
+        days_of_week: tuple[int, ...] | None = None,
     ) -> None:
         """
         Parameters
@@ -322,7 +329,7 @@ class Holiday:
 
         return dates
 
-    def _apply_rule(self, dates):
+    def _apply_rule(self, dates: DatetimeIndex) -> DatetimeIndex:
         """
         Apply the given offset/observance to a DatetimeIndex of dates.
 
