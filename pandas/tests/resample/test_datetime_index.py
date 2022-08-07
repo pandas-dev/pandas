@@ -1731,7 +1731,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    s = Series(0, index=date_range("19910905 13:00", "19911005 07:00", freq=freq1))
+    s = Series(0, index=date_range("1991-09-05 13:00", "1991-10-05 07:00", freq=freq1))
     s = s + range(len(s))
 
     result1 = s.resample(str(n1_) + freq1).mean()
