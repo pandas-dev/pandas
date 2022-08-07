@@ -802,8 +802,15 @@ class BaseGrouper:
         # This calls DataSplitter.__iter__
         zipped = zip(group_keys, splitter)
 
+        i = 0
         for key, group in zipped:
-            # BUG:47350 by hamedgibago
+            # BUG:47350 if replaced 1 by hamedgibago
+            # if key not in data.index and is_datetime64_any_dtype(data.index):
+            # #or (key not in data.index and f.__name__ in ['idxmax','idxmin']) :
+            # ser=Series(i,[key])
+            # res = None
+            # else:
+            # res = f(group)
             try:
                 res = f(group)
             except (ValueError, AttributeError):
@@ -817,6 +824,14 @@ class BaseGrouper:
 
             if not mutated and not _is_indexed_like(res, group_axes, axis):
                 mutated = True
+
+            i = i + 1
+
+            # BUG:47350 if added by hamedgibago
+            # if key in data.index:
+            #     result_values.append(res)
+            # else:
+            #     result_values.append(np.nan)
 
             result_values.append(res)
 

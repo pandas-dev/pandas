@@ -3853,7 +3853,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
         >>> index.get_indexer(['a', 'b', 'x'])
-        array([ 1,  2, -1])
+        array([ 1,  2, -1], dtype=int64)
 
         Notice that the return value is an array of locations in ``index``
         and ``x`` is marked by -1, as it is not in ``index``.
@@ -4383,7 +4383,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Index(['car', 'bike', 'train', 'tractor'], dtype='object')
         >>> idx.reindex(['car', 'bike'])
-        (Index(['car', 'bike'], dtype='object'), array([0, 1]))
+        (Index(['car', 'bike'], dtype='object'), array([0, 1], dtype=int64))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -5875,7 +5875,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> order = idx.argsort()
         >>> order
-        array([1, 0, 3, 2])
+        array([1, 0, 3, 2], dtype=int64)
 
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
@@ -6050,7 +6050,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([np.nan, 'var1', np.nan])
         >>> idx.get_indexer_for([np.nan])
-        array([0, 2])
+        array([0, 2], dtype=int64)
         """
         if self._index_as_unique:
             return self.get_indexer(target)

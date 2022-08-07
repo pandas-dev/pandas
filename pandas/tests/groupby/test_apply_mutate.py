@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -87,7 +86,6 @@ def test_apply_function_with_indexing():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skip(reason="Not implemented. This should be solved in the future")
 def test_apply_mutate_columns_multiindex():
     # GH 12652
     df = pd.DataFrame(

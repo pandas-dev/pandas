@@ -277,7 +277,7 @@ _apply_docs = {
 
     >>> g1.apply(lambda x: x*2 if x.name == 'a' else x/2)
     a    0.0
-    a    0.5
+    a    2.0
     b    1.0
     dtype: float64
 
@@ -286,7 +286,7 @@ _apply_docs = {
 
     >>> g2.apply(lambda x: x*2 if x.name == 'a' else x/2)
     a  a    0.0
-       a    0.5
+       a    2.0
     b  b    1.0
     dtype: float64
 

@@ -434,7 +434,7 @@ def extract_array(
     For an ndarray-backed Series / Index the ndarray is returned.
 
     >>> extract_array(pd.Series([1, 2, 3]))
-    array([1, 2, 3])
+    array([1, 2, 3], dtype=int64)
 
     To extract all the way down to the ndarray, pass ``extract_numpy=True``.
 

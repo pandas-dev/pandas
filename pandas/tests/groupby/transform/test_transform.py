@@ -162,7 +162,6 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-@pytest.mark.skip(reason="tshift is deprecated")
 def test_transform_axis_1(request, transformation_func):
     # GH 36308
 

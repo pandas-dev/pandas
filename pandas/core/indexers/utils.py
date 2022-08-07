@@ -505,7 +505,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     >>> indexer = pd.array([0, 2], dtype="Int64")
     >>> arr = pd.array([1, 2, 3])
     >>> pd.api.indexers.check_array_indexer(arr, indexer)
-    array([0, 2])
+    array([0, 2], dtype=int64)
 
     >>> indexer = pd.array([0, pd.NA], dtype="Int64")
     >>> pd.api.indexers.check_array_indexer(arr, indexer)

@@ -373,7 +373,7 @@ class SparseDtype(ExtensionDtype):
         Returns
         -------
         >>> SparseDtype(int, 1)._subtype_with_str
-        dtype('int64')
+        dtype('int32')
 
         >>> SparseDtype(object, 1)._subtype_with_str
         dtype('O')

@@ -1207,7 +1207,7 @@ class IndexOpsMixin(OpsMixin):
         3
 
         >>> ser.searchsorted([0, 4])
-        array([0, 3])
+        array([0, 3],  dtype=int64)
 
         >>> ser.searchsorted([1, 3], side='left')
         array([0, 2], dtype=int64)
