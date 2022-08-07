@@ -97,7 +97,7 @@ repos:
     -   id: pyright_reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json
+        entry: pyright -p pyright_reportGeneralTypeIssues.json
         language: node
         pass_filenames: false
         types: [python]
