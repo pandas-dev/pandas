@@ -196,7 +196,7 @@ This can also be applied to datetime-like indices.
 Rolling window endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
+The inclusion of the interval endpoints in rolling window calculations can be specified with the ``inclusive``
 parameter:
 
 =============  ====================
@@ -225,10 +225,10 @@ from present information back to past information. This allows the rolling windo
        ],
    )
 
-   df["right"] = df.rolling("2s", closed="right").x.sum()  # default
-   df["both"] = df.rolling("2s", closed="both").x.sum()
-   df["left"] = df.rolling("2s", closed="left").x.sum()
-   df["neither"] = df.rolling("2s", closed="neither").x.sum()
+   df["right"] = df.rolling("2s", inclusive="right").x.sum()  # default
+   df["both"] = df.rolling("2s", inclusive="both").x.sum()
+   df["left"] = df.rolling("2s", inclusive="left").x.sum()
+   df["neither"] = df.rolling("2s", inclusive="neither").x.sum()
 
    df
 
@@ -264,7 +264,7 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    In [2]: from pandas.api.indexers import BaseIndexer
 
    In [3]: class CustomIndexer(BaseIndexer):
-      ...:     def get_window_bounds(self, num_values, min_periods, center, closed):
+      ...:     def get_window_bounds(self, num_values, min_periods, center, inclusive):
       ...:         start = np.empty(num_values, dtype=np.int64)
       ...:         end = np.empty(num_values, dtype=np.int64)
       ...:         for i in range(num_values):

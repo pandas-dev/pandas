@@ -1634,14 +1634,14 @@ a method of the returned object, including ``sum``, ``mean``, ``std``, ``sem``,
    ts.resample("5Min").max()
 
 
-For downsampling, ``closed`` can be set to 'left' or 'right' to specify which
+For downsampling, ``inclusive`` can be set to 'left' or 'right' to specify which
 end of the interval is closed:
 
 .. ipython:: python
 
-   ts.resample("5Min", closed="right").mean()
+   ts.resample("5Min", inclusive="right").mean()
 
-   ts.resample("5Min", closed="left").mean()
+   ts.resample("5Min", inclusive="left").mean()
 
 Parameters like ``label`` are used to manipulate the resulting labels.
 ``label`` specifies whether the result is labeled with the beginning or
@@ -1655,7 +1655,7 @@ the end of the interval.
 
 .. warning::
 
-    The default values for ``label`` and ``closed`` is '**left**' for all
+    The default values for ``label`` and ``inclusive`` is '**left**' for all
     frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
@@ -1669,7 +1669,7 @@ the end of the interval.
         s.iloc[2] = pd.NaT
         s.dt.day_name()
 
-        # default: label='left', closed='left'
+        # default: label='left', inclusive='left'
         s.resample("B").last().dt.day_name()
 
     Notice how the value for Sunday got pulled back to the previous Friday.
@@ -1678,7 +1678,7 @@ the end of the interval.
 
     .. ipython:: python
 
-        s.resample("B", label="right", closed="right").last().dt.day_name()
+        s.resample("B", label="right", inclusive="right").last().dt.day_name()
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a ``DataFrame``.
