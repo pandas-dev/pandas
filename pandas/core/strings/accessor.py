@@ -1047,8 +1047,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Return element with given key
 
-        >>> s = pd.Series([{"name": "Hello", "value": "World"},
-        ...               {"name": "Goodbye", "value": "Planet"}])
+        >>> s = pd.Series(
+        ...     [{"name": "Hello", "value": "World"}, {"name": "Goodbye", "value": "Planet"}]
+        ... )
         >>> s.str.get('name')
         0      Hello
         1    Goodbye
