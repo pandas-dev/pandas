@@ -313,7 +313,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             const.page_size_offset + align1, const.page_size_length
         )
         self._page_count = self._read_int(
-            const.page_count_offset + align1, const.page_count_length
+            const.page_count_offset + align1, self._int_length
         )
 
         self.sas_release_offset = self._read_and_convert_header_text(
