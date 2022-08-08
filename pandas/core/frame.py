@@ -4527,11 +4527,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         self._ensure_valid_index(value)
 
-        # We can get there through isetitem with a DataFrame
-        # or through loc single_block_path
-        if isinstance(value, DataFrame):
-            return _reindex_for_setitem(value, self.index)
-        elif isinstance(value, Series):
+        # We can get there through loc single_block_path
+        if isinstance(value, (DataFrame, Series)):
             return _reindex_for_setitem(value, self.index)
 
         if is_list_like(value):
