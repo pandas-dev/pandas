@@ -1227,6 +1227,13 @@ class TestDataFrameIndexing:
         df.iloc[:] = df.iloc[:, :]
         tm.assert_frame_equal(df, orig)
 
+    def test_getitem_segfault_with_empty_like_object(self):
+        # GH#46848
+        df = DataFrame(np.empty((1, 1), dtype=object))
+        df[0] = np.empty_like(df[0])
+        # this produces the segfault
+        df[[0]]
+
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
