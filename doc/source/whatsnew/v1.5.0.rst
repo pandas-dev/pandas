@@ -393,6 +393,48 @@ upon serialization. (Related issue :issue:`12997`)
     # Roundtripping now works
     pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
 
+
+.. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
+
+DataFrameGroupBy.value_counts with non-grouping categorical columns and ``observed=True``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Calling :meth:`.DataFrameGroupBy.value_counts` with ``observed=True`` would incorrectly drop non-observed categories of non-grouping columns (:issue:`46357`).
+
+.. code-block:: ipython
+
+    In [6]: df = pd.DataFrame(["a", "b", "c"], dtype="category").iloc[0:2]
+    In [7]: df
+    Out[7]:
+       0
+    0  a
+    1  b
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [8]: df.groupby(level=0, observed=True).value_counts()
+    Out[8]:
+    0  a    1
+    1  b    1
+    dtype: int64
+
+
+*New Behavior*
+
+.. code-block:: ipython
+
+    In [9]: df.groupby(level=0, observed=True).value_counts()
+    Out[9]:
+    0  a    1
+    1  a    0
+       b    1
+    0  b    0
+       c    0
+    1  c    0
+    dtype: int64
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:
 
@@ -820,9 +862,8 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :meth:`.Categorical.view` not accepting integer dtypes (:issue:`25464`)
-- Bug in :meth:`.CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
--
+- Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
+- Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -883,7 +924,6 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :meth:`loc.__getitem__` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
 - Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
 - Bug in :meth:`DataFrame.__getitem__` returning copy when :class:`DataFrame` has duplicated columns even if a unique column is selected (:issue:`45316`, :issue:`41062`)
 - Bug in :meth:`Series.align` does not create :class:`MultiIndex` with union of levels when both MultiIndexes intersections are identical (:issue:`45224`)
@@ -901,7 +941,6 @@ Indexing
 - Bug in :meth:`Series.loc` raising with boolean indexer containing ``NA`` when :class:`Index` did not match (:issue:`46551`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
 - Bug in :meth:`DataFrame.loc` when setting values to a column and right hand side is a dictionary (:issue:`47216`)
-- Bug in :meth:`DataFrame.loc` when setting a :class:`DataFrame` not aligning index in some cases (:issue:`47578`)
 - Bug in :meth:`Series.__setitem__` with ``datetime64[ns]`` dtype, an all-``False`` boolean mask, and an incompatible value incorrectly casting to ``object`` instead of retaining ``datetime64[ns]`` dtype (:issue:`45967`)
 - Bug in :meth:`Index.__getitem__`  raising ``ValueError`` when indexer is from boolean dtype with ``NA`` (:issue:`45806`)
 - Bug in :meth:`Series.__setitem__` losing precision when enlarging :class:`Series` with scalar (:issue:`32346`)
@@ -967,6 +1006,7 @@ I/O
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
 - Bug in :func:`read_parquet` with ``use_nullable_dtypes=True`` where ``float64`` dtype was returned instead of nullable ``Float64`` dtype (:issue:`45694`)
 - Bug in :meth:`DataFrame.to_json` where ``PeriodDtype`` would not make the serialization roundtrip when read back with :meth:`read_json` (:issue:`44720`)
+- Bug in :func:`read_xml` when reading XML files with Chinese character tags and would raise ``XMLSyntaxError`` (:issue:`47902`)
 
 Period
 ^^^^^^
