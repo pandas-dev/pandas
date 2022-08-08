@@ -41,7 +41,7 @@ def find_stack_level(frame) -> int:
     test_dir = os.path.join(pkg_dir, "tests")
 
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
-    n = 0
+    n = 1
     while frame:
         fname = inspect.getfile(frame)
         if fname.startswith(pkg_dir) and not fname.startswith(test_dir):
