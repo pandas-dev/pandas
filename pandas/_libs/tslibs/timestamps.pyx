@@ -6,6 +6,7 @@ construction requirements, we need to do object instantiation in python
 (see Timestamp class below). This will serve as a C extension type that
 shadows the python class, where we do any heavy lifting.
 """
+import inspect
 import warnings
 
 cimport cython
@@ -47,7 +48,9 @@ import_datetime()
 
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
+
 from pandas.util._exceptions import find_stack_level
+
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,

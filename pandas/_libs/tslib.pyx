@@ -1,3 +1,4 @@
+import inspect
 import warnings
 
 cimport cython
@@ -8,6 +9,7 @@ from cpython.datetime cimport (
     import_datetime,
     tzinfo,
 )
+
 from pandas.util._exceptions import find_stack_level
 
 # import datetime C API

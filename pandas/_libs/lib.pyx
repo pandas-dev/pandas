@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+import inspect
 from typing import Literal
 import warnings
 
@@ -29,6 +30,7 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+
 from pandas.util._exceptions import find_stack_level
 
 import_datetime()

@@ -1,3 +1,5 @@
+cimport inspect
+
 cimport cython
 
 import warnings
