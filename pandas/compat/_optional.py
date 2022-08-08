@@ -5,6 +5,8 @@ import sys
 import types
 import warnings
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.util.version import Version
 
 # Update install.rst when updating versions!
@@ -158,7 +160,7 @@ def import_optional_dependency(
                 f"(version '{version}' currently installed)."
             )
             if errors == "warn":
-                warnings.warn(msg, UserWarning)
+                warnings.warn(msg, UserWarning, stacklevel=find_stack_level())
                 return None
             elif errors == "raise":
                 raise ImportError(msg)
