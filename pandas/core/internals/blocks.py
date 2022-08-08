@@ -1062,6 +1062,8 @@ class Block(PandasObject):
 
         transpose = self.ndim == 2
 
+        cond = extract_bool_array(cond)
+
         # EABlocks override where
         values = cast(np.ndarray, self.values)
         orig_other = other
