@@ -1,4 +1,4 @@
-cimport inspect
+import inspect
 
 cimport cython
 
