@@ -29,6 +29,7 @@ import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def test_repr():
@@ -2366,14 +2367,10 @@ def test_dup_labels_output_shape(groupby_func, idx):
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
-    args = []
-    if groupby_func in {"fillna", "nth"}:
-        args.append(0)
-    elif groupby_func == "corrwith":
-        args.append(df)
-    elif groupby_func == "tshift":
+    if groupby_func == "tshift":
         df.index = [Timestamp("today")]
-        args.extend([1, "D"])
+        # args.extend([1, "D"])
+    args = get_groupby_method_args(groupby_func, df)
 
     with tm.assert_produces_warning(warn, match="is deprecated"):
         result = getattr(grp_by, groupby_func)(*args)

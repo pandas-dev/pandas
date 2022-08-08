@@ -17,6 +17,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import Int64Index
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def test_apply_issues():
@@ -1069,7 +1070,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
-    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    args = get_groupby_method_args(reduction_func, df)
     with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
         _ = getattr(grp, reduction_func)(*args)
     result = grp.apply(sum)
