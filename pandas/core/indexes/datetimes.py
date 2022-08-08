@@ -25,6 +25,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    BaseOffset,
     Resolution,
     periods_per_day,
     timezones,
@@ -252,8 +253,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _typ = "datetimeindex"
 
     _data_cls = DatetimeArray
-    _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
+
+    @property
+    def _engine_type(self) -> type[libindex.DatetimeEngine]:
+        return libindex.DatetimeEngine
 
     _data: DatetimeArray
     inferred_freq: str | None
@@ -309,7 +313,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq=lib.no_default,
+        freq: str | BaseOffset | lib.NoDefault = lib.no_default,
         tz=None,
         normalize: bool = False,
         closed=None,
@@ -492,8 +496,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index.
+        Create a Series with both index and values equal to the index keys.
+
+        Useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -822,8 +827,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof: bool = False) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values at particular time of day
-        (e.g. 9:30AM).
+        Return index locations of values at particular time of day.
 
         Parameters
         ----------
@@ -863,8 +867,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
     ) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values between particular times of day
-        (e.g., 9:00-9:30AM).
+        Return index locations of values between particular times of day.
 
         Parameters
         ----------
@@ -1130,8 +1133,7 @@ def bdate_range(
     **kwargs,
 ) -> DatetimeIndex:
     """
-    Return a fixed frequency DatetimeIndex, with business day as the default
-    frequency.
+    Return a fixed frequency DatetimeIndex with business day as the default.
 
     Parameters
     ----------

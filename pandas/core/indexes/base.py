@@ -43,8 +43,8 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._typing import (
-    AnyArrayLike,
     ArrayLike,
+    Axes,
     Dtype,
     DtypeObj,
     F,
@@ -259,6 +259,10 @@ def _new_Index(cls, d):
             # GH#23752 "labels" kwarg has been replaced with "codes"
             d["codes"] = d.pop("labels")
 
+        # Since this was a valid MultiIndex at pickle-time, we don't need to
+        #  check validty at un-pickle time.
+        d["verify_integrity"] = False
+
     elif "dtype" not in d and "data" in d:
         # Prevent Index.__new__ from conducting inference;
         #  "data" key not in RangeIndex
@@ -271,8 +275,9 @@ _IndexT = TypeVar("_IndexT", bound="Index")
 
 class Index(IndexOpsMixin, PandasObject):
     """
-    Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects.
+    Immutable sequence used for indexing and alignment.
+
+    The basic object storing axis labels for all pandas objects.
 
     Parameters
     ----------
@@ -404,9 +409,12 @@ class Index(IndexOpsMixin, PandasObject):
     # associated code in pandas 2.0.
     _is_backward_compat_public_numeric_index: bool = False
 
-    _engine_type: type[libindex.IndexEngine] | type[
-        libindex.ExtensionEngine
-    ] = libindex.ObjectEngine
+    @property
+    def _engine_type(
+        self,
+    ) -> type[libindex.IndexEngine] | type[libindex.ExtensionEngine]:
+        return libindex.ObjectEngine
+
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -2287,8 +2295,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return if the index is monotonic increasing (only equal or
-        increasing) values.
+        Return a boolean if the values are equal or increasing.
 
         Examples
         --------
@@ -2304,8 +2311,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return if the index is monotonic decreasing (only equal or
-        decreasing) values.
+        Return a boolean if the values are equal or decreasing.
 
         Examples
         --------
@@ -3807,8 +3813,9 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "get_indexer"
     ] = """
-        Compute indexer and mask for new index given the current index. The
-        indexer should be then used as an input to ndarray.take to align the
+        Compute indexer and mask for new index given the current index.
+
+        The indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
 
         Parameters
@@ -4577,8 +4584,7 @@ class Index(IndexOpsMixin, PandasObject):
         sort: bool = False,
     ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         """
-        Compute join_index and indexers to conform data
-        structures to the new index.
+        Compute join_index and indexers to conform data structures to the new index.
 
         Parameters
         ----------
@@ -4679,6 +4685,7 @@ class Index(IndexOpsMixin, PandasObject):
                 not isinstance(self, ABCMultiIndex)
                 or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
             )
+            and not is_categorical_dtype(self.dtype)
         ):
             # Categorical is monotonic if data are ordered as categories, but join can
             #  not handle this in case of not lexicographically monotonic GH#38502
@@ -5974,8 +5981,9 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs[
         "get_indexer_non_unique"
     ] = """
-        Compute indexer and mask for new index given the current index. The
-        indexer should be then used as an input to ndarray.take to align the
+        Compute indexer and mask for new index given the current index.
+
+        The indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
 
         Parameters
@@ -6894,6 +6902,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
         # TODO(2.0) can use Index instead of self._constructor
+        #  Check if doing so fixes GH#47071
         return self._constructor._with_infer(new_values, name=self.name)
 
     def drop(
@@ -7272,7 +7281,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Index:
+def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     """
     Ensure that we have an index from some index-like object.
 

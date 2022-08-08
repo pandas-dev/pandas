@@ -381,6 +381,8 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
 
     .. versionadded:: 1.3.0
 
+    .. versionadded:: 1.4.0
+
         - callable, function with signature
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
@@ -388,8 +390,6 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
           If the function returns a new list of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine="python"``
-
-    .. versionadded:: 1.4.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -499,7 +499,7 @@ def validate_integer(name, val: None, min_val=...) -> None:
 
 
 @overload
-def validate_integer(name, val: int | float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val=...) -> int:
     ...
 
 
@@ -1910,7 +1910,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """return a stringified and numeric for these values"""
-    result: list[int | str | float] = []
+    result: list[str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)

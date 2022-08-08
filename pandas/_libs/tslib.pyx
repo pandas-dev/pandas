@@ -152,7 +152,7 @@ def format_array_from_datetime(
         # a format based on precision
         basic_format = format is None
         if basic_format:
-            reso_obj = get_resolution(values, reso=reso)
+            reso_obj = get_resolution(values, tz=tz, reso=reso)
             show_ns = reso_obj == Resolution.RESO_NS
             show_us = reso_obj == Resolution.RESO_US
             show_ms = reso_obj == Resolution.RESO_MS
@@ -652,7 +652,8 @@ cpdef array_to_datetime(
                     else:
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            except OutOfBoundsDatetime:
+            except OutOfBoundsDatetime as ex:
+                ex.args = (str(ex) + f" present at position {i}", )
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue

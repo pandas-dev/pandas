@@ -3,7 +3,7 @@
 {{ header }}
 
 *******************
-Chart Visualization
+Chart visualization
 *******************
 
 This section demonstrates visualization through charting. For information on
@@ -1746,7 +1746,7 @@ Andrews curves charts:
 
    plt.close("all")
 
-Plotting directly with matplotlib
+Plotting directly with Matplotlib
 ---------------------------------
 
 In some situations it may still be preferable or necessary to prepare plots

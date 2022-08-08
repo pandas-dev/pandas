@@ -91,22 +91,23 @@ if TYPE_CHECKING:
 _midnight = time(0, 0)
 
 
-def tz_to_dtype(tz):
+def tz_to_dtype(tz: tzinfo | None, unit: str = "ns"):
     """
     Return a datetime64[ns] dtype appropriate for the given timezone.
 
     Parameters
     ----------
     tz : tzinfo or None
+    unit : str, default "ns"
 
     Returns
     -------
     np.dtype or Datetime64TZDType
     """
     if tz is None:
-        return DT64NS_DTYPE
+        return np.dtype(f"M8[{unit}]")
     else:
-        return DatetimeTZDtype(tz=tz)
+        return DatetimeTZDtype(tz=tz, unit=unit)
 
 
 def _field_accessor(name: str, field: str, docstring=None):
@@ -250,7 +251,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Constructors
 
     _dtype: np.dtype | DatetimeTZDtype
-    _freq = None
+    _freq: BaseOffset | None = None
     _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
@@ -263,7 +264,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
+        cls,
+        values: np.ndarray,
+        freq: BaseOffset | None = None,
+        dtype=DT64NS_DTYPE,
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         assert dtype.kind == "M"
@@ -290,7 +294,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         dtype=None,
         copy: bool = False,
         tz=None,
-        freq=lib.no_default,
+        freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
         ambiguous="raise",
@@ -800,14 +804,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             )
 
         # No conversion since timestamps are all UTC to begin with
-        dtype = tz_to_dtype(tz)
+        dtype = tz_to_dtype(tz, unit=self._unit)
         return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
 
     @dtl.ravel_compat
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeArray:
         """
-        Localize tz-naive Datetime Array/Index to tz-aware
-        Datetime Array/Index.
+        Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index.
 
         This method takes a time zone (tz) naive Datetime Array/Index object
         and makes this time zone aware. It does not move the time to another
@@ -965,10 +968,14 @@ default 'raise'
             # Convert to UTC
 
             new_dates = tzconversion.tz_localize_to_utc(
-                self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent
+                self.asi8,
+                tz,
+                ambiguous=ambiguous,
+                nonexistent=nonexistent,
+                reso=self._reso,
             )
-        new_dates = new_dates.view(DT64NS_DTYPE)
-        dtype = tz_to_dtype(tz)
+        new_dates = new_dates.view(f"M8[{self._unit}]")
+        dtype = tz_to_dtype(tz, unit=self._unit)
 
         freq = None
         if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates[0])):
@@ -985,8 +992,7 @@ default 'raise'
 
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
-        Return Datetime Array/Index as object ndarray of datetime.datetime
-        objects.
+        Return an ndarray of datetime.datetime objects.
 
         Returns
         -------
@@ -1114,9 +1120,9 @@ default 'raise'
 
     def to_perioddelta(self, freq) -> TimedeltaArray:
         """
-        Calculate TimedeltaArray of difference between index
-        values and index converted to PeriodArray at specified
-        freq. Used for vectorized offsets.
+        Calculate deltas between self values and self converted to Periods at a freq.
+
+        Used for vectorized offsets.
 
         Parameters
         ----------
@@ -1149,8 +1155,7 @@ default 'raise'
 
     def month_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
-        Return the month names of the :class:`~pandas.Series` or
-        :class:`~pandas.DatetimeIndex` with specified locale.
+        Return the month names with specified locale.
 
         Parameters
         ----------
@@ -1194,8 +1199,7 @@ default 'raise'
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
-        Return the day names of the :class:`~pandas.Series` or
-        :class:`~pandas.DatetimeIndex` with specified locale.
+        Return the day names with specified locale.
 
         Parameters
         ----------
@@ -1254,8 +1258,7 @@ default 'raise'
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of :class:`datetime.time` objects with timezone
-        information.
+        Returns numpy array of :class:`datetime.time` objects with timezones.
 
         The time part of the Timestamps.
         """
