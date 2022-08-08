@@ -335,7 +335,7 @@ if is_platform_windows():
 else:
     # PANDAS_CI=1 is set in CI
     if os.environ.get("PANDAS_CI", "0") == "1":
-        extra_compile_args.append("-Werror")
+        extra_compile_args.append(["-Werror", "-Wno-parentheses-equality"])
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
         extra_compile_args.append("-UNDEBUG")
