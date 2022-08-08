@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pandas.util._exceptions import find_stack_level
-
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -199,6 +197,8 @@ def __getattr__(name):
     import warnings
 
     if name in __deprecated_num_index_names:
+        from pandas.util._exceptions import find_stack_level
+
         warnings.warn(
             f"pandas.{name} is deprecated "
             "and will be removed from pandas in a future version. "
