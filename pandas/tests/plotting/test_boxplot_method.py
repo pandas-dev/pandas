@@ -61,16 +61,16 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.boxplot, return_type="dict")
         _check_plot_works(df.boxplot, column=["one", "two"], return_type="dict")
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, column=["one", "two"], by="indic")
         _check_plot_works(df.boxplot, column="one", by=["indic", "indic2"])
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by="indic")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by=["indic", "indic2"])
         _check_plot_works(plotting._core.boxplot, data=df["one"], return_type="dict")
         _check_plot_works(df.boxplot, notch=1, return_type="dict")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by="indic", notch=1)
 
     def test_boxplot_legacy2(self):

@@ -107,7 +107,7 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(np.random.randn(100, 3))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=True):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 scatter_matrix,
                 filterwarnings="always",
