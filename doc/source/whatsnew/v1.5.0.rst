@@ -941,7 +941,6 @@ Indexing
 - Bug in :meth:`Series.loc` raising with boolean indexer containing ``NA`` when :class:`Index` did not match (:issue:`46551`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
 - Bug in :meth:`DataFrame.loc` when setting values to a column and right hand side is a dictionary (:issue:`47216`)
-- Bug in :meth:`DataFrame.loc` when setting a :class:`DataFrame` not aligning index in some cases (:issue:`47578`)
 - Bug in :meth:`Series.__setitem__` with ``datetime64[ns]`` dtype, an all-``False`` boolean mask, and an incompatible value incorrectly casting to ``object`` instead of retaining ``datetime64[ns]`` dtype (:issue:`45967`)
 - Bug in :meth:`Index.__getitem__`  raising ``ValueError`` when indexer is from boolean dtype with ``NA`` (:issue:`45806`)
 - Bug in :meth:`Series.__setitem__` losing precision when enlarging :class:`Series` with scalar (:issue:`32346`)
@@ -1007,6 +1006,7 @@ I/O
 - Bug in :func:`read_sas` with RLE-compressed SAS7BDAT files that contain 0x00 control bytes (:issue:`47099`)
 - Bug in :func:`read_parquet` with ``use_nullable_dtypes=True`` where ``float64`` dtype was returned instead of nullable ``Float64`` dtype (:issue:`45694`)
 - Bug in :meth:`DataFrame.to_json` where ``PeriodDtype`` would not make the serialization roundtrip when read back with :meth:`read_json` (:issue:`44720`)
+- Bug in :func:`read_xml` when reading XML files with Chinese character tags and would raise ``XMLSyntaxError`` (:issue:`47902`)
 
 Period
 ^^^^^^
