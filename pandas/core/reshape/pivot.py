@@ -178,7 +178,9 @@ def __internal_pivot_table(
                 and v in agged
                 and not is_integer_dtype(agged[v])
             ):
-                if not isinstance(agged[v], ABCDataFrame):
+                if not isinstance(agged[v], ABCDataFrame) and isinstance(
+                    data[v].dtype, np.dtype
+                ):
                     # exclude DataFrame case bc maybe_downcast_to_dtype expects
                     #  ArrayLike
                     # e.g. test_pivot_table_multiindex_columns_doctest_case
