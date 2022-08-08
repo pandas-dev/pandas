@@ -1921,9 +1921,8 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    # error: Incompatible types in assignment (expression has
-                    # type "List[str]", variable has type "Index")
-                    cat_data.categories = categories  # type: ignore[assignment]
+                    # TODO: if we get a non-copying rename_categories, use that
+                    cat_data = cat_data.rename_categories(categories)
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
