@@ -345,17 +345,6 @@ Index level names may be supplied as keys.
 
 More on the ``sum`` function and aggregation later.
 
-When using ``.groupby()`` on a DatFrame with a  MultiIndex, do not specify both ``by`` and ``level``.
-The argument validation should be done in ``.groupby()``, using the name of the specific index.
-
-.. ipython:: python
-
-   df = pd.DataFrame({"col1": ["a", "b", "c"]})
-   df.index = pd.MultiIndex.from_arrays([["a", "a", "b"],
-                                        [1, 2, 1]],
-                                        names=["x", "y"])
-   df.groupby(["col1", "x"])
-
 Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels by
