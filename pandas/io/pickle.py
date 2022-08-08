@@ -167,7 +167,7 @@ def read_pickle(
     --------
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )  # doctest: +SKIP 
+    ...    )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -185,7 +185,7 @@ def read_pickle(
     2    2    7
     3    3    8
     4    4    9
-    """  
+    """ 
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
