@@ -54,6 +54,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_categorical_dtype,
+    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -1370,7 +1371,7 @@ class MultiIndex(Index):
 
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes):
-            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
+            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype)
 
             if len(lev) > 0:
 
@@ -3889,6 +3890,11 @@ def sparsify_labels(label_list, start: int = 0, sentinel=""):
 
 
 def _get_na_rep(dtype) -> str:
+    if is_extension_array_dtype(dtype):
+        return f"{dtype.na_value}"
+    else:
+        dtype = dtype.type
+
     return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
 
 

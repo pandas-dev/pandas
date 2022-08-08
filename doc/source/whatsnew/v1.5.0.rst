@@ -1002,6 +1002,7 @@ I/O
 - Bug in :func:`read_sas` with certain types of compressed SAS7BDAT files (:issue:`35545`)
 - Bug in :func:`read_excel` not forward filling :class:`MultiIndex` when no names were given (:issue:`47487`)
 - Bug in :func:`read_sas` returned ``None`` rather than an empty DataFrame for SAS7BDAT files with zero rows (:issue:`18198`)
+- Bug in :meth:`DataFrame.to_string` using wrong missing value with extension arrays in :class:`MultiIndex` (:issue:`47986`)
 - Bug in :class:`StataWriter` where value labels were always written with default encoding (:issue:`46750`)
 - Bug in :class:`StataWriterUTF8` where some valid characters were removed from variable names (:issue:`47276`)
 - Bug in :meth:`DataFrame.to_excel` when writing an empty dataframe with :class:`MultiIndex` (:issue:`19543`)
