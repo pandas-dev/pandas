@@ -1065,7 +1065,7 @@ Other
 .. ***DO NOT USE THIS SECTION***
 
 - Bug in :func:`.assert_index_equal` with ``names=True`` and ``check_order=False`` not checking names (:issue:`47328`)
-- Bug in : DataFrame eval will not work with 'Timestamp' column name (:issue:`44603`)
+- Bug in :meth:`DataFrame.eval` when pandas objects (e.g. ``'Timestamp'``) were column names (:issue:`44603`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.contributors:
