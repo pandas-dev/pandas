@@ -1227,6 +1227,13 @@ class TestDataFrameIndexing:
         df.iloc[:] = df.iloc[:, :]
         tm.assert_frame_equal(df, orig)
 
+    def test_getitem_segfault_with_empty_like_object(self):
+        # GH#46848
+        df = DataFrame(np.empty((1, 1), dtype=object))
+        df[0] = np.empty_like(df[0])
+        # this produces the segfault
+        df[[0]]
+
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1316,6 +1323,29 @@ class TestDataFrameIndexing:
         with tm.assert_produces_warning(None):
             df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
+
+    def test_loc_internals_not_updated_correctly(self):
+        # GH#47867 all steps are necessary to reproduce the initial bug
+        df = DataFrame(
+            {"bool_col": True, "a": 1, "b": 2.5},
+            index=MultiIndex.from_arrays([[1, 2], [1, 2]], names=["idx1", "idx2"]),
+        )
+        idx = [(1, 1)]
+
+        df["c"] = 3
+        df.loc[idx, "c"] = 0
+
+        df.loc[idx, "c"]
+        df.loc[idx, ["a", "b"]]
+
+        df.loc[idx, "c"] = 15
+        result = df.loc[idx, "c"]
+        expected = df = Series(
+            15,
+            index=MultiIndex.from_arrays([[1], [1]], names=["idx1", "idx2"]),
+            name="c",
+        )
+        tm.assert_series_equal(result, expected)
 
 
 class TestDataFrameIndexingUInt64:
