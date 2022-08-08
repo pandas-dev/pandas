@@ -268,3 +268,41 @@ class TestMinMax:
             assert result is NaT or np.isnat(result)
         else:
             assert np.isnan(result)
+
+
+class TestArgmaxArgmin:
+    @pytest.mark.parametrize(
+        "arr,argmax_expected,argmin_expected",
+        [
+            (SparseArray([1, 2, 0, 1, 2]), 1, 2),
+            (SparseArray([-1, -2, 0, -1, -2]), 2, 1),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, -1]), 1, 5),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2]), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=-1), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=0), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=1), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=2), 5, 2),
+            (SparseArray([np.nan, 1, 0, 0, np.nan, 2], fill_value=3), 5, 2),
+            (SparseArray([0] * 10 + [-1], fill_value=0), 0, 10),
+            (SparseArray([0] * 10 + [-1], fill_value=-1), 0, 10),
+            (SparseArray([0] * 10 + [-1], fill_value=1), 0, 10),
+            (SparseArray([-1] + [0] * 10, fill_value=0), 1, 0),
+            (SparseArray([1] + [0] * 10, fill_value=0), 0, 1),
+            (SparseArray([-1] + [0] * 10, fill_value=-1), 1, 0),
+            (SparseArray([1] + [0] * 10, fill_value=1), 0, 1),
+        ],
+    )
+    def test_argmax_argmin(self, arr, argmax_expected, argmin_expected):
+        argmax_result = arr.argmax()
+        argmin_result = arr.argmin()
+        assert argmax_result == argmax_expected
+        assert argmin_result == argmin_expected
+
+    @pytest.mark.parametrize(
+        "arr,method",
+        [(SparseArray([]), "argmax"), (SparseArray([]), "argmin")],
+    )
+    def test_empty_array(self, arr, method):
+        msg = f"attempt to get {method} of an empty sequence"
+        with pytest.raises(ValueError, match=msg):
+            arr.argmax() if method == "argmax" else arr.argmin()
