@@ -8,6 +8,7 @@ from csv import (
     QUOTE_NONNUMERIC,
 )
 from errno import ENOENT
+import inspect
 import sys
 import time
 import warnings
