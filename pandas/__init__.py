@@ -190,10 +190,9 @@ def __dir__() -> list[str]:
 
 def __getattr__(name):
     import warnings
+    from pandas.util._exceptions import find_stack_level
 
     if name in __deprecated_num_index_names:
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             f"pandas.{name} is deprecated "
             "and will be removed from pandas in a future version. "
