@@ -323,13 +323,22 @@ class TestCategoricalAnalytics:
             f"received type {type(value).__name__}"
         )
         with pytest.raises(ValueError, match=msg):
-            cat.set_ordered(value=True, inplace=value)
+            with tm.assert_produces_warning(
+                FutureWarning, match="Use rename_categories"
+            ):
+                cat.set_ordered(value=True, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.as_ordered(inplace=value)
+            with tm.assert_produces_warning(
+                FutureWarning, match="Use rename_categories"
+            ):
+                cat.as_ordered(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.as_unordered(inplace=value)
+            with tm.assert_produces_warning(
+                FutureWarning, match="Use rename_categories"
+            ):
+                cat.as_unordered(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning):

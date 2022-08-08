@@ -271,6 +271,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
    such as :func:`to_datetime`.
 
    .. ipython:: python
+      :okwarning:
 
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes

@@ -334,8 +334,7 @@ It's also possible to pass in the categories in a specific order:
 Renaming categories
 ~~~~~~~~~~~~~~~~~~~
 
-Renaming categories is done by assigning new values to the
-``Series.cat.categories`` property or by using the
+Renaming categories is done by using the
 :meth:`~pandas.Categorical.rename_categories` method:
 
 
@@ -343,9 +342,8 @@ Renaming categories is done by assigning new values to the
 
     s = pd.Series(["a", "b", "c", "a"], dtype="category")
     s
-    s.cat.categories = ["Group %s" % g for g in s.cat.categories]
-    s
-    s = s.cat.rename_categories([1, 2, 3])
+    new_categories = ["Group %s" % g for g in s.cat.categories]
+    s = s.cat.rename_categories(new_categories)
     s
     # You can also pass a dict-like object to map the renaming
     s = s.cat.rename_categories({1: "x", 2: "y", 3: "z"})
@@ -365,7 +363,7 @@ Categories must be unique or a ``ValueError`` is raised:
 .. ipython:: python
 
     try:
-        s.cat.categories = [1, 1, 1]
+        s = s.cat.rename_categories([1, 1, 1])
     except ValueError as e:
         print("ValueError:", str(e))
 
@@ -374,7 +372,7 @@ Categories must also not be ``NaN`` or a ``ValueError`` is raised:
 .. ipython:: python
 
     try:
-        s.cat.categories = [1, 2, np.nan]
+        s = s.cat.rename_categories([1, 2, np.nan])
     except ValueError as e:
         print("ValueError:", str(e))
 
@@ -702,7 +700,7 @@ of length "1".
 .. ipython:: python
 
     df.iat[0, 0]
-    df["cats"].cat.categories = ["x", "y", "z"]
+    df["cats"] = df["cats"].cat.rename_categories(["x", "y", "z"])
     df.at["h", "cats"]  # returns a string
 
 .. note::
@@ -960,7 +958,7 @@ relevant columns back to ``category`` and assign the right categories and catego
 
     s = pd.Series(pd.Categorical(["a", "b", "b", "a", "a", "d"]))
     # rename the categories
-    s.cat.categories = ["very good", "good", "bad"]
+    s = s.cat.rename_categories(["very good", "good", "bad"])
     # reorder the categories and add missing categories
     s = s.cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df = pd.DataFrame({"cats": s, "vals": [1, 2, 3, 4, 5, 6]})
@@ -1164,6 +1162,7 @@ Constructing a ``Series`` from a ``Categorical`` will not copy the input
 change the original ``Categorical``:
 
 .. ipython:: python
+    :okwarning:
 
     cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
     s = pd.Series(cat, name="cat")
