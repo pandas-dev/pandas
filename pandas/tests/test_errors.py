@@ -35,6 +35,10 @@ import pandas as pd
         "IncompatibilityWarning",
         "AttributeConflictWarning",
         "DatabaseError",
+        "PossiblePrecisionLoss",
+        "CategoricalConversionWarning",
+        "InvalidColumnName",
+        "ValueLabelTypeMismatch",
     ],
 )
 def test_exception_importable(exc):

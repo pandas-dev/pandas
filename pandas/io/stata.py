@@ -41,6 +41,12 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.errors import (
+    CategoricalConversionWarning,
+    InvalidColumnName,
+    PossiblePrecisionLoss,
+    ValueLabelTypeMismatch,
+)
 from pandas.util._decorators import (
     Appender,
     doc,
@@ -493,18 +499,10 @@ characters.  Column '{0}' does not satisfy this restriction. Use the
 """
 
 
-class PossiblePrecisionLoss(Warning):
-    pass
-
-
 precision_loss_doc: Final = """
 Column converted from {0} to {1}, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
-
-
-class ValueLabelTypeMismatch(Warning):
-    pass
 
 
 value_label_mismatch_doc: Final = """
@@ -512,10 +510,6 @@ Stata value labels (pandas categories) must be strings. Column {0} contains
 non-string labels which will be converted to strings.  Please check that the
 Stata data file created has not lost information due to duplicate labels.
 """
-
-
-class InvalidColumnName(Warning):
-    pass
 
 
 invalid_name_doc: Final = """
@@ -530,11 +524,7 @@ alphanumerics and underscores, no Stata reserved words)
 """
 
 
-class CategoricalConversionWarning(Warning):
-    pass
-
-
-categorical_conversion_warning = """
+categorical_conversion_warning: Final = """
 One or more series with value labels are not fully labeled. Reading this
 dataset with an iterator results in categorical variable with different
 categories. This occurs since it is not possible to know all possible values
