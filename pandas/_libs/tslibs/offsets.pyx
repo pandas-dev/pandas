@@ -297,8 +297,8 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 cdef _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
-    # offsets relativedelta is used for plural offsets of daily length or
-    # more nanosecond(s) are handled by apply_wraps
+    # offsets, relativedelta is used for plural offsets of daily length or
+    # more, nanosecond(s) are handled by apply_wraps
     kwds_no_nanos = dict(
         (k, v) for k, v in kwds.items()
         if k not in ('nanosecond', 'nanoseconds')
@@ -1157,7 +1157,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
             return dt64other
         elif not self._use_relativedelta and hasattr(self, "_offset"):
             # timedelta
-            delta = Timedelta(self._offset * self.n)
+            num_nano = getattr(self, "nanoseconds", 0)
+            rem_nano = Timedelta(nanoseconds=num_nano)
+            delta = Timedelta((self._offset + rem_nano) * self.n)
             td = (<_Timedelta>delta)._as_reso(reso)
             return dt64other + td
         else:
