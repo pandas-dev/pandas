@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -124,7 +125,7 @@ def _derive_colors(
         if colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return _get_colors_from_color(color)
     else:

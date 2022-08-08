@@ -134,7 +134,7 @@ Otherwise, you need to do it manually:
         warnings.warn(
             'Use new_func instead.',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         new_func()
 

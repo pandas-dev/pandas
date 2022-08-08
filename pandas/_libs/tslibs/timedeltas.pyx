@@ -685,7 +685,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
             "Units 'M', 'Y' and 'y' do not represent unambiguous "
             "timedelta values and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     if unit == 'M':
@@ -1057,7 +1057,7 @@ cdef class _Timedelta(timedelta):
         warnings.warn(
             "Timedelta.freq is deprecated and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return None
 
@@ -1067,7 +1067,7 @@ cdef class _Timedelta(timedelta):
         warnings.warn(
             "Timedelta.is_populated is deprecated and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._is_populated
 
@@ -1271,7 +1271,7 @@ cdef class _Timedelta(timedelta):
         warnings.warn(
             "Timedelta.delta is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.value
 

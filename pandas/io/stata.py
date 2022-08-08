@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections import abc
 import datetime
+import inspect
 from io import BytesIO
 import os
 import struct
@@ -351,7 +352,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
 
         warnings.warn(
             "Encountered %tC format. Leaving in Stata Internal Format.",
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         conv_dates = Series(dates, dtype=object)
         if has_bad_values:
@@ -468,7 +469,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     elif fmt in ["%tC", "tC"]:
         warnings.warn(
             "Stata Internal Format tC not supported.",
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         conv_dates = dates
     elif fmt in ["%td", "td"]:
@@ -652,7 +653,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         warnings.warn(
             ws,
             PossiblePrecisionLoss,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     return data
@@ -708,7 +709,7 @@ class StataValueLabel:
                 warnings.warn(
                     value_label_mismatch_doc.format(self.labname),
                     ValueLabelTypeMismatch,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             category = category.encode(self._encoding)
             offsets.append(self.text_len)
@@ -1521,7 +1522,7 @@ the string values returned are correct."""
             warnings.warn(
                 msg,
                 UnicodeWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return s.decode("latin-1")
 
@@ -1920,7 +1921,7 @@ the string values returned are correct."""
                         warnings.warn(
                             categorical_conversion_warning,
                             CategoricalConversionWarning,
-                            stacklevel=find_stack_level(),
+                            stacklevel=find_stack_level(inspect.currentframe()),
                         )
                     initial_categories = None
                 cat_data = Categorical(
@@ -2503,7 +2504,7 @@ class StataWriter(StataParser):
             warnings.warn(
                 ws,
                 InvalidColumnName,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         self._converted_names = converted_names
@@ -2671,7 +2672,7 @@ supported types."""
                             f"This save was not successful but {self._fname} could not "
                             "be deleted. This file is not valid.",
                             ResourceWarning,
-                            stacklevel=find_stack_level(),
+                            stacklevel=find_stack_level(inspect.currentframe()),
                         )
                 raise exc
 

@@ -147,7 +147,7 @@ repos:
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
 
-            # Check for ``stacklevel=5`` instead of ``stacklevel=find_stack_level()``
+            # Check for ``stacklevel=5`` instead of ``stacklevel=find_stack_level(inspect.currentframe())``
             |stacklevel=\d+
         types_or: [python, cython, rst]
     -   id: cython-casting

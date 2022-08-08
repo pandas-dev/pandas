@@ -353,7 +353,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
                 "The values in the array are unorderable. "
                 "Pass `sort=False` to suppress this warning.",
                 RuntimeWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             pass
 

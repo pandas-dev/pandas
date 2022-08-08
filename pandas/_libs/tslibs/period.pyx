@@ -1829,7 +1829,7 @@ cdef class _Period(PeriodMixin):
                 "be removed in a future version.  Use "
                 "`per.to_timestamp(...).tz_localize(tz)` instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         how = validate_end_alias(how)

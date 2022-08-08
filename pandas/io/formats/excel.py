@@ -7,6 +7,7 @@ from functools import (
     lru_cache,
     reduce,
 )
+import inspect
 import itertools
 import re
 from typing import (
@@ -431,7 +432,7 @@ class CSSToExcelConverter:
             warnings.warn(
                 f"Unhandled color format: {repr(val)}",
                 CSSWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return None
 

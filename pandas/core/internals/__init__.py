@@ -1,3 +1,5 @@
+import inspect
+
 from pandas.core.internals.api import make_block
 from pandas.core.internals.array_manager import (
     ArrayManager,
@@ -50,7 +52,7 @@ def __getattr__(name: str):
             "CategoricalBlock is deprecated and will be removed in a future version. "
             "Use ExtensionBlock instead.",
             DeprecationWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         from pandas.core.internals.blocks import CategoricalBlock
 

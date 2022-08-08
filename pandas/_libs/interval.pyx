@@ -228,7 +228,7 @@ def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if closed is None:
             inclusive = "right"
@@ -394,7 +394,7 @@ cdef class Interval(IntervalMixin):
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.inclusive
 

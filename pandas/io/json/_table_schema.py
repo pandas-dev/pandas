@@ -5,6 +5,7 @@ https://specs.frictionlessdata.io/json-table-schema/
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -103,12 +104,12 @@ def set_default_names(data):
         if len(nms) == 1 and data.index.name == "index":
             warnings.warn(
                 "Index name of 'index' is not round-trippable.",
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
             warnings.warn(
                 "Index names beginning with 'level_' are not round-trippable.",
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return data
 

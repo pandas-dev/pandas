@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import sys
 import types
 import warnings
@@ -160,7 +161,11 @@ def import_optional_dependency(
                 f"(version '{version}' currently installed)."
             )
             if errors == "warn":
-                warnings.warn(msg, UserWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    msg,
+                    UserWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
                 return None
             elif errors == "raise":
                 raise ImportError(msg)

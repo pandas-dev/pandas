@@ -54,6 +54,7 @@ from contextlib import (
     ContextDecorator,
     contextmanager,
 )
+import inspect
 import re
 from typing import (
     Any,
@@ -658,7 +659,11 @@ def _warn_if_deprecated(key: str) -> bool:
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
-            warnings.warn(d.msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                d.msg,
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
         else:
             msg = f"'{key}' is deprecated"
             if d.removal_ver:
@@ -668,7 +673,9 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
         return True
     return False
 

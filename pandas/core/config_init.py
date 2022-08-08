@@ -11,6 +11,7 @@ module is imported, register them here rather than in the module.
 """
 from __future__ import annotations
 
+import inspect
 import os
 from typing import Callable
 import warnings
@@ -370,7 +371,7 @@ with cf.config_prefix("display"):
             "in a future version. Use df.to_string(col_space=...) "
             "instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     cf.register_option("column_space", 12, validator=is_int, cb=_deprecate_column_space)
@@ -397,7 +398,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     cf.register_option(

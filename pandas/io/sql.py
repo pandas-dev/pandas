@@ -12,6 +12,7 @@ from datetime import (
     time,
 )
 from functools import partial
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -761,7 +762,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
         "database string URI or sqlite3 DBAPI2 connection. "
         "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
         UserWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return SQLiteDatabase(con)
 
@@ -1194,7 +1195,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1658,7 +1659,7 @@ class SQLDatabase(PandasSQL):
                 warnings.warn(
                     msg,
                     UserWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
 
     def to_sql(
@@ -1967,7 +1968,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             col_type = "integer"
 

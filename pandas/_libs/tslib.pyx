@@ -844,7 +844,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
                 "deprecated. In a future version, this will match Timestamp('now') "
                 "and Timestamp.now()",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         return True

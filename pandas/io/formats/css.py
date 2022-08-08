@@ -3,6 +3,7 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 from __future__ import annotations
 
+import inspect
 import re
 from typing import (
     Callable,
@@ -50,7 +51,7 @@ def _side_expander(prop_fmt: str) -> Callable:
             warnings.warn(
                 f'Could not expand "{prop}: {value}"',
                 CSSWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return
         for key, idx in zip(self.SIDES, mapping):
@@ -95,7 +96,7 @@ def _border_expander(side: str = "") -> Callable:
             warnings.warn(
                 f'Too many tokens provided to "{prop}" (expected 1-3)',
                 CSSWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         # TODO: Can we use current color as initial value to comply with CSS standards?
@@ -334,7 +335,7 @@ class CSSResolver:
             warnings.warn(
                 f"Unhandled size: {repr(in_val)}",
                 CSSWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return self.size_to_pt("1!!default", conversions=conversions)
 
@@ -407,5 +408,5 @@ class CSSResolver:
                 warnings.warn(
                     f"Ill-formatted attribute: expected a colon in {repr(decl)}",
                     CSSWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )

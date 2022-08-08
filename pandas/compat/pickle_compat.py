@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import inspect
 import io
 import pickle as pkl
 from typing import (
@@ -88,7 +89,7 @@ class _LoadSparseSeries:
         warnings.warn(
             _sparse_msg.format(cls="SparseSeries", new="Series"),
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         return Series(dtype=object)
@@ -106,7 +107,7 @@ class _LoadSparseFrame:
         warnings.warn(
             _sparse_msg.format(cls="SparseDataFrame", new="DataFrame"),
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         return DataFrame()
