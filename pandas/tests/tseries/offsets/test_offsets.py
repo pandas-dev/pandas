@@ -1047,12 +1047,12 @@ def test_construct_int_arg_no_kwargs_assumed_days(n):
 )
 def test_dateoffset_add_sub_timestamp_series_with_nano(offset, expected):
     # GH 47856
-    t = Timestamp("2022-01-01")
-    teststamp = t
-    s = Series([t])
-    s = s + offset
-    assert s[0] == expected
-    s -= offset
-    assert s[0] == teststamp
-    s = offset + s
-    assert s[0] == expected
+    start_time = Timestamp("2022-01-01")
+    teststamp = start_time
+    testseries = Series([start_time])
+    testseries = testseries + offset
+    assert testseries[0] == expected
+    testseries -= offset
+    assert testseries[0] == teststamp
+    testseries = offset + testseries
+    assert testseries[0] == expected
