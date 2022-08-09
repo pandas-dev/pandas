@@ -55,7 +55,7 @@ def group_sum(
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[complexfloatingintuint_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
-    mask: np.ndarray | None = ...,
+    mask: np.ndarray | None,
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
