@@ -186,15 +186,15 @@ def read_pickle(
     class RestrictedUnpickler(pickle.Unpickler):     
         def find_class(self, module, name):
             opt = get_option("pickler.unpickle.mode")
-            if (opt == "off") or
-           # Only allow safe modules and classes. Tuples defined in config
-           (opt == "permit" and (module, name) in safe_tuples) or
-           # Do not allow unsafe modules and classes.               
-           (opt == "deny" and (module, name) not in unsafe_tuples):
-            return super().find_class(module, name)
-        # Forbid everything else.
-        raise pkl.UnpicklingError("global '%s.%s' is forbidden" %
-                                 (module, name))
+            # Only allow safe modules and classes. Tuples defined in config
+            # Do not allow unsafe modules and classes.
+            if (opt == "off") or 
+            (opt == "permit" and (module, name) in safe_tuples) or
+            (opt == "deny" and (module, name) not in unsafe_tuples):
+                return super().find_class(module, name)
+            # Forbid everything else.
+            raise pkl.UnpicklingError("global '%s.%s' is forbidden" %
+                                      (module, name))
             
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
