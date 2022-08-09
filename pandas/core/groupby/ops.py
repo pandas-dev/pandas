@@ -218,7 +218,7 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["sum", "var", "prod", "mean", "ohlc"] or (
+            if how in ["var", "prod", "mean", "ohlc"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
@@ -616,7 +616,8 @@ class WrappedCythonOp:
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                cutoff = max(1, min_count)
+                # Neutral value for sum is 0, so don't fill empty groups with nan
+                cutoff = max(0 if self.how == "sum" else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
                     if result_mask is not None and self.uses_mask():

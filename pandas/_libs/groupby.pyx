@@ -513,6 +513,15 @@ ctypedef fused mean_t:
 
 ctypedef fused sum_t:
     mean_t
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+    uint8_t
+    uint16_t
+    uint32_t
+    uint64_t
     object
 
 
@@ -539,7 +548,6 @@ def group_sum(
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
         bint isna_entry
-        bint isna_entry_nogil
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -563,12 +571,7 @@ def group_sum(
                 val = values[i, j]
 
                 # not nan
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = checknull(val)
-
-                if not isna_entry:
+                if not checknull(val):
                     nobs[lab, j] += 1
 
                     if nobs[lab, j] == 1:
@@ -582,10 +585,7 @@ def group_sum(
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] < min_count:
-                    if uses_mask:
-                        result_mask[i, j] = True
-                    else:
-                        out[i, j] = NAN
+                    out[i, j] = None
 
                 else:
                     out[i, j] = sumx[i, j]
@@ -605,14 +605,18 @@ def group_sum(
                     #  instead if int64 for group_sum, but the logic
                     #  is otherwise the same as in _treat_as_na
                     if uses_mask:
-                        isna_entry_nogil = mask[i, j]
+                        isna_entry = mask[i, j]
+                    elif (sum_t is float32_t or sum_t is float64_t
+                        or sum_t is complex64_t or sum_t is complex64_t):
+                        # avoid warnings because of equality comparison
+                        isna_entry = not val == val
                     else:
-                        isna_entry_nogil = False
+                        isna_entry = False
 
-                    if not isna_entry_nogil and not (
-                        sum_t is float64_t
+                    if not isna_entry and not (
+                        sum_t is int64_t
                         and is_datetimelike
-                        and val == <float64_t>NPY_NAT
+                        and val == NPY_NAT
                     ):
                         nobs[lab, j] += 1
                         y = val - compensation[lab, j]
@@ -623,10 +627,22 @@ def group_sum(
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] < min_count:
+                        # if we are integer dtype, not is_datetimelike, and
+                        #  not uses_mask, then getting here implies that
+                        #  counts[i] < min_count, which means we will
+                        #  be cast to float64 and masked at the end
+                        #  of WrappedCythonOp._call_cython_op. So we can safely
+                        #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
-                        else:
+                        elif (sum_t is float32_t or sum_t is float64_t
+                            or sum_t is complex64_t or sum_t is complex64_t):
                             out[i, j] = NAN
+                        elif sum_t is int64_t:
+                            out[i, j] = NPY_NAT
+                        else:
+                            # placeholder, see above
+                            out[i, j] = 0
 
                     else:
                         out[i, j] = sumx[i, j]
