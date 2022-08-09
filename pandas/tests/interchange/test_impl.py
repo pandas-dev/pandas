@@ -4,6 +4,8 @@ import random
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.interchange.dataframe_protocol import (
@@ -185,4 +187,6 @@ def test_datetime():
     assert col.size == 2
     assert col.null_count == 1
     assert col.dtype[0] == DtypeKind.DATETIME
-    assert col.describe_null == (ColumnNullType.USE_SENTINEL, pd.NaT)
+    assert col.describe_null == (ColumnNullType.USE_SENTINEL, iNaT)
+
+    tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))

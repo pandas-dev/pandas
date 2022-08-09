@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 
 from pandas._libs.lib import infer_dtype
+from pandas._libs.tslibs import iNaT
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
@@ -38,7 +39,7 @@ _NP_KINDS = {
 
 _NULL_DESCRIPTION = {
     DtypeKind.FLOAT: (ColumnNullType.USE_NAN, None),
-    DtypeKind.DATETIME: (ColumnNullType.USE_SENTINEL, pd.NaT),
+    DtypeKind.DATETIME: (ColumnNullType.USE_SENTINEL, iNaT),
     DtypeKind.INT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.UINT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.BOOL: (ColumnNullType.NON_NULLABLE, None),
