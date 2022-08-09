@@ -25,7 +25,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.internals import BlockManager
-from pandas import getoption
+from pandas._config import get_option
 
 if TYPE_CHECKING:
     from pandas import (
