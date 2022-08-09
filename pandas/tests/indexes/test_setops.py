@@ -317,11 +317,13 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_union(self, index_flat_unique, fname, sname, expected_name):
+    def test_corner_union(self, index_flat, fname, sname, expected_name):
         # GH#9943, GH#9862
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
-        index = index_flat_unique
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -361,8 +363,10 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index_flat_unique, fname, sname, expected_name):
-        index = index_flat_unique
+    def test_union_unequal(self, index_flat, fname, sname, expected_name):
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -381,10 +385,12 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_intersect(self, index_flat_unique, fname, sname, expected_name):
+    def test_corner_intersect(self, index_flat, fname, sname, expected_name):
         # GH#35847
         # Test intersections with various name combinations
-        index = index_flat_unique
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -424,8 +430,10 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index_flat_unique, fname, sname, expected_name):
-        index = index_flat_unique
+    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
