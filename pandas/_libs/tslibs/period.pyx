@@ -2618,7 +2618,7 @@ class Period(_Period):
                 # GH 47005
                 warnings.warn(
                     "The pandas.Period class does not support timezones. "
-                    "The timezone given in '%s' will be ignored." % value,
+                    f"The timezone given in '{value}' will be ignored.",
                     UserWarning
                 )
             base = freq_to_dtype_code(freq)
