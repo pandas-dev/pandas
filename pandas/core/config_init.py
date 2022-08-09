@@ -980,7 +980,7 @@ pickler_unpickle_mode = """
 """
 
 # location of config file from env var
-if os.path.exists(os.environ.get("PANDAS_UNPICKLE_SECURE")):
+if os.path.exists(os.environ.get("PANDAS_UNPICKLE_SECURE", "pickle_config.yml")):
     pickle_config = yaml.load(open(os.environ.get("PANDAS_UNPICKLE_SECURE")), Loader=yaml.SafeLoader)
     
     if pickle_config["mode"] == "permit":
