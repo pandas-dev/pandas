@@ -18,6 +18,7 @@ from pandas.util._decorators import doc
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
+from pandas._config import get_option
 
 
 @doc(
