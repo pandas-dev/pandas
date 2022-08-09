@@ -58,7 +58,6 @@
         "pandas/core/indexes/numeric.py",
         "pandas/core/indexes/period.py",
         "pandas/core/indexing.py",
-        "pandas/core/interchange/from_dataframe.py",
         "pandas/core/internals/api.py",
         "pandas/core/internals/array_manager.py",
         "pandas/core/internals/blocks.py",
