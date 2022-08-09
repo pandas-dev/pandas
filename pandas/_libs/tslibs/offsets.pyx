@@ -1542,7 +1542,7 @@ cdef class BusinessDay(BusinessMixin):
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 7, 5)
+    >>> ts = pd.Timestamp(2022, 8, 5)
     >>> ts + pd.offsets.BusinessDay()
     Timestamp('2022-08-08 00:00:00')
     """
@@ -2456,7 +2456,7 @@ cdef class MonthEnd(MonthOffset):
     DateOffset of one month end.
 
     Examples
-    ________
+    --------
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.MonthEnd()
     Timestamp('2022-01-31 00:00:00')
@@ -2471,7 +2471,7 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
 
     Examples
-    ________
+    --------
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.MonthBegin()
     Timestamp('2022-02-01 00:00:00')
@@ -3537,7 +3537,7 @@ cdef class CustomBusinessDay(BusinessDay):
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 8, 5)
-    >>> pd.offsets.CustomBusinessDay(1)
+    >>> ts + pd.offsets.CustomBusinessDay(1)
     Timestamp('2022-08-08 00:00:00')
     """
 
