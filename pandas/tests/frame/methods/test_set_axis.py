@@ -28,6 +28,7 @@ class SharedSetAxisTests:
         # Test copy keyword GH#47932
         new_index = list("abcd")[: len(obj)]
 
+        orig = obj.iloc[:]
         expected = obj.copy()
         expected.index = new_index
 
@@ -70,6 +71,19 @@ class SharedSetAxisTests:
         else:
             assert not any(
                 tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                for i in range(obj.shape[1])
+            )
+
+        # Do this last since it alters obj inplace
+        res = obj.set_axis(new_index, inplace=True, copy=False)
+        assert res is None
+        tm.assert_equal(expected, obj)
+        # check we did NOT make a copy
+        if obj.ndim == 1:
+            assert tm.shares_memory(obj, orig)
+        else:
+            assert all(
+                tm.shares_memory(obj.iloc[:, i], orig.iloc[:, i])
                 for i in range(obj.shape[1])
             )
 
