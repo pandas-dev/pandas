@@ -207,8 +207,8 @@ class Unpickler(pkl._Unpickler):
         opt = get_option("pickler.unpickle.mode")
         # Only allow safe modules and classes. Tuples defined in config
         # Do not allow unsafe modules and classes.
-        if (opt == "off") or
-        (opt == "permit" and (module, name) in safe_tuples) or
+        if (opt == "off") or \
+        (opt == "permit" and (module, name) in safe_tuples) or \
         (opt == "deny" and (module, name) not in unsafe_tuples):
             return super().find_class(module, name)
         # Forbid everything else.
