@@ -1157,9 +1157,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
             return dt64other
         elif not self._use_relativedelta and hasattr(self, "_offset"):
             # timedelta
-            num_nano = getattr(self, "nanoseconds", 0)
-            rem_nano = Timedelta(nanoseconds=num_nano)
-            delta = Timedelta((self._offset + rem_nano) * self.n)
+            if hasattr(self, "nanoseconds"):
+                rem_nano = Timedelta(nanoseconds=self.nanoseconds)
+                delta = Timedelta((self._offset + rem_nano) * self.n)
+            else:
+                delta = Timedelta((self._offset) * self.n)
             td = (<_Timedelta>delta)._as_reso(reso)
             return dt64other + td
         else:
