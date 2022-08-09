@@ -2777,7 +2777,7 @@ def test_to_datetime_monotonic_increasing_index(cache):
 
 @pytest.mark.parametrize(
     "series_length",
-    range(40, start_caching_at + 5),
+    [40, start_caching_at, (start_caching_at + 1), (start_caching_at + 5)],
 )
 def test_to_datetime_cache_coerce_50_lines(series_length):
     # GH#45319
