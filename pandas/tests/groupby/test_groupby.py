@@ -29,6 +29,7 @@ import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def test_repr():
@@ -2366,14 +2367,10 @@ def test_dup_labels_output_shape(groupby_func, idx):
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
-    args = []
-    if groupby_func in {"fillna", "nth"}:
-        args.append(0)
-    elif groupby_func == "corrwith":
-        args.append(df)
-    elif groupby_func == "tshift":
+    if groupby_func == "tshift":
         df.index = [Timestamp("today")]
-        args.extend([1, "D"])
+        # args.extend([1, "D"])
+    args = get_groupby_method_args(groupby_func, df)
 
     with tm.assert_produces_warning(warn, match="is deprecated"):
         result = getattr(grp_by, groupby_func)(*args)
@@ -2795,3 +2792,19 @@ def test_groupby_none_column_name():
     result = df.groupby(by=[None]).sum()
     expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=None))
     tm.assert_frame_equal(result, expected)
+
+
+def test_single_element_list_grouping():
+    # GH 42795
+    df = DataFrame(
+        {"a": [np.nan, 1], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"]
+    )
+    msg = (
+        "In a future version of pandas, a length 1 "
+        "tuple will be returned when iterating over a "
+        "a groupby with a grouper equal to a list of "
+        "length 1. Don't supply a list with a single grouper "
+        "to avoid this warning."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        values, _ = next(iter(df.groupby(["a"])))

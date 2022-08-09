@@ -593,13 +593,13 @@ class TestIntervalDtype(Base):
     @pytest.mark.parametrize(
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
     )
-    def test_construction_allows_closed_none(self, subtype):
+    def test_construction_allows_inclusive_none(self, subtype):
         # GH#38394
         dtype = IntervalDtype(subtype)
 
         assert dtype.inclusive is None
 
-    def test_closed_mismatch(self):
+    def test_inclusive_mismatch(self):
         msg = "'inclusive' keyword does not match value specified in dtype string"
         with pytest.raises(ValueError, match=msg):
             IntervalDtype("interval[int64, left]", "right")
@@ -638,7 +638,7 @@ class TestIntervalDtype(Base):
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
-    def test_closed_must_match(self):
+    def test_inclusive_must_match(self):
         # GH#37933
         dtype = IntervalDtype(np.float64, "left")
 
@@ -646,7 +646,7 @@ class TestIntervalDtype(Base):
         with pytest.raises(ValueError, match=msg):
             IntervalDtype(dtype, inclusive="both")
 
-    def test_closed_invalid(self):
+    def test_inclusive_invalid(self):
         with pytest.raises(ValueError, match="inclusive must be one of"):
             IntervalDtype(np.float64, "foo")
 
@@ -822,7 +822,7 @@ class TestIntervalDtype(Base):
         # GH30568: though IntervalDtype has object kind, it cannot be string
         assert not is_string_dtype(IntervalDtype())
 
-    def test_unpickling_without_closed(self):
+    def test_unpickling_without_inclusive(self):
         # GH#38394
         dtype = IntervalDtype("interval")
 
