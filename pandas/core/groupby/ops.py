@@ -10,10 +10,12 @@ from __future__ import annotations
 import collections
 import functools
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Generic,
     Hashable,
     Iterator,
+    NoReturn,
     Sequence,
     final,
 )
@@ -77,7 +79,6 @@ from pandas.core.arrays.masked import (
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
     CategoricalIndex,
@@ -94,6 +95,9 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 
 class WrappedCythonOp:
@@ -1240,7 +1244,7 @@ class BinGrouper(BaseGrouper):
         ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable) -> np.ndarray:
+    def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
         # -> np.ndarray[object]
         raise NotImplementedError(
             "This should not be reached; use _aggregate_series_pure_python"
