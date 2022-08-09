@@ -11308,7 +11308,7 @@ Parrot 2  Parrot       24.0
                     dtype = self.dtype
                 return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
-            q_idx = np.quantile(
+            q_idx = np.quantile(  # type: ignore[call-overload]
                 np.arange(len(data)), q, **{np_percentile_argname: interpolation}
             )
 
@@ -11318,7 +11318,7 @@ Parrot 2  Parrot       24.0
                 indexer = lexsort_indexer(keys)
             else:
                 by = by[0]
-                k = data._get_label_or_level_values(by)
+                k = data._get_label_or_level_values(by)  # type: ignore[arg-type]
                 indexer = nargsort(k)
 
             res = data._mgr.take(indexer[q_idx], verify=False)
