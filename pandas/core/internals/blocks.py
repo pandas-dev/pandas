@@ -1725,6 +1725,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 elif com.is_null_slice(indexer[1]):
                     indexer = indexer[0]
 
+                elif is_list_like(indexer[1]) and indexer[1][0] == 0:
+                    indexer = indexer[0]
+
                 else:
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
