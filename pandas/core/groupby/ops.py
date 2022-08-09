@@ -155,6 +155,7 @@ class WrappedCythonOp:
         "last",
         "first",
         "rank",
+        "sum",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -578,6 +579,8 @@ class WrappedCythonOp:
                     counts=counts,
                     values=values,
                     labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )

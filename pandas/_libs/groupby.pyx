@@ -523,6 +523,8 @@ def group_sum(
     int64_t[::1] counts,
     ndarray[sum_t, ndim=2] values,
     const intp_t[::1] labels,
+    const uint8_t[:, :] mask,
+    uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
 ) -> None:
@@ -535,6 +537,9 @@ def group_sum(
         sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint uses_mask = mask is not None
+        bint isna_entry
+        bint isna_entry_nogil
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -558,7 +563,12 @@ def group_sum(
                 val = values[i, j]
 
                 # not nan
-                if not checknull(val):
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = checknull(val)
+
+                if not isna_entry:
                     nobs[lab, j] += 1
 
                     if nobs[lab, j] == 1:
@@ -572,7 +582,11 @@ def group_sum(
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] < min_count:
-                    out[i, j] = NAN
+                    if uses_mask:
+                        result_mask[i, j] = True
+                    else:
+                        out[i, j] = NAN
+
                 else:
                     out[i, j] = sumx[i, j]
     else:
@@ -590,7 +604,12 @@ def group_sum(
                     # With dt64/td64 values, values have been cast to float64
                     #  instead if int64 for group_sum, but the logic
                     #  is otherwise the same as in _treat_as_na
-                    if val == val and not (
+                    if uses_mask:
+                        isna_entry_nogil = mask[i, j]
+                    else:
+                        isna_entry_nogil = False
+
+                    if not isna_entry_nogil and not (
                         sum_t is float64_t
                         and is_datetimelike
                         and val == <float64_t>NPY_NAT
@@ -604,7 +623,11 @@ def group_sum(
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] < min_count:
-                        out[i, j] = NAN
+                        if uses_mask:
+                            result_mask[i, j] = True
+                        else:
+                            out[i, j] = NAN
+
                     else:
                         out[i, j] = sumx[i, j]
 
