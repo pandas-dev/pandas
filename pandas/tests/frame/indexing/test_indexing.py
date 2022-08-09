@@ -1363,10 +1363,11 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_ea_null_slice_length_one_list(self):
+    @pytest.mark.parametrize("func", [list, Series, np.array])
+    def test_iloc_setitem_ea_null_slice_length_one_list(self, func):
         # GH#48016
         df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
-        df.iloc[:, [0]] = 5
+        df.iloc[:, func([0])] = 5
         expected = DataFrame({"a": [5, 5, 5]}, dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
