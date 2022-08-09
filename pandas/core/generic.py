@@ -3367,7 +3367,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         .. note::
            As of v1.5.0 this method has changed to use the ``Styler`` implementation of
-           ``to_latex`` and no longer uses the DataFrameRenderer. It is advised that
+           ``to_latex`` via ``jinja2`` templating. It is advised that
            users switch to using Styler, since this implementation is more frequently
            updated and contains much more flexibility with the output. The following
            examples indicate how this method now replicates the Styler implementation
@@ -3384,13 +3384,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
            styler.hide(axis="index").hide(axis="columns")
 
-        To use ``formatters``, ``na_rep``, ``decimal`` and ``float_format``,
+        To use ``formatters``, ``na_rep``, ``decimal``, ``float_format``, and
         ``escape`` we use,
 
         .. code-block:: python
 
            styler.format(
-               formatter={"name": str.upper}, na_rep="-", precision=1, escape="latex"
+               formatter={"name": str.upper}, na_rep="-", precision=1,
+               escape="latex", decimal=","
            )
 
         To control other aspects we use the ``Styler.to_latex`` arguments, as
