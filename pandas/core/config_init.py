@@ -11,7 +11,7 @@ module is imported, register them here rather than in the module.
 """
 from __future__ import annotations
 
-import os
+import os, yaml
 from typing import Callable
 import warnings
 
@@ -979,17 +979,28 @@ pickler_unpickle_mode = """
     Determine which mode to use in {"off", "permit", "deny"}.
 """
 
+pickler_safe_tuples = """
+: array
+    Array of safe tuples, e.g. builtin.range
+"""
+
+pickler_unsafe_tuples = """
+: array
+    Array of unsafe tuples, e.g. os.system
+"""
+
 # location of config file from env var
-if os.path.exists(os.environ.get("PANDAS_UNPICKLE_SECURE", "pickle_config.yml")):
-    pickle_config = yaml.load(open(os.environ.get("PANDAS_UNPICKLE_SECURE")), Loader=yaml.SafeLoader)
-    
+str_loc = os.environ.get("PANDAS_UNPICKLE_SECURE", "pickle_config.yml")
+if os.path.exists(str_loc):
+    pickle_config = yaml.load(open(str_loc), Loader=yaml.SafeLoader)
+    safe_tuples = []
+    unsafe_tuples = []
+
     if pickle_config["mode"] == "permit":
-        safe_tuples = []
         for k, v in pickle_config["permit"].items():
             for i in v:
                 safe_tuples.append((k, i))
     elif pickle_config["mode"] == "deny":
-        unsafe_tuples = []
         for k, v in pickle_config["deny"].items():
             for i in v:
                 unsafe_tuples.append((k, i))
@@ -1004,4 +1015,16 @@ with cf.config_prefix("pickler"):
       pickle_config["mode"],
       pickler_unpickle_mode,
       validator=is_one_of_factory(["off", "permit", "deny"]),
+    )
+
+    cf.register_option(
+      "safe.tuples",
+      safe_tuples,
+      pickler_safe_tuples,
+    )
+
+    cf.register_option(
+      "unsafe.tuples",
+      unsafe_tuples,
+      pickler_unsafe_tuples,
     )
