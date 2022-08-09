@@ -167,8 +167,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return libindex.PeriodEngine
 
     @cache_readonly
-    # Signature of "_resolution_obj" incompatible with supertype "DatetimeIndexOpsMixin"
-    def _resolution_obj(self) -> Resolution:  # type: ignore[override]
+    def _resolution_obj(self) -> Resolution:
         # for compat with DatetimeIndex
         return self.dtype._resolution_obj
 
@@ -393,7 +392,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if not self.is_monotonic_increasing:
             raise ValueError("Index is not monotonic")
         values = self.asi8
-        return ((values[1:] - values[:-1]) < 2).all()
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return ((values[1:] - values[:-1]) < 2).all()  # type: ignore[return-value]
 
     @property
     def inferred_type(self) -> str:

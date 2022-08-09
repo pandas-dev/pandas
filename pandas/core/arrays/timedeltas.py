@@ -446,7 +446,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             freq = None
             if self.freq is not None:
                 # Tick division is not implemented, so operate on Timedelta
-                freq = self.freq.delta / other
+                # error: "BaseOffset" has no attribute "delta"
+                freq = self.freq.delta / other  # type: ignore[attr-defined]
                 freq = to_offset(freq)
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
@@ -926,7 +927,9 @@ def sequence_to_td64ns(
     data = np.array(data, copy=copy)
 
     assert data.dtype == "m8[ns]", data
-    return data, inferred_freq
+    # error: Incompatible return value type (got "Tuple[Any, Optional[BaseOffset]]",
+    # expected "Tuple[ndarray[Any, Any], Optional[Tick]]")
+    return data, inferred_freq  # type: ignore[return-value]
 
 
 def ints_to_td64ns(data, unit="ns"):

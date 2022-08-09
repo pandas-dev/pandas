@@ -30,6 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._typing import npt
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -59,10 +60,7 @@ from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
 )
-from pandas.core.indexes.extension import (
-    NDArrayBackedExtensionIndex,
-    inherit_names,
-)
+from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
@@ -75,12 +73,6 @@ _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
 _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
-@inherit_names(
-    ["inferred_freq", "_resolution_obj", "resolution"],
-    DatetimeLikeArrayMixin,
-    cache=True,
-)
-@inherit_names(["mean", "asi8", "freq", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -89,9 +81,51 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
-    freq: BaseOffset | None
-    freqstr: str | None
-    _resolution_obj: Resolution
+
+    # ------------------------------------------------------------------------
+
+    @doc(DatetimeLikeArrayMixin.mean)
+    def mean(self, *, skipna: bool = True, axis: int | None = 0):
+        return self._data.mean(skipna=skipna, axis=axis)
+
+    # error: Decorated property not supported
+    @property  # type: ignore[misc]
+    @doc(DatetimeLikeArrayMixin.asi8)
+    def asi8(self) -> npt.NDArray[np.int64]:
+        return self._data.asi8
+
+    # error: Decorated property not supported
+    @property  # type: ignore[misc]
+    @doc(DatetimeLikeArrayMixin.freq)
+    def freq(self) -> BaseOffset | None:
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        # error: Property "freq" defined in "PeriodArray" is read-only
+        self._data.freq = value  # type: ignore[misc]
+
+    # error: Decorated property not supported
+    @property  # type: ignore[misc]
+    @doc(DatetimeLikeArrayMixin.freqstr)
+    def freqstr(self) -> str | None:
+        return self._data.freqstr
+
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
+    @doc(DatetimeLikeArrayMixin.inferred_freq)
+    def inferred_freq(self) -> str | None:
+        return self._data.inferred_freq
+
+    @cache_readonly
+    def _resolution_obj(self) -> Resolution | None:
+        return self._data._resolution_obj
+
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
+    @doc(DatetimeLikeArrayMixin.resolution)
+    def resolution(self) -> str:
+        return self._data.resolution
 
     # ------------------------------------------------------------------------
 
@@ -215,7 +249,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
         # e.g. test_getitem_setitem_periodindex
         # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
-        return reso > self._resolution_obj
+        # error: Unsupported left operand type for > ("Resolution")
+        return reso > self._resolution_obj  # type: ignore[operator]
         # NB: for DTI/PI, not TDI
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):

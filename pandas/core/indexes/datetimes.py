@@ -261,7 +261,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return libindex.DatetimeEngine
 
     _data: DatetimeArray
-    inferred_freq: str | None
     tz: tzinfo | None
 
     # --------------------------------------------------------------------

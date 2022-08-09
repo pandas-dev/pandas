@@ -552,7 +552,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
                 pairs = zip(to_concat[:-1], to_concat[1:])
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
+                # error: No overload variant of "__radd__" of "BaseOffset" matches
+                # argument type "NaTType"
+                if all(
+                    pair[0][-1] + obj.freq == pair[1][0]  # type: ignore[operator]
+                    for pair in pairs
+                ):
                     new_freq = obj.freq
 
         new_obj._freq = new_freq
@@ -925,7 +930,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # Frequency Properties/Methods
 
     @property
-    def freq(self):
+    def freq(self) -> BaseOffset | None:
         """
         Return the frequency object if it is set, otherwise None.
         """
@@ -1219,7 +1224,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_i8_data = checked_add_with_arr(
             self.asi8, -other.ordinal, arr_mask=self._isnan
         )
-        new_data = np.array([self.freq.base * x for x in new_i8_data])
+        # error: Item "None" of "Optional[BaseOffset]" has no attribute "base"
+        new_data = np.array(
+            [self.freq.base * x for x in new_i8_data]  # type: ignore[union-attr]
+        )
 
         if self._hasna:
             new_data[self._isnan] = NaT
@@ -1417,8 +1425,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if self.freq is None:
             raise NullFrequencyError("Cannot shift with no freq")
 
-        start = self[0] + periods * self.freq
-        end = self[-1] + periods * self.freq
+        # error: No overload variant of "__radd__" of "BaseOffset" matches
+        # argument type "NaTType"
+        start = self[0] + periods * self.freq  # type: ignore[operator]
+        end = self[-1] + periods * self.freq  # type: ignore[operator]
 
         # Note: in the DatetimeTZ case, _generate_range will infer the
         #  appropriate timezone from `start` and `end`, so tz does not need
@@ -1446,8 +1456,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # as is_integer returns True for these
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
+            # error: Item "None" of "Optional[BaseOffset]" has no attribute "n"
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other * self.freq.n, operator.add
+                other * self.freq.n, operator.add  # type: ignore[union-attr]
             )
 
         # array-like others
@@ -1463,8 +1474,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
+            # error: Item "None" of "Optional[BaseOffset]" has no attribute "n"
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other * self.freq.n, operator.add
+                other * self.freq.n, operator.add  # type: ignore[union-attr]
             )
         else:
             # Includes Categorical, other ExtensionArrays
@@ -1504,8 +1516,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # as is_integer returns True for these
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
+            # error: Item "None" of "Optional[BaseOffset]" has no attribute "n"
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other * self.freq.n, operator.sub
+                other * self.freq.n, operator.sub  # type: ignore[union-attr]
             )
 
         elif isinstance(other, Period):
@@ -1527,8 +1540,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
+            # error: Item "None" of "Optional[BaseOffset]" has no attribute "n"
             result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other * self.freq.n, operator.sub
+                other * self.freq.n, operator.sub  # type: ignore[union-attr]
             )
         else:
             # Includes ExtensionArrays, float_dtype
