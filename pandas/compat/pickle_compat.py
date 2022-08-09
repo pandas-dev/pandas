@@ -205,16 +205,15 @@ class Unpickler(pkl._Unpickler):
         key = (module, name)
         module, name = _class_locations_map.get(key, key)
         opt = get_option("pickler.unpickle.mode")
+        # Only allow safe modules and classes. Tuples defined in config
+        # Do not allow unsafe modules and classes.
         if (opt == "off") or
-           # Only allow safe modules and classes. Tuples defined in config
-           (opt == "permit" and (module, name) in safe_tuples) or
-           # Do not allow unsafe modules and classes.               
-           (opt == "deny" and (module, name) not in unsafe_tuples):
+        (opt == "permit" and (module, name) in safe_tuples) or
+        (opt == "deny" and (module, name) not in unsafe_tuples):
             return super().find_class(module, name)
         # Forbid everything else.
         raise pkl.UnpicklingError("global '%s.%s' is forbidden" %
-                                 (module, name))
-
+                                  (module, name))
 
 Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
