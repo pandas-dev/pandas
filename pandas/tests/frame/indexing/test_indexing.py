@@ -1364,7 +1364,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_ea_null_slice_length_one_list(self):
-        # GH#
+        # GH#48016
         df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
         df.iloc[:, [0]] = 5
         expected = DataFrame({"a": [5, 5, 5]}, dtype="Int64")
