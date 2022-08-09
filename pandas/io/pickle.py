@@ -183,6 +183,19 @@ def read_pickle(
     3    3    8
     4    4    9
     """  # noqa: E501
+    class RestrictedUnpickler(pickle.Unpickler):     
+        def find_class(self, module, name):
+            opt = get_option("pickler.unpickle.mode")
+            if (opt == "off") or
+           # Only allow safe modules and classes. Tuples defined in config
+           (opt == "permit" and (module, name) in safe_tuples) or
+           # Do not allow unsafe modules and classes.               
+           (opt == "deny" and (module, name) not in unsafe_tuples):
+            return super().find_class(module, name)
+        # Forbid everything else.
+        raise pkl.UnpicklingError("global '%s.%s' is forbidden" %
+                                 (module, name))
+            
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
@@ -202,7 +215,7 @@ def read_pickle(
                 with warnings.catch_warnings(record=True):
                     # We want to silence any warnings about, e.g. moved modules.
                     warnings.simplefilter("ignore", Warning)
-                    return pickle.load(handles.handle)
+                    return RestrictedUnpickler.load(handles.handle)
             except excs_to_catch:
                 # e.g.
                 #  "No module named 'pandas.core.sparse.series'"
