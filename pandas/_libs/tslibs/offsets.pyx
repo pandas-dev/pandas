@@ -1162,7 +1162,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 rem_nano = Timedelta(nanoseconds=num_nano)
                 delta = Timedelta((self._offset + rem_nano) * self.n)
             else:
-                delta = Timedelta((self._offset) * self.n)
+                delta = Timedelta(self._offset * self.n)
             td = (<_Timedelta>delta)._as_reso(reso)
             return dt64other + td
         else:
