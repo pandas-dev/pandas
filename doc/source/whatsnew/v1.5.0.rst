@@ -14,6 +14,16 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_150.enhancements.pandas-stubs:
+
+``pandas-stubs``
+^^^^^^^^^^^^^^^^
+
+The ``pandas-stubs`` library is now supported by the pandas development team, providing type stubs for the pandas API. Please visit
+https://github.com/pandas-dev/pandas-stubs for more information.
+
+We thank VirtusLab and Microsoft for their initial, significant contributions to ``pandas-stubs``
+
 .. _whatsnew_150.enhancements.dataframe_interchange:
 
 DataFrame interchange protocol implementation
@@ -543,6 +553,14 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+.. warning::
+
+    In the next major version release, 2.0, several larger API changes are being considered without a formal deprecation such as
+    making the standard library `zoneinfo <https://docs.python.org/3/library/zoneinfo.html>`_ the default timezone implementation instead of ``pytz``,
+    having the :class:`Index` support all data types instead of having multiple subclasses (:class:`CategoricalIndex`, :class:`Int64Index`, etc.), and more.
+    The changes under consideration are logged in `this Github issue <https://github.com/pandas-dev/pandas/issues/44823>`_, and any
+    feedback or concerns are welcome.
 
 .. _whatsnew_150.deprecations.int_slicing_series:
 
