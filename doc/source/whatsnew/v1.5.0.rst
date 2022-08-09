@@ -14,6 +14,16 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_150.enhancements.pandas-stubs:
+
+``pandas-stubs``
+^^^^^^^^^^^^^^^^
+
+The ``pandas-stubs`` library is now supported by the pandas development team, providing type stubs for the pandas API. Please visit
+https://github.com/pandas-dev/pandas-stubs for more information.
+
+We thank VirtusLab and Microsoft for their initial, significant contributions to ``pandas-stubs``
+
 .. _whatsnew_150.enhancements.dataframe_interchange:
 
 DataFrame interchange protocol implementation
@@ -545,6 +555,14 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
+.. warning::
+
+    In the next major version release, 2.0, several larger API changes are being considered without a formal deprecation such as
+    making the standard library `zoneinfo <https://docs.python.org/3/library/zoneinfo.html>`_ the default timezone implementation instead of ``pytz``,
+    having the :class:`Index` support all data types instead of having multiple subclasses (:class:`CategoricalIndex`, :class:`Int64Index`, etc.), and more.
+    The changes under consideration are logged in `this Github issue <https://github.com/pandas-dev/pandas/issues/44823>`_, and any
+    feedback or concerns are welcome.
+
 .. _whatsnew_150.deprecations.int_slicing_series:
 
 Label-based integer slicing on a Series with an Int64Index or RangeIndex
@@ -933,8 +951,7 @@ Indexing
 - Bug in setting a NA value (``None`` or ``np.nan``) into a :class:`Series` with int-based :class:`IntervalDtype` incorrectly casting to object dtype instead of a float-based :class:`IntervalDtype` (:issue:`45568`)
 - Bug in indexing setting values into an ``ExtensionDtype`` column with ``df.iloc[:, i] = values`` with ``values`` having the same dtype as ``df.iloc[:, i]`` incorrectly inserting a new array instead of setting in-place (:issue:`33457`)
 - Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised instead of casting to a common dtype (:issue:`45070`)
-- Bug in :meth:`DataFrame.loc` raising ``NotImplementedError`` when setting value into one column :class:`DataFrame` with all null slice as column indexer (:issue:`45469`)
-- Bug in :meth:`DataFrame.loc` not casting ``None`` to ``NA`` when setting value a list into :class:`DataFrame` (:issue:`47987`)
+- Bug in :meth:`DataFrame.loc` not casting ``None`` to ``NA`` when setting value as a list into :class:`DataFrame` (:issue:`47987`)
 - Bug in :meth:`Series.__setitem__` when setting incompatible values into a ``PeriodDtype`` or ``IntervalDtype`` :class:`Series` raising when indexing with a boolean mask but coercing when indexing with otherwise-equivalent indexers; these now consistently coerce, along with :meth:`Series.mask` and :meth:`Series.where` (:issue:`45768`)
 - Bug in :meth:`DataFrame.where` with multiple columns with datetime-like dtypes failing to downcast results consistent with other dtypes (:issue:`45837`)
 - Bug in :func:`isin` upcasting to ``float64`` with unsigned integer dtype and list-like argument without a dtype (:issue:`46485`)
