@@ -10,7 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
     Dict,
     Hashable,
     Iterator,
@@ -115,7 +114,7 @@ Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
-Axes = Collection[Any]
+Axes = Union[AnyArrayLike, List, range]
 
 RandomState = Union[
     int,
