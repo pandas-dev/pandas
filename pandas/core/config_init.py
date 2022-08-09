@@ -969,3 +969,39 @@ with cf.config_prefix("styler"):
         styler_environment,
         validator=is_instance_factory([type(None), str]),
     )
+    
+# ------
+# Pickler
+# ------
+
+pickler_unpickle_mode = """
+: str
+    Determine which mode to use in {"off", "permit", "deny"}.
+"""
+
+# location of config file from env var
+if os.path.exists(os.environ.get("PANDAS_UNPICKLE_SECURE")):
+    pickle_config = yaml.load(open(os.environ.get("PANDAS_UNPICKLE_SECURE")), Loader=yaml.SafeLoader)
+    
+    if pickle_config["mode"] == "permit":
+        safe_tuples = []
+        for k, v in pickle_config["permit"].items():
+            for i in v:
+                safe_tuples.append((k, i))
+    elif pickle_config["mode"] == "deny":
+        unsafe_tuples = []
+        for k, v in pickle_config["deny"].items():
+            for i in v:
+                unsafe_tuples.append((k, i))
+else:
+    pickle_config = {}
+    pickle_config["mode"] = "off"
+
+with cf.config_prefix("pickler"):
+    cf.register_option(
+      "unpickle.mode",
+      # get the default value from the config file
+      pickle_config["mode"],
+      pickler_unpickle_mode,
+      validator=is_one_of_factory(["off", "permit", "deny"]),
+    )
