@@ -155,6 +155,8 @@ class IndexingMixin:
           DataFrame) and that returns valid output for indexing (one of the above).
           This is useful in method chains, when you don't have a reference to the
           calling object, but would like to base your selection on some value.
+        - A tuple of row and column indexes. The tuple elements consist of one of the
+          above inputs, e.g. ``(0, 1)``.
 
         ``.iloc`` will raise ``IndexError`` if a requested indexer is
         out-of-bounds, except *slice* indexers which allow out-of-bounds

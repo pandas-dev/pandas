@@ -1062,6 +1062,8 @@ class Block(PandasObject):
 
         transpose = self.ndim == 2
 
+        cond = extract_bool_array(cond)
+
         # EABlocks override where
         values = cast(np.ndarray, self.values)
         orig_other = other
@@ -1719,6 +1721,10 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 elif lib.is_integer(indexer[1]) and indexer[1] == 0:
                     # reached via setitem_single_block passing the whole indexer
                     indexer = indexer[0]
+
+                elif com.is_null_slice(indexer[1]):
+                    indexer = indexer[0]
+
                 else:
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
