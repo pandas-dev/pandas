@@ -88,8 +88,8 @@ def test_dataframe(data):
     expected = from_dataframe(df2.select_columns_by_name(names))
     tm.assert_frame_equal(result, expected)
 
-    assert isinstance(result.attrs["_EXCHANGE_PROTOCOL_BUFFERS"], list)
-    assert isinstance(expected.attrs["_EXCHANGE_PROTOCOL_BUFFERS"], list)
+    assert isinstance(result.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
+    assert isinstance(expected.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
 
 
 def test_missing_from_masked():
