@@ -185,7 +185,7 @@ def read_pickle(
     2    2    7
     3    3    8
     4    4    9
-    """ 
+    """
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
