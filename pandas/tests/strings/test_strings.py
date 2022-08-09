@@ -833,8 +833,15 @@ def test_zfill_with_leading_sign():
 def test_get_with_dict_label():
     # GH47911
     s = Series(
-        [{"name": "Hello", "value": "World"}, {"name": "Goodbye", "value": "Planet"}]
+        [
+            {"name": "Hello", "value": "World"},
+            {"name": "Goodbye", "value": "Planet"},
+            {"value": "Sea"},
+        ]
     )
     result = s.str.get("name")
-    expected = Series(["Hello", "Goodbye"])
+    expected = Series(["Hello", "Goodbye", None])
+    tm.assert_series_equal(result, expected)
+    result = s.str.get("value")
+    expected = Series(["World", "Planet", "Sea"])
     tm.assert_series_equal(result, expected)
