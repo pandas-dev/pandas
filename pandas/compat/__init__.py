@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 from pandas._typing import F
 from pandas.compat.numpy import (
     is_numpy_dev,
-    np_version_under1p20,
+    np_version_under1p21,
 )
 from pandas.compat.pyarrow import (
     pa_version_under1p01,
@@ -28,6 +28,7 @@ from pandas.compat.pyarrow import (
     pa_version_under6p0,
     pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under9p0,
 )
 
 if TYPE_CHECKING:
@@ -151,7 +152,7 @@ def get_lzma_file() -> type[lzma.LZMAFile]:
 
 __all__ = [
     "is_numpy_dev",
-    "np_version_under1p20",
+    "np_version_under1p21",
     "pa_version_under1p01",
     "pa_version_under2p0",
     "pa_version_under3p0",
@@ -160,4 +161,5 @@ __all__ = [
     "pa_version_under6p0",
     "pa_version_under7p0",
     "pa_version_under8p0",
+    "pa_version_under9p0",
 ]

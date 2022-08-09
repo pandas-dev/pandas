@@ -68,7 +68,6 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.core.indexes.api import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -96,6 +95,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -362,8 +362,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def transform(self, arg, *args, **kwargs):
         """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values.
+        Call function producing a like-indexed Series on each group.
+
+        Return a Series with the transformed values.
 
         Parameters
         ----------
