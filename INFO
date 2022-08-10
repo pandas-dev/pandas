@@ -1,16 +1,7 @@
-# example test
-import pickle, os, pandas
+### tests
 
-class MyEvilPickle(object):
-    def __reduce__(self):
-        return (os.system, ('whoami', ))
-
-pickle_data = pickle.dumps(MyEvilPickle())
-#storing the serialized output into a file in current directory
-with open("backup.data", "wb") as file:
-    file.write(pickle_data)
-
-pandas.read_pickle("backup.data")
+updated /tests/io/test_pickle.py
+did not write the compatibility tests for older pandas versions yet
 
 ###
 

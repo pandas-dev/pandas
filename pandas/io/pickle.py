@@ -123,12 +123,15 @@ def read_pickle(
     storage_options: StorageOptions = None,
 ):
     """
-    Load pickled pandas object (or any object) from file.
-
+    Load pickled pandas object (or any object) from file. By default, only a
+    safe subset of classes from builtins can be called while loading the
+    object. See http://guide/ for customizing the security settings.
+    
     .. warning::
 
        Loading pickled data received from untrusted sources can be
-       unsafe. See `here <https://docs.python.org/3/library/pickle.html>`__.
+       unsafe if not using the default security settings.
+       See `here <https://docs.python.org/3/library/pickle.html>`__.
 
     Parameters
     ----------
@@ -194,7 +197,7 @@ def read_pickle(
             (opt == "deny" and (module, name) not in get_option("pickler.unsafe.tuples")):
                 return super().find_class(module, name)
             # Forbid everything else.
-            raise pkl.UnpicklingError("global '%s.%s' is forbidden" %
+            raise pickle.UnpicklingError("global '%s.%s' is forbidden" %
                                       (module, name))
             
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)

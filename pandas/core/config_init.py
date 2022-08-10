@@ -981,20 +981,23 @@ pickler_unpickle_mode = """
 
 pickler_safe_tuples = """
 : array
-    Array of safe tuples, e.g. builtin.range
+    Used when pickler.unpickle.mode is "permit"
+    Array of safe tuples, e.g. [("builtins", "range"), ("builtins", "complex")]
 """
 
 pickler_unsafe_tuples = """
 : array
-    Array of unsafe tuples, e.g. os.system
+    Used when pickler.unpickle.mode is "deny"
+    Array of unsafe tuples, e.g. [("os", "system"), ("joblib", "load")]
 """
 
 # location of config file from env var
 str_loc = os.environ.get("PANDAS_UNPICKLE_SECURE", "pickle_config.yml")
+safe_tuples = []
+unsafe_tuples = []
+
 if os.path.exists(str_loc):
     pickle_config = yaml.load(open(str_loc), Loader=yaml.SafeLoader)
-    safe_tuples = []
-    unsafe_tuples = []
 
     if pickle_config["mode"] == "permit":
         for k, v in pickle_config["permit"].items():
@@ -1006,7 +1009,10 @@ if os.path.exists(str_loc):
                 unsafe_tuples.append((k, i))
 else:
     pickle_config = {}
-    pickle_config["mode"] = "off"
+    pickle_config["mode"] = "permit"
+    # see https://docs.python.org/3/library/pickle.html#restricting-globals
+    safe_tuples = [('builtins', 'range'), ('builtins', 'complex'), 
+        ('builtins', 'set'), ('builtins', 'frozenset'), ('builtins', 'slice')]
 
 with cf.config_prefix("pickler"):
     cf.register_option(

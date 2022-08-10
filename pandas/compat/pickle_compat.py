@@ -197,7 +197,7 @@ _class_locations_map = {
 
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat and uses a non-public class of the pickle module.
-
+# checks modules against permit/deny list and raises error if module is not forbidden.
 
 class Unpickler(pkl._Unpickler):
     def find_class(self, module, name):
