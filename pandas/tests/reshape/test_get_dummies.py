@@ -47,7 +47,7 @@ class TestGetDummies:
 
     def test_get_dummies_warns_default_dtype(self, df):
         # https://github.com/pandas-dev/pandas/issues/45848
-        msg = "The default dtype will change from 'uint8' to 'bool'"
+        msg = "In a future version of pandas the default dtype will change"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             get_dummies(df)
 
