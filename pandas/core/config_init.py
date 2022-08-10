@@ -11,9 +11,11 @@ module is imported, register them here rather than in the module.
 """
 from __future__ import annotations
 
-import os, yaml
+import os
 from typing import Callable
 import warnings
+
+import yaml
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -969,7 +971,7 @@ with cf.config_prefix("styler"):
         styler_environment,
         validator=is_instance_factory([type(None), str]),
     )
-    
+
 # ------
 # Pickler
 # ------
@@ -1011,26 +1013,31 @@ else:
     pickle_config = {}
     pickle_config["mode"] = "permit"
     # see https://docs.python.org/3/library/pickle.html#restricting-globals
-    safe_tuples = [('builtins', 'range'), ('builtins', 'complex'), 
-        ('builtins', 'set'), ('builtins', 'frozenset'), ('builtins', 'slice')]
+    safe_tuples = [
+        ("builtins", "range"),
+        ("builtins", "complex"),
+        ("builtins", "set"),
+        ("builtins", "frozenset"),
+        ("builtins", "slice"),
+    ]
 
 with cf.config_prefix("pickler"):
     cf.register_option(
-      "unpickle.mode",
-      # get the default value from the config file
-      pickle_config["mode"],
-      pickler_unpickle_mode,
-      validator=is_one_of_factory(["off", "permit", "deny"]),
+        "unpickle.mode",
+        # get the default value from the config file
+        pickle_config["mode"],
+        pickler_unpickle_mode,
+        validator=is_one_of_factory(["off", "permit", "deny"]),
     )
 
     cf.register_option(
-      "safe.tuples",
-      safe_tuples,
-      pickler_safe_tuples,
+        "safe.tuples",
+        safe_tuples,
+        pickler_safe_tuples,
     )
 
     cf.register_option(
-      "unsafe.tuples",
-      unsafe_tuples,
-      pickler_unsafe_tuples,
+        "unsafe.tuples",
+        unsafe_tuples,
+        pickler_unsafe_tuples,
     )

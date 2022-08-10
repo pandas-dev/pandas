@@ -15,6 +15,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
@@ -25,7 +27,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.internals import BlockManager
-from pandas._config import get_option
 
 if TYPE_CHECKING:
     from pandas import (
@@ -199,6 +200,7 @@ _class_locations_map = {
 # functions for compat and uses a non-public class of the pickle module.
 # checks modules against permit/deny list and raises error if module is not forbidden.
 
+
 class Unpickler(pkl._Unpickler):
     def find_class(self, module, name):
         # override superclass
@@ -207,13 +209,18 @@ class Unpickler(pkl._Unpickler):
         opt = get_option("pickler.unpickle.mode")
         # Only allow safe modules and classes. Tuples defined in config
         # Do not allow unsafe modules and classes.
-        if (opt == "off") or \
-        (opt == "permit" and (module, name) in get_option("pickler.safe.tuples")) or \
-        (opt == "deny" and (module, name) not in get_option("pickler.unsafe.tuples")):
+        if (
+            (opt == "off")
+            or (opt == "permit" and (module, name) in get_option("pickler.safe.tuples"))
+            or (
+                opt == "deny"
+                and (module, name) not in get_option("pickler.unsafe.tuples")
+            )
+        ):
             return super().find_class(module, name)
         # Forbid everything else.
-        raise pkl.UnpicklingError("global '%s.%s' is forbidden" %
-                                  (module, name))
+        raise pkl.UnpicklingError(f"global '{module}.{name}' is forbidden")
+
 
 Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce

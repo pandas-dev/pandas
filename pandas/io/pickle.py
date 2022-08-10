@@ -5,6 +5,8 @@ import pickle
 from typing import Any
 import warnings
 
+from pandas._config import get_option
+
 from pandas._typing import (
     CompressionOptions,
     FilePath,
@@ -18,7 +20,6 @@ from pandas.util._decorators import doc
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
-from pandas._config import get_option
 
 
 @doc(
@@ -126,7 +127,7 @@ def read_pickle(
     Load pickled pandas object (or any object) from file. By default, only a
     safe subset of classes from builtins can be called while loading the
     object. See http://guide/ for customizing the security settings.
-    
+
     .. warning::
 
        Loading pickled data received from untrusted sources can be
@@ -187,19 +188,27 @@ def read_pickle(
     3    3    8
     4    4    9
     """  # noqa: E501
-    class RestrictedUnpickler(pickle.Unpickler):     
+
+    class RestrictedUnpickler(pickle.Unpickler):
         def find_class(self, module, name):
             opt = get_option("pickler.unpickle.mode")
             # Only allow safe modules and classes. Tuples defined in config
             # Do not allow unsafe modules and classes.
-            if (opt == "off") or \
-            (opt == "permit" and (module, name) in get_option("pickler.safe.tuples")) or \
-            (opt == "deny" and (module, name) not in get_option("pickler.unsafe.tuples")):
+            if (
+                (opt == "off")
+                or (
+                    opt == "permit"
+                    and (module, name) in get_option("pickler.safe.tuples")
+                )
+                or (
+                    opt == "deny"
+                    and (module, name) not in get_option("pickler.unsafe.tuples")
+                )
+            ):
                 return super().find_class(module, name)
             # Forbid everything else.
-            raise pickle.UnpicklingError("global '%s.%s' is forbidden" %
-                                      (module, name))
-            
+            raise pickle.UnpicklingError(f"global '{module}.{name}' is forbidden")
+
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
