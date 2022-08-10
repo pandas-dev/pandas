@@ -6,11 +6,11 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.dataframe_protocol import (
     ColumnNullType,
     DtypeKind,
 )
-from pandas.core.exchange.from_dataframe import from_dataframe
+from pandas.core.interchange.from_dataframe import from_dataframe
 
 test_data_categorical = {
     "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
@@ -88,8 +88,8 @@ def test_dataframe(data):
     expected = from_dataframe(df2.select_columns_by_name(names))
     tm.assert_frame_equal(result, expected)
 
-    assert isinstance(result.attrs["_EXCHANGE_PROTOCOL_BUFFERS"], list)
-    assert isinstance(expected.attrs["_EXCHANGE_PROTOCOL_BUFFERS"], list)
+    assert isinstance(result.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
+    assert isinstance(expected.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
 
 
 def test_missing_from_masked():

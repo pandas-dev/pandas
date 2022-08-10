@@ -688,9 +688,10 @@ class TestToDatetime:
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
     )
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = f"Out of bounds nanosecond timestamp: {dt}"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(dt, errors="raise")
+        msg = f"Out of bounds nanosecond timestamp: {dt}"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(dt)
         assert to_datetime(dt, errors="coerce", cache=cache) is NaT
@@ -973,13 +974,13 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = "is a bad directive in format|Out of bounds nanosecond timestamp"
+            msg = "is a bad directive in format|Out of bounds .* present at position 0"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
                 )
         else:
-            msg = "Out of bounds nanosecond timestamp"
+            msg = "Out of bounds .* present at position 0"
             with pytest.raises(OutOfBoundsDatetime, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
@@ -1700,7 +1701,7 @@ class TestToDatetimeMisc:
         # in an in-bounds datetime
         arr = np.array(["2262-04-11 23:47:16.854775808"], dtype=object)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr)
 
@@ -2593,7 +2594,10 @@ class TestOrigin:
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
         # see gh-23830
-        msg = "Out of bounds nanosecond timestamp"
+        msg = (
+            "Out of bounds nanosecond timestamp: 2417-10-27 00:00:00 "
+            "present at position 0"
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime("2417-10-27 00:00:00", format=format)
 
