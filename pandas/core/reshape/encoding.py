@@ -231,8 +231,8 @@ def _get_dummies_1d(
 
     if dtype is None:
         warnings.warn(
-            "The default dtype will change from 'uint8' to 'bool', "
-            "please specify a dtype to silence this warning",
+            "In a future version of pandas the default dtype will change from "
+            "'uint8' to 'bool', please specify a dtype to silence this warning",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
