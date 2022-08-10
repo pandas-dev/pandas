@@ -34,7 +34,7 @@ that are backed by a ``pyarrow.ChunkedArray`` and ``pyarrow.DataType``.
 
 The ``dtype`` argument can accept a string of a `pyarrow data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
 with ``pyarrow`` in brackets e.g. ``int64[pyarrow]`` or, for pyarrow data types that take parameters, a :class:`ArrowDtype`
-initialized with a ``pyarrow.DataType``
+initialized with a ``pyarrow.DataType``.
 
 .. ipython:: python
 
@@ -46,15 +46,13 @@ initialized with a ``pyarrow.DataType``
     ser_list = pd.Series([[1, 2], [3, None]], dtype=list_of_int_type)
     ser_list
 
-Most operations are supported and have been implemented using `pyarrow compute <https://arrow.apache.org/docs/python/api/compute.html>`__ functions.
-We recommend installing the latest version of PyArrow to access the most recently implemented compute functions.
-
-.. ipython:: python
-
     ser_list.take([1, 0])
     ser_float * 5
     ser_float.mean()
     ser_float.dropna()
+
+Most operations are supported and have been implemented using `pyarrow compute <https://arrow.apache.org/docs/python/api/compute.html>`__ functions.
+We recommend installing the latest version of PyArrow to access the most recently implemented compute functions.
 
 .. _whatsnew_150.enhancements.dataframe_interchange:
 
