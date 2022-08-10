@@ -4992,7 +4992,8 @@ Keep all original rows and also all original values
             kwargs.update({"index": index})
         return super().reindex(**kwargs)
 
-    @overload
+    # error: Signature of "drop" incompatible with supertype "NDFrame"  [override]
+    @overload  # type: ignore[override]
     def drop(
         self,
         labels: IndexLabel = ...,
