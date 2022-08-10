@@ -592,6 +592,9 @@ cdef class BaseOffset:
 
         Examples
         --------
+        >>> pd.offsets.Hour().name
+        'H'
+
         >>> pd.offsets.Hour(5).name
         'H'
         """
@@ -617,6 +620,9 @@ cdef class BaseOffset:
 
         >>> pd.offsets.BusinessHour(2).freqstr
         '2BH'
+
+        >>> pd.offsets.Nano().freqstr
+        'N'
 
         >>> pd.offsets.Nano(-3).freqstr
         '-3N'
@@ -731,6 +737,13 @@ cdef class BaseOffset:
         >>> freq = pd.offsets.Day(1)
         >>> freq.is_on_offset(ts)
         True
+
+        >>> ts = pd.Timestamp(2022, 8, 6)
+        >>> ts.day_name()
+        'Saturday'
+        >>> freq = pd.offsets.BusinessDay(1)
+        >>> freq.is_on_offset(ts)
+        False
         """
         if self.normalize and not _is_normalized(dt):
             return False
@@ -823,7 +836,7 @@ cdef class BaseOffset:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what is_anchored means.
         """
-        Return boolean whether the frequency is a unit frequency.
+        Return boolean whether the frequency is a unit frequency (n=1).
 
         Examples
         --------
