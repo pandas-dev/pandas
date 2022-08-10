@@ -155,6 +155,7 @@ class WrappedCythonOp:
         "last",
         "first",
         "rank",
+        "prod",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -217,7 +218,7 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["sum", "var", "prod", "mean", "ohlc"] or (
+            if how in ["sum", "var", "mean", "ohlc"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
@@ -581,6 +582,8 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
+            elif self.how in ["prod"]:
+                func(result, counts, values, comp_ids, mask, result_mask, min_count)
             else:
                 func(result, counts, values, comp_ids, min_count)
         else:
@@ -613,7 +616,7 @@ class WrappedCythonOp:
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                cutoff = max(1, min_count)
+                cutoff = max(0 if self.how == "prod" else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
                     if result_mask is not None and self.uses_mask():
