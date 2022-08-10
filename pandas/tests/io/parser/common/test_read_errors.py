@@ -231,7 +231,7 @@ def test_null_byte_char(request, all_parsers):
     names = ["a", "b"]
     parser = all_parsers
 
-    if parser.engine in ["c", "python"]:
+    if parser.engine == "c" or (parser.engine == "python" and PY311):
         if parser.engine == "python" and PY311:
             request.node.add_marker(
                 pytest.mark.xfail(
