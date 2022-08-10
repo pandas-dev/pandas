@@ -394,6 +394,9 @@ class TestClipboard:
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         # adding coverage for when not implemented
-        with pytest.raises(PyperclipException, match=r".*not-implemented-error.*"):
+        try:
             clipboard_set(data)
             assert data == clipboard_get()
+        except PyperclipException:
+            with pytest.raises(PyperclipException, match=r".*not-implemented-error.*"):
+                clipboard_set(data)

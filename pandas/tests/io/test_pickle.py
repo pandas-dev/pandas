@@ -609,7 +609,7 @@ def test_read_pickle_forbidden():
 
     pickle_data = pickle.dumps(MyEvilPickle())
     # storing the serialized output into a file in current directory
-    path = os.path.join("data", "pickle", "test_forbidden.pkl")
+    path = os.path.join(os.path.dirname(__file__), "data", "pickle", "test_forbidden.pkl")
     with open(path, "wb") as file:
         file.write(pickle_data)
 
