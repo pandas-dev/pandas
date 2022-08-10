@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-cython==0.29.30
+cython==0.29.32
 pytest>=6.0
 pytest-cov
 pytest-xdist>=1.31
@@ -67,7 +67,7 @@ flake8==4.0.1
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.960
+mypy==0.971
 pre-commit>=2.15.0
 pycodestyle
 pyupgrade

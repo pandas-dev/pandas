@@ -4,6 +4,8 @@ import random
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import iNaT
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.interchange.dataframe_protocol import (
@@ -88,8 +90,8 @@ def test_dataframe(data):
     expected = from_dataframe(df2.select_columns_by_name(names))
     tm.assert_frame_equal(result, expected)
 
-    assert isinstance(result.attrs["_EXCHANGE_PROTOCOL_BUFFERS"], list)
-    assert isinstance(expected.attrs["_EXCHANGE_PROTOCOL_BUFFERS"], list)
+    assert isinstance(result.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
+    assert isinstance(expected.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
 
 
 def test_missing_from_masked():
@@ -176,3 +178,15 @@ def test_nonstring_object():
     col = df.__dataframe__().get_column_by_name("A")
     with pytest.raises(NotImplementedError, match="not supported yet"):
         col.dtype
+
+
+def test_datetime():
+    df = pd.DataFrame({"A": [pd.Timestamp("2022-01-01"), pd.NaT]})
+    col = df.__dataframe__().get_column_by_name("A")
+
+    assert col.size == 2
+    assert col.null_count == 1
+    assert col.dtype[0] == DtypeKind.DATETIME
+    assert col.describe_null == (ColumnNullType.USE_SENTINEL, iNaT)
+
+    tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
