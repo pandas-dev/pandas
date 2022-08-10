@@ -15,6 +15,7 @@ from typing import (
     Generic,
     Hashable,
     Iterator,
+    NoReturn,
     Sequence,
     final,
 )
@@ -1243,7 +1244,7 @@ class BinGrouper(BaseGrouper):
         ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable) -> np.ndarray:
+    def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
         # -> np.ndarray[object]
         raise NotImplementedError(
             "This should not be reached; use _aggregate_series_pure_python"

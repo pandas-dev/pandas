@@ -469,12 +469,14 @@ def get_blkno_indexers(
 
     n = blknos.shape[0]
     result = list()
+
+    if n == 0:
+        return result
+
     start = 0
     cur_blkno = blknos[start]
 
-    if n == 0:
-        pass
-    elif group is False:
+    if group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
                 result.append((cur_blkno, slice(start, i)))
