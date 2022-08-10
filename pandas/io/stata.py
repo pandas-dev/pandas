@@ -338,6 +338,9 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
     has_bad_values = False
     if bad_locs.any():
         has_bad_values = True
+        # reset cache to avoid SettingWithCopy checks (we own the DataFrame and the
+        # `dates` Series is used to overwrite itself in the DataFramae)
+        dates._reset_cacher()
         dates[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
