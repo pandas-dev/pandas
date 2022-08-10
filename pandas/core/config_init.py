@@ -1011,14 +1011,19 @@ if os.path.exists(str_loc):
                 unsafe_tuples.append((k, i))
 else:
     pickle_config = {}
-    pickle_config["mode"] = "permit"
-    # see https://docs.python.org/3/library/pickle.html#restricting-globals
-    safe_tuples = [
-        ("builtins", "range"),
-        ("builtins", "complex"),
-        ("builtins", "set"),
-        ("builtins", "frozenset"),
-        ("builtins", "slice"),
+    pickle_config["mode"] = "deny"
+    # see deny list example at https://pythonmana.com/2022/143/202205231222219535.html
+    unsafe_tuples = [
+        ("os", "system"),
+        ("posix", "system"),
+        ("builtins", "eval"),
+        ("builtins", "exec"),
+        ("builtins", "execfile"),
+        ("builtins", "compile"),
+        ("builtins", "open"),
+        ("builtins", "import"),
+        ("builtins", "__import__"),
+        ("builtins", "exit"),
     ]
 
 with cf.config_prefix("pickler"):
