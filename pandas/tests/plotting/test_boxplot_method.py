@@ -77,7 +77,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.rand(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by="X")
 
         # When ax is supplied and required number of axes is 1,

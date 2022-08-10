@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import contextlib
 import copy
-import inspect
 import io
 import pickle as pkl
 from typing import (
@@ -18,7 +17,6 @@ import numpy as np
 
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
-from pandas.util._exceptions import find_stack_level
 
 from pandas import Index
 from pandas.core.arrays import (
@@ -89,7 +87,7 @@ class _LoadSparseSeries:
         warnings.warn(
             _sparse_msg.format(cls="SparseSeries", new="Series"),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=6,
         )
 
         return Series(dtype=object)
@@ -107,7 +105,7 @@ class _LoadSparseFrame:
         warnings.warn(
             _sparse_msg.format(cls="SparseDataFrame", new="DataFrame"),
             FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
+            stacklevel=6,
         )
 
         return DataFrame()

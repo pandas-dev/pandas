@@ -1,5 +1,3 @@
-import inspect
-
 from pandas.core.internals.api import make_block
 from pandas.core.internals.array_manager import (
     ArrayManager,
@@ -43,6 +41,7 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    import inspect
     import warnings
 
     from pandas.util._exceptions import find_stack_level

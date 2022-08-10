@@ -147,12 +147,6 @@ repos:
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
         types_or: [python, cython, rst]
-    -   id: stacklevel
-        name: Use find_stack_level instead of setting stacklevel manually
-        language: pygrep
-        entry: 'stacklevel=\d+'
-        types_or: [python, cython, rst]
-        exclude: pandas/__init__\.py
     -   id: cython-casting
         name: Check Cython casting is `<type>obj`, not `<type> obj`
         language: pygrep

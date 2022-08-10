@@ -146,6 +146,11 @@ def test_dialect_conflict_delimiter(all_parsers, custom_dialect, kwargs, warning
     data = "a:b\n1:2"
 
     with tm.with_csv_dialect(dialect_name, **dialect_kwargs):
-        with tm.assert_produces_warning(warning_klass):
-            result = parser.read_csv(StringIO(data), dialect=dialect_name, **kwargs)
-            tm.assert_frame_equal(result, expected)
+        result = parser.read_csv_check_warnings(
+            warning_klass,
+            "Conflicting values for 'delimiter'",
+            StringIO(data),
+            dialect=dialect_name,
+            **kwargs,
+        )
+        tm.assert_frame_equal(result, expected)

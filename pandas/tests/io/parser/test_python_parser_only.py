@@ -424,8 +424,9 @@ def test_on_bad_lines_callable_not_expected_length(python_parser_only):
 """
     bad_sio = StringIO(data)
 
-    with tm.assert_produces_warning(ParserWarning, match="Length of header or names"):
-        result = parser.read_csv(bad_sio, on_bad_lines=lambda x: x)
+    result = parser.read_csv_check_warnings(
+        ParserWarning, "Length of header or names", bad_sio, on_bad_lines=lambda x: x
+    )
     expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
 

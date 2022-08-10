@@ -125,7 +125,7 @@ class TestDataFramePlots(TestPlotBase):
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 scatter_matrix,
                 filterwarnings="always",
