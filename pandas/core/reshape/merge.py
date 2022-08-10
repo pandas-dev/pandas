@@ -10,6 +10,7 @@ import hashlib
 import string
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     cast,
 )
@@ -30,6 +31,7 @@ from pandas._typing import (
     Suffixes,
     npt,
 )
+from pandas.compat import PY39
 from pandas.errors import MergeError
 from pandas.util._decorators import (
     Appender,
@@ -1311,7 +1313,16 @@ class _MergeOperation:
             DataFrames with cross_col, the merge operation set to inner and the column
             to join over.
         """
-        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        _md5: Callable
+        if PY39:
+
+            def _md5(_hashlib_md5=hashlib.md5):
+                return _hashlib_md5(usedforsecurity=False)
+
+        else:
+            _md5 = hashlib.md5
+
+        cross_col = f"_cross_{_md5().hexdigest()}"
         how = "inner"
         return (
             left.assign(**{cross_col: 1}),
