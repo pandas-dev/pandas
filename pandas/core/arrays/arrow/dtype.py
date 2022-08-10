@@ -19,6 +19,11 @@ class ArrowDtype(StorageExtensionDtype):
     """
     An ExtensionDtype for PyArrow data types.
 
+    .. warning::
+
+       ArrowDtype is considered experimental. The implementation and
+       parts of the API may change without warning.
+
     While most ``dtype`` arguments can accept the "string"
     constructor, e.g. ``int64[pyarrow]``, ArrowDtype is useful
     if the data type contains parameters like ``pyarrow.timestamp``.

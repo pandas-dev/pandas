@@ -161,6 +161,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
 
+    .. warning::
+
+       ArrowExtensionArray is considered experimental. The implementation and
+       parts of the API may change without warning.
+
     Parameters
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
