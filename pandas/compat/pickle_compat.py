@@ -219,7 +219,7 @@ class Unpickler(pkl._Unpickler):
         ):
             return super().find_class(module, name)
         # Forbid everything else.
-        raise pkl.UnpicklingError(f"global '{module}.{name}' is forbidden")
+        raise pkl.UnpicklingError(f"global '{module} . {name}' is forbidden")
 
 
 Unpickler.dispatch = copy.copy(Unpickler.dispatch)

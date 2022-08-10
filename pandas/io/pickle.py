@@ -207,7 +207,7 @@ def read_pickle(
             ):
                 return super().find_class(module, name)
             # Forbid everything else.
-            raise pickle.UnpicklingError(f"global '{module}.{name}' is forbidden")
+            raise pickle.UnpicklingError(f"global '{module} . {name}' is forbidden")
 
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
