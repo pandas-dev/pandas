@@ -610,14 +610,12 @@ def group_sum(
                         or sum_t is complex64_t or sum_t is complex64_t):
                         # avoid warnings because of equality comparison
                         isna_entry = not val == val
+                    elif sum_t is int64_t and is_datetimelike and val == NPY_NAT:
+                        isna_entry = True
                     else:
                         isna_entry = False
 
-                    if not isna_entry and not (
-                        sum_t is int64_t
-                        and is_datetimelike
-                        and val == NPY_NAT
-                    ):
+                    if not isna_entry:
                         nobs[lab, j] += 1
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
