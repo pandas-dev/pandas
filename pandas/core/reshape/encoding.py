@@ -3,11 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 import itertools
 from typing import Hashable
+import warnings
 
 import numpy as np
 
 from pandas._libs.sparse import IntIndex
 from pandas._typing import Dtype
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -228,6 +230,12 @@ def _get_dummies_1d(
     codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
+        warnings.warn(
+            "The default dtype will change from 'uint8' to 'bool', "
+            "please specify a dtype to silence this warning",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         dtype = np.dtype(np.uint8)
     # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
     # dtype[Any], Type[object]]"; expected "Type[Any]"
