@@ -431,6 +431,7 @@ The ``pd.get_dummies`` function now returns dummy-encoded columns as small integ
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    pd.get_dummies(["a", "b", "a", "c"]).dtypes
 

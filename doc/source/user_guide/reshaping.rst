@@ -608,6 +608,7 @@ values, can derive a :class:`DataFrame` containing ``k`` columns of 1s and 0s us
 :func:`~pandas.get_dummies`:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"key": list("bbacab"), "data1": range(6)})
 
@@ -617,6 +618,7 @@ Sometimes it's useful to prefix the column names, for example when merging the r
 with the original :class:`DataFrame`:
 
 .. ipython:: python
+   :okwarning:
 
    dummies = pd.get_dummies(df["key"], prefix="key")
    dummies
@@ -626,6 +628,7 @@ with the original :class:`DataFrame`:
 This function is often used along with discretization functions like :func:`~pandas.cut`:
 
 .. ipython:: python
+   :okwarning:
 
    values = np.random.randn(10)
    values
@@ -642,6 +645,7 @@ variables (categorical in the statistical sense, those with ``object`` or
 
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"A": ["a", "b", "a"], "B": ["c", "c", "b"], "C": [1, 2, 3]})
     pd.get_dummies(df)
@@ -650,6 +654,7 @@ All non-object columns are included untouched in the output. You can control
 the columns that are encoded with the ``columns`` keyword.
 
 .. ipython:: python
+    :okwarning:
 
     pd.get_dummies(df, columns=["A"])
 
@@ -667,6 +672,7 @@ the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
 * dict: Mapping column name to prefix.
 
 .. ipython:: python
+    :okwarning:
 
     simple = pd.get_dummies(df, prefix="new_prefix")
     simple
@@ -680,6 +686,7 @@ variable to avoid collinearity when feeding the result to statistical models.
 You can switch to this mode by turn on ``drop_first``.
 
 .. ipython:: python
+    :okwarning:
 
     s = pd.Series(list("abcaa"))
 
@@ -690,6 +697,7 @@ You can switch to this mode by turn on ``drop_first``.
 When a column contains only one level, it will be omitted in the result.
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"A": list("aaaaa"), "B": list("ababc")})
 

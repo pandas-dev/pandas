@@ -501,6 +501,7 @@ Enhancements
 - ``NaN`` handing in get_dummies (:issue:`4446`) with ``dummy_na``
 
   .. ipython:: python
+     :okwarning:
 
      # previously, nan was erroneously counted as 2 here
      # now it is not counted at all

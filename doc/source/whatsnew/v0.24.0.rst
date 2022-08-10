@@ -833,6 +833,7 @@ then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was retur
 Now, the return type is consistently a :class:`DataFrame`.
 
 .. ipython:: python
+   :okwarning:
 
    type(pd.get_dummies(df, sparse=True))
    type(pd.get_dummies(df[['B', 'C']], sparse=True))
