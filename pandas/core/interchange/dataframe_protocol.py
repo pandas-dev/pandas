@@ -70,7 +70,7 @@ class ColumnNullType(enum.IntEnum):
     NON_NULLABLE : int
         Non-nullable column.
     USE_NAN : int
-        Use explicit float NaN/NaT value.
+        Use explicit float NaN value.
     USE_SENTINEL : int
         Sentinel value besides NaN/NaT.
     USE_BITMASK : int
