@@ -14,8 +14,10 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in taking NULL :class:`objects` from a :class:`DataFrame` causing a segmentation violation. These NULL values are created by :meth:`numpy.empty_like` (:issue:`46848`)
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
+- Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
 -
 
@@ -27,7 +29,6 @@ Bug fixes
 ~~~~~~~~~
 - The :class:`errors.FutureWarning` raised when passing arguments (other than ``filepath_or_buffer``) as positional in :func:`read_csv` is now raised at the correct stacklevel (:issue:`47385`)
 - Bug in :meth:`DataFrame.to_sql` when ``method`` was a ``callable`` that did not return an ``int`` and would raise a ``TypeError`` (:issue:`46891`)
-- Bug in :func:`read_xml` when reading XML files with Chinese character tags and would raise ``XMLSyntaxError`` (:issue:`47902`)
 - Bug in :meth:`loc.__getitem__` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
 
 .. ---------------------------------------------------------------------------
@@ -36,7 +37,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- The minimum version of Cython needed to compile pandas is now ``0.29.32`` (:issue:`47978`)
 -
 
 .. ---------------------------------------------------------------------------
