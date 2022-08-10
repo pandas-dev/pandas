@@ -10,6 +10,8 @@ from collections import abc
 import numbers
 import re
 from typing import (
+    TYPE_CHECKING,
+    Iterable,
     Pattern,
     Sequence,
     cast,
@@ -29,7 +31,6 @@ from pandas.util._decorators import deprecate_nonkeyword_arguments
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.frame import DataFrame
 
 from pandas.io.common import (
     file_exists,
@@ -41,6 +42,9 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -971,7 +975,7 @@ def read_html(
     encoding: str | None = None,
     decimal: str = ".",
     converters: dict | None = None,
-    na_values=None,
+    na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
 ) -> list[DataFrame]:
