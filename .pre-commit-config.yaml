@@ -46,11 +46,11 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://github.com/PyCQA/flake8
-    rev: 5.0.1
+    rev: 5.0.4
     hooks:
     -   id: flake8
         additional_dependencies: &flake8_dependencies
-        - flake8==4.0.1
+        - flake8==5.0.4
         - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
         - pandas-dev-flaker==0.5.0
@@ -239,7 +239,7 @@ repos:
         types: [pyi]
         language: python
         additional_dependencies:
-        - flake8==4.0.1
+        - flake8==5.0.4
         - flake8-pyi==22.7.0
     -   id: future-annotations
         name: import annotations from __future__
