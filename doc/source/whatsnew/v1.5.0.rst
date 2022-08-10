@@ -843,6 +843,7 @@ Other Deprecations
 - Deprecated setting a categorical's categories with ``cat.categories = ['a', 'b', 'c']``, use :meth:`Categorical.rename_categories` instead (:issue:`37643`)
 - Deprecated unused arguments ``encoding`` and ``verbose`` in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:issue:`47912`)
 - Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
+- Emit ``FutureWarning`` from :func:`get_dummies` when ``dtype`` is unspecified, indicating that its default value will be changed to ``bool`` (:issue:`45848`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
