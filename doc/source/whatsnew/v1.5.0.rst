@@ -548,7 +548,7 @@ Other API changes
 - Operations with :class:`Timestamp` or :class:`Timedelta` that would previously raise ``OverflowError`` instead raise ``OutOfBoundsDatetime`` or ``OutOfBoundsTimedelta`` where appropriate (:issue:`47268`)
 - When :func:`read_sas` previously returned ``None``, it now returns an empty :class:`DataFrame` (:issue:`47410`)
 - :class:`DataFrame` constructor raises if ``index`` or ``columns`` arguments are sets (:issue:`47215`)
-- Removed `mangle_dupe_cols` argument from :func:`read_csv`, :func:`read_fwf` and :func:`read_excel`. The argument was never fully implemented and only supported value `True` (:issue:`47718`)
+- Removed ``mangle_dupe_cols`` argument from :func:`read_csv`, :func:`read_fwf` and :func:`read_excel`. The argument was never fully implemented and only supported value ``True`` (:issue:`47718`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.deprecations:
