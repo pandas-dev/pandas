@@ -3,11 +3,13 @@ Tests for DatetimeArray
 """
 import operator
 
+from dateutil.parser._parser import ParserError
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.errors import OutOfBoundsDatetime
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -657,3 +659,22 @@ class TestDatetimeArray:
             assert result[1] is not pd.NaT
 
         tm.assert_series_equal(expected, result)
+
+        expected2 = pd.Series([pd.Timestamp("2000-01-01 00:00:00"), pd.NaT])
+
+        es1 = pd.Series(["1/1/2000", "7/12/1200"])
+        es2 = pd.Series(["1/1/2000", "Hello"])
+
+        if error == "coerce":
+            eres1 = pd.to_datetime(es1, errors=error, infer_datetime_format=True)
+            eres2 = pd.to_datetime(es2, errors=error, infer_datetime_format=True)
+            tm.assert_series_equal(expected2, eres1)
+            tm.assert_series_equal(expected2, eres2)
+        else:
+            with pytest.raises(
+                OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"
+            ):
+                pd.to_datetime(es1, errors=error, infer_datetime_format=True)
+
+            with pytest.raises(ParserError, match="Unknown string format: Hello"):
+                pd.to_datetime(es2, errors=error, infer_datetime_format=True)

@@ -796,7 +796,10 @@ def to_datetime(
         If :const:`True` and no `format` is given, attempt to infer the format
         of the datetime strings based on the first non-NaN element,
         and if it can be inferred, switch to a faster method of parsing them.
-        In some cases this can increase the parsing speed by ~5-10x.
+        In some cases this can increase the parsing speed by ~5-10x. If subsequent
+        datetime strings do not follow the inferred format, parsing will fall
+        back to the slower method of determining the format for each
+        string individually.
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
