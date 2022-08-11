@@ -4866,10 +4866,15 @@ Keep all original rows and also all original values
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
-
-        **kwargs
-            Additional keyword arguments passed to the function. Only the
-            "inplace" keyword is used.
+        copy : bool, default True
+            Also copy underlying data.
+        inplace : bool, default False
+            Whether to return a new Series. If True the value of copy is ignored.
+        level : int or level name, default None
+            In case of MultiIndex, only rename labels in the specified level.
+        errors : {'ignore', 'raise'}, default 'ignore'
+            If 'raise', raise `KeyError` when `index` contains labels not found in axis.
+            If 'ignore', existing keys will be renamed and extra keys will be ignored.
 
         Returns
         -------
