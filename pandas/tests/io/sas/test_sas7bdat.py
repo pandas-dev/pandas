@@ -136,6 +136,28 @@ def test_encoding_options(datapath):
         assert x == y.decode()
 
 
+def test_encoding_infer(datapath):
+    from pandas.io.sas.sas7bdat import SAS7BDATReader
+
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+
+    # check if inferred correctly
+    df1_reader: SAS7BDATReader = pd.read_sas(fname, encoding="infer", iterator=True)
+    assert (
+        df1_reader.inferred_encoding == "cp1252"
+    ), f"""
+        Encoding has been inferred incorrectly:
+        {df1_reader.inferred_encoding} instead of 'cp1252'
+    """
+
+    # check if the reader reads correctly with encoding
+    df1 = df1_reader.read()
+    df2_reader: SAS7BDATReader = pd.read_sas(fname, encoding="cp1252", iterator=True)
+    df2 = df2_reader.read()
+
+    tm.assert_frame_equal(df1, df2)
+
+
 def test_productsales(datapath):
     fname = datapath("io", "sas", "data", "productsales.sas7bdat")
     df = pd.read_sas(fname, encoding="utf-8")

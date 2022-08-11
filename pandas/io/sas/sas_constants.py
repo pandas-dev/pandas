@@ -107,14 +107,21 @@ rdc_compression: Final = b"SASYZCR2"
 compression_literals: Final = [rle_compression, rdc_compression]
 
 # Incomplete list of encodings, using SAS nomenclature:
-# http://support.sas.com/documentation/cdl/en/nlsref/61893/HTML/default/viewer.htm#a002607278.htm
+# https://support.sas.com/documentation/onlinedoc/dfdmstudio/2.6/dmpdmsug/Content/dfU_Encodings_SAS.html
+# corresponding to the Python documentation of standard encodings
+# https://docs.python.org/3/library/codecs.html#standard-encodings
 encoding_names: Final = {
-    29: "latin1",
     20: "utf-8",
+    29: "latin1",
+    30: "latin2",
+    31: "latin3",
+    32: "latin4",
     33: "cyrillic",
-    60: "wlatin2",
-    61: "wcyrillic",
-    62: "wlatin1",
+    34: "arabic",
+    35: "greek",
+    60: "cp1250",  # wlatin2
+    61: "cp1251",  # wcyrillic
+    62: "cp1252",  # wlatin1
     90: "ebcdic870",
 }
 
