@@ -81,7 +81,9 @@ class TestDataFrameQuantile:
 
         tm.assert_series_equal(result, expected)
 
-    def test_quantile(self, datetime_frame, interp_method):
+    def test_quantile(
+        self, datetime_frame, interp_method, using_array_manager, request
+    ):
         interpolation, method = interp_method
         df = datetime_frame
         result = df.quantile(
@@ -97,6 +99,11 @@ class TestDataFrameQuantile:
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_index_equal(result.index, expected.index)
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    using_array_manager, reason="Name set incorrectly for arraymanager"
+                )
+            )
             assert result.name == expected.name
 
         result = df.quantile(
@@ -112,6 +119,11 @@ class TestDataFrameQuantile:
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_index_equal(result.index, expected.index)
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    using_array_manager, reason="Name set incorrectly for arraymanager"
+                )
+            )
             assert result.name == expected.name
 
     def test_empty(self, interp_method):
