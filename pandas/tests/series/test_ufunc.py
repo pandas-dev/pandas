@@ -434,11 +434,11 @@ def test_object_dtype_ok():
 
 def test_outer():
     # https://github.com/pandas-dev/pandas/issues/27186
-    s = pd.Series([1, 2, 3])
-    o = np.array([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
+    obj = np.array([1, 2, 3])
 
     with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        np.subtract.outer(s, o)
+        np.subtract.outer(ser, obj)
 
 
 def test_np_matmul():
@@ -446,7 +446,10 @@ def test_np_matmul():
     df1 = pd.DataFrame(data=[[-1, 1, 10]])
     df2 = pd.DataFrame(data=[-1, 1, 10])
     expected_result = pd.DataFrame(data=[102])
+
+    with tm.assert_produces_warning(FutureWarning, match="on non-aligned"):
+        result = np.matmul(df1, df2)
     tm.assert_frame_equal(
         expected_result,
-        np.matmul(df1, df2),
+        result,
     )

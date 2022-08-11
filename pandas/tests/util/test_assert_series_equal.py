@@ -184,10 +184,12 @@ def test_series_equal_index_mismatch(check_index):
 
 
 def test_series_invalid_param_combination():
+    left = Series(dtype=object)
+    right = Series(dtype=object)
     with pytest.raises(
         ValueError, match="check_like must be False if check_index is False"
     ):
-        tm.assert_series_equal(Series(), Series(), check_index=False, check_like=True)
+        tm.assert_series_equal(left, right, check_index=False, check_like=True)
 
 
 def test_series_equal_length_mismatch(rtol):
