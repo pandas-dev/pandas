@@ -51,10 +51,12 @@ def group_any_all(
     skipna: bool,
 ) -> None: ...
 def group_sum(
-    out: np.ndarray,  # complexfloating_t[:, ::1]
+    out: np.ndarray,  # complexfloatingintuint_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[complexfloating_t, ndim=2]
+    values: np.ndarray,  # ndarray[complexfloatingintuint_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
+    mask: np.ndarray | None,
+    result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
 ) -> None: ...
