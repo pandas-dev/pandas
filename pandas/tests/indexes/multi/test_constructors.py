@@ -8,6 +8,8 @@ import numpy as np
 import pyarrow as pa
 import pytest
 
+from pandas.compat import pa_version_under1p01
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
@@ -649,6 +651,7 @@ def test_from_frame():
     tm.assert_index_equal(expected, result)
 
 
+@pytest.mark.skipif(pa_version_under1p01)
 def test_from_frame_missing_values_multiIndex():
     # GH 39984
     df = pd.DataFrame(
