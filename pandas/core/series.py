@@ -4859,8 +4859,8 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        index : scalar, hashable sequence, dict-like or function
-            optional Functions or dict-like are transformations to apply to
+        index : scalar, hashable sequence, dict-like or function optional
+            Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
