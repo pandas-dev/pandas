@@ -3,7 +3,9 @@ Top level ``eval`` module.
 """
 from __future__ import annotations
 
+import inspect
 import tokenize
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs.lib import no_default
@@ -15,11 +17,13 @@ from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
-from pandas.core.computation.ops import BinOp
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas.core.computation.ops import BinOp
 
 
 def _check_engine(engine: str | None) -> str:
@@ -308,7 +312,7 @@ def eval(
                 "will be removed in a future version."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     exprs: list[str | BinOp]

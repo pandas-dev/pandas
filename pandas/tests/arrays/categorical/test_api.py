@@ -34,22 +34,30 @@ class TestCategoricalAPI:
         assert cat4.ordered
 
     def test_set_ordered(self):
-
+        msg = (
+            "The `inplace` parameter in pandas.Categorical.set_ordered is "
+            "deprecated and will be removed in a future version. setting "
+            "ordered-ness on categories will always return a new Categorical object"
+        )
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         cat2 = cat.as_unordered()
         assert not cat2.ordered
         cat2 = cat.as_ordered()
         assert cat2.ordered
-        cat2.as_unordered(inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.as_unordered(inplace=True)
         assert not cat2.ordered
-        cat2.as_ordered(inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.as_ordered(inplace=True)
         assert cat2.ordered
 
         assert cat2.set_ordered(True).ordered
         assert not cat2.set_ordered(False).ordered
-        cat2.set_ordered(True, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.set_ordered(True, inplace=True)
         assert cat2.ordered
-        cat2.set_ordered(False, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.set_ordered(False, inplace=True)
         assert not cat2.ordered
 
         # removed in 0.19.0
