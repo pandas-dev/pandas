@@ -11,6 +11,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    TimedeltaIndex,
     Timestamp,
 )
 import pandas._testing as tm
@@ -430,15 +431,11 @@ def test_resample_groupby_agg_listlike():
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
-def test_resample_empty_Dataframe(keys):
+def test_empty(keys):
     # GH 26411
-    df = DataFrame([], columns=["a", "b", "date"])
-    df["date"] = pd.to_datetime(df["date"])
-    df = df.set_index("date")
+    df = DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))
     result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
-    expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
-    expected["date"] = pd.to_datetime(expected["date"])
-    expected = expected.set_index("date", append=True, drop=True)
+    expected = DataFrame(columns=["a", "b"]).set_index(keys, drop=False)
     if len(keys) == 1:
         expected.index.name = keys[0]
 
@@ -499,4 +496,20 @@ def test_groupby_resample_with_list_of_keys():
             name=("group", "date"),
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
+def test_resample_empty_Dataframe(keys):
+    # GH 47705
+    df = DataFrame([], columns=["a", "b", "date"])
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.set_index("date")
+    result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
+    expected = DataFrame(columns=["a", "b", "date"]).set_index(keys, drop=False)
+    expected["date"] = pd.to_datetime(expected["date"])
+    expected = expected.set_index("date", append=True, drop=True)
+    if len(keys) == 1:
+        expected.index.name = keys[0]
+
     tm.assert_frame_equal(result, expected)
