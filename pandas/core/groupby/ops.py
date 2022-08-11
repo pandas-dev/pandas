@@ -293,6 +293,11 @@ class WrappedCythonOp:
 
         if how == "rank":
             out_dtype = "float64"
+        elif how == "sum" and is_integer_dtype(dtype):
+            if dtype.kind == "i":
+                out_dtype = "int64"
+            else:
+                out_dtype = "uint64"
         else:
             if is_numeric_dtype(dtype):
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"

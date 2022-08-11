@@ -2829,3 +2829,11 @@ def test_groupby_sum_support_mask(any_numeric_ea_dtype):
         dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_sum_int8_overflow():
+    # GH#37493
+    df = DataFrame({"a": [1, 2, 2], "b": [125, 111, 111]}, dtype="int8")
+    result = df.groupby("a").sum()
+    expected = DataFrame({"b": [125, 222]}, index=Index([1, 2], name="a"))
+    tm.assert_frame_equal(result, expected)
