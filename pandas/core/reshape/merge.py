@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 import datetime
 from functools import partial
-import hashlib
 import inspect
 import string
 from typing import (
@@ -14,6 +13,7 @@ from typing import (
     Hashable,
     cast,
 )
+import uuid
 import warnings
 
 import numpy as np
@@ -1314,7 +1314,7 @@ class _MergeOperation:
             DataFrames with cross_col, the merge operation set to inner and the column
             to join over.
         """
-        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        cross_col = f"_cross_{uuid.uuid4()}"
         how = "inner"
         return (
             left.assign(**{cross_col: 1}),
