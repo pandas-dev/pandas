@@ -6,13 +6,13 @@ from __future__ import annotations
 import copy
 import datetime
 from functools import partial
-import hashlib
 import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
     cast,
 )
+import uuid
 import warnings
 
 import numpy as np
@@ -73,7 +73,6 @@ from pandas import (
     MultiIndex,
     Series,
 )
-from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -85,6 +84,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
 
 
@@ -150,7 +150,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby:
+    for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
 
         if rby is None:
             rhs = right
@@ -1311,7 +1311,7 @@ class _MergeOperation:
             DataFrames with cross_col, the merge operation set to inner and the column
             to join over.
         """
-        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        cross_col = f"_cross_{uuid.uuid4()}"
         how = "inner"
         return (
             left.assign(**{cross_col: 1}),

@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 
 from pandas._libs.lib import infer_dtype
+from pandas._libs.tslibs import iNaT
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
@@ -12,14 +13,14 @@ from pandas.api.types import (
     is_categorical_dtype,
     is_string_dtype,
 )
-from pandas.core.exchange.buffer import PandasBuffer
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.buffer import PandasBuffer
+from pandas.core.interchange.dataframe_protocol import (
     Column,
     ColumnBuffers,
     ColumnNullType,
     DtypeKind,
 )
-from pandas.core.exchange.utils import (
+from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
     NoBufferPresent,
@@ -38,7 +39,7 @@ _NP_KINDS = {
 
 _NULL_DESCRIPTION = {
     DtypeKind.FLOAT: (ColumnNullType.USE_NAN, None),
-    DtypeKind.DATETIME: (ColumnNullType.USE_NAN, None),
+    DtypeKind.DATETIME: (ColumnNullType.USE_SENTINEL, iNaT),
     DtypeKind.INT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.UINT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.BOOL: (ColumnNullType.NON_NULLABLE, None),
@@ -136,7 +137,7 @@ class PandasColumn(Column):
         kind = _NP_KINDS.get(dtype.kind, None)
         if kind is None:
             # Not a NumPy dtype. Check if it's a categorical maybe
-            raise ValueError(f"Data type {dtype} not supported by exchange protocol")
+            raise ValueError(f"Data type {dtype} not supported by interchange protocol")
 
         return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder
 
