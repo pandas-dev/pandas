@@ -183,7 +183,10 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
-            elif "object" not in f.__signatures__:
+            elif (
+                "object" not in f.__signatures__
+                and "object|object" not in f.__signatures__
+            ):
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
                     f"function is not implemented for this dtype: "
@@ -293,11 +296,8 @@ class WrappedCythonOp:
 
         if how == "rank":
             out_dtype = "float64"
-        elif how == "sum" and is_integer_dtype(dtype):
-            if dtype.kind == "i":
-                out_dtype = "int64"
-            else:
-                out_dtype = "uint64"
+        # elif how == "sum" and is_integer_dtype(dtype):
+        #     out_dtype = f"{dtype.kind}8"
         else:
             if is_numeric_dtype(dtype):
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
