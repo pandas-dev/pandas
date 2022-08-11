@@ -296,8 +296,8 @@ class WrappedCythonOp:
 
         if how == "rank":
             out_dtype = "float64"
-        # elif how == "sum" and is_integer_dtype(dtype):
-        #     out_dtype = f"{dtype.kind}8"
+        elif how == "sum" and is_integer_dtype(dtype):
+            out_dtype = f"{dtype.kind}8"
         else:
             if is_numeric_dtype(dtype):
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
