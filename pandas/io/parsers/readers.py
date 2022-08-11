@@ -158,10 +158,6 @@ prefix : str, optional
 
     .. deprecated:: 1.4.0
        Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
-mangle_dupe_cols : bool, default True
-    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -618,7 +614,6 @@ def read_csv(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -678,7 +673,6 @@ def read_csv(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -738,7 +732,6 @@ def read_csv(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -798,7 +791,6 @@ def read_csv(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -867,7 +859,6 @@ def read_csv(
     usecols=None,
     squeeze: bool | None = None,
     prefix: str | lib.NoDefault = lib.no_default,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -956,7 +947,6 @@ def read_table(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1016,7 +1006,6 @@ def read_table(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1076,7 +1065,6 @@ def read_table(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1136,7 +1124,6 @@ def read_table(
     usecols=...,
     squeeze: bool | None = ...,
     prefix: str | lib.NoDefault = ...,
-    mangle_dupe_cols: bool = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters=...,
@@ -1205,7 +1192,6 @@ def read_table(
     usecols=None,
     squeeze: bool | None = None,
     prefix: str | lib.NoDefault = lib.no_default,
-    mangle_dupe_cols: bool = True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -1468,9 +1454,6 @@ class TextFileReader(abc.Iterator):
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
                 )
-            elif argname == "mangle_dupe_cols" and value is False:
-                # GH12935
-                raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             else:
                 options[argname] = value
 

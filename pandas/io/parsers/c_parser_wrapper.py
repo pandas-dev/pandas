@@ -248,7 +248,7 @@ class CParserWrapper(ParserBase):
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
-                names = self._maybe_dedup_names(self.orig_names)
+                names = self._dedup_names(self.orig_names)
                 index, columns, col_dict = self._get_empty_meta(
                     names,
                     self.index_col,
@@ -295,7 +295,7 @@ class CParserWrapper(ParserBase):
             if self.usecols is not None:
                 names = self._filter_usecols(names)
 
-            names = self._maybe_dedup_names(names)
+            names = self._dedup_names(names)
 
             # rename dict keys
             data_tups = sorted(data.items())
@@ -317,7 +317,7 @@ class CParserWrapper(ParserBase):
             # assert for mypy, orig_names is List or None, None would error in list(...)
             assert self.orig_names is not None
             names = list(self.orig_names)
-            names = self._maybe_dedup_names(names)
+            names = self._dedup_names(names)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)

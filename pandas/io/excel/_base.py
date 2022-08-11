@@ -275,10 +275,6 @@ convert_float : bool, default True
     .. deprecated:: 1.3.0
         convert_float will be removed in a future version
 
-mangle_dupe_cols : bool, default True
-    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
 {storage_options}
 
     .. versionadded:: 1.2.0
@@ -386,7 +382,6 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     convert_float: bool | None = ...,
-    mangle_dupe_cols: bool = ...,
     storage_options: StorageOptions = ...,
 ) -> DataFrame:
     ...
@@ -425,7 +420,6 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     convert_float: bool | None = ...,
-    mangle_dupe_cols: bool = ...,
     storage_options: StorageOptions = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
@@ -465,7 +459,6 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     convert_float: bool | None = None,
-    mangle_dupe_cols: bool = True,
     storage_options: StorageOptions = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
 
@@ -504,7 +497,6 @@ def read_excel(
             comment=comment,
             skipfooter=skipfooter,
             convert_float=convert_float,
-            mangle_dupe_cols=mangle_dupe_cols,
         )
     finally:
         # make sure to close opened file handles
@@ -709,7 +701,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         comment: str | None = None,
         skipfooter: int = 0,
         convert_float: bool | None = None,
-        mangle_dupe_cols: bool = True,
         **kwds,
     ):
 
@@ -877,7 +868,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
-                    mangle_dupe_cols=mangle_dupe_cols,
                     **kwds,
                 )
 
@@ -1686,7 +1676,6 @@ class ExcelFile:
         comment: str | None = None,
         skipfooter: int = 0,
         convert_float: bool | None = None,
-        mangle_dupe_cols: bool = True,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1719,7 +1708,6 @@ class ExcelFile:
             comment=comment,
             skipfooter=skipfooter,
             convert_float=convert_float,
-            mangle_dupe_cols=mangle_dupe_cols,
             **kwds,
         )
 

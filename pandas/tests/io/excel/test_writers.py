@@ -975,12 +975,6 @@ class TestExcelWriter:
         result = pd.read_excel(path, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(result, expected)
 
-        # Explicitly, we pass in the parameter.
-        result = pd.read_excel(
-            path, sheet_name="test1", index_col=0, mangle_dupe_cols=True
-        )
-        tm.assert_frame_equal(result, expected)
-
         # see gh-11007, gh-10970
         df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], columns=["A", "B", "A", "B"])
         df.to_excel(path, "test1")
@@ -997,10 +991,6 @@ class TestExcelWriter:
 
         expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
         tm.assert_frame_equal(result, expected)
-
-        msg = "Setting mangle_dupe_cols=False is not supported yet"
-        with pytest.raises(ValueError, match=msg):
-            pd.read_excel(path, sheet_name="test1", header=None, mangle_dupe_cols=False)
 
     def test_swapped_columns(self, path):
         # Test for issue #5427.
