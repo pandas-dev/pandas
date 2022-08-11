@@ -22,6 +22,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.core.groupby.generic import DataFrameGroupBy
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def assert_fp_equal(a, b):
@@ -172,14 +173,10 @@ def test_transform_axis_1(request, transformation_func):
         msg = "ngroup fails with axis=1: #45986"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
-    warn = None
-    if transformation_func == "tshift":
-        warn = FutureWarning
-
-        request.node.add_marker(pytest.mark.xfail(reason="tshift is deprecated"))
-    args = ("ffill",) if transformation_func == "fillna" else ()
+    warn = FutureWarning if transformation_func == "tshift" else None
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    args = get_groupby_method_args(transformation_func, df)
     with tm.assert_produces_warning(warn):
         result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
         expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
@@ -1168,7 +1165,7 @@ def test_transform_agg_by_name(request, reduction_func, obj):
             pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
         )
 
-    args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
+    args = get_groupby_method_args(reduction_func, obj)
     with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
         result = g.transform(func, *args)
 
@@ -1370,12 +1367,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
     gb = df.groupby("A", dropna=dropna)
 
-    if reduction_func == "corrwith":
-        args = (df["B"],)
-    elif reduction_func == "nth":
-        args = (0,)
-    else:
-        args = ()
+    args = get_groupby_method_args(reduction_func, df)
 
     # Manually handle reducers that don't fit the generic pattern
     # Set expected with dropna=False, then replace if necessary
@@ -1418,8 +1410,8 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
     if transformation_func == "tshift":
         msg = "tshift requires timeseries"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    args = (0,) if transformation_func == "fillna" else ()
     df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
+    args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby("A", dropna=dropna)
 
     buffer = []
@@ -1461,12 +1453,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     ser = Series([1, 2, 2, 3], index=index)
     gb = ser.groupby([1, 1, np.nan, np.nan], dropna=dropna)
 
-    if reduction_func == "corrwith":
-        args = (ser,)
-    elif reduction_func == "nth":
-        args = (0,)
-    else:
-        args = ()
+    args = get_groupby_method_args(reduction_func, ser)
 
     # Manually handle reducers that don't fit the generic pattern
     # Set expected with dropna=False, then replace if necessary
@@ -1506,8 +1493,8 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
     if transformation_func == "tshift":
         msg = "tshift requires timeseries"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    args = (0,) if transformation_func == "fillna" else ()
     ser = Series([1, 2, 2], index=[1, 2, 3])
+    args = get_groupby_method_args(transformation_func, ser)
     gb = ser.groupby([1, 1, np.nan], dropna=dropna)
 
     buffer = []

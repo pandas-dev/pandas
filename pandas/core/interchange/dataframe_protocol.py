@@ -70,7 +70,7 @@ class ColumnNullType(enum.IntEnum):
     NON_NULLABLE : int
         Non-nullable column.
     USE_NAN : int
-        Use explicit float NaN/NaT value.
+        Use explicit float NaN value.
     USE_SENTINEL : int
         Sentinel value besides NaN/NaT.
     USE_BITMASK : int
@@ -389,7 +389,7 @@ class DataFrame(ABC):
 
     @abstractmethod
     def __dataframe__(self, nan_as_null: bool = False, allow_copy: bool = True):
-        """Construct a new exchange object, potentially changing the parameters."""
+        """Construct a new interchange object, potentially changing the parameters."""
         pass
 
     @property
