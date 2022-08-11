@@ -312,7 +312,7 @@ def deprecate_nonkeyword_arguments(
                 warnings.warn(
                     msg.format(arguments=arguments),
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             return func(*args, **kwargs)
 

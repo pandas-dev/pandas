@@ -1,6 +1,7 @@
 """ define the IntervalIndex """
 from __future__ import annotations
 
+import inspect
 from operator import (
     le,
     lt,
@@ -242,7 +243,7 @@ class IntervalIndex(ExtensionIndex):
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.inclusive
 

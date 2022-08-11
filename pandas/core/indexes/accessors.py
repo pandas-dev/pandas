@@ -3,6 +3,7 @@ datetimelike delegation
 """
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING
 import warnings
 
@@ -291,7 +292,7 @@ class DatetimeProperties(Properties):
             "Series.dt.weekofyear and Series.dt.week have been deprecated. "
             "Please use Series.dt.isocalendar().week instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         week_series = self.isocalendar().week
         week_series.name = self.name

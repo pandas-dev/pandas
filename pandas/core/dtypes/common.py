@@ -3,6 +3,7 @@ Common type operations.
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     Any,
     Callable,
@@ -307,7 +308,7 @@ def is_categorical(arr) -> bool:
         "is_categorical is deprecated and will be removed in a future version. "
         "Use is_categorical_dtype instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
@@ -1386,7 +1387,7 @@ def is_extension_type(arr) -> bool:
         "'is_extension_type' is deprecated and will be removed in a future "
         "version.  Use 'is_extension_array_dtype' instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
 
     if is_categorical_dtype(arr):

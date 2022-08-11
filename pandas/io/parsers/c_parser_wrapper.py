@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import inspect
 from io import TextIOWrapper
 from typing import (
     TYPE_CHECKING,
@@ -421,7 +422,11 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            warning_message,
+            DtypeWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
     return result
 
 

@@ -3,6 +3,7 @@ Define extension dtypes.
 """
 from __future__ import annotations
 
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -1194,7 +1195,7 @@ class IntervalDtype(PandasExtensionDtype):
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._inclusive
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
+import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -549,7 +550,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
 
@@ -722,7 +723,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
 

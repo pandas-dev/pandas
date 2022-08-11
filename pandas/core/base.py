@@ -4,6 +4,7 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
+import inspect
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -1064,7 +1065,7 @@ class IndexOpsMixin(OpsMixin):
             "is_monotonic is deprecated and will be removed in a future version. "
             "Use is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.is_monotonic_increasing
 

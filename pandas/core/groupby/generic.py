@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import abc
 from functools import partial
+import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -1235,7 +1236,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "`.to_numpy()` to the result in the transform function to keep "
                 "the current behavior and silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
@@ -1405,7 +1406,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "Indexing with multiple keys (implicitly converted to a tuple "
                 "of keys) will be deprecated, use a list instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return super().__getitem__(key)
 

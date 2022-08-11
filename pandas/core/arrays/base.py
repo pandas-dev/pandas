@@ -476,7 +476,7 @@ class ExtensionArray:
                 f"instead.  Add this argument to `{name}.factorize` to be compatible "
                 f"with future versions of pandas and silence this warning.",
                 DeprecationWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     def to_numpy(

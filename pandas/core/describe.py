@@ -9,6 +9,7 @@ from abc import (
     ABC,
     abstractmethod,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -373,7 +374,7 @@ def select_describe_func(
                 "version of pandas. Specify `datetime_is_numeric=True` to "
                 "silence this warning and adopt the future behavior now.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):
