@@ -98,7 +98,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -115,6 +114,7 @@ if TYPE_CHECKING:
         Float64Index,
         Index,
     )
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
@@ -1062,6 +1062,8 @@ class Block(PandasObject):
 
         transpose = self.ndim == 2
 
+        cond = extract_bool_array(cond)
+
         # EABlocks override where
         values = cast(np.ndarray, self.values)
         orig_other = other
@@ -1719,6 +1721,13 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 elif lib.is_integer(indexer[1]) and indexer[1] == 0:
                     # reached via setitem_single_block passing the whole indexer
                     indexer = indexer[0]
+
+                elif com.is_null_slice(indexer[1]):
+                    indexer = indexer[0]
+
+                elif is_list_like(indexer[1]) and indexer[1][0] == 0:
+                    indexer = indexer[0]
+
                 else:
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "

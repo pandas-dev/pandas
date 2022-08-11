@@ -73,7 +73,6 @@ from pandas import (
     MultiIndex,
     Series,
 )
-from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -85,6 +84,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
 
 
@@ -150,7 +150,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby:
+    for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
 
         if rby is None:
             rhs = right

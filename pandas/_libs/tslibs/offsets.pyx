@@ -297,8 +297,8 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 cdef _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
-    # offsets relativedelta is used for plural offsets of daily length or
-    # more nanosecond(s) are handled by apply_wraps
+    # offsets, relativedelta is used for plural offsets of daily length or
+    # more, nanosecond(s) are handled by apply_wraps
     kwds_no_nanos = dict(
         (k, v) for k, v in kwds.items()
         if k not in ('nanosecond', 'nanoseconds')
@@ -585,9 +585,7 @@ cdef class BaseOffset:
 
     def apply_index(self, dtindex):
         """
-        Vectorized apply of DateOffset to DatetimeIndex,
-        raises NotImplementedError for offsets without a
-        vectorized implementation.
+        Vectorized apply of DateOffset to DatetimeIndex.
 
         .. deprecated:: 1.1.0
 
@@ -1165,7 +1163,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
             return dt64other
         elif not self._use_relativedelta and hasattr(self, "_offset"):
             # timedelta
-            delta = Timedelta(self._offset * self.n)
+            num_nano = getattr(self, "nanoseconds", 0)
+            if num_nano != 0:
+                rem_nano = Timedelta(nanoseconds=num_nano)
+                delta = Timedelta((self._offset + rem_nano) * self.n)
+            else:
+                delta = Timedelta(self._offset * self.n)
             td = (<_Timedelta>delta)._as_reso(reso)
             return dt64other + td
         else:
@@ -2448,8 +2451,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
 cdef class SemiMonthEnd(SemiMonthOffset):
     """
-    Two DateOffset's per month repeating on the last
-    day of the month and day_of_month.
+    Two DateOffset's per month repeating on the last day of the month & day_of_month.
 
     Parameters
     ----------
@@ -2470,8 +2472,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
 
 cdef class SemiMonthBegin(SemiMonthOffset):
     """
-    Two DateOffset's per month repeating on the first
-    day of the month and day_of_month.
+    Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
     Parameters
     ----------
@@ -2704,8 +2705,9 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
 cdef class LastWeekOfMonth(WeekOfMonthMixin):
     """
-    Describes monthly dates in last week of month like "the last Tuesday of
-    each month".
+    Describes monthly dates in last week of month.
+
+    For example "the last Tuesday of each month".
 
     Parameters
     ----------
@@ -2991,8 +2993,9 @@ cdef class FY5253(FY5253Mixin):
 
 cdef class FY5253Quarter(FY5253Mixin):
     """
-    DateOffset increments between business quarter dates
-    for 52-53 week fiscal year (also known as a 4-4-5 calendar).
+    DateOffset increments between business quarter dates for 52-53 week fiscal year.
+
+    Also known as a 4-4-5 calendar.
 
     It is used by companies that desire that their
     fiscal year always end on the same day of the week.
@@ -3602,8 +3605,7 @@ def _get_offset(name: str) -> BaseOffset:
 
 cpdef to_offset(freq):
     """
-    Return DateOffset object from string or tuple representation
-    or datetime.timedelta object.
+    Return DateOffset object from string or datetime.timedelta object.
 
     Parameters
     ----------

@@ -91,7 +91,7 @@ if TYPE_CHECKING:
 # types used in annotations
 
 ArrayConvertible = Union[List, Tuple, AnyArrayLike]
-Scalar = Union[int, float, str]
+Scalar = Union[float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
