@@ -2367,6 +2367,9 @@ def test_group_on_empty_multiindex(transformation_func, request):
         args = ()
     result = df.groupby(["col_1"]).transform(transformation_func, *args)
     tm.assert_index_equal(df.index, result.index)
+    has_same_columns = (
+        type(result) == DataFrame and (df.columns == result.columns).all()
+    )
 
     col_3 = df["col_3"]
     result = col_3.groupby(["col_1"]).transform(transformation_func, *args)
@@ -2377,10 +2380,18 @@ def test_group_on_empty_multiindex(transformation_func, request):
     df = df.set_index(["col_1", "col_2"])
     result = df.groupby(["col_1"]).transform(transformation_func, *args)
     assert df.index.names == result.index.names
+    type_changes = {"pct_change", "rank"}
+    # pct change will return a float, so different from the original type
+    if has_same_columns and transformation_func not in type_changes:
+        tm.assert_frame_equal(df, result)
 
     col_3 = df["col_3"]
-    result = col_3.groupby(["col_1"]).transform(transformation_func, *args)
-    assert col_3.index.names == result.index.names
+    series_result = col_3.groupby(["col_1"]).transform(transformation_func, *args)
+    if transformation_func not in type_changes:
+        if has_same_columns and transformation_func:
+            tm.assert_series_equal(col_3, series_result)
+        else:
+            tm.assert_series_equal(series_result, result)
 
 
 @pytest.mark.parametrize(
