@@ -51,7 +51,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip setuptools
+conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip 'setuptools<64.0.0'
 
 echo "conda info -a"
 conda info -a
