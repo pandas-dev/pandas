@@ -14,6 +14,7 @@ import collections
 from collections import abc
 import datetime
 import functools
+import inspect
 from io import StringIO
 import itertools
 from textwrap import dedent
@@ -626,6 +627,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = get_option("mode.data_manager")
 
+        # GH47215
+        if index is not None and isinstance(index, set):
+            raise ValueError("index cannot be a set")
+        if columns is not None and isinstance(columns, set):
+            raise ValueError("columns cannot be a set")
+
         if copy is None:
             if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
@@ -667,7 +674,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "removed in a future version.  Pass "
                     "{name: data[name] for name in data.dtype.names} instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
 
             # a masked array
@@ -729,10 +736,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
-                        # error: Argument 1 to "ensure_index" has incompatible type
-                        # "Collection[Any]"; expected "Union[Union[Union[ExtensionArray,
-                        # ndarray], Index, Series], Sequence[Any]]"
-                        columns = ensure_index(columns)  # type: ignore[arg-type]
+                        columns = ensure_index(columns)
                     arrays, columns, index = nested_data_to_arrays(
                         # error: Argument 3 to "nested_data_to_arrays" has incompatible
                         # type "Optional[Collection[Any]]"; expected "Optional[Index]"
@@ -770,14 +774,8 @@ class DataFrame(NDFrame, OpsMixin):
             if index is None or columns is None:
                 raise ValueError("DataFrame constructor not properly called!")
 
-            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
-            # expected "Union[Union[Union[ExtensionArray, ndarray],
-            # Index, Series], Sequence[Any]]"
-            index = ensure_index(index)  # type: ignore[arg-type]
-            # Argument 1 to "ensure_index" has incompatible type "Collection[Any]";
-            # expected "Union[Union[Union[ExtensionArray, ndarray],
-            # Index, Series], Sequence[Any]]"
-            columns = ensure_index(columns)  # type: ignore[arg-type]
+            index = ensure_index(index)
+            columns = ensure_index(columns)
 
             if not dtype:
                 dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
@@ -1327,7 +1325,7 @@ class DataFrame(NDFrame, OpsMixin):
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         yield from self.items()
 
@@ -1912,7 +1910,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         # GH16122
         into_c = com.standardize_mapping(into)
@@ -1933,7 +1931,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
             if orient.startswith("d"):
@@ -2776,7 +2774,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         kwargs.setdefault("headers", "keys")
@@ -3390,7 +3388,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "null_counts is deprecated. Use show_counts instead",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             show_counts = null_counts
         info = DataFrameInfo(
@@ -3775,7 +3773,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         elif len(key) != len(self.index):
             raise ValueError(
@@ -4865,7 +4863,9 @@ class DataFrame(NDFrame, OpsMixin):
             "You can use DataFrame.melt and DataFrame.loc "
             "as a substitute."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
 
         n = len(row_labels)
         if n != len(col_labels):
@@ -8367,7 +8367,7 @@ Parrot 2  Parrot       24.0
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             squeeze = False
@@ -9738,7 +9738,7 @@ Parrot 2  Parrot       24.0
             "and will be removed from pandas in a future version. "
             "Use pandas.concat instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         return self._append(other, ignore_index, verify_integrity, sort)
@@ -10704,7 +10704,7 @@ Parrot 2  Parrot       24.0
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.count(level=1) should use df.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             res = self._count_level(level, axis=axis, numeric_only=numeric_only)
             return res.__finalize__(self, method="count")
@@ -10806,7 +10806,7 @@ Parrot 2  Parrot       24.0
                     "will include datetime64 and datetime64tz columns in a "
                     "future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 # Non-copy equivalent to
                 #  dt64_cols = self.dtypes.apply(is_datetime64_any_dtype)
@@ -10907,7 +10907,7 @@ Parrot 2  Parrot       24.0
                 "version this will raise TypeError.  Select only valid "
                 "columns before calling the reduction.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if hasattr(result, "dtype"):

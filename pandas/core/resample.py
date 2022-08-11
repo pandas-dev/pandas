@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
+import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -68,7 +69,6 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.core.indexes.api import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -96,6 +96,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -549,7 +550,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
 
@@ -722,7 +723,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
 

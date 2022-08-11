@@ -30,7 +30,6 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.core.indexes.frozen import FrozenList
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -42,6 +41,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.indexes.frozen import FrozenList
 
 
 class _Unstacker:
