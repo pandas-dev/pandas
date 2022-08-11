@@ -4873,7 +4873,7 @@ Keep all original rows and also all original values
         level : int or level name, default None
             In case of MultiIndex, only rename labels in the specified level.
         errors : {'ignore', 'raise'}, default 'ignore'
-            If 'raise', raise `KeyError` when a `dict-like mapper` or 
+            If 'raise', raise `KeyError` when a `dict-like mapper` or
             `index` contains labels that are not present in the index being transformed.
             If 'ignore', existing keys will be renamed and extra keys will be ignored.
 
