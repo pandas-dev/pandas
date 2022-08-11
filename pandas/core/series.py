@@ -4859,13 +4859,13 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or 'index'}
-            Unused. Parameter needed for compatibility with DataFrame.
-        index : scalar, hashable sequence, dict-like or function, optional
-            Functions or dict-like are transformations to apply to
+        index : scalar, hashable sequence, dict-like or function
+            optional Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
         copy : bool, default True
             Also copy underlying data.
         inplace : bool, default False
