@@ -90,7 +90,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
         with pytest.raises(TypeError, match=msg):
             parser.read_csv(StringIO(data), **kwargs)
     elif not (PY311 and all_parsers.engine == "python"):
-        # Python 3.11+ doesn't support no quote chars in their csv parsers
+        # Python 3.11+ doesn't support null/blank quote chars in their csv parsers
         expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
         result = parser.read_csv(StringIO(data), **kwargs)
         tm.assert_frame_equal(result, expected)
