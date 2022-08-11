@@ -3366,42 +3366,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
 
         .. note::
-           As of v1.5.0 this method has changed to use the ``Styler`` implementation of
-           ``to_latex`` via ``jinja2`` templating. It is advised that
-           users switch to using Styler, since this implementation is more frequently
-           updated and contains much more flexibility with the output. The following
-           examples indicate how this method now replicates the Styler implementation
-           for its legacy arguments.
-
-        .. code-block:: python
-
-           styler = df.style
-
-        Styler methods are designed to be chained, so we can build complex combinations
-        of displays. To hide ``index`` and ``columns`` headers we use,
-
-        .. code-block:: python
-
-           styler.hide(axis="index").hide(axis="columns")
-
-        To use ``formatters``, ``na_rep``, ``decimal``, ``float_format``, and
-        ``escape`` we use,
-
-        .. code-block:: python
-
-           styler.format(
-               formatter={"name": str.upper}, na_rep="-", precision=1,
-               escape="latex", decimal=","
-           )
-
-        To control other aspects we use the ``Styler.to_latex`` arguments, as
-        documented, such as,
-
-        .. code-block:: python
-
-           styler.to_latex(
-               column_format="lrr", caption="my table", environment="longtable"
-           )
+           As of v1.5.0 this method has changed to use the Styler implementation as
+           part of :meth:`.Styler.to_latex` via ``jinja2`` templating. It is advised
+           that users switch to using Styler, since this implementation is more
+           frequently updated and contains much more flexibility with the output.
 
         Examples
         --------
