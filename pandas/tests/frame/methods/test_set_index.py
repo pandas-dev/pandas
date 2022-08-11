@@ -26,6 +26,7 @@ import pandas._testing as tm
 
 class TestSetIndex:
     def test_set_index_copy(self):
+        # GH#48043
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         expected = DataFrame({"B": [3, 4], "C": [5, 6]}, index=Index([1, 2], name="A"))
 
