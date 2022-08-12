@@ -4,6 +4,7 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
+import inspect
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -552,7 +553,7 @@ class _Concatenator:
                 "Passing non boolean values for sort is deprecated and "
                 "will error in a future version!",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         self.sort = sort
 

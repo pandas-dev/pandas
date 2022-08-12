@@ -10,6 +10,7 @@ import codecs
 import dataclasses
 import functools
 import gzip
+import inspect
 from io import (
     BufferedIOBase,
     BytesIO,
@@ -322,7 +323,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             "compression has no effect when passing a non-binary object as input.",
             RuntimeWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         compression_method = None
 
