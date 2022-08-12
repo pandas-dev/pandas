@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from numpy import ones
 import pytest
 
 import pandas as pd
@@ -262,6 +265,24 @@ def test_assert_frame_equal_interval_dtype_mismatch():
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(left, right, check_dtype=True)
+
+
+def test_assert_frame_equal_show_diff_only():
+    msg = (
+        'DataFrame.iloc\\[:, 0\\] \\(column name="a"\\) are different\n\n'
+        'DataFrame.iloc\\[:, 0\\] \\(column name="a"\\) '
+        "values are different \\(0.27397 \\%\\)\n"
+        "            left  right\n1970-12-31   1.0    0.0"
+    )
+    df1 = DataFrame(
+        ones((365, 3)),
+        index=pd.date_range(datetime(1970, 1, 1), datetime(1970, 12, 31)),
+        columns=["a", "b", "c"],
+    )
+    df2 = df1.copy(deep=True)
+    df2.iloc[-1, 0] = 0
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2, show_diff_only=True)
 
 
 @pytest.mark.parametrize("right_dtype", ["Int32", "int64"])

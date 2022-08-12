@@ -52,7 +52,8 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
 cpdef assert_almost_equal(a, b,
                           rtol=1.e-5, atol=1.e-8,
                           bint check_dtype=True,
-                          obj=None, lobj=None, robj=None, index_values=None):
+                          obj=None, lobj=None, robj=None, index_values=None,
+                          show_diff_only=False):
     """
     Check that left and right objects are almost equal.
 
@@ -164,7 +165,7 @@ cpdef assert_almost_equal(a, b,
             from pandas._testing import raise_assert_detail
             msg = (f"{obj} values are different "
                    f"({np.round(diff * 100.0 / na, 5)} %)")
-            raise_assert_detail(obj, msg, lobj, robj, index_values=index_values)
+            raise_assert_detail(obj, msg, lobj, robj, index_values=index_values,show_diff_only=show_diff_only)
 
         return True
 

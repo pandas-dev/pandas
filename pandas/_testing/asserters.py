@@ -68,6 +68,7 @@ def assert_almost_equal(
     check_less_precise: bool | int | NoDefault = no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
+    show_diff_only=False,
     **kwargs,
 ) -> None:
     """
@@ -136,6 +137,7 @@ def assert_almost_equal(
             check_dtype=check_dtype,
             rtol=rtol,
             atol=atol,
+            show_diff_only=show_diff_only,
             **kwargs,
         )
 
@@ -147,6 +149,7 @@ def assert_almost_equal(
             check_dtype=check_dtype,
             rtol=rtol,
             atol=atol,
+            show_diff_only=show_diff_only,
             **kwargs,
         )
 
@@ -168,7 +171,13 @@ def assert_almost_equal(
 
         # if we have "equiv", this becomes True
         _testing.assert_almost_equal(
-            left, right, check_dtype=bool(check_dtype), rtol=rtol, atol=atol, **kwargs
+            left,
+            right,
+            check_dtype=bool(check_dtype),
+            rtol=rtol,
+            atol=atol,
+            show_diff_only=show_diff_only,
+            **kwargs,
         )
 
 
@@ -639,40 +648,57 @@ def assert_timedelta_array_equal(
         assert_attr_equal("freq", left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
+def raise_assert_detail(
+    obj, message, left, right, diff=None, index_values=None, show_diff_only=False
+):
     __tracebackhide__ = True
 
     msg = f"""{obj} are different
 
 {message}"""
 
-    if isinstance(index_values, np.ndarray):
-        msg += f"\n[index]: {pprint_thing(index_values)}"
+    if show_diff_only:
+        if not isinstance(left, Series):
+            left = Series(left).rename("left")
+        else:
+            left.rename(f"{left.name}_left")
+        if not isinstance(right, Series):
+            right = Series(right).rename("right")
+        else:
+            right.rename(f"{right.name}_right")
 
-    if isinstance(left, np.ndarray):
-        left = pprint_thing(left)
-    elif (
-        isinstance(left, CategoricalDtype)
-        or isinstance(left, PandasDtype)
-        or isinstance(left, StringDtype)
-    ):
-        left = repr(left)
+        full = pd.concat([left, right], axis=1).set_index(index_values)
 
-    if isinstance(right, np.ndarray):
-        right = pprint_thing(right)
-    elif (
-        isinstance(right, CategoricalDtype)
-        or isinstance(right, PandasDtype)
-        or isinstance(right, StringDtype)
-    ):
-        right = repr(right)
+        msg += "\n" + repr(full[full.iloc[:, 0] != full.iloc[:, 1]])
 
-    msg += f"""
+    else:
+        if isinstance(index_values, np.ndarray):
+            msg += f"\n[index]: {pprint_thing(index_values)}"
+
+        if isinstance(left, np.ndarray):
+            left = pprint_thing(left)
+        elif (
+            isinstance(left, CategoricalDtype)
+            or isinstance(left, PandasDtype)
+            or isinstance(left, StringDtype)
+        ):
+            left = repr(left)
+
+        if isinstance(right, np.ndarray):
+            right = pprint_thing(right)
+        elif (
+            isinstance(right, CategoricalDtype)
+            or isinstance(right, PandasDtype)
+            or isinstance(right, StringDtype)
+        ):
+            right = repr(right)
+
+        msg += f"""
 [left]:  {left}
 [right]: {right}"""
 
-    if diff is not None:
-        msg += f"\n[diff]: {diff}"
+        if diff is not None:
+            msg += f"\n[diff]: {diff}"
 
     raise AssertionError(msg)
 
@@ -686,6 +712,7 @@ def assert_numpy_array_equal(
     check_same=None,
     obj="numpy array",
     index_values=None,
+    show_diff_only=False,
 ) -> None:
     """
     Check that 'np.ndarray' is equivalent.
@@ -744,7 +771,14 @@ def assert_numpy_array_equal(
 
             diff = diff * 100.0 / left.size
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
-            raise_assert_detail(obj, msg, left, right, index_values=index_values)
+            raise_assert_detail(
+                obj,
+                msg,
+                left,
+                right,
+                index_values=index_values,
+                show_diff_only=show_diff_only,
+            )
 
         raise AssertionError(err_msg)
 
@@ -766,6 +800,7 @@ def assert_extension_array_equal(
     check_exact=False,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
+    show_diff_only=False,
 ) -> None:
     """
     Check that left and right ExtensionArrays are equal.
@@ -840,14 +875,22 @@ def assert_extension_array_equal(
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
     assert_numpy_array_equal(
-        left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
+        left_na,
+        right_na,
+        obj="ExtensionArray NA mask",
+        index_values=index_values,
+        show_diff_only=show_diff_only,
     )
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
         assert_numpy_array_equal(
-            left_valid, right_valid, obj="ExtensionArray", index_values=index_values
+            left_valid,
+            right_valid,
+            obj="ExtensionArray",
+            index_values=index_values,
+            show_diff_only=show_diff_only,
         )
     else:
         _testing.assert_almost_equal(
@@ -858,6 +901,7 @@ def assert_extension_array_equal(
             atol=atol,
             obj="ExtensionArray",
             index_values=index_values,
+            show_diff_only=show_diff_only,
         )
 
 
@@ -882,6 +926,7 @@ def assert_series_equal(
     *,
     check_index=True,
     check_like=False,
+    show_diff_only=False,
 ) -> None:
     """
     Check that left and right Series are equal.
@@ -1038,6 +1083,7 @@ def assert_series_equal(
                 right_values,
                 check_dtype=check_dtype,
                 index_values=np.asarray(left.index),
+                show_diff_only=show_diff_only,
             )
         else:
             assert_numpy_array_equal(
@@ -1046,6 +1092,7 @@ def assert_series_equal(
                 check_dtype=check_dtype,
                 obj=str(obj),
                 index_values=np.asarray(left.index),
+                show_diff_only=show_diff_only,
             )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -1075,6 +1122,7 @@ def assert_series_equal(
             check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
+            show_diff_only=show_diff_only,
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(
@@ -1084,6 +1132,7 @@ def assert_series_equal(
             atol=atol,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            show_diff_only=show_diff_only,
         )
     elif is_extension_array_dtype_and_needs_i8_conversion(
         left.dtype, right.dtype
@@ -1093,6 +1142,7 @@ def assert_series_equal(
             right._values,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            show_diff_only=show_diff_only,
         )
     elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
@@ -1101,6 +1151,7 @@ def assert_series_equal(
             right._values,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
+            show_diff_only=show_diff_only,
         )
     else:
         _testing.assert_almost_equal(
@@ -1111,6 +1162,7 @@ def assert_series_equal(
             check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
+            show_diff_only=show_diff_only,
         )
 
     # metadata comparison
@@ -1149,6 +1201,7 @@ def assert_frame_equal(
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
+    show_diff_only=False,
 ) -> None:
     """
     Check that left and right DataFrame are equal.
@@ -1323,7 +1376,11 @@ def assert_frame_equal(
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(
-                lblocks[dtype], rblocks[dtype], check_dtype=check_dtype, obj=obj
+                lblocks[dtype],
+                rblocks[dtype],
+                check_dtype=check_dtype,
+                obj=obj,
+                show_diff_only=show_diff_only,
             )
 
     # compare by columns
@@ -1353,6 +1410,7 @@ def assert_frame_equal(
                 atol=atol,
                 check_index=False,
                 check_flags=False,
+                show_diff_only=show_diff_only,
             )
 
 
