@@ -681,7 +681,7 @@ class _MergeOperation:
                 msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
             )
 
-        self.left_on, self.right_on = self._validate_specification(left_on, right_on)
+        self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
         cross_col = None
         if self.how == "cross":
@@ -1073,7 +1073,7 @@ class _MergeOperation:
         # a pd.merge_asof(left_index=True, left_by=...) will result in a
         # self.left_on array with a None in the middle of it. This requires
         # a work-around as designated in the code below.
-        # See _validate_specification() for where this happens.
+        # See _validate_left_right_on() for where this happens.
 
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
@@ -1321,7 +1321,7 @@ class _MergeOperation:
             cross_col,
         )
 
-    def _validate_specification(self, left_on, right_on):
+    def _validate_left_right_on(self, left_on, right_on):
         left_on = com.maybe_make_list(left_on)
         right_on = com.maybe_make_list(right_on)
 
@@ -1769,8 +1769,8 @@ class _AsOfMerge(_OrderedMerge):
             fill_method=fill_method,
         )
 
-    def _validate_specification(self, left_on, right_on):
-        left_on, right_on = super()._validate_specification(left_on, right_on)
+    def _validate_left_right_on(self, left_on, right_on):
+        left_on, right_on = super()._validate_left_right_on(left_on, right_on)
 
         # we only allow on to be a single item for on
         if len(left_on) != 1 and not self.left_index:
