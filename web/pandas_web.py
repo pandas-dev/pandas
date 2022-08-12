@@ -148,8 +148,9 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
-        repeated = (set(context["maintainers"]["active"])
-                    & set(context["maintainers"]["inactive"]))
+        repeated = set(context["maintainers"]["active"]) & set(
+            context["maintainers"]["inactive"]
+        )
         if repeated:
             raise ValueError(f"Maintainers {repeated} are both active and inactive")
 
