@@ -142,13 +142,8 @@ def test_encoding_infer(datapath):
     fname = datapath("io", "sas", "data", "test1.sas7bdat")
 
     # check if inferred correctly
-    df1_reader: SAS7BDATReader = pd.read_sas(fname, encoding="infer", iterator=True)
-    assert (
-        df1_reader.inferred_encoding == "cp1252"
-    ), f"""
-        Encoding has been inferred incorrectly:
-        {df1_reader.inferred_encoding} instead of 'cp1252'
-    """
+    df1_reader = pd.read_sas(fname, encoding="infer", iterator=True)
+    assert df1_reader.inferred_encoding == "cp1252"
 
     # check if the reader reads correctly with encoding
     df1 = df1_reader.read()
