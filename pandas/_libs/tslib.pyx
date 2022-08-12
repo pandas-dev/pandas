@@ -815,17 +815,12 @@ cdef _array_to_datetime_object(
                 continue
             try:
                 # Handling special case strings today & now
-                if val == "today":
-                    oresult[i] = datetime.today()
-                elif val == "now":
-                    oresult[i] = datetime.now()
-                else:
-                    oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                   yearfirst=yearfirst)
-                    pydatetime_to_dt64(oresult[i], &dts)
-                    check_dts_bounds(&dts)
+                oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
+                                                yearfirst=yearfirst)
+                pydatetime_to_dt64(oresult[i], &dts)
+                check_dts_bounds(&dts)
             except (ValueError, OverflowError) as ex:
-                ex.args = (str(ex) + f" present at position {i}", )
+                ex.args = (f"{ex} present at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue

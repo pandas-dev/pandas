@@ -63,6 +63,7 @@ from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
     is_array,
 )
+from pandas._libs.tslibs.timestamps import Timestamp
 
 
 cdef extern from "../src/headers/portable.h":
@@ -295,6 +296,11 @@ def parse_datetime_string(
         return dt
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
+    if dt is not None:
+        return dt
+
+    # Handling special case strings today & now
+    dt = _parse_today_now(date_string)
     if dt is not None:
         return dt
 
@@ -1210,3 +1216,13 @@ cpdef str get_rule_month(str source):
         return "DEC"
     else:
         return source.split("-")[1]
+
+cdef inline object _parse_today_now(str date_string):
+    cdef:
+        object res = None
+
+    if date_string == "now":
+        res = Timestamp.utcnow()
+    elif date_string == "today":
+        res = Timestamp.today()
+    return res
