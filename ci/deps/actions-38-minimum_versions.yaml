@@ -7,7 +7,7 @@ dependencies:
   - python=3.8.0
 
   # test dependencies
-  - cython>=0.29.30
+  - cython>=0.29.32
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -49,6 +49,7 @@ dependencies:
   - scipy=1.7.1
   - sqlalchemy=1.4.16
   - tabulate=0.8.9
+  - tzdata=2022a
   - xarray=0.19.0
   - xlrd=2.0.1
   - xlsxwriter=1.4.3

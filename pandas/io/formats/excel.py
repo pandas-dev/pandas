@@ -96,7 +96,7 @@ class CssExcelCell(ExcelCell):
             unique_declarations = frozenset(declaration_dict.items())
             style = css_converter(unique_declarations)
 
-        return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
+        super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
 
 class CSSToExcelConverter:
