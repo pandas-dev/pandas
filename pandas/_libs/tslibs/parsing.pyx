@@ -264,6 +264,7 @@ cdef inline bint does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 from pandas.util._exceptions import find_stack_level
+import inspect
 
 
 def du_parse_with_warning(*args, **kwargs):
@@ -271,7 +272,7 @@ def du_parse_with_warning(*args, **kwargs):
     warnings.warn(
         "Parsing datetime strings without a format specified, "
         "please specify a format to avoid unexpected results",
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return parsed
 
