@@ -103,7 +103,7 @@ def test_dtype_with_converters(all_parsers):
 1.2,2.3"""
 
     # Dtype spec ignored if converted specified.
-    result = parser.read_csv(
+    result = parser.read_csv_check_warnings(
         ParserWarning,
         "Both a converter and dtype were specified for column a"
         "- only the converter will be used.",

@@ -330,7 +330,7 @@ class TestDataFramePlots(TestPlotBase):
 class TestDataFrameGroupByPlots(TestPlotBase):
     def test_boxplot_legacy1(self, hist_df):
         grouped = hist_df.groupby(by="gender")
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         self._check_axes_shape(list(axes.values), axes_num=2, layout=(1, 2))
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
@@ -341,7 +341,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
         grouped = df.groupby(level=1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         self._check_axes_shape(list(axes.values), axes_num=10, layout=(4, 3))
 
@@ -352,7 +352,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         self._check_axes_shape(list(axes.values), axes_num=3, layout=(2, 2))
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
