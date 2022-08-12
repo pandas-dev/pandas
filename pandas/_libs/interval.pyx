@@ -46,6 +46,7 @@ cnp.import_array()
 import warnings
 
 from pandas._libs import lib
+
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta

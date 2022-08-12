@@ -932,6 +932,8 @@ Conversion
 - Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
 - Bug in :meth:`DataFrame.apply` that returns a :class:`DataFrame` instead of a :class:`Series` when applied to an empty :class:`DataFrame` and ``axis=1`` (:issue:`39111`)
 - Bug when inferring the dtype from an iterable that is *not* a NumPy ``ndarray`` consisting of all NumPy unsigned integer scalars did not result in an unsigned integer dtype (:issue:`47294`)
+- Bug in :meth:`DataFrame.eval` when pandas objects (e.g. ``'Timestamp'``) were column names (:issue:`44603`)
+-
 
 Strings
 ^^^^^^^
@@ -1066,6 +1068,7 @@ Groupby/resample/rolling
 - Bug when using ``engine="numba"`` would return the same jitted function when modifying ``engine_kwargs`` (:issue:`46086`)
 - Bug in :meth:`.DataFrameGroupBy.transform` fails when ``axis=1`` and ``func`` is ``"first"`` or ``"last"`` (:issue:`45986`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` with ``skipna=False`` giving incorrect results (:issue:`46216`)
+- Bug in :meth:`GroupBy.sum` with integer dtypes losing precision (:issue:`37493`)
 - Bug in :meth:`.GroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`46216`)
 - Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
 - Bug in :meth:`DataFrame.groupby` raising error when ``None`` is in first level of :class:`MultiIndex` (:issue:`47348`)
@@ -1095,6 +1098,7 @@ Reshaping
 - Bug in :func:`concat` not sorting the column names when ``None`` is included (:issue:`47331`)
 - Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
 - Bug in :func:`pivot_table` raising ``TypeError`` when ``dropna=True`` and aggregation column has extension array dtype (:issue:`47477`)
+- Bug in :func:`merge` raising error for ``how="cross"`` when using ``FIPS`` mode in ssl library (:issue:`48024`)
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 - Bug in :meth:`DataFrame.pivot_table` with ``sort=False`` results in sorted index (:issue:`17041`)
 - Bug in :meth:`concat` when ``axis=1`` and ``sort=False`` where the resulting Index was a :class:`Int64Index` instead of a :class:`RangeIndex` (:issue:`46675`)

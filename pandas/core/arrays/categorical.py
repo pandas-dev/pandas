@@ -750,7 +750,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Setting categories in-place is deprecated and will raise in a "
             "future version. Use rename_categories instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         self._set_categories(categories)
@@ -874,7 +874,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. setting ordered-ness on categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
