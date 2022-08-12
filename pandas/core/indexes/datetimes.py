@@ -7,6 +7,7 @@ from datetime import (
     timedelta,
     tzinfo,
 )
+import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -25,6 +26,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    BaseOffset,
     Resolution,
     periods_per_day,
     timezones,
@@ -312,7 +314,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq=lib.no_default,
+        freq: str | BaseOffset | lib.NoDefault = lib.no_default,
         tz=None,
         normalize: bool = False,
         closed=None,
@@ -422,7 +424,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.union_many is deprecated and will be removed in "
             "a future version. Use obj.union instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         this = self
@@ -495,8 +497,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index.
+        Create a Series with both index and values equal to the index keys.
+
+        Useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -545,7 +548,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             else:
                 warnings.warn(
@@ -555,7 +558,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "can do 'idx.tz_convert(None)' before calling "
                     "'to_series'.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
         else:
             keep_tz = True
@@ -658,7 +661,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -807,7 +812,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -825,8 +830,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof: bool = False) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values at particular time of day
-        (e.g. 9:30AM).
+        Return index locations of values at particular time of day.
 
         Parameters
         ----------
@@ -866,8 +870,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
     ) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values between particular times of day
-        (e.g., 9:00-9:30AM).
+        Return index locations of values between particular times of day.
 
         Parameters
         ----------
@@ -1089,7 +1092,7 @@ def date_range(
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if closed is None:
             inclusive = "both"
@@ -1133,8 +1136,7 @@ def bdate_range(
     **kwargs,
 ) -> DatetimeIndex:
     """
-    Return a fixed frequency DatetimeIndex, with business day as the default
-    frequency.
+    Return a fixed frequency DatetimeIndex with business day as the default.
 
     Parameters
     ----------
