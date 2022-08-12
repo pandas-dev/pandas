@@ -68,13 +68,10 @@ maintainers:
   - wesm
   - jorisvandenbossche
   - TomAugspurger
-  - shoyer
   - jreback
-  - chris-b1
   - sinhrks
   - cpcloud
   - gfyoung
-  - toobaz
   - WillAyd
   - mroeschke
   - jschendel
@@ -93,10 +90,15 @@ maintainers:
   - attack68
   - fangchenli
   - twoertwein
-  emeritus:
-  - Wouter Overmeire
-  - Skipper Seabold
-  - Jeff Tratner
+  - lithomas1
+  - mzeitlin11
+  inactive:
+  - lodagro
+  - jseabold
+  - jtratner
+  - shoyer
+  - chris-b1
+  - toobaz
   coc:
   - Safia Abdalla
   - Tom Augspurger

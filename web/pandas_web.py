@@ -148,13 +148,20 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
-        context["maintainers"]["people"] = []
-        for user in context["maintainers"]["active"]:
-            resp = requests.get(f"https://api.github.com/users/{user}")
-            if context["ignore_io_errors"] and resp.status_code == 403:
-                return context
-            resp.raise_for_status()
-            context["maintainers"]["people"].append(resp.json())
+        repeated = set(context["maintainers"]["active"]) & set(
+            context["maintainers"]["inactive"]
+        )
+        if repeated:
+            raise ValueError(f"Maintainers {repeated} are both active and inactive")
+
+        for kind in ("active", "inactive"):
+            context["maintainers"][f"{kind}_with_github_info"] = []
+            for user in context["maintainers"][kind]:
+                resp = requests.get(f"https://api.github.com/users/{user}")
+                if context["ignore_io_errors"] and resp.status_code == 403:
+                    return context
+                resp.raise_for_status()
+                context["maintainers"][f"{kind}_with_github_info"].append(resp.json())
         return context
 
     @staticmethod
