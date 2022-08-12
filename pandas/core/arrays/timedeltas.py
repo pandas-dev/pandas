@@ -36,6 +36,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.astype import astype_td64_unit_conversion
@@ -142,6 +143,23 @@ class TimedeltaArray(dtl.TimelikeOps):
         if y == NaT.value:
             return NaT
         return Timedelta._from_value_and_reso(y, reso=self._reso)
+
+    # error: Decorated property not supported
+    @property  # type: ignore[misc]
+    @doc(dtl.DatetimeLikeArrayMixin.freq)
+    def freq(self) -> Tick:
+        # error: Incompatible return value type (got "Optional[BaseOffset]",
+        # expected "Tick")
+        return self._freq  # type: ignore[return-value]
+
+    @freq.setter
+    def freq(self, value) -> None:
+        # python doesn't support super().freq = value (any mypy has some
+        # issue with the workaround)
+        # error: overloaded function has no attribute "fset"
+        super(TimedeltaArray, TimedeltaArray).freq.fset(  # type: ignore[attr-defined]
+            self, value
+        )
 
     @property
     # error: Return type "dtype" of "dtype" incompatible with return type
@@ -445,9 +463,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             result = self._ndarray / other
             freq = None
             if self.freq is not None:
-                # Tick division is not implemented, so operate on Timedelta
-                # error: "BaseOffset" has no attribute "delta"
-                freq = self.freq.delta / other  # type: ignore[attr-defined]
+                freq = self.freq.delta / other
                 freq = to_offset(freq)
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
@@ -927,9 +943,7 @@ def sequence_to_td64ns(
     data = np.array(data, copy=copy)
 
     assert data.dtype == "m8[ns]", data
-    # error: Incompatible return value type (got "Tuple[Any, Optional[BaseOffset]]",
-    # expected "Tuple[ndarray[Any, Any], Optional[Tick]]")
-    return data, inferred_freq  # type: ignore[return-value]
+    return data, inferred_freq
 
 
 def ints_to_td64ns(data, unit="ns"):
