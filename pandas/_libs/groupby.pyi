@@ -61,9 +61,9 @@ def group_sum(
     is_datetimelike: bool = ...,
 ) -> None: ...
 def group_prod(
-    out: np.ndarray,  # numeric_t[:, ::1]
+    out: np.ndarray,  # prod_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[numeric_t, ndim=2]
+    values: np.ndarray,  # ndarray[prod_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
     mask: np.ndarray | None,
     result_mask: np.ndarray | None = ...,
