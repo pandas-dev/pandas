@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 
 import pandas as pd
+from pandas.core.interchange.column import PandasColumn
 from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     Column,
@@ -179,9 +180,10 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     if not categorical["is_dictionary"]:
         raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
-    mapping = categorical["mapping"]
-    assert isinstance(mapping, dict), "Categorical mapping must be a dict"
-    categories = np.array(tuple(mapping[k] for k in sorted(mapping)))
+    cat_column = categorical["categories"]
+    # for mypy/pyright
+    assert isinstance(cat_column, PandasColumn), "categories must be a PandasColumn"
+    categories = np.array(cat_column._col)
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]
