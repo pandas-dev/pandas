@@ -815,7 +815,7 @@ cdef _array_to_datetime_object(
                 continue
             try:
                 oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                yearfirst=yearfirst)
+                                                   yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
             except (ValueError, OverflowError) as ex:
