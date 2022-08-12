@@ -83,6 +83,14 @@ if pd.compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
 
+    # Although zoneinfo can be imported in Py39, it is effectively
+    # "not available" without tzdata/IANA tz data.
+    # We will set zoneinfo to not found in this case
+    try:
+        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
+    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
+        zoneinfo = None
+
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
     "ignore:Promotion of numbers and bools:FutureWarning"
@@ -663,21 +671,6 @@ def index_flat(request):
 
 # Alias so we can test with cartesian product of index_flat
 index_flat2 = index_flat
-
-
-@pytest.fixture(
-    params=[
-        key
-        for key in indices_dict
-        if not isinstance(indices_dict[key], MultiIndex) and indices_dict[key].is_unique
-    ]
-)
-def index_flat_unique(request):
-    """
-    index_flat with uniqueness requirement.
-    """
-    key = request.param
-    return indices_dict[key].copy()
 
 
 @pytest.fixture(
