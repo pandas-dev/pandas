@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
+    ensure_uint64,
     is_1d_only_ea_dtype,
     is_bool_dtype,
     is_complex_dtype,
@@ -223,6 +224,13 @@ class WrappedCythonOp:
             ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
+
+            elif how == "sum":
+                # Avoid overflow during group op
+                if values.dtype.kind == "i":
+                    values = ensure_int64(values)
+                else:
+                    values = ensure_uint64(values)
 
         return values
 
