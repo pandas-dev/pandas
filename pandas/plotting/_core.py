@@ -1536,7 +1536,7 @@ class PlotAccessor(PandasObject):
             ... })
             >>> ax = df.plot.area(x='day')
         """
-        return self(kind="area", x=x, y=y, stacked=True, **kwargs)
+        return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
     def pie(self, **kwargs):
         """
