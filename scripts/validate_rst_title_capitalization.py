@@ -150,6 +150,8 @@ CAPITALIZATION_EXCEPTIONS = {
     "LZMA",
     "Numba",
     "Timestamp",
+    "STUMPY",
+    "IDE"
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
