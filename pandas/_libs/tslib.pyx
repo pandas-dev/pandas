@@ -814,7 +814,6 @@ cdef _array_to_datetime_object(
                 oresult[i] = 'NaT'
                 continue
             try:
-                # Handling special case strings today & now
                 oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
                                                 yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
