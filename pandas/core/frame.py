@@ -5950,6 +5950,8 @@ class DataFrame(NDFrame, OpsMixin):
             if copy is not lib.no_default:
                 raise ValueError("Cannot specify copy when inplace=True")
             copy = False
+        elif copy is lib.no_default:
+            copy = True
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
