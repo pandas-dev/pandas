@@ -117,11 +117,10 @@ def merge(
         right_index=right_index,
         sort=sort,
         suffixes=suffixes,
-        copy=copy,
         indicator=indicator,
         validate=validate,
     )
-    return op.get_result()
+    return op.get_result(copy=copy)
 
 
 if __debug__:
@@ -623,7 +622,6 @@ class _MergeOperation:
         right_index: bool = False,
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
         indicator: bool = False,
         validate: str | None = None,
     ) -> None:
@@ -642,7 +640,6 @@ class _MergeOperation:
         self.left_on = com.maybe_make_list(left_on)
         self.right_on = com.maybe_make_list(right_on)
 
-        self.copy = copy
         self.suffixes = suffixes
         self.sort = sort
 
@@ -713,7 +710,7 @@ class _MergeOperation:
         if validate is not None:
             self._validate(validate)
 
-    def get_result(self) -> DataFrame:
+    def get_result(self, copy: bool = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -730,7 +727,7 @@ class _MergeOperation:
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
-            copy=self.copy,
+            copy=copy,
         )
 
         typ = self.left._constructor
@@ -1100,7 +1097,7 @@ class _MergeOperation:
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index)
-                        if lk is not None and lk == rk:
+                        if lk is not None and lk == rk:  # FIXME: what about other NAs?
                             # avoid key upcast in corner case (length-0)
                             if len(left) > 0:
                                 right_drop.append(rk)
@@ -1637,7 +1634,6 @@ class _OrderedMerge(_MergeOperation):
         right_index: bool = False,
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
         fill_method: str | None = None,
         how: str = "outer",
     ) -> None:
@@ -1658,7 +1654,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self) -> DataFrame:
+    def get_result(self, copy: bool = True) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         llabels, rlabels = _items_overlap_with_suffix(
@@ -1687,7 +1683,7 @@ class _OrderedMerge(_MergeOperation):
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
-            copy=self.copy,
+            copy=copy,
         )
 
         typ = self.left._constructor
