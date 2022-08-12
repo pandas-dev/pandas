@@ -9,6 +9,17 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_150.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_150.enhancements.read_sas-encoding:
+
+read_sas infers encoding from file
+^^^^^^^^
+
+:func:`read_sas` now supports using ``encoding='infer'`` to correctly read and use the encoding specified by the sas file. (:issue:`48048`)
 
 .. _whatsnew_144.regressions:
 
