@@ -5,8 +5,8 @@ from datetime import (
 import itertools
 
 import numpy as np
-import pytest
 import pyarrow as pa
+import pytest
 
 from pandas.compat import pa_version_under1p01
 
