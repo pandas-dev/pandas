@@ -6,6 +6,7 @@ from datetime import (
     timedelta,
     tzinfo,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -473,7 +474,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     "timezone. To retain the old behavior, explicitly cast to "
                     "object dtype before the operation.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
@@ -1139,7 +1140,7 @@ default 'raise'
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
             FutureWarning,
             # stacklevel chosen to be correct for when called from DatetimeIndex
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
@@ -1341,7 +1342,7 @@ default 'raise'
             "weekofyear and return an Index, you may call "
             "pd.Int64Index(idx.isocalendar().week)",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         week_series = self.isocalendar().week
         if week_series.hasnans:
@@ -2238,7 +2239,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
                 "before passing the data to pandas. To get the future behavior, "
                 "first cast to 'int64'.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):

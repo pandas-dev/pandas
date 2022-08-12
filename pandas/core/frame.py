@@ -14,6 +14,7 @@ import collections
 from collections import abc
 import datetime
 import functools
+import inspect
 from io import StringIO
 import itertools
 from textwrap import dedent
@@ -676,7 +677,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "removed in a future version.  Pass "
                     "{name: data[name] for name in data.dtype.names} instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
 
             # a masked array
@@ -1327,7 +1328,7 @@ class DataFrame(NDFrame, OpsMixin):
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         yield from self.items()
 
@@ -1912,7 +1913,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         # GH16122
         into_c = com.standardize_mapping(into)
@@ -1933,7 +1934,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
             if orient.startswith("d"):
@@ -2776,7 +2777,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         kwargs.setdefault("headers", "keys")
@@ -3390,7 +3391,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "null_counts is deprecated. Use show_counts instead",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             show_counts = null_counts
         info = DataFrameInfo(
@@ -3775,7 +3776,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         elif len(key) != len(self.index):
             raise ValueError(
@@ -4865,7 +4866,9 @@ class DataFrame(NDFrame, OpsMixin):
             "You can use DataFrame.melt and DataFrame.loc "
             "as a substitute."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
 
         n = len(row_labels)
         if n != len(col_labels):
@@ -5824,6 +5827,7 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[False] = ...,
         verify_integrity: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -5836,6 +5840,7 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[True],
         verify_integrity: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5847,6 +5852,7 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = False,
         inplace: bool = False,
         verify_integrity: bool = False,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -5873,6 +5879,11 @@ class DataFrame(NDFrame, OpsMixin):
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
+        copy : bool, default True
+            Whether to make a copy of the underlying data when returning a new
+            DataFrame.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5938,6 +5949,13 @@ class DataFrame(NDFrame, OpsMixin):
         4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if copy is not lib.no_default:
+                raise ValueError("Cannot specify copy when inplace=True")
+            copy = False
+        elif copy is lib.no_default:
+            copy = True
+
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
             keys = [keys]
@@ -5973,7 +5991,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy()
+            frame = self.copy(deep=copy)
 
         arrays = []
         names: list[Hashable] = []
@@ -8367,7 +8385,7 @@ Parrot 2  Parrot       24.0
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             squeeze = False
@@ -9738,7 +9756,7 @@ Parrot 2  Parrot       24.0
             "and will be removed from pandas in a future version. "
             "Use pandas.concat instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         return self._append(other, ignore_index, verify_integrity, sort)
@@ -10704,7 +10722,7 @@ Parrot 2  Parrot       24.0
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.count(level=1) should use df.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             res = self._count_level(level, axis=axis, numeric_only=numeric_only)
             return res.__finalize__(self, method="count")
@@ -10806,7 +10824,7 @@ Parrot 2  Parrot       24.0
                     "will include datetime64 and datetime64tz columns in a "
                     "future version.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 # Non-copy equivalent to
                 #  dt64_cols = self.dtypes.apply(is_datetime64_any_dtype)
@@ -10907,7 +10925,7 @@ Parrot 2  Parrot       24.0
                 "version this will raise TypeError.  Select only valid "
                 "columns before calling the reduction.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if hasattr(result, "dtype"):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import operator
 from operator import (
     le,
@@ -1380,7 +1381,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.dtype.inclusive
 
@@ -1432,7 +1433,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "set_closed is deprecated and will be removed in a future version. "
             "Use set_inclusive instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.set_inclusive(closed)
 
