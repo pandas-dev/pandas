@@ -1,3 +1,4 @@
+import inspect
 import numbers
 from operator import (
     le,
@@ -45,6 +46,7 @@ cnp.import_array()
 import warnings
 
 from pandas._libs import lib
+
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
@@ -394,7 +396,7 @@ cdef class Interval(IntervalMixin):
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.inclusive
 

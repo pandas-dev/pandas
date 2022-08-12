@@ -5,6 +5,7 @@ import collections
 from datetime import timedelta
 import functools
 import gc
+import inspect
 import json
 import operator
 import pickle
@@ -493,7 +494,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         warnings.warn(
             "_AXIS_NUMBERS has been deprecated.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return {"index": 0}
 
@@ -3375,7 +3376,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "to use `DataFrame.style.to_latex` which also contains additional "
             "functionality."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
 
         # Get defaults from the pandas config
         if self.ndim == 1:
@@ -3804,7 +3807,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "is_copy is deprecated and will be removed in a future version. "
                 "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         nv.validate_take((), kwargs)
@@ -3960,7 +3963,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Passing lists as key for xs is deprecated and will be removed in a "
                 "future version. Pass key as a tuple instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if level is not None:
@@ -4145,7 +4148,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if value == "raise":
             raise SettingWithCopyError(t)
         elif value == "warn":
-            warnings.warn(t, SettingWithCopyWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                t,
+                SettingWithCopyWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
 
     def __delitem__(self, key) -> None:
         """
@@ -5883,7 +5890,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "created via a new attribute name - see "
                         "https://pandas.pydata.org/pandas-docs/"
                         "stable/indexing.html#attribute-access",
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
                 object.__setattr__(self, name, value)
 
@@ -8262,7 +8269,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "`include_start` and `include_end` are deprecated in "
                 "favour of `inclusive`.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             left = True if include_start is lib.no_default else include_start
             right = True if include_end is lib.no_default else include_end
@@ -8978,7 +8985,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "and will raise in a future version. Pass either 'True' or "
                 "'False'. 'False' will be the default.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             warned = True
         elif numeric_only is lib.no_default:
@@ -9034,7 +9041,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "is deprecated; in a future version this will raise TypeError. "
                         "Select only valid columns before calling rank.",
                         FutureWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
         if numeric_only:
@@ -9045,7 +9052,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     f"{self.dtype} is deprecated and will raise a TypeError in a "
                     "future version of pandas",
                     category=FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             data = self._get_numeric_data()
         else:
@@ -9816,7 +9823,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         return self._where(cond, other, inplace, axis, level)
@@ -9894,7 +9901,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         # see gh-21891
@@ -10089,7 +10096,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "and will be removed in a future version. "
             "You can use DataFrame/Series.shift instead."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
 
         if periods == 0:
             return self
@@ -10142,7 +10151,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Please use shift instead."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         if freq is None:
@@ -10975,7 +10984,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.any(level=1) should use df.groupby(level=1).any()",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             if bool_only is not None:
                 raise NotImplementedError(
@@ -11109,7 +11118,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.var(level=1) should use df.groupby(level=1).var().",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return self._agg_by_level(
                 name, axis=axis, level=level, skipna=skipna, ddof=ddof
@@ -11183,7 +11192,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f"scalar {name} over the entire DataFrame. To retain the old "
                 f"behavior, use 'frame.{name}(axis=0)' or just 'frame.{name}()'",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         if axis is lib.no_default:
             axis = None
@@ -11196,7 +11205,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.median(level=1) should use df.groupby(level=1).median().",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return self._agg_by_level(
                 name, axis=axis, level=level, skipna=skipna, numeric_only=numeric_only
@@ -11320,7 +11329,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.sum(level=1) should use df.groupby(level=1).sum().",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return self._agg_by_level(
                 name,
@@ -11408,7 +11417,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "The 'mad' method is deprecated and will be removed in a future version. "
             "To compute the same result, you may do `(df - df.mean()).abs().mean()`."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
 
         if not is_bool(skipna):
             warnings.warn(
@@ -11416,7 +11427,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "version. Pass True instead. Only boolean values will be allowed "
                 "in the future.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             skipna = True
         if axis is None:
@@ -11427,7 +11438,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.mad(level=1) should use df.groupby(level=1).mad()",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return self._agg_by_level("mad", axis=axis, level=level, skipna=skipna)
 
@@ -11874,7 +11885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "The `center` argument on `expanding` will be removed in the future.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             center = False
