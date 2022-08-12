@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
 - Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
+- Fixed regression using custom Index subclasses (for example, use in xarray) with :meth:`~DataFrame.reset_index` or :meth:`Index.insert` (:issue:`47071`)
 -
 
 .. ---------------------------------------------------------------------------
