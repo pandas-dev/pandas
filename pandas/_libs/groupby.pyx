@@ -204,7 +204,6 @@ def group_cumprod_float64(
                     out[i, j] = NaN
                     if not skipna:
                         accum[lab, j] = NaN
-                        break
 
 
 @cython.boundscheck(False)
