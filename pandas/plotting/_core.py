@@ -1465,7 +1465,7 @@ class PlotAccessor(PandasObject):
 
     density = kde
 
-    def area(self, x=None, y=None, **kwargs):
+    def area(self, x=None, y=None, stacked=True, **kwargs):
         """
         Draw a stacked area plot.
 
@@ -1536,7 +1536,7 @@ class PlotAccessor(PandasObject):
             ... })
             >>> ax = df.plot.area(x='day')
         """
-        return self(kind="area", x=x, y=y, **kwargs)
+        return self(kind="area", x=x, y=y, stacked=True, **kwargs)
 
     def pie(self, **kwargs):
         """
