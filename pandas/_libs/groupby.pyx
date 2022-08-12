@@ -639,12 +639,21 @@ def group_sum(
                         out[i, j] = sumx[i, j]
 
 
+
+ctypedef fused prod_t:
+    int64_t
+    uint64_t
+
+    float32_t
+    float64_t
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod(
-    numeric_t[:, ::1] out,
+    prod_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[numeric_t, ndim=2] values,
+    ndarray[prod_t, ndim=2] values,
     const intp_t[::1] labels,
     const uint8_t[:, ::1] mask,
     uint8_t[:, ::1] result_mask=None,
@@ -655,8 +664,8 @@ def group_prod(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        numeric_t val, count
-        numeric_t[:, ::1] prodx
+        prod_t val, count
+        prod_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint isna_entry, uses_mask = mask is not None
@@ -681,7 +690,7 @@ def group_prod(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
-                elif numeric_t is float32_t or numeric_t is float64_t:
+                elif prod_t is float32_t or prod_t is float64_t:
                     isna_entry = not val == val
                 else:
                     isna_entry = False
@@ -697,7 +706,7 @@ def group_prod(
                     # else case is not possible
                     if uses_mask:
                         result_mask[i, j] = True
-                    elif numeric_t is float32_t or numeric_t is float64_t:
+                    elif prod_t is float32_t or prod_t is float64_t:
                         out[i, j] = NAN
                     else:
                         # we only get here when < mincount which gets handled later

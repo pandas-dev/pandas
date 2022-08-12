@@ -2810,21 +2810,23 @@ def test_single_element_list_grouping():
         values, _ = next(iter(df.groupby(["a"])))
 
 
-def test_groupby_sum_avoid_casting_to_float():
+@pytest.mark.parametrize("func", ["prod", "sum"])
+def test_groupby_avoid_casting_to_float(func):
     # GH#37493
     val = 922337203685477580
     df = DataFrame({"a": 1, "b": [val]})
-    result = df.groupby("a").sum() - val
+    result = getattr(df.groupby("a"), func)() - val
     expected = DataFrame({"b": [0]}, index=Index([1], name="a"))
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_sum_support_mask(any_numeric_ea_dtype):
+@pytest.mark.parametrize("func, val", [("sum", 3), ("prod", 2)])
+def test_groupby_sum_support_mask(any_numeric_ea_dtype, func, val):
     # GH#37493
     df = DataFrame({"a": 1, "b": [1, 2, pd.NA]}, dtype=any_numeric_ea_dtype)
-    result = df.groupby("a").sum()
+    result = getattr(df.groupby("a"), func)()
     expected = DataFrame(
-        {"b": [3]},
+        {"b": [val]},
         index=Index([1], name="a", dtype=any_numeric_ea_dtype),
         dtype=any_numeric_ea_dtype,
     )
@@ -2838,6 +2840,14 @@ def test_groupby_sum_overflow(val, dtype):
     result = df.groupby("a").sum()
     expected = DataFrame(
         {"b": [val * 2]},
+        index=Index([1], name="a", dtype=f"{dtype}64"),
+        dtype=f"{dtype}64",
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("a").prod()
+    expected = DataFrame(
+        {"b": [val * val]},
         index=Index([1], name="a", dtype=f"{dtype}64"),
         dtype=f"{dtype}64",
     )
