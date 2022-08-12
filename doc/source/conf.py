@@ -653,12 +653,20 @@ def linkcode_resolve(domain, info):
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
-        fn = None
+        try:  # property
+            fn = inspect.getsourcefile(inspect.unwrap(obj.fget))
+        except (AttributeError, TypeError):
+            fn = None
     if not fn:
         return None
 
     try:
         source, lineno = inspect.getsourcelines(obj)
+    except TypeError:
+        try:  # property
+            source, lineno = inspect.getsourcelines(obj.fget)
+        except (AttributeError, TypeError):
+            lineno = None
     except OSError:
         lineno = None
 
