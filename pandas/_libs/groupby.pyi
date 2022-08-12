@@ -26,6 +26,8 @@ def group_cumsum(
     ngroups: int,
     is_datetimelike: bool,
     skipna: bool = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_shift_indexer(
     out: np.ndarray,  # int64_t[::1]

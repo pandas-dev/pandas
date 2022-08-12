@@ -216,6 +216,8 @@ def group_cumsum(
     int ngroups,
     bint is_datetimelike,
     bint skipna=True,
+    const uint8_t[:, :] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Cumulative sum of columns of `values`, in row groups `labels`.
@@ -243,10 +245,16 @@ def group_cumsum(
         Py_ssize_t i, j, N, K, size
         numeric_t val, y, t, na_val
         numeric_t[:, ::1] accum, compensation
+        uint8_t[:, ::1] accum_mask
         intp_t lab
         bint isna_entry, isna_prev = False
+        bint uses_mask = mask is not None
 
     N, K = (<object>values).shape
+
+    if uses_mask:
+        accum_mask = np.zeros((ngroups, K), dtype="uint8")
+
     accum = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
     compensation = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
 
@@ -261,18 +269,36 @@ def group_cumsum(
             for j in range(K):
                 val = values[i, j]
 
-                isna_entry = _treat_as_na(val, is_datetimelike)
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not skipna:
-                    isna_prev = _treat_as_na(accum[lab, j], is_datetimelike)
+                    if uses_mask:
+                        isna_prev = accum_mask[lab, j]
+                    else:
+                        isna_prev = _treat_as_na(accum[lab, j], is_datetimelike)
+
                     if isna_prev:
-                        out[i, j] = na_val
+                        if uses_mask:
+                            result_mask[i, j] = True
+                        else:
+                            out[i, j] = na_val
                         continue
 
                 if isna_entry:
-                    out[i, j] = na_val
+
+                    if uses_mask:
+                        result_mask[i, j] = True
+                    else:
+                        out[i, j] = na_val
+
                     if not skipna:
-                        accum[lab, j] = na_val
+                        if uses_mask:
+                            accum_mask[lab, j] = True
+                        else:
+                            accum[lab, j] = na_val
 
                 else:
                     # For floats, use Kahan summation to reduce floating-point
@@ -1048,7 +1074,7 @@ cdef numeric_t _get_na_val(numeric_t val, bint is_datetimelike):
     elif numeric_t is int64_t and is_datetimelike:
         na_val = NPY_NAT
     else:
-        # Will not be used, but define to avoid uninitialized warning.
+        # Used in case of masks
         na_val = 0
     return na_val
 

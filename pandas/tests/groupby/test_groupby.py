@@ -2810,12 +2810,15 @@ def test_single_element_list_grouping():
         values, _ = next(iter(df.groupby(["a"])))
 
 
-def test_groupby_sum_avoid_casting_to_float():
+@pytest.mark.parametrize("func", ["sum", "cumsum"])
+def test_groupby_sum_avoid_casting_to_float(func):
     # GH#37493
     val = 922337203685477580
     df = DataFrame({"a": 1, "b": [val]})
-    result = df.groupby("a").sum() - val
+    result = getattr(df.groupby("a"), func)() - val
     expected = DataFrame({"b": [0]}, index=Index([1], name="a"))
+    if func == "cumsum":
+        expected = expected.reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2826,6 +2829,18 @@ def test_groupby_sum_support_mask(any_numeric_ea_dtype):
     expected = DataFrame(
         {"b": [3]},
         index=Index([1], name="a", dtype=any_numeric_ea_dtype),
+        dtype=any_numeric_ea_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna, val", [(True, 3), (False, pd.NA)])
+def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
+    # GH#37493
+    df = DataFrame({"a": 1, "b": [1, pd.NA, 2]}, dtype=any_numeric_ea_dtype)
+    result = df.groupby("a").cumsum(skipna=skipna)
+    expected = DataFrame(
+        {"b": [1, pd.NA, val]},
         dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)

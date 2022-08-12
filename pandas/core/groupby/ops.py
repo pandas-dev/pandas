@@ -156,6 +156,7 @@ class WrappedCythonOp:
         "first",
         "rank",
         "sum",
+        "cumsum",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
