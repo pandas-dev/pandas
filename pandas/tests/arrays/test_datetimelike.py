@@ -316,13 +316,19 @@ class SharedTests:
             arr = pd.Series(arr)
 
         # scalar
-        result = arr.searchsorted(str(arr[1]))
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
+            # wip
+            result = arr.searchsorted(str(arr[1]))
         assert result == 1
 
-        result = arr.searchsorted(str(arr[2]), side="right")
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
+            # wip
+            result = arr.searchsorted(str(arr[2]), side="right")
         assert result == 3
 
-        result = arr.searchsorted([str(x) for x in arr[1:3]])
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
+            # wip
+            result = arr.searchsorted([str(x) for x in arr[1:3]])
         expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -345,7 +351,10 @@ class SharedTests:
                     f"or array of those. Got '{arr_type}' instead."
                 ),
             ):
-                arr.searchsorted([str(arr[1]), "baz"])
+                with tm.assert_produces_warning(
+                    UserWarning, match="without a format specified"
+                ):
+                    arr.searchsorted([str(arr[1]), "baz"])
 
     def test_getitem_near_implementation_bounds(self):
         # We only check tz-naive for DTA bc the bounds are slightly different
@@ -480,7 +489,8 @@ class SharedTests:
         expected[[0, 1]] = arr1d[-2:]
 
         result = arr1d.copy()
-        result[:2] = [str(x) for x in arr1d[-2:]]
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
+            result[:2] = [str(x) for x in arr1d[-2:]]
         tm.assert_equal(result, expected)
 
         # Same thing but now for just a scalar str
@@ -488,7 +498,8 @@ class SharedTests:
         expected[0] = arr1d[-1]
 
         result = arr1d.copy()
-        result[0] = str(arr1d[-1])
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
+            result[0] = str(arr1d[-1])
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("as_index", [True, False])

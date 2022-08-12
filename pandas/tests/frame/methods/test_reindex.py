@@ -304,7 +304,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_frame_add_nat(self):
-        rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
+        rng = date_range("2000-01-01 00:00:00", periods=10, freq="10s")
         df = DataFrame({"A": np.random.randn(len(rng)), "B": rng})
 
         result = df.reindex(range(15))
