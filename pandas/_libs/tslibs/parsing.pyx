@@ -1218,6 +1218,18 @@ cpdef str get_rule_month(str source):
         return source.split("-")[1]
 
 cdef inline object _parse_today_now(str date_string):
+    """
+    Parse special case date inputs - "today", "now"
+    and if present return corresponding datetime object
+
+    Parameters
+    ----------
+    date_string : str
+
+    Returns:
+    --------
+    datetime or None
+    """
     cdef:
         object res = None
 
