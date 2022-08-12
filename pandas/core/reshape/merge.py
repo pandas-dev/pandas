@@ -35,6 +35,7 @@ from pandas.errors import MergeError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    cache_readonly,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -651,16 +652,6 @@ class _MergeOperation:
 
         self.indicator = indicator
 
-        self.indicator_name: str | None
-        if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator
-        elif isinstance(self.indicator, bool):
-            self.indicator_name = "_merge" if self.indicator else None
-        else:
-            raise ValueError(
-                "indicator option can only accept boolean or string arguments"
-            )
-
         if not is_bool(left_index):
             raise ValueError(
                 f"left_index parameter must be of type bool, not {type(left_index)}"
@@ -753,6 +744,17 @@ class _MergeOperation:
         if cross_col is not None:
             del result[cross_col]
 
+    @cache_readonly
+    def _indicator_name(self) -> str | None:
+        if isinstance(self.indicator, str):
+            return self.indicator
+        elif isinstance(self.indicator, bool):
+            return "_merge" if self.indicator else None
+        else:
+            raise ValueError(
+                "indicator option can only accept boolean or string arguments"
+            )
+
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
@@ -765,7 +767,7 @@ class _MergeOperation:
                     "Cannot use `indicator=True` option when "
                     f"data contains a column named {i}"
                 )
-        if self.indicator_name in columns:
+        if self._indicator_name in columns:
             raise ValueError(
                 "Cannot use name of an existing column for indicator column"
             )
@@ -786,13 +788,13 @@ class _MergeOperation:
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
 
-        result[self.indicator_name] = Categorical(
+        result[self._indicator_name] = Categorical(
             (result["_left_indicator"] + result["_right_indicator"]),
             categories=[1, 2, 3],
         )
-        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(
-            ["left_only", "right_only", "both"]
-        )
+        result[self._indicator_name] = result[
+            self._indicator_name
+        ].cat.rename_categories(["left_only", "right_only", "both"])
 
         result = result.drop(labels=["_left_indicator", "_right_indicator"], axis=1)
         return result
