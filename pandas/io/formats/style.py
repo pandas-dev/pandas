@@ -2987,7 +2987,10 @@ class Styler(StylerRenderer):
         name="background",
         alt="text",
         image_prefix="bg",
-        text_threshold="text_color_threshold : float or int\n    Luminance threshold for determining text color in [0, 1]. Facilitates text\n    visibility across varying background colors. All text is dark if 0, and\n\tlight if 1, defaults to 0.408.",
+        text_threshold="""text_color_threshold : float or int\n
+            Luminance threshold for determining text color in [0, 1]. Facilitates text\n
+            visibility across varying background colors. All text is dark if 0, and\n
+            light if 1, defaults to 0.408.""",
     )
     @Substitution(subset=subset)
     def background_gradient(
