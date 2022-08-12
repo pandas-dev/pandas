@@ -226,6 +226,7 @@ class WrappedCythonOp:
                 values = ensure_float64(values)
 
             elif how == "sum":
+                # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
                 else:
