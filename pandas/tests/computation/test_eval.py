@@ -1891,13 +1891,17 @@ def test_negate_lt_eq_le(engine, parser):
 
 
 def test_set_inplace():
-    # GH 47449
-    df = DataFrame({"A": range(1, 6), "B": range(10, 0, -2), "C": range(11, 16)})
+    # https://github.com/pandas-dev/pandas/issues/47449
+    # Ensure we don't only update the DataFrame inplace, but also the actual
+    # column values, such that references to this column also get updated
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
-    expected = Series([21, 20, 19, 18, 17], index=[0, 1, 2, 3, 4], name="A")
+    ser = df["A"]
     df.eval("A = B + C", inplace=True)
-    tm.assert_series_equal(df["A"], expected)
-    tm.assert_series_equal(result_view["A"], expected)
+    expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
+    tm.assert_frame_equal(df, expected)
+    tm.assert_series_equal(ser, expected["A"])
+    tm.assert_series_equal(result_view["A"], expected["A"])
 
 
 class TestValidate:

@@ -18,10 +18,7 @@ from pandas.core.computation.expr import (
 )
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
-from pandas.core.frame import (
-    DataFrame,
-    Series,
-)
+from pandas.core.generic import NDFrame
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -390,7 +387,7 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    if isinstance(target, (DataFrame, Series)):
+                    if inplace and isinstance(target, NDFrame):
                         target.loc[:, assigner] = ret
                     else:
                         target[assigner] = ret
