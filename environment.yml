@@ -4,9 +4,9 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
-  - setuptools>=51.0.0, <64.0.0
 
   # test dependencies
+  - setuptools>=51.0.0, <64.0.0
   - cython=0.29.32
   - pytest>=6.0
   - pytest-cov
