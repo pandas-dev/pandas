@@ -437,7 +437,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             df.boxplot(column=["weight", "height"], by=df.gender, layout=(-1, -1))
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("gender").boxplot, column="height", return_type="dict"
             )
