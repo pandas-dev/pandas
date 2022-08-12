@@ -21,6 +21,7 @@ CI_PATH = next(
     pathlib.Path("ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
 )
 CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
+EXCLUDE_DEPS = {"tzdata"}
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -34,6 +35,8 @@ import _optional
 def get_versions_from_code() -> dict[str, str]:
     install_map = _optional.INSTALL_MAPPING
     versions = _optional.VERSIONS
+    for item in EXCLUDE_DEPS:
+        versions.pop(item)
     return {
         install_map.get(k, k).casefold(): v
         for k, v in versions.items()
@@ -55,6 +58,8 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
         elif seen_required and line.strip():
             package, version = line.strip().split("=")
             package = package[2:]
+            if package in EXCLUDE_DEPS:
+                continue
             if not seen_optional:
                 required_deps[package] = version
             else:
