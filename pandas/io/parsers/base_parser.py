@@ -5,8 +5,10 @@ from copy import copy
 import csv
 import datetime
 from enum import Enum
+import inspect
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -59,7 +61,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import DataFrame
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.api import (
@@ -71,6 +72,9 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.date_converters import generic_parser
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 class ParserBase:
@@ -556,7 +560,7 @@ class ParserBase:
                             f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
                 try:
@@ -854,7 +858,7 @@ class ParserBase:
                 "Length of header or names does not match length of data. This leads "
                 "to a loss of data with index_col=False.",
                 ParserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     @overload

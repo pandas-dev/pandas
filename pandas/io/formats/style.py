@@ -6,6 +6,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import copy
 from functools import partial
+import inspect
 import operator
 from typing import (
     Any,
@@ -443,7 +444,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.to_html()`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -2123,7 +2124,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.applymap()`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         if other is None:
@@ -2155,7 +2156,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(precision=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         self.precision = precision
         return self.format(precision=precision, na_rep=self.na_rep)
@@ -2667,7 +2668,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(na_rep=..)`",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
@@ -2721,7 +2722,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="index")`',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.hide(axis="index", level=level, subset=subset, names=names)
 
@@ -2774,7 +2775,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             'this method is deprecated in favour of `Styler.hide(axis="columns")`',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.hide(axis="columns", level=level, subset=subset, names=names)
 
@@ -3381,7 +3382,7 @@ class Styler(StylerRenderer):
             warnings.warn(
                 "`null_color` is deprecated: use `color` instead",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if color is None and null_color == lib.no_default:

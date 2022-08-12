@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-cython==0.29.30
+cython==0.29.32
 pytest>=6.0
 pytest-cov
 pytest-xdist>=1.31
@@ -39,6 +39,7 @@ s3fs
 scipy
 sqlalchemy
 tabulate
+tzdata>=2022.1
 xarray
 xlrd
 xlsxwriter

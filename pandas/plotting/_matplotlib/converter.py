@@ -9,6 +9,7 @@ from datetime import (
 )
 import functools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Final,
     Iterator,
@@ -32,7 +33,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
-from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import F
 
 from pandas.core.dtypes.common import (
@@ -56,6 +56,9 @@ from pandas.core.indexes.period import (
     period_range,
 )
 import pandas.core.tools.datetimes as tools
+
+if TYPE_CHECKING:
+    from pandas._libs.tslibs.offsets import BaseOffset
 
 # constants
 HOURS_PER_DAY: Final = 24.0
