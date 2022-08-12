@@ -4862,17 +4862,23 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        axis : {0 or 'index'}
-            Unused. Parameter needed for compatibility with DataFrame.
-        index : scalar, hashable sequence, dict-like or function, optional
+        index : scalar, hashable sequence, dict-like or function optional
             Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
-
-        **kwargs
-            Additional keyword arguments passed to the function. Only the
-            "inplace" keyword is used.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+        copy : bool, default True
+            Also copy underlying data.
+        inplace : bool, default False
+            Whether to return a new Series. If True the value of copy is ignored.
+        level : int or level name, default None
+            In case of MultiIndex, only rename labels in the specified level.
+        errors : {'ignore', 'raise'}, default 'ignore'
+            If 'raise', raise `KeyError` when a `dict-like mapper` or
+            `index` contains labels that are not present in the index being transformed.
+            If 'ignore', existing keys will be renamed and extra keys will be ignored.
 
         Returns
         -------
