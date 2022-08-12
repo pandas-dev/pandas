@@ -50,11 +50,13 @@ def group_any_all(
     val_test: Literal["any", "all"],
     skipna: bool,
 ) -> None: ...
-def group_add(
-    out: np.ndarray,  # complexfloating_t[:, ::1]
+def group_sum(
+    out: np.ndarray,  # complexfloatingintuint_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[complexfloating_t, ndim=2]
+    values: np.ndarray,  # ndarray[complexfloatingintuint_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
+    mask: np.ndarray | None,
+    result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
 ) -> None: ...
@@ -105,8 +107,9 @@ def group_last(
     values: np.ndarray,  # ndarray[rank_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     mask: npt.NDArray[np.bool_] | None,
-    result_mask: npt.NDArray[np.bool_] | None,
+    result_mask: npt.NDArray[np.bool_] | None = ...,
     min_count: int = ...,  # Py_ssize_t
+    is_datetimelike: bool = ...,
 ) -> None: ...
 def group_nth(
     out: np.ndarray,  # rank_t[:, ::1]
@@ -114,9 +117,10 @@ def group_nth(
     values: np.ndarray,  # ndarray[rank_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     mask: npt.NDArray[np.bool_] | None,
-    result_mask: npt.NDArray[np.bool_] | None,
+    result_mask: npt.NDArray[np.bool_] | None = ...,
     min_count: int = ...,  # int64_t
     rank: int = ...,  # int64_t
+    is_datetimelike: bool = ...,
 ) -> None: ...
 def group_rank(
     out: np.ndarray,  # float64_t[:, ::1]
@@ -124,7 +128,7 @@ def group_rank(
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
-    ties_method: Literal["aveage", "min", "max", "first", "dense"] = ...,
+    ties_method: Literal["average", "min", "max", "first", "dense"] = ...,
     ascending: bool = ...,
     pct: bool = ...,
     na_option: Literal["keep", "top", "bottom"] = ...,
@@ -136,6 +140,7 @@ def group_max(
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
+    is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
@@ -145,6 +150,7 @@ def group_min(
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
+    is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
@@ -154,6 +160,9 @@ def group_cummin(
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_cummax(
     out: np.ndarray,  # groupby_t[:, ::1]
@@ -161,4 +170,7 @@ def group_cummax(
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...

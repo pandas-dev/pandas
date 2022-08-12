@@ -27,6 +27,7 @@ Exceptions and warnings
    errors.AbstractMethodError
    errors.AccessorRegistrationWarning
    errors.AttributeConflictWarning
+   errors.CategoricalConversionWarning
    errors.ClosedFileError
    errors.CSSWarning
    errors.DatabaseError
@@ -36,6 +37,7 @@ Exceptions and warnings
    errors.EmptyDataError
    errors.IncompatibilityWarning
    errors.IndexingError
+   errors.InvalidColumnName
    errors.InvalidIndexError
    errors.IntCastingNaNError
    errors.MergeError
@@ -49,6 +51,7 @@ Exceptions and warnings
    errors.ParserWarning
    errors.PerformanceWarning
    errors.PossibleDataLossError
+   errors.PossiblePrecisionLoss
    errors.PyperclipException
    errors.PyperclipWindowsException
    errors.SettingWithCopyError
@@ -57,6 +60,7 @@ Exceptions and warnings
    errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
+   errors.ValueLabelTypeMismatch
 
 Bug report function
 -------------------

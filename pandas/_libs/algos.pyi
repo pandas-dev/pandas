@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any
 
 import numpy as np
@@ -42,7 +40,7 @@ def groupsort_indexer(
     np.ndarray,  # ndarray[int64_t, ndim=1]
 ]: ...
 def kth_smallest(
-    a: np.ndarray,  # numeric[:]
+    arr: np.ndarray,  # numeric[:]
     k: int,
 ) -> Any: ...  # numeric
 

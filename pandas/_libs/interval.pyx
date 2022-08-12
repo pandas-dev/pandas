@@ -1,3 +1,4 @@
+import inspect
 import numbers
 from operator import (
     le,
@@ -45,6 +46,7 @@ cnp.import_array()
 import warnings
 
 from pandas._libs import lib
+
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
@@ -352,8 +354,9 @@ cdef class Interval(IntervalMixin):
 
     cdef readonly str inclusive
     """
-    Whether the interval is inclusive on the left-side, right-side, both or
-    neither.
+    String describing the inclusive side the intervals.
+
+    Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
     def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
@@ -384,15 +387,16 @@ cdef class Interval(IntervalMixin):
     @property
     def closed(self):
         """
-        Whether the interval is closed on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
 
         .. deprecated:: 1.5.0
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.inclusive
 

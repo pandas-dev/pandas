@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from csv import QUOTE_NONNUMERIC
 from functools import partial
+import inspect
 import operator
 from shutil import get_terminal_size
 from typing import (
@@ -394,7 +395,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Allowing scalars in the Categorical constructor is deprecated "
                 "and will raise in a future version.  Use `[value]` instead",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             values = [values]
 
@@ -745,15 +746,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @categories.setter
     def categories(self, categories) -> None:
-        new_dtype = CategoricalDtype(categories, ordered=self.ordered)
-        if self.dtype.categories is not None and len(self.dtype.categories) != len(
-            new_dtype.categories
-        ):
-            raise ValueError(
-                "new categories need to have the same number of "
-                "items as the old categories!"
-            )
-        super().__init__(self._ndarray, new_dtype)
+        warn(
+            "Setting categories in-place is deprecated and will raise in a "
+            "future version. Use rename_categories instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
+
+        self._set_categories(categories)
 
     @property
     def ordered(self) -> Ordered:
@@ -814,7 +814,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ):
             raise ValueError(
                 "new categories need to have the same number of "
-                "items than the old categories!"
+                "items as the old categories!"
             )
 
         super().__init__(self._ndarray, new_dtype)
@@ -836,7 +836,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return type(self)(codes, dtype=dtype, fastpath=True)
 
     @overload
-    def set_ordered(self, value, *, inplace: Literal[False] = ...) -> Categorical:
+    def set_ordered(
+        self, value, *, inplace: NoDefault | Literal[False] = ...
+    ) -> Categorical:
         ...
 
     @overload
@@ -848,7 +850,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
-    def set_ordered(self, value, inplace: bool = False) -> Categorical | None:
+    def set_ordered(
+        self, value, inplace: bool | NoDefault = no_default
+    ) -> Categorical | None:
         """
         Set the ordered attribute to the boolean value.
 
@@ -859,7 +863,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace : bool, default False
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to the value.
+
+           .. deprecated:: 1.5.0
+
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "set_ordered is deprecated and will be removed in "
+                "a future version. setting ordered-ness on categories will always "
+                "return a new Categorical object.",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         new_dtype = CategoricalDtype(self.categories, ordered=value)
         cat = self if inplace else self.copy()
@@ -869,7 +888,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return None
 
     @overload
-    def as_ordered(self, *, inplace: Literal[False] = ...) -> Categorical:
+    def as_ordered(self, *, inplace: NoDefault | Literal[False] = ...) -> Categorical:
         ...
 
     @overload
@@ -877,7 +896,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def as_ordered(self, inplace: bool = False) -> Categorical | None:
+    def as_ordered(self, inplace: bool | NoDefault = no_default) -> Categorical | None:
         """
         Set the Categorical to be ordered.
 
@@ -887,16 +906,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to True.
 
+           .. deprecated:: 1.5.0
+
         Returns
         -------
         Categorical or None
             Ordered Categorical or None if ``inplace=True``.
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace is not no_default:
+            inplace = validate_bool_kwarg(inplace, "inplace")
         return self.set_ordered(True, inplace=inplace)
 
     @overload
-    def as_unordered(self, *, inplace: Literal[False] = ...) -> Categorical:
+    def as_unordered(self, *, inplace: NoDefault | Literal[False] = ...) -> Categorical:
         ...
 
     @overload
@@ -904,7 +926,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def as_unordered(self, inplace: bool = False) -> Categorical | None:
+    def as_unordered(
+        self, inplace: bool | NoDefault = no_default
+    ) -> Categorical | None:
         """
         Set the Categorical to be unordered.
 
@@ -914,12 +938,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
            Whether or not to set the ordered attribute in-place or return
            a copy of this categorical with ordered set to False.
 
+           .. deprecated:: 1.5.0
+
         Returns
         -------
         Categorical or None
             Unordered Categorical or None if ``inplace=True``.
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace is not no_default:
+            inplace = validate_bool_kwarg(inplace, "inplace")
         return self.set_ordered(False, inplace=inplace)
 
     def set_categories(
@@ -1099,7 +1126,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
@@ -1108,11 +1135,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cat = self if inplace else self.copy()
 
         if is_dict_like(new_categories):
-            cat.categories = [new_categories.get(item, item) for item in cat.categories]
+            new_categories = [new_categories.get(item, item) for item in cat.categories]
         elif callable(new_categories):
-            cat.categories = [new_categories(item) for item in cat.categories]
-        else:
-            cat.categories = new_categories
+            new_categories = [new_categories(item) for item in cat.categories]
+
+        cat._set_categories(new_categories)
         if not inplace:
             return cat
         return None
@@ -1163,7 +1190,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Reordering categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
@@ -1247,7 +1274,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
@@ -1323,7 +1350,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
@@ -1411,7 +1438,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "remove_unused_categories is deprecated and "
                 "will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             inplace = False
@@ -2020,7 +2047,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Categorical.to_dense is deprecated and will be removed in "
             "a future version.  Use np.asarray(cat) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return np.asarray(self)
 
@@ -2037,7 +2064,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Setting the codes on a Categorical is deprecated and will raise in "
             "a future version. Create a new Categorical object instead",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )  # GH#40606
         NDArrayBacked.__init__(self, value, self.dtype)
 
@@ -2062,7 +2089,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         warn(
             "Categorical.take_nd is deprecated, use Categorical.take instead",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.take(indexer, allow_fill=allow_fill, fill_value=fill_value)
 
@@ -2355,7 +2382,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Categorical.mode is deprecated and will be removed in a future version. "
             "Use Series.mode instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._mode(dropna=dropna)
 
@@ -2498,7 +2525,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Categorical.is_dtype_equal is deprecated and will be removed "
             "in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         try:
             return self._categories_match_up_to_permutation(other)
@@ -2622,7 +2649,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Categorical.replace is deprecated and will be removed in a future "
             "version. Use Series.replace directly instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._replace(to_replace=to_replace, value=value, inplace=inplace)
 

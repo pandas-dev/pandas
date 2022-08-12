@@ -10,6 +10,7 @@ import operator
 from typing import (
     Callable,
     Iterable,
+    Literal,
 )
 
 import numpy as np
@@ -98,7 +99,14 @@ class Term:
         return self
 
     def _resolve_name(self):
-        res = self.env.resolve(self.local_name, is_local=self.is_local)
+        local_name = str(self.local_name)
+        is_local = self.is_local
+        if local_name in self.env.scope and isinstance(
+            self.env.scope[local_name], type
+        ):
+            is_local = False
+
+        res = self.env.resolve(local_name, is_local=is_local)
         self.update(res)
 
         if hasattr(res, "ndim") and res.ndim > 2:
@@ -552,7 +560,7 @@ class UnaryOp(Op):
         * If no function associated with the passed operator token is found.
     """
 
-    def __init__(self, op: str, operand) -> None:
+    def __init__(self, op: Literal["+", "-", "~", "not"], operand) -> None:
         super().__init__(op, (operand,))
         self.operand = operand
 

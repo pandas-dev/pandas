@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import abc
 from datetime import datetime
 from functools import partial
+import inspect
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
@@ -91,7 +92,7 @@ if TYPE_CHECKING:
 # types used in annotations
 
 ArrayConvertible = Union[List, Tuple, AnyArrayLike]
-Scalar = Union[int, float, str]
+Scalar = Union[float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
@@ -1284,7 +1285,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     from pandas.core.tools.times import to_time
 
