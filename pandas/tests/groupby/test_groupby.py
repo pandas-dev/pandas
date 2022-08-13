@@ -2835,7 +2835,7 @@ def test_groupby_sum_support_mask(any_numeric_ea_dtype):
 
 
 @pytest.mark.parametrize("val, dtype", [(111, "int"), (222, "uint")])
-def test_groupby_sum_overflow(val, dtype):
+def test_groupby_overflow(val, dtype):
     # GH#37493
     df = DataFrame({"a": 1, "b": [val, val]}, dtype=f"{dtype}8")
     result = df.groupby("a").sum()
@@ -2844,6 +2844,10 @@ def test_groupby_sum_overflow(val, dtype):
         index=Index([1], name="a", dtype=f"{dtype}64"),
         dtype=f"{dtype}64",
     )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("a").cumsum()
+    expected = DataFrame({"b": [val, val * 2]}, dtype=f"{dtype}64")
     tm.assert_frame_equal(result, expected)
 
 

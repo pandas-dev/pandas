@@ -226,7 +226,7 @@ class WrappedCythonOp:
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how == "sum":
+            elif how in ["sum", "cumsum"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
