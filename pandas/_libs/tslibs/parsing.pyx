@@ -301,9 +301,9 @@ def parse_datetime_string(
     # Handling special case strings today & now
     if date_string == "now":
         dt = datetime.now()
+        return dt
     elif date_string == "today":
         dt = datetime.today()
-    if dt is not None:
         return dt
 
     try:
