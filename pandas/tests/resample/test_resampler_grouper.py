@@ -435,8 +435,10 @@ def test_empty(keys):
     # GH 26411
     df = DataFrame([], columns=["a", "b"], index=TimedeltaIndex([]))
     result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
-    expected = DataFrame(columns=["a", "b"]).set_index(keys, drop=False).set_index(
-        TimedeltaIndex([]), append=True
+    expected = (
+        DataFrame(columns=["a", "b"])
+        .set_index(keys, drop=False)
+        .set_index(TimedeltaIndex([]), append=True)
     )
     if len(keys) == 1:
         expected.index.name = keys[0]

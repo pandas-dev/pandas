@@ -517,7 +517,7 @@ class Resampler(BaseGroupBy, PandasObject):
         if (
             isinstance(result, ABCDataFrame)
             and result.empty
-            and type(result.index) != PeriodIndex
+            and not isinstance(result.index, PeriodIndex)
         ):
             result = result.set_index(
                 _asfreq_compat(obj.index[:0], freq=self.freq), append=True
