@@ -833,7 +833,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     "to avoid this warning."
                 ),
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
@@ -1357,7 +1357,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
                 "raise a TypeError in a future version of pandas",
                 category=FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             raise NotImplementedError(
                 f"{type(self).__name__}.{how} does not implement numeric_only"
@@ -1619,7 +1619,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
             # We want to behave as if `self.group_keys=False` when reconstructing
             # the object. However, we don't want to mutate the stateful GroupBy
             # object, so we just override it.
@@ -2940,7 +2942,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
 
@@ -2976,7 +2978,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
 
@@ -4362,7 +4364,7 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Before calling .{how}, select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     elif numeric_only is lib.no_default:
         warnings.warn(
@@ -4372,5 +4374,5 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Either specify numeric_only or select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )

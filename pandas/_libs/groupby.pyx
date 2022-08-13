@@ -513,6 +513,8 @@ ctypedef fused mean_t:
 
 ctypedef fused sum_t:
     mean_t
+    int64_t
+    uint64_t
     object
 
 
@@ -523,6 +525,8 @@ def group_sum(
     int64_t[::1] counts,
     ndarray[sum_t, ndim=2] values,
     const intp_t[::1] labels,
+    const uint8_t[:, :] mask,
+    uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
 ) -> None:
@@ -535,6 +539,8 @@ def group_sum(
         sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint uses_mask = mask is not None
+        bint isna_entry
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -572,7 +578,8 @@ def group_sum(
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] < min_count:
-                    out[i, j] = NAN
+                    out[i, j] = None
+
                 else:
                     out[i, j] = sumx[i, j]
     else:
@@ -590,11 +597,18 @@ def group_sum(
                     # With dt64/td64 values, values have been cast to float64
                     #  instead if int64 for group_sum, but the logic
                     #  is otherwise the same as in _treat_as_na
-                    if val == val and not (
-                        sum_t is float64_t
-                        and is_datetimelike
-                        and val == <float64_t>NPY_NAT
-                    ):
+                    if uses_mask:
+                        isna_entry = mask[i, j]
+                    elif (sum_t is float32_t or sum_t is float64_t
+                        or sum_t is complex64_t or sum_t is complex64_t):
+                        # avoid warnings because of equality comparison
+                        isna_entry = not val == val
+                    elif sum_t is int64_t and is_datetimelike and val == NPY_NAT:
+                        isna_entry = True
+                    else:
+                        isna_entry = False
+
+                    if not isna_entry:
                         nobs[lab, j] += 1
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
@@ -604,7 +618,23 @@ def group_sum(
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] < min_count:
-                        out[i, j] = NAN
+                        # if we are integer dtype, not is_datetimelike, and
+                        #  not uses_mask, then getting here implies that
+                        #  counts[i] < min_count, which means we will
+                        #  be cast to float64 and masked at the end
+                        #  of WrappedCythonOp._call_cython_op. So we can safely
+                        #  set a placeholder value in out[i, j].
+                        if uses_mask:
+                            result_mask[i, j] = True
+                        elif (sum_t is float32_t or sum_t is float64_t
+                            or sum_t is complex64_t or sum_t is complex64_t):
+                            out[i, j] = NAN
+                        elif sum_t is int64_t:
+                            out[i, j] = NPY_NAT
+                        else:
+                            # placeholder, see above
+                            out[i, j] = 0
+
                     else:
                         out[i, j] = sumx[i, j]
 
