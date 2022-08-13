@@ -973,9 +973,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result: dict[Hashable, NDFrame | np.ndarray] = {}
         if self.axis == 0:
             # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
-            for name, data in self:
-                fres = func(data, *args, **kwargs)
-                result[name] = fres
+            # test_pivot_margins_name_unicode gets here; avoid __iter__ single key
+            # deprecation
+            if len(self.keys) > 1:
+                for name, data in self:
+                    fres = func(data, *args, **kwargs)
+                    result[name] = fres
+            else:
+                single_key = self.keys[0]
+                fres = func(self[single_key], *args, **kwargs)
+                result[single_key] = fres
         else:
             # we get here in a number of test_multilevel tests
             for name in self.indices:
