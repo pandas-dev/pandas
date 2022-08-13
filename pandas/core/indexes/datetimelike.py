@@ -111,12 +111,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def freqstr(self) -> str | None:
         return self._data.freqstr
 
-    # error: Decorated property not supported
-    @cache_readonly  # type: ignore[misc]
-    @doc(DatetimeLikeArrayMixin.inferred_freq)
-    def inferred_freq(self) -> str | None:
-        return self._data.inferred_freq
-
     @cache_readonly
     def _resolution_obj(self) -> Resolution | None:
         return self._data._resolution_obj
@@ -437,6 +431,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         return self._data._ndarray
+
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
+    @doc(DatetimeLikeArrayMixin.inferred_freq)
+    def inferred_freq(self) -> str | None:
+        return self._data.inferred_freq
 
     # --------------------------------------------------------------------
     # Set Operation Methods
