@@ -9,4 +9,5 @@ def assert_almost_equal(
     lobj=...,
     robj=...,
     index_values=...,
+    show_diff_only=...,
 ): ...

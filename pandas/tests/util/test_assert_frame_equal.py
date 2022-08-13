@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from numpy import ones
 import pytest
 
@@ -272,11 +270,10 @@ def test_assert_frame_equal_show_diff_only():
         'DataFrame.iloc\\[:, 0\\] \\(column name="a"\\) are different\n\n'
         'DataFrame.iloc\\[:, 0\\] \\(column name="a"\\) '
         "values are different \\(0.27397 \\%\\)\n"
-        "            left  right\n1970-12-31   1.0    0.0"
+        "     left  right\n364   1.0    0.0"
     )
     df1 = DataFrame(
         ones((365, 3)),
-        index=pd.date_range(datetime(1970, 1, 1), datetime(1970, 12, 31)),
         columns=["a", "b", "c"],
     )
     df2 = df1.copy(deep=True)
