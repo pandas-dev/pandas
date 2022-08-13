@@ -443,7 +443,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("category").boxplot, column="height", return_type="dict"
             )
@@ -473,7 +473,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("category").boxplot,
                 column="height",
@@ -481,7 +481,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                 return_type="dict",
             )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(3, 2))
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("category").boxplot,
                 column="height",

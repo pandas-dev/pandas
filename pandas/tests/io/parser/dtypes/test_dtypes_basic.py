@@ -105,7 +105,7 @@ def test_dtype_with_converters(all_parsers):
     # Dtype spec ignored if converted specified.
     result = parser.read_csv_check_warnings(
         ParserWarning,
-        "Both a converter and dtype were specified for column a"
+        "Both a converter and dtype were specified for column a "
         "- only the converter will be used.",
         StringIO(data),
         dtype={"a": "i8"},
