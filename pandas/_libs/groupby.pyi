@@ -20,8 +20,8 @@ def group_cumprod_float64(
     skipna: bool = ...,
 ) -> None: ...
 def group_cumsum(
-    out: np.ndarray,  # numeric[:, ::1]
-    values: np.ndarray,  # ndarray[numeric, ndim=2]
+    out: np.ndarray,  # cumsum_t[:, ::1]
+    values: np.ndarray,  # ndarray[cumsum_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
