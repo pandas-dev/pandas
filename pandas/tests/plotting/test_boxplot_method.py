@@ -450,7 +450,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
 
         # GH 6769
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             box = _check_plot_works(
                 df.groupby("classroom").boxplot, column="height", return_type="dict"
             )
