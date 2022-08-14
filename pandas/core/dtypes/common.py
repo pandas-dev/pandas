@@ -3,6 +3,7 @@ Common type operations.
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     Any,
     Callable,
@@ -99,6 +100,7 @@ ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
+ensure_uint64 = algos.ensure_uint64
 
 
 def ensure_str(value: bytes | Any) -> str:
@@ -307,7 +309,7 @@ def is_categorical(arr) -> bool:
         "is_categorical is deprecated and will be removed in a future version. "
         "Use is_categorical_dtype instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
@@ -1386,7 +1388,7 @@ def is_extension_type(arr) -> bool:
         "'is_extension_type' is deprecated and will be removed in a future "
         "version.  Use 'is_extension_array_dtype' instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
 
     if is_categorical_dtype(arr):

@@ -6,13 +6,14 @@ from __future__ import annotations
 import copy
 import datetime
 from functools import partial
-import hashlib
+import inspect
 import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
     cast,
 )
+import uuid
 import warnings
 
 import numpy as np
@@ -34,6 +35,7 @@ from pandas.errors import MergeError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    cache_readonly,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -73,7 +75,6 @@ from pandas import (
     MultiIndex,
     Series,
 )
-from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -85,6 +86,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
 
 
@@ -650,16 +652,6 @@ class _MergeOperation:
 
         self.indicator = indicator
 
-        self.indicator_name: str | None
-        if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator
-        elif isinstance(self.indicator, bool):
-            self.indicator_name = "_merge" if self.indicator else None
-        else:
-            raise ValueError(
-                "indicator option can only accept boolean or string arguments"
-            )
-
         if not is_bool(left_index):
             raise ValueError(
                 f"left_index parameter must be of type bool, not {type(left_index)}"
@@ -678,7 +670,9 @@ class _MergeOperation:
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
 
         self._validate_specification()
 
@@ -750,6 +744,17 @@ class _MergeOperation:
         if cross_col is not None:
             del result[cross_col]
 
+    @cache_readonly
+    def _indicator_name(self) -> str | None:
+        if isinstance(self.indicator, str):
+            return self.indicator
+        elif isinstance(self.indicator, bool):
+            return "_merge" if self.indicator else None
+        else:
+            raise ValueError(
+                "indicator option can only accept boolean or string arguments"
+            )
+
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
@@ -762,7 +767,7 @@ class _MergeOperation:
                     "Cannot use `indicator=True` option when "
                     f"data contains a column named {i}"
                 )
-        if self.indicator_name in columns:
+        if self._indicator_name in columns:
             raise ValueError(
                 "Cannot use name of an existing column for indicator column"
             )
@@ -783,13 +788,13 @@ class _MergeOperation:
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
 
-        result[self.indicator_name] = Categorical(
+        result[self._indicator_name] = Categorical(
             (result["_left_indicator"] + result["_right_indicator"]),
             categories=[1, 2, 3],
         )
-        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(
-            ["left_only", "right_only", "both"]
-        )
+        result[self._indicator_name] = result[
+            self._indicator_name
+        ].cat.rename_categories(["left_only", "right_only", "both"])
 
         result = result.drop(labels=["_left_indicator", "_right_indicator"], axis=1)
         return result
@@ -1311,7 +1316,7 @@ class _MergeOperation:
             DataFrames with cross_col, the merge operation set to inner and the column
             to join over.
         """
-        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        cross_col = f"_cross_{uuid.uuid4()}"
         how = "inner"
         return (
             left.assign(**{cross_col: 1}),
@@ -2369,7 +2374,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     to_rename = left.intersection(right)
@@ -2419,7 +2424,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     return llabels, rlabels

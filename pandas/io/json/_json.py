@@ -9,6 +9,7 @@ import functools
 from io import StringIO
 from itertools import islice
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generic,
@@ -53,7 +54,6 @@ from pandas import (
     to_datetime,
 )
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.generic import NDFrame
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 
@@ -72,6 +72,9 @@ from pandas.io.json._table_schema import (
     parse_table_schema,
 )
 from pandas.io.parsers.readers import validate_integer
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
