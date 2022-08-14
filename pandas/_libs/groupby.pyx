@@ -895,7 +895,7 @@ def group_ohlc(
 
             if uses_mask:
                 isna_entry = mask[i, 0]
-            elif ohlc_t is float32_t or ohlc_t is float64_t:
+            elif int64float_t is float32_t or int64float_t is float64_t:
                 isna_entry = val != val
             else:
                 isna_entry = False
