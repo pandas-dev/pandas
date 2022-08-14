@@ -310,7 +310,7 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 # --------------- #
 
 
-def unique(values):
+def unique(values, mask=None):
     """
     Return unique values based on a hash table.
 
@@ -322,6 +322,8 @@ def unique(values):
     Parameters
     ----------
     values : 1d array-like
+    mask: 1d boolean array
+        Mask of the values.
 
     Returns
     -------
@@ -414,9 +416,15 @@ def unique(values):
     htable, values = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, original.dtype, original)
-    return uniques
+    if mask is None:
+        uniques = table.unique(values)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        return uniques
+
+    else:
+        uniques, mask = table.unique(values, mask=mask)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        return uniques, mask.astype("bool")
 
 
 unique1d = unique

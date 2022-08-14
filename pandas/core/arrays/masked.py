@@ -851,6 +851,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
+    def unique(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
+        """
+        Compute the BaseMaskedArray of unique values.
+
+        Returns
+        -------
+        uniques : BaseMaskedArray
+        """
+        uniques, mask = algos.unique(self._data, self._mask)
+        return type(self)(uniques, mask, copy=False)
+
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
