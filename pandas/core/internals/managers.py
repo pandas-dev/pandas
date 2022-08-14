@@ -1052,10 +1052,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 value = ensure_block_shape(value, ndim=2)
 
-            if value.shape[1:] != self.shape[1:] or value.shape[0] > self.shape[0]:
+            if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
                     "Shape of new values must be compatible with manager shape"
                 )
+
+            if value.shape[0] > self.shape[0]:
+                raise AssertionError
 
         if lib.is_integer(loc):
             # We have 6 tests where loc is _not_ an int.
