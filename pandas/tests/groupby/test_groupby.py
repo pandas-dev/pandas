@@ -2367,7 +2367,7 @@ def test_group_on_empty_multiindex(transformation_func, request):
         args = ()
     result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
     expected = df.groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
-    if transformation_func in {"diff", "shift"}:
+    if transformation_func in ("diff", "shift"):
         expected = expected.astype(int)
     tm.assert_equal(result, expected)
 
