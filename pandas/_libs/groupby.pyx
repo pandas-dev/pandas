@@ -207,7 +207,7 @@ def group_cumprod_float64(
                         break
 
 
-ctypedef fused cumsum_t:
+ctypedef fused int64float_t:
     int64_t
     uint64_t
     float32_t
@@ -217,8 +217,8 @@ ctypedef fused cumsum_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cumsum(
-    cumsum_t[:, ::1] out,
-    ndarray[cumsum_t, ndim=2] values,
+    int64float_t[:, ::1] out,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
     int ngroups,
     bint is_datetimelike,
@@ -254,8 +254,8 @@ def group_cumsum(
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        cumsum_t val, y, t, na_val
-        cumsum_t[:, ::1] accum, compensation
+        int64float_t val, y, t, na_val
+        int64float_t[:, ::1] accum, compensation
         uint8_t[:, ::1] accum_mask
         intp_t lab
         bint isna_entry, isna_prev = False
@@ -269,7 +269,7 @@ def group_cumsum(
     accum = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
     compensation = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
 
-    na_val = _get_na_val(<cumsum_t>0, is_datetimelike)
+    na_val = _get_na_val(<int64float_t>0, is_datetimelike)
 
     with nogil:
         for i in range(N):
@@ -314,7 +314,7 @@ def group_cumsum(
                 else:
                     # For floats, use Kahan summation to reduce floating-point
                     # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
-                    if cumsum_t == float32_t or cumsum_t == float64_t:
+                    if int64float_t == float32_t or int64float_t == float64_t:
                         y = val - compensation[lab, j]
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
