@@ -640,7 +640,7 @@ def group_sum(
 
 
 
-ctypedef fused prod_t:
+ctypedef fused int64float_t:
     int64_t
     uint64_t
 
@@ -651,9 +651,9 @@ ctypedef fused prod_t:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod(
-    prod_t[:, ::1] out,
+    int64float_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[prod_t, ndim=2] values,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
     const uint8_t[:, ::1] mask,
     uint8_t[:, ::1] result_mask=None,
@@ -664,8 +664,8 @@ def group_prod(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        prod_t val, count
-        prod_t[:, ::1] prodx
+        int64float_t val, count
+        int64float_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint isna_entry, uses_mask = mask is not None
@@ -690,7 +690,7 @@ def group_prod(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
-                elif prod_t is float32_t or prod_t is float64_t:
+                elif int64float_t is float32_t or int64float_t is float64_t:
                     isna_entry = not val == val
                 else:
                     isna_entry = False
