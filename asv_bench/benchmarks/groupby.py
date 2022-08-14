@@ -588,7 +588,9 @@ class GroupByCythonAggEaDtypes:
     def setup(self, dtype, method):
         N = 1_000_000
         df = DataFrame(
-            np.random.randint(N, 10), columns=list("abcdefghij"), dtype=dtype
+            np.random.randint(0, high=100, size=(N, 10)),
+            columns=list("abcdefghij"),
+            dtype=dtype,
         )
         df["key"] = np.random.randint(0, 100, size=N)
         self.df = df
