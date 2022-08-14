@@ -190,7 +190,7 @@ class TestDST:
             MonthBegin(66),
             "Africa/Kinshasa",
             marks=pytest.mark.xfail(
-                not (Version("2020.5") <= pytz_version <= Version("2022.1")),
+                pytz_version < Version("2020.5") or pytz_version == Version("2022.2"),
                 reason="GH#41906: pytz utc transition dates changed",
             ),
         ),
