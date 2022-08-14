@@ -5,7 +5,6 @@ from datetime import (
 import itertools
 
 import numpy as np
-import pyarrow as pa
 import pytest
 
 from pandas.compat import pa_version_under1p01
@@ -650,10 +649,11 @@ def test_from_frame():
     result = MultiIndex.from_frame(df)
     tm.assert_index_equal(expected, result)
 
-    
+
 @pytest.mark.skipif(pa_version_under1p01)
 def test_from_frame_missing_values_multiIndex():
     # GH 39984
+    import pyarrow as pa
     df = pd.DataFrame(
         {
             "a": Series([1, 2, None], dtype="Int64"),
