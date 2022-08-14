@@ -157,6 +157,8 @@ class WrappedCythonOp:
         "first",
         "rank",
         "sum",
+        "mean",
+        "var",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -591,6 +593,16 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
+                )
+            elif self.how == "var":
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    mask=mask,
+                    result_mask=result_mask,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
