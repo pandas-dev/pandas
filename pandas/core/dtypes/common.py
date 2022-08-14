@@ -100,6 +100,7 @@ ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
+ensure_uint64 = algos.ensure_uint64
 
 
 def ensure_str(value: bytes | Any) -> str:
