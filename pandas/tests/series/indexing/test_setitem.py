@@ -1665,3 +1665,14 @@ def test_setitem_empty_mask_dont_upcast_dt64():
     ser.mask(mask, "foo", inplace=True)
     assert ser.dtype == dti.dtype  # no-op -> dont upcast
     tm.assert_series_equal(ser, orig)
+
+
+def test_setitem_multi_dimension_array_to_dataframe():
+    # GH#40827
+    df = DataFrame(np.zeros((4, 1)), columns=["A"])
+    y = np.random.randn(4, 3)
+    with pytest.raises(
+        AssertionError,
+        match="Shape of new values must be compatible with manager shape",
+    ):
+        df["A"] = y

@@ -1052,7 +1052,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 value = ensure_block_shape(value, ndim=2)
 
-            if value.shape[1:] != self.shape[1:]:
+            if value.shape[1:] != self.shape[1:] or value.shape[0] > self.shape[0]:
                 raise AssertionError(
                     "Shape of new values must be compatible with manager shape"
                 )
