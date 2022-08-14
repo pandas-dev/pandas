@@ -736,6 +736,7 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
     left_grouped = left.groupby(join_col)
     right_grouped = right.groupby(join_col)
+
     for group_key, group in result.groupby(
         join_col if len(join_col) > 1 else join_col[0]
     ):
