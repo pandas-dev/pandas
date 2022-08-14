@@ -871,6 +871,7 @@ Performance improvements
 - Performance improvement in :meth:`.Styler.to_excel` when applying repeated CSS formats (:issue:`47371`)
 - Performance improvement in :meth:`MultiIndex.is_monotonic_increasing`  (:issue:`47458`)
 - Performance improvement in :class:`BusinessHour` ``str`` and ``repr`` (:issue:`44764`)
+- Performance improvement in :meth:`GroupBy.mean` and :meth:`GroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
 - Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47404`, :issue:`47405`)
