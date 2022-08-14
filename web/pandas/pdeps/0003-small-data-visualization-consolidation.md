@@ -2,7 +2,7 @@
 
 - Created: 13 August 2022
 - Status: Draft
-- Discussion: [#XXXXX](https://github.com/pandas-dev/pandas/pull/XXXXX)
+- Discussion: [#48080](https://github.com/pandas-dev/pandas/pull/48080)
 - Author: [JHM Darbyshire](https://github.com/attack68)
 - Revision: 1
 
