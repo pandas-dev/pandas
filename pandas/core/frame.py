@@ -9008,7 +9008,7 @@ Parrot 2  Parrot       24.0
         if is_scalar(column) or isinstance(column, tuple):
             columns = [column]
         elif isinstance(column, list) and all(
-            map(lambda c: is_scalar(c) or isinstance(c, tuple), column)
+            is_scalar(c) or isinstance(c, tuple) for c in column
         ):
             if not column:
                 raise ValueError("column must be nonempty")

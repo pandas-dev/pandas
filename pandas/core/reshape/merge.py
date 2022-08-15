@@ -11,6 +11,7 @@ import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Sequence,
     cast,
 )
 import uuid
@@ -25,6 +26,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     DtypeObj,
     IndexLabel,
@@ -610,6 +612,21 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
+    how: str
+    on: IndexLabel | None
+    # left_on/right_on may be None when passed, but in validate_specification
+    #  get replaced with non-None.
+    left_on: Sequence[Hashable | AnyArrayLike]
+    right_on: Sequence[Hashable | AnyArrayLike]
+    left_index: bool
+    right_index: bool
+    axis: int
+    bm_axis: int
+    sort: bool
+    suffixes: Suffixes
+    copy: bool
+    indicator: bool
+    validate: str | None
 
     def __init__(
         self,
@@ -822,8 +839,16 @@ class _MergeOperation:
             self.join_names, self.left_on, self.right_on
         ):
             if (
-                self.orig_left._is_level_reference(left_key)
-                and self.orig_right._is_level_reference(right_key)
+                # Argument 1 to "_is_level_reference" of "NDFrame" has incompatible
+                # type "Union[Hashable, ExtensionArray, Index, Series]"; expected
+                # "Hashable"
+                self.orig_left._is_level_reference(left_key)  # type: ignore[arg-type]
+                # Argument 1 to "_is_level_reference" of "NDFrame" has incompatible
+                # type "Union[Hashable, ExtensionArray, Index, Series]"; expected
+                # "Hashable"
+                and self.orig_right._is_level_reference(
+                    right_key  # type: ignore[arg-type]
+                )
                 and left_key == right_key
                 and name not in result.index.names
             ):
@@ -1052,13 +1077,13 @@ class _MergeOperation:
 
         Returns
         -------
-        left_keys, right_keys
+        left_keys, right_keys, join_names
         """
-        left_keys = []
-        right_keys = []
-        # error: Need type annotation for 'join_names' (hint: "join_names: List[<type>]
-        # = ...")
-        join_names = []  # type: ignore[var-annotated]
+        # left_keys, right_keys entries can actually be anything listlike
+        #  with a 'dtype' attr
+        left_keys: list[AnyArrayLike] = []
+        right_keys: list[AnyArrayLike] = []
+        join_names: list[Hashable] = []
         right_drop = []
         left_drop = []
 
@@ -1081,11 +1106,16 @@ class _MergeOperation:
         if _any(self.left_on) and _any(self.right_on):
             for lk, rk in zip(self.left_on, self.right_on):
                 if is_lkey(lk):
+                    lk = cast(AnyArrayLike, lk)
                     left_keys.append(lk)
                     if is_rkey(rk):
+                        rk = cast(AnyArrayLike, rk)
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
                     else:
+                        # Then we're either Hashable or a wrong-length arraylike,
+                        #  the latter of which will raise
+                        rk = cast(Hashable, rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                             join_names.append(rk)
@@ -1095,6 +1125,9 @@ class _MergeOperation:
                             join_names.append(right.index.name)
                 else:
                     if not is_rkey(rk):
+                        # Then we're either Hashable or a wrong-length arraylike,
+                        #  the latter of which will raise
+                        rk = cast(Hashable, rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                         else:
@@ -1107,8 +1140,12 @@ class _MergeOperation:
                             else:
                                 left_drop.append(lk)
                     else:
+                        rk = cast(AnyArrayLike, rk)
                         right_keys.append(rk)
                     if lk is not None:
+                        # Then we're either Hashable or a wrong-length arraylike,
+                        #  the latter of which will raise
+                        lk = cast(Hashable, lk)
                         left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
@@ -1118,9 +1155,13 @@ class _MergeOperation:
         elif _any(self.left_on):
             for k in self.left_on:
                 if is_lkey(k):
+                    k = cast(AnyArrayLike, k)
                     left_keys.append(k)
                     join_names.append(None)
                 else:
+                    # Then we're either Hashable or a wrong-length arraylike,
+                    #  the latter of which will raise
+                    k = cast(Hashable, k)
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
@@ -1135,9 +1176,13 @@ class _MergeOperation:
         elif _any(self.right_on):
             for k in self.right_on:
                 if is_rkey(k):
+                    k = cast(AnyArrayLike, k)
                     right_keys.append(k)
                     join_names.append(None)
                 else:
+                    # Then we're either Hashable or a wrong-length arraylike,
+                    #  the latter of which will raise
+                    k = cast(Hashable, k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
