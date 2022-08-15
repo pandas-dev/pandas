@@ -169,7 +169,7 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([], dtype=np.intp)
+        expected = Series([], dtype=np.int64)
 
     expected.index = _asfreq_compat(df.index, freq)
 
