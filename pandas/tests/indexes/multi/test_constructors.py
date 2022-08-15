@@ -654,6 +654,7 @@ def test_from_frame():
 def test_from_frame_missing_values_multiIndex():
     # GH 39984
     import pyarrow as pa
+
     df = pd.DataFrame(
         {
             "a": Series([1, 2, None], dtype="Int64"),
