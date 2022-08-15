@@ -6,13 +6,14 @@ from __future__ import annotations
 import copy
 import datetime
 from functools import partial
-import hashlib
+import inspect
 import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
     cast,
 )
+import uuid
 import warnings
 
 import numpy as np
@@ -34,6 +35,7 @@ from pandas.errors import MergeError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    cache_readonly,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -116,11 +118,10 @@ def merge(
         right_index=right_index,
         sort=sort,
         suffixes=suffixes,
-        copy=copy,
         indicator=indicator,
         validate=validate,
     )
-    return op.get_result()
+    return op.get_result(copy=copy)
 
 
 if __debug__:
@@ -622,7 +623,6 @@ class _MergeOperation:
         right_index: bool = False,
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
         indicator: bool = False,
         validate: str | None = None,
     ) -> None:
@@ -638,10 +638,7 @@ class _MergeOperation:
         self.axis = 1 - axis if self.left.ndim == 2 else 0
 
         self.on = com.maybe_make_list(on)
-        self.left_on = com.maybe_make_list(left_on)
-        self.right_on = com.maybe_make_list(right_on)
 
-        self.copy = copy
         self.suffixes = suffixes
         self.sort = sort
 
@@ -649,16 +646,6 @@ class _MergeOperation:
         self.right_index = right_index
 
         self.indicator = indicator
-
-        self.indicator_name: str | None
-        if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator
-        elif isinstance(self.indicator, bool):
-            self.indicator_name = "_merge" if self.indicator else None
-        else:
-            raise ValueError(
-                "indicator option can only accept boolean or string arguments"
-            )
 
         if not is_bool(left_index):
             raise ValueError(
@@ -678,9 +665,11 @@ class _MergeOperation:
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
 
-        self._validate_specification()
+        self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
         cross_col = None
         if self.how == "cross":
@@ -710,7 +699,7 @@ class _MergeOperation:
         if validate is not None:
             self._validate(validate)
 
-    def get_result(self) -> DataFrame:
+    def get_result(self, copy: bool = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -727,7 +716,7 @@ class _MergeOperation:
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
-            copy=self.copy,
+            copy=copy,
         )
 
         typ = self.left._constructor
@@ -750,6 +739,17 @@ class _MergeOperation:
         if cross_col is not None:
             del result[cross_col]
 
+    @cache_readonly
+    def _indicator_name(self) -> str | None:
+        if isinstance(self.indicator, str):
+            return self.indicator
+        elif isinstance(self.indicator, bool):
+            return "_merge" if self.indicator else None
+        else:
+            raise ValueError(
+                "indicator option can only accept boolean or string arguments"
+            )
+
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
@@ -762,7 +762,7 @@ class _MergeOperation:
                     "Cannot use `indicator=True` option when "
                     f"data contains a column named {i}"
                 )
-        if self.indicator_name in columns:
+        if self._indicator_name in columns:
             raise ValueError(
                 "Cannot use name of an existing column for indicator column"
             )
@@ -783,13 +783,13 @@ class _MergeOperation:
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
 
-        result[self.indicator_name] = Categorical(
+        result[self._indicator_name] = Categorical(
             (result["_left_indicator"] + result["_right_indicator"]),
             categories=[1, 2, 3],
         )
-        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(
-            ["left_only", "right_only", "both"]
-        )
+        result[self._indicator_name] = result[
+            self._indicator_name
+        ].cat.rename_categories(["left_only", "right_only", "both"])
 
         result = result.drop(labels=["_left_indicator", "_right_indicator"], axis=1)
         return result
@@ -1072,7 +1072,7 @@ class _MergeOperation:
         # a pd.merge_asof(left_index=True, left_by=...) will result in a
         # self.left_on array with a None in the middle of it. This requires
         # a work-around as designated in the code below.
-        # See _validate_specification() for where this happens.
+        # See _validate_left_right_on() for where this happens.
 
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
@@ -1097,7 +1097,7 @@ class _MergeOperation:
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index)
-                        if lk is not None and lk == rk:
+                        if lk is not None and lk == rk:  # FIXME: what about other NAs?
                             # avoid key upcast in corner case (length-0)
                             if len(left) > 0:
                                 right_drop.append(rk)
@@ -1311,7 +1311,7 @@ class _MergeOperation:
             DataFrames with cross_col, the merge operation set to inner and the column
             to join over.
         """
-        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        cross_col = f"_cross_{uuid.uuid4()}"
         how = "inner"
         return (
             left.assign(**{cross_col: 1}),
@@ -1320,25 +1320,27 @@ class _MergeOperation:
             cross_col,
         )
 
-    def _validate_specification(self) -> None:
+    def _validate_left_right_on(self, left_on, right_on):
+        left_on = com.maybe_make_list(left_on)
+        right_on = com.maybe_make_list(right_on)
+
         if self.how == "cross":
             if (
                 self.left_index
                 or self.right_index
-                or self.right_on is not None
-                or self.left_on is not None
+                or right_on is not None
+                or left_on is not None
                 or self.on is not None
             ):
                 raise MergeError(
                     "Can not pass on, right_on, left_on or set right_index=True or "
                     "left_index=True"
                 )
-            return
         # Hm, any way to make this logic less complicated??
-        elif self.on is None and self.left_on is None and self.right_on is None:
+        elif self.on is None and left_on is None and right_on is None:
 
             if self.left_index and self.right_index:
-                self.left_on, self.right_on = (), ()
+                left_on, right_on = (), ()
             elif self.left_index:
                 raise MergeError("Must pass right_on or right_index=True")
             elif self.right_index:
@@ -1351,8 +1353,8 @@ class _MergeOperation:
                 if len(common_cols) == 0:
                     raise MergeError(
                         "No common columns to perform merge on. "
-                        f"Merge options: left_on={self.left_on}, "
-                        f"right_on={self.right_on}, "
+                        f"Merge options: left_on={left_on}, "
+                        f"right_on={right_on}, "
                         f"left_index={self.left_index}, "
                         f"right_index={self.right_index}"
                     )
@@ -1361,9 +1363,9 @@ class _MergeOperation:
                     or not right_cols.join(common_cols, how="inner").is_unique
                 ):
                     raise MergeError(f"Data columns not unique: {repr(common_cols)}")
-                self.left_on = self.right_on = common_cols
+                left_on = right_on = common_cols
         elif self.on is not None:
-            if self.left_on is not None or self.right_on is not None:
+            if left_on is not None or right_on is not None:
                 raise MergeError(
                     'Can only pass argument "on" OR "left_on" '
                     'and "right_on", not a combination of both.'
@@ -1373,39 +1375,41 @@ class _MergeOperation:
                     'Can only pass argument "on" OR "left_index" '
                     'and "right_index", not a combination of both.'
                 )
-            self.left_on = self.right_on = self.on
-        elif self.left_on is not None:
+            left_on = right_on = self.on
+        elif left_on is not None:
             if self.left_index:
                 raise MergeError(
                     'Can only pass argument "left_on" OR "left_index" not both.'
                 )
-            if not self.right_index and self.right_on is None:
+            if not self.right_index and right_on is None:
                 raise MergeError('Must pass "right_on" OR "right_index".')
-            n = len(self.left_on)
+            n = len(left_on)
             if self.right_index:
-                if len(self.left_on) != self.right.index.nlevels:
+                if len(left_on) != self.right.index.nlevels:
                     raise ValueError(
                         "len(left_on) must equal the number "
                         'of levels in the index of "right"'
                     )
-                self.right_on = [None] * n
-        elif self.right_on is not None:
+                right_on = [None] * n
+        elif right_on is not None:
             if self.right_index:
                 raise MergeError(
                     'Can only pass argument "right_on" OR "right_index" not both.'
                 )
-            if not self.left_index and self.left_on is None:
+            if not self.left_index and left_on is None:
                 raise MergeError('Must pass "left_on" OR "left_index".')
-            n = len(self.right_on)
+            n = len(right_on)
             if self.left_index:
-                if len(self.right_on) != self.left.index.nlevels:
+                if len(right_on) != self.left.index.nlevels:
                     raise ValueError(
                         "len(right_on) must equal the number "
                         'of levels in the index of "left"'
                     )
-                self.left_on = [None] * n
-        if self.how != "cross" and len(self.right_on) != len(self.left_on):
+                left_on = [None] * n
+        if self.how != "cross" and len(right_on) != len(left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
+
+        return left_on, right_on
 
     def _validate(self, validate: str) -> None:
 
@@ -1634,7 +1638,6 @@ class _OrderedMerge(_MergeOperation):
         right_index: bool = False,
         axis: int = 1,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
         fill_method: str | None = None,
         how: str = "outer",
     ) -> None:
@@ -1655,7 +1658,7 @@ class _OrderedMerge(_MergeOperation):
             sort=True,  # factorize sorts
         )
 
-    def get_result(self) -> DataFrame:
+    def get_result(self, copy: bool = True) -> DataFrame:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         llabels, rlabels = _items_overlap_with_suffix(
@@ -1684,7 +1687,7 @@ class _OrderedMerge(_MergeOperation):
             [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
             axes=[llabels.append(rlabels), join_index],
             concat_axis=0,
-            copy=self.copy,
+            copy=copy,
         )
 
         typ = self.left._constructor
@@ -1764,14 +1767,14 @@ class _AsOfMerge(_OrderedMerge):
             fill_method=fill_method,
         )
 
-    def _validate_specification(self) -> None:
-        super()._validate_specification()
+    def _validate_left_right_on(self, left_on, right_on):
+        left_on, right_on = super()._validate_left_right_on(left_on, right_on)
 
         # we only allow on to be a single item for on
-        if len(self.left_on) != 1 and not self.left_index:
+        if len(left_on) != 1 and not self.left_index:
             raise MergeError("can only asof on a key for left")
 
-        if len(self.right_on) != 1 and not self.right_index:
+        if len(right_on) != 1 and not self.right_index:
             raise MergeError("can only asof on a key for right")
 
         if self.left_index and isinstance(self.left.index, MultiIndex):
@@ -1792,27 +1795,27 @@ class _AsOfMerge(_OrderedMerge):
 
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
-            left_on = self.left_on[0]
-            if is_array_like(left_on):
-                lo_dtype = left_on.dtype
+            left_on_0 = left_on[0]
+            if is_array_like(left_on_0):
+                lo_dtype = left_on_0.dtype
             else:
                 lo_dtype = (
-                    self.left[left_on].dtype
-                    if left_on in self.left.columns
-                    else self.left.index.get_level_values(left_on)
+                    self.left[left_on_0].dtype
+                    if left_on_0 in self.left.columns
+                    else self.left.index.get_level_values(left_on_0)
                 )
         else:
             lo_dtype = self.left.index.dtype
 
         if not self.right_index:
-            right_on = self.right_on[0]
-            if is_array_like(right_on):
-                ro_dtype = right_on.dtype
+            right_on_0 = right_on[0]
+            if is_array_like(right_on_0):
+                ro_dtype = right_on_0.dtype
             else:
                 ro_dtype = (
-                    self.right[right_on].dtype
-                    if right_on in self.right.columns
-                    else self.right.index.get_level_values(right_on)
+                    self.right[right_on_0].dtype
+                    if right_on_0 in self.right.columns
+                    else self.right.index.get_level_values(right_on_0)
                 )
         else:
             ro_dtype = self.right.index.dtype
@@ -1834,12 +1837,14 @@ class _AsOfMerge(_OrderedMerge):
             if len(self.left_by) != len(self.right_by):
                 raise MergeError("left_by and right_by must be same length")
 
-            self.left_on = self.left_by + list(self.left_on)
-            self.right_on = self.right_by + list(self.right_on)
+            left_on = self.left_by + list(left_on)
+            right_on = self.right_by + list(right_on)
 
         # check 'direction' is valid
         if self.direction not in ["backward", "forward", "nearest"]:
             raise MergeError(f"direction invalid: {self.direction}")
+
+        return left_on, right_on
 
     def _get_merge_keys(self):
 
@@ -2369,7 +2374,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     to_rename = left.intersection(right)
@@ -2419,7 +2424,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     return llabels, rlabels
