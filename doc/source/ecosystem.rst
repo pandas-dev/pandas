@@ -146,7 +146,7 @@ also goes beyond matplotlib and pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
-`Plotnine <https://github.com/has2k1/plotnine/>`__
+`plotnine <https://github.com/has2k1/plotnine/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
@@ -187,7 +187,7 @@ By printing out a dataframe, Lux automatically `recommends a set of visualizatio
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
-`D-tale <https://github.com/man-group/dtale>`__
+`D-Tale <https://github.com/man-group/dtale>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 D-Tale is a lightweight web client for visualizing pandas data structures. It
