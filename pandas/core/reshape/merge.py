@@ -724,13 +724,29 @@ class _MergeOperation:
             # Pinning the index here (and in the right code just below) is not
             #  necessary, but makes the `.take` more performant if we have e.g.
             #  a MultiIndex for left.index.
-            left.index = range(len(left))
-            left = left._take(left_indexer, axis=0, convert_indices=False)
+            lmgr = left._mgr.reindex_indexer(
+                join_index,
+                left_indexer,
+                axis=1,
+                copy=False,
+                only_slice=True,
+                allow_dups=True,
+                use_na_proxy=True,
+            )
+            left = left._constructor(lmgr)
         left.index = join_index
 
         if right_indexer is not None:
-            right.index = range(len(right))
-            right = right._take(right_indexer, axis=0, convert_indices=False)
+            rmgr = right._mgr.reindex_indexer(
+                join_index,
+                right_indexer,
+                axis=1,
+                copy=False,
+                only_slice=True,
+                allow_dups=True,
+                use_na_proxy=True,
+            )
+            right = right._constructor(rmgr)
         right.index = join_index
 
         from pandas import concat
