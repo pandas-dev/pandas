@@ -79,10 +79,17 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     def __hash__(self) -> int: ...
     @overload
     def __contains__(
-        self: Interval[_OrderableTimesT], key: _OrderableTimesT
+        self: Interval[Timedelta], key: Timedelta | Interval[Timedelta]
     ) -> bool: ...
     @overload
-    def __contains__(self: Interval[_OrderableScalarT], key: float) -> bool: ...
+    def __contains__(
+        self: Interval[Timestamp], key: Timestamp | Interval[Timestamp]
+    ) -> bool: ...
+    @overload
+    def __contains__(
+        self: Interval[_OrderableScalarT],
+        key: _OrderableScalarT | Interval[_OrderableScalarT],
+    ) -> bool: ...
     @overload
     def __add__(
         self: Interval[_OrderableTimesT], y: Timedelta
