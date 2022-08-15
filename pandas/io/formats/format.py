@@ -1036,7 +1036,7 @@ class DataFrameRenderer:
         multicolumn: bool = False,
         multicolumn_format: str | None = None,
         multirow: bool = False,
-        caption: str | None = None,
+        caption: str | tuple[str, str] | None = None,
         label: str | None = None,
         position: str | None = None,
     ) -> str | None:

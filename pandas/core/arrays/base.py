@@ -985,7 +985,7 @@ class ExtensionArray:
             equal_na = self.isna() & other.isna()  # type: ignore[operator]
             return bool((equal_values | equal_na).all())
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         """
         Pointwise comparison for set containment in the given values.
 

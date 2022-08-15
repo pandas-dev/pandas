@@ -2403,7 +2403,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            result = result.rename("size").reset_index()
+            # error: Incompatible types in assignment (expression has
+            # type "DataFrame", variable has type "Series")
+            result = result.rename("size").reset_index()  # type: ignore[assignment]
 
         return self._reindex_output(result, fill_value=0)
 
