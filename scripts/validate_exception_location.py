@@ -63,6 +63,7 @@ permisable_exception_warning_list = [
     "InvalidComparison",
     "NotThisMethod",
     "OptionError",
+    "InvalidVersion",
 ]
 
 

@@ -39,7 +39,6 @@ Exceptions and warnings
    errors.IndexingError
    errors.InvalidColumnName
    errors.InvalidIndexError
-   errors.InvalidVersion
    errors.IntCastingNaNError
    errors.MergeError
    errors.NullFrequencyError
