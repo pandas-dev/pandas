@@ -468,6 +468,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                     data = data.copy()
             else:
                 data = sanitize_array(data, index, dtype, copy)
+                data = data.astype(index.dtype)
 
                 manager = get_option("mode.data_manager")
                 if manager == "block":
