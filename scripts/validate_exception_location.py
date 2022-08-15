@@ -1,3 +1,16 @@
+"""
+Validate that the exceptions and warnings are in approrirate places.
+
+Checks for classes that inherit a python exception and warning and
+flags them, unless they are exempted from checking.
+
+Print the exception/warning that do not follow convention.
+
+Usage::
+
+As pre-commit hook (recommended):
+    pre-commit run validate-errors-locations --all-files
+"""
 from __future__ import annotations
 
 import argparse

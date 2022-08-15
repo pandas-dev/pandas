@@ -1,8 +1,6 @@
 import pytest
 
-from scripts.test_validate_exception_location.py import (
-    validate_exception_and_warning_placement,
-)
+from scripts.validate_exception_location import validate_exception_and_warning_placement
 
 PATH = "t.py"
 CUSTOM_EXCEPTION = "MyException"
