@@ -4038,13 +4038,27 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(self.columns, MultiIndex) and isinstance(
                 loc, (slice, Series, np.ndarray, Index)
             ):
-                cols = maybe_droplevels(cols, key)
-                if len(cols) and not cols.equals(value.columns):
-                    value = value.reindex(cols, axis=1)
+                cols_droplevel = maybe_droplevels(cols, key)
+                if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
+                    value = value.reindex(cols_droplevel, axis=1)
 
-        # now align rows
-        arraylike = _reindex_for_setitem(value, self.index)
-        self._set_item_mgr(key, arraylike)
+                for col, col_droplevel in zip(cols, cols_droplevel):
+                    self[col] = value[col_droplevel]
+                return
+
+            if is_scalar(cols):
+                self[cols] = value[value.columns[0]]
+                return
+
+            # now align rows
+            arraylike = _reindex_for_setitem(value, self.index)
+            self._set_item_mgr(key, arraylike)
+            return
+
+        if len(value.columns) != 1:
+            raise ValueError("Expected DataFrame with 1 column.")
+
+        self[key] = value[value.columns[0]]
 
     def _iset_item_mgr(
         self, loc: int | slice | np.ndarray, value, inplace: bool = False
