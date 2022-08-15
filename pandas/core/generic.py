@@ -4556,7 +4556,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
-    def add_prefix(self: NDFrameT, prefix: str, copy: bool_t = True, axis: Axis = None) -> NDFrameT:
+    def add_prefix(
+        self: NDFrameT, prefix: str, copy: bool_t = True, axis: Axis = None
+    ) -> NDFrameT:
         """
         Prefix labels with string `prefix`.
 
@@ -4615,11 +4617,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3       4       6
         """
         f = functools.partial("{prefix}{}".format, prefix=prefix)
-        
-        axis_name = self._info_axis_name 
+
+        axis_name = self._info_axis_name
         if axis is not None:
             axis_name = self._get_axis_name(axis)
-        
+
         mapper = {axis_name: f}
         # error: Incompatible return value type (got "Optional[NDFrameT]",
         # expected "NDFrameT")
@@ -4628,7 +4630,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._rename(**mapper, copy=copy)  # type: ignore[return-value, arg-type]
 
     @final
-    def add_suffix(self: NDFrameT, suffix: str, copy: bool_t = True, axis: Axis = None) -> NDFrameT:
+    def add_suffix(
+        self: NDFrameT, suffix: str, copy: bool_t = True, axis: Axis = None
+    ) -> NDFrameT:
         """
         Suffix labels with string `suffix`.
 
@@ -4687,11 +4691,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3       4       6
         """
         f = functools.partial("{}{suffix}".format, suffix=suffix)
-        
-        axis_name = self._info_axis_name 
+
+        axis_name = self._info_axis_name
         if axis is not None:
             axis_name = self._get_axis_name(axis)
-        
+
         mapper = {axis_name: f}
         # error: Incompatible return value type (got "Optional[NDFrameT]",
         # expected "NDFrameT")
