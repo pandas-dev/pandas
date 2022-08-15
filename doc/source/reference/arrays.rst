@@ -22,7 +22,6 @@ can be found at :ref:`basics.dtypes`.
 =================== ========================= ============================= =============================
 Kind of Data        pandas Data Type          Scalar                        Array
 =================== ========================= ============================= =============================
-PyArrow             :class:`ArrowDtype`       Python Scalars or :class:`NA` :ref:`api.arrays.arrow`
 TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp`            :ref:`api.arrays.datetime`
 Timedeltas          (none)                    :class:`Timedelta`            :ref:`api.arrays.timedelta`
 Period (time spans) :class:`PeriodDtype`      :class:`Period`               :ref:`api.arrays.period`
@@ -32,6 +31,7 @@ Categorical         :class:`CategoricalDtype` (none)                        :ref
 Sparse              :class:`SparseDtype`      (none)                        :ref:`api.arrays.sparse`
 Strings             :class:`StringDtype`      :class:`str`                  :ref:`api.arrays.string`
 Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`                 :ref:`api.arrays.bool`
+PyArrow             :class:`ArrowDtype`       Python Scalars or :class:`NA` :ref:`api.arrays.arrow`
 =================== ========================= ============================= =============================
 
 pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
@@ -47,6 +47,10 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 
 PyArrow
 -------
+
+.. warning::
+
+    This feature is experimental, and the API can change in a future release without warning.
 
 The :class:`arrays.ArrowExtensionArray` is backed by a :external+pyarrow:py:class:`pyarrow.ChunkedArray` with a
 :external+pyarrow:py:class:`pyarrow.DataType` instead of a NumPy array and data type. The ``.dtype`` of a :class:`arrays.ArrowExtensionArray`

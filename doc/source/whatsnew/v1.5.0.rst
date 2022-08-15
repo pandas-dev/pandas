@@ -54,7 +54,9 @@ initialized with a ``pyarrow.DataType``.
 Most operations are supported and have been implemented using `pyarrow compute <https://arrow.apache.org/docs/python/api/compute.html>`__ functions.
 We recommend installing the latest version of PyArrow to access the most recently implemented compute functions.
 
-This feature is experimental and may change in a future release.
+.. warning::
+
+    This feature is experimental, and the API can change in a future release without warning.
 
 .. _whatsnew_150.enhancements.dataframe_interchange:
 
