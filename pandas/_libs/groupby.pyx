@@ -204,7 +204,6 @@ def group_cumprod_float64(
                     out[i, j] = NaN
                     if not skipna:
                         accum[lab, j] = NaN
-                        break
 
 
 @cython.boundscheck(False)
@@ -513,14 +512,7 @@ ctypedef fused mean_t:
 
 ctypedef fused sum_t:
     mean_t
-    int8_t
-    int16_t
-    int32_t
     int64_t
-
-    uint8_t
-    uint16_t
-    uint32_t
     uint64_t
     object
 
