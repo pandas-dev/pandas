@@ -20,7 +20,7 @@ from typing import (
 )
 import warnings
 
-from errors import InvalidVersion
+from pandas.errors import InvalidVersion
 
 __all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
 
