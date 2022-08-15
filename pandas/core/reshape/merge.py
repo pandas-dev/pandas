@@ -720,7 +720,7 @@ class _MergeOperation:
             self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
-        if left_indexer:
+        if left_indexer is not None:
             # Pinning the index here (and in the right code just below) is not
             #  necessary, but makes the `.take` more performant if we have e.g.
             #  a MultiIndex for left.index.
@@ -728,7 +728,7 @@ class _MergeOperation:
             left = left._take(left_indexer, axis=0, convert_indices=False)
         left.index = join_index
 
-        if right_indexer:
+        if right_indexer is not None:
             right.index = range(len(right))
             right = right._take(right_indexer, axis=0, convert_indices=False)
         right.index = join_index
