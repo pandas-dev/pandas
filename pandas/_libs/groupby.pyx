@@ -861,13 +861,6 @@ def group_mean(
                     out[i, j] = sumx[i, j] / count
 
 
-ctypedef fused int64float_t:
-    float32_t
-    float64_t
-    int64_t
-    uint64_t
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_ohlc(
