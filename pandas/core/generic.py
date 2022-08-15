@@ -4571,6 +4571,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The string to add before each label.
         copy : bool, default True
             Whether to copy the underlying data.
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+            Axis to add prefix on
 
              .. versionadded:: 1.5.0
 
@@ -4645,6 +4647,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The string to add after each label.
         copy : bool, default True
             Whether to copy the underlying data.
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+            Axis to add suffix on
 
              .. versionadded:: 1.5.0
 
