@@ -71,3 +71,22 @@ def test_add_prefix_suffix_copy(float_frame):
     ser_with_suffix = ser.add_suffix("#foo", copy=False)
     tm.assert_index_equal(ser_with_suffix.index, expected)
     assert tm.shares_memory(ser_with_suffix, ser)
+
+
+def test_add_prefix_suffix_axis(float_frame):
+    # GH 47819
+    with_prefix = float_frame.add_prefix("foo#", axis=0)
+    expected = Index([f"foo#{c}" for c in float_frame.index])
+    tm.assert_index_equal(with_prefix.index, expected)
+
+    with_prefix = float_frame.add_prefix("foo#", axis=1)
+    expected = Index([f"foo#{c}" for c in float_frame.columns])
+    tm.assert_index_equal(with_prefix.columns, expected)
+
+    with_pct_suffix = float_frame.add_suffix("#foo", axis=0)
+    expected = Index([f"{c}#foo" for c in float_frame.index])
+    tm.assert_index_equal(with_pct_suffix.index, expected)
+
+    with_pct_suffix = float_frame.add_suffix("#foo", axis=1)
+    expected = Index([f"{c}#foo" for c in float_frame.columns])
+    tm.assert_index_equal(with_pct_suffix.columns, expected)
