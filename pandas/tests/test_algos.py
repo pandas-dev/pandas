@@ -54,7 +54,9 @@ class TestFactorize:
         obj = index_or_series_obj
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            sort and pa_version_under7p0 and obj.dtype == "string[pyarrow]",
+            sort
+            and pa_version_under7p0
+            and getattr(obj.dtype, "storage", "") == "pyarrow",
         ):
             result_codes, result_uniques = obj.factorize(sort=sort)
 
@@ -72,7 +74,7 @@ class TestFactorize:
         if sort:
             with tm.maybe_produces_warning(
                 PerformanceWarning,
-                pa_version_under7p0 and obj.dtype == "string[pyarrow]",
+                pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
             ):
                 expected_uniques = expected_uniques.sort_values()
 

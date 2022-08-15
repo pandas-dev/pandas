@@ -40,11 +40,13 @@ def test_value_counts(index_or_series_obj):
     #  on CI (gh-32449)
     if obj.duplicated().any():
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0 and obj.dtype == "string[pyarrow]"
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
         ):
             result = result.sort_index()
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0 and obj.dtype == "string[pyarrow]"
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
         ):
             expected = expected.sort_index()
     tm.assert_series_equal(result, expected)
@@ -80,11 +82,13 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0 and obj.dtype == "string[pyarrow]"
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
         ):
             expected = expected.sort_index()
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0 and obj.dtype == "string[pyarrow]"
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
         ):
             result = result.sort_index()
 
@@ -100,11 +104,13 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0 and obj.dtype == "string[pyarrow]"
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
         ):
             expected = expected.sort_index()
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0 and obj.dtype == "string[pyarrow]"
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
         ):
             result = result.sort_index()
     tm.assert_series_equal(result, expected)
