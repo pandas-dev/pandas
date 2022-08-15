@@ -39,6 +39,7 @@ import pandas as pd
         "CategoricalConversionWarning",
         "InvalidColumnName",
         "ValueLabelTypeMismatch",
+        "InvalidVersion",
     ],
 )
 def test_exception_importable(exc):

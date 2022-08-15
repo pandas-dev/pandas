@@ -20,6 +20,8 @@ from typing import (
 )
 import warnings
 
+from errors import InvalidVersion
+
 __all__ = ["parse", "Version", "LegacyVersion", "InvalidVersion", "VERSION_PATTERN"]
 
 
@@ -124,12 +126,6 @@ def parse(version: str) -> LegacyVersion | Version:
         return Version(version)
     except InvalidVersion:
         return LegacyVersion(version)
-
-
-class InvalidVersion(ValueError):
-    """
-    An invalid version was found, users should refer to PEP 440.
-    """
 
 
 class _BaseVersion:

@@ -535,6 +535,12 @@ class CategoricalConversionWarning(Warning):
     """
 
 
+class InvalidVersion(ValueError):
+    """
+    An invalid version was found, users should refer to PEP 440.
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -551,6 +557,7 @@ __all__ = [
     "IntCastingNaNError",
     "InvalidColumnName",
     "InvalidIndexError",
+    "InvalidVersion",
     "IndexingError",
     "MergeError",
     "NullFrequencyError",
