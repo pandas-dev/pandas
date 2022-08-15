@@ -836,7 +836,8 @@ class ArrayManager(BaseArrayManager):
             # TODO can we avoid needing to unpack this here? That means converting
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
-                assert value.shape[1] == 1
+                if value.shape[1] == 1:
+                    raise AssertionError("could not broadcast input array to dataframe")
                 value = value[:, 0]
 
             # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item

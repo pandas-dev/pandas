@@ -1058,7 +1058,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 )
 
             if value.shape[0] > self.shape[0]:
-                raise AssertionError
+                raise AssertionError("could not broadcast input array to dataframe")
 
         if lib.is_integer(loc):
             # We have 6 tests where loc is _not_ an int.

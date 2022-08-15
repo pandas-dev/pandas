@@ -1667,12 +1667,22 @@ def test_setitem_empty_mask_dont_upcast_dt64():
     tm.assert_series_equal(ser, orig)
 
 
-def test_setitem_multi_dimension_array_to_dataframe():
+@pytest.mark.parametrize(
+    "values, columns",
+    [
+        (np.zeros((4, 1)), ["A"]),
+        (np.zeros((4, 2)), ["A", "A"]),
+    ],
+)
+def test_setitem_multi_dimension_array_to_dataframe(values, columns):
     # GH#40827
     df = DataFrame(np.zeros((4, 1)), columns=["A"])
-    y = np.random.randn(4, 3)
+    input = np.random.randn(4, 3)
+
+    msg = "could not broadcast input array to dataframe"
+
     with pytest.raises(
         AssertionError,
-        match="",
+        match=msg,
     ):
-        df["A"] = y
+        df["A"] = input
