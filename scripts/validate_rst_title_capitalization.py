@@ -191,17 +191,15 @@ def correct_title_capitalization(title: str) -> str:
     # Split a title into a list using non-word character delimiters.
     word_list = re.split(r"\W", correct_title)
 
-    # Recombine single hyphenated words
+    # Recombine hyphenated words
     for word in correct_title.split():
         if '-' in word:
             lst = word.split('-')
-            if len(lst) > 2:
-                continue
             first = lst[0]
             for idx, val in enumerate(word_list):
                 if val == first:
-                    del word_list[idx]
-                    del word_list[idx]
+                    for _ in range(len(lst)):
+                        del word_list[idx]
                     word_list.insert(idx, '-'.join(lst))
                     break
 
