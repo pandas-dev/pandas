@@ -1282,6 +1282,7 @@ class TestExcelWriter:
                 # Some engines raise if nothing is written
                 DataFrame().to_excel(writer)
 
+    @pytest.mark.filterwarnings("ignore:Calling close():UserWarning:xlsxwriter")
     @pytest.mark.parametrize(
         "attr, args", [("save", ()), ("write_cells", ([], "test"))]
     )
