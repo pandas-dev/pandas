@@ -81,7 +81,6 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
-from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -704,28 +703,50 @@ class _MergeOperation:
         if validate is not None:
             self._validate(validate)
 
+    def _reindex_and_concat(
+        self,
+        join_index: Index,
+        left_indexer: npt.NDArray[np.intp] | None,
+        right_indexer: npt.NDArray[np.intp] | None,
+    ) -> DataFrame:
+        """
+        reindex along index and concat along columns.
+        """
+        # Take views so we do not alter the originals
+        left = self.left[:]
+        right = self.right[:]
+
+        llabels, rlabels = _items_overlap_with_suffix(
+            self.left._info_axis, self.right._info_axis, self.suffixes
+        )
+
+        if left_indexer:
+            # Pinning the index here (and in the right code just below) is not
+            #  necessary, but makes the `.take` more performant if we have e.g.
+            #  a MultiIndex for left.index.
+            left.index = range(len(left))
+            left = left._take(left_indexer, axis=0, convert_indices=False)
+        left.index = join_index
+
+        if right_indexer:
+            right.index = range(len(right))
+            right = right._take(right_indexer, axis=0, convert_indices=False)
+        right.index = join_index
+
+        from pandas import concat
+
+        result = concat([left, right], axis=1, copy=self.copy)
+        result.columns = llabels.append(rlabels)
+        return result
+
     def get_result(self) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, self.right._info_axis, self.suffixes
-        )
-
-        lindexers = {1: left_indexer} if left_indexer is not None else {}
-        rindexers = {1: right_indexer} if right_indexer is not None else {}
-
-        result_data = concatenate_managers(
-            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
-            axes=[llabels.append(rlabels), join_index],
-            concat_axis=0,
-            copy=self.copy,
-        )
-
-        typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method=self._merge_type)
+        result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
+        result = result.__finalize__(self, method=self._merge_type)
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -1682,19 +1703,9 @@ class _OrderedMerge(_MergeOperation):
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
 
-        lindexers = {1: left_join_indexer} if left_join_indexer is not None else {}
-        rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
-
-        result_data = concatenate_managers(
-            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
-            axes=[llabels.append(rlabels), join_index],
-            concat_axis=0,
-            copy=self.copy,
+        result = self._reindex_and_concat(
+            join_index, left_join_indexer, right_join_indexer
         )
-
-        typ = self.left._constructor
-        result = typ(result_data)
-
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
