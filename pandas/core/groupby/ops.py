@@ -157,6 +157,7 @@ class WrappedCythonOp:
         "first",
         "rank",
         "sum",
+        "ohlc",
         "prod",
     }
 
@@ -220,13 +221,13 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["var", "mean", "ohlc"] or (
+            if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how in ["sum", "prod"]:
+            elif how in ["sum", "ohlc", "prod"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
@@ -481,6 +482,9 @@ class WrappedCythonOp:
             **kwargs,
         )
 
+        if self.how == "ohlc":
+            result_mask = np.tile(result_mask, (4, 1)).T
+
         # res_values should already have the correct dtype, we just need to
         #  wrap in a MaskedArray
         return orig_values._maybe_mask_result(res_values, result_mask)
@@ -593,8 +597,16 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["prod"]:
-                func(result, counts, values, comp_ids, mask, result_mask, min_count)
+            elif self.how in ["ohlc", "prod"]:
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
+                )
             else:
                 func(result, counts, values, comp_ids, min_count)
         else:
