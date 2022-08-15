@@ -298,6 +298,14 @@ def parse_datetime_string(
     if dt is not None:
         return dt
 
+    # Handling special case strings today & now
+    if date_string == "now":
+        dt = datetime.now()
+        return dt
+    elif date_string == "today":
+        dt = datetime.today()
+        return dt
+
     try:
         dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq=None)
         return dt
