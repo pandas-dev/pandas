@@ -6814,9 +6814,8 @@ class DataFrame(NDFrame, OpsMixin):
             # error: Argument 1 to "len" has incompatible type "Union[bool,
             # List[bool]]"; expected "Sized"
             raise ValueError(
-                "Length of ascending ("
-                f"{len(ascending)}) "  # type: ignore[arg-type]
-                f"!= length of by ({len(by)})"
+                f"Length of ascending ({len(ascending)})"  # type: ignore[arg-type]
+                f" != length of by ({len(by)})"
             )
         if len(by) > 1:
 
