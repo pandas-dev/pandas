@@ -706,7 +706,7 @@ def group_prod(
                     # else case is not possible
                     if uses_mask:
                         result_mask[i, j] = True
-                    elif prod_t is float32_t or prod_t is float64_t:
+                    elif int64float_t is float32_t or int64float_t is float64_t:
                         out[i, j] = NAN
                     else:
                         # we only get here when < mincount which gets handled later
