@@ -204,7 +204,6 @@ def group_cumprod_float64(
                     out[i, j] = NaN
                     if not skipna:
                         accum[lab, j] = NaN
-                        break
 
 
 @cython.boundscheck(False)
@@ -835,21 +834,32 @@ def group_mean(
                     out[i, j] = sumx[i, j] / count
 
 
+ctypedef fused int64float_t:
+    float32_t
+    float64_t
+    int64_t
+    uint64_t
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_ohlc(
-    floating[:, ::1] out,
+    int64float_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[floating, ndim=2] values,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
     Py_ssize_t min_count=-1,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab
-        floating val
+        int64float_t val
+        uint8_t[::1] first_element_set
+        bint isna_entry, uses_mask = not mask is None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -863,7 +873,15 @@ def group_ohlc(
 
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only one dimension")
-    out[:] = np.nan
+
+    if int64float_t is float32_t or int64float_t is float64_t:
+        out[:] = np.nan
+    else:
+        out[:] = 0
+
+    first_element_set = np.zeros((<object>counts).shape, dtype=np.uint8)
+    if uses_mask:
+        result_mask[:] = True
 
     with nogil:
         for i in range(N):
@@ -873,11 +891,22 @@ def group_ohlc(
 
             counts[lab] += 1
             val = values[i, 0]
-            if val != val:
+
+            if uses_mask:
+                isna_entry = mask[i, 0]
+            elif int64float_t is float32_t or int64float_t is float64_t:
+                isna_entry = val != val
+            else:
+                isna_entry = False
+
+            if isna_entry:
                 continue
 
-            if out[lab, 0] != out[lab, 0]:
+            if not first_element_set[lab]:
                 out[lab, 0] = out[lab, 1] = out[lab, 2] = out[lab, 3] = val
+                first_element_set[lab] = True
+                if uses_mask:
+                    result_mask[lab] = False
             else:
                 out[lab, 1] = max(out[lab, 1], val)
                 out[lab, 2] = min(out[lab, 2], val)
