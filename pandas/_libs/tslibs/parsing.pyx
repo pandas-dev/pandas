@@ -286,7 +286,7 @@ def parse_datetime_string(
         datetime dt
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError(f'Given date string {date_string} not likely a datetime.')
+        raise ValueError(f'Given date string {date_string} not likely a datetime')
 
     if does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
@@ -320,7 +320,7 @@ def parse_datetime_string(
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
-        raise ValueError(f'Given date string {date_string} not likely a datetime.')
+        raise ValueError(f'Given date string {date_string} not likely a datetime')
 
     return dt
 
@@ -396,7 +396,7 @@ cdef parse_datetime_string_with_reso(
         int out_tzoffset
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError(f'Given date string {date_string} not likely a datetime.')
+        raise ValueError(f'Given date string {date_string} not likely a datetime')
 
     parsed, reso = _parse_delimited_date(date_string, dayfirst)
     if parsed is not None:
