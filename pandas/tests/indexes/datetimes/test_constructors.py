@@ -1142,6 +1142,7 @@ if PY39:
     except zoneinfo.ZoneInfoNotFoundError:
         pass
 
+
 @pytest.mark.parametrize("tz", _tzs)
 @pytest.mark.parametrize(
     "ts_input,fold_out",
