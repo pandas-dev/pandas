@@ -612,8 +612,6 @@ def assert_interval_array_almost_equal(left, right, rtol=1e-5, atol=1e-8) -> Non
     """
     Test that two IntervalArrays are within tolerance.
 
-    rtol and atol only apply if dtype is float.
-
     Parameters
     ----------
     left, right : IntervalArray
