@@ -270,7 +270,8 @@ def main(source_paths: list[str]) -> int:
             removed_https_title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", title)
             if removed_https_title != correct_title_capitalization(removed_https_title):
                 print(
-                    f"""{filename}:{line_number}:{err_msg} "{removed_https_title.strip()}" to "{
+                    f"""{filename}:{line_number}:{err_msg} "{
+                    removed_https_title.strip()}" to "{
                     correct_title_capitalization(removed_https_title).strip()}" """
                 )
                 number_of_errors += 1
