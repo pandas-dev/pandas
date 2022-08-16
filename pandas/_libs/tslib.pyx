@@ -595,7 +595,7 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data {val} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't match format specified"
                                 )
                             return values, tz_out
 
@@ -611,7 +611,7 @@ cpdef array_to_datetime(
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
-                            raise TypeError("invalid string coercion to datetime")
+                            raise TypeError(f"invalid string coercion to datetime for \"{val}\" at position {i}")
 
                         if tz is not None:
                             seen_datetime_offset = True
