@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import is_list_like
 
 from pandas import isna
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 
 from pandas.io.common import (
