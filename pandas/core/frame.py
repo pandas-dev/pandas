@@ -11231,8 +11231,8 @@ Parrot 2  Parrot       24.0
             # error: List item 0 has incompatible type "Union[float, Union[Union[
             # ExtensionArray, ndarray[Any, Any]], Index, Series], Sequence[float]]";
             # expected "float"
-            res_df = self.quantile(
-                [q],  # type: ignore[list-item]
+            res_df = self.quantile(  # type: ignore[call-overload]
+                [q],
                 axis=axis,
                 numeric_only=numeric_only,
                 interpolation=interpolation,
