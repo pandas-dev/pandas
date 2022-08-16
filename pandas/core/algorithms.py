@@ -310,7 +310,7 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 # --------------- #
 
 
-def unique(values, mask=None):
+def unique(values):
     """
     Return unique values based on a hash table.
 
@@ -406,6 +406,11 @@ def unique(values, mask=None):
     >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
+    return _unique(values)
+
+
+def _unique(values, mask: npt.NDArray[np.bool_] | None = None):
+    """See algorithms.unique for docs"""
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values.dtype):
