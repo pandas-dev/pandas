@@ -53,7 +53,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
-from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
@@ -373,8 +372,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         data = self._data.copy()
 
         if name in {"cumsum", "cumprod"}:
-            op = getattr(datetimelike_accumulations, name)
-            data = op(data, skipna=skipna, **kwargs)
+            func = np.cumsum if name == "cumsum" else np.cumprod
+            data = nanops.na_accum_func(data, func, skipna=skipna)
 
             return type(self)._simple_new(data, freq=None, dtype=self.dtype)
 

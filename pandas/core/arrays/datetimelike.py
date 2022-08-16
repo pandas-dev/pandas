@@ -115,7 +115,6 @@ from pandas.core.algorithms import (
     mode,
     unique1d,
 )
-from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
@@ -1433,8 +1432,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         data = self._data.copy()
 
         if name in {"cummin", "cummax"}:
-            op = getattr(datetimelike_accumulations, name)
-            data = op(data, skipna=skipna, **kwargs)
+            func = np.minimum.accumulate if name == "cummin" else np.maximum.accumulate
+            data = nanops.na_accum_func(data, func, skipna=skipna)
 
             return type(self)._simple_new(data, freq=self.freq, dtype=self.dtype)
 
