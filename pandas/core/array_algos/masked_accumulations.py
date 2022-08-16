@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable
 
 import numpy as np
@@ -34,7 +36,6 @@ def _cum_func(
     skipna : bool, default True
         Whether to skip NA.
     """
-    dtype_info = None
     if is_float_dtype(values):
         dtype_info = np.finfo(values.dtype.type)
     elif is_integer_dtype(values):
