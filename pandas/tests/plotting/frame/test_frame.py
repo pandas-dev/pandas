@@ -2215,6 +2215,19 @@ class TestDataFramePlots(TestPlotBase):
                 assert ax.get_ylim() == (0, 100)
                 assert ax.get_yticks()[0] == 99
 
+    def test_sort_columns_deprecated(self):
+        # GH 47563
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.plot.box("a", sort_columns=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.plot.box(sort_columns=False)
+
+        with tm.assert_produces_warning(False):
+            df.plot.box("a")
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib as mpl
