@@ -4082,7 +4082,10 @@ class DataFrame(NDFrame, OpsMixin):
             return
 
         if len(value.columns) != 1:
-            raise ValueError("Expected DataFrame with 1 column.")
+            raise ValueError(
+                "Cannot set a DataFrame with multiple columns to the single "
+                f"column {key}"
+            )
 
         self[key] = value[value.columns[0]]
 

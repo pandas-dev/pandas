@@ -91,7 +91,7 @@ class TestDataFrameSetItem:
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
 
-        msg = "Expected DataFrame with 1 column."
+        msg = "Cannot set a DataFrame with multiple columns to the single column gr"
         with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
