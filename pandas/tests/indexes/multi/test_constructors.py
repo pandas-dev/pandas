@@ -650,7 +650,7 @@ def test_from_frame():
     tm.assert_index_equal(expected, result)
 
 
-@pytest.mark.skipif(pa_version_under1p01)
+@pytest.mark.skipif(pa_version_under1p01, reason="Import Problem")
 def test_from_frame_missing_values_multiIndex():
     # GH 39984
     import pyarrow as pa
