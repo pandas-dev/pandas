@@ -342,7 +342,6 @@ Other enhancements
 - ``compute.use_numba`` now exists as a configuration option that utilizes the numba engine when available (:issue:`33966`, :issue:`35374`)
 - :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with error values for ``yerr`` and/or ``xerr``, the left/lower values (first row) were mirrored, while the right/upper values (second row) were ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
 
-
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_110.notable_bug_fixes:
