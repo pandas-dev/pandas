@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import warnings
 
 import numpy as np
@@ -116,7 +117,7 @@ def get_offset(name: str) -> BaseOffset:
         "get_offset is deprecated and will be removed in a future version, "
         "use to_offset instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return _get_offset(name)
 
