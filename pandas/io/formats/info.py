@@ -21,14 +21,13 @@ from pandas._typing import (
     WriteBuffer,
 )
 
-from pandas.core.indexes.api import Index
-
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import (
+    from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -325,7 +324,7 @@ def _put_str(s: str | Dtype, space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
-def _sizeof_fmt(num: int | float, size_qualifier: str) -> str:
+def _sizeof_fmt(num: float, size_qualifier: str) -> str:
     """
     Return size in human readable format.
 

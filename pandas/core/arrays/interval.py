@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import operator
 from operator import (
     le,
@@ -1254,8 +1255,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def left(self):
         """
-        Return the left endpoints of each Interval in the IntervalArray as
-        an Index.
+        Return the left endpoints of each Interval in the IntervalArray as an Index.
         """
         from pandas import Index
 
@@ -1264,8 +1264,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def right(self):
         """
-        Return the right endpoints of each Interval in the IntervalArray as
-        an Index.
+        Return the right endpoints of each Interval in the IntervalArray as an Index.
         """
         from pandas import Index
 
@@ -1274,8 +1273,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def length(self) -> Index:
         """
-        Return an Index with entries denoting the length of each Interval in
-        the IntervalArray.
+        Return an Index with entries denoting the length of each Interval.
         """
         return self.right - self.left
 
@@ -1367,28 +1365,29 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def inclusive(self) -> IntervalInclusiveType:
         """
-        Whether the intervals are inclusive on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         return self.dtype.inclusive
 
     @property
     def closed(self) -> IntervalInclusiveType:
         """
-        Whether the intervals are closed on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
+
+        Either ``left``, ``right``, ``both`` or ``neither`.
         """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.dtype.inclusive
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
-        Return an %(klass)s identical to the current one, but closed on the
-        specified side.
+        Return an identical %(klass)s closed on the specified side.
 
         .. deprecated:: 1.5.0
 
@@ -1434,14 +1433,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "set_closed is deprecated and will be removed in a future version. "
             "Use set_inclusive instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.set_inclusive(closed)
 
     _interval_shared_docs["set_inclusive"] = textwrap.dedent(
         """
-        Return an %(klass)s identical to the current one, but closed on the
-        specified side.
+        Return an identical %(klass)s but closed on the specified side.
 
         .. versionadded:: 1.5
 
@@ -1497,9 +1495,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _interval_shared_docs[
         "is_non_overlapping_monotonic"
     ] = """
-        Return True if the %(klass)s is non-overlapping (no Intervals share
-        points) and is either monotonic increasing or monotonic decreasing,
-        else False.
+        Return a boolean whether the %(klass)s is non-overlapping and monotonic.
+
+        Non-overlapping means (no Intervals share points), and monotonic means
+        either monotonic increasing or monotonic decreasing.
         """
 
     # https://github.com/python/mypy/issues/1362
@@ -1739,7 +1738,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other < self._right if self.open_right else other <= self._right
         )
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if not hasattr(values, "dtype"):
             values = np.array(values)
         values = extract_array(values, extract_numpy=True)
