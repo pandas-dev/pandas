@@ -650,6 +650,20 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
 
+def test_groupby_cumprod_nan_influences_other_columns():
+    # GH#48064
+    df = DataFrame(
+        {
+            "a": 1,
+            "b": [1, np.nan, 2],
+            "c": [1, 2, 3.0],
+        }
+    )
+    result = df.groupby("a").cumprod(numeric_only=True, skipna=False)
+    expected = DataFrame({"b": [1, np.nan, np.nan], "c": [1, 2, 6.0]})
+    tm.assert_frame_equal(result, expected)
+
+
 def scipy_sem(*args, **kwargs):
     from scipy.stats import sem
 
@@ -1574,3 +1588,15 @@ def test_corrwith_with_1_axis():
     )
     expected = Series([np.nan] * 6, index=index)
     tm.assert_series_equal(result, expected)
+
+
+def test_multiindex_group_all_columns_when_empty(groupby_func):
+    # GH 32464
+    df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
+    gb = df.groupby(["a", "b", "c"])
+    method = getattr(gb, groupby_func)
+    args = get_groupby_method_args(groupby_func, df)
+
+    result = method(*args).index
+    expected = df.index
+    tm.assert_index_equal(result, expected)
