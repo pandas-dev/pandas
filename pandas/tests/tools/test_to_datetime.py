@@ -951,7 +951,7 @@ class TestToDatetime:
         msg = (
             "is a bad directive in format|"
             "second must be in 0..59|"
-            "Given date string not likely a datetime"
+            f"Given date string {value} not likely a datetime"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(
@@ -1003,7 +1003,7 @@ class TestToDatetime:
 
         msg = (
             "is a bad directive in format|"
-            "Given date string not likely a datetime|"
+            f"Given date string {values[0]} not likely a datetime|"
             "second must be in 0..59"
         )
         with pytest.raises(ValueError, match=msg):
@@ -2220,7 +2220,7 @@ class TestDaysInMonth:
 
     @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
     def test_day_not_in_month_raise_value(self, cache, arg):
-        msg = f"time data {arg} doesn't match format specified"
+        msg = f'time data "{arg}" at position 0 doesn\'t match format specified'
         with pytest.raises(ValueError, match=msg):
             to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 

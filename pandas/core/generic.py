@@ -1649,7 +1649,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # have consistent precedence and validation logic throughout the library.
 
     @final
-    def _is_level_reference(self, key, axis=0):
+    def _is_level_reference(self, key: Level, axis=0) -> bool_t:
         """
         Test whether a key is a level reference for a given axis.
 
@@ -1661,7 +1661,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
+        key : Hashable
             Potential level name for the given axis
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
@@ -1680,7 +1680,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _is_label_reference(self, key, axis=0) -> bool_t:
+    def _is_label_reference(self, key: Level, axis=0) -> bool_t:
         """
         Test whether a key is a label reference for a given axis.
 
@@ -1690,8 +1690,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
-            Potential label name
+        key : Hashable
+            Potential label name, i.e. Index entry.
         axis : int, default 0
             Axis perpendicular to the axis that labels are associated with
             (0 means search for column labels, 1 means search for index labels)
@@ -1710,7 +1710,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _is_label_or_level_reference(self, key: str, axis: int = 0) -> bool_t:
+    def _is_label_or_level_reference(self, key: Level, axis: int = 0) -> bool_t:
         """
         Test whether a key is a label or level reference for a given axis.
 
@@ -1721,7 +1721,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
+        key : Hashable
             Potential label or level name
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
@@ -1735,7 +1735,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _check_label_or_level_ambiguity(self, key, axis: int = 0) -> None:
+    def _check_label_or_level_ambiguity(self, key: Level, axis: int = 0) -> None:
         """
         Check whether `key` is ambiguous.
 
@@ -1744,7 +1744,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str or object
+        key : Hashable
             Label or level name.
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns).
@@ -1753,6 +1753,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ------
         ValueError: `key` is ambiguous
         """
+
         axis = self._get_axis_number(axis)
         other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
@@ -1779,7 +1780,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(msg)
 
     @final
-    def _get_label_or_level_values(self, key: Level, axis: int = 0) -> np.ndarray:
+    def _get_label_or_level_values(self, key: Level, axis: int = 0) -> ArrayLike:
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1794,14 +1795,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
+        key : Hashable
             Label or level name.
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
 
         Returns
         -------
-        values : np.ndarray
+        np.ndarray or ExtensionArray
 
         Raises
         ------
@@ -2292,6 +2293,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ExcelWriter : Class for writing DataFrame objects into excel sheets.
         read_excel : Read an Excel file into a pandas DataFrame.
         read_csv : Read a comma-separated values (csv) file into DataFrame.
+        io.formats.style.Styler.to_excel : Add styles to Excel sheet.
 
         Notes
         -----
@@ -3387,7 +3389,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {returns}
         See Also
         --------
-        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
+        io.formats.style.Styler.to_latex : Render a DataFrame to LaTeX
+            with conditional formatting.
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
