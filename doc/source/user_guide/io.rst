@@ -558,7 +558,8 @@ This matches the behavior of :meth:`Categorical.set_categories`.
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      df["col3"].cat.categories = pd.to_numeric(df["col3"].cat.categories)
+      new_categories = pd.to_numeric(df["col3"].cat.categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 
@@ -3078,15 +3079,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
    df = pd.read_xml(bio)
    df
 
-Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
+Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
+Biomedical and Life Science Jorurnals:
 
 .. ipython:: python
    :okwarning:
 
    df = pd.read_xml(
-       "s3://irs-form-990/201923199349319487_public.xml",
-       xpath=".//irs:Form990PartVIISectionAGrp",
-       namespaces={"irs": "http://www.irs.gov/efile"}
+       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+       xpath=".//journal-meta",
    )
    df
 

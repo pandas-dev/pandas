@@ -277,7 +277,7 @@ def test_np():
 
 
 class TestApi(Base):
-    allowed = ["types", "extensions", "indexers", "exchange"]
+    allowed = ["types", "extensions", "indexers", "interchange"]
 
     def test_api(self):
         self.check(api, self.allowed)

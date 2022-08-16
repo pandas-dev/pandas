@@ -652,7 +652,8 @@ cpdef array_to_datetime(
                     else:
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            except OutOfBoundsDatetime:
+            except OutOfBoundsDatetime as ex:
+                ex.args = (str(ex) + f" present at position {i}", )
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
@@ -798,6 +799,7 @@ cdef _array_to_datetime_object(
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
+    # 3) special strings - "now" & "today"
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
@@ -816,7 +818,8 @@ cdef _array_to_datetime_object(
                                                    yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError) as ex:
+                ex.args = (f"{ex} present at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue

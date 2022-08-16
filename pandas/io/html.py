@@ -10,6 +10,7 @@ from collections import abc
 import numbers
 import re
 from typing import (
+    TYPE_CHECKING,
     Iterable,
     Literal,
     Pattern,
@@ -45,6 +46,9 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 _IMPORTS = False
 _HAS_BS4 = False

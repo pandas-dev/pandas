@@ -235,7 +235,7 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.19.5
+`NumPy <https://numpy.org>`__                                    1.20.3
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
@@ -269,6 +269,23 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 :meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
+
+Timezones
+^^^^^^^^^
+
+========================= ========================= =============================================================
+Dependency                Minimum Version           Notes
+========================= ========================= =============================================================
+tzdata                    2022.1(pypi)/             Allows the use of ``zoneinfo`` timezones with pandas.
+                          2022a(for system tzdata)  **Note**: You only need to install the pypi package if your
+                                                    system does not already provide the IANA tz database.
+                                                    However, the minimum tzdata version still applies, even if it
+                                                    is not enforced through an error.
+
+                                                    If you would like to keep your system tzdata version updated,
+                                                    it is recommended to use the ``tzdata`` package from
+                                                    conda-forge.
+========================= ========================= =============================================================
 
 Visualization
 ^^^^^^^^^^^^^

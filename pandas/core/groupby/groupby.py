@@ -329,8 +329,7 @@ Series or DataFrame
 """
 
 _pipe_template = """
-Apply a function `func` with arguments to this %(klass)s object and return
-the function's result.
+Apply a ``func`` with arguments to this %(klass)s object and return its result.
 
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
@@ -381,8 +380,9 @@ Examples
 """
 
 _transform_template = """
-Call function producing a same-indexed %(klass)s on each group and
-return a %(klass)s having the same indexes as the original object
+Call function producing a same-indexed %(klass)s on each group.
+
+Returns a %(klass)s having the same indexes as the original object
 filled with the transformed values.
 
 Parameters
@@ -645,6 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
+    keys: _KeysArgType | None = None
     group_keys: bool | lib.NoDefault
 
     @final
@@ -821,6 +822,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
+        keys = self.keys
+        if isinstance(keys, list) and len(keys) == 1:
+            warnings.warn(
+                (
+                    "In a future version of pandas, a length 1 "
+                    "tuple will be returned when iterating over a "
+                    "a groupby with a grouper equal to a list of "
+                    "length 1. Don't supply a list with a single grouper "
+                    "to avoid this warning."
+                ),
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
 
@@ -1343,7 +1357,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
                 "raise a TypeError in a future version of pandas",
                 category=FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             raise NotImplementedError(
                 f"{type(self).__name__}.{how} does not implement numeric_only"
@@ -1605,7 +1619,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
             # We want to behave as if `self.group_keys=False` when reconstructing
             # the object. However, we don't want to mutate the stateful GroupBy
             # object, so we just override it.
@@ -2387,7 +2403,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            result = result.rename("size").reset_index()
+            # error: Incompatible types in assignment (expression has
+            # type "DataFrame", variable has type "Series")
+            result = result.rename("size").reset_index()  # type: ignore[assignment]
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2926,7 +2944,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
 
@@ -2962,7 +2980,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
 
@@ -4348,7 +4366,7 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Before calling .{how}, select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     elif numeric_only is lib.no_default:
         warnings.warn(
@@ -4358,5 +4376,5 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Either specify numeric_only or select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
