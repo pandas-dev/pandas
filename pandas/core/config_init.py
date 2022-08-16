@@ -262,7 +262,7 @@ pc_width_doc = """
 
 pc_chop_threshold_doc = """
 : float or None
-    if set to a float value, all float values smaller then the given threshold
+    if set to a float value, all float values smaller than the given threshold
     will be displayed as exactly 0 by repr and friends.
 """
 
