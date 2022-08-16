@@ -100,11 +100,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def freq(self) -> BaseOffset | None:
         return self._data.freq
 
-    @freq.setter
-    def freq(self, value) -> None:
-        # error: Property "freq" defined in "PeriodArray" is read-only
-        self._data.freq = value  # type: ignore[misc]
-
     # error: Decorated property not supported
     @property  # type: ignore[misc]
     @doc(DatetimeLikeArrayMixin.freqstr)
@@ -431,6 +426,17 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
         return self._data._ndarray
+
+    # error: Decorated property not supported
+    @property  # type: ignore[misc]
+    @doc(DatetimeLikeArrayMixin.freq)
+    def freq(self) -> BaseOffset | None:
+        # needed to define the setter (same as in DatetimeIndexOpsMixin)
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        self._data.freq = value
 
     # error: Decorated property not supported
     @cache_readonly  # type: ignore[misc]

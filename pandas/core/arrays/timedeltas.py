@@ -463,6 +463,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             result = self._ndarray / other
             freq = None
             if self.freq is not None:
+                # Tick division is not implemented, so operate on Timedelta
                 freq = self.freq.delta / other
                 freq = to_offset(freq)
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
