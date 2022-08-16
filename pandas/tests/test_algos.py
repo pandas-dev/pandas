@@ -835,7 +835,7 @@ class TestUnique:
         assert a[1] is unique_nulls_fixture2
 
     def test_unique_masked(self, any_numeric_ea_dtype):
-        # GH#
+        # GH#48019
         ser = Series([1, pd.NA, 2] * 3, dtype=any_numeric_ea_dtype)
         result = pd.unique(ser)
         expected = pd.array([1, pd.NA, 2], dtype=any_numeric_ea_dtype)
