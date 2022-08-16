@@ -3351,7 +3351,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {returns}
         See Also
         --------
-        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
+        io.formats.style.Styler.to_latex : Render a DataFrame to LaTeX
+            with conditional formatting.
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
