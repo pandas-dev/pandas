@@ -77,7 +77,6 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 
 if TYPE_CHECKING:
@@ -91,6 +90,8 @@ if TYPE_CHECKING:
         DatetimeArray,
         TimedeltaArray,
     )
+    from pandas.core.arrays.base import ExtensionArray
+
 
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
 
@@ -376,7 +377,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         import pyarrow
 
-        from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
+        from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
         if type is not None:
             if pyarrow.types.is_integer(type):

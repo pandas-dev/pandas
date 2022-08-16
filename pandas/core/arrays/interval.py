@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import operator
 from operator import (
     le,
@@ -1380,7 +1381,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.dtype.inclusive
 
@@ -1432,7 +1433,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "set_closed is deprecated and will be removed in a future version. "
             "Use set_inclusive instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.set_inclusive(closed)
 
@@ -1553,7 +1554,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
-        from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
+        from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
         try:
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
@@ -1737,7 +1738,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other < self._right if self.open_right else other <= self._right
         )
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if not hasattr(values, "dtype"):
             values = np.array(values)
         values = extract_array(values, extract_numpy=True)

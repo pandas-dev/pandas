@@ -1227,6 +1227,13 @@ class TestDataFrameIndexing:
         df.iloc[:] = df.iloc[:, :]
         tm.assert_frame_equal(df, orig)
 
+    def test_getitem_segfault_with_empty_like_object(self):
+        # GH#46848
+        df = DataFrame(np.empty((1, 1), dtype=object))
+        df[0] = np.empty_like(df[0])
+        # this produces the segfault
+        df[[0]]
+
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1339,6 +1346,30 @@ class TestDataFrameIndexing:
             name="c",
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [None, [None], pd.NA, [pd.NA]])
+    def test_iloc_setitem_string_list_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[[0], :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("val", [None, pd.NA])
+    def test_iloc_setitem_string_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[0, :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("func", [list, Series, np.array])
+    def test_iloc_setitem_ea_null_slice_length_one_list(self, func):
+        # GH#48016
+        df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+        df.iloc[:, func([0])] = 5
+        expected = DataFrame({"a": [5, 5, 5]}, dtype="Int64")
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64:
