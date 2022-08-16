@@ -1665,3 +1665,18 @@ def test_setitem_empty_mask_dont_upcast_dt64():
     ser.mask(mask, "foo", inplace=True)
     assert ser.dtype == dti.dtype  # no-op -> dont upcast
     tm.assert_series_equal(ser, orig)
+
+
+def test_setitem_on_series_dtype_object():
+    # GH#19647
+    result = Series(dtype="object")
+    result.loc["int"] = 1
+    result.loc["float"] = 2.0
+    expected = Series(data=[1, 2.0], index=["int", "float"]).astype("object")
+    tm.assert_series_equal(result, expected)
+
+    result = Series()
+    result.loc["int"] = 1
+    result.loc["float"] = 2.0
+    expected = Series(data=[1, 2.0], index=["int", "float"]).astype("float")
+    tm.assert_series_equal(result, expected)

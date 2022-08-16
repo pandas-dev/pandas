@@ -2117,7 +2117,8 @@ class _iLocIndexer(_LocationIndexer):
                 curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
                 new_dtype = maybe_promote(curr_dtype, value)[0]
             else:
-                new_dtype = None
+                if isinstance(self.obj.dtype, object):
+                    new_dtype = self.obj.dtype
 
             new_values = Series([value], dtype=new_dtype)._values
 
