@@ -598,6 +598,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             return object, ensure_object(fill_value)
 
     elif isna(fill_value):
+        dtype = _dtype_obj
         if fill_value is None:
             # but we retain e.g. pd.NA
             fill_value = np.nan
