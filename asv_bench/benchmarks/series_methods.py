@@ -145,12 +145,12 @@ class Clip:
 
 
 class ClipDt:
-    def setup(self, n):
+    def setup(self):
         dr = date_range("20220101", periods=100_000, freq="s", tz="UTC")
-        self.clipper_dt = dr[0:1000].repeat(100)
+        self.clipper_dt = dr[0:1_000].repeat(100)
         self.s = Series(dr)
 
-    def time_clip(self, n):
+    def time_clip(self):
         self.s.clip(upper=self.clipper_dt)
 
 
