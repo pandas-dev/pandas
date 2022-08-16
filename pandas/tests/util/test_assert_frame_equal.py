@@ -71,7 +71,8 @@ def _assert_not_frame_equal_both(a, b, **kwargs):
     _assert_not_frame_equal(b, a, **kwargs)
 
 
-def test_frame_equal_tolerance():
+def test_assert_frame_equal_interval_array_tolerance():
+    # see gh-43913
     df1 = DataFrame()
     df1[0] = pd.arrays.IntervalArray.from_tuples([(1.0, 2.0)])
 
