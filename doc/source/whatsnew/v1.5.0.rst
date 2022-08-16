@@ -407,7 +407,6 @@ upon serialization. (Related issue :issue:`12997`)
     # Roundtripping now works
     pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
 
-
 .. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
 
 DataFrameGroupBy.value_counts with non-grouping categorical columns and ``observed=True``
@@ -888,8 +887,9 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
-- Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
+- Bug in :meth:`.Categorical.view` not accepting integer dtypes (:issue:`25464`)
+- Bug in :meth:`.CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
+- Bug in :meth:`DataFrame.concat` when concatenating two (or more) unordered ``CategoricalIndex`` variables, whose categories are permutations, yields incorrect index values (:issue:`24845`)
 
 Datetimelike
 ^^^^^^^^^^^^
