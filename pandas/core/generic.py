@@ -2256,6 +2256,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ExcelWriter : Class for writing DataFrame objects into excel sheets.
         read_excel : Read an Excel file into a pandas DataFrame.
         read_csv : Read a comma-separated values (csv) file into DataFrame.
+        io.formats.style.Styler.to_excel : Add styles to Excel sheet.
 
         Notes
         -----
