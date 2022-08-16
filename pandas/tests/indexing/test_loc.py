@@ -1856,7 +1856,7 @@ class TestLocWithMultiIndex:
         )
         tm.assert_series_equal(srs, expected)
 
-    @pytest.mark.parametrize("na", (np.nan, pd.NA, None))
+    @pytest.mark.parametrize("na", (np.nan, pd.NA, None, pd.NaT))
     def test_loc_consistency_series_enlarge_set_into(self, na):
         # GH#47677
         srs_enlarge = Series(["a", "b", "c"], dtype="category")
