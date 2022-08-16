@@ -372,7 +372,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         data = self._data.copy()
 
-        if name in {"cumsum", "cumsum"}:
+        if name in {"cumsum", "cumprod"}:
             op = getattr(datetimelike_accumulations, name)
             data = op(data, skipna=skipna, **kwargs)
 

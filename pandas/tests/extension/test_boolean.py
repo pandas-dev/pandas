@@ -404,9 +404,6 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
         tm.assert_series_equal(result, expected, check_dtype=False)
 
 
-# TODO parsing not yet supported
-# class TestParsing(base.BaseParsingTests):
-#     pass
 class TestParsing(base.BaseParsingTests):
     pass
 
