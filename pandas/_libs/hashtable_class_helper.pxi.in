@@ -579,7 +579,12 @@ cdef class {{name}}HashTable(HashTable):
         ud = uniques.data
         use_na_value = na_value is not None
         use_mask = mask is not None
-        use_result_mask = use_result_mask and use_mask
+        if not use_mask and use_result_mask:
+            raise NotImplementedError  # pragma: no cover
+
+        if use_result_mask and return_inverse:
+            raise NotImplementedError  # pragma: no cover
+
         result_mask = UInt8Vector()
         rmd = result_mask.data
 
@@ -626,7 +631,7 @@ cdef class {{name}}HashTable(HashTable):
                                                      "uniques held, but "
                                                      "Vector.resize() needed")
                                 uniques.resize()
-                                if uniques.external_view_exists:
+                                if result_mask.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
@@ -649,7 +654,7 @@ cdef class {{name}}HashTable(HashTable):
                                                  "Vector.resize() needed")
                             uniques.resize()
                             if use_result_mask:
-                                if uniques.external_view_exists:
+                                if result_mask.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
