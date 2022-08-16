@@ -228,7 +228,11 @@ def _maybe_cache(
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
-            cache_array = Series(cache_dates, index=unique_dates)
+            # GH#45319
+            try:
+                cache_array = Series(cache_dates, index=unique_dates)
+            except OutOfBoundsDatetime:
+                return cache_array
             # GH#39882 and GH#35888 in case of None and NaT we get duplicates
             if not cache_array.index.is_unique:
                 cache_array = cache_array[~cache_array.index.duplicated()]
