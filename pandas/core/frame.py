@@ -5108,7 +5108,7 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(  # type: ignore[override]
+    def set_axis(
         self,
         labels,
         axis: Axis = 0,
