@@ -322,7 +322,7 @@ def unique(values, mask=None):
     Parameters
     ----------
     values : 1d array-like
-    mask : 1d boolean array
+    mask : 1d bool array
         Mask of the values.
 
     Returns
