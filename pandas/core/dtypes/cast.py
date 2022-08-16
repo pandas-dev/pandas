@@ -591,6 +591,12 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         fv = na_value_for_dtype(dtype)
         return dtype, fv
 
+    elif isinstance(dtype, CategoricalDtype):
+        if fill_value in dtype.categories or isna(fill_value):
+            return dtype, fill_value
+        else:
+            return object, ensure_object(fill_value)
+
     elif isna(fill_value):
         dtype = _dtype_obj
         if fill_value is None:
