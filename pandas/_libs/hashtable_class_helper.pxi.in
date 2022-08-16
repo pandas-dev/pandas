@@ -613,8 +613,11 @@ cdef class {{name}}HashTable(HashTable):
                     # and replace the corresponding label with na_sentinel
                     labels[i] = na_sentinel
                     continue
-                elif not ignore_na and use_result_mask and not seen_na:
+                elif not ignore_na and use_result_mask:
                     if mask_values[i]:
+                        if seen_na:
+                            continue
+
                         seen_na = True
                         if needs_resize(ud):
                             with gil:
