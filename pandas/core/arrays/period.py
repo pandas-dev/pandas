@@ -377,7 +377,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         import pyarrow
 
-        from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
+        from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
         if type is not None:
             if pyarrow.types.is_integer(type):

@@ -53,6 +53,7 @@ class TestPDApi(Base):
 
     # top-level classes
     classes = [
+        "ArrowDtype",
         "Categorical",
         "CategoricalIndex",
         "DataFrame",

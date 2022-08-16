@@ -114,7 +114,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
 
     def __init__(self, values) -> None:
         super().__init__(values)
-        # TODO: Migrate to ArrowDtype instead
         self._dtype = StringDtype(storage="pyarrow")
 
         if not pa.types.is_string(self._data.type):
