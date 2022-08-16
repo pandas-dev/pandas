@@ -18,7 +18,7 @@ class TestConfig:
         cls.do = deepcopy(getattr(cls.cf, "_deprecated_options"))
         cls.ro = deepcopy(getattr(cls.cf, "_registered_options"))
 
-    def setup_method(self, method):
+    def setup_method(self):
         setattr(self.cf, "_global_config", {})
         setattr(self.cf, "options", self.cf.DictWrapper(self.cf._global_config))
         setattr(self.cf, "_deprecated_options", {})
@@ -30,7 +30,7 @@ class TestConfig:
         # "chained_assignment" option, so re-register it.
         self.cf.register_option("chained_assignment", "raise")
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         setattr(self.cf, "_global_config", self.gc)
         setattr(self.cf, "_deprecated_options", self.do)
         setattr(self.cf, "_registered_options", self.ro)
@@ -112,8 +112,8 @@ class TestConfig:
 
         # if no doc is specified we get a default message
         # saying "description not available"
-        assert "vailable" in self.cf.describe_option("f", _print_desc=False)
-        assert "vailable" in self.cf.describe_option("g.h", _print_desc=False)
+        assert "available" in self.cf.describe_option("f", _print_desc=False)
+        assert "available" in self.cf.describe_option("g.h", _print_desc=False)
         assert "precated" in self.cf.describe_option("g.h", _print_desc=False)
         assert "k" in self.cf.describe_option("g.h", _print_desc=False)
 

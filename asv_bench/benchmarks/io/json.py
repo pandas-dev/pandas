@@ -6,6 +6,7 @@ from pandas import (
     DataFrame,
     concat,
     date_range,
+    json_normalize,
     read_json,
     timedelta_range,
 )
@@ -77,6 +78,27 @@ class ReadJSONLines(BaseIO):
         read_json(self.fname, orient="records", lines=True, nrows=15000)
 
 
+class NormalizeJSON(BaseIO):
+    fname = "__test__.json"
+    params = [
+        ["split", "columns", "index", "values", "records"],
+        ["df", "df_date_idx", "df_td_int_ts", "df_int_floats", "df_int_float_str"],
+    ]
+    param_names = ["orient", "frame"]
+
+    def setup(self, orient, frame):
+        data = {
+            "hello": ["thisisatest", 999898, "mixed types"],
+            "nest1": {"nest2": {"nest3": "nest3_value", "nest3_int": 3445}},
+            "nest1_list": {"nest2": ["blah", 32423, 546456.876, 92030234]},
+            "hello2": "string",
+        }
+        self.data = [data for i in range(10000)]
+
+    def time_normalize_json(self, orient, frame):
+        json_normalize(self.data)
+
+
 class ToJSON(BaseIO):
 
     fname = "__test__.json"
@@ -87,7 +109,7 @@ class ToJSON(BaseIO):
     param_names = ["orient", "frame"]
 
     def setup(self, orient, frame):
-        N = 10 ** 5
+        N = 10**5
         ncols = 5
         index = date_range("20000101", periods=N, freq="H")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
@@ -150,15 +172,19 @@ class ToJSON(BaseIO):
     def peakmem_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
-    def time_to_json_wide(self, orient, frame):
+
+class ToJSONWide(ToJSON):
+    def setup(self, orient, frame):
+        super().setup(orient, frame)
         base_df = getattr(self, frame).copy()
-        df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
-        df.to_json(self.fname, orient=orient)
+        df_wide = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
+        self.df_wide = df_wide
+
+    def time_to_json_wide(self, orient, frame):
+        self.df_wide.to_json(self.fname, orient=orient)
 
     def peakmem_to_json_wide(self, orient, frame):
-        base_df = getattr(self, frame).copy()
-        df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
-        df.to_json(self.fname, orient=orient)
+        self.df_wide.to_json(self.fname, orient=orient)
 
 
 class ToJSONISO(BaseIO):
@@ -167,7 +193,7 @@ class ToJSONISO(BaseIO):
     param_names = ["orient"]
 
     def setup(self, orient):
-        N = 10 ** 5
+        N = 10**5
         index = date_range("20000101", periods=N, freq="H")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
@@ -190,7 +216,7 @@ class ToJSONLines(BaseIO):
     fname = "__test__.json"
 
     def setup(self):
-        N = 10 ** 5
+        N = 10**5
         ncols = 5
         index = date_range("20000101", periods=N, freq="H")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")

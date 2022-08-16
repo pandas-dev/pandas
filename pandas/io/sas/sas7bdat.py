@@ -13,28 +13,33 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
+from __future__ import annotations
+
 from collections import abc
 from datetime import (
     datetime,
     timedelta,
 )
 import struct
-from typing import (
-    IO,
-    Any,
-    Union,
-    cast,
-)
+from typing import cast
 
 import numpy as np
 
+from pandas._typing import (
+    CompressionOptions,
+    FilePath,
+    ReadBuffer,
+)
 from pandas.errors import (
     EmptyDataError,
     OutOfBoundsDatetime,
 )
 
 import pandas as pd
-from pandas import isna
+from pandas import (
+    DataFrame,
+    isna,
+)
 
 from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
@@ -88,7 +93,7 @@ class _SubheaderPointer:
     compression: int
     ptype: int
 
-    def __init__(self, offset: int, length: int, compression: int, ptype: int):
+    def __init__(self, offset: int, length: int, compression: int, ptype: int) -> None:
         self.offset = offset
         self.length = length
         self.compression = compression
@@ -97,21 +102,22 @@ class _SubheaderPointer:
 
 class _Column:
     col_id: int
-    name: Union[str, bytes]
-    label: Union[str, bytes]
-    format: Union[str, bytes]  # TODO: i think allowing bytes is from py2 days
+    name: str | bytes
+    label: str | bytes
+    format: str | bytes
     ctype: bytes
     length: int
 
     def __init__(
         self,
         col_id: int,
-        name: Union[str, bytes],
-        label: Union[str, bytes],
-        format: Union[str, bytes],
+        # These can be bytes when convert_header_text is False
+        name: str | bytes,
+        label: str | bytes,
+        format: str | bytes,
         ctype: bytes,
         length: int,
-    ):
+    ) -> None:
         self.col_id = col_id
         self.name = name
         self.label = label
@@ -132,10 +138,10 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         contents.
     index : column identifier, defaults to None
         Column to use as index.
-    convert_dates : boolean, defaults to True
+    convert_dates : bool, defaults to True
         Attempt to convert dates to Pandas datetime values.  Note that
         some rarely used SAS date formats may be unsupported.
-    blank_missing : boolean, defaults to True
+    blank_missing : bool, defaults to True
         Convert empty strings to missing values (SAS uses blanks to
         indicate missing character variables).
     chunksize : int, defaults to None
@@ -150,17 +156,21 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         bytes.
     """
 
+    _int_length: int
+    _cached_page: bytes | None
+
     def __init__(
         self,
-        path_or_buf,
+        path_or_buf: FilePath | ReadBuffer[bytes],
         index=None,
-        convert_dates=True,
-        blank_missing=True,
-        chunksize=None,
-        encoding=None,
-        convert_text=True,
-        convert_header_text=True,
-    ):
+        convert_dates: bool = True,
+        blank_missing: bool = True,
+        chunksize: int | None = None,
+        encoding: str | None = None,
+        convert_text: bool = True,
+        convert_header_text: bool = True,
+        compression: CompressionOptions = "infer",
+    ) -> None:
 
         self.index = index
         self.convert_dates = convert_dates
@@ -172,24 +182,26 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         self.default_encoding = "latin-1"
         self.compression = b""
-        self.column_names_strings = []
-        self.column_names = []
-        self.column_formats = []
-        self.columns = []
+        self.column_names_raw: list[bytes] = []
+        self.column_names: list[str | bytes] = []
+        self.column_formats: list[str | bytes] = []
+        self.columns: list[_Column] = []
 
-        self._current_page_data_subheader_pointers = []
+        self._current_page_data_subheader_pointers: list[_SubheaderPointer] = []
         self._cached_page = None
-        self._column_data_lengths = []
-        self._column_data_offsets = []
-        self._column_types = []
+        self._column_data_lengths: list[int] = []
+        self._column_data_offsets: list[int] = []
+        self._column_types: list[bytes] = []
 
         self._current_row_in_file_index = 0
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self.handles = get_handle(path_or_buf, "rb", is_text=False)
+        self.handles = get_handle(
+            path_or_buf, "rb", is_text=False, compression=compression
+        )
 
-        self._path_or_buf = cast(IO[Any], self.handles.handle)
+        self._path_or_buf = self.handles.handle
 
         try:
             self._get_properties()
@@ -198,25 +210,25 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             self.close()
             raise
 
-    def column_data_lengths(self):
+    def column_data_lengths(self) -> np.ndarray:
         """Return a numpy int64 array of the column data lengths"""
         return np.asarray(self._column_data_lengths, dtype=np.int64)
 
-    def column_data_offsets(self):
+    def column_data_offsets(self) -> np.ndarray:
         """Return a numpy int64 array of the column offsets"""
         return np.asarray(self._column_data_offsets, dtype=np.int64)
 
-    def column_types(self):
+    def column_types(self) -> np.ndarray:
         """
         Returns a numpy character array of the column types:
            s (string) or d (double)
         """
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
-    def close(self):
+    def close(self) -> None:
         self.handles.close()
 
-    def _get_properties(self):
+    def _get_properties(self) -> None:
 
         # Check magic number
         self._path_or_buf.seek(0)
@@ -266,17 +278,13 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         else:
             self.platform = "unknown"
 
-        buf = self._read_bytes(const.dataset_offset, const.dataset_length)
-        self.name = buf.rstrip(b"\x00 ")
-        if self.convert_header_text:
-            self.name = self.name.decode(self.encoding or self.default_encoding)
+        self.name = self._read_and_convert_header_text(
+            const.dataset_offset, const.dataset_length
+        )
 
-        buf = self._read_bytes(const.file_type_offset, const.file_type_length)
-        self.file_type = buf.rstrip(b"\x00 ")
-        if self.convert_header_text:
-            self.file_type = self.file_type.decode(
-                self.encoding or self.default_encoding
-            )
+        self.file_type = self._read_and_convert_header_text(
+            const.file_type_offset, const.file_type_length
+        )
 
         # Timestamp is epoch 01/01/1960
         epoch = datetime(1960, 1, 1)
@@ -296,7 +304,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         # Read the rest of the header into cached_page.
         buf = self._path_or_buf.read(self.header_length - 288)
         self._cached_page += buf
-        if len(self._cached_page) != self.header_length:
+        # error: Argument 1 to "len" has incompatible type "Optional[bytes]";
+        #  expected "Sized"
+        if len(self._cached_page) != self.header_length:  # type: ignore[arg-type]
             raise ValueError("The SAS7BDAT file appears to be truncated.")
 
         self._page_length = self._read_int(
@@ -306,56 +316,35 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             const.page_count_offset + align1, const.page_count_length
         )
 
-        buf = self._read_bytes(
+        self.sas_release_offset = self._read_and_convert_header_text(
             const.sas_release_offset + total_align, const.sas_release_length
         )
-        self.sas_release = buf.rstrip(b"\x00 ")
-        if self.convert_header_text:
-            self.sas_release = self.sas_release.decode(
-                self.encoding or self.default_encoding
-            )
 
-        buf = self._read_bytes(
+        self.server_type = self._read_and_convert_header_text(
             const.sas_server_type_offset + total_align, const.sas_server_type_length
         )
-        self.server_type = buf.rstrip(b"\x00 ")
-        if self.convert_header_text:
-            self.server_type = self.server_type.decode(
-                self.encoding or self.default_encoding
-            )
 
-        buf = self._read_bytes(
+        self.os_version = self._read_and_convert_header_text(
             const.os_version_number_offset + total_align, const.os_version_number_length
         )
-        self.os_version = buf.rstrip(b"\x00 ")
-        if self.convert_header_text:
-            self.os_version = self.os_version.decode(
-                self.encoding or self.default_encoding
-            )
 
-        buf = self._read_bytes(const.os_name_offset + total_align, const.os_name_length)
-        buf = buf.rstrip(b"\x00 ")
-        if len(buf) > 0:
-            self.os_name = buf.decode(self.encoding or self.default_encoding)
-        else:
-            buf = self._read_bytes(
+        self.os_name = self._read_and_convert_header_text(
+            const.os_name_offset + total_align, const.os_name_length
+        )
+        if not self.os_name:
+            self.os_name = self._read_and_convert_header_text(
                 const.os_maker_offset + total_align, const.os_maker_length
             )
-            self.os_name = buf.rstrip(b"\x00 ")
-            if self.convert_header_text:
-                self.os_name = self.os_name.decode(
-                    self.encoding or self.default_encoding
-                )
 
-    def __next__(self):
+    def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
-        if da is None:
+        if da.empty:
             self.close()
             raise StopIteration
         return da
 
     # Read a single float of the given width (4 or 8).
-    def _read_float(self, offset, width):
+    def _read_float(self, offset: int, width: int):
         if width not in (4, 8):
             self.close()
             raise ValueError("invalid float width")
@@ -388,7 +377,12 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 raise ValueError("The cached page is too small.")
             return self._cached_page[offset : offset + length]
 
-    def _parse_metadata(self):
+    def _read_and_convert_header_text(self, offset: int, length: int) -> str | bytes:
+        return self._convert_header_text(
+            self._read_bytes(offset, length).rstrip(b"\x00 ")
+        )
+
+    def _parse_metadata(self) -> None:
         done = False
         while not done:
             self._cached_page = self._path_or_buf.read(self._page_length)
@@ -398,14 +392,14 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
 
-    def _process_page_meta(self):
+    def _process_page_meta(self) -> bool:
         self._read_page_header()
-        pt = [const.page_meta_type, const.page_amd_type] + const.page_mix_types
+        pt = const.page_meta_types + [const.page_amd_type, const.page_mix_type]
         if self._current_page_type in pt:
             self._process_page_metadata()
-        is_data_page = self._current_page_type & const.page_data_type
-        is_mix_page = self._current_page_type in const.page_mix_types
-        return (
+        is_data_page = self._current_page_type == const.page_data_type
+        is_mix_page = self._current_page_type == const.page_mix_type
+        return bool(
             is_data_page
             or is_mix_page
             or self._current_page_data_subheader_pointers != []
@@ -414,7 +408,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _read_page_header(self):
         bit_offset = self._page_bit_offset
         tx = const.page_type_offset + bit_offset
-        self._current_page_type = self._read_int(tx, const.page_type_length)
+        self._current_page_type = (
+            self._read_int(tx, const.page_type_length) & const.page_type_mask2
+        )
         tx = const.block_count_offset + bit_offset
         self._current_page_block_count = self._read_int(tx, const.block_count_length)
         tx = const.subheader_count_offset + bit_offset
@@ -422,7 +418,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             tx, const.subheader_count_length
         )
 
-    def _process_page_metadata(self):
+    def _process_page_metadata(self) -> None:
         bit_offset = self._page_bit_offset
 
         for i in range(self._current_page_subheaders_count):
@@ -439,7 +435,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             )
             self._process_subheader(subheader_index, pointer)
 
-    def _get_subheader_index(self, signature, compression, ptype):
+    def _get_subheader_index(self, signature: bytes, compression, ptype) -> int:
+        # TODO: return here could be made an enum
         index = const.subheader_signature_to_index.get(signature)
         if index is None:
             f1 = (compression == const.compressed_subheader_id) or (compression == 0)
@@ -451,7 +448,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 raise ValueError("Unknown subheader signature")
         return index
 
-    def _process_subheader_pointers(self, offset: int, subheader_pointer_index: int):
+    def _process_subheader_pointers(
+        self, offset: int, subheader_pointer_index: int
+    ) -> _SubheaderPointer:
 
         subheader_pointer_length = self._subheader_pointer_length
         total_offset = offset + subheader_pointer_length * subheader_pointer_index
@@ -473,11 +472,13 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         return x
 
-    def _read_subheader_signature(self, offset):
+    def _read_subheader_signature(self, offset: int) -> bytes:
         subheader_signature = self._read_bytes(offset, self._int_length)
         return subheader_signature
 
-    def _process_subheader(self, subheader_index, pointer):
+    def _process_subheader(
+        self, subheader_index: int, pointer: _SubheaderPointer
+    ) -> None:
         offset = pointer.offset
         length = pointer.length
 
@@ -505,7 +506,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         processor(offset, length)
 
-    def _process_rowsize_subheader(self, offset, length):
+    def _process_rowsize_subheader(self, offset: int, length: int) -> None:
 
         int_len = self._int_length
         lcs_offset = offset
@@ -534,7 +535,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._lcs = self._read_int(lcs_offset, 2)
         self._lcp = self._read_int(lcp_offset, 2)
 
-    def _process_columnsize_subheader(self, offset, length):
+    def _process_columnsize_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
         offset += int_len
         self.column_count = self._read_int(offset, int_len)
@@ -545,22 +546,19 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             )
 
     # Unknown purpose
-    def _process_subheader_counts(self, offset, length):
+    def _process_subheader_counts(self, offset: int, length: int) -> None:
         pass
 
-    def _process_columntext_subheader(self, offset, length):
+    def _process_columntext_subheader(self, offset: int, length: int) -> None:
 
         offset += self._int_length
         text_block_size = self._read_int(offset, const.text_block_size_length)
 
         buf = self._read_bytes(offset, text_block_size)
         cname_raw = buf[0:text_block_size].rstrip(b"\x00 ")
-        cname = cname_raw
-        if self.convert_header_text:
-            cname = cname.decode(self.encoding or self.default_encoding)
-        self.column_names_strings.append(cname)
+        self.column_names_raw.append(cname_raw)
 
-        if len(self.column_names_strings) == 1:
+        if len(self.column_names_raw) == 1:
             compression_literal = b""
             for cl in const.compression_literals:
                 if cl in cname_raw:
@@ -594,13 +592,10 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                     offset1 += 4
                 buf = self._read_bytes(offset1, self._lcs)
                 self.creator_proc = buf[0 : self._lcp]
-            if self.convert_header_text:
-                if hasattr(self, "creator_proc"):
-                    self.creator_proc = self.creator_proc.decode(
-                        self.encoding or self.default_encoding
-                    )
+            if hasattr(self, "creator_proc"):
+                self.creator_proc = self._convert_header_text(self.creator_proc)
 
-    def _process_columnname_subheader(self, offset, length):
+    def _process_columnname_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
         offset += int_len
         column_name_pointers_count = (length - 2 * int_len - 12) // 8
@@ -629,10 +624,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             )
             col_len = self._read_int(col_name_length, const.column_name_length_length)
 
-            name_str = self.column_names_strings[idx]
-            self.column_names.append(name_str[col_offset : col_offset + col_len])
+            name_raw = self.column_names_raw[idx]
+            cname = name_raw[col_offset : col_offset + col_len]
+            self.column_names.append(self._convert_header_text(cname))
 
-    def _process_columnattributes_subheader(self, offset, length):
+    def _process_columnattributes_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
         column_attributes_vectors_count = (length - 2 * int_len - 12) // (int_len + 8)
         for i in range(column_attributes_vectors_count):
@@ -658,11 +654,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             x = self._read_int(col_types, const.column_type_length)
             self._column_types.append(b"d" if x == 1 else b"s")
 
-    def _process_columnlist_subheader(self, offset, length):
+    def _process_columnlist_subheader(self, offset: int, length: int) -> None:
         # unknown purpose
         pass
 
-    def _process_format_subheader(self, offset, length):
+    def _process_format_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
         text_subheader_format = (
             offset + const.column_format_text_subheader_index_offset + 3 * int_len
@@ -678,7 +674,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         x = self._read_int(
             text_subheader_format, const.column_format_text_subheader_index_length
         )
-        format_idx = min(x, len(self.column_names_strings) - 1)
+        format_idx = min(x, len(self.column_names_raw) - 1)
 
         format_start = self._read_int(
             col_format_offset, const.column_format_offset_length
@@ -688,15 +684,19 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         label_idx = self._read_int(
             text_subheader_label, const.column_label_text_subheader_index_length
         )
-        label_idx = min(label_idx, len(self.column_names_strings) - 1)
+        label_idx = min(label_idx, len(self.column_names_raw) - 1)
 
         label_start = self._read_int(col_label_offset, const.column_label_offset_length)
         label_len = self._read_int(col_label_len, const.column_label_length_length)
 
-        label_names = self.column_names_strings[label_idx]
-        column_label = label_names[label_start : label_start + label_len]
-        format_names = self.column_names_strings[format_idx]
-        column_format = format_names[format_start : format_start + format_len]
+        label_names = self.column_names_raw[label_idx]
+        column_label = self._convert_header_text(
+            label_names[label_start : label_start + label_len]
+        )
+        format_names = self.column_names_raw[format_idx]
+        column_format = self._convert_header_text(
+            format_names[format_start : format_start + format_len]
+        )
         current_column_number = len(self.columns)
 
         col = _Column(
@@ -711,7 +711,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.column_formats.append(column_format)
         self.columns.append(col)
 
-    def read(self, nrows=None):
+    def read(self, nrows: int | None = None) -> DataFrame:
 
         if (nrows is None) and (self.chunksize is not None):
             nrows = self.chunksize
@@ -722,8 +722,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             self.close()
             raise EmptyDataError("No columns to parse from file")
 
-        if self._current_row_in_file_index >= self.row_count:
-            return None
+        if nrows > 0 and self._current_row_in_file_index >= self.row_count:
+            return DataFrame()
 
         m = self.row_count - self._current_row_in_file_index
         if nrows > m:
@@ -759,23 +759,23 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise ValueError(msg)
 
         self._read_page_header()
-        page_type = self._current_page_type
-        if page_type == const.page_meta_type:
+        if self._current_page_type in const.page_meta_types:
             self._process_page_metadata()
 
-        is_data_page = page_type & const.page_data_type
-        pt = [const.page_meta_type] + const.page_mix_types
-        if not is_data_page and self._current_page_type not in pt:
+        if self._current_page_type not in const.page_meta_types + [
+            const.page_data_type,
+            const.page_mix_type,
+        ]:
             return self._read_next_page()
 
         return False
 
-    def _chunk_to_dataframe(self):
+    def _chunk_to_dataframe(self) -> DataFrame:
 
         n = self._current_row_in_chunk_index
         m = self._current_row_in_file_index
         ix = range(m - n, m)
-        rslt = pd.DataFrame(index=ix)
+        rslt = {}
 
         js, jb = 0, 0
         for j in range(self.column_count):
@@ -783,8 +783,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             name = self.column_names[j]
 
             if self._column_types[j] == b"d":
-                rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = np.asarray(rslt[name], dtype=np.float64)
+                col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
+                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")
@@ -792,17 +792,25 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                         rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = self._string_chunk[js, :]
+                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix)
                 if self.convert_text and (self.encoding is not None):
-                    rslt[name] = rslt[name].str.decode(
-                        self.encoding or self.default_encoding
-                    )
+                    rslt[name] = self._decode_string(rslt[name].str)
                 if self.blank_missing:
                     ii = rslt[name].str.len() == 0
-                    rslt.loc[ii, name] = np.nan
+                    rslt[name][ii] = np.nan
                 js += 1
             else:
                 self.close()
-                raise ValueError(f"unknown column type {self._column_types[j]}")
+                raise ValueError(f"unknown column type {repr(self._column_types[j])}")
 
-        return rslt
+        df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
+        return df
+
+    def _decode_string(self, b):
+        return b.decode(self.encoding or self.default_encoding)
+
+    def _convert_header_text(self, b: bytes) -> str | bytes:
+        if self.convert_header_text:
+            return self._decode_string(b)
+        else:
+            return b

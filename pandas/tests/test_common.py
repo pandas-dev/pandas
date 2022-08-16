@@ -1,18 +1,16 @@
 import collections
-from distutils.version import LooseVersion
 from functools import partial
 import string
 
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17
-
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
+from pandas.util.version import Version
 
 
 def test_get_callable_name():
@@ -27,7 +25,9 @@ def test_get_callable_name():
 
     class somecall:
         def __call__(self):
-            return x  # noqa
+            # This shouldn't actually get called below; somecall.__init__
+            #  should.
+            raise NotImplementedError
 
     assert getname(fn) == "fn"
     assert getname(lambda_)
@@ -64,7 +64,7 @@ def test_random_state():
 
     # check array-like
     # GH32503
-    state_arr_like = npr.randint(0, 2 ** 31, size=624, dtype="uint32")
+    state_arr_like = npr.randint(0, 2**31, size=624, dtype="uint32")
     assert (
         com.random_state(state_arr_like).uniform()
         == npr.RandomState(state_arr_like).uniform()
@@ -72,19 +72,18 @@ def test_random_state():
 
     # Check BitGenerators
     # GH32503
-    if not np_version_under1p17:
-        assert (
-            com.random_state(npr.MT19937(3)).uniform()
-            == npr.RandomState(npr.MT19937(3)).uniform()
-        )
-        assert (
-            com.random_state(npr.PCG64(11)).uniform()
-            == npr.RandomState(npr.PCG64(11)).uniform()
-        )
+    assert (
+        com.random_state(npr.MT19937(3)).uniform()
+        == npr.RandomState(npr.MT19937(3)).uniform()
+    )
+    assert (
+        com.random_state(npr.PCG64(11)).uniform()
+        == npr.RandomState(npr.PCG64(11)).uniform()
+    )
 
     # Error for floats or strings
     msg = (
-        "random_state must be an integer, array-like, a BitGenerator, "
+        "random_state must be an integer, array-like, a BitGenerator, Generator, "
         "a numpy RandomState, or None"
     )
     with pytest.raises(ValueError, match=msg):
@@ -103,10 +102,34 @@ def test_random_state():
         (Series([1], name="x"), Series([2]), None),
         (Series([1], name="x"), [2], "x"),
         ([1], Series([2], name="y"), "y"),
+        # matching NAs
+        (Series([1], name=np.nan), pd.Index([], name=np.nan), np.nan),
+        (Series([1], name=np.nan), pd.Index([], name=pd.NaT), None),
+        (Series([1], name=pd.NA), pd.Index([], name=pd.NA), pd.NA),
+        # tuple name GH#39757
+        (
+            Series([1], name=np.int64(1)),
+            pd.Index([], name=(np.int64(1), np.int64(2))),
+            None,
+        ),
+        (
+            Series([1], name=(np.int64(1), np.int64(2))),
+            pd.Index([], name=(np.int64(1), np.int64(2))),
+            (np.int64(1), np.int64(2)),
+        ),
+        pytest.param(
+            Series([1], name=(np.float64("nan"), np.int64(2))),
+            pd.Index([], name=(np.float64("nan"), np.int64(2))),
+            (np.float64("nan"), np.int64(2)),
+            marks=pytest.mark.xfail(
+                reason="Not checking for matching NAs inside tuples."
+            ),
+        ),
     ],
 )
 def test_maybe_match_name(left, right, expected):
-    assert ops.common._maybe_match_name(left, right) == expected
+    res = ops.common._maybe_match_name(left, right)
+    assert res is expected or res == expected
 
 
 def test_standardize_mapping():
@@ -142,9 +165,9 @@ def test_git_version():
 
 
 def test_version_tag():
-    version = pd.__version__
+    version = Version(pd.__version__)
     try:
-        version > LooseVersion("0.0.1")
+        version > Version("0.0.1")
     except TypeError:
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
@@ -163,6 +186,46 @@ def test_serializable(obj):
 class TestIsBoolIndexer:
     def test_non_bool_array_with_na(self):
         # in particular, this should not raise
-        arr = np.array(["A", "B", np.nan])
-
+        arr = np.array(["A", "B", np.nan], dtype=object)
         assert not com.is_bool_indexer(arr)
+
+    def test_list_subclass(self):
+        # GH#42433
+
+        class MyList(list):
+            pass
+
+        val = MyList(["a"])
+
+        assert not com.is_bool_indexer(val)
+
+        val = MyList([True])
+        assert com.is_bool_indexer(val)
+
+    def test_frozenlist(self):
+        # GH#42461
+        data = {"col1": [1, 2], "col2": [3, 4]}
+        df = pd.DataFrame(data=data)
+
+        frozen = df.index.names[1:]
+        assert not com.is_bool_indexer(frozen)
+
+        result = df[frozen]
+        expected = df[[]]
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("with_exception", [True, False])
+def test_temp_setattr(with_exception):
+    # GH#45954
+    ser = Series(dtype=object)
+    ser.name = "first"
+    # Raise a ValueError in either case to satisfy pytest.raises
+    match = "Inside exception raised" if with_exception else "Outside exception raised"
+    with pytest.raises(ValueError, match=match):
+        with com.temp_setattr(ser, "name", "second"):
+            assert ser.name == "second"
+            if with_exception:
+                raise ValueError("Inside exception raised")
+        raise ValueError("Outside exception raised")
+    assert ser.name == "first"

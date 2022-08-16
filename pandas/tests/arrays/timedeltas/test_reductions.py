@@ -84,19 +84,8 @@ class TestReductions:
         assert isinstance(result, Timedelta)
         assert result == expected
 
-    # TODO: de-duplicate with test_npsum below
-    def test_np_sum(self):
-        # GH#25282
-        vals = np.arange(5, dtype=np.int64).view("m8[h]").astype("m8[ns]")
-        arr = TimedeltaArray(vals)
-        result = np.sum(arr)
-        assert result == vals.sum()
-
-        result = np.sum(pd.TimedeltaIndex(arr))
-        assert result == vals.sum()
-
     def test_npsum(self):
-        # GH#25335 np.sum should return a Timedelta, not timedelta64
+        # GH#25282, GH#25335 np.sum should return a Timedelta, not timedelta64
         tdi = pd.TimedeltaIndex(["3H", "3H", "2H", "5H", "4H"])
         arr = tdi.array
 
@@ -138,9 +127,9 @@ class TestReductions:
         "add",
         [
             Timedelta(0),
-            pd.Timestamp.now(),
-            pd.Timestamp.now("UTC"),
-            pd.Timestamp.now("Asia/Tokyo"),
+            pd.Timestamp("2021-01-01"),
+            pd.Timestamp("2021-01-01", tz="UTC"),
+            pd.Timestamp("2021-01-01", tz="Asia/Tokyo"),
         ],
     )
     def test_std(self, add):
@@ -158,7 +147,7 @@ class TestReductions:
 
         if getattr(arr, "tz", None) is None:
             result = nanops.nanstd(np.asarray(arr), skipna=True)
-            assert isinstance(result, Timedelta)
+            assert isinstance(result, np.timedelta64)
             assert result == expected
 
         result = arr.std(skipna=False)
@@ -169,7 +158,8 @@ class TestReductions:
 
         if getattr(arr, "tz", None) is None:
             result = nanops.nanstd(np.asarray(arr), skipna=False)
-            assert result is pd.NaT
+            assert isinstance(result, np.timedelta64)
+            assert np.isnat(result)
 
     def test_median(self):
         tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])

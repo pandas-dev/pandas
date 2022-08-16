@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -12,12 +11,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-
-
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
 
 
 class TestSeriesConcat:
@@ -48,10 +41,10 @@ class TestSeriesConcat:
         s2 = Series([], dtype=object)
 
         expected = s1
-        result = pd.concat([s1, s2])
+        result = concat([s1, s2])
         tm.assert_series_equal(result, expected)
 
-    def test_concat_series_axis1(self, sort=sort):
+    def test_concat_series_axis1(self):
         ts = tm.makeTimeSeries()
 
         pieces = [ts[:-2], ts[2:], ts[2:-2]]
@@ -64,6 +57,7 @@ class TestSeriesConcat:
         expected = DataFrame(pieces, index=["A", "B", "C"]).T
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_series_axis1_preserves_series_names(self):
         # preserve series names, #2489
         s = Series(np.random.randn(5), name="A")
         s2 = Series(np.random.randn(5), name="B")
@@ -76,11 +70,14 @@ class TestSeriesConcat:
         result = concat([s, s2], axis=1)
         tm.assert_index_equal(result.columns, Index(["A", 0], dtype="object"))
 
+    def test_concat_series_axis1_with_reindex(self, sort):
         # must reindex, #2603
         s = Series(np.random.randn(3), index=["c", "a", "b"], name="A")
         s2 = Series(np.random.randn(4), index=["d", "a", "b", "c"], name="B")
         result = concat([s, s2], axis=1, sort=sort)
-        expected = DataFrame({"A": s, "B": s2})
+        expected = DataFrame({"A": s, "B": s2}, index=["c", "a", "b", "d"])
+        if sort:
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
     def test_concat_series_axis1_names_applied(self):
@@ -117,7 +114,7 @@ class TestSeriesConcat:
         # GH21015
         s1 = Series({"a": 1, "b": 2}, name=s1name)
         s2 = Series({"c": 5, "d": 6}, name=s2name)
-        result = pd.concat([s1, s2])
+        result = concat([s1, s2])
         expected = Series({"a": 1, "b": 2, "c": 5, "d": 6})
         tm.assert_series_equal(result, expected)
 
@@ -147,5 +144,5 @@ class TestSeriesConcat:
     def test_concat_series_length_one_reversed(self, frame_or_series):
         # GH39401
         obj = frame_or_series([100])
-        result = pd.concat([obj.iloc[::-1]])
+        result = concat([obj.iloc[::-1]])
         tm.assert_equal(result, obj)

@@ -15,26 +15,9 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestDataFrameColor(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame(
-            {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
-            }
-        )
-
     def test_mpl2_color_cycle_str(self):
         # GH 15516
         df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
@@ -213,14 +196,15 @@ class TestDataFrameColor(TestPlotBase):
         assert np.isclose(parent_distance, colorbar_distance, atol=1e-7).all()
 
     @pytest.mark.parametrize("cmap", [None, "Greys"])
-    def test_scatter_with_c_column_name_with_colors(self, cmap):
+    @pytest.mark.parametrize("kw", ["c", "color"])
+    def test_scatter_with_c_column_name_with_colors(self, cmap, kw):
         # https://github.com/pandas-dev/pandas/issues/34316
         df = DataFrame(
             [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
             columns=["length", "width"],
         )
         df["species"] = ["r", "r", "g", "g", "b"]
-        ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
+        ax = df.plot.scatter(x=0, y=1, cmap=cmap, **{kw: "species"})
         assert ax.collections[0].colorbar is None
 
     def test_scatter_colors(self):
@@ -546,7 +530,13 @@ class TestDataFrameColor(TestPlotBase):
 
         df = DataFrame(np.random.randn(5, 5))
         bp = df.plot.box(return_type="dict")
-        _check_colors(bp, default_colors[0], default_colors[0], default_colors[2])
+        _check_colors(
+            bp,
+            default_colors[0],
+            default_colors[0],
+            default_colors[2],
+            default_colors[0],
+        )
         tm.close()
 
         dict_colors = {
@@ -569,7 +559,7 @@ class TestDataFrameColor(TestPlotBase):
         # partial colors
         dict_colors = {"whiskers": "c", "medians": "m"}
         bp = df.plot.box(color=dict_colors, return_type="dict")
-        _check_colors(bp, default_colors[0], "c", "m")
+        _check_colors(bp, default_colors[0], "c", "m", default_colors[0])
         tm.close()
 
         from matplotlib import cm
@@ -577,12 +567,12 @@ class TestDataFrameColor(TestPlotBase):
         # Test str -> colormap functionality
         bp = df.plot.box(colormap="jet", return_type="dict")
         jet_colors = [cm.jet(n) for n in np.linspace(0, 1, 3)]
-        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2])
+        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0])
         tm.close()
 
         # Test colormap functionality
         bp = df.plot.box(colormap=cm.jet, return_type="dict")
-        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2])
+        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0])
         tm.close()
 
         # string color is applied to all artists except fliers
@@ -615,12 +605,24 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=expected)
 
     def test_no_color_bar(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
         ax = df.plot.hexbin(x="A", y="B", colorbar=None)
         assert ax.collections[0].colorbar is None
 
     def test_mixing_cmap_and_colormap_raises(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
         msg = "Only specify one of `cmap` and `colormap`"
         with pytest.raises(TypeError, match=msg):
             df.plot.hexbin(x="A", y="B", cmap="YlGn", colormap="BuGn")
@@ -653,36 +655,6 @@ class TestDataFrameColor(TestPlotBase):
 
     def test_invalid_colormap(self):
         df = DataFrame(np.random.randn(3, 2), columns=["A", "B"])
-        msg = (
-            "'invalid_colormap' is not a valid value for name; supported values are "
-            "'Accent', 'Accent_r', 'Blues', 'Blues_r', 'BrBG', 'BrBG_r', 'BuGn', "
-            "'BuGn_r', 'BuPu', 'BuPu_r', 'CMRmap', 'CMRmap_r', 'Dark2', 'Dark2_r', "
-            "'GnBu', 'GnBu_r', 'Greens', 'Greens_r', 'Greys', 'Greys_r', 'OrRd', "
-            "'OrRd_r', 'Oranges', 'Oranges_r', 'PRGn', 'PRGn_r', 'Paired', "
-            "'Paired_r', 'Pastel1', 'Pastel1_r', 'Pastel2', 'Pastel2_r', 'PiYG', "
-            "'PiYG_r', 'PuBu', 'PuBuGn', 'PuBuGn_r', 'PuBu_r', 'PuOr', 'PuOr_r', "
-            "'PuRd', 'PuRd_r', 'Purples', 'Purples_r', 'RdBu', 'RdBu_r', 'RdGy', "
-            "'RdGy_r', 'RdPu', 'RdPu_r', 'RdYlBu', 'RdYlBu_r', 'RdYlGn', "
-            "'RdYlGn_r', 'Reds', 'Reds_r', 'Set1', 'Set1_r', 'Set2', 'Set2_r', "
-            "'Set3', 'Set3_r', 'Spectral', 'Spectral_r', 'Wistia', 'Wistia_r', "
-            "'YlGn', 'YlGnBu', 'YlGnBu_r', 'YlGn_r', 'YlOrBr', 'YlOrBr_r', "
-            "'YlOrRd', 'YlOrRd_r', 'afmhot', 'afmhot_r', 'autumn', 'autumn_r', "
-            "'binary', 'binary_r', 'bone', 'bone_r', 'brg', 'brg_r', 'bwr', "
-            "'bwr_r', 'cividis', 'cividis_r', 'cool', 'cool_r', 'coolwarm', "
-            "'coolwarm_r', 'copper', 'copper_r', 'cubehelix', 'cubehelix_r', "
-            "'flag', 'flag_r', 'gist_earth', 'gist_earth_r', 'gist_gray', "
-            "'gist_gray_r', 'gist_heat', 'gist_heat_r', 'gist_ncar', "
-            "'gist_ncar_r', 'gist_rainbow', 'gist_rainbow_r', 'gist_stern', "
-            "'gist_stern_r', 'gist_yarg', 'gist_yarg_r', 'gnuplot', 'gnuplot2', "
-            "'gnuplot2_r', 'gnuplot_r', 'gray', 'gray_r', 'hot', 'hot_r', 'hsv', "
-            "'hsv_r', 'inferno', 'inferno_r', 'jet', 'jet_r', 'magma', 'magma_r', "
-            "'nipy_spectral', 'nipy_spectral_r', 'ocean', 'ocean_r', 'pink', "
-            "'pink_r', 'plasma', 'plasma_r', 'prism', 'prism_r', 'rainbow', "
-            "'rainbow_r', 'seismic', 'seismic_r', 'spring', 'spring_r', 'summer', "
-            "'summer_r', 'tab10', 'tab10_r', 'tab20', 'tab20_r', 'tab20b', "
-            "'tab20b_r', 'tab20c', 'tab20c_r', 'terrain', 'terrain_r', 'turbo', "
-            "'turbo_r', 'twilight', 'twilight_r', 'twilight_shifted', "
-            "'twilight_shifted_r', 'viridis', 'viridis_r', 'winter', 'winter_r'"
-        )
+        msg = "'invalid_colormap' is not a valid value for name; supported values are "
         with pytest.raises(ValueError, match=msg):
             df.plot(colormap="invalid_colormap")

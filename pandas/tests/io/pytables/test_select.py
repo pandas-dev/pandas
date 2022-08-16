@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
@@ -24,12 +23,11 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
-    tables,
 )
 
 from pandas.io.pytables import Term
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_select_columns_in_where(setup_path):
@@ -190,12 +188,12 @@ def test_select_dtypes(setup_path):
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=True)
 
-        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
+        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa:E712
         for v in [True, "true", 1]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)
 
-        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
+        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa:E712
         for v in [False, "false", 0]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)
@@ -267,7 +265,7 @@ def test_select_dtypes(setup_path):
         expected = df[df["A"] > 0]
 
         store.append("df", df, data_columns=True)
-        np_zero = np.float64(0)  # noqa
+        np_zero = np.float64(0)  # noqa:F841
         result = store.select("df", where=["A>np_zero"])
         tm.assert_frame_equal(expected, result)
 
@@ -661,15 +659,15 @@ def test_frame_select_complex(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_frame_select_complex2(setup_path):
+def test_frame_select_complex2():
 
-    with ensure_clean_path(["parms.hdf", "hist.hdf"]) as paths:
+    with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
 
         pp, hh = paths
 
         # use non-trivial selection criteria
-        parms = DataFrame({"A": [1, 1, 2, 2, 3]})
-        parms.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
+        params = DataFrame({"A": [1, 1, 2, 2, 3]})
+        params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
 
         selection = read_hdf(pp, "df", where="A=[2,3]")
         hist = DataFrame(
@@ -685,17 +683,17 @@ def test_frame_select_complex2(setup_path):
         expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
 
         # scope with list like
-        l = selection.index.tolist()  # noqa
+        l0 = selection.index.tolist()  # noqa:F841
         store = HDFStore(hh)
-        result = store.select("df", where="l1=l")
+        result = store.select("df", where="l1=l0")
         tm.assert_frame_equal(result, expected)
         store.close()
 
-        result = read_hdf(hh, "df", where="l1=l")
+        result = read_hdf(hh, "df", where="l1=l0")
         tm.assert_frame_equal(result, expected)
 
         # index
-        index = selection.index  # noqa
+        index = selection.index  # noqa:F841
         result = read_hdf(hh, "df", where="l1=index")
         tm.assert_frame_equal(result, expected)
 
@@ -860,10 +858,6 @@ def test_select_as_multiple(setup_path):
             )
 
 
-@pytest.mark.skipif(
-    LooseVersion(tables.__version__) < LooseVersion("3.1.0"),
-    reason=("tables version does not support fix for nan selection bug: GH 4858"),
-)
 def test_nan_selection_bug_4858(setup_path):
 
     with ensure_clean_store(setup_path) as store:
@@ -934,7 +928,7 @@ def test_query_compare_column_type(setup_path):
     with ensure_clean_store(setup_path) as store:
         store.append("test", df, format="table", data_columns=True)
 
-        ts = Timestamp("2014-01-01")  # noqa
+        ts = Timestamp("2014-01-01")  # noqa:F841
         result = store.select("test", where="real_date > ts")
         expected = df.loc[[1], :]
         tm.assert_frame_equal(expected, result)
@@ -978,5 +972,5 @@ def test_select_empty_where(where):
     with ensure_clean_path("empty_where.h5") as path:
         with HDFStore(path) as store:
             store.put("df", df, "t")
-            result = pd.read_hdf(store, "df", where=where)
+            result = read_hdf(store, "df", where=where)
             tm.assert_frame_equal(result, df)

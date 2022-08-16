@@ -22,6 +22,9 @@ _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
 
+# TODO(1.4): Change to xfails at release time
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
     # See gh-12678
@@ -168,6 +171,28 @@ def test_usecols_implicit_index_col(all_parsers):
 
     result = parser.read_csv(StringIO(data), usecols=["a", "b"])
     expected = DataFrame({"a": ["apple", "orange"], "b": ["bat", "cow"]}, index=[4, 8])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_index_col_middle(all_parsers):
+    # GH#9098
+    parser = all_parsers
+    data = """a,b,c,d
+1,2,3,4
+"""
+    result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="c")
+    expected = DataFrame({"b": [2], "d": [4]}, index=Index([3], name="c"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_index_col_end(all_parsers):
+    # GH#9098
+    parser = all_parsers
+    data = """a,b,c,d
+1,2,3,4
+"""
+    result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="d")
+    expected = DataFrame({"b": [2], "c": [3]}, index=Index([4], name="d"))
     tm.assert_frame_equal(result, expected)
 
 
@@ -372,4 +397,40 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
 
     result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("names", [None, ["a", "b"]])
+def test_usecols_indices_out_of_bounds(all_parsers, names):
+    # GH#25623
+    parser = all_parsers
+    data = """
+a,b
+1,2
+    """
+    with tm.assert_produces_warning(
+        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
+        result = parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
+    expected = DataFrame({"a": [1], "b": [None]})
+    if names is None and parser.engine == "python":
+        expected = DataFrame({"a": [1]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_additional_columns(all_parsers):
+    # GH#46997
+    parser = all_parsers
+    usecols = lambda header: header.strip() in ["a", "b", "c"]
+    result = parser.read_csv(StringIO("a,b\nx,y,z"), index_col=False, usecols=usecols)
+    expected = DataFrame({"a": ["x"], "b": "y"})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_additional_columns_integer_columns(all_parsers):
+    # GH#46997
+    parser = all_parsers
+    usecols = lambda header: header.strip() in ["0", "1"]
+    result = parser.read_csv(StringIO("0,1\nx,y,z"), index_col=False, usecols=usecols)
+    expected = DataFrame({"0": ["x"], "1": "y"})
     tm.assert_frame_equal(result, expected)

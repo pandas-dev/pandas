@@ -25,7 +25,7 @@ from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_read_missing_key_close_store(setup_path):
@@ -35,7 +35,7 @@ def test_read_missing_key_close_store(setup_path):
         df.to_hdf(path, "k1")
 
         with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-            pd.read_hdf(path, "k2")
+            read_hdf(path, "k2")
 
         # smoke test to test that file is properly closed after
         # read with KeyError before another write
@@ -51,11 +51,11 @@ def test_read_missing_key_opened_store(setup_path):
         with HDFStore(path, "r") as store:
 
             with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(store, "k2")
+                read_hdf(store, "k2")
 
             # Test that the file is still open after a KeyError and that we can
             # still read from it.
-            pd.read_hdf(store, "k1")
+            read_hdf(store, "k1")
 
 
 def test_read_column(setup_path):
@@ -137,7 +137,7 @@ def test_read_column(setup_path):
         tm.assert_series_equal(result, expected)
 
 
-def test_pytables_native_read(datapath, setup_path):
+def test_pytables_native_read(datapath):
     with ensure_clean_store(
         datapath("io", "data", "legacy_hdf/pytables_native.h5"), mode="r"
     ) as store:
@@ -146,7 +146,7 @@ def test_pytables_native_read(datapath, setup_path):
 
 
 @pytest.mark.skipif(is_platform_windows(), reason="native2 read fails oddly on windows")
-def test_pytables_native2_read(datapath, setup_path):
+def test_pytables_native2_read(datapath):
     with ensure_clean_store(
         datapath("io", "data", "legacy_hdf", "pytables_native2.h5"), mode="r"
     ) as store:
@@ -155,7 +155,7 @@ def test_pytables_native2_read(datapath, setup_path):
         assert isinstance(d1, DataFrame)
 
 
-def test_legacy_table_fixed_format_read_py2(datapath, setup_path):
+def test_legacy_table_fixed_format_read_py2(datapath):
     # GH 24510
     # legacy table with fixed format written in Python 2
     with ensure_clean_store(
@@ -170,7 +170,7 @@ def test_legacy_table_fixed_format_read_py2(datapath, setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_legacy_table_fixed_format_read_datetime_py2(datapath, setup_path):
+def test_legacy_table_fixed_format_read_datetime_py2(datapath):
     # GH 31750
     # legacy table with fixed format and datetime64 column written in Python 2
     with ensure_clean_store(
@@ -186,7 +186,7 @@ def test_legacy_table_fixed_format_read_datetime_py2(datapath, setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_legacy_table_read_py2(datapath, setup_path):
+def test_legacy_table_read_py2(datapath):
     # issue: 24925
     # legacy table written in Python 2
     with ensure_clean_store(
@@ -315,7 +315,7 @@ def test_read_hdf_series_mode_r(format, setup_path):
     series = tm.makeFloatSeries()
     with ensure_clean_path(setup_path) as path:
         series.to_hdf(path, key="data", format=format)
-        result = pd.read_hdf(path, key="data", mode="r")
+        result = read_hdf(path, key="data", mode="r")
     tm.assert_series_equal(result, series)
 
 

@@ -8,6 +8,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -21,6 +23,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
 
 
@@ -36,7 +39,7 @@ def interval_values(request, closed):
 
 
 class TestPivotTable:
-    def setup_method(self, method):
+    def setup_method(self):
         self.data = DataFrame(
             {
                 "A": [
@@ -143,8 +146,10 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        rs = df.pivot_table(columns="cols", aggfunc=np.sum)
-        xp = df.pivot_table(index="cols", aggfunc=np.sum).T
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = df.pivot_table(columns="cols", aggfunc=np.sum)
+            xp = df.pivot_table(index="cols", aggfunc=np.sum).T
         tm.assert_frame_equal(rs, xp)
 
         rs = df.pivot_table(columns="cols", aggfunc={"values": "mean"})
@@ -197,7 +202,7 @@ class TestPivotTable:
             ["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True
         )
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        result = pd.pivot_table(df, values="values", index=["A", "B"], dropna=True)
+        result = pivot_table(df, values="values", index=["A", "B"], dropna=True)
 
         exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
@@ -240,13 +245,13 @@ class TestPivotTable:
                     categories=["low", "high"],
                     ordered=True,
                 ),
-                "B": range(5),
+                "B": [0.0, 1.0, 2.0, 3.0, 4.0],
             }
         )
 
         result = df.pivot_table(index="A", values="B", dropna=dropna)
         expected = DataFrame(
-            {"B": [2, 3]},
+            {"B": [2.0, 3.0]},
             index=Index(
                 Categorical.from_codes(
                     [0, 1], categories=["low", "high"], ordered=True
@@ -257,6 +262,7 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_with_non_observable_dropna_multi_cat(self, dropna):
         # gh-21378
         df = DataFrame(
             {
@@ -279,6 +285,8 @@ class TestPivotTable:
                 name="A",
             ),
         )
+        if not dropna:
+            expected["B"] = expected["B"].astype(float)
 
         tm.assert_frame_equal(result, expected)
 
@@ -287,11 +295,13 @@ class TestPivotTable:
         df = DataFrame({"A": interval_values, "B": 1})
         result = df.pivot_table(index="A", values="B", dropna=dropna)
         expected = DataFrame({"B": 1}, index=Index(interval_values.unique(), name="A"))
+        if not dropna:
+            expected = expected.astype(float)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_with_interval_index_margins(self):
         # GH 25815
-        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2])
+        ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2], "right")
         df = DataFrame(
             {
                 "A": np.arange(4, 0, -1, dtype=np.intp),
@@ -302,14 +312,17 @@ class TestPivotTable:
             }
         )
 
-        pivot_tab = pd.pivot_table(
+        pivot_tab = pivot_table(
             df, index="C", columns="B", values="A", aggfunc="sum", margins=True
         )
 
         result = pivot_tab["All"]
         expected = Series(
             [3, 7, 10],
-            index=Index([pd.Interval(0, 1), pd.Interval(1, 2), "All"], name="C"),
+            index=Index(
+                [pd.Interval(0, 1, "right"), pd.Interval(1, 2, "right"), "All"],
+                name="C",
+            ),
             name="All",
             dtype=np.intp,
         )
@@ -388,10 +401,7 @@ class TestPivotTable:
         )
 
         result = dict(df_res.dtypes)
-        expected = {
-            col: np.dtype("O") if col[0].startswith("b") else np.dtype("float64")
-            for col in df_res
-        }
+        expected = {col: np.dtype("float64") for col in df_res}
         assert result == expected
 
     def test_pivot_no_values(self):
@@ -409,7 +419,7 @@ class TestPivotTable:
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "dt": pd.date_range("2011-01-01", freq="D", periods=5),
+                "dt": date_range("2011-01-01", freq="D", periods=5),
             },
             index=idx,
         )
@@ -489,16 +499,18 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(df.pivot("b", "a", "c"), expected.T)
 
+    @pytest.mark.parametrize("method", [True, False])
+    def test_pivot_index_with_nan_dates(self, method):
         # GH9491
         df = DataFrame(
             {
-                "a": pd.date_range("2014-02-01", periods=6, freq="D"),
+                "a": date_range("2014-02-01", periods=6, freq="D"),
                 "c": 100 + np.arange(6),
             }
         )
         df["b"] = df["a"] - pd.Timestamp("2014-02-02")
-        df.loc[1, "a"] = df.loc[3, "a"] = nan
-        df.loc[1, "b"] = df.loc[4, "b"] = nan
+        df.loc[1, "a"] = df.loc[3, "a"] = np.nan
+        df.loc[1, "b"] = df.loc[4, "b"] = np.nan
 
         if method:
             pv = df.pivot("a", "b", "c")
@@ -515,6 +527,7 @@ class TestPivotTable:
             result = pd.pivot(df, "b", "a", "c")
         tm.assert_frame_equal(result, pv.T)
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_with_tz(self, method):
         # GH 5878
@@ -605,7 +618,7 @@ class TestPivotTable:
         df = df.set_index("ts").reset_index()
         mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
 
-        result = pd.pivot_table(
+        result = pivot_table(
             df.set_index("ts").reset_index(),
             values="ts",
             index=["uid"],
@@ -846,33 +859,31 @@ class TestPivotTable:
             else:
                 pd.pivot(df, index="zoo", columns="foo", values=("bar", "baz"))
 
+    def _check_output(
+        self, result, values_col, index=["A", "B"], columns=["C"], margins_col="All"
+    ):
+        col_margins = result.loc[result.index[:-1], margins_col]
+        expected_col_margins = self.data.groupby(index)[values_col].mean()
+        tm.assert_series_equal(col_margins, expected_col_margins, check_names=False)
+        assert col_margins.name == margins_col
+
+        result = result.sort_index()
+        index_margins = result.loc[(margins_col, "")].iloc[:-1]
+
+        expected_ix_margins = self.data.groupby(columns)[values_col].mean()
+        tm.assert_series_equal(index_margins, expected_ix_margins, check_names=False)
+        assert index_margins.name == (margins_col, "")
+
+        grand_total_margins = result.loc[(margins_col, ""), margins_col]
+        expected_total_margins = self.data[values_col].mean()
+        assert grand_total_margins == expected_total_margins
+
     def test_margins(self):
-        def _check_output(
-            result, values_col, index=["A", "B"], columns=["C"], margins_col="All"
-        ):
-            col_margins = result.loc[result.index[:-1], margins_col]
-            expected_col_margins = self.data.groupby(index)[values_col].mean()
-            tm.assert_series_equal(col_margins, expected_col_margins, check_names=False)
-            assert col_margins.name == margins_col
-
-            result = result.sort_index()
-            index_margins = result.loc[(margins_col, "")].iloc[:-1]
-
-            expected_ix_margins = self.data.groupby(columns)[values_col].mean()
-            tm.assert_series_equal(
-                index_margins, expected_ix_margins, check_names=False
-            )
-            assert index_margins.name == (margins_col, "")
-
-            grand_total_margins = result.loc[(margins_col, ""), margins_col]
-            expected_total_margins = self.data[values_col].mean()
-            assert grand_total_margins == expected_total_margins
-
         # column specified
         result = self.data.pivot_table(
             values="D", index=["A", "B"], columns="C", margins=True, aggfunc=np.mean
         )
-        _check_output(result, "D")
+        self._check_output(result, "D")
 
         # Set a different margins_name (not 'All')
         result = self.data.pivot_table(
@@ -883,25 +894,33 @@ class TestPivotTable:
             aggfunc=np.mean,
             margins_name="Totals",
         )
-        _check_output(result, "D", margins_col="Totals")
+        self._check_output(result, "D", margins_col="Totals")
 
         # no column specified
         table = self.data.pivot_table(
             index=["A", "B"], columns="C", margins=True, aggfunc=np.mean
         )
         for value_col in table.columns.levels[0]:
-            _check_output(table[value_col], value_col)
+            self._check_output(table[value_col], value_col)
 
+    def test_no_col(self):
         # no col
 
         # to help with a buglet
         self.data.columns = [k * 2 for k in self.data.columns]
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc=np.mean
+            )
         for value_col in table.columns:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc="mean"
+            )
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
             assert totals == self.data[item].mean()
@@ -957,7 +976,9 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 
         tm.assert_frame_equal(result, expected)
@@ -966,7 +987,7 @@ class TestPivotTable:
         # GH 17013
 
         df = self.data.copy()
-        df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3)
+        df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3).astype("i8")
 
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
@@ -986,7 +1007,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.xfail(reason="GH#17035 (len of floats is casted back to floats)")
     def test_margins_dtype_len(self):
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
@@ -1101,7 +1121,7 @@ class TestPivotTable:
         iproduct = np.random.randint(0, len(products), n)
         items["Index"] = products["Index"][iproduct]
         items["Symbol"] = products["Symbol"][iproduct]
-        dr = pd.date_range(date(2000, 1, 1), date(2010, 12, 31))
+        dr = date_range(date(2000, 1, 1), date(2010, 12, 31))
         dates = dr[np.random.randint(0, len(dr), n)]
         items["Year"] = dates.year
         items["Month"] = dates.month
@@ -1117,7 +1137,7 @@ class TestPivotTable:
             aggfunc="mean",
         )
 
-        assert pivoted.columns.is_monotonic
+        assert pivoted.columns.is_monotonic_increasing
 
     def test_pivot_complex_aggfunc(self):
         f = {"D": ["std"], "E": ["sum"]}
@@ -1197,7 +1217,7 @@ class TestPivotTable:
                 margins_name=margin_name,
             )
 
-    def test_pivot_timegrouper(self):
+    def test_pivot_timegrouper(self, using_array_manager):
         df = DataFrame(
             {
                 "Branch": "A A A A A A A B".split(),
@@ -1251,6 +1271,9 @@ class TestPivotTable:
         )
         expected.index.name = "Date"
         expected.columns.name = "Buyer"
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            expected["Carl"] = expected["Carl"].astype("int64")
 
         result = pivot_table(
             df,
@@ -1346,6 +1369,7 @@ class TestPivotTable:
                 aggfunc=np.sum,
             )
 
+    def test_pivot_timegrouper_double(self):
         # double grouper
         df = DataFrame(
             {
@@ -1626,7 +1650,8 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_daily(self):
+    @pytest.mark.parametrize("i", range(1, 367))
+    def test_daily(self, i):
         rng = date_range("1/1/2000", "12/31/2004", freq="D")
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -1637,15 +1662,15 @@ class TestPivotTable:
 
         doy = np.asarray(ts.index.dayofyear)
 
-        for i in range(1, 367):
-            subset = ts[doy == i]
-            subset.index = subset.index.year
+        subset = ts[doy == i]
+        subset.index = subset.index.year
 
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
+        result = annual[i].dropna()
+        tm.assert_series_equal(result, subset, check_names=False)
+        assert result.name == i
 
-    def test_monthly(self):
+    @pytest.mark.parametrize("i", range(1, 13))
+    def test_monthly(self, i):
         rng = date_range("1/1/2000", "12/31/2004", freq="M")
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -1653,28 +1678,27 @@ class TestPivotTable:
         annual.columns = annual.columns.droplevel(0)
 
         month = ts.index.month
-        for i in range(1, 13):
-            subset = ts[month == i]
-            subset.index = subset.index.year
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
+        subset = ts[month == i]
+        subset.index = subset.index.year
+        result = annual[i].dropna()
+        tm.assert_series_equal(result, subset, check_names=False)
+        assert result.name == i
 
     def test_pivot_table_with_iterator_values(self):
         # GH 12017
         aggs = {"D": "sum", "E": "mean"}
 
-        pivot_values_list = pd.pivot_table(
+        pivot_values_list = pivot_table(
             self.data, index=["A"], values=list(aggs.keys()), aggfunc=aggs
         )
 
-        pivot_values_keys = pd.pivot_table(
+        pivot_values_keys = pivot_table(
             self.data, index=["A"], values=aggs.keys(), aggfunc=aggs
         )
         tm.assert_frame_equal(pivot_values_keys, pivot_values_list)
 
         agg_values_gen = (value for value in aggs.keys())
-        pivot_values_gen = pd.pivot_table(
+        pivot_values_gen = pivot_table(
             self.data, index=["A"], values=agg_values_gen, aggfunc=aggs
         )
         tm.assert_frame_equal(pivot_values_gen, pivot_values_list)
@@ -1709,8 +1733,13 @@ class TestPivotTable:
         expected = DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)")
-    def test_categorical_margins(self, observed):
+    def test_categorical_margins(self, observed, request):
+        if observed:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#17035 (np.mean of ints is casted back to ints)"
+                )
+            )
         # GH 10989
         df = DataFrame(
             {"x": np.arange(8), "y": np.arange(8) // 4, "z": np.arange(8) % 2}
@@ -1723,8 +1752,13 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)")
-    def test_categorical_margins_category(self, observed):
+    def test_categorical_margins_category(self, observed, request):
+        if observed:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#17035 (np.mean of ints is casted back to ints)"
+                )
+            )
         df = DataFrame(
             {"x": np.arange(8), "y": np.arange(8) // 4, "z": np.arange(8) % 2}
         )
@@ -1738,7 +1772,7 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    def test_margins_casted_to_float(self, observed):
+    def test_margins_casted_to_float(self):
         # GH 24893
         df = DataFrame(
             {
@@ -1749,7 +1783,7 @@ class TestPivotTable:
             }
         )
 
-        result = pd.pivot_table(df, index="D", margins=True)
+        result = pivot_table(df, index="D", margins=True)
         expected = DataFrame(
             {"A": [3, 7, 5], "B": [2.5, 6.5, 4.5], "C": [2, 5, 3.5]},
             index=Index(["X", "Y", "All"], name="D"),
@@ -1842,7 +1876,7 @@ class TestPivotTable:
             observed=observed,
             aggfunc="sum",
         )
-        expected_columns = pd.Int64Index([2013, 2014], name="Year")
+        expected_columns = Index([2013, 2014], name="Year", dtype="int64")
         expected_index = pd.CategoricalIndex(
             months, categories=months, ordered=False, name="Month"
         )
@@ -1887,7 +1921,7 @@ class TestPivotTable:
         # issue #13292
         greek = "\u0394\u03bf\u03ba\u03b9\u03bc\u03ae"
         frame = DataFrame({"foo": [1, 2, 3]})
-        table = pd.pivot_table(
+        table = pivot_table(
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
@@ -1970,22 +2004,35 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
         # for consistency purposes
-        result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
-        expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
+
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
+            expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(self):
+    def test_pivot_number_of_levels_larger_than_int32(self, monkeypatch):
         # GH 20601
-        df = DataFrame(
-            {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
-        )
+        # GH 26314: Change ValueError to PerformanceWarning
+        class MockUnstacker(reshape_lib._Unstacker):
+            def __init__(self, *args, **kwargs) -> None:
+                # __init__ will raise the warning
+                super().__init__(*args, **kwargs)
+                raise Exception("Don't compute final result.")
 
-        msg = "Unstacked DataFrame is too big, causing int32 overflow"
-        with pytest.raises(ValueError, match=msg):
-            df.pivot_table(
-                index="ind1", columns="ind2", values="count", aggfunc="count"
+        with monkeypatch.context() as m:
+            m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
+            df = DataFrame(
+                {"ind1": np.arange(2**16), "ind2": np.arange(2**16), "count": 0}
             )
+
+            msg = "The following operation may generate"
+            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+                with pytest.raises(Exception, match="Don't compute final result."):
+                    df.pivot_table(
+                        index="ind1", columns="ind2", values="count", aggfunc="count"
+                    )
 
     def test_pivot_table_aggfunc_dropna(self, dropna):
         # GH 22159
@@ -2006,7 +2053,7 @@ class TestPivotTable:
         def ret_none(x):
             return np.nan
 
-        result = pd.pivot_table(
+        result = pivot_table(
             df, columns="fruit", aggfunc=[ret_sum, ret_none, ret_one], dropna=dropna
         )
 
@@ -2028,7 +2075,7 @@ class TestPivotTable:
             {"A": ["one", "two", "one"], "x": [3, np.nan, 2], "y": [1, np.nan, np.nan]}
         )
 
-        result = pd.pivot_table(df, columns="A", aggfunc=np.mean, dropna=dropna)
+        result = pivot_table(df, columns="A", aggfunc=np.mean, dropna=dropna)
 
         data = [[2.5, np.nan], [1, np.nan]]
         col = Index(["one", "two"], name="A")
@@ -2040,7 +2087,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_empty_aggfunc(self):
-        # GH 9186
+        # GH 9186 & GH 13483
         df = DataFrame(
             {
                 "A": [2, 2, 3, 3, 2],
@@ -2050,7 +2097,8 @@ class TestPivotTable:
             }
         )
         result = df.pivot_table(index="A", columns="D", values="id", aggfunc=np.size)
-        expected = DataFrame()
+        expected = DataFrame(index=Index([], dtype="int64", name="A"))
+        expected.columns.name = "D"
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_no_column_raises(self):
@@ -2061,6 +2109,134 @@ class TestPivotTable:
         foo = DataFrame({"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]})
         with pytest.raises(KeyError, match="notpresent"):
             foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
+
+    def test_pivot_table_multiindex_columns_doctest_case(self):
+        # The relevant characteristic is that the call
+        #  to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
+        #  __internal_pivot_table has `agged[v]` a DataFrame instead of Series,
+        #  In this case this is because agged.columns is a MultiIndex and 'v'
+        #  is only indexing on its first level.
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+            }
+        )
+
+        table = pivot_table(
+            df,
+            values=["D", "E"],
+            index=["A", "C"],
+            aggfunc={"D": np.mean, "E": [min, max, np.mean]},
+        )
+        cols = MultiIndex.from_tuples(
+            [("D", "mean"), ("E", "max"), ("E", "mean"), ("E", "min")]
+        )
+        index = MultiIndex.from_tuples(
+            [("bar", "large"), ("bar", "small"), ("foo", "large"), ("foo", "small")],
+            names=["A", "C"],
+        )
+        vals = np.array(
+            [
+                [5.5, 9.0, 7.5, 6.0],
+                [5.5, 9.0, 8.5, 8.0],
+                [2.0, 5.0, 4.5, 4.0],
+                [2.33333333, 6.0, 4.33333333, 2.0],
+            ]
+        )
+        expected = DataFrame(vals, columns=cols, index=index)
+        expected[("E", "min")] = expected[("E", "min")].astype(np.int64)
+        expected[("E", "max")] = expected[("E", "max")].astype(np.int64)
+        tm.assert_frame_equal(table, expected)
+
+    def test_pivot_table_sort_false(self):
+        # GH#39143
+        df = DataFrame(
+            {
+                "a": ["d1", "d4", "d3"],
+                "col": ["a", "b", "c"],
+                "num": [23, 21, 34],
+                "year": ["2018", "2018", "2019"],
+            }
+        )
+        result = df.pivot_table(
+            index=["a", "col"], columns="year", values="num", aggfunc="sum", sort=False
+        )
+        expected = DataFrame(
+            [[23, np.nan], [21, np.nan], [np.nan, 34]],
+            columns=Index(["2018", "2019"], name="year"),
+            index=MultiIndex.from_arrays(
+                [["d1", "d4", "d3"], ["a", "b", "c"]], names=["a", "col"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_sort_false_with_multiple_values(self):
+        df = DataFrame(
+            {
+                "firstname": ["John", "Michael"],
+                "lastname": ["Foo", "Bar"],
+                "height": [173, 182],
+                "age": [47, 33],
+            }
+        )
+        result = df.pivot_table(
+            index=["lastname", "firstname"], values=["height", "age"], sort=False
+        )
+        expected = DataFrame(
+            [[173, 47], [182, 33]],
+            columns=["height", "age"],
+            index=MultiIndex.from_tuples(
+                [("Foo", "John"), ("Bar", "Michael")],
+                names=["lastname", "firstname"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_with_margins_and_numeric_columns(self):
+        # GH 26568
+        df = DataFrame([["a", "x", 1], ["a", "y", 2], ["b", "y", 3], ["b", "z", 4]])
+        df.columns = [10, 20, 30]
+
+        result = df.pivot_table(
+            index=10, columns=20, values=30, aggfunc="sum", fill_value=0, margins=True
+        )
+
+        expected = DataFrame([[1, 2, 0, 3], [0, 3, 4, 7], [1, 5, 4, 10]])
+        expected.columns = ["x", "y", "z", "All"]
+        expected.index = ["a", "b", "All"]
+        expected.columns.name = 20
+        expected.index.name = 10
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_pivot_ea_dtype_dropna(self, dropna):
+        # GH#47477
+        df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype="Int64")})
+        result = df.pivot_table(
+            index="x", columns="y", values="age", aggfunc="mean", dropna=dropna
+        )
+        expected = DataFrame(
+            [[30]],
+            index=Index(["a"], name="x"),
+            columns=Index(["b"], name="y"),
+            dtype="Float64",
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestPivot:

@@ -34,6 +34,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
@@ -41,6 +42,12 @@ class TestCategoricalConstructors:
         # GH#38433
         with tm.assert_produces_warning(FutureWarning):
             Categorical("A", categories=["A", "B"])
+
+    def test_categorical_1d_only(self):
+        # ndim > 1
+        msg = "> 1 ndim Categorical are not supported at this time"
+        with pytest.raises(NotImplementedError, match=msg):
+            Categorical(np.array([list("abcd")]))
 
     def test_validate_ordered(self):
         # see gh-14058
@@ -65,7 +72,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c.categories, expected)
 
         c = Categorical([], categories=[1, 2, 3])
-        expected = pd.Int64Index([1, 2, 3])
+        expected = Int64Index([1, 2, 3])
         tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_empty_boolean(self):
@@ -229,21 +236,19 @@ class TestCategoricalConstructors:
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
+            Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
 
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])  # noqa
+            Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])
 
         # the next one are from the old docs
         with tm.assert_produces_warning(None):
-            c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])  # noqa
+            Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])
             cat = Categorical([1, 2], categories=[1, 2, 3])
 
         # this is a legitimate constructor
         with tm.assert_produces_warning(None):
-            c = Categorical(  # noqa
-                np.array([], dtype="int64"), categories=[3, 2, 1], ordered=True
-            )
+            Categorical(np.array([], dtype="int64"), categories=[3, 2, 1], ordered=True)
 
     def test_constructor_with_existing_categories(self):
         # GH25318: constructing with pd.Series used to bogusly skip recoding
@@ -506,6 +511,15 @@ class TestCategoricalConstructors:
 
         tm.assert_categorical_equal(result, expected)
 
+    def test_from_codes_nullable_int_categories(self, any_numeric_ea_dtype):
+        # GH#39649
+        cats = pd.array(range(5), dtype=any_numeric_ea_dtype)
+        codes = np.random.randint(5, size=3)
+        dtype = CategoricalDtype(cats)
+        arr = Categorical.from_codes(codes, dtype=dtype)
+        assert arr.categories.dtype == cats.dtype
+        tm.assert_index_equal(arr.categories, Index(cats))
+
     def test_from_codes_empty(self):
         cat = ["a", "b", "c"]
         result = Categorical.from_codes([], categories=cat)
@@ -662,7 +676,6 @@ class TestCategoricalConstructors:
         cat = Categorical([0, 1, 2], ordered=ordered)
         assert cat.ordered == bool(ordered)
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)
@@ -721,7 +734,8 @@ class TestCategoricalConstructors:
         # GH:
         arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
         result = Categorical(arr)
-        expected = Categorical(Series([pd.NA, pd.NA], dtype="object"))
+        assert arr.dtype == result.categories.dtype
+        expected = Categorical(Series([pd.NA, pd.NA], dtype=arr.dtype))
         tm.assert_categorical_equal(result, expected)
 
     def test_from_sequence_copy(self):
@@ -733,11 +747,11 @@ class TestCategoricalConstructors:
 
         result = Categorical._from_sequence(cat, dtype=None, copy=True)
 
-        assert not np.shares_memory(result._codes, cat._codes)
+        assert not tm.shares_memory(result, cat)
 
     @pytest.mark.xfail(
         not IS64 or is_platform_windows(),
-        reason="Incorrectly raising in ensure_datetime64ns",
+        reason="Incorrectly raising in astype_overflowsafe",
     )
     def test_constructor_datetime64_non_nano(self):
         categories = np.arange(10).view("M8[D]")
@@ -745,3 +759,14 @@ class TestCategoricalConstructors:
 
         cat = Categorical(values, categories=categories)
         assert (cat == values).all()
+
+    def test_constructor_preserves_freq(self):
+        # GH33830 freq retention in categorical
+        dti = date_range("2016-01-01", periods=5)
+
+        expected = dti.freq
+
+        cat = Categorical(dti)
+        result = cat.categories.freq
+
+        assert expected == result

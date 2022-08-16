@@ -51,7 +51,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
         #  has one
-        tdi = timedelta_range("1 second", periods=10 ** 7, freq="1s")
+        tdi = timedelta_range("1 second", periods=10**7, freq="1s")
 
         result = TimedeltaIndex(tdi, freq="infer")
         assert result.freq == tdi.freq
@@ -193,7 +193,7 @@ class TestTimedeltaIndex:
             timedelta_range(start="1 days", periods="foo", freq="D")
 
         msg = (
-            r"TimedeltaIndex\(\) must be called with a collection of some kind, "
+            r"TimedeltaIndex\(\.\.\.\) must be called with a collection of some kind, "
             "'1 days' was passed"
         )
         with pytest.raises(TypeError, match=msg):
@@ -262,6 +262,9 @@ class TestTimedeltaIndex:
 
         result = TimedeltaIndex(tdi._data, freq=None)
         assert result.freq is None
+
+        tda = TimedeltaArray(tdi, freq=None)
+        assert tda.freq is None
 
     def test_from_categorical(self):
         tdi = timedelta_range(1, periods=5)

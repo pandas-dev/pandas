@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import numpy as np
+
+from pandas._typing import NumpyIndexT
 
 from pandas.core.dtypes.common import is_list_like
 
 
-def cartesian_product(X):
+def cartesian_product(X) -> list[np.ndarray]:
     """
     Numpy version of itertools.product.
     Sometimes faster (for large inputs)...
@@ -54,7 +58,7 @@ def cartesian_product(X):
     return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
 
 
-def tile_compat(arr, num: int):
+def tile_compat(arr: NumpyIndexT, num: int) -> NumpyIndexT:
     """
     Index compat for np.tile.
 

@@ -11,98 +11,111 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture
+def df():
+    res = tm.makeTimeDataFrame()[:10]
+    res["id1"] = (res["A"] > 0).astype(np.int64)
+    res["id2"] = (res["B"] > 0).astype(np.int64)
+    return res
+
+
+@pytest.fixture
+def df1():
+    res = DataFrame(
+        [
+            [1.067683, -1.110463, 0.20867],
+            [-1.321405, 0.368915, -1.055342],
+            [-0.807333, 0.08298, -0.873361],
+        ]
+    )
+    res.columns = [list("ABC"), list("abc")]
+    res.columns.names = ["CAP", "low"]
+    return res
+
+
+@pytest.fixture
+def var_name():
+    return "var"
+
+
+@pytest.fixture
+def value_name():
+    return "val"
+
+
 class TestMelt:
-    def setup_method(self, method):
-        self.df = tm.makeTimeDataFrame()[:10]
-        self.df["id1"] = (self.df["A"] > 0).astype(np.int64)
-        self.df["id2"] = (self.df["B"] > 0).astype(np.int64)
-
-        self.var_name = "var"
-        self.value_name = "val"
-
-        self.df1 = DataFrame(
-            [
-                [1.067683, -1.110463, 0.20867],
-                [-1.321405, 0.368915, -1.055342],
-                [-0.807333, 0.08298, -0.873361],
-            ]
-        )
-        self.df1.columns = [list("ABC"), list("abc")]
-        self.df1.columns.names = ["CAP", "low"]
-
-    def test_top_level_method(self):
-        result = melt(self.df)
+    def test_top_level_method(self, df):
+        result = melt(df)
         assert result.columns.tolist() == ["variable", "value"]
 
-    def test_method_signatures(self):
-        tm.assert_frame_equal(self.df.melt(), melt(self.df))
+    def test_method_signatures(self, df, df1, var_name, value_name):
+        tm.assert_frame_equal(df.melt(), melt(df))
 
         tm.assert_frame_equal(
-            self.df.melt(id_vars=["id1", "id2"], value_vars=["A", "B"]),
-            melt(self.df, id_vars=["id1", "id2"], value_vars=["A", "B"]),
+            df.melt(id_vars=["id1", "id2"], value_vars=["A", "B"]),
+            melt(df, id_vars=["id1", "id2"], value_vars=["A", "B"]),
         )
 
         tm.assert_frame_equal(
-            self.df.melt(var_name=self.var_name, value_name=self.value_name),
-            melt(self.df, var_name=self.var_name, value_name=self.value_name),
+            df.melt(var_name=var_name, value_name=value_name),
+            melt(df, var_name=var_name, value_name=value_name),
         )
 
-        tm.assert_frame_equal(self.df1.melt(col_level=0), melt(self.df1, col_level=0))
+        tm.assert_frame_equal(df1.melt(col_level=0), melt(df1, col_level=0))
 
-    def test_default_col_names(self):
-        result = self.df.melt()
+    def test_default_col_names(self, df):
+        result = df.melt()
         assert result.columns.tolist() == ["variable", "value"]
 
-        result1 = self.df.melt(id_vars=["id1"])
+        result1 = df.melt(id_vars=["id1"])
         assert result1.columns.tolist() == ["id1", "variable", "value"]
 
-        result2 = self.df.melt(id_vars=["id1", "id2"])
+        result2 = df.melt(id_vars=["id1", "id2"])
         assert result2.columns.tolist() == ["id1", "id2", "variable", "value"]
 
-    def test_value_vars(self):
-        result3 = self.df.melt(id_vars=["id1", "id2"], value_vars="A")
+    def test_value_vars(self, df):
+        result3 = df.melt(id_vars=["id1", "id2"], value_vars="A")
         assert len(result3) == 10
 
-        result4 = self.df.melt(id_vars=["id1", "id2"], value_vars=["A", "B"])
+        result4 = df.melt(id_vars=["id1", "id2"], value_vars=["A", "B"])
         expected4 = DataFrame(
             {
-                "id1": self.df["id1"].tolist() * 2,
-                "id2": self.df["id2"].tolist() * 2,
+                "id1": df["id1"].tolist() * 2,
+                "id2": df["id2"].tolist() * 2,
                 "variable": ["A"] * 10 + ["B"] * 10,
-                "value": (self.df["A"].tolist() + self.df["B"].tolist()),
+                "value": (df["A"].tolist() + df["B"].tolist()),
             },
             columns=["id1", "id2", "variable", "value"],
         )
         tm.assert_frame_equal(result4, expected4)
 
-    def test_value_vars_types(self):
+    @pytest.mark.parametrize("type_", (tuple, list, np.array))
+    def test_value_vars_types(self, type_, df):
         # GH 15348
         expected = DataFrame(
             {
-                "id1": self.df["id1"].tolist() * 2,
-                "id2": self.df["id2"].tolist() * 2,
+                "id1": df["id1"].tolist() * 2,
+                "id2": df["id2"].tolist() * 2,
                 "variable": ["A"] * 10 + ["B"] * 10,
-                "value": (self.df["A"].tolist() + self.df["B"].tolist()),
+                "value": (df["A"].tolist() + df["B"].tolist()),
             },
             columns=["id1", "id2", "variable", "value"],
         )
+        result = df.melt(id_vars=["id1", "id2"], value_vars=type_(("A", "B")))
+        tm.assert_frame_equal(result, expected)
 
-        for type_ in (tuple, list, np.array):
-            result = self.df.melt(id_vars=["id1", "id2"], value_vars=type_(("A", "B")))
-            tm.assert_frame_equal(result, expected)
-
-    def test_vars_work_with_multiindex(self):
+    def test_vars_work_with_multiindex(self, df1):
         expected = DataFrame(
             {
-                ("A", "a"): self.df1[("A", "a")],
-                "CAP": ["B"] * len(self.df1),
-                "low": ["b"] * len(self.df1),
-                "value": self.df1[("B", "b")],
+                ("A", "a"): df1[("A", "a")],
+                "CAP": ["B"] * len(df1),
+                "low": ["b"] * len(df1),
+                "value": df1[("B", "b")],
             },
             columns=[("A", "a"), "CAP", "low", "value"],
         )
 
-        result = self.df1.melt(id_vars=[("A", "a")], value_vars=[("B", "b")])
+        result = df1.melt(id_vars=[("A", "a")], value_vars=[("B", "b")])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -135,140 +148,133 @@ class TestMelt:
         ],
     )
     def test_single_vars_work_with_multiindex(
-        self, id_vars, value_vars, col_level, expected
+        self, id_vars, value_vars, col_level, expected, df1
     ):
-        result = self.df1.melt(id_vars, value_vars, col_level=col_level)
+        result = df1.melt(id_vars, value_vars, col_level=col_level)
         tm.assert_frame_equal(result, expected)
 
-    def test_tuple_vars_fail_with_multiindex(self):
+    @pytest.mark.parametrize(
+        "id_vars, value_vars",
+        [
+            [("A", "a"), [("B", "b")]],
+            [[("A", "a")], ("B", "b")],
+            [("A", "a"), ("B", "b")],
+        ],
+    )
+    def test_tuple_vars_fail_with_multiindex(self, id_vars, value_vars, df1):
         # melt should fail with an informative error message if
         # the columns have a MultiIndex and a tuple is passed
         # for id_vars or value_vars.
-        tuple_a = ("A", "a")
-        list_a = [tuple_a]
-        tuple_b = ("B", "b")
-        list_b = [tuple_b]
-
         msg = r"(id|value)_vars must be a list of tuples when columns are a MultiIndex"
-        for id_vars, value_vars in (
-            (tuple_a, list_b),
-            (list_a, tuple_b),
-            (tuple_a, tuple_b),
-        ):
-            with pytest.raises(ValueError, match=msg):
-                self.df1.melt(id_vars=id_vars, value_vars=value_vars)
+        with pytest.raises(ValueError, match=msg):
+            df1.melt(id_vars=id_vars, value_vars=value_vars)
 
-    def test_custom_var_name(self):
-        result5 = self.df.melt(var_name=self.var_name)
+    def test_custom_var_name(self, df, var_name):
+        result5 = df.melt(var_name=var_name)
         assert result5.columns.tolist() == ["var", "value"]
 
-        result6 = self.df.melt(id_vars=["id1"], var_name=self.var_name)
+        result6 = df.melt(id_vars=["id1"], var_name=var_name)
         assert result6.columns.tolist() == ["id1", "var", "value"]
 
-        result7 = self.df.melt(id_vars=["id1", "id2"], var_name=self.var_name)
+        result7 = df.melt(id_vars=["id1", "id2"], var_name=var_name)
         assert result7.columns.tolist() == ["id1", "id2", "var", "value"]
 
-        result8 = self.df.melt(
-            id_vars=["id1", "id2"], value_vars="A", var_name=self.var_name
-        )
+        result8 = df.melt(id_vars=["id1", "id2"], value_vars="A", var_name=var_name)
         assert result8.columns.tolist() == ["id1", "id2", "var", "value"]
 
-        result9 = self.df.melt(
-            id_vars=["id1", "id2"], value_vars=["A", "B"], var_name=self.var_name
+        result9 = df.melt(
+            id_vars=["id1", "id2"], value_vars=["A", "B"], var_name=var_name
         )
         expected9 = DataFrame(
             {
-                "id1": self.df["id1"].tolist() * 2,
-                "id2": self.df["id2"].tolist() * 2,
-                self.var_name: ["A"] * 10 + ["B"] * 10,
-                "value": (self.df["A"].tolist() + self.df["B"].tolist()),
+                "id1": df["id1"].tolist() * 2,
+                "id2": df["id2"].tolist() * 2,
+                var_name: ["A"] * 10 + ["B"] * 10,
+                "value": (df["A"].tolist() + df["B"].tolist()),
             },
-            columns=["id1", "id2", self.var_name, "value"],
+            columns=["id1", "id2", var_name, "value"],
         )
         tm.assert_frame_equal(result9, expected9)
 
-    def test_custom_value_name(self):
-        result10 = self.df.melt(value_name=self.value_name)
+    def test_custom_value_name(self, df, value_name):
+        result10 = df.melt(value_name=value_name)
         assert result10.columns.tolist() == ["variable", "val"]
 
-        result11 = self.df.melt(id_vars=["id1"], value_name=self.value_name)
+        result11 = df.melt(id_vars=["id1"], value_name=value_name)
         assert result11.columns.tolist() == ["id1", "variable", "val"]
 
-        result12 = self.df.melt(id_vars=["id1", "id2"], value_name=self.value_name)
+        result12 = df.melt(id_vars=["id1", "id2"], value_name=value_name)
         assert result12.columns.tolist() == ["id1", "id2", "variable", "val"]
 
-        result13 = self.df.melt(
-            id_vars=["id1", "id2"], value_vars="A", value_name=self.value_name
+        result13 = df.melt(
+            id_vars=["id1", "id2"], value_vars="A", value_name=value_name
         )
         assert result13.columns.tolist() == ["id1", "id2", "variable", "val"]
 
-        result14 = self.df.melt(
-            id_vars=["id1", "id2"], value_vars=["A", "B"], value_name=self.value_name
+        result14 = df.melt(
+            id_vars=["id1", "id2"], value_vars=["A", "B"], value_name=value_name
         )
         expected14 = DataFrame(
             {
-                "id1": self.df["id1"].tolist() * 2,
-                "id2": self.df["id2"].tolist() * 2,
+                "id1": df["id1"].tolist() * 2,
+                "id2": df["id2"].tolist() * 2,
                 "variable": ["A"] * 10 + ["B"] * 10,
-                self.value_name: (self.df["A"].tolist() + self.df["B"].tolist()),
+                value_name: (df["A"].tolist() + df["B"].tolist()),
             },
-            columns=["id1", "id2", "variable", self.value_name],
+            columns=["id1", "id2", "variable", value_name],
         )
         tm.assert_frame_equal(result14, expected14)
 
-    def test_custom_var_and_value_name(self):
+    def test_custom_var_and_value_name(self, df, value_name, var_name):
 
-        result15 = self.df.melt(var_name=self.var_name, value_name=self.value_name)
+        result15 = df.melt(var_name=var_name, value_name=value_name)
         assert result15.columns.tolist() == ["var", "val"]
 
-        result16 = self.df.melt(
-            id_vars=["id1"], var_name=self.var_name, value_name=self.value_name
-        )
+        result16 = df.melt(id_vars=["id1"], var_name=var_name, value_name=value_name)
         assert result16.columns.tolist() == ["id1", "var", "val"]
 
-        result17 = self.df.melt(
-            id_vars=["id1", "id2"], var_name=self.var_name, value_name=self.value_name
+        result17 = df.melt(
+            id_vars=["id1", "id2"], var_name=var_name, value_name=value_name
         )
         assert result17.columns.tolist() == ["id1", "id2", "var", "val"]
 
-        result18 = self.df.melt(
+        result18 = df.melt(
             id_vars=["id1", "id2"],
             value_vars="A",
-            var_name=self.var_name,
-            value_name=self.value_name,
+            var_name=var_name,
+            value_name=value_name,
         )
         assert result18.columns.tolist() == ["id1", "id2", "var", "val"]
 
-        result19 = self.df.melt(
+        result19 = df.melt(
             id_vars=["id1", "id2"],
             value_vars=["A", "B"],
-            var_name=self.var_name,
-            value_name=self.value_name,
+            var_name=var_name,
+            value_name=value_name,
         )
         expected19 = DataFrame(
             {
-                "id1": self.df["id1"].tolist() * 2,
-                "id2": self.df["id2"].tolist() * 2,
-                self.var_name: ["A"] * 10 + ["B"] * 10,
-                self.value_name: (self.df["A"].tolist() + self.df["B"].tolist()),
+                "id1": df["id1"].tolist() * 2,
+                "id2": df["id2"].tolist() * 2,
+                var_name: ["A"] * 10 + ["B"] * 10,
+                value_name: (df["A"].tolist() + df["B"].tolist()),
             },
-            columns=["id1", "id2", self.var_name, self.value_name],
+            columns=["id1", "id2", var_name, value_name],
         )
         tm.assert_frame_equal(result19, expected19)
 
-        df20 = self.df.copy()
+        df20 = df.copy()
         df20.columns.name = "foo"
         result20 = df20.melt()
         assert result20.columns.tolist() == ["foo", "value"]
 
-    def test_col_level(self):
-        res1 = self.df1.melt(col_level=0)
-        res2 = self.df1.melt(col_level="CAP")
-        assert res1.columns.tolist() == ["CAP", "value"]
-        assert res2.columns.tolist() == ["CAP", "value"]
+    @pytest.mark.parametrize("col_level", [0, "CAP"])
+    def test_col_level(self, col_level, df1):
+        res = df1.melt(col_level=col_level)
+        assert res.columns.tolist() == ["CAP", "value"]
 
-    def test_multiindex(self):
-        res = self.df1.melt()
+    def test_multiindex(self, df1):
+        res = df1.melt()
         assert res.columns.tolist() == ["CAP", "low", "value"]
 
     @pytest.mark.parametrize(
@@ -302,7 +308,7 @@ class TestMelt:
     def test_preserve_category(self):
         # GH 15853
         data = DataFrame({"A": [1, 2], "B": pd.Categorical(["X", "Y"])})
-        result = pd.melt(data, ["B"], ["A"])
+        result = melt(data, ["B"], ["A"])
         expected = DataFrame(
             {"B": pd.Categorical(["X", "Y"]), "variable": ["A", "A"], "value": [1, 2]}
         )
@@ -401,6 +407,15 @@ class TestMelt:
             index=expected_index,
         )
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_with_duplicate_columns(self):
+        # GH#41951
+        df = DataFrame([["id", 2, 3]], columns=["a", "b", "b"])
+        result = df.melt(id_vars=["a"], value_vars=["b"])
+        expected = DataFrame(
+            [["id", "b", 2], ["id", "b", 3]], columns=["a", "variable", "value"]
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -624,7 +639,7 @@ class TestLreshape:
         tm.assert_frame_equal(result, exp)
 
         with tm.assert_produces_warning(FutureWarning):
-            result = lreshape(df, spec, dropna=False, label="foo")
+            lreshape(df, spec, dropna=False, label="foo")
 
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
@@ -662,13 +677,12 @@ class TestWideToLong:
         tm.assert_frame_equal(result, expected)
 
     def test_stubs(self):
-        # GH9204
+        # GH9204 wide_to_long call should not modify 'stubs' list
         df = DataFrame([[0, 1, 2, 3, 8], [4, 5, 6, 7, 9]])
         df.columns = ["id", "inc1", "inc2", "edu1", "edu2"]
         stubs = ["inc", "edu"]
 
-        # TODO: unused?
-        df_long = pd.wide_to_long(df, stubs, i="id", j="age")  # noqa
+        wide_to_long(df, stubs, i="id", j="age")
 
         assert stubs == ["inc", "edu"]
 
@@ -737,11 +751,11 @@ class TestWideToLong:
         )
         df["id"] = df.index
         exp_data = {
-            "X": ["X1", "X1", "X2", "X2"],
-            "A": [1.0, 3.0, 2.0, 4.0],
-            "B": [5.0, np.nan, 6.0, np.nan],
-            "id": [0, 0, 1, 1],
-            "year": [2010, 2011, 2010, 2011],
+            "X": ["X1", "X2", "X1", "X2"],
+            "A": [1.0, 2.0, 3.0, 4.0],
+            "B": [5.0, 6.0, np.nan, np.nan],
+            "id": [0, 1, 0, 1],
+            "year": [2010, 2010, 2011, 2011],
         }
         expected = DataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
@@ -984,10 +998,10 @@ class TestWideToLong:
         )
         expected = DataFrame(
             {
-                "A": ["X1", "X1", "X2", "X2"],
-                "colname": ["placebo", "test", "placebo", "test"],
-                "result": [5.0, np.nan, 6.0, np.nan],
-                "treatment": [1.0, 3.0, 2.0, 4.0],
+                "A": ["X1", "X2", "X1", "X2"],
+                "colname": ["placebo", "placebo", "test", "test"],
+                "result": [5.0, 6.0, np.nan, np.nan],
+                "treatment": [1.0, 2.0, 3.0, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])
@@ -1031,10 +1045,10 @@ class TestWideToLong:
         )
         expected = DataFrame(
             {
-                "A": ["X1", "X1", "X1", "X1", "X2", "X2", "X2", "X2"],
-                "colname": [1, 1.1, 1.2, 2.1, 1, 1.1, 1.2, 2.1],
-                "result": [0.0, np.nan, 5.0, np.nan, 9.0, np.nan, 6.0, np.nan],
-                "treatment": [np.nan, 1.0, np.nan, 3.0, np.nan, 2.0, np.nan, 4.0],
+                "A": ["X1", "X2", "X1", "X2", "X1", "X2", "X1", "X2"],
+                "colname": [1.2, 1.2, 1.0, 1.0, 1.1, 1.1, 2.1, 2.1],
+                "result": [5.0, 6.0, 0.0, 9.0, np.nan, np.nan, np.nan, np.nan],
+                "treatment": [np.nan, np.nan, np.nan, np.nan, 1.0, 2.0, 3.0, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])
@@ -1055,10 +1069,8 @@ class TestWideToLong:
             "PA3": {0: 0.34, 1: 0.70, 2: 0.52, 3: 0.98, 4: 0.67},
         }
         wide_df = DataFrame.from_dict(wide_data)
-        expected = pd.wide_to_long(
-            wide_df, stubnames=["PA"], i=["node_id", "A"], j="time"
-        )
-        result = pd.wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
+        expected = wide_to_long(wide_df, stubnames=["PA"], i=["node_id", "A"], j="time")
+        result = wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
         tm.assert_frame_equal(result, expected)
 
     def test_warn_of_column_name_value(self):
@@ -1074,3 +1086,27 @@ class TestWideToLong:
         with tm.assert_produces_warning(FutureWarning):
             result = df.melt(id_vars="value")
             tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["O", "string"])
+    def test_missing_stubname(self, dtype):
+        # GH46044
+        df = DataFrame({"id": ["1", "2"], "a-1": [100, 200], "a-2": [300, 400]})
+        df = df.astype({"id": dtype})
+        result = wide_to_long(
+            df,
+            stubnames=["a", "b"],
+            i="id",
+            j="num",
+            sep="-",
+        )
+        index = pd.Index(
+            [("1", 1), ("2", 1), ("1", 2), ("2", 2)],
+            name=("id", "num"),
+        )
+        expected = DataFrame(
+            {"a": [100, 200, 300, 400], "b": [np.nan] * 4},
+            index=index,
+        )
+        new_level = expected.index.levels[0].astype(dtype)
+        expected.index = expected.index.set_levels(new_level, level=0)
+        tm.assert_frame_equal(result, expected)

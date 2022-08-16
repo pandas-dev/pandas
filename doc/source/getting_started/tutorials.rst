@@ -18,6 +18,19 @@ entails.
 For the table of contents, see the `pandas-cookbook GitHub
 repository <https://github.com/jvns/pandas-cookbook>`_.
 
+pandas workshop by Stefanie Molin
+---------------------------------
+
+An introductory workshop by `Stefanie Molin <https://github.com/stefmolin>`_
+designed to quickly get you up to speed with pandas using real-world datasets.
+It covers getting started with pandas, data wrangling, and data visualization
+(with some exposure to matplotlib and seaborn). The
+`pandas-workshop GitHub repository <https://github.com/stefmolin/pandas-workshop>`_
+features detailed environment setup instructions (including a Binder environment),
+slides and notebooks for following along, and exercises to practice the concepts.
+There is also a lab with new exercises on a dataset not covered in the workshop for
+additional practice.
+
 Learn pandas by Hernan Rojas
 ----------------------------
 
@@ -62,6 +75,16 @@ Excel charts with pandas, vincent and xlsxwriter
 
 *  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
 
+Joyful pandas
+-------------
+
+A tutorial written in Chinese by Yuanhao Geng. It covers the basic operations
+for NumPy and pandas, 4 main data manipulation methods (including indexing, groupby, reshaping
+and concatenation) and 4 main data types (including missing data, string data, categorical
+data and time series data). At the end of each chapter, corresponding exercises are posted.
+All the datasets and related materials can be found in the GitHub repository
+`datawhalechina/joyful-pandas <https://github.com/datawhalechina/joyful-pandas>`_.
+
 Video tutorials
 ---------------
 
@@ -77,11 +100,11 @@ Video tutorials
 * `Data analysis in Python with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5ICCsgW1MxlZ0Hq8LL5U3u9y>`_
   (2016-2018)
   `GitHub repo <https://github.com/justmarkham/pandas-videos>`__ and
-  `Jupyter Notebook <https://nbviewer.jupyter.org/github/justmarkham/pandas-videos/blob/master/pandas.ipynb>`__
+  `Jupyter Notebook <https://nbviewer.org/github/justmarkham/pandas-videos/blob/master/pandas.ipynb>`__
 * `Best practices with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5IBITZj_dYSFqnd_15JgqwA6>`_
   (2018)
   `GitHub repo <https://github.com/justmarkham/pycon-2018-tutorial>`__ and
-  `Jupyter Notebook <https://nbviewer.jupyter.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`__
+  `Jupyter Notebook <https://nbviewer.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`__
 
 
 Various tutorials
@@ -95,3 +118,4 @@ Various tutorials
 * `Pandas and Python: Top 10, by Manish Amde <https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
 * `Pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
 * `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1/>`_
+* `430+ Searchable Pandas recipes by Isshin Inada <https://skytowner.com/explore/pandas_recipes_reference>`_

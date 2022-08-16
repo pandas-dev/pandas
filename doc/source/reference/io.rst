@@ -13,6 +13,7 @@ Pickling
    :toctree: api/
 
    read_pickle
+   DataFrame.to_pickle
 
 Flat file
 ~~~~~~~~~
@@ -21,6 +22,7 @@ Flat file
 
    read_table
    read_csv
+   DataFrame.to_csv
    read_fwf
 
 Clipboard
@@ -29,6 +31,7 @@ Clipboard
    :toctree: api/
 
    read_clipboard
+   DataFrame.to_clipboard
 
 Excel
 ~~~~~
@@ -36,13 +39,24 @@ Excel
    :toctree: api/
 
    read_excel
+   DataFrame.to_excel
    ExcelFile.parse
+
+.. currentmodule:: pandas.io.formats.style
 
 .. autosummary::
    :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
+
+   Styler.to_excel
+
+.. currentmodule:: pandas
+
+.. autosummary::
+   :toctree: api/
 
    ExcelWriter
+
+.. currentmodule:: pandas
 
 JSON
 ~~~~
@@ -51,6 +65,7 @@ JSON
 
    read_json
    json_normalize
+   DataFrame.to_json
 
 .. currentmodule:: pandas.io.json
 
@@ -67,6 +82,40 @@ HTML
    :toctree: api/
 
    read_html
+   DataFrame.to_html
+
+.. currentmodule:: pandas.io.formats.style
+
+.. autosummary::
+   :toctree: api/
+
+   Styler.to_html
+
+.. currentmodule:: pandas
+
+XML
+~~~~
+.. autosummary::
+   :toctree: api/
+
+   read_xml
+   DataFrame.to_xml
+
+Latex
+~~~~~
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.to_latex
+
+.. currentmodule:: pandas.io.formats.style
+
+.. autosummary::
+   :toctree: api/
+
+   Styler.to_latex
+
+.. currentmodule:: pandas
 
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,7 +134,7 @@ HDFStore: PyTables (HDF5)
 
 .. warning::
 
-   One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+   One can store a subclass of :class:`DataFrame` or :class:`Series` to HDF5,
    but the type of the subclass is lost upon storing.
 
 Feather
@@ -94,6 +143,7 @@ Feather
    :toctree: api/
 
    read_feather
+   DataFrame.to_feather
 
 Parquet
 ~~~~~~~
@@ -101,6 +151,7 @@ Parquet
    :toctree: api/
 
    read_parquet
+   DataFrame.to_parquet
 
 ORC
 ~~~
@@ -108,6 +159,7 @@ ORC
    :toctree: api/
 
    read_orc
+   DataFrame.to_orc
 
 SAS
 ~~~
@@ -131,6 +183,7 @@ SQL
    read_sql_table
    read_sql_query
    read_sql
+   DataFrame.to_sql
 
 Google BigQuery
 ~~~~~~~~~~~~~~~
@@ -145,6 +198,7 @@ STATA
    :toctree: api/
 
    read_stata
+   DataFrame.to_stata
 
 .. currentmodule:: pandas.io.stata
 

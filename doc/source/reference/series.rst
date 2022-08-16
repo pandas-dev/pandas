@@ -342,6 +342,7 @@ Datetime methods
    :toctree: api/
    :template: autosummary/accessor_method.rst
 
+   Series.dt.isocalendar
    Series.dt.to_period
    Series.dt.to_pydatetime
    Series.dt.tz_localize
@@ -415,6 +416,7 @@ strings and apply several methods to it. These can be accessed like
    Series.str.extractall
    Series.str.find
    Series.str.findall
+   Series.str.fullmatch
    Series.str.get
    Series.str.index
    Series.str.join
@@ -426,6 +428,8 @@ strings and apply several methods to it. These can be accessed like
    Series.str.normalize
    Series.str.pad
    Series.str.partition
+   Series.str.removeprefix
+   Series.str.removesuffix
    Series.str.repeat
    Series.str.replace
    Series.str.rfind

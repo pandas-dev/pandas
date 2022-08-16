@@ -11,45 +11,53 @@ import logging
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
-@pytest.mark.parametrize(
-    "compress_type, extension",
-    [("gzip", ".gz"), ("bz2", ".bz2"), ("zip", ".zip"), ("xz", ".xz")],
+@tm.network(
+    url=(
+        "https://github.com/pandas-dev/pandas/raw/main/"
+        "pandas/tests/io/parser/data/salaries.csv"
+    ),
+    check_before_test=True,
 )
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
-def test_compressed_urls(salaries_table, compress_type, extension, mode, engine):
-    check_compressed_urls(salaries_table, compress_type, extension, mode, engine)
-
-
-@tm.network
-def check_compressed_urls(salaries_table, compression, extension, mode, engine):
+def test_compressed_urls(salaries_table, mode, engine, compression_only):
     # test reading compressed urls with various engines and
     # extension inference
+    extension = _compression_to_extension[compression_only]
     base_url = (
-        "https://github.com/pandas-dev/pandas/raw/master/"
+        "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     )
 
     url = base_url + extension
 
     if mode != "explicit":
-        compression = mode
+        compression_only = mode
 
-    url_table = read_csv(url, sep="\t", compression=compression, engine=engine)
+    url_table = read_csv(url, sep="\t", compression=compression_only, engine=engine)
     tm.assert_frame_equal(url_table, salaries_table)
 
 
-@tm.network("https://raw.githubusercontent.com/", check_before_test=True)
+@pytest.mark.network
+@tm.network(
+    url=(
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+        "pandas/tests/io/parser/data/unicode_series.csv"
+    ),
+    check_before_test=True,
+)
 def test_url_encoding_csv():
     """
     read_csv should honor the requested encoding for URLs.
@@ -57,7 +65,7 @@ def test_url_encoding_csv():
     GH 10424
     """
     path = (
-        "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
         + "pandas/tests/io/parser/data/unicode_series.csv"
     )
     df = read_csv(path, encoding="latin-1", header=None)
@@ -70,7 +78,13 @@ def tips_df(datapath):
     return read_csv(datapath("io", "data", "csv", "tips.csv"))
 
 
+@pytest.mark.single_cpu
 @pytest.mark.usefixtures("s3_resource")
+@pytest.mark.xfail(
+    reason="CI race condition GH 45433, GH 44584",
+    raises=FileNotFoundError,
+    strict=False,
+)
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")
@@ -204,12 +218,12 @@ class TestS3:
 
     def test_read_s3_fails(self, s3so):
         msg = "The specified bucket does not exist"
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_csv("s3://nyqpug/asdf.csv", storage_options=s3so)
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_csv("s3://cant_get_it/file.csv")
 
     @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
@@ -246,6 +260,7 @@ class TestS3:
                 storage_options=s3so,
             )
 
+    @pytest.mark.single_cpu
     def test_read_csv_handles_boto_s3_object(self, s3_resource, tips_file):
         # see gh-16135
 
@@ -261,8 +276,15 @@ class TestS3:
         expected = read_csv(tips_file)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.single_cpu
+    @pytest.mark.skipif(
+        is_ci_environment(),
+        reason="This test can hang in our CI min_versions build "
+        "and leads to '##[error]The runner has "
+        "received a shutdown signal...' in GHA. GH: 45651",
+    )
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
-        # 8 MB, S3FS usees 5MB chunks
+        # 8 MB, S3FS uses 5MB chunks
         import s3fs
 
         df = DataFrame(np.random.randn(100000, 4), columns=list("abcd"))

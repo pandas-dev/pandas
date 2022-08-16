@@ -8,8 +8,6 @@
 Nullable integer data type
 **************************
 
-.. versionadded:: 0.24.0
-
 .. note::
 
    IntegerArray is currently experimental. Its API or implementation may
@@ -31,7 +29,7 @@ Construction
 ------------
 
 pandas can represent integer data with possibly missing values using
-:class:`arrays.IntegerArray`. This is an :ref:`extension types <extending.extension-types>`
+:class:`arrays.IntegerArray`. This is an :ref:`extension type <extending.extension-types>`
 implemented within pandas.
 
 .. ipython:: python

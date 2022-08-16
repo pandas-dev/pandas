@@ -20,6 +20,213 @@ from pandas import (
 import pandas._testing as tm
 
 
+class TestEmptyFrameSetitemExpansion:
+    def test_empty_frame_setitem_index_name_retained(self):
+        # GH#31368 empty frame has non-None index.name -> retained
+        df = DataFrame({}, index=pd.RangeIndex(0, name="df_index"))
+        series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
+
+        df["series"] = series
+        expected = DataFrame(
+            {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="df_index")
+        )
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_empty_frame_setitem_index_name_inherited(self):
+        # GH#36527 empty frame has None index.name -> not retained
+        df = DataFrame()
+        series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
+        df["series"] = series
+        expected = DataFrame(
+            {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="series_index")
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_zerolen_series_columns_align(self):
+        # columns will align
+        df = DataFrame(columns=["A", "B"])
+        df.loc[0] = Series(1, index=range(4))
+        expected = DataFrame(columns=["A", "B"], index=[0], dtype=np.float64)
+        tm.assert_frame_equal(df, expected)
+
+        # columns will align
+        df = DataFrame(columns=["A", "B"])
+        df.loc[0] = Series(1, index=["B"])
+
+        exp = DataFrame([[np.nan, 1]], columns=["A", "B"], index=[0], dtype="float64")
+        tm.assert_frame_equal(df, exp)
+
+    def test_loc_setitem_zerolen_list_length_must_match_columns(self):
+        # list-like must conform
+        df = DataFrame(columns=["A", "B"])
+
+        msg = "cannot set a row with mismatched columns"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[0] = [1, 2, 3]
+
+        df = DataFrame(columns=["A", "B"])
+        df.loc[3] = [6, 7]  # length matches len(df.columns) --> OK!
+
+        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype=np.int64)
+        tm.assert_frame_equal(df, exp)
+
+    def test_partial_set_empty_frame(self):
+
+        # partially set with an empty object
+        # frame
+        df = DataFrame()
+
+        msg = "cannot set a frame with no defined columns"
+
+        with pytest.raises(ValueError, match=msg):
+            df.loc[1] = 1
+
+        with pytest.raises(ValueError, match=msg):
+            df.loc[1] = Series([1], index=["foo"])
+
+        msg = "cannot set a frame with no defined index and a scalar"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[:, 1] = 1
+
+    def test_partial_set_empty_frame2(self):
+        # these work as they don't really change
+        # anything but the index
+        # GH#5632
+        expected = DataFrame(columns=["foo"], index=Index([], dtype="object"))
+
+        df = DataFrame(index=Index([], dtype="object"))
+        df["foo"] = Series([], dtype="object")
+
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame()
+        df["foo"] = Series(df.index)
+
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame()
+        df["foo"] = df.index
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame3(self):
+        expected = DataFrame(columns=["foo"], index=Index([], dtype="int64"))
+        expected["foo"] = expected["foo"].astype("float64")
+
+        df = DataFrame(index=Index([], dtype="int64"))
+        df["foo"] = []
+
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame(index=Index([], dtype="int64"))
+        df["foo"] = Series(np.arange(len(df)), dtype="float64")
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame4(self):
+        df = DataFrame(index=Index([], dtype="int64"))
+        df["foo"] = range(len(df))
+
+        expected = DataFrame(columns=["foo"], index=Index([], dtype="int64"))
+        # range is int-dtype-like, so we get int64 dtype
+        expected["foo"] = expected["foo"].astype("int64")
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame5(self):
+        df = DataFrame()
+        tm.assert_index_equal(df.columns, Index([], dtype=object))
+        df2 = DataFrame()
+        df2[1] = Series([1], index=["foo"])
+        df.loc[:, 1] = Series([1], index=["foo"])
+        tm.assert_frame_equal(df, DataFrame([[1]], index=["foo"], columns=[1]))
+        tm.assert_frame_equal(df, df2)
+
+    def test_partial_set_empty_frame_no_index(self):
+        # no index to start
+        expected = DataFrame({0: Series(1, index=range(4))}, columns=["A", "B", 0])
+
+        df = DataFrame(columns=["A", "B"])
+        df[0] = Series(1, index=range(4))
+        df.dtypes
+        str(df)
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame(columns=["A", "B"])
+        df.loc[:, 0] = Series(1, index=range(4))
+        df.dtypes
+        str(df)
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame_row(self):
+        # GH#5720, GH#5744
+        # don't create rows when empty
+        expected = DataFrame(columns=["A", "B", "New"], index=Index([], dtype="int64"))
+        expected["A"] = expected["A"].astype("int64")
+        expected["B"] = expected["B"].astype("float64")
+        expected["New"] = expected["New"].astype("float64")
+
+        df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
+        y = df[df.A > 5]
+        y["New"] = np.nan
+        tm.assert_frame_equal(y, expected)
+
+        expected = DataFrame(columns=["a", "b", "c c", "d"])
+        expected["d"] = expected["d"].astype("int64")
+        df = DataFrame(columns=["a", "b", "c c"])
+        df["d"] = 3
+        tm.assert_frame_equal(df, expected)
+        tm.assert_series_equal(df["c c"], Series(name="c c", dtype=object))
+
+        # reindex columns is ok
+        df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
+        y = df[df.A > 5]
+        result = y.reindex(columns=["A", "B", "C"])
+        expected = DataFrame(columns=["A", "B", "C"], index=Index([], dtype="int64"))
+        expected["A"] = expected["A"].astype("int64")
+        expected["B"] = expected["B"].astype("float64")
+        expected["C"] = expected["C"].astype("float64")
+        tm.assert_frame_equal(result, expected)
+
+    def test_partial_set_empty_frame_set_series(self):
+        # GH#5756
+        # setting with empty Series
+        df = DataFrame(Series(dtype=object))
+        expected = DataFrame({0: Series(dtype=object)})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame(Series(name="foo", dtype=object))
+        expected = DataFrame({"foo": Series(dtype=object)})
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame_empty_copy_assignment(self):
+        # GH#5932
+        # copy on empty with assignment fails
+        df = DataFrame(index=[0])
+        df = df.copy()
+        df["a"] = 0
+        expected = DataFrame(0, index=[0], columns=["a"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame_empty_consistencies(self):
+        # GH#6171
+        # consistency on empty frames
+        df = DataFrame(columns=["x", "y"])
+        df["x"] = [1, 2]
+        expected = DataFrame({"x": [1, 2], "y": [np.nan, np.nan]})
+        tm.assert_frame_equal(df, expected, check_dtype=False)
+
+        df = DataFrame(columns=["x", "y"])
+        df["x"] = ["1", "2"]
+        expected = DataFrame({"x": ["1", "2"], "y": [np.nan, np.nan]}, dtype=object)
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame(columns=["x", "y"])
+        df.loc[0, "x"] = 1
+        expected = DataFrame({"x": [1], "y": [np.nan]})
+        tm.assert_frame_equal(df, expected, check_dtype=False)
+
+
 class TestPartialSetting:
     def test_partial_setting(self):
 
@@ -59,8 +266,7 @@ class TestPartialSetting:
         with pytest.raises(IndexError, match=msg):
             s.iat[3] = 5.0
 
-        # ## frame ##
-
+    def test_partial_setting_frame(self, using_array_manager):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
         )
@@ -73,6 +279,8 @@ class TestPartialSetting:
             df.iloc[4, 2] = 5.0
 
         msg = "index 2 is out of bounds for axis 0 with size 2"
+        if using_array_manager:
+            msg = "list index out of range"
         with pytest.raises(IndexError, match=msg):
             df.iat[4, 2] = 5.0
 
@@ -103,7 +311,9 @@ class TestPartialSetting:
         expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
-        df.loc[:, "B"] = df.loc[:, "A"]
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting
@@ -120,6 +330,7 @@ class TestPartialSetting:
         df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
+    def test_partial_setting2(self):
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
@@ -154,36 +365,10 @@ class TestPartialSetting:
 
         s = df.loc[1].copy()
         s.name = 2
-        expected = df.append(s)
+        expected = pd.concat([df, DataFrame(s).T.infer_objects()])
 
         df.loc[2] = df.loc[1]
         tm.assert_frame_equal(df, expected)
-
-        # columns will align
-        df = DataFrame(columns=["A", "B"])
-        df.loc[0] = Series(1, index=range(4))
-        tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
-
-        # columns will align
-        df = DataFrame(columns=["A", "B"])
-        df.loc[0] = Series(1, index=["B"])
-
-        exp = DataFrame([[np.nan, 1]], columns=["A", "B"], index=[0], dtype="float64")
-        tm.assert_frame_equal(df, exp)
-
-        # list-like must conform
-        df = DataFrame(columns=["A", "B"])
-
-        msg = "cannot set a row with mismatched columns"
-        with pytest.raises(ValueError, match=msg):
-            df.loc[0] = [1, 2, 3]
-
-        # TODO: #15657, these are left as object and not coerced
-        df = DataFrame(columns=["A", "B"])
-        df.loc[3] = [6, 7]
-
-        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype="object")
-        tm.assert_frame_equal(df, exp)
 
     def test_series_partial_set(self):
         # partial set with new index
@@ -192,14 +377,14 @@ class TestPartialSetting:
 
         # loc equiv to .reindex
         expected = Series([np.nan, 0.2, np.nan], index=[3, 2, 3])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match=r"not in index"):
             ser.loc[[3, 2, 3]]
 
         result = ser.reindex([3, 2, 3])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([np.nan, 0.2, np.nan, np.nan], index=[3, 2, 3, "x"])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             ser.loc[[3, 2, 3, "x"]]
 
         result = ser.reindex([3, 2, 3, "x"])
@@ -210,7 +395,7 @@ class TestPartialSetting:
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([0.2, 0.2, np.nan, 0.1], index=[2, 2, "x", 1])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             ser.loc[[2, 2, "x", 1]]
 
         result = ser.reindex([2, 2, "x", 1])
@@ -225,7 +410,7 @@ class TestPartialSetting:
             ser.loc[[3, 3, 3]]
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             ser.loc[[2, 2, 3]]
 
         result = ser.reindex([2, 2, 3])
@@ -233,7 +418,7 @@ class TestPartialSetting:
 
         s = Series([0.1, 0.2, 0.3], index=[1, 2, 3])
         expected = Series([0.3, np.nan, np.nan], index=[3, 4, 4])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s.loc[[3, 4, 4]]
 
         result = s.reindex([3, 4, 4])
@@ -241,7 +426,7 @@ class TestPartialSetting:
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.3, 0.3], index=[5, 3, 3])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s.loc[[5, 3, 3]]
 
         result = s.reindex([5, 3, 3])
@@ -249,7 +434,7 @@ class TestPartialSetting:
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.4, 0.4], index=[5, 4, 4])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s.loc[[5, 4, 4]]
 
         result = s.reindex([5, 4, 4])
@@ -257,7 +442,7 @@ class TestPartialSetting:
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[4, 5, 6, 7])
         expected = Series([0.4, np.nan, np.nan], index=[7, 2, 2])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s.loc[[7, 2, 2]]
 
         result = s.reindex([7, 2, 2])
@@ -265,7 +450,7 @@ class TestPartialSetting:
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([0.4, np.nan, np.nan], index=[4, 5, 5])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             s.loc[[4, 5, 5]]
 
         result = s.reindex([4, 5, 5])
@@ -283,10 +468,10 @@ class TestPartialSetting:
         ser = Series([0.1, 0.2], index=idx, name="s")
 
         # loc
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match=r"\[3\] not in index"):
             ser.loc[[3, 2, 3]]
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match=r"not in index"):
             ser.loc[[3, 2, 3, "x"]]
 
         exp_idx = Index([2, 2, 1], dtype="int64", name="idx")
@@ -294,7 +479,7 @@ class TestPartialSetting:
         result = ser.loc[[2, 2, 1]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match=r"\['x'\] not in index"):
             ser.loc[[2, 2, "x", 1]]
 
         # raises as nothing is in the index
@@ -305,27 +490,27 @@ class TestPartialSetting:
         with pytest.raises(KeyError, match=msg):
             ser.loc[[3, 3, 3]]
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             ser.loc[[2, 2, 3]]
 
         idx = Index([1, 2, 3], dtype="int64", name="idx")
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             Series([0.1, 0.2, 0.3], index=idx, name="s").loc[[3, 4, 4]]
 
         idx = Index([1, 2, 3, 4], dtype="int64", name="idx")
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[5, 3, 3]]
 
         idx = Index([1, 2, 3, 4], dtype="int64", name="idx")
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[5, 4, 4]]
 
         idx = Index([4, 5, 6, 7], dtype="int64", name="idx")
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[7, 2, 2]]
 
         idx = Index([1, 2, 3, 4], dtype="int64", name="idx")
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[4, 5, 5]]
 
         # iloc
@@ -344,6 +529,7 @@ class TestPartialSetting:
         ex_index = Index(list(orig.index) + [key], dtype=object, name=orig.index.name)
         ex_data = np.concatenate([orig.values, df.iloc[[0]].values], axis=0)
         expected = DataFrame(ex_data, index=ex_index, columns=orig.columns)
+
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_invalid(self):
@@ -356,172 +542,11 @@ class TestPartialSetting:
         # allow object conversion here
         df = orig.copy()
         df.loc["a", :] = df.iloc[0]
-        exp = orig.append(Series(df.iloc[0], name="a"))
+        ser = Series(df.iloc[0], name="a")
+        exp = pd.concat([orig, DataFrame(ser).T.infer_objects()])
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
         assert df.index.dtype == "object"
-
-    def test_partial_set_empty_frame(self):
-
-        # partially set with an empty object
-        # frame
-        df = DataFrame()
-
-        msg = "cannot set a frame with no defined columns"
-
-        with pytest.raises(ValueError, match=msg):
-            df.loc[1] = 1
-
-        with pytest.raises(ValueError, match=msg):
-            df.loc[1] = Series([1], index=["foo"])
-
-        msg = "cannot set a frame with no defined index and a scalar"
-        with pytest.raises(ValueError, match=msg):
-            df.loc[:, 1] = 1
-
-        # these work as they don't really change
-        # anything but the index
-        # GH5632
-        expected = DataFrame(columns=["foo"], index=Index([], dtype="object"))
-
-        def f():
-            df = DataFrame(index=Index([], dtype="object"))
-            df["foo"] = Series([], dtype="object")
-            return df
-
-        tm.assert_frame_equal(f(), expected)
-
-        def f():
-            df = DataFrame()
-            df["foo"] = Series(df.index)
-            return df
-
-        tm.assert_frame_equal(f(), expected)
-
-        def f():
-            df = DataFrame()
-            df["foo"] = df.index
-            return df
-
-        tm.assert_frame_equal(f(), expected)
-
-        expected = DataFrame(columns=["foo"], index=Index([], dtype="int64"))
-        expected["foo"] = expected["foo"].astype("float64")
-
-        def f():
-            df = DataFrame(index=Index([], dtype="int64"))
-            df["foo"] = []
-            return df
-
-        tm.assert_frame_equal(f(), expected)
-
-        def f():
-            df = DataFrame(index=Index([], dtype="int64"))
-            df["foo"] = Series(np.arange(len(df)), dtype="float64")
-            return df
-
-        tm.assert_frame_equal(f(), expected)
-
-        def f():
-            df = DataFrame(index=Index([], dtype="int64"))
-            df["foo"] = range(len(df))
-            return df
-
-        expected = DataFrame(columns=["foo"], index=Index([], dtype="int64"))
-        expected["foo"] = expected["foo"].astype("float64")
-        tm.assert_frame_equal(f(), expected)
-
-        df = DataFrame()
-        tm.assert_index_equal(df.columns, Index([], dtype=object))
-        df2 = DataFrame()
-        df2[1] = Series([1], index=["foo"])
-        df.loc[:, 1] = Series([1], index=["foo"])
-        tm.assert_frame_equal(df, DataFrame([[1]], index=["foo"], columns=[1]))
-        tm.assert_frame_equal(df, df2)
-
-        # no index to start
-        expected = DataFrame({0: Series(1, index=range(4))}, columns=["A", "B", 0])
-
-        df = DataFrame(columns=["A", "B"])
-        df[0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
-        tm.assert_frame_equal(df, expected)
-
-        df = DataFrame(columns=["A", "B"])
-        df.loc[:, 0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
-        tm.assert_frame_equal(df, expected)
-
-    def test_partial_set_empty_frame_row(self):
-        # GH5720, GH5744
-        # don't create rows when empty
-        expected = DataFrame(columns=["A", "B", "New"], index=Index([], dtype="int64"))
-        expected["A"] = expected["A"].astype("int64")
-        expected["B"] = expected["B"].astype("float64")
-        expected["New"] = expected["New"].astype("float64")
-
-        df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
-        y = df[df.A > 5]
-        y["New"] = np.nan
-        tm.assert_frame_equal(y, expected)
-        # tm.assert_frame_equal(y,expected)
-
-        expected = DataFrame(columns=["a", "b", "c c", "d"])
-        expected["d"] = expected["d"].astype("int64")
-        df = DataFrame(columns=["a", "b", "c c"])
-        df["d"] = 3
-        tm.assert_frame_equal(df, expected)
-        tm.assert_series_equal(df["c c"], Series(name="c c", dtype=object))
-
-        # reindex columns is ok
-        df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
-        y = df[df.A > 5]
-        result = y.reindex(columns=["A", "B", "C"])
-        expected = DataFrame(columns=["A", "B", "C"], index=Index([], dtype="int64"))
-        expected["A"] = expected["A"].astype("int64")
-        expected["B"] = expected["B"].astype("float64")
-        expected["C"] = expected["C"].astype("float64")
-        tm.assert_frame_equal(result, expected)
-
-    def test_partial_set_empty_frame_set_series(self):
-        # GH 5756
-        # setting with empty Series
-        df = DataFrame(Series(dtype=object))
-        expected = DataFrame({0: Series(dtype=object)})
-        tm.assert_frame_equal(df, expected)
-
-        df = DataFrame(Series(name="foo", dtype=object))
-        expected = DataFrame({"foo": Series(dtype=object)})
-        tm.assert_frame_equal(df, expected)
-
-    def test_partial_set_empty_frame_empty_copy_assignment(self):
-        # GH 5932
-        # copy on empty with assignment fails
-        df = DataFrame(index=[0])
-        df = df.copy()
-        df["a"] = 0
-        expected = DataFrame(0, index=[0], columns=["a"])
-        tm.assert_frame_equal(df, expected)
-
-    def test_partial_set_empty_frame_empty_consistencies(self):
-        # GH 6171
-        # consistency on empty frames
-        df = DataFrame(columns=["x", "y"])
-        df["x"] = [1, 2]
-        expected = DataFrame({"x": [1, 2], "y": [np.nan, np.nan]})
-        tm.assert_frame_equal(df, expected, check_dtype=False)
-
-        df = DataFrame(columns=["x", "y"])
-        df["x"] = ["1", "2"]
-        expected = DataFrame({"x": ["1", "2"], "y": [np.nan, np.nan]}, dtype=object)
-        tm.assert_frame_equal(df, expected)
-
-        df = DataFrame(columns=["x", "y"])
-        df.loc[0, "x"] = 1
-        expected = DataFrame({"x": [1], "y": [np.nan]})
-        tm.assert_frame_equal(df, expected, check_dtype=False)
 
     @pytest.mark.parametrize(
         "idx,labels,expected_idx",
@@ -539,9 +564,9 @@ class TestPartialSetting:
                 date_range(start="2000", periods=20, freq="D"),
                 ["2000-01-04", "2000-01-08", "2000-01-12"],
                 [
-                    Timestamp("2000-01-04", freq="D"),
-                    Timestamp("2000-01-08", freq="D"),
-                    Timestamp("2000-01-12", freq="D"),
+                    Timestamp("2000-01-04"),
+                    Timestamp("2000-01-08"),
+                    Timestamp("2000-01-12"),
                 ],
             ),
             (
@@ -582,14 +607,14 @@ class TestPartialSetting:
         self, idx, labels
     ):
         # GH 11278
-        s = Series(range(20), index=idx)
+        ser = Series(range(20), index=idx)
         df = DataFrame(range(20), index=idx)
-        msg = r"with any missing labels"
+        msg = r"not in index"
 
         with pytest.raises(KeyError, match=msg):
-            s.loc[labels]
+            ser.loc[labels]
         with pytest.raises(KeyError, match=msg):
-            s[labels]
+            ser[labels]
         with pytest.raises(KeyError, match=msg):
             df.loc[labels]
 
@@ -626,37 +651,18 @@ class TestPartialSetting:
         self, idx, labels, msg
     ):
         # GH 11278
-        s = Series(range(20), index=idx)
+        ser = Series(range(20), index=idx)
         df = DataFrame(range(20), index=idx)
 
         with pytest.raises(KeyError, match=msg):
-            s.loc[labels]
+            ser.loc[labels]
         with pytest.raises(KeyError, match=msg):
-            s[labels]
+            ser[labels]
         with pytest.raises(KeyError, match=msg):
             df.loc[labels]
 
-    def test_index_name_empty(self):
-        # GH 31368
-        df = DataFrame({}, index=pd.RangeIndex(0, name="df_index"))
-        series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
 
-        df["series"] = series
-        expected = DataFrame(
-            {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="df_index")
-        )
-
-        tm.assert_frame_equal(df, expected)
-
-        # GH 36527
-        df = DataFrame()
-        series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
-        df["series"] = series
-        expected = DataFrame(
-            {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="series_index")
-        )
-        tm.assert_frame_equal(df, expected)
-
+class TestStringSlicing:
     def test_slice_irregular_datetime_index_with_nan(self):
         # GH36953
         index = pd.to_datetime(["2012-01-01", "2012-01-02", "2012-01-03", None])

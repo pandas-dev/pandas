@@ -1,8 +1,16 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PandasDtype,
+    PeriodDtype,
+)
+
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import IntervalArray
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -69,10 +77,17 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_series_equal(ser, original)
 
     def test_setitem_empty_indexer(self, data, box_in_series):
+        data_dtype = type(data)
+
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
-        data[np.array([], dtype=int)] = []
+
+        if data_dtype == IntervalArray:
+            data[np.array([], dtype=int)] = IntervalArray([], "right")
+        else:
+            data[np.array([], dtype=int)] = []
+
         self.assert_equal(data, original)
 
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
@@ -339,13 +354,97 @@ class BaseSetitemTests(BaseExtensionTests):
 
         key = full_indexer(df)
         result.loc[key, "data"] = df["data"]
+
         self.assert_frame_equal(result, expected)
+
+    def test_setitem_with_expansion_row(self, data, na_value):
+        df = pd.DataFrame({"data": data[:1]})
+
+        df.loc[1, "data"] = data[1]
+        expected = pd.DataFrame({"data": data[:2]})
+        self.assert_frame_equal(df, expected)
+
+        # https://github.com/pandas-dev/pandas/issues/47284
+        df.loc[2, "data"] = na_value
+        expected = pd.DataFrame(
+            {"data": pd.Series([data[0], data[1], na_value], dtype=data.dtype)}
+        )
+        self.assert_frame_equal(df, expected)
 
     def test_setitem_series(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        ser = expected = pd.Series(data, name="data")
+        ser = pd.Series(data, name="data")
         result = pd.Series(index=ser.index, dtype=object, name="data")
 
+        # because result has object dtype, the attempt to do setting inplace
+        #  is successful, and object dtype is retained
         key = full_indexer(ser)
         result.loc[key] = ser
+
+        expected = pd.Series(
+            data.astype(object), index=ser.index, name="data", dtype=object
+        )
         self.assert_series_equal(result, expected)
+
+    def test_setitem_frame_2d_values(self, data):
+        # GH#44514
+        df = pd.DataFrame({"A": data})
+
+        # These dtypes have non-broken implementations of _can_hold_element
+        has_can_hold_element = isinstance(
+            data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
+        )
+
+        # Avoiding using_array_manager fixture
+        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
+        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
+
+        blk_data = df._mgr.arrays[0]
+
+        orig = df.copy()
+
+        msg = "will attempt to set the values inplace instead"
+        warn = None
+        if has_can_hold_element and not isinstance(data.dtype, PandasDtype):
+            # PandasDtype excluded because it isn't *really* supported.
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df
+        self.assert_frame_equal(df, orig)
+
+        df.iloc[:-1] = df.iloc[:-1]
+        self.assert_frame_equal(df, orig)
+
+        if isinstance(data.dtype, DatetimeTZDtype):
+            # no warning bc df.values casts to object dtype
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df.values
+        self.assert_frame_equal(df, orig)
+        if not using_array_manager:
+            # GH#33457 Check that this setting occurred in-place
+            # FIXME(ArrayManager): this should work there too
+            assert df._mgr.arrays[0] is blk_data
+
+        df.iloc[:-1] = df.values[:-1]
+        self.assert_frame_equal(df, orig)
+
+    def test_delitem_series(self, data):
+        # GH#40763
+        ser = pd.Series(data, name="data")
+
+        taker = np.arange(len(ser))
+        taker = np.delete(taker, 1)
+
+        expected = ser[taker]
+        del ser[1]
+        self.assert_series_equal(ser, expected)
+
+    def test_setitem_invalid(self, data, invalid_scalar):
+        msg = ""  # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=msg):
+            data[0] = invalid_scalar
+
+        with pytest.raises((ValueError, TypeError), match=msg):
+            data[:] = invalid_scalar

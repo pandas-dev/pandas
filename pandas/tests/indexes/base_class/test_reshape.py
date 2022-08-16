@@ -1,6 +1,7 @@
 """
 Tests for ndarray-like method on the base Index class
 """
+import numpy as np
 import pytest
 
 from pandas import Index
@@ -35,6 +36,25 @@ class TestReshape:
         null_index = Index([])
         tm.assert_index_equal(Index(["a"]), null_index.insert(0, "a"))
 
+    def test_insert_missing(self, nulls_fixture):
+        # GH#22295
+        # test there is no mangling of NA values
+        expected = Index(["a", nulls_fixture, "b", "c"])
+        result = Index(list("abc")).insert(1, nulls_fixture)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "val", [(1, 2), np.datetime64("2019-12-31"), np.timedelta64(1, "D")]
+    )
+    @pytest.mark.parametrize("loc", [-1, 2])
+    def test_insert_datetime_into_object(self, loc, val):
+        # GH#44509
+        idx = Index(["1", "2", "3"])
+        result = idx.insert(loc, val)
+        expected = Index(["1", "2", val, "3"])
+        tm.assert_index_equal(result, expected)
+        assert type(expected[2]) is type(val)
+
     @pytest.mark.parametrize(
         "pos,expected",
         [
@@ -47,6 +67,12 @@ class TestReshape:
         result = index.delete(pos)
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
+
+    def test_delete_raises(self):
+        index = Index(["a", "b", "c", "d"], name="index")
+        msg = "index 5 is out of bounds for axis 0 with size 4"
+        with pytest.raises(IndexError, match=msg):
+            index.delete(5)
 
     def test_append_multiple(self):
         index = Index(["a", "b", "c", "d", "e", "f"])

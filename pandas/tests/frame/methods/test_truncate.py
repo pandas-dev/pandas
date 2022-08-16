@@ -4,17 +4,18 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Series,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestDataFrameTruncate:
     def test_truncate(self, datetime_frame, frame_or_series):
         ts = datetime_frame[::3]
-        if frame_or_series is Series:
-            ts = ts.iloc[:, 0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         start, end = datetime_frame.index[3], datetime_frame.index[6]
 
@@ -75,26 +76,23 @@ class TestDataFrameTruncate:
         # GH#17935
 
         obj = DataFrame({"A": ["a", "b", "c", "d", "e"]}, index=[5, 3, 2, 9, 0])
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = "truncate requires a sorted index"
         with pytest.raises(ValueError, match=msg):
             obj.truncate(before=3, after=9)
 
     def test_sort_values_nonsortedindex(self):
-        # TODO: belongs elsewhere?
-
         rng = date_range("2011-01-01", "2012-01-01", freq="W")
         ts = DataFrame(
             {"A": np.random.randn(len(rng)), "B": np.random.randn(len(rng))}, index=rng
         )
 
+        decreasing = ts.sort_values("A", ascending=False)
+
         msg = "truncate requires a sorted index"
         with pytest.raises(ValueError, match=msg):
-            ts.sort_values("A", ascending=False).truncate(
-                before="2011-11", after="2011-12"
-            )
+            decreasing.truncate(before="2011-11", after="2011-12")
 
     def test_truncate_nonsortedindex_axis1(self):
         # GH#17935
@@ -116,13 +114,13 @@ class TestDataFrameTruncate:
         "before, after, indices",
         [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],
     )
-    @pytest.mark.parametrize("klass", [pd.Int64Index, pd.DatetimeIndex])
+    @pytest.mark.parametrize("klass", [Int64Index, DatetimeIndex])
     def test_truncate_decreasing_index(
         self, before, after, indices, klass, frame_or_series
     ):
         # https://github.com/pandas-dev/pandas/issues/33756
         idx = klass([3, 2, 1, 0])
-        if klass is pd.DatetimeIndex:
+        if klass is DatetimeIndex:
             before = pd.Timestamp(before) if before is not None else None
             after = pd.Timestamp(after) if after is not None else None
             indices = [pd.Timestamp(i) for i in indices]
@@ -135,8 +133,7 @@ class TestDataFrameTruncate:
         # GH 34564
         mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
         s1 = DataFrame(range(mi.shape[0]), index=mi, columns=["col"])
-        if frame_or_series is Series:
-            s1 = s1["col"]
+        s1 = tm.get_obj(s1, frame_or_series)
 
         result = s1.truncate(before=2, after=3)
 
@@ -144,7 +141,16 @@ class TestDataFrameTruncate:
             {"L1": [2, 2, 3, 3], "L2": ["A", "B", "A", "B"], "col": [2, 3, 4, 5]}
         )
         expected = df.set_index(["L1", "L2"])
-        if frame_or_series is Series:
-            expected = expected["col"]
+        expected = tm.get_obj(expected, frame_or_series)
 
         tm.assert_equal(result, expected)
+
+    def test_truncate_index_only_one_unique_value(self, frame_or_series):
+        # GH 42365
+        obj = Series(0, index=date_range("2021-06-30", "2021-06-30")).repeat(5)
+        if frame_or_series is DataFrame:
+            obj = obj.to_frame(name="a")
+
+        truncated = obj.truncate("2021-06-28", "2021-07-01")
+
+        tm.assert_equal(truncated, obj)

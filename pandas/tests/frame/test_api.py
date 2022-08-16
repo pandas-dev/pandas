@@ -5,6 +5,8 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas._config.config import option_context
+
 import pandas.util._test_decorators as td
 from pandas.util._test_decorators import (
     async_mark,
@@ -73,7 +75,7 @@ class TestDataFrameMisc:
         df = DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
         for key in list("ABCD"):
             assert key in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.Series)
+        assert isinstance(df.__getitem__("A"), Series)
 
         # DataFrame whose first-level columns are identifiers shall have
         # them in __dir__.
@@ -85,13 +87,32 @@ class TestDataFrameMisc:
             assert key in dir(df)
         for key in list("EFGH"):
             assert key not in dir(df)
-        assert isinstance(df.__getitem__("A"), pd.DataFrame)
+        assert isinstance(df.__getitem__("A"), DataFrame)
+
+    def test_display_max_dir_items(self):
+        # display.max_dir_items increaes the number of columns that are in __dir__.
+        columns = ["a" + str(i) for i in range(420)]
+        values = [range(420), range(420)]
+        df = DataFrame(values, columns=columns)
+
+        # The default value for display.max_dir_items is 100
+        assert "a99" in dir(df)
+        assert "a100" not in dir(df)
+
+        with option_context("display.max_dir_items", 300):
+            df = DataFrame(values, columns=columns)
+            assert "a299" in dir(df)
+            assert "a300" not in dir(df)
+
+        with option_context("display.max_dir_items", None):
+            df = DataFrame(values, columns=columns)
+            assert "a419" in dir(df)
 
     def test_not_hashable(self):
         empty_frame = DataFrame()
 
         df = DataFrame([1])
-        msg = "'DataFrame' objects are mutable, thus they cannot be hashed"
+        msg = "unhashable type: 'DataFrame'"
         with pytest.raises(TypeError, match=msg):
             hash(df)
         with pytest.raises(TypeError, match=msg):
@@ -173,15 +194,19 @@ class TestDataFrameMisc:
         df = DataFrame(index=["a", "b"], columns=["c", "d"]).dropna()
         assert df.empty
         assert df.T.empty
-        empty_frames = [
+
+    @pytest.mark.parametrize(
+        "df",
+        [
             DataFrame(),
             DataFrame(index=[1]),
             DataFrame(columns=[1]),
             DataFrame({1: []}),
-        ]
-        for df in empty_frames:
-            assert df.empty
-            assert df.T.empty
+        ],
+    )
+    def test_empty_like(self, df):
+        assert df.empty
+        assert df.T.empty
 
     def test_with_datetimelikes(self):
 
@@ -345,3 +370,8 @@ class TestDataFrameMisc:
         df = DataFrame()
         with tm.assert_produces_warning(None):
             inspect.getmembers(df)
+
+    def test_dataframe_iteritems_deprecated(self):
+        df = DataFrame([1])
+        with tm.assert_produces_warning(FutureWarning):
+            next(df.iteritems())

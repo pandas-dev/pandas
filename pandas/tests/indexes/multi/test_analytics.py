@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17
-
 import pandas as pd
 from pandas import (
     Index,
@@ -11,6 +9,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.api import UInt64Index
 
 
 def test_shift(idx):
@@ -175,14 +174,8 @@ def test_map(idx):
     # callable
     index = idx
 
-    # we don't infer UInt64
-    if isinstance(index, pd.UInt64Index):
-        expected = index.astype("int64")
-    else:
-        expected = index
-
     result = index.map(lambda x: x)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, index)
 
 
 @pytest.mark.parametrize(
@@ -194,13 +187,10 @@ def test_map(idx):
 )
 def test_map_dictlike(idx, mapper):
 
-    if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
-        pytest.skip(f"skipping tests for {type(idx)}")
-
     identity = mapper(idx.values, idx)
 
     # we don't infer to UInt64 for a dict
-    if isinstance(idx, pd.UInt64Index) and isinstance(identity, dict):
+    if isinstance(idx, UInt64Index) and isinstance(identity, dict):
         expected = idx.astype("int64")
     else:
         expected = idx
@@ -246,15 +236,11 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
-    if np_version_under1p17:
-        expected_exception = AttributeError
-        msg = f"'tuple' object has no attribute '{func.__name__}'"
-    else:
-        expected_exception = TypeError
-        msg = (
-            "loop of ufunc does not support argument 0 of type tuple which "
-            f"has no callable {func.__name__} method"
-        )
+    expected_exception = TypeError
+    msg = (
+        "loop of ufunc does not support argument 0 of type tuple which "
+        f"has no callable {func.__name__} method"
+    )
     with pytest.raises(expected_exception, match=msg):
         func(idx)
 

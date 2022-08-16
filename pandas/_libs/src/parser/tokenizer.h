@@ -19,7 +19,7 @@ See LICENSE for the license
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
 
-#include "../headers/stdint.h"
+#include <stdint.h>
 #include "../inline_helper.h"
 #include "../headers/portable.h"
 
@@ -84,8 +84,14 @@ typedef enum {
     QUOTE_NONE
 } QuoteStyle;
 
+typedef enum {
+    ERROR,
+    WARN,
+    SKIP
+} BadLineHandleMethod;
+
 typedef void *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
-                             int *status);
+                             int *status, const char *encoding_errors);
 typedef int (*io_cleanup)(void *src);
 
 typedef struct parser_t {
@@ -135,9 +141,8 @@ typedef struct parser_t {
 
     int usecols;  // Boolean: 1: usecols provided, 0: none provided
 
-    int expected_fields;
-    int error_bad_lines;
-    int warn_bad_lines;
+    Py_ssize_t expected_fields;
+    BadLineHandleMethod on_bad_lines;
 
     // floating point options
     char decimal;
@@ -170,7 +175,7 @@ typedef struct coliter_t {
     int64_t col;
 } coliter_t;
 
-void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
+void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
 #define COLITER_NEXT(iter, word)                           \
     do {                                                   \
@@ -196,9 +201,9 @@ void parser_del(parser_t *self);
 
 void parser_set_default_options(parser_t *self);
 
-int tokenize_nrows(parser_t *self, size_t nrows);
+int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors);
 
-int tokenize_all_rows(parser_t *self);
+int tokenize_all_rows(parser_t *self, const char *encoding_errors);
 
 // Have parsed / type-converted a chunk of data
 // and want to free memory from the token stream

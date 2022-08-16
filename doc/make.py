@@ -39,13 +39,13 @@ class DocBuilder:
 
     def __init__(
         self,
-        num_jobs=0,
+        num_jobs="auto",
         include_api=True,
         whatsnew=False,
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
-    ):
+    ) -> None:
         self.num_jobs = num_jobs
         self.include_api = include_api
         self.whatsnew = whatsnew
@@ -54,7 +54,6 @@ class DocBuilder:
 
         if single_doc:
             single_doc = self._process_single_doc(single_doc)
-            include_api = False
             os.environ["SPHINX_PATTERN"] = single_doc
         elif not include_api:
             os.environ["SPHINX_PATTERN"] = "-api"
@@ -135,7 +134,7 @@ class DocBuilder:
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
-            cmd += ["-j", str(self.num_jobs)]
+            cmd += ["-j", self.num_jobs]
         if self.warnings_are_errors:
             cmd += ["-W", "--keep-going"]
         if self.verbosity:
@@ -304,7 +303,7 @@ def main():
         "command", nargs="?", default="html", help=f"command to run: {joined}"
     )
     argparser.add_argument(
-        "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"
+        "--num-jobs", default="auto", help="number of jobs used by sphinx-build"
     )
     argparser.add_argument(
         "--no-api", default=False, help="omit api and autosummary", action="store_true"

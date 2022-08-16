@@ -4,7 +4,6 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
-    MultiIndex,
     Series,
     date_range,
 )
@@ -19,7 +18,7 @@ def check(result, expected=None):
 
 
 class TestDataFrameNonuniqueIndexes:
-    def test_column_dups_operations(self):
+    def test_setattr_columns_vs_construct_with_columns(self):
 
         # assignment
         # GH 3687
@@ -30,6 +29,7 @@ class TestDataFrameNonuniqueIndexes:
         expected = DataFrame(arr, columns=idx)
         check(df, expected)
 
+    def test_setattr_columns_vs_construct_with_columns_datetimeindx(self):
         idx = date_range("20130101", periods=4, freq="Q-NOV")
         df = DataFrame(
             [[1, 1, 1, 5], [1, 1, 2, 5], [2, 1, 3, 5]], columns=["a", "a", "a", "a"]
@@ -162,90 +162,6 @@ class TestDataFrameNonuniqueIndexes:
         )
         check(df, expected)
 
-    def test_values_with_duplicate_columns(self):
-        # values
-        df = DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=["x", "x"])
-        result = df.values
-        expected = np.array([[1, 2.5], [3, 4.5]])
-        assert (result == expected).all().all()
-
-    def test_rename_with_duplicate_columns(self):
-        # rename, GH 4403
-        df4 = DataFrame(
-            {"RT": [0.0454], "TClose": [22.02], "TExg": [0.0422]},
-            index=MultiIndex.from_tuples(
-                [(600809, 20130331)], names=["STK_ID", "RPT_Date"]
-            ),
-        )
-
-        df5 = DataFrame(
-            {
-                "RPT_Date": [20120930, 20121231, 20130331],
-                "STK_ID": [600809] * 3,
-                "STK_Name": ["饡驦", "饡驦", "饡驦"],
-                "TClose": [38.05, 41.66, 30.01],
-            },
-            index=MultiIndex.from_tuples(
-                [(600809, 20120930), (600809, 20121231), (600809, 20130331)],
-                names=["STK_ID", "RPT_Date"],
-            ),
-        )
-
-        k = pd.merge(df4, df5, how="inner", left_index=True, right_index=True)
-        result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
-        str(result)
-        result.dtypes
-
-        expected = DataFrame(
-            [[0.0454, 22.02, 0.0422, 20130331, 600809, "饡驦", 30.01]],
-            columns=[
-                "RT",
-                "TClose",
-                "TExg",
-                "RPT_Date",
-                "STK_ID",
-                "STK_Name",
-                "QT_Close",
-            ],
-        ).set_index(["STK_ID", "RPT_Date"], drop=False)
-        tm.assert_frame_equal(result, expected)
-
-    def test_reindex_with_duplicate_columns(self):
-
-        # reindex is invalid!
-        df = DataFrame(
-            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
-        )
-        msg = "cannot reindex from a duplicate axis"
-        with pytest.raises(ValueError, match=msg):
-            df.reindex(columns=["bar"])
-        with pytest.raises(ValueError, match=msg):
-            df.reindex(columns=["bar", "foo"])
-
-    def test_drop_with_duplicate_columns(self):
-
-        # drop
-        df = DataFrame(
-            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
-        )
-        result = df.drop(["a"], axis=1)
-        expected = DataFrame([[1], [1], [1]], columns=["bar"])
-        check(result, expected)
-        result = df.drop("a", axis=1)
-        check(result, expected)
-
-    def test_describe_with_duplicate_columns(self):
-        # describe
-        df = DataFrame(
-            [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
-            columns=["bar", "a", "a"],
-            dtype="float64",
-        )
-        result = df.describe()
-        s = df.iloc[:, 0].describe()
-        expected = pd.concat([s, s, s], keys=df.columns, axis=1)
-        check(result, expected)
-
     def test_column_dups_indexes(self):
         # check column dups with index equal and not equal to df's index
         df = DataFrame(
@@ -257,22 +173,11 @@ class TestDataFrameNonuniqueIndexes:
             this_df = df.copy()
             expected_ser = Series(index.values, index=this_df.index)
             expected_df = DataFrame(
-                {"A": expected_ser, "B": this_df["B"], "A": expected_ser},
+                {"A": expected_ser, "B": this_df["B"]},
                 columns=["A", "B", "A"],
             )
             this_df["A"] = index
             check(this_df, expected_df)
-
-    def test_arithmetic_with_dups(self):
-
-        # operations
-        for op in ["__add__", "__mul__", "__sub__", "__truediv__"]:
-            df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
-            expected = getattr(df, op)(df)
-            expected.columns = ["A", "A"]
-            df.columns = ["A", "A"]
-            result = getattr(df, op)(df)
-            check(result, expected)
 
     def test_changing_dtypes_with_duplicate_columns(self):
         # multiple assignments that change dtypes
@@ -289,55 +194,6 @@ class TestDataFrameNonuniqueIndexes:
 
         df["that"] = 1
         check(df, expected)
-
-    def test_column_dups_drop(self):
-
-        # drop buggy GH 6240
-        df = DataFrame(
-            {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
-                "D": ["a", "b", "c", "d", "e"],
-            }
-        )
-
-        expected = df.take([0, 1, 1], axis=1)
-        df2 = df.take([2, 0, 1, 2, 1], axis=1)
-        result = df2.drop("C", axis=1)
-        tm.assert_frame_equal(result, expected)
-
-    def test_column_dups_dropna(self):
-        # dropna
-        df = DataFrame(
-            {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
-                "D": ["a", "b", "c", "d", "e"],
-            }
-        )
-        df.iloc[2, [0, 1, 2]] = np.nan
-        df.iloc[0, 0] = np.nan
-        df.iloc[1, 1] = np.nan
-        df.iloc[:, 3] = np.nan
-        expected = df.dropna(subset=["A", "B", "C"], how="all")
-        expected.columns = ["A", "A", "B", "C"]
-
-        df.columns = ["A", "A", "B", "C"]
-
-        result = df.dropna(subset=["A", "C"], how="all")
-        tm.assert_frame_equal(result, expected)
-
-    def test_column_dups_indexing(self):
-
-        # dup aligning operations should work
-        # GH 5185
-        df1 = DataFrame([1, 2, 3, 4, 5], index=[1, 2, 1, 2, 3])
-        df2 = DataFrame([1, 2, 3], index=[1, 2, 3])
-        expected = DataFrame([0, 2, 0, 2, 2], index=[1, 1, 2, 2, 3])
-        result = df1.sub(df2)
-        tm.assert_frame_equal(result, expected)
 
     def test_dup_columns_comparisons(self):
         # equality
@@ -435,10 +291,10 @@ class TestDataFrameNonuniqueIndexes:
         expected = DataFrame([[1, 2, "foo", "bar"]], columns=["a", "a.1", "a.2", "a.3"])
         tm.assert_frame_equal(df, expected)
 
-    def test_dups_across_blocks(self):
+    def test_dups_across_blocks(self, using_array_manager):
         # dups across blocks
         df_float = DataFrame(np.random.randn(10, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(10, 3), dtype="int64")
+        df_int = DataFrame(np.random.randn(10, 3).astype("int64"))
         df_bool = DataFrame(True, index=df_float.index, columns=df_float.columns)
         df_object = DataFrame("foo", index=df_float.index, columns=df_float.columns)
         df_dt = DataFrame(
@@ -446,8 +302,9 @@ class TestDataFrameNonuniqueIndexes:
         )
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
-        assert len(df._mgr.blknos) == len(df.columns)
-        assert len(df._mgr.blklocs) == len(df.columns)
+        if not using_array_manager:
+            assert len(df._mgr.blknos) == len(df.columns)
+            assert len(df._mgr.blklocs) == len(df.columns)
 
         # testing iloc
         for i in range(len(df.columns)):
@@ -461,18 +318,23 @@ class TestDataFrameNonuniqueIndexes:
         xp.columns = ["A", "A", "B"]
         tm.assert_frame_equal(rs, xp)
 
-    def test_set_value_by_index(self):
+    def test_set_value_by_index(self, using_array_manager):
         # See gh-12344
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+
         df = DataFrame(np.arange(9).reshape(3, 3).T)
         df.columns = list("AAA")
         expected = df.iloc[:, 2]
 
-        df.iloc[:, 0] = 3
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:, 0] = 3
         tm.assert_series_equal(df.iloc[:, 2], expected)
 
         df = DataFrame(np.arange(9).reshape(3, 3).T)
         df.columns = [2, float(2), str(2)]
         expected = df.iloc[:, 1]
 
-        df.iloc[:, 0] = 3
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:, 0] = 3
         tm.assert_series_equal(df.iloc[:, 1], expected)

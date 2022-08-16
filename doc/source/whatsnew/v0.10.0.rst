@@ -181,6 +181,7 @@ labeled the aggregated group with the end of the interval: the next day).
   ``X0``, ``X1``, ...) can be reproduced by specifying ``prefix='X'``:
 
 .. ipython:: python
+   :okwarning:
 
     import io
 
@@ -197,11 +198,25 @@ labeled the aggregated group with the end of the interval: the next day).
   though this can be controlled by new ``true_values`` and ``false_values``
   arguments:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    print(data)
-    pd.read_csv(io.StringIO(data))
-    pd.read_csv(io.StringIO(data), true_values=["Yes"], false_values=["No"])
+    In [4]: print(data)
+
+        a,b,c
+        1,Yes,2
+        3,No,4
+
+    In [5]: pd.read_csv(io.StringIO(data))
+    Out[5]:
+           a    b  c
+    0      1  Yes  2
+    1      3   No  4
+
+    In [6]: pd.read_csv(io.StringIO(data), true_values=["Yes"], false_values=["No"])
+    Out[6]:
+           a      b  c
+    0      1   True  2
+    1      3  False  4
 
 - The file parsers will not recognize non-string values arising from a
   converter function as NA if passed in the ``na_values`` argument. It's better

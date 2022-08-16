@@ -17,29 +17,6 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
-    def test_time_loc(self):  # GH8667
-        from datetime import time
-
-        from pandas._libs.index import _SIZE_CUTOFF
-
-        ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
-        key = time(15, 11, 30)
-        start = key.hour * 3600 + key.minute * 60 + key.second
-        step = 24 * 3600
-
-        for n in ns:
-            idx = date_range("2014-11-26", periods=n, freq="S")
-            ts = pd.Series(np.random.randn(n), index=idx)
-            i = np.arange(start, n, step)
-
-            tm.assert_numpy_array_equal(ts.index.get_loc(key), i, check_dtype=False)
-            tm.assert_series_equal(ts[key], ts.iloc[i])
-
-            left, right = ts.copy(), ts.copy()
-            left[key] *= -10
-            right.iloc[i] *= -10
-            tm.assert_series_equal(left, right)
-
     def test_time_overflow_for_32bit_machines(self):
         # GH8943.  On some machines NumPy defaults to np.int32 (for example,
         # 32-bit Linux machines).  In the function _generate_regular_range
@@ -77,13 +54,6 @@ class TestDatetimeIndex:
         dates = ["2013-01-05", "2013-02-02", "2013-03-02", "2013-04-06"]
         expected = DatetimeIndex(dates, freq="WOM-1SAT")
         tm.assert_index_equal(result, expected)
-
-    def test_stringified_slice_with_tz(self):
-        # GH#2658
-        start = "2013-01-07"
-        idx = date_range(start=start, freq="1d", periods=10, tz="US/Eastern")
-        df = DataFrame(np.arange(10), index=idx)
-        df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
     def test_append_nondatetimeindex(self):
         rng = date_range("1/1/2000", periods=10)
@@ -137,56 +107,12 @@ class TestDatetimeIndex:
         result = rng.groupby(rng.day)
         assert isinstance(list(result.values())[0][0], Timestamp)
 
-    def test_string_index_series_name_converted(self):
-        # #1644
-        df = DataFrame(np.random.randn(10, 4), index=date_range("1/1/2000", periods=10))
-
-        result = df.loc["1/3/2000"]
-        assert result.name == df.index[2]
-
-        result = df.T["1/3/2000"]
-        assert result.name == df.index[2]
-
-    def test_argmin_argmax(self):
-        idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
-        assert idx.argmin() == 1
-        assert idx.argmax() == 0
-
-    def test_sort_values(self):
-        idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
-
-        ordered = idx.sort_values()
-        assert ordered.is_monotonic
-
-        ordered = idx.sort_values(ascending=False)
-        assert ordered[::-1].is_monotonic
-
-        ordered, dexer = idx.sort_values(return_indexer=True)
-        assert ordered.is_monotonic
-        tm.assert_numpy_array_equal(dexer, np.array([1, 2, 0], dtype=np.intp))
-
-        ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
-        assert ordered[::-1].is_monotonic
-        tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1], dtype=np.intp))
-
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(np.random.rand(100), index=date_range("1/1/2000", periods=100))
         monthly_group = df.groupby(lambda x: (x.year, x.month))
 
         result = monthly_group.mean()
         assert isinstance(result.index[0], tuple)
-
-    def test_isin(self):
-        index = tm.makeDateIndex(4)
-        result = index.isin(index)
-        assert result.all()
-
-        result = index.isin(list(index))
-        assert result.all()
-
-        tm.assert_almost_equal(
-            index.isin([index[2], 5]), np.array([False, False, True, False])
-        )
 
     def assert_index_parameters(self, index):
         assert index.freq == "40960N"
@@ -217,7 +143,7 @@ class TestDatetimeIndex:
         # optionally, object
         result = np.asarray(idx, dtype=object)
 
-        expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
+        expected = np.array([Timestamp("2000-01-01"), Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_asarray_tz_aware(self):
@@ -235,15 +161,8 @@ class TestDatetimeIndex:
 
         # Future behavior with no warning
         expected = np.array(
-            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
+            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)]
         )
         result = np.asarray(idx, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_to_frame_datetime_tz(self):
-        # GH 25809
-        idx = date_range(start="2019-01-01", end="2019-01-30", freq="D", tz="UTC")
-        result = idx.to_frame()
-        expected = DataFrame(idx, index=idx)
-        tm.assert_frame_equal(result, expected)

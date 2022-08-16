@@ -23,7 +23,7 @@ generate_legacy_storage_files with an *older* version of pandas to
 generate a pickle file. We will then check this file into a current
 branch, and test using test_pickle.py. This will load the *older*
 pickles and test versus the current data that is generated
-(with master). These are then compared.
+(with main). These are then compared.
 
 If we have cases where we changed the signature (e.g. we renamed
 offset -> freq in Timestamp). Then we have to conditionally execute
@@ -33,7 +33,6 @@ run under the older AND the newer version.
 """
 
 from datetime import timedelta
-from distutils.version import LooseVersion
 import os
 import pickle
 import platform as pl
@@ -54,9 +53,11 @@ from pandas import (
     Timestamp,
     bdate_range,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
+from pandas.arrays import SparseArray
 
 from pandas.tseries.offsets import (
     FY5253,
@@ -80,15 +81,6 @@ from pandas.tseries.offsets import (
     YearBegin,
     YearEnd,
 )
-
-try:
-    # TODO: remove try/except when 0.24.0 is the legacy version.
-    from pandas.arrays import SparseArray
-except ImportError:
-    from pandas.core.sparse.api import SparseArray
-
-
-_loose_version = LooseVersion(pandas.__version__)
 
 
 def _create_sp_series():
@@ -133,7 +125,7 @@ def _create_sp_frame():
 
 
 def create_data():
-    """ create the pickle data """
+    """create the pickle data"""
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],
@@ -155,10 +147,7 @@ def create_data():
 
     index["range"] = RangeIndex(10)
 
-    if _loose_version >= LooseVersion("0.21"):
-        from pandas import interval_range
-
-        index["interval"] = interval_range(0, periods=10)
+    index["interval"] = interval_range(0, periods=10)
 
     mi = {
         "reg2": MultiIndex.from_tuples(

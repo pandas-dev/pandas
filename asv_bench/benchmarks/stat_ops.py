@@ -83,7 +83,7 @@ class Rank:
     param_names = ["constructor", "pct"]
 
     def setup(self, constructor, pct):
-        values = np.random.randn(10 ** 5)
+        values = np.random.randn(10**5)
         self.data = getattr(pd, constructor)(values)
 
     def time_rank(self, constructor, pct):

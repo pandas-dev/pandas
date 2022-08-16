@@ -8,7 +8,9 @@ import pytest
 
 from pandas import (
     CategoricalDtype,
+    CategoricalIndex,
     DataFrame,
+    MultiIndex,
     Series,
     Timestamp,
 )
@@ -25,7 +27,51 @@ def test_at_timezone():
     tm.assert_frame_equal(result, expected)
 
 
+def test_selection_methods_of_assigned_col():
+    # GH 29282
+    df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
+    df2 = DataFrame(data={"c": [7, 8, 9]}, index=[2, 1, 0])
+    df["c"] = df2["c"]
+    df.at[1, "c"] = 11
+    result = df
+    expected = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [9, 11, 7]})
+    tm.assert_frame_equal(result, expected)
+    result = df.at[1, "c"]
+    assert result == 11
+
+    result = df["c"]
+    expected = Series([9, 11, 7], name="c")
+    tm.assert_series_equal(result, expected)
+
+    result = df[["c"]]
+    expected = DataFrame({"c": [9, 11, 7]})
+    tm.assert_frame_equal(result, expected)
+
+
 class TestAtSetItem:
+    def test_at_setitem_item_cache_cleared(self):
+        # GH#22372 Note the multi-step construction is necessary to trigger
+        #  the original bug. pandas/issues/22372#issuecomment-413345309
+        df = DataFrame(index=[0])
+        df["x"] = 1
+        df["cost"] = 2
+
+        # accessing df["cost"] adds "cost" to the _item_cache
+        df["cost"]
+
+        # This loc[[0]] lookup used to call _consolidate_inplace at the
+        #  BlockManager level, which failed to clear the _item_cache
+        df.loc[[0]]
+
+        df.at[0, "x"] = 4
+        df.at[0, "cost"] = 789
+
+        expected = DataFrame({"x": [4], "cost": 789}, index=[0])
+        tm.assert_frame_equal(df, expected)
+
+        # And in particular, check that the _item_cache has updated correctly.
+        tm.assert_series_equal(df["cost"], expected["cost"])
+
     def test_at_setitem_mixed_index_assignment(self):
         # GH#19860
         ser = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])
@@ -49,6 +95,18 @@ class TestAtSetItem:
             dtype=CategoricalDtype(["foo", "bar"]),
         )
 
+        tm.assert_frame_equal(df, expected)
+
+    def test_at_setitem_multiindex(self):
+        df = DataFrame(
+            np.zeros((3, 2), dtype="int64"),
+            columns=MultiIndex.from_tuples([("a", 0), ("a", 1)]),
+        )
+        df.at[0, "a"] = 10
+        expected = DataFrame(
+            [[10, 10], [0, 0], [0, 0]],
+            columns=MultiIndex.from_tuples([("a", 0), ("a", 1)]),
+        )
         tm.assert_frame_equal(df, expected)
 
 
@@ -88,71 +146,51 @@ class TestAtWithDuplicates:
 
 class TestAtErrors:
     # TODO: De-duplicate/parametrize
-    #  test_at_series_raises_key_error, test_at_frame_raises_key_error,
     #  test_at_series_raises_key_error2, test_at_frame_raises_key_error2
 
-    def test_at_series_raises_key_error(self):
+    def test_at_series_raises_key_error(self, indexer_al):
         # GH#31724 .at should match .loc
 
         ser = Series([1, 2, 3], index=[3, 2, 1])
-        result = ser.at[1]
-        assert result == 3
-        result = ser.loc[1]
+        result = indexer_al(ser)[1]
         assert result == 3
 
         with pytest.raises(KeyError, match="a"):
-            ser.at["a"]
-        with pytest.raises(KeyError, match="a"):
-            # .at should match .loc
-            ser.loc["a"]
+            indexer_al(ser)["a"]
 
-    def test_at_frame_raises_key_error(self):
+    def test_at_frame_raises_key_error(self, indexer_al):
         # GH#31724 .at should match .loc
 
         df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
 
-        result = df.at[1, 0]
-        assert result == 3
-        result = df.loc[1, 0]
+        result = indexer_al(df)[1, 0]
         assert result == 3
 
         with pytest.raises(KeyError, match="a"):
-            df.at["a", 0]
-        with pytest.raises(KeyError, match="a"):
-            df.loc["a", 0]
+            indexer_al(df)["a", 0]
 
         with pytest.raises(KeyError, match="a"):
-            df.at[1, "a"]
-        with pytest.raises(KeyError, match="a"):
-            df.loc[1, "a"]
+            indexer_al(df)[1, "a"]
 
-    def test_at_series_raises_key_error2(self):
+    def test_at_series_raises_key_error2(self, indexer_al):
         # at should not fallback
         # GH#7814
         # GH#31724 .at should match .loc
         ser = Series([1, 2, 3], index=list("abc"))
-        result = ser.at["a"]
-        assert result == 1
-        result = ser.loc["a"]
+        result = indexer_al(ser)["a"]
         assert result == 1
 
         with pytest.raises(KeyError, match="^0$"):
-            ser.at[0]
-        with pytest.raises(KeyError, match="^0$"):
-            ser.loc[0]
+            indexer_al(ser)[0]
 
-    def test_at_frame_raises_key_error2(self):
+    def test_at_frame_raises_key_error2(self, indexer_al):
         # GH#31724 .at should match .loc
         df = DataFrame({"A": [1, 2, 3]}, index=list("abc"))
-        result = df.at["a", "A"]
-        assert result == 1
-        result = df.loc["a", "A"]
+        result = indexer_al(df)["a", "A"]
         assert result == 1
 
         with pytest.raises(KeyError, match="^0$"):
-            df.at["a", 0]
-        with pytest.raises(KeyError, match="^0$"):
-            df.loc["a", 0]
+            indexer_al(df)["a", 0]
 
     def test_at_getitem_mixed_index_no_fallback(self):
         # GH#19860
@@ -161,3 +199,16 @@ class TestAtErrors:
             ser.at[0]
         with pytest.raises(KeyError, match="^4$"):
             ser.at[4]
+
+    def test_at_categorical_integers(self):
+        # CategoricalIndex with integer categories that don't happen to match
+        #  the Categorical's codes
+        ci = CategoricalIndex([3, 4])
+
+        arr = np.arange(4).reshape(2, 2)
+        frame = DataFrame(arr, index=ci)
+
+        for df in [frame, frame.T]:
+            for key in [0, 1]:
+                with pytest.raises(KeyError, match=str(key)):
+                    df.at[key, key]

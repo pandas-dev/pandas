@@ -71,6 +71,8 @@ def test_insert(idx):
     tm.assert_frame_equal(left, right, check_dtype=False)
     tm.assert_series_equal(ts, right["3rd"])
 
+
+def test_insert2():
     # GH9250
     idx = (
         [("test1", i) for i in range(5)]
@@ -78,12 +80,12 @@ def test_insert(idx):
         + [("test", 17), ("test", 18)]
     )
 
-    left = pd.Series(np.linspace(0, 10, 11), pd.MultiIndex.from_tuples(idx[:-2]))
+    left = pd.Series(np.linspace(0, 10, 11), MultiIndex.from_tuples(idx[:-2]))
 
     left.loc[("test", 17)] = 11
     left.loc[("test", 18)] = 12
 
-    right = pd.Series(np.linspace(0, 12, 13), pd.MultiIndex.from_tuples(idx))
+    right = pd.Series(np.linspace(0, 12, 13), MultiIndex.from_tuples(idx))
 
     tm.assert_series_equal(left, right)
 

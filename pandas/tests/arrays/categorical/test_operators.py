@@ -1,4 +1,3 @@
-import operator
 import warnings
 
 import numpy as np
@@ -12,48 +11,47 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.arrays.categorical.common import TestCategorical
 
 
-class TestCategoricalOpsWithFactor(TestCategorical):
+class TestCategoricalOpsWithFactor:
     def test_categories_none_comparisons(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
-        tm.assert_categorical_equal(factor, self.factor)
+        tm.assert_categorical_equal(factor, factor)
 
-    def test_comparisons(self):
-        result = self.factor[self.factor == "a"]
-        expected = self.factor[np.asarray(self.factor) == "a"]
+    def test_comparisons(self, factor):
+        result = factor[factor == "a"]
+        expected = factor[np.asarray(factor) == "a"]
         tm.assert_categorical_equal(result, expected)
 
-        result = self.factor[self.factor != "a"]
-        expected = self.factor[np.asarray(self.factor) != "a"]
+        result = factor[factor != "a"]
+        expected = factor[np.asarray(factor) != "a"]
         tm.assert_categorical_equal(result, expected)
 
-        result = self.factor[self.factor < "c"]
-        expected = self.factor[np.asarray(self.factor) < "c"]
+        result = factor[factor < "c"]
+        expected = factor[np.asarray(factor) < "c"]
         tm.assert_categorical_equal(result, expected)
 
-        result = self.factor[self.factor > "a"]
-        expected = self.factor[np.asarray(self.factor) > "a"]
+        result = factor[factor > "a"]
+        expected = factor[np.asarray(factor) > "a"]
         tm.assert_categorical_equal(result, expected)
 
-        result = self.factor[self.factor >= "b"]
-        expected = self.factor[np.asarray(self.factor) >= "b"]
+        result = factor[factor >= "b"]
+        expected = factor[np.asarray(factor) >= "b"]
         tm.assert_categorical_equal(result, expected)
 
-        result = self.factor[self.factor <= "b"]
-        expected = self.factor[np.asarray(self.factor) <= "b"]
+        result = factor[factor <= "b"]
+        expected = factor[np.asarray(factor) <= "b"]
         tm.assert_categorical_equal(result, expected)
 
-        n = len(self.factor)
+        n = len(factor)
 
-        other = self.factor[np.random.permutation(n)]
-        result = self.factor == other
-        expected = np.asarray(self.factor) == np.asarray(other)
+        other = factor[np.random.permutation(n)]
+        result = factor == other
+        expected = np.asarray(factor) == np.asarray(other)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = self.factor == "d"
-        expected = np.zeros(len(self.factor), dtype=bool)
+        result = factor == "d"
+        expected = np.zeros(len(factor), dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
         # comparisons with categoricals
@@ -145,9 +143,9 @@ class TestCategoricalOps:
         expected = DataFrame([[False, True, True, False]])
         tm.assert_frame_equal(result, expected)
 
-    def test_compare_frame_raises(self, all_compare_operators):
+    def test_compare_frame_raises(self, comparison_op):
         # alignment raises unless we transpose
-        op = getattr(operator, all_compare_operators)
+        op = comparison_op
         cat = Categorical(["a", "b", 2, "a"])
         df = DataFrame(cat)
         msg = "Unable to coerce to Series, length must be 1: given 4"
@@ -372,31 +370,37 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"'Categorical' does not implement reduction '{op}'"
+            msg = f"does not support reduction '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
         # mad technically works because it takes always the numeric data
 
+    def test_numeric_like_ops_series(self):
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
-        with pytest.raises(
-            TypeError, match="'Categorical' does not implement reduction 'sum'"
-        ):
+        with pytest.raises(TypeError, match="does not support reduction 'sum'"):
             np.sum(s)
 
-        # numeric ops on a Series
-        for op, str_rep in [
+    @pytest.mark.parametrize(
+        "op, str_rep",
+        [
             ("__add__", r"\+"),
             ("__sub__", "-"),
             ("__mul__", r"\*"),
             ("__truediv__", "/"),
-        ]:
-            msg = f"Series cannot perform the operation {str_rep}|unsupported operand"
-            with pytest.raises(TypeError, match=msg):
-                getattr(s, op)(2)
+        ],
+    )
+    def test_numeric_like_ops_series_arith(self, op, str_rep):
+        # numeric ops on a Series
+        s = Series(Categorical([1, 2, 3, 4]))
+        msg = f"Series cannot perform the operation {str_rep}|unsupported operand"
+        with pytest.raises(TypeError, match=msg):
+            getattr(s, op)(2)
 
+    def test_numeric_like_ops_series_invalid(self):
         # invalid ufunc
+        s = Series(Categorical([1, 2, 3, 4]))
         msg = "Object with dtype category cannot perform the numpy op log"
         with pytest.raises(TypeError, match=msg):
             np.log(s)

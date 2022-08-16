@@ -122,6 +122,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.skew
    DataFrameGroupBy.take
    DataFrameGroupBy.tshift
+   DataFrameGroupBy.value_counts
 
 The following methods are available only for ``SeriesGroupBy`` objects.
 
@@ -131,9 +132,7 @@ The following methods are available only for ``SeriesGroupBy`` objects.
    SeriesGroupBy.hist
    SeriesGroupBy.nlargest
    SeriesGroupBy.nsmallest
-   SeriesGroupBy.nunique
    SeriesGroupBy.unique
-   SeriesGroupBy.value_counts
    SeriesGroupBy.is_monotonic_increasing
    SeriesGroupBy.is_monotonic_decreasing
 

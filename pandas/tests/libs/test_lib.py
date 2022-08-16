@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import (
-    Timestamp,
     lib,
     writers as libwriters,
 )
@@ -43,11 +42,6 @@ class TestMisc:
         out = lib.fast_unique_multiple_list_gen(gen, sort=False)
         tm.assert_numpy_array_equal(np.array(out), expected)
 
-    def test_fast_unique_multiple_unsortable_runtimewarning(self):
-        arr = [np.array(["foo", Timestamp("2000")])]
-        with tm.assert_produces_warning(RuntimeWarning):
-            lib.fast_unique_multiple(arr, sort=None)
-
 
 class TestIndexing:
     def test_maybe_indices_to_slice_left_edge(self):
@@ -60,50 +54,58 @@ class TestIndexing:
         assert isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-        for end in [1, 2, 5, 20, 99]:
-            for step in [1, 2, 4]:
-                indices = np.arange(0, end, step, dtype=np.intp)
-                maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+    @pytest.mark.parametrize("end", [1, 2, 5, 20, 99])
+    @pytest.mark.parametrize("step", [1, 2, 4])
+    def test_maybe_indices_to_slice_left_edge_not_slice_end_steps(self, end, step):
+        target = np.arange(100)
+        indices = np.arange(0, end, step, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-                assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-                # reverse
-                indices = indices[::-1]
-                maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        # reverse
+        indices = indices[::-1]
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-                assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    @pytest.mark.parametrize(
+        "case", [[2, 1, 2, 0], [2, 2, 1, 0], [0, 1, 2, 1], [-2, 0, 2], [2, 0, -2]]
+    )
+    def test_maybe_indices_to_slice_left_edge_not_slice(self, case):
         # not slice
-        for case in [[2, 1, 2, 0], [2, 2, 1, 0], [0, 1, 2, 1], [-2, 0, 2], [2, 0, -2]]:
-            indices = np.array(case, dtype=np.intp)
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        target = np.arange(100)
+        indices = np.array(case, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-            assert not isinstance(maybe_slice, slice)
-            tm.assert_numpy_array_equal(maybe_slice, indices)
-            tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert not isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(maybe_slice, indices)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-    def test_maybe_indices_to_slice_right_edge(self):
+    @pytest.mark.parametrize("start", [0, 2, 5, 20, 97, 98])
+    @pytest.mark.parametrize("step", [1, 2, 4])
+    def test_maybe_indices_to_slice_right_edge(self, start, step):
         target = np.arange(100)
 
         # slice
-        for start in [0, 2, 5, 20, 97, 98]:
-            for step in [1, 2, 4]:
-                indices = np.arange(start, 99, step, dtype=np.intp)
-                maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        indices = np.arange(start, 99, step, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-                assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-                # reverse
-                indices = indices[::-1]
-                maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        # reverse
+        indices = indices[::-1]
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-                assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    def test_maybe_indices_to_slice_right_edge_not_slice(self):
         # not slice
+        target = np.arange(100)
         indices = np.array([97, 98, 99, 100], dtype=np.intp)
         maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
@@ -128,65 +130,75 @@ class TestIndexing:
         with pytest.raises(IndexError, match=msg):
             target[maybe_slice]
 
-        for case in [[99, 97, 99, 96], [99, 99, 98, 97], [98, 98, 97, 96]]:
-            indices = np.array(case, dtype=np.intp)
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+    @pytest.mark.parametrize(
+        "case", [[99, 97, 99, 96], [99, 99, 98, 97], [98, 98, 97, 96]]
+    )
+    def test_maybe_indices_to_slice_right_edge_cases(self, case):
+        target = np.arange(100)
+        indices = np.array(case, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-            assert not isinstance(maybe_slice, slice)
-            tm.assert_numpy_array_equal(maybe_slice, indices)
-            tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert not isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(maybe_slice, indices)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-    def test_maybe_indices_to_slice_both_edges(self):
+    @pytest.mark.parametrize("step", [1, 2, 4, 5, 8, 9])
+    def test_maybe_indices_to_slice_both_edges(self, step):
         target = np.arange(10)
 
         # slice
-        for step in [1, 2, 4, 5, 8, 9]:
-            indices = np.arange(0, 9, step, dtype=np.intp)
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
-            assert isinstance(maybe_slice, slice)
-            tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        indices = np.arange(0, 9, step, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-            # reverse
-            indices = indices[::-1]
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
-            assert isinstance(maybe_slice, slice)
-            tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        # reverse
+        indices = indices[::-1]
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    @pytest.mark.parametrize("case", [[4, 2, 0, -2], [2, 2, 1, 0], [0, 1, 2, 1]])
+    def test_maybe_indices_to_slice_both_edges_not_slice(self, case):
         # not slice
-        for case in [[4, 2, 0, -2], [2, 2, 1, 0], [0, 1, 2, 1]]:
-            indices = np.array(case, dtype=np.intp)
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
-            assert not isinstance(maybe_slice, slice)
-            tm.assert_numpy_array_equal(maybe_slice, indices)
-            tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        target = np.arange(10)
+        indices = np.array(case, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        assert not isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(maybe_slice, indices)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-    def test_maybe_indices_to_slice_middle(self):
+    @pytest.mark.parametrize("start, end", [(2, 10), (5, 25), (65, 97)])
+    @pytest.mark.parametrize("step", [1, 2, 4, 20])
+    def test_maybe_indices_to_slice_middle(self, start, end, step):
         target = np.arange(100)
 
         # slice
-        for start, end in [(2, 10), (5, 25), (65, 97)]:
-            for step in [1, 2, 4, 20]:
-                indices = np.arange(start, end, step, dtype=np.intp)
-                maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        indices = np.arange(start, end, step, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-                assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
-                # reverse
-                indices = indices[::-1]
-                maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        # reverse
+        indices = indices[::-1]
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-                assert isinstance(maybe_slice, slice)
-                tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    @pytest.mark.parametrize(
+        "case", [[14, 12, 10, 12], [12, 12, 11, 10], [10, 11, 12, 11]]
+    )
+    def test_maybe_indices_to_slice_middle_not_slice(self, case):
         # not slice
-        for case in [[14, 12, 10, 12], [12, 12, 11, 10], [10, 11, 12, 11]]:
-            indices = np.array(case, dtype=np.intp)
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
+        target = np.arange(100)
+        indices = np.array(case, dtype=np.intp)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
 
-            assert not isinstance(maybe_slice, slice)
-            tm.assert_numpy_array_equal(maybe_slice, indices)
-            tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+        assert not isinstance(maybe_slice, slice)
+        tm.assert_numpy_array_equal(maybe_slice, indices)
+        tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
     def test_maybe_booleans_to_slice(self):
         arr = np.array([0, 0, 1, 1, 1, 0, 1], dtype=np.uint8)
@@ -197,12 +209,18 @@ class TestIndexing:
         assert result == slice(0, 0)
 
     def test_get_reverse_indexer(self):
-        indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.int64)
+        indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.intp)
         result = lib.get_reverse_indexer(indexer, 5)
-        expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
+        expected = np.array([4, 2, 3, 6, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
 
 def test_cache_readonly_preserve_docstrings():
     # GH18197
     assert Index.hasnans.__doc__ is not None
+
+
+def test_no_default_pickle():
+    # GH#40397
+    obj = tm.round_trip_pickle(lib.no_default)
+    assert obj is lib.no_default

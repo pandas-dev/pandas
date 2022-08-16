@@ -1,17 +1,15 @@
 """
 Module for formatting output data in HTML.
 """
+from __future__ import annotations
 
 from textwrap import dedent
 from typing import (
     Any,
-    Dict,
+    Final,
+    Hashable,
     Iterable,
-    List,
     Mapping,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 
@@ -42,14 +40,14 @@ class HTMLFormatter:
     and this class responsible for only producing html markup.
     """
 
-    indent_delta = 2
+    indent_delta: Final = 2
 
     def __init__(
         self,
         formatter: DataFrameFormatter,
-        classes: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
-        border: Optional[int] = None,
-        table_id: Optional[str] = None,
+        classes: str | list[str] | tuple[str, ...] | None = None,
+        border: int | bool | None = None,
+        table_id: str | None = None,
         render_links: bool = False,
     ) -> None:
         self.fmt = formatter
@@ -57,12 +55,15 @@ class HTMLFormatter:
 
         self.frame = self.fmt.frame
         self.columns = self.fmt.tr_frame.columns
-        self.elements: List[str] = []
+        self.elements: list[str] = []
         self.bold_rows = self.fmt.bold_rows
         self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
-        if border is None:
+        if border is None or border is True:
             border = cast(int, get_option("display.html.border"))
+        elif not border:
+            border = None
+
         self.border = border
         self.table_id = table_id
         self.render_links = render_links
@@ -78,7 +79,7 @@ class HTMLFormatter:
             lines = [str(x) for x in lines]
         return "\n".join(lines)
 
-    def render(self) -> List[str]:
+    def render(self) -> list[str]:
         self._write_table()
 
         if self.should_show_dimensions:
@@ -90,7 +91,7 @@ class HTMLFormatter:
         return self.elements
 
     @property
-    def should_show_dimensions(self):
+    def should_show_dimensions(self) -> bool:
         return self.fmt.should_show_dimensions
 
     @property
@@ -132,7 +133,7 @@ class HTMLFormatter:
         self.elements.append(" " * indent + rs)
 
     def write_th(
-        self, s: Any, header: bool = False, indent: int = 0, tags: Optional[str] = None
+        self, s: Any, header: bool = False, indent: int = 0, tags: str | None = None
     ) -> None:
         """
         Method for writing a formatted <th> cell.
@@ -164,11 +165,11 @@ class HTMLFormatter:
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
-    def write_td(self, s: Any, indent: int = 0, tags: Optional[str] = None) -> None:
+    def write_td(self, s: Any, indent: int = 0, tags: str | None = None) -> None:
         self._write_cell(s, kind="td", indent=indent, tags=tags)
 
     def _write_cell(
-        self, s: Any, kind: str = "td", indent: int = 0, tags: Optional[str] = None
+        self, s: Any, kind: str = "td", indent: int = 0, tags: str | None = None
     ) -> None:
         if tags is not None:
             start_tag = f"<{kind} {tags}>"
@@ -198,8 +199,8 @@ class HTMLFormatter:
         indent: int = 0,
         indent_delta: int = 0,
         header: bool = False,
-        align: Optional[str] = None,
-        tags: Optional[Dict[int, str]] = None,
+        align: str | None = None,
+        tags: dict[int, str] | None = None,
         nindex_levels: int = 0,
     ) -> None:
         if tags is None:
@@ -241,8 +242,13 @@ class HTMLFormatter:
         else:
             id_section = f' id="{self.table_id}"'
 
+        if self.border is None:
+            border_attr = ""
+        else:
+            border_attr = f' border="{self.border}"'
+
         self.write(
-            f'<table border="{self.border}" class="{" ".join(_classes)}"{id_section}>',
+            f'<table{border_attr} class="{" ".join(_classes)}"{id_section}>',
             indent,
         )
 
@@ -254,10 +260,12 @@ class HTMLFormatter:
         self.write("</table>", indent)
 
     def _write_col_header(self, indent: int) -> None:
+        row: list[Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
+            sentinel: lib.NoDefault | bool
             if self.fmt.sparsify:
                 # GH3547
                 sentinel = lib.no_default
@@ -388,7 +396,7 @@ class HTMLFormatter:
 
         self.write("</thead>", indent)
 
-    def _get_formatted_values(self) -> Dict[int, List[str]]:
+    def _get_formatted_values(self) -> dict[int, list[str]]:
         with option_context("display.max_colwidth", None):
             fmt_values = {i: self.fmt.format_col(i) for i in range(self.ncols)}
         return fmt_values
@@ -406,7 +414,7 @@ class HTMLFormatter:
         self.write("</tbody>", indent)
 
     def _write_regular_rows(
-        self, fmt_values: Mapping[int, List[str]], indent: int
+        self, fmt_values: Mapping[int, list[str]], indent: int
     ) -> None:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         is_truncated_vertically = self.fmt.is_truncated_vertically
@@ -420,7 +428,7 @@ class HTMLFormatter:
             else:
                 index_values = self.fmt.tr_frame.index.format()
 
-        row: List[str] = []
+        row: list[str] = []
         for i in range(nrows):
 
             if is_truncated_vertically and i == (self.fmt.tr_row_num):
@@ -452,7 +460,7 @@ class HTMLFormatter:
             )
 
     def _write_hierarchical_rows(
-        self, fmt_values: Mapping[int, List[str]], indent: int
+        self, fmt_values: Mapping[int, list[str]], indent: int
     ) -> None:
         template = 'rowspan="{span}" valign="top"'
 
@@ -584,10 +592,10 @@ class NotebookFormatter(HTMLFormatter):
     DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
     """
 
-    def _get_formatted_values(self) -> Dict[int, List[str]]:
+    def _get_formatted_values(self) -> dict[int, list[str]]:
         return {i: self.fmt.format_col(i) for i in range(self.ncols)}
 
-    def _get_columns_formatted_values(self) -> List[str]:
+    def _get_columns_formatted_values(self) -> list[str]:
         return self.columns.format()
 
     def write_style(self) -> None:
@@ -618,7 +626,7 @@ class NotebookFormatter(HTMLFormatter):
         template = dedent("\n".join((template_first, template_mid, template_last)))
         self.write(template)
 
-    def render(self) -> List[str]:
+    def render(self) -> list[str]:
         self.write("<div>")
         self.write_style()
         super().render()

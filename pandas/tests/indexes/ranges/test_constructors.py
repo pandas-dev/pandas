@@ -31,7 +31,7 @@ class TestRangeIndexConstructors:
         assert isinstance(result, RangeIndex)
         assert result.name is name
         assert result._range == range(start, stop, step)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
     def test_constructor_invalid_args(self):
         msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
@@ -91,11 +91,12 @@ class TestRangeIndexConstructors:
         ):
             RangeIndex(index, dtype="float64")
 
-    def test_constructor_range(self):
+    def test_constructor_range_object(self):
+        result = RangeIndex(range(1, 5, 2))
+        expected = RangeIndex(1, 5, 2)
+        tm.assert_index_equal(result, expected, exact=True)
 
-        msg = "Value needs to be a scalar value, was type range"
-        with pytest.raises(TypeError, match=msg):
-            result = RangeIndex(range(1, 5, 2))
+    def test_constructor_range(self):
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -118,7 +119,9 @@ class TestRangeIndexConstructors:
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        msg = r"^from_range\(\) got an unexpected keyword argument"
+        msg = (
+            r"(RangeIndex.)?from_range\(\) got an unexpected keyword argument( 'copy')?"
+        )
         with pytest.raises(TypeError, match=msg):
             RangeIndex.from_range(range(10), copy=True)
 
@@ -145,7 +148,10 @@ class TestRangeIndexConstructors:
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = RangeIndex(1, 5)
         assert index.values.dtype == np.int64
-        tm.assert_index_equal(index, Index(arr))
+        with tm.assert_produces_warning(FutureWarning, match="will not infer"):
+            expected = Index(arr).astype("int64")
+
+        tm.assert_index_equal(index, expected, exact="equiv")
 
         # non-int raise Exception
         with pytest.raises(TypeError, match=r"Wrong type \<class 'str'\>"):

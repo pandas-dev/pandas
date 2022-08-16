@@ -6,12 +6,6 @@ Version 0.5.0 (October 24, 2011)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import *  # noqa F401, F403
-
-
 New features
 ~~~~~~~~~~~~
 
@@ -34,7 +28,6 @@ New features
 - :ref:`Added <indexing.set_index>` convenience ``set_index`` function for creating a DataFrame index from its existing columns
 - :ref:`Implemented <groupby.multiindex>` ``groupby`` hierarchical index level name  (:issue:`223`)
 - :ref:`Added <io.store_in_csv>` support for different delimiters in ``DataFrame.to_csv`` (:issue:`244`)
-- TODO: DOCS ABOUT TAKE METHODS
 
 Performance enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~

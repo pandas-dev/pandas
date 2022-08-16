@@ -2,13 +2,17 @@
 Tests for the pandas.io.common functionalities
 """
 import codecs
+import errno
+from functools import partial
 from io import (
     BytesIO,
     StringIO,
+    UnsupportedOperation,
 )
 import mmap
 import os
 from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -24,7 +28,7 @@ import pandas.io.common as icom
 class CustomFSPath:
     """For testing fspath on unknown objects"""
 
-    def __init__(self, path):
+    def __init__(self, path) -> None:
         self.path = path
 
     def __fspath__(self):
@@ -96,22 +100,9 @@ bar2,12,13,14,15
             with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
                 assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    @pytest.mark.parametrize(
-        "extension,expected",
-        [
-            ("", None),
-            (".gz", "gzip"),
-            (".bz2", "bz2"),
-            (".zip", "zip"),
-            (".xz", "xz"),
-            (".GZ", "gzip"),
-            (".BZ2", "bz2"),
-            (".ZIP", "zip"),
-            (".XZ", "xz"),
-        ],
-    )
     @pytest.mark.parametrize("path_type", path_types)
-    def test_infer_compression_from_path(self, extension, expected, path_type):
+    def test_infer_compression_from_path(self, compression_format, path_type):
+        extension, expected = compression_format
         path = path_type("foo/bar.csv" + extension)
         compression = icom.infer_compression(path, compression="infer")
         assert compression == expected
@@ -119,10 +110,11 @@ bar2,12,13,14,15
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
-        filename = path_type("~/sometest")
-        with icom.get_handle(filename, "w") as handles:
-            assert os.path.isabs(handles.handle.name)
-            assert os.path.expanduser(filename) == handles.handle.name
+        with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
+            filename = path_type("~/" + Path(tmp).name + "/sometest")
+            with icom.get_handle(filename, "w") as handles:
+                assert Path(handles.handle.name).is_absolute()
+                assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
@@ -130,6 +122,48 @@ bar2,12,13,14,15
             assert handles.handle == input_buffer
         assert not input_buffer.closed
         input_buffer.close()
+
+    # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
+    def test_bytesiowrapper_returns_correct_bytes(self):
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        with icom.get_handle(StringIO(data), "rb", is_text=False) as handles:
+            result = b""
+            chunksize = 5
+            while True:
+                chunk = handles.handle.read(chunksize)
+                # Make sure each chunk is correct amount of bytes
+                assert len(chunk) <= chunksize
+                if len(chunk) < chunksize:
+                    # Can be less amount of bytes, but only at EOF
+                    # which happens when read returns empty
+                    assert len(handles.handle.read()) == 0
+                    result += chunk
+                    break
+                result += chunk
+            assert result == data.encode("utf-8")
+
+    # Test that pyarrow can handle a file opened with get_handle
+    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    def test_get_handle_pyarrow_compat(self):
+        from pyarrow import csv
+
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        expected = pd.DataFrame(
+            {"a": ["1", "©", "Look"], "b": ["2", "®", "a snake"], "c": ["3", "®", "🐍"]}
+        )
+        s = StringIO(data)
+        with icom.get_handle(s, "rb", is_text=False) as handles:
+            df = csv.read_csv(handles.handle).to_pandas()
+            tm.assert_frame_equal(df, expected)
+            assert not s.closed
 
     def test_iterator(self):
         with pd.read_csv(StringIO(self.data1), chunksize=1) as reader:
@@ -149,11 +183,11 @@ bar2,12,13,14,15
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", IOError, "feather"),
+            (pd.read_feather, "pyarrow", OSError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -161,25 +195,52 @@ bar2,12,13,14,15
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Expected object or value"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
+
+    @pytest.mark.parametrize(
+        "method, module, error_class, fn_ext",
+        [
+            (pd.DataFrame.to_csv, "os", OSError, "csv"),
+            (pd.DataFrame.to_html, "os", OSError, "html"),
+            (pd.DataFrame.to_excel, "xlrd", OSError, "xlsx"),
+            (pd.DataFrame.to_feather, "pyarrow", OSError, "feather"),
+            (pd.DataFrame.to_parquet, "pyarrow", OSError, "parquet"),
+            (pd.DataFrame.to_stata, "os", OSError, "dta"),
+            (pd.DataFrame.to_json, "os", OSError, "json"),
+            (pd.DataFrame.to_pickle, "os", OSError, "pickle"),
+        ],
+    )
+    # NOTE: Missing parent directory for pd.DataFrame.to_hdf is handled by PyTables
+    def test_write_missing_parent_directory(self, method, module, error_class, fn_ext):
+        pytest.importorskip(module)
+
+        dummy_frame = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4], "c": [3, 4, 5]})
+
+        path = os.path.join(HERE, "data", "missing_folder", "does_not_exist." + fn_ext)
+
+        with pytest.raises(
+            error_class,
+            match=r"Cannot save file into a non-existent directory: .*missing_folder",
+        ):
+            method(dummy_frame, path)
 
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
@@ -188,11 +249,11 @@ bar2,12,13,14,15
             (pd.read_table, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", IOError, "feather"),
+            (pd.read_feather, "pyarrow", OSError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -204,23 +265,23 @@ bar2,12,13,14,15
         path = os.path.join("~", "does_not_exist." + fn_ext)
         monkeypatch.setattr(icom, "_expand_user", lambda x: os.path.join("foo", x))
 
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Unexpected character found when decoding 'false'"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -255,6 +316,12 @@ bar2,12,13,14,15
             ),
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
+    )
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -269,6 +336,7 @@ bar2,12,13,14,15
         else:
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
@@ -276,9 +344,7 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            pytest.param(
-                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
-            ),
+            ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
@@ -304,6 +370,9 @@ bar2,12,13,14,15
 
             assert result == expected
 
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -344,39 +413,31 @@ class TestMMapWrapper:
             err = mmap.error
 
         with pytest.raises(err, match=msg):
-            icom._MMapWrapper(non_file)
+            icom._maybe_memory_map(non_file, True)
 
-        target = open(mmap_file)
-        target.close()
+        with open(mmap_file) as target:
+            pass
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
-            icom._MMapWrapper(target)
-
-    def test_get_attr(self, mmap_file):
-        with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
-
-        attrs = dir(wrapper.mmap)
-        attrs = [attr for attr in attrs if not attr.startswith("__")]
-        attrs.append("__next__")
-
-        for attr in attrs:
-            assert hasattr(wrapper, attr)
-
-        assert not hasattr(wrapper, "foo")
+            icom._maybe_memory_map(target, True)
 
     def test_next(self, mmap_file):
         with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
             lines = target.readlines()
 
-        for line in lines:
-            next_line = next(wrapper)
-            assert next_line.strip() == line.strip()
+            with icom.get_handle(
+                target, "r", is_text=True, memory_map=True
+            ) as wrappers:
+                wrapper = wrappers.handle
+                assert isinstance(wrapper.buffer.buffer, mmap.mmap)
 
-        with pytest.raises(StopIteration, match=r"^$"):
-            next(wrapper)
+                for line in lines:
+                    next_line = next(wrapper)
+                    assert next_line.strip() == line.strip()
+
+                with pytest.raises(StopIteration, match=r"^$"):
+                    next(wrapper)
 
     def test_unknown_engine(self):
         with tm.ensure_clean() as path:
@@ -425,14 +486,11 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
-
-
-def test_default_errors():
-    # GH 38989
-    with tm.ensure_clean() as path:
-        file = Path(path)
-        file.write_bytes(b"\xe4\na\n1")
-        tm.assert_frame_equal(pd.read_csv(file, skiprows=[0]), pd.DataFrame({"a": [1]}))
+    # fsspec URL in string should not be recognized
+    assert not icom.is_fsspec_url("this is not fsspec://url")
+    assert not icom.is_fsspec_url("{'url': 'gs://pandas/somethingelse.com'}")
+    # accept everything that conforms to RFC 3986 schema
+    assert icom.is_fsspec_url("RFC-3986+compliant.spec://something")
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
@@ -479,3 +537,70 @@ def test_explicit_encoding(io_class, mode, msg):
     with io_class() as buffer:
         with pytest.raises(TypeError, match=msg):
             expected.to_csv(buffer, mode=f"w{mode}")
+
+
+@pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
+@pytest.mark.parametrize("format", ["csv", "json"])
+def test_encoding_errors(encoding_errors, format):
+    # GH39450
+    msg = "'utf-8' codec can't decode byte"
+    bad_encoding = b"\xe4"
+
+    if format == "csv":
+        content = b"," + bad_encoding + b"\n" + bad_encoding * 2 + b"," + bad_encoding
+        reader = partial(pd.read_csv, index_col=0)
+    else:
+        content = (
+            b'{"'
+            + bad_encoding * 2
+            + b'": {"'
+            + bad_encoding
+            + b'":"'
+            + bad_encoding
+            + b'"}}'
+        )
+        reader = partial(pd.read_json, orient="index")
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(content)
+
+        if encoding_errors != "replace":
+            with pytest.raises(UnicodeDecodeError, match=msg):
+                reader(path, encoding_errors=encoding_errors)
+        else:
+            df = reader(path, encoding_errors=encoding_errors)
+            decoded = bad_encoding.decode(errors=encoding_errors)
+            expected = pd.DataFrame({decoded: [decoded]}, index=[decoded * 2])
+            tm.assert_frame_equal(df, expected)
+
+
+def test_bad_encdoing_errors():
+    # GH 39777
+    with tm.ensure_clean() as path:
+        with pytest.raises(LookupError, match="unknown error handler name"):
+            icom.get_handle(path, "w", errors="bad")
+
+
+def test_errno_attribute():
+    # GH 13872
+    with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
+        pd.read_csv("doesnt_exist")
+        assert err.errno == errno.ENOENT
+
+
+def test_fail_mmap():
+    with pytest.raises(UnsupportedOperation, match="fileno"):
+        with BytesIO() as buffer:
+            icom.get_handle(buffer, "rb", memory_map=True)
+
+
+def test_close_on_error():
+    # GH 47136
+    class TestError:
+        def close(self):
+            raise OSError("test")
+
+    with pytest.raises(OSError, match="test"):
+        with BytesIO() as buffer:
+            with icom.get_handle(buffer, "rb") as handles:
+                handles.created_handles.append(TestError())

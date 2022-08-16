@@ -43,15 +43,14 @@ class TestDatetimeLikeStatReductions:
         assert obj.mean(skipna=False) is pd.NaT
 
     @pytest.mark.parametrize("box", [Series, pd.Index, PeriodArray])
-    def test_period_mean(self, box):
+    @pytest.mark.parametrize("freq", ["S", "H", "D", "W", "B"])
+    def test_period_mean(self, box, freq):
         # GH#24757
         dti = pd.date_range("2001-01-01", periods=11)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
 
-        # use hourly frequency to avoid rounding errors in expected results
-        #  TODO: flesh this out with different frequencies
-        parr = dti._data.to_period("H")
+        parr = dti._data.to_period(freq)
         obj = box(parr)
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean()
@@ -105,7 +104,7 @@ class TestSeriesStatReductions:
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
                 ds = Series(pd.date_range("1/1/2001", periods=10))
-                msg = f"'DatetimeArray' does not implement reduction '{name}'"
+                msg = f"does not support reduction '{name}'"
                 with pytest.raises(TypeError, match=msg):
                     f(ds)
 
@@ -129,7 +128,7 @@ class TestSeriesStatReductions:
 
             # GH#2888
             items = [0]
-            items.extend(range(2 ** 40, 2 ** 40 + 1000))
+            items.extend(range(2**40, 2**40 + 1000))
             s = Series(items, dtype="int64")
             tm.assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
@@ -150,10 +149,9 @@ class TestSeriesStatReductions:
             with pytest.raises(ValueError, match=msg):
                 f(string_series_, axis=1)
 
-            # Unimplemented numeric_only parameter.
             if "numeric_only" in inspect.getfullargspec(f).args:
-                with pytest.raises(NotImplementedError, match=name):
-                    f(string_series_, numeric_only=True)
+                # only the index is string; dtype is float
+                f(string_series_, numeric_only=True)
 
     def test_sum(self):
         string_series = tm.makeStringSeries().rename("series")
@@ -263,7 +261,8 @@ class TestSeriesStatReductions:
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
         )
         s = Series(np.random.randn(6), index=index)
-        tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
 
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values

@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -17,20 +15,39 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
+    Interval,
     IntervalIndex,
     MultiIndex,
     RangeIndex,
     Series,
     Timestamp,
+    cut,
     date_range,
 )
 import pandas._testing as tm
 
 
+@pytest.fixture()
+def multiindex_df():
+    levels = [["A", ""], ["B", "b"]]
+    return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
+
+
 class TestResetIndex:
+    def test_reset_index_empty_rangeindex(self):
+        # GH#45230
+        df = DataFrame(
+            columns=["brand"], dtype=np.int64, index=RangeIndex(0, 0, 1, name="foo")
+        )
+
+        df2 = df.set_index([df.index, "brand"])
+
+        result = df2.reset_index([1], drop=True)
+        tm.assert_frame_equal(result, df[[]], check_index_type=True)
+
     def test_set_reset(self):
 
-        idx = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10], name="foo")
+        idx = Index([2**63, 2**63 + 5, 2**63 + 10], name="foo")
 
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
@@ -139,39 +156,38 @@ class TestResetIndex:
 
         # preserve column names
         float_frame.columns.name = "columns"
-        resetted = float_frame.reset_index()
-        assert resetted.columns.name == "columns"
+        reset = float_frame.reset_index()
+        assert reset.columns.name == "columns"
 
         # only remove certain columns
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index(["A", "B"])
 
-        # TODO should reset_index check_names ?
-        tm.assert_frame_equal(rs, float_frame, check_names=False)
+        tm.assert_frame_equal(rs, float_frame)
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index("A")
         xp = float_frame.reset_index().set_index(["index", "B"])
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
         # test resetting in place
         df = float_frame.copy()
-        resetted = float_frame.reset_index()
+        reset = float_frame.reset_index()
         return_value = df.reset_index(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(df, resetted, check_names=False)
+        tm.assert_frame_equal(df, reset)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index("A", drop=True)
         xp = float_frame.copy()
         del xp["A"]
         xp = xp.set_index(["B"], append=True)
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
     def test_reset_index_name(self):
         df = DataFrame(
@@ -185,52 +201,55 @@ class TestResetIndex:
         assert return_value is None
         assert df.index.name is None
 
-    def test_reset_index_level(self):
+    @pytest.mark.parametrize("levels", [["A", "B"], [0, 1]])
+    def test_reset_index_level(self, levels):
         df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], columns=["A", "B", "C", "D"])
 
-        for levels in ["A", "B"], [0, 1]:
-            # With MultiIndex
-            result = df.set_index(["A", "B"]).reset_index(level=levels[0])
-            tm.assert_frame_equal(result, df.set_index("B"))
+        # With MultiIndex
+        result = df.set_index(["A", "B"]).reset_index(level=levels[0])
+        tm.assert_frame_equal(result, df.set_index("B"))
 
-            result = df.set_index(["A", "B"]).reset_index(level=levels[:1])
-            tm.assert_frame_equal(result, df.set_index("B"))
+        result = df.set_index(["A", "B"]).reset_index(level=levels[:1])
+        tm.assert_frame_equal(result, df.set_index("B"))
 
-            result = df.set_index(["A", "B"]).reset_index(level=levels)
-            tm.assert_frame_equal(result, df)
+        result = df.set_index(["A", "B"]).reset_index(level=levels)
+        tm.assert_frame_equal(result, df)
 
-            result = df.set_index(["A", "B"]).reset_index(level=levels, drop=True)
-            tm.assert_frame_equal(result, df[["C", "D"]])
+        result = df.set_index(["A", "B"]).reset_index(level=levels, drop=True)
+        tm.assert_frame_equal(result, df[["C", "D"]])
 
-            # With single-level Index (GH 16263)
-            result = df.set_index("A").reset_index(level=levels[0])
-            tm.assert_frame_equal(result, df)
+        # With single-level Index (GH 16263)
+        result = df.set_index("A").reset_index(level=levels[0])
+        tm.assert_frame_equal(result, df)
 
-            result = df.set_index("A").reset_index(level=levels[:1])
-            tm.assert_frame_equal(result, df)
+        result = df.set_index("A").reset_index(level=levels[:1])
+        tm.assert_frame_equal(result, df)
 
-            result = df.set_index(["A"]).reset_index(level=levels[0], drop=True)
-            tm.assert_frame_equal(result, df[["B", "C", "D"]])
+        result = df.set_index(["A"]).reset_index(level=levels[0], drop=True)
+        tm.assert_frame_equal(result, df[["B", "C", "D"]])
 
+    @pytest.mark.parametrize("idx_lev", [["A", "B"], ["A"]])
+    def test_reset_index_level_missing(self, idx_lev):
         # Missing levels - for both MultiIndex and single-level Index:
-        for idx_lev in ["A", "B"], ["A"]:
-            with pytest.raises(KeyError, match=r"(L|l)evel \(?E\)?"):
-                df.set_index(idx_lev).reset_index(level=["A", "E"])
-            with pytest.raises(IndexError, match="Too many levels"):
-                df.set_index(idx_lev).reset_index(level=[0, 1, 2])
+        df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], columns=["A", "B", "C", "D"])
+
+        with pytest.raises(KeyError, match=r"(L|l)evel \(?E\)?"):
+            df.set_index(idx_lev).reset_index(level=["A", "E"])
+        with pytest.raises(IndexError, match="Too many levels"):
+            df.set_index(idx_lev).reset_index(level=[0, 1, 2])
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
         s1 = Series(
-            (9.81 * time ** 2) / 2, index=Index(time, name="time"), name="speed"
+            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
         )
         df = DataFrame(s1)
 
-        resetted = s1.reset_index()
-        assert resetted["time"].dtype == np.float64
+        reset = s1.reset_index()
+        assert reset["time"].dtype == np.float64
 
-        resetted = df.reset_index()
-        assert resetted["time"].dtype == np.float64
+        reset = df.reset_index()
+        assert reset["time"].dtype == np.float64
 
     def test_reset_index_multiindex_col(self):
         vals = np.random.randn(3, 3).astype(object)
@@ -343,7 +362,7 @@ class TestResetIndex:
         )
         df.index.name = name
 
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             result = df.reset_index()
 
         item = name if name is not None else "index"
@@ -371,33 +390,31 @@ class TestResetIndex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_reset_index_multiindex_columns(self):
-        levels = [["A", ""], ["B", "b"]]
-        df = DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
-        result = df[["B"]].rename_axis("A").reset_index()
-        tm.assert_frame_equal(result, df)
+    def test_reset_index_multiindex_columns(self, multiindex_df):
+        result = multiindex_df[["B"]].rename_axis("A").reset_index()
+        tm.assert_frame_equal(result, multiindex_df)
 
         # GH#16120: already existing column
         msg = r"cannot insert \('A', ''\), already exists"
         with pytest.raises(ValueError, match=msg):
-            df.rename_axis("A").reset_index()
+            multiindex_df.rename_axis("A").reset_index()
 
         # GH#16164: multiindex (tuple) full key
-        result = df.set_index([("A", "")]).reset_index()
-        tm.assert_frame_equal(result, df)
+        result = multiindex_df.set_index([("A", "")]).reset_index()
+        tm.assert_frame_equal(result, multiindex_df)
 
         # with additional (unnamed) index level
         idx_col = DataFrame(
             [[0], [1]], columns=MultiIndex.from_tuples([("level_0", "")])
         )
-        expected = pd.concat([idx_col, df[[("B", "b"), ("A", "")]]], axis=1)
-        result = df.set_index([("B", "b")], append=True).reset_index()
+        expected = pd.concat([idx_col, multiindex_df[[("B", "b"), ("A", "")]]], axis=1)
+        result = multiindex_df.set_index([("B", "b")], append=True).reset_index()
         tm.assert_frame_equal(result, expected)
 
         # with index name which is a too long tuple...
         msg = "Item must have length equal to number of levels."
         with pytest.raises(ValueError, match=msg):
-            df.rename_axis([("C", "c", "i")]).reset_index()
+            multiindex_df.rename_axis([("C", "c", "i")]).reset_index()
 
         # or too short...
         levels = [["A", "a", ""], ["B", "b", "i"]]
@@ -423,10 +440,50 @@ class TestResetIndex:
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("flag", [False, True])
+    @pytest.mark.parametrize("allow_duplicates", [False, True])
+    def test_reset_index_duplicate_columns_allow(
+        self, multiindex_df, flag, allow_duplicates
+    ):
+        # GH#44755 reset_index with duplicate column labels
+        df = multiindex_df.rename_axis("A")
+        df = df.set_flags(allows_duplicate_labels=flag)
+
+        if flag and allow_duplicates:
+            result = df.reset_index(allow_duplicates=allow_duplicates)
+            levels = [["A", ""], ["A", ""], ["B", "b"]]
+            expected = DataFrame(
+                [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
+            )
+            tm.assert_frame_equal(result, expected)
+        else:
+            if not flag and allow_duplicates:
+                msg = "Cannot specify 'allow_duplicates=True' when "
+                "'self.flags.allows_duplicate_labels' is False"
+            else:
+                msg = r"cannot insert \('A', ''\), already exists"
+            with pytest.raises(ValueError, match=msg):
+                df.reset_index(allow_duplicates=allow_duplicates)
+
+    @pytest.mark.parametrize("flag", [False, True])
+    def test_reset_index_duplicate_columns_default(self, multiindex_df, flag):
+        df = multiindex_df.rename_axis("A")
+        df = df.set_flags(allows_duplicate_labels=flag)
+
+        msg = r"cannot insert \('A', ''\), already exists"
+        with pytest.raises(ValueError, match=msg):
+            df.reset_index()
+
+    @pytest.mark.parametrize("allow_duplicates", ["bad value"])
+    def test_reset_index_allow_duplicates_check(self, multiindex_df, allow_duplicates):
+        with pytest.raises(ValueError, match="expected type bool"):
+            multiindex_df.reset_index(allow_duplicates=allow_duplicates)
+
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
-        idx1 = pd.date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
+        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
         idx2 = Index(range(5), name="idx2", dtype="int64")
         idx = MultiIndex.from_arrays([idx1, idx2])
         df = DataFrame(
@@ -453,7 +510,7 @@ class TestResetIndex:
 
         tm.assert_frame_equal(df.reset_index(), expected)
 
-        idx3 = pd.date_range(
+        idx3 = date_range(
             "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
         )
         idx = MultiIndex.from_arrays([idx1, idx2, idx3])
@@ -492,7 +549,7 @@ class TestResetIndex:
 
         # GH#7793
         idx = MultiIndex.from_product(
-            [["a", "b"], pd.date_range("20130101", periods=3, tz=tz)]
+            [["a", "b"], date_range("20130101", periods=3, tz=tz)]
         )
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
@@ -511,9 +568,7 @@ class TestResetIndex:
             },
             columns=["level_0", "level_1", "a"],
         )
-        expected["level_1"] = expected["level_1"].apply(
-            lambda d: Timestamp(d, freq="D", tz=tz)
-        )
+        expected["level_1"] = expected["level_1"].apply(lambda d: Timestamp(d, tz=tz))
         result = df.reset_index()
         tm.assert_frame_equal(result, expected)
 
@@ -550,7 +605,6 @@ class TestResetIndex:
         assert is_integer_dtype(deleveled["prm1"])
         assert is_float_dtype(deleveled["prm2"])
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
     def test_reset_index_with_drop(
         self, multiindex_year_month_day_dataframe_random_data
     ):
@@ -649,7 +703,6 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) groupby
 def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     # https://github.com/pandas-dev/pandas/issues/35657
     df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
@@ -661,3 +714,82 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
     tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_multiindex_nat():
+    # GH 11479
+    idx = range(3)
+    tstamp = date_range("2015-07-01", freq="D", periods=3)
+    df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
+    df.loc[2, "tstamp"] = pd.NaT
+    result = df.set_index(["id", "tstamp"]).reset_index("id")
+    expected = DataFrame(
+        {"id": range(3), "a": list("abc")},
+        index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_drop_pos_args_deprecation():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    df = DataFrame({"a": [1, 2, 3]}).set_index("a")
+    msg = (
+        r"In a future version of pandas all arguments of DataFrame\.reset_index "
+        r"except for the argument 'level' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.reset_index("a", False)
+    expected = DataFrame({"a": [1, 2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_interval_columns_object_cast():
+    # GH 19136
+    df = DataFrame(
+        np.eye(2), index=Index([1, 2], name="Year"), columns=cut([1, 2], [0, 1, 2])
+    )
+    result = df.reset_index()
+    expected = DataFrame(
+        [[1, 1.0, 0.0], [2, 0.0, 1.0]],
+        columns=Index(["Year", Interval(0, 1, "right"), Interval(1, 2, "right")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_rename(float_frame):
+    # GH 6878
+    result = float_frame.reset_index(names="new_name")
+    expected = Series(float_frame.index.values, name="new_name")
+    tm.assert_series_equal(result["new_name"], expected)
+
+    result = float_frame.reset_index(names=123)
+    expected = Series(float_frame.index.values, name=123)
+    tm.assert_series_equal(result[123], expected)
+
+
+def test_reset_index_rename_multiindex(float_frame):
+    # GH 6878
+    stacked_df = float_frame.stack()[::2]
+    stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
+
+    names = ["first", "second"]
+    stacked_df.index.names = names
+
+    result = stacked_df.reset_index()
+    expected = stacked_df.reset_index(names=["new_first", "new_second"])
+    tm.assert_series_equal(result["first"], expected["new_first"], check_names=False)
+    tm.assert_series_equal(result["second"], expected["new_second"], check_names=False)
+
+
+def test_errorreset_index_rename(float_frame):
+    # GH 6878
+    stacked_df = float_frame.stack()[::2]
+    stacked_df = DataFrame({"first": stacked_df, "second": stacked_df})
+
+    with pytest.raises(
+        ValueError, match="Index names must be str or 1-dimensional list"
+    ):
+        stacked_df.reset_index(names={"first": "new_first", "second": "new_second"})
+
+    with pytest.raises(IndexError, match="list index out of range"):
+        stacked_df.reset_index(names=["new_first"])

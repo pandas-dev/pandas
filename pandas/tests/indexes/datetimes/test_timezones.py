@@ -40,7 +40,7 @@ import pandas._testing as tm
 class FixedOffset(tzinfo):
     """Fixed offset in minutes east from UTC."""
 
-    def __init__(self, offset, name):
+    def __init__(self, offset, name) -> None:
         self.__offset = timedelta(minutes=offset)
         self.__name = name
 
@@ -327,6 +327,17 @@ class TestDatetimeIndexTimezones:
     # -------------------------------------------------------------
     # DatetimeIndex.tz_localize
 
+    def test_tz_localize_utc_copies(self, utc_fixture):
+        # GH#46460
+        times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
+        index = DatetimeIndex(times)
+
+        res = index.tz_localize(utc_fixture)
+        assert not tm.shares_memory(res, index)
+
+        res2 = index._data.tz_localize(utc_fixture)
+        assert not tm.shares_memory(index._data, res2)
+
     def test_dti_tz_localize_nonexistent_raise_coerce(self):
         # GH#13057
         times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
@@ -465,7 +476,7 @@ class TestDatetimeIndexTimezones:
         idx = date_range(start="2014-06-01", end="2014-08-30", freq="15T")
         tz = tz_aware_fixture
         localized = idx.tz_localize(tz)
-        # cant localize a tz-aware object
+        # can't localize a tz-aware object
         with pytest.raises(
             TypeError, match="Already tz-aware, use tz_convert to convert"
         ):
@@ -591,8 +602,8 @@ class TestDatetimeIndexTimezones:
         times = date_range(
             "2013-10-26 23:00", "2013-10-27 01:00", freq="H", tz=tz, ambiguous="infer"
         )
-        assert times[0] == Timestamp("2013-10-26 23:00", tz=tz, freq="H")
-        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz, freq="H")
+        assert times[0] == Timestamp("2013-10-26 23:00", tz=tz)
+        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz)
 
     @pytest.mark.parametrize(
         "tz, option, expected",
@@ -615,7 +626,7 @@ class TestDatetimeIndexTimezones:
         times = date_range(
             "2019-03-10 00:00", "2019-03-10 02:00", freq="H", tz=tz, nonexistent=option
         )
-        assert times[-1] == Timestamp(expected, tz=tz, freq="H")
+        assert times[-1] == Timestamp(expected, tz=tz)
 
     def test_dti_tz_localize_bdate_range(self):
         dr = bdate_range("1/1/2009", "1/1/2010")
@@ -1140,17 +1151,23 @@ class TestDatetimeIndexTimezones:
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is pytz.utc
 
-    def test_dti_union_aware(self):
+    # Note: not difference, as there is no symmetry requirement there
+    @pytest.mark.parametrize("setop", ["union", "intersection", "symmetric_difference"])
+    def test_dti_setop_aware(self, setop):
         # non-overlapping
         rng = date_range("2012-11-15 00:00:00", periods=6, freq="H", tz="US/Central")
 
         rng2 = date_range("2012-11-15 12:00:00", periods=6, freq="H", tz="US/Eastern")
 
-        result = rng.union(rng2)
-        expected = rng.astype("O").union(rng2.astype("O"))
+        with tm.assert_produces_warning(FutureWarning):
+            # # GH#39328 will cast both to UTC
+            result = getattr(rng, setop)(rng2)
+
+        expected = getattr(rng.astype("O"), setop)(rng2.astype("O"))
         tm.assert_index_equal(result, expected)
-        assert result[0].tz.zone == "US/Central"
-        assert result[-1].tz.zone == "US/Eastern"
+        if len(result):
+            assert result[0].tz.zone == "US/Central"
+            assert result[-1].tz.zone == "US/Eastern"
 
     def test_dti_union_mixed(self):
         # GH 21671

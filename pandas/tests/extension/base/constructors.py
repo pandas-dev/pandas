@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.internals import ExtensionBlock
+from pandas.api.extensions import ExtensionArray
+from pandas.core.internals.blocks import EABackedBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -24,13 +25,15 @@ class BaseConstructorsTests(BaseExtensionTests):
         result = pd.Series(data)
         assert result.dtype == data.dtype
         assert len(result) == len(data)
-        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
-        assert result._mgr.blocks[0].values is data
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result._mgr.blocks[0], EABackedBlock)
+        assert result._mgr.array is data
 
         # Series[EA] is unboxed / boxed correctly
         result2 = pd.Series(result)
         assert result2.dtype == data.dtype
-        assert isinstance(result2._mgr.blocks[0], ExtensionBlock)
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result2._mgr.blocks[0], EABackedBlock)
 
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
         result = pd.Series(index=[1, 2, 3], dtype=dtype)
@@ -64,13 +67,17 @@ class BaseConstructorsTests(BaseExtensionTests):
         result = pd.DataFrame({"A": data})
         assert result.dtypes["A"] == data.dtype
         assert result.shape == (len(data), 1)
-        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result._mgr.blocks[0], EABackedBlock)
+        assert isinstance(result._mgr.arrays[0], ExtensionArray)
 
     def test_dataframe_from_series(self, data):
         result = pd.DataFrame(pd.Series(data))
         assert result.dtypes[0] == data.dtype
         assert result.shape == (len(data), 1)
-        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result._mgr.blocks[0], EABackedBlock)
+        assert isinstance(result._mgr.arrays[0], ExtensionArray)
 
     def test_series_given_mismatched_index_raises(self, data):
         msg = r"Length of values \(3\) does not match length of index \(5\)"
@@ -115,3 +122,21 @@ class BaseConstructorsTests(BaseExtensionTests):
             {"a": pd.array([], dtype=dtype)}, index=pd.Index([], dtype="object")
         )
         self.assert_frame_equal(result, expected)
+
+    def test_empty(self, dtype):
+        cls = dtype.construct_array_type()
+        result = cls._empty((4,), dtype=dtype)
+        assert isinstance(result, cls)
+        assert result.dtype == dtype
+        assert result.shape == (4,)
+
+        # GH#19600 method on ExtensionDtype
+        result2 = dtype.empty((4,))
+        assert isinstance(result2, cls)
+        assert result2.dtype == dtype
+        assert result2.shape == (4,)
+
+        result2 = dtype.empty(4)
+        assert isinstance(result2, cls)
+        assert result2.dtype == dtype
+        assert result2.shape == (4,)

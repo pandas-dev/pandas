@@ -3,6 +3,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
+import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -14,66 +15,65 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture
+def df():
+    df = DataFrame(
+        {
+            "A": [
+                "foo",
+                "foo",
+                "foo",
+                "foo",
+                "bar",
+                "bar",
+                "bar",
+                "bar",
+                "foo",
+                "foo",
+                "foo",
+            ],
+            "B": [
+                "one",
+                "one",
+                "one",
+                "two",
+                "one",
+                "one",
+                "one",
+                "two",
+                "two",
+                "two",
+                "one",
+            ],
+            "C": [
+                "dull",
+                "dull",
+                "shiny",
+                "dull",
+                "dull",
+                "shiny",
+                "shiny",
+                "dull",
+                "shiny",
+                "shiny",
+                "shiny",
+            ],
+            "D": np.random.randn(11),
+            "E": np.random.randn(11),
+            "F": np.random.randn(11),
+        }
+    )
+
+    return pd.concat([df, df], ignore_index=True)
+
+
 class TestCrosstab:
-    def setup_method(self, method):
-        df = DataFrame(
-            {
-                "A": [
-                    "foo",
-                    "foo",
-                    "foo",
-                    "foo",
-                    "bar",
-                    "bar",
-                    "bar",
-                    "bar",
-                    "foo",
-                    "foo",
-                    "foo",
-                ],
-                "B": [
-                    "one",
-                    "one",
-                    "one",
-                    "two",
-                    "one",
-                    "one",
-                    "one",
-                    "two",
-                    "two",
-                    "two",
-                    "one",
-                ],
-                "C": [
-                    "dull",
-                    "dull",
-                    "shiny",
-                    "dull",
-                    "dull",
-                    "shiny",
-                    "shiny",
-                    "dull",
-                    "shiny",
-                    "shiny",
-                    "shiny",
-                ],
-                "D": np.random.randn(11),
-                "E": np.random.randn(11),
-                "F": np.random.randn(11),
-            }
-        )
-
-        self.df = df.append(df, ignore_index=True)
-
-    def test_crosstab_single(self):
-        df = self.df
+    def test_crosstab_single(self, df):
         result = crosstab(df["A"], df["C"])
         expected = df.groupby(["A", "C"]).size().unstack()
         tm.assert_frame_equal(result, expected.fillna(0).astype(np.int64))
 
-    def test_crosstab_multiple(self):
-        df = self.df
-
+    def test_crosstab_multiple(self, df):
         result = crosstab(df["A"], [df["B"], df["C"]])
         expected = df.groupby(["A", "B", "C"]).size()
         expected = expected.unstack("B").unstack("C").fillna(0).astype(np.int64)
@@ -84,10 +84,12 @@ class TestCrosstab:
         expected = expected.unstack("A").fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 
-    def test_crosstab_ndarray(self):
-        a = np.random.randint(0, 5, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 10, size=100)
+    @pytest.mark.parametrize("box", [np.array, list, tuple])
+    def test_crosstab_ndarray(self, box):
+        # GH 44076
+        a = box(np.random.randint(0, 5, size=100))
+        b = box(np.random.randint(0, 3, size=100))
+        c = box(np.random.randint(0, 10, size=100))
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -100,9 +102,11 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
         # assign arbitrary names
-        result = crosstab(self.df["A"].values, self.df["C"].values)
-        assert result.index.name == "row_0"
-        assert result.columns.name == "col_0"
+        result = crosstab(a, c)
+        expected = crosstab(df["a"], df["c"])
+        expected.index.names = ["row_0"]
+        expected.columns.names = ["col_0"]
+        tm.assert_frame_equal(result, expected)
 
     def test_crosstab_non_aligned(self):
         # GH 17005
@@ -138,14 +142,14 @@ class TestCrosstab:
         exp_cols = df.groupby(["a"]).size().astype("i8")
         # to keep index.name
         exp_margin = Series([len(df)], index=Index(["All"], name="a"))
-        exp_cols = exp_cols.append(exp_margin)
+        exp_cols = pd.concat([exp_cols, exp_margin])
         exp_cols.name = ("All", "")
 
         tm.assert_series_equal(all_cols, exp_cols)
 
         all_rows = result.loc["All"]
         exp_rows = df.groupby(["b", "c"]).size().astype("i8")
-        exp_rows = exp_rows.append(Series([len(df)], index=[("All", "")]))
+        exp_rows = pd.concat([exp_rows, Series([len(df)], index=[("All", "")])])
         exp_rows.name = "All"
 
         exp_rows = exp_rows.reindex(all_rows.index)
@@ -176,14 +180,14 @@ class TestCrosstab:
         exp_cols = df.groupby(["a"]).size().astype("i8")
         # to keep index.name
         exp_margin = Series([len(df)], index=Index(["TOTAL"], name="a"))
-        exp_cols = exp_cols.append(exp_margin)
+        exp_cols = pd.concat([exp_cols, exp_margin])
         exp_cols.name = ("TOTAL", "")
 
         tm.assert_series_equal(all_cols, exp_cols)
 
         all_rows = result.loc["TOTAL"]
         exp_rows = df.groupby(["b", "c"]).size().astype("i8")
-        exp_rows = exp_rows.append(Series([len(df)], index=[("TOTAL", "")]))
+        exp_rows = pd.concat([exp_rows, Series([len(df)], index=[("TOTAL", "")])])
         exp_rows.name = "TOTAL"
 
         exp_rows = exp_rows.reindex(all_rows.index)
@@ -240,7 +244,10 @@ class TestCrosstab:
         s2 = Series([4, 5, 6], index=[4, 5, 6])
 
         actual = crosstab(s1, s2)
-        expected = DataFrame()
+        expected = DataFrame(
+            index=Index([], dtype="int64", name="row_0"),
+            columns=Index([], dtype="int64", name="col_0"),
+        )
 
         tm.assert_frame_equal(actual, expected)
 
@@ -256,6 +263,8 @@ class TestCrosstab:
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna2(self):
+
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
@@ -264,6 +273,8 @@ class TestCrosstab:
         expected.index = Index([1.0, 2.0, "All"], name="a")
         expected.columns = Index([3.0, 4.0, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
+
+    def test_margin_dropna3(self):
 
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, np.nan, 2], "b": [3, 3, 4, 4, 4, 4]}
@@ -274,6 +285,7 @@ class TestCrosstab:
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna4(self):
         # GH 12642
         # _add_margins raises KeyError: Level None not found
         # when margins=True and dropna=False
@@ -284,6 +296,7 @@ class TestCrosstab:
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna5(self):
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
@@ -293,6 +306,7 @@ class TestCrosstab:
         expected.columns = Index([3.0, 4.0, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna6(self):
         a = np.array(["foo", "foo", "foo", "bar", "bar", "foo", "foo"], dtype=object)
         b = np.array(["one", "one", "two", "one", "two", np.nan, "two"], dtype=object)
         c = np.array(
@@ -392,6 +406,12 @@ class TestCrosstab:
             crosstab(df.a, df.b, normalize=True, margins=True), all_normal_margins
         )
 
+    def test_crosstab_normalize_arrays(self):
+        # GH#12578
+        df = DataFrame(
+            {"a": [1, 2, 2, 2, 2], "b": [3, 3, 4, 4, 4], "c": [1, 1, np.nan, 1, 1]}
+        )
+
         # Test arrays
         crosstab(
             [np.array([1, 1, 2, 2]), np.array([1, 2, 1, 2])], np.array([1, 2, 1, 2])
@@ -422,7 +442,7 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    def test_crosstab_with_empties(self):
+    def test_crosstab_with_empties(self, using_array_manager):
         # Check handling of empties
         df = DataFrame(
             {
@@ -447,6 +467,9 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)
@@ -540,6 +563,8 @@ class TestCrosstab:
         expected = DataFrame(
             expected_data, index=expected_index, columns=expected_column
         )
+        # aggfunc is np.size, resulting in integers
+        expected["All"] = expected["All"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_duplicate_names(self):
@@ -790,12 +815,12 @@ def test_categoricals(a_dtype, b_dtype):
     a_is_cat = is_categorical_dtype(a.dtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
-    values = [[18, 16, 34], [0, 0, np.nan], [34, 32, 66], [52, 48, 100]]
+    values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]
         expected["All"] = expected["All"].astype("int64")
-    print(result)
-    print(expected)
-    print(expected.loc[[0, 2, "All"]])
+    repr(result)
+    repr(expected)
+    repr(expected.loc[[0, 2, "All"]])
     tm.assert_frame_equal(result, expected)

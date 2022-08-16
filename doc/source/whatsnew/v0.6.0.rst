@@ -5,12 +5,6 @@ Version 0.6.0 (November 25, 2011)
 
 {{ header }}
 
-.. ipython:: python
-   :suppress:
-
-   from pandas import *  # noqa F401, F403
-
-
 New features
 ~~~~~~~~~~~~
 - :ref:`Added <reshaping.melt>` ``melt`` function to ``pandas.core.reshape``
@@ -30,7 +24,7 @@ New features
 - :ref:`Added <groupby.multiindex>` multiple levels to groupby (:issue:`103`)
 - :ref:`Allow <basics.sorting>` multiple columns in ``by`` argument of ``DataFrame.sort_index`` (:issue:`92`, :issue:`362`)
 - :ref:`Added <indexing.basics.get_value>` fast ``get_value`` and ``put_value`` methods to DataFrame (:issue:`360`)
-- :ref:`Added <computation.covariance>` ``cov`` instance methods to Series and DataFrame (:issue:`194`, :issue:`362`)
+- Added ``cov`` instance methods to Series and DataFrame (:issue:`194`, :issue:`362`)
 - :ref:`Added <visualization.barplot>` ``kind='bar'`` option to ``DataFrame.plot`` (:issue:`348`)
 - :ref:`Added <basics.idxmin>` ``idxmin`` and ``idxmax`` to Series and DataFrame (:issue:`286`)
 - :ref:`Added <io.clipboard>` ``read_clipboard`` function to parse DataFrame from clipboard (:issue:`300`)

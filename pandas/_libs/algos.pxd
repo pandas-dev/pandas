@@ -1,16 +1,10 @@
-from pandas._libs.util cimport numeric
+from pandas._libs.dtypes cimport (
+    numeric_object_t,
+    numeric_t,
+)
 
 
-cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
-    cdef:
-        numeric t
-
-    # cython doesn't allow pointer dereference so use array syntax
-    t = a[0]
-    a[0] = b[0]
-    b[0] = t
-    return 0
-
+cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil
 
 cdef enum TiebreakEnumType:
     TIEBREAK_AVERAGE
@@ -19,3 +13,10 @@ cdef enum TiebreakEnumType:
     TIEBREAK_FIRST
     TIEBREAK_FIRST_DESCENDING
     TIEBREAK_DENSE
+
+
+cdef numeric_object_t get_rank_nan_fill_val(
+    bint rank_nans_highest,
+    numeric_object_t val,
+    bint is_datetimelike=*,
+)

@@ -54,7 +54,7 @@ def test_preserve_dtypes(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = pd.array([np.nan, 1, 2], dtype="Int8")
-    msg = "cannot convert to 'uint32'-dtype NumPy array with missing values."
+    msg = "cannot convert NA to integer"
 
     with pytest.raises(ValueError, match=msg):
         arr.astype("uint32")
@@ -72,7 +72,8 @@ def test_construct_index(all_data, dropna):
         other = all_data
 
     result = pd.Index(pd.array(other, dtype=all_data.dtype))
-    expected = pd.Index(other, dtype=object)
+    expected = pd.Index(other, dtype=all_data.dtype)
+    assert all_data.dtype == expected.dtype  # dont coerce to object
 
     tm.assert_index_equal(result, expected)
 
@@ -88,7 +89,7 @@ def test_astype_index(all_data, dropna):
         other = all_data
 
     dtype = all_data.dtype
-    idx = pd.Index(np.array(other))
+    idx = pd.Index._with_infer(np.array(other))
     assert isinstance(idx, ABCIndex)
 
     result = idx.astype(dtype)
@@ -135,7 +136,7 @@ def test_astype(all_data):
 
     # coerce to same numpy_dtype - mixed
     s = pd.Series(mixed)
-    msg = r"cannot convert to .*-dtype NumPy array with missing values.*"
+    msg = "cannot convert NA to integer"
     with pytest.raises(ValueError, match=msg):
         s.astype(all_data.dtype.numpy_dtype)
 
@@ -153,8 +154,7 @@ def test_astype_copy():
     # copy=True -> ensure both data and mask are actual copies
     result = arr.astype("Int64", copy=True)
     assert result is not arr
-    assert not np.shares_memory(result._data, arr._data)
-    assert not np.shares_memory(result._mask, arr._mask)
+    assert not tm.shares_memory(result, arr)
     result[0] = 10
     tm.assert_extension_array_equal(arr, orig)
     result[0] = pd.NA
@@ -176,8 +176,7 @@ def test_astype_copy():
     orig = pd.array([1, 2, 3, None], dtype="Int64")
 
     result = arr.astype("Int32", copy=False)
-    assert not np.shares_memory(result._data, arr._data)
-    assert not np.shares_memory(result._mask, arr._mask)
+    assert not tm.shares_memory(result, arr)
     result[0] = 10
     tm.assert_extension_array_equal(arr, orig)
     result[0] = pd.NA
@@ -218,7 +217,7 @@ def test_astype_floating():
 
 def test_astype_dt64():
     # GH#32435
-    arr = pd.array([1, 2, 3, pd.NA]) * 10 ** 9
+    arr = pd.array([1, 2, 3, pd.NA]) * 10**9
 
     result = arr.astype("datetime64[ns]")
 
@@ -284,7 +283,7 @@ def test_to_numpy_na_raises(dtype):
 
 def test_astype_str():
     a = pd.array([1, 2, None], dtype="Int64")
-    expected = np.array(["1", "2", "<NA>"], dtype="<U21")
+    expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
 
     tm.assert_numpy_array_equal(a.astype(str), expected)
     tm.assert_numpy_array_equal(a.astype("str"), expected)

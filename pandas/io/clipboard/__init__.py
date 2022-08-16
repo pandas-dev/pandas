@@ -51,12 +51,17 @@ from ctypes import (
     get_errno,
     sizeof,
 )
-import distutils.spawn
 import os
 import platform
+from shutil import which
 import subprocess
 import time
 import warnings
+
+from pandas.errors import (
+    PyperclipException,
+    PyperclipWindowsException,
+)
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
@@ -66,7 +71,7 @@ HAS_DISPLAY = os.getenv("DISPLAY", False)
 EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
     For more information, please visit
-    https://pyperclip.readthedocs.io/en/latest/introduction.html#not-implemented-error
+    https://pyperclip.readthedocs.io/en/latest/#not-implemented-error
     """
 
 ENCODING = "utf-8"
@@ -87,17 +92,6 @@ def _executable_exists(name):
     )
 
 
-# Exceptions
-class PyperclipException(RuntimeError):
-    pass
-
-
-class PyperclipWindowsException(PyperclipException):
-    def __init__(self, message):
-        message += f" ({ctypes.WinError()})"
-        super().__init__(message)
-
-
 def _stringifyText(text) -> str:
     acceptedTypes = (str, int, float, bool)
     if not isinstance(text, acceptedTypes):
@@ -111,12 +105,16 @@ def _stringifyText(text) -> str:
 def init_osx_pbcopy_clipboard():
     def copy_osx_pbcopy(text):
         text = _stringifyText(text)  # Converts non-str values to str.
-        p = subprocess.Popen(["pbcopy", "w"], stdin=subprocess.PIPE, close_fds=True)
-        p.communicate(input=text.encode(ENCODING))
+        with subprocess.Popen(
+            ["pbcopy", "w"], stdin=subprocess.PIPE, close_fds=True
+        ) as p:
+            p.communicate(input=text.encode(ENCODING))
 
     def paste_osx_pbcopy():
-        p = subprocess.Popen(["pbpaste", "r"], stdout=subprocess.PIPE, close_fds=True)
-        stdout, stderr = p.communicate()
+        with subprocess.Popen(
+            ["pbpaste", "r"], stdout=subprocess.PIPE, close_fds=True
+        ) as p:
+            stdout = p.communicate()[0]
         return stdout.decode(ENCODING)
 
     return copy_osx_pbcopy, paste_osx_pbcopy
@@ -179,22 +177,22 @@ def init_xclip_clipboard():
         selection = DEFAULT_SELECTION
         if primary:
             selection = PRIMARY_SELECTION
-        p = subprocess.Popen(
+        with subprocess.Popen(
             ["xclip", "-selection", selection], stdin=subprocess.PIPE, close_fds=True
-        )
-        p.communicate(input=text.encode(ENCODING))
+        ) as p:
+            p.communicate(input=text.encode(ENCODING))
 
     def paste_xclip(primary=False):
         selection = DEFAULT_SELECTION
         if primary:
             selection = PRIMARY_SELECTION
-        p = subprocess.Popen(
+        with subprocess.Popen(
             ["xclip", "-selection", selection, "-o"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             close_fds=True,
-        )
-        stdout, stderr = p.communicate()
+        ) as p:
+            stdout = p.communicate()[0]
         # Intentionally ignore extraneous output on stderr when clipboard is empty
         return stdout.decode(ENCODING)
 
@@ -210,19 +208,19 @@ def init_xsel_clipboard():
         selection_flag = DEFAULT_SELECTION
         if primary:
             selection_flag = PRIMARY_SELECTION
-        p = subprocess.Popen(
+        with subprocess.Popen(
             ["xsel", selection_flag, "-i"], stdin=subprocess.PIPE, close_fds=True
-        )
-        p.communicate(input=text.encode(ENCODING))
+        ) as p:
+            p.communicate(input=text.encode(ENCODING))
 
     def paste_xsel(primary=False):
         selection_flag = DEFAULT_SELECTION
         if primary:
             selection_flag = PRIMARY_SELECTION
-        p = subprocess.Popen(
+        with subprocess.Popen(
             ["xsel", selection_flag, "-o"], stdout=subprocess.PIPE, close_fds=True
-        )
-        stdout, stderr = p.communicate()
+        ) as p:
+            stdout = p.communicate()[0]
         return stdout.decode(ENCODING)
 
     return copy_xsel, paste_xsel
@@ -231,7 +229,7 @@ def init_xsel_clipboard():
 def init_klipper_clipboard():
     def copy_klipper(text):
         text = _stringifyText(text)  # Converts non-str values to str.
-        p = subprocess.Popen(
+        with subprocess.Popen(
             [
                 "qdbus",
                 "org.kde.klipper",
@@ -241,16 +239,16 @@ def init_klipper_clipboard():
             ],
             stdin=subprocess.PIPE,
             close_fds=True,
-        )
-        p.communicate(input=None)
+        ) as p:
+            p.communicate(input=None)
 
     def paste_klipper():
-        p = subprocess.Popen(
+        with subprocess.Popen(
             ["qdbus", "org.kde.klipper", "/klipper", "getClipboardContents"],
             stdout=subprocess.PIPE,
             close_fds=True,
-        )
-        stdout, stderr = p.communicate()
+        ) as p:
+            stdout = p.communicate()[0]
 
         # Workaround for https://bugs.kde.org/show_bug.cgi?id=342874
         # TODO: https://github.com/asweigart/pyperclip/issues/43
@@ -271,7 +269,7 @@ def init_dev_clipboard_clipboard():
         text = _stringifyText(text)  # Converts non-str values to str.
         if text == "":
             warnings.warn(
-                "Pyperclip cannot copy a blank string to the clipboard on Cygwin."
+                "Pyperclip cannot copy a blank string to the clipboard on Cygwin. "
                 "This is effectively a no-op."
             )
         if "\r" in text:
@@ -301,7 +299,7 @@ def init_no_clipboard():
 
 # Windows-related clipboard functions:
 class CheckedCall:
-    def __init__(self, f):
+    def __init__(self, f) -> None:
         super().__setattr__("f", f)
 
     def __call__(self, *args):
@@ -483,17 +481,17 @@ def init_windows_clipboard():
 def init_wsl_clipboard():
     def copy_wsl(text):
         text = _stringifyText(text)  # Converts non-str values to str.
-        p = subprocess.Popen(["clip.exe"], stdin=subprocess.PIPE, close_fds=True)
-        p.communicate(input=text.encode(ENCODING))
+        with subprocess.Popen(["clip.exe"], stdin=subprocess.PIPE, close_fds=True) as p:
+            p.communicate(input=text.encode(ENCODING))
 
     def paste_wsl():
-        p = subprocess.Popen(
+        with subprocess.Popen(
             ["powershell.exe", "-command", "Get-Clipboard"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             close_fds=True,
-        )
-        stdout, stderr = p.communicate()
+        ) as p:
+            stdout = p.communicate()[0]
         # WSL appends "\r\n" to the contents.
         return stdout[:-2].decode(ENCODING)
 
@@ -514,11 +512,11 @@ def determine_clipboard():
         "cygwin" in platform.system().lower()
     ):  # Cygwin has a variety of values returned by platform.system(),
         # such as 'CYGWIN_NT-6.1'
-        # FIXME: pyperclip currently does not support Cygwin,
+        # FIXME(pyperclip#55): pyperclip currently does not support Cygwin,
         # see https://github.com/asweigart/pyperclip/issues/55
         if os.path.exists("/dev/clipboard"):
             warnings.warn(
-                "Pyperclip's support for Cygwin is not perfect,"
+                "Pyperclip's support for Cygwin is not perfect, "
                 "see https://github.com/asweigart/pyperclip/issues/55"
             )
             return init_dev_clipboard_clipboard()
@@ -528,7 +526,7 @@ def determine_clipboard():
         return init_windows_clipboard()
 
     if platform.system() == "Linux":
-        if distutils.spawn.find_executable("wslconfig.exe"):
+        if which("wslconfig.exe"):
             return init_wsl_clipboard()
 
     # Setup for the MAC OS X platform:

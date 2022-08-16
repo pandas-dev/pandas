@@ -89,7 +89,7 @@ Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but the following applies to ``.iloc`` as
 well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
-``p.loc['a', :, :]``.
+``p.loc['a', :]``.
 
 .. csv-table::
     :header: "Object Type", "Indexers"
@@ -583,7 +583,7 @@ without using a temporary variable.
 .. ipython:: python
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
-   (bb.groupby(['year', 'team']).sum()
+   (bb.groupby(['year', 'team']).sum(numeric_only=True)
       .loc[lambda df: df['r'] > 100])
 
 
@@ -701,7 +701,7 @@ Having a duplicated index will raise for a ``.reindex()``:
 .. code-block:: ipython
 
    In [17]: s.reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 Generally, you can intersect the desired labels with the current
 axis, and then reindex.
@@ -717,7 +717,7 @@ However, this would *still* raise if your resulting index is duplicated.
    In [41]: labels = ['a', 'd']
 
    In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 
 .. _indexing.basics.partial_setting:
@@ -996,6 +996,15 @@ a list of items you want to check for.
    values = {'ids': ['a', 'b'], 'vals': [1, 3]}
 
    df.isin(values)
+
+To return the DataFrame of booleans where the values are *not* in the original DataFrame,
+use the ``~`` operator:
+
+.. ipython:: python
+
+   values = {'ids': ['a', 'b'], 'vals': [1, 3]}
+
+   ~df.isin(values)
 
 Combine DataFrame's ``isin`` with the ``any()`` and ``all()`` methods to
 quickly select subsets of your data that meet a given criteria.
@@ -1523,8 +1532,8 @@ Looking up values by index/column labels
 ----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
-rows with ``DataFrame.loc``.  For instance:
+and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
+For instance:
 
 .. ipython:: python
 
@@ -1532,9 +1541,8 @@ rows with ``DataFrame.loc``.  For instance:
                        'A': [80, 23, np.nan, 22],
                        'B': [80, 55, 76, 67]})
     df
-    melt = df.melt('col')
-    melt = melt.loc[melt['col'] == melt['variable'], 'value']
-    melt.reset_index(drop=True)
+    idx, cols = pd.factorize(df['col'])
+    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0.
@@ -1877,7 +1885,7 @@ chained indexing expression, you can set the :ref:`option <options>`
 ``mode.chained_assignment`` to one of these values:
 
 * ``'warn'``, the default, means a ``SettingWithCopyWarning`` is printed.
-* ``'raise'`` means pandas will raise a ``SettingWithCopyException``
+* ``'raise'`` means pandas will raise a ``SettingWithCopyError``
   you have to deal with.
 * ``None`` will suppress the warnings entirely.
 
@@ -1945,7 +1953,7 @@ Last, the subsequent example will **not** work at all, and so should be avoided:
    >>> dfd.loc[0]['a'] = 1111
    Traceback (most recent call last)
         ...
-   SettingWithCopyException:
+   SettingWithCopyError:
         A value is trying to be set on a copy of a slice from a DataFrame.
         Try using .loc[row_index,col_indexer] = value instead
 

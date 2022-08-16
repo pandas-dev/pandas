@@ -72,14 +72,35 @@ class TestDataFrameInsert:
         )
         tm.assert_frame_equal(df, exp)
 
-    def test_insert_item_cache(self):
+    def test_insert_item_cache(self, using_array_manager):
         df = DataFrame(np.random.randn(4, 3))
         ser = df[0]
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        if using_array_manager:
+            expected_warning = None
+        else:
+            # with BlockManager warn about high fragmentation of single dtype
+            expected_warning = PerformanceWarning
+
+        with tm.assert_produces_warning(expected_warning):
             for n in range(100):
                 df[n + 3] = df[1] * n
 
         ser.values[0] = 99
 
         assert df.iloc[0, 0] == df[0][0]
+
+    def test_insert_EA_no_warning(self):
+        # PerformanceWarning about fragmented frame should not be raised when
+        # using EAs (https://github.com/pandas-dev/pandas/issues/44098)
+        df = DataFrame(np.random.randint(0, 100, size=(3, 100)), dtype="Int64")
+        with tm.assert_produces_warning(None):
+            df["a"] = np.array([1, 2, 3])
+
+    def test_insert_frame(self):
+        # GH#42403
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
+
+        msg = r"Expected a 1D array, got an array with shape \(2, 2\)"
+        with pytest.raises(ValueError, match=msg):
+            df.insert(1, "newcol", df)

@@ -95,6 +95,10 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
@@ -104,7 +108,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
-        super().check_opname(s, op_name, other, exc=None)
+        exc = None
+        if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
+            # match behavior with non-masked bool dtype
+            exc = NotImplementedError
+        super().check_opname(s, op_name, other, exc=exc)
 
     def _check_op(self, obj, op, other, op_name, exc=NotImplementedError):
         if exc is None:
@@ -140,26 +148,25 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             with pytest.raises(exc):
                 op(obj, other)
 
-    def _check_divmod_op(self, s, op, other, exc=None):
-        # override to not raise an error
-        super()._check_divmod_op(s, op, other, None)
+    @pytest.mark.xfail(
+        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
+        "but not for divmod. This matches what we do for non-masked bool dtype."
+    )
+    def test_divmod_series_array(self, data, data_for_twos):
+        super().test_divmod_series_array(data, data_for_twos)
+
+    @pytest.mark.xfail(
+        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
+        "but not for divmod. This matches what we do for non-masked bool dtype."
+    )
+    def test_divmod(self, data):
+        super().test_divmod(data)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
-
-    def _compare_other(self, s, data, op_name, other):
-        self.check_opname(s, op_name, other)
-
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_scalar(self, data, all_compare_operators):
-        pass
-
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_array(self, data, all_compare_operators):
-        pass
 
 
 class TestReshaping(base.BaseReshapingTests):
@@ -170,7 +177,12 @@ class TestMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel):
         # override because we only have 2 unique values
-        labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        if na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
         expected_labels = np.array(
             [0, 0, na_sentinel, na_sentinel, 1, 1, 0], dtype=np.intp
         )
@@ -219,14 +231,6 @@ class TestMethods(base.BaseMethodsTests):
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
-    @pytest.mark.skip(reason="uses nullable integer")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
-
-    @pytest.mark.skip(reason="uses nullable integer")
-    def test_value_counts_with_normalize(self, data):
-        pass
-
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values
 
@@ -234,7 +238,7 @@ class TestMethods(base.BaseMethodsTests):
         assert data_for_sorting.argmax() == 0
         assert data_for_sorting.argmin() == 2
 
-        # with repeated values -> first occurence
+        # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
         assert data.argmax() == 1
         assert data.argmin() == 0
@@ -262,21 +266,21 @@ class TestGroupby(base.BaseGroupbyTests):
         gr1 = df.groupby("A").grouper.groupings[0]
         gr2 = df.groupby("B").grouper.groupings[0]
 
-        tm.assert_numpy_array_equal(gr1.grouper, df.A.values)
-        tm.assert_extension_array_equal(gr2.grouper, data_for_grouping)
+        tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
+        tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
+        _, uniques = pd.factorize(data_for_grouping, sort=True)
 
-        index = pd.Index(index, name="B")
-        expected = pd.Series([3, 1], index=index, name="A")
         if as_index:
+            index = pd.Index(uniques, name="B")
+            expected = pd.Series([3.0, 1.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = expected.reset_index()
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0]})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
@@ -301,7 +305,7 @@ class TestGroupby(base.BaseGroupbyTests):
         _, index = pd.factorize(data_for_grouping, sort=False)
 
         index = pd.Index(index, name="B")
-        expected = pd.Series([1, 3], index=index, name="A")
+        expected = pd.Series([1.0, 3.0], index=index, name="A")
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
@@ -315,10 +319,10 @@ class TestGroupby(base.BaseGroupbyTests):
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        df.groupby("B").apply(groupby_apply_op)
-        df.groupby("B").A.apply(groupby_apply_op)
-        df.groupby("A").apply(groupby_apply_op)
-        df.groupby("A").B.apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).apply(groupby_apply_op)
+        df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).apply(groupby_apply_op)
+        df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
@@ -404,4 +408,8 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
 # class TestParsing(base.BaseParsingTests):
 #     pass
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

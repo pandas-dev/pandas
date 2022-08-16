@@ -53,6 +53,42 @@ class SimpleReshape:
         self.df.unstack(1)
 
 
+class ReshapeExtensionDtype:
+
+    params = ["datetime64[ns, US/Pacific]", "Period[s]"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        lev = pd.Index(list("ABCDEFGHIJ"))
+        ri = pd.Index(range(1000))
+        mi = MultiIndex.from_product([lev, ri], names=["foo", "bar"])
+
+        index = date_range("2016-01-01", periods=10000, freq="s", tz="US/Pacific")
+        if dtype == "Period[s]":
+            index = index.tz_localize(None).to_period("s")
+
+        ser = pd.Series(index, index=mi)
+        df = ser.unstack("bar")
+        # roundtrips -> df.stack().equals(ser)
+
+        self.ser = ser
+        self.df = df
+
+    def time_stack(self, dtype):
+        self.df.stack()
+
+    def time_unstack_fast(self, dtype):
+        # last level -> doesn't have to make copies
+        self.ser.unstack("bar")
+
+    def time_unstack_slow(self, dtype):
+        # first level -> must make copies
+        self.ser.unstack("foo")
+
+    def time_transpose(self, dtype):
+        self.df.T
+
+
 class Unstack:
 
     params = ["int", "category"]
@@ -66,6 +102,7 @@ class Unstack:
         columns = np.arange(n)
         if dtype == "int":
             values = np.arange(m * m * n).reshape(m * m, n)
+            self.df = DataFrame(values, index, columns)
         else:
             # the category branch is ~20x slower than int. So we
             # cut down the size a bit. Now it's only ~3x slower.
@@ -75,7 +112,10 @@ class Unstack:
             values = np.take(list(string.ascii_letters), indices)
             values = [pd.Categorical(v) for v in values.T]
 
-        self.df = DataFrame(values, index, columns)
+            self.df = DataFrame(
+                {i: cat for i, cat in enumerate(values)}, index, columns
+            )
+
         self.df2 = self.df.iloc[:-1]
 
     def time_full_product(self, dtype):
@@ -219,7 +259,7 @@ class Cut:
     param_names = ["bins"]
 
     def setup(self, bins):
-        N = 10 ** 5
+        N = 10**5
         self.int_series = pd.Series(np.arange(N).repeat(5))
         self.float_series = pd.Series(np.random.randn(N).repeat(5))
         self.timedelta_series = pd.Series(
@@ -228,7 +268,9 @@ class Cut:
         self.datetime_series = pd.Series(
             np.random.randint(N, size=N), dtype="datetime64[ns]"
         )
-        self.interval_bins = pd.IntervalIndex.from_breaks(np.linspace(0, N, bins))
+        self.interval_bins = pd.IntervalIndex.from_breaks(
+            np.linspace(0, N, bins), "right"
+        )
 
     def time_cut_int(self, bins):
         pd.cut(self.int_series, bins)

@@ -1,23 +1,47 @@
 """
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
+from __future__ import annotations
 
 import re
 from typing import (
-    Dict,
-    Optional,
+    Callable,
+    Generator,
+    Iterable,
+    Iterator,
 )
 import warnings
 
+from pandas.errors import CSSWarning
 
-class CSSWarning(UserWarning):
+
+def _side_expander(prop_fmt: str) -> Callable:
     """
-    This CSS syntax cannot currently be parsed.
+    Wrapper to expand shorthand property into top, right, bottom, left properties
+
+    Parameters
+    ----------
+    side : str
+        The border side to expand into properties
+
+    Returns
+    -------
+        function: Return to call when a 'border(-{side}): {value}' string is encountered
     """
 
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+        """
+        Expand shorthand property into side-specific property (top, right, bottom, left)
 
-def _side_expander(prop_fmt: str):
-    def expand(self, prop, value: str):
+        Parameters
+        ----------
+            prop (str): CSS property name
+            value (str): String token for property
+
+        Yields
+        ------
+            Tuple (str, str): Expanded property, value
+        """
         tokens = value.split()
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
@@ -30,12 +54,72 @@ def _side_expander(prop_fmt: str):
     return expand
 
 
+def _border_expander(side: str = "") -> Callable:
+    """
+    Wrapper to expand 'border' property into border color, style, and width properties
+
+    Parameters
+    ----------
+    side : str
+        The border side to expand into properties
+
+    Returns
+    -------
+        function: Return to call when a 'border(-{side}): {value}' string is encountered
+    """
+    if side != "":
+        side = f"-{side}"
+
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+        """
+        Expand border into color, style, and width tuples
+
+        Parameters
+        ----------
+            prop : str
+                CSS property name passed to styler
+            value : str
+                Value passed to styler for property
+
+        Yields
+        ------
+            Tuple (str, str): Expanded property, value
+        """
+        tokens = value.split()
+        if len(tokens) == 0 or len(tokens) > 3:
+            warnings.warn(
+                f'Too many tokens provided to "{prop}" (expected 1-3)', CSSWarning
+            )
+
+        # TODO: Can we use current color as initial value to comply with CSS standards?
+        border_declarations = {
+            f"border{side}-color": "black",
+            f"border{side}-style": "none",
+            f"border{side}-width": "medium",
+        }
+        for token in tokens:
+            if token in self.BORDER_STYLES:
+                border_declarations[f"border{side}-style"] = token
+            elif any([ratio in token for ratio in self.BORDER_WIDTH_RATIOS]):
+                border_declarations[f"border{side}-width"] = token
+            else:
+                border_declarations[f"border{side}-color"] = token
+            # TODO: Warn user if item entered more than once (e.g. "border: red green")
+
+        # Per CSS, "border" will reset previous "border-*" definitions
+        yield from self.atomize(border_declarations.items())
+
+    return expand
+
+
 class CSSResolver:
     """
     A callable for parsing and resolving CSS to atomic properties.
     """
 
     UNIT_RATIOS = {
+        "pt": ("pt", 1),
+        "em": ("em", 1),
         "rem": ("pt", 12),
         "ex": ("em", 0.5),
         # 'ch':
@@ -79,6 +163,19 @@ class CSSResolver:
         }
     )
 
+    BORDER_STYLES = [
+        "none",
+        "hidden",
+        "dotted",
+        "dashed",
+        "solid",
+        "double",
+        "groove",
+        "ridge",
+        "inset",
+        "outset",
+    ]
+
     SIDE_SHORTHANDS = {
         1: [0, 0, 0, 0],
         2: [0, 1, 0, 1],
@@ -88,18 +185,35 @@ class CSSResolver:
 
     SIDES = ("top", "right", "bottom", "left")
 
+    CSS_EXPANSIONS = {
+        **{
+            "-".join(["border", prop] if prop else ["border"]): _border_expander(prop)
+            for prop in ["", "top", "right", "bottom", "left"]
+        },
+        **{
+            "-".join(["border", prop]): _side_expander("border-{:s}-" + prop)
+            for prop in ["color", "style", "width"]
+        },
+        **{
+            "margin": _side_expander("margin-{:s}"),
+            "padding": _side_expander("padding-{:s}"),
+        },
+    }
+
     def __call__(
         self,
-        declarations_str: str,
-        inherited: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, str]:
+        declarations: str | Iterable[tuple[str, str]],
+        inherited: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         """
         The given declarations to atomic properties.
 
         Parameters
         ----------
-        declarations_str : str
-            A list of CSS declarations
+        declarations_str : str | Iterable[tuple[str, str]]
+            A CSS string or set of CSS declaration tuples
+            e.g. "font-weight: bold; background: blue" or
+            {("font-weight", "bold"), ("background", "blue")}
         inherited : dict, optional
             Atomic properties indicating the inherited style context in which
             declarations_str is to be resolved. ``inherited`` should already
@@ -130,7 +244,9 @@ class CSSResolver:
          ('font-size', '24pt'),
          ('font-weight', 'bold')]
         """
-        props = dict(self.atomize(self.parse(declarations_str)))
+        if isinstance(declarations, str):
+            declarations = self.parse(declarations)
+        props = dict(self.atomize(declarations))
         if inherited is None:
             inherited = {}
 
@@ -140,9 +256,9 @@ class CSSResolver:
 
     def _update_initial(
         self,
-        props: Dict[str, str],
-        inherited: Dict[str, str],
-    ) -> Dict[str, str]:
+        props: dict[str, str],
+        inherited: dict[str, str],
+    ) -> dict[str, str]:
         # 1. resolve inherited, initial
         for prop, val in inherited.items():
             if prop not in props:
@@ -162,9 +278,9 @@ class CSSResolver:
 
     def _update_font_size(
         self,
-        props: Dict[str, str],
-        inherited: Dict[str, str],
-    ) -> Dict[str, str]:
+        props: dict[str, str],
+        inherited: dict[str, str],
+    ) -> dict[str, str]:
         # 2. resolve relative font size
         if props.get("font-size"):
             props["font-size"] = self.size_to_pt(
@@ -174,7 +290,7 @@ class CSSResolver:
             )
         return props
 
-    def _get_font_size(self, props: Dict[str, str]) -> Optional[float]:
+    def _get_font_size(self, props: dict[str, str]) -> float | None:
         if props.get("font-size"):
             font_size_string = props["font-size"]
             return self._get_float_font_size_from_pt(font_size_string)
@@ -184,7 +300,7 @@ class CSSResolver:
         assert font_size_string.endswith("pt")
         return float(font_size_string.rstrip("pt"))
 
-    def _update_other_units(self, props: Dict[str, str]) -> Dict[str, str]:
+    def _update_other_units(self, props: dict[str, str]) -> dict[str, str]:
         font_size = self._get_font_size(props)
         # 3. TODO: resolve other font-relative units
         for side in self.SIDES:
@@ -247,24 +363,17 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations):
+    def atomize(self, declarations: Iterable) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
-            attr = "expand_" + prop.replace("-", "_")
-            try:
-                expand = getattr(self, attr)
-            except AttributeError:
-                yield prop, value
+            prop = prop.lower()
+            value = value.lower()
+            if prop in self.CSS_EXPANSIONS:
+                expand = self.CSS_EXPANSIONS[prop]
+                yield from expand(self, prop, value)
             else:
-                for prop, value in expand(prop, value):
-                    yield prop, value
+                yield prop, value
 
-    expand_border_color = _side_expander("border-{:s}-color")
-    expand_border_style = _side_expander("border-{:s}-style")
-    expand_border_width = _side_expander("border-{:s}-width")
-    expand_margin = _side_expander("margin-{:s}")
-    expand_padding = _side_expander("padding-{:s}")
-
-    def parse(self, declarations_str: str):
+    def parse(self, declarations_str: str) -> Iterator[tuple[str, str]]:
         """
         Generates (prop, value) pairs from declarations.
 

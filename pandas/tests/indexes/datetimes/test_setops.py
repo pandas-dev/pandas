@@ -10,12 +10,12 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    Int64Index,
     Series,
     bdate_range,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 from pandas.tseries.offsets import (
     BMonthEnd,
@@ -24,6 +24,13 @@ from pandas.tseries.offsets import (
 )
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
+
+
+def test_union_many_deprecated():
+    dti = date_range("2016-01-01", periods=3)
+
+    with tm.assert_produces_warning(FutureWarning):
+        dti.union_many([dti, dti])
 
 
 class TestDatetimeIndexSetOps:
@@ -391,29 +398,44 @@ class TestDatetimeIndexSetOps:
         assert result.freq == rng.freq
         assert result.tz == rng.tz
 
+    def test_intersection_non_tick_no_fastpath(self):
+        # GH#42104
+        dti = DatetimeIndex(
+            [
+                "2018-12-31",
+                "2019-03-31",
+                "2019-06-30",
+                "2019-09-30",
+                "2019-12-31",
+                "2020-03-31",
+            ],
+            freq="Q-DEC",
+        )
+        result = dti[::2].intersection(dti[1::2])
+        expected = dti[:0]
+        tm.assert_index_equal(result, expected)
+
 
 class TestBusinessDatetimeIndex:
-    def setup_method(self, method):
-        self.rng = bdate_range(START, END)
-
     def test_union(self, sort):
+        rng = bdate_range(START, END)
         # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
+        left = rng[:10]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
         # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
+        left = rng[:5]
+        right = rng[10:]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, Index)
 
         # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
+        left = rng[:5]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
@@ -428,7 +450,7 @@ class TestBusinessDatetimeIndex:
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
 
-        the_union = self.rng.union(rng, sort=sort)
+        the_union = rng.union(rng, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
     def test_union_not_cacheable(self, sort):
@@ -498,7 +520,7 @@ class TestBusinessDatetimeIndex:
 
         early_dr.union(late_dr, sort=sort)
 
-    @td.skip_if_windows_python_3
+    @td.skip_if_windows
     def test_month_range_union_tz_dateutil(self, sort):
         from pandas._libs.tslibs.timezones import dateutil_gettz
 
@@ -531,27 +553,25 @@ class TestBusinessDatetimeIndex:
 
 
 class TestCustomDatetimeIndex:
-    def setup_method(self, method):
-        self.rng = bdate_range(START, END, freq="C")
-
     def test_union(self, sort):
         # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
+        rng = bdate_range(START, END, freq="C")
+        left = rng[:10]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
         # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
+        left = rng[:5]
+        right = rng[10:]
 
         the_union = left.union(right, sort)
         assert isinstance(the_union, Index)
 
         # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
+        left = rng[:5]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
@@ -563,7 +583,7 @@ class TestCustomDatetimeIndex:
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
 
-        the_union = self.rng.union(rng, sort=sort)
+        the_union = rng.union(rng, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
     def test_intersection_bug(self):

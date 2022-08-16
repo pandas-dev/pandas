@@ -204,6 +204,7 @@ If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
+   :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
@@ -211,9 +212,10 @@ you can pass the ``dayfirst`` flag:
 
 .. warning::
 
-   You see in the above example that ``dayfirst`` isn't strict, so if a date
+   You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False.
+   ``dayfirst`` were False, and in the case of parsing delimited date strings
+   (e.g. ``31-12-2012``) then a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
@@ -386,7 +388,7 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
 .. _timeseries.origin:
 
-Using the ``origin`` Parameter
+Using the ``origin`` parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using the ``origin`` parameter, one can specify an alternative starting point for creation
@@ -850,7 +852,7 @@ savings time. However, all :class:`DateOffset` subclasses that are an hour or sm
 
 The basic :class:`DateOffset` acts similar to ``dateutil.relativedelta`` (`relativedelta documentation`_)
 that shifts a date time by the corresponding calendar duration specified. The
-arithmetic operator (``+``) or the ``apply`` method can be used to perform the shift.
+arithmetic operator (``+``) can be used to perform the shift.
 
 .. ipython:: python
 
@@ -864,9 +866,9 @@ arithmetic operator (``+``) or the ``apply`` method can be used to perform the s
    friday.day_name()
    # Add 2 business days (Friday --> Tuesday)
    two_business_days = 2 * pd.offsets.BDay()
-   two_business_days.apply(friday)
    friday + two_business_days
    (friday + two_business_days).day_name()
+
 
 Most ``DateOffsets`` have associated frequencies strings, or offset aliases, that can be passed
 into ``freq`` keyword arguments. The available date offsets and associated frequency strings can be found below:
@@ -936,14 +938,14 @@ in the operation).
 
    ts = pd.Timestamp("2014-01-01 09:00")
    day = pd.offsets.Day()
-   day.apply(ts)
-   day.apply(ts).normalize()
+   day + ts
+   (day + ts).normalize()
 
    ts = pd.Timestamp("2014-01-01 22:00")
    hour = pd.offsets.Hour()
-   hour.apply(ts)
-   hour.apply(ts).normalize()
-   hour.apply(pd.Timestamp("2014-01-01 23:30")).normalize()
+   hour + ts
+   (hour + ts).normalize()
+   (hour + pd.Timestamp("2014-01-01 23:30")).normalize()
 
 .. _relativedelta documentation: https://dateutil.readthedocs.io/en/stable/relativedelta.html
 
@@ -1183,16 +1185,16 @@ under the default business hours (9:00 - 17:00), there is no gap (0 minutes) bet
     pd.offsets.BusinessHour().rollback(pd.Timestamp("2014-08-02 15:00"))
     pd.offsets.BusinessHour().rollforward(pd.Timestamp("2014-08-02 15:00"))
 
-    # It is the same as BusinessHour().apply(pd.Timestamp('2014-08-01 17:00')).
-    # And it is the same as BusinessHour().apply(pd.Timestamp('2014-08-04 09:00'))
-    pd.offsets.BusinessHour().apply(pd.Timestamp("2014-08-02 15:00"))
+    # It is the same as BusinessHour() + pd.Timestamp('2014-08-01 17:00').
+    # And it is the same as BusinessHour() + pd.Timestamp('2014-08-04 09:00')
+    pd.offsets.BusinessHour() + pd.Timestamp("2014-08-02 15:00")
 
     # BusinessDay results (for reference)
     pd.offsets.BusinessHour().rollforward(pd.Timestamp("2014-08-02"))
 
-    # It is the same as BusinessDay().apply(pd.Timestamp('2014-08-01'))
+    # It is the same as BusinessDay() + pd.Timestamp('2014-08-01')
     # The result is the same as rollworward because BusinessDay never overlap.
-    pd.offsets.BusinessHour().apply(pd.Timestamp("2014-08-02"))
+    pd.offsets.BusinessHour() + pd.Timestamp("2014-08-02")
 
 ``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary
 holidays, you can use ``CustomBusinessHour`` offset, as explained in the
@@ -1268,6 +1270,36 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "L, ms", "milliseconds"
     "U, us", "microseconds"
     "N", "nanoseconds"
+
+.. note::
+
+    When using the offset aliases above, it should be noted that functions
+    such as :func:`date_range`, :func:`bdate_range`, will only return
+    timestamps that are in the interval defined by ``start_date`` and
+    ``end_date``. If the ``start_date`` does not correspond to the frequency,
+    the returned timestamps will start at the next valid timestamp, same for
+    ``end_date``, the returned timestamps will stop at the previous valid
+    timestamp.
+
+   For example, for the offset ``MS``, if the ``start_date`` is not the first
+   of the month, the returned timestamps will start with the first day of the
+   next month. If ``end_date`` is not the first day of a month, the last
+   returned timestamp will be the first day of the corresponding month.
+
+   .. ipython:: python
+
+       dates_lst_1 = pd.date_range("2020-01-06", "2020-04-03", freq="MS")
+       dates_lst_1
+
+       dates_lst_2 = pd.date_range("2020-01-01", "2020-04-01", freq="MS")
+       dates_lst_2
+
+   We can see in the above example :func:`date_range` and
+   :func:`bdate_range` will only return the valid timestamps between the
+   ``start_date`` and ``end_date``. If these are not valid timestamps for the
+   given frequency it will roll to the next value for ``start_date``
+   (respectively previous for the ``end_date``)
+
 
 Combining aliases
 ~~~~~~~~~~~~~~~~~
@@ -1422,7 +1454,6 @@ An example of how holidays and holiday calendars are defined:
         MO,
     )
 
-
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
             USMemorialDay,
@@ -1434,7 +1465,6 @@ An example of how holidays and holiday calendars are defined:
                 offset=pd.DateOffset(weekday=MO(2)),
             ),
         ]
-
 
     cal = ExampleCalendar()
     cal.holidays(datetime.datetime(2012, 1, 1), datetime.datetime(2012, 12, 31))
@@ -1493,7 +1523,7 @@ or calendars with additional rules.
 
 .. _timeseries.advanced_datetime:
 
-Time series-related instance methods
+Time Series-related instance methods
 ------------------------------------
 
 Shifting / lagging
@@ -1707,12 +1737,10 @@ We can instead only resample those groups where we have points as follows:
     from functools import partial
     from pandas.tseries.frequencies import to_offset
 
-
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
-
 
     ts.groupby(partial(round, freq="3T")).sum()
 
@@ -1793,7 +1821,7 @@ to resample based on datetimelike column in the frame, it can passed to the
        ),
    )
    df
-   df.resample("M", on="date").sum()
+   df.resample("M", on="date")[["a"]].sum()
 
 Similarly, if you instead want to resample by a datetimelike
 level of ``MultiIndex``, its name or location can be passed to the
@@ -1801,7 +1829,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample("M", level="d").sum()
+   df.resample("M", level="d")[["a"]].sum()
 
 .. _timeseries.iterating-label:
 
@@ -2083,7 +2111,6 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    dti
    dti.astype("period[M]")
 
-
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -2255,10 +2282,8 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s = pd.Series([20121231, 20141130, 99991231])
    s
 
-
    def conv(x):
        return pd.Period(year=x // 10000, month=x // 100 % 100, day=x % 100, freq="D")
-
 
    s.apply(conv)
    s.apply(conv)[2]
@@ -2380,9 +2405,9 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
-	Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
-	definitions of the zone. This is more of a problem for unusual time zones than for
-	'standard' zones like ``US/Eastern``.
+        Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
+        definitions of the zone. This is more of a problem for unusual time zones than for
+        'standard' zones like ``US/Eastern``.
 
 .. warning::
 
@@ -2395,7 +2420,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tz=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 
@@ -2576,7 +2601,7 @@ Transform nonexistent times to ``NaT`` or shift the times.
 
 .. _timeseries.timezone_series:
 
-Time zone series operations
+Time zone Series operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A :class:`Series` with time zone **naive** values is

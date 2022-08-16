@@ -7,6 +7,7 @@ import pytest
 from pandas import (
     DataFrame,
     NaT,
+    concat,
 )
 import pandas._testing as tm
 
@@ -111,7 +112,7 @@ def test_drop_duplicates():
 
     # GH 11864
     df = DataFrame([i] * 9 for i in range(16))
-    df = df.append([[1] + [0] * 8], ignore_index=True)
+    df = concat([df, DataFrame([[1] + [0] * 8])], ignore_index=True)
 
     for keep in ["first", "last", False]:
         assert df.duplicated(keep=keep).sum() == 0
@@ -471,3 +472,17 @@ def test_drop_duplicates_non_boolean_ignore_index(arg):
     msg = '^For argument "ignore_index" expected type bool, received type .*.$'
     with pytest.raises(ValueError, match=msg):
         df.drop_duplicates(ignore_index=arg)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 3], "c": [1, 1, 3]})
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.drop_duplicates except for the argument 'subset' "
+        "will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.drop_duplicates(["b", "c"], "last")
+    expected = DataFrame({"a": [1, 2], "b": [1, 3], "c": [1, 3]}, index=[1, 2])
+    tm.assert_frame_equal(expected, result)

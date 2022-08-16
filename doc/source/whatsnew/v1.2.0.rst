@@ -150,6 +150,7 @@ and a short caption (:issue:`36267`).
 The keyword ``position`` has been added to set the position.
 
 .. ipython:: python
+   :okwarning:
 
    data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
    table = data.to_latex(position='ht')
@@ -161,6 +162,7 @@ one can optionally provide a tuple ``(full_caption, short_caption)``
 to add a short caption macro.
 
 .. ipython:: python
+   :okwarning:
 
    data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
    table = data.to_latex(caption=('the full long caption', 'short caption'))
@@ -352,6 +354,7 @@ of columns could result in a larger Series result. See (:issue:`37799`).
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     In [5]: df.all(bool_only=True)
 
@@ -381,6 +384,7 @@ this pathological behavior (:issue:`37827`):
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     df.mean()
 
@@ -394,6 +398,7 @@ instead of casting to a NumPy array which may have different semantics (:issue:`
 :issue:`28949`, :issue:`21020`).
 
 .. ipython:: python
+   :okwarning:
 
     ser = pd.Series([0, 1], dtype="category", name="A")
     df = ser.to_frame()
@@ -411,6 +416,7 @@ instead of casting to a NumPy array which may have different semantics (:issue:`
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     df.any()
 

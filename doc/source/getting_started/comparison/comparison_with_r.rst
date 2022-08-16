@@ -31,7 +31,7 @@ Quick reference
 
 We'll start off with a quick reference guide pairing some common R
 operations using `dplyr
-<https://cran.r-project.org/package=dplyr>`__ with
+<https://cran.r-project.org/web/packages/dplyr/index.html>`__ with
 pandas equivalents.
 
 
@@ -326,8 +326,8 @@ table below shows how these data structures could be mapped in Python.
 | data.frame | dataframe                     |
 +------------+-------------------------------+
 
-|ddply|_
-~~~~~~~~
+ddply
+~~~~~
 
 An expression using a data.frame called ``df`` in R where you want to
 summarize ``x`` by ``month``:
@@ -372,8 +372,8 @@ For more details and examples see :ref:`the groupby documentation
 reshape / reshape2
 ------------------
 
-|meltarray|_
-~~~~~~~~~~~~~
+meltarray
+~~~~~~~~~
 
 An expression using a 3 dimensional array called ``a`` in R where you want to
 melt it into a data.frame:
@@ -390,8 +390,8 @@ In Python, since ``a`` is a list, you can simply use list comprehension.
    a = np.array(list(range(1, 24)) + [np.NAN]).reshape(2, 3, 4)
    pd.DataFrame([tuple(list(x) + [val]) for x, val in np.ndenumerate(a)])
 
-|meltlist|_
-~~~~~~~~~~~~
+meltlist
+~~~~~~~~
 
 An expression using a list called ``a`` in R where you want to melt it
 into a data.frame:
@@ -412,8 +412,8 @@ In Python, this list would be a list of tuples, so
 For more details and examples see :ref:`the Into to Data Structures
 documentation <dsintro>`.
 
-|meltdf|_
-~~~~~~~~~~~~~~~~
+meltdf
+~~~~~~
 
 An expression using a data.frame called ``cheese`` in R where you want to
 reshape the data.frame:
@@ -447,8 +447,8 @@ In Python, the :meth:`~pandas.melt` method is the R equivalent:
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.melt>`.
 
-|cast|_
-~~~~~~~
+cast
+~~~~
 
 In R ``acast`` is an expression using a data.frame called ``df`` in R to cast
 into a higher dimensional array:
@@ -576,21 +576,6 @@ For more details and examples see :ref:`categorical introduction <categorical>` 
 
 .. |subset| replace:: ``subset``
 .. _subset: https://stat.ethz.ch/R-manual/R-patched/library/base/html/subset.html
-
-.. |ddply| replace:: ``ddply``
-.. _ddply: https://cran.r-project.org/web/packages/plyr/plyr.pdf#Rfn.ddply.1
-
-.. |meltarray| replace:: ``melt.array``
-.. _meltarray: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.array.1
-
-.. |meltlist| replace:: ``melt.list``
-.. meltlist: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.list.1
-
-.. |meltdf| replace:: ``melt.data.frame``
-.. meltdf: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.data.frame.1
-
-.. |cast| replace:: ``cast``
-.. cast: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.cast.1
 
 .. |factor| replace:: ``factor``
 .. _factor: https://stat.ethz.ch/R-manual/R-devel/library/base/html/factor.html

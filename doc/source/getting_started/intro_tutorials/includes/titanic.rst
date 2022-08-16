@@ -11,22 +11,21 @@ This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
--  Survived: This feature have value 0 and 1. 0 for not survived and 1
-   for survived.
--  Pclass: There are 3 classes: Class 1, Class 2 and Class 3.
+-  Survived: Indication whether passenger survived. ``0`` for yes and ``1`` for no.
+-  Pclass: One out of the 3 ticket classes: Class ``1``, Class ``2`` and Class ``3``.
 -  Name: Name of passenger.
 -  Sex: Gender of passenger.
--  Age: Age of passenger.
--  SibSp: Indication that passenger have siblings and spouse.
--  Parch: Whether a passenger is alone or have family.
+-  Age: Age of passenger in years.
+-  SibSp: Number of siblings or spouses aboard.
+-  Parch: Number of parents or children aboard.
 -  Ticket: Ticket number of passenger.
 -  Fare: Indicating the fare.
--  Cabin: The cabin of passenger.
--  Embarked: The embarked category.
+-  Cabin: Cabin number of passenger.
+-  Embarked: Port of embarkation.
 
 .. raw:: html
 
             </p>
-            <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
+            <a href="https://github.com/pandas-dev/pandas/raw/main/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
         </div>
     </div>

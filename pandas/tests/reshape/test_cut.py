@@ -32,11 +32,12 @@ def test_simple():
     tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
-def test_bins():
-    data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
+@pytest.mark.parametrize("func", [list, np.array])
+def test_bins(func):
+    data = func([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
     result, bins = cut(data, 3, retbins=True)
 
-    intervals = IntervalIndex.from_breaks(bins.round(3))
+    intervals = IntervalIndex.from_breaks(bins.round(3), "right")
     intervals = intervals.take([0, 0, 0, 1, 2, 0])
     expected = Categorical(intervals, ordered=True)
 
@@ -48,7 +49,7 @@ def test_right():
     data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
     result, bins = cut(data, 4, right=True, retbins=True)
 
-    intervals = IntervalIndex.from_breaks(bins.round(3))
+    intervals = IntervalIndex.from_breaks(bins.round(3), "right")
     expected = Categorical(intervals, ordered=True)
     expected = expected.take([0, 0, 0, 2, 3, 0, 0])
 
@@ -60,24 +61,12 @@ def test_no_right():
     data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
     result, bins = cut(data, 4, right=False, retbins=True)
 
-    intervals = IntervalIndex.from_breaks(bins.round(3), closed="left")
+    intervals = IntervalIndex.from_breaks(bins.round(3), inclusive="left")
     intervals = intervals.take([0, 0, 0, 2, 3, 0, 1])
     expected = Categorical(intervals, ordered=True)
 
     tm.assert_categorical_equal(result, expected)
     tm.assert_almost_equal(bins, np.array([0.2, 2.575, 4.95, 7.325, 9.7095]))
-
-
-def test_array_like():
-    data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-    result, bins = cut(data, 3, retbins=True)
-
-    intervals = IntervalIndex.from_breaks(bins.round(3))
-    intervals = intervals.take([0, 0, 0, 1, 2, 0])
-    expected = Categorical(intervals, ordered=True)
-
-    tm.assert_categorical_equal(result, expected)
-    tm.assert_almost_equal(bins, np.array([0.1905, 3.36666667, 6.53333333, 9.7]))
 
 
 def test_bins_from_interval_index():
@@ -97,7 +86,7 @@ def test_bins_from_interval_index_doc_example():
     # Make sure we preserve the bins.
     ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
     c = cut(ages, bins=[0, 18, 35, 70])
-    expected = IntervalIndex.from_tuples([(0, 18), (18, 35), (35, 70)])
+    expected = IntervalIndex.from_tuples([(0, 18), (18, 35), (35, 70)], "right")
     tm.assert_index_equal(c.categories, expected)
 
     result = cut([25, 20, 50], bins=c.categories)
@@ -132,7 +121,8 @@ def test_bins_not_monotonic():
                 [
                     (Timestamp.min, Timestamp("2018-01-01")),
                     (Timestamp("2018-01-01"), Timestamp.max),
-                ]
+                ],
+                "right",
             ),
         ),
         (
@@ -141,23 +131,34 @@ def test_bins_not_monotonic():
                 [np.iinfo(np.int64).min, 0, np.iinfo(np.int64).max], dtype="int64"
             ),
             IntervalIndex.from_tuples(
-                [(np.iinfo(np.int64).min, 0), (0, np.iinfo(np.int64).max)]
+                [(np.iinfo(np.int64).min, 0), (0, np.iinfo(np.int64).max)], "right"
             ),
         ),
         (
-            [np.timedelta64(-1), np.timedelta64(0), np.timedelta64(1)],
+            [
+                np.timedelta64(-1, "ns"),
+                np.timedelta64(0, "ns"),
+                np.timedelta64(1, "ns"),
+            ],
             np.array(
                 [
-                    np.timedelta64(-np.iinfo(np.int64).max),
-                    np.timedelta64(0),
-                    np.timedelta64(np.iinfo(np.int64).max),
+                    np.timedelta64(-np.iinfo(np.int64).max, "ns"),
+                    np.timedelta64(0, "ns"),
+                    np.timedelta64(np.iinfo(np.int64).max, "ns"),
                 ]
             ),
             IntervalIndex.from_tuples(
                 [
-                    (np.timedelta64(-np.iinfo(np.int64).max), np.timedelta64(0)),
-                    (np.timedelta64(0), np.timedelta64(np.iinfo(np.int64).max)),
-                ]
+                    (
+                        np.timedelta64(-np.iinfo(np.int64).max, "ns"),
+                        np.timedelta64(0, "ns"),
+                    ),
+                    (
+                        np.timedelta64(0, "ns"),
+                        np.timedelta64(np.iinfo(np.int64).max, "ns"),
+                    ),
+                ],
+                "right",
             ),
         ),
     ],
@@ -233,7 +234,7 @@ def test_labels(right, breaks, closed):
     arr = np.tile(np.arange(0, 1.01, 0.1), 4)
 
     result, bins = cut(arr, 4, retbins=True, right=right)
-    ex_levels = IntervalIndex.from_breaks(breaks, closed=closed)
+    ex_levels = IntervalIndex.from_breaks(breaks, inclusive=closed)
     tm.assert_index_equal(result.categories, ex_levels)
 
 
@@ -249,7 +250,7 @@ def test_label_precision():
     arr = np.arange(0, 0.73, 0.01)
     result = cut(arr, 4, precision=2)
 
-    ex_levels = IntervalIndex.from_breaks([-0.00072, 0.18, 0.36, 0.54, 0.72])
+    ex_levels = IntervalIndex.from_breaks([-0.00072, 0.18, 0.36, 0.54, 0.72], "right")
     tm.assert_index_equal(result.categories, ex_levels)
 
 
@@ -273,13 +274,13 @@ def test_inf_handling():
     result = cut(data, bins)
     result_ser = cut(data_ser, bins)
 
-    ex_uniques = IntervalIndex.from_breaks(bins)
+    ex_uniques = IntervalIndex.from_breaks(bins, "right")
     tm.assert_index_equal(result.categories, ex_uniques)
 
-    assert result[5] == Interval(4, np.inf)
-    assert result[0] == Interval(-np.inf, 2)
-    assert result_ser[5] == Interval(4, np.inf)
-    assert result_ser[0] == Interval(-np.inf, 2)
+    assert result[5] == Interval(4, np.inf, "right")
+    assert result[0] == Interval(-np.inf, 2, "right")
+    assert result_ser[5] == Interval(4, np.inf, "right")
+    assert result_ser[0] == Interval(-np.inf, 2, "right")
 
 
 def test_cut_out_of_bounds():
@@ -356,7 +357,7 @@ def test_cut_return_intervals():
     exp_bins[0] -= 0.008
 
     expected = Series(
-        IntervalIndex.from_breaks(exp_bins, closed="right").take(
+        IntervalIndex.from_breaks(exp_bins, inclusive="right").take(
             [0, 0, 0, 1, 1, 1, 2, 2, 2]
         )
     ).astype(CDT(ordered=True))
@@ -369,7 +370,7 @@ def test_series_ret_bins():
     result, bins = cut(ser, 2, retbins=True)
 
     expected = Series(
-        IntervalIndex.from_breaks([-0.003, 1.5, 3], closed="right").repeat(2)
+        IntervalIndex.from_breaks([-0.003, 1.5, 3], inclusive="right").repeat(2)
     ).astype(CDT(ordered=True))
     tm.assert_series_equal(result, expected)
 
@@ -404,7 +405,7 @@ def test_single_bin(data, length):
     ser = Series([data] * length)
     result = cut(ser, 1, labels=False)
 
-    expected = Series([0] * length)
+    expected = Series([0] * length, dtype=np.intp)
     tm.assert_series_equal(result, expected)
 
 
@@ -443,7 +444,8 @@ def test_datetime_bin(conv):
             [
                 Interval(Timestamp(bin_data[0]), Timestamp(bin_data[1])),
                 Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2])),
-            ]
+            ],
+            "right",
         )
     ).astype(CDT(ordered=True))
 
@@ -489,7 +491,8 @@ def test_datetime_cut(data):
                 Interval(
                     Timestamp("2013-01-02 08:00:00"), Timestamp("2013-01-03 00:00:00")
                 ),
-            ]
+            ],
+            "right",
         )
     ).astype(CDT(ordered=True))
     tm.assert_series_equal(Series(result), expected)
@@ -532,7 +535,8 @@ def test_datetime_tz_cut(bins, box):
                     Timestamp("2013-01-02 08:00:00", tz=tz),
                     Timestamp("2013-01-03 00:00:00", tz=tz),
                 ),
-            ]
+            ],
+            "right",
         )
     ).astype(CDT(ordered=True))
     tm.assert_series_equal(result, expected)
@@ -671,7 +675,7 @@ def test_cut_unordered_with_series_labels():
     s = Series([1, 2, 3, 4, 5])
     bins = Series([0, 2, 4, 6])
     labels = Series(["a", "b", "c"])
-    result = pd.cut(s, bins=bins, labels=labels, ordered=False)
+    result = cut(s, bins=bins, labels=labels, ordered=False)
     expected = Series(["a", "a", "b", "b", "c"], dtype="category")
     tm.assert_series_equal(result, expected)
 
@@ -680,4 +684,58 @@ def test_cut_no_warnings():
     df = DataFrame({"value": np.random.randint(0, 100, 20)})
     labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
     with tm.assert_produces_warning(False):
-        df["group"] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
+        df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=labels)
+
+
+def test_cut_with_duplicated_index_lowest_included():
+    # GH 42185
+    expected = Series(
+        [Interval(-0.001, 2, inclusive="right")] * 3
+        + [Interval(2, 4, inclusive="right"), Interval(-0.001, 2, inclusive="right")],
+        index=[0, 1, 2, 3, 0],
+        dtype="category",
+    ).cat.as_ordered()
+
+    s = Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
+    result = cut(s, bins=[0, 2, 4], include_lowest=True)
+    tm.assert_series_equal(result, expected)
+
+
+def test_cut_with_nonexact_categorical_indices():
+    # GH 42424
+
+    ser = Series(range(0, 100))
+    ser1 = cut(ser, 10).value_counts().head(5)
+    ser2 = cut(ser, 10).value_counts().tail(5)
+    result = DataFrame({"1": ser1, "2": ser2})
+
+    index = pd.CategoricalIndex(
+        [
+            Interval(-0.099, 9.9, inclusive="right"),
+            Interval(9.9, 19.8, inclusive="right"),
+            Interval(19.8, 29.7, inclusive="right"),
+            Interval(29.7, 39.6, inclusive="right"),
+            Interval(39.6, 49.5, inclusive="right"),
+            Interval(49.5, 59.4, inclusive="right"),
+            Interval(59.4, 69.3, inclusive="right"),
+            Interval(69.3, 79.2, inclusive="right"),
+            Interval(79.2, 89.1, inclusive="right"),
+            Interval(89.1, 99, inclusive="right"),
+        ],
+        ordered=True,
+    )
+
+    expected = DataFrame(
+        {"1": [10] * 5 + [np.nan] * 5, "2": [np.nan] * 5 + [10] * 5}, index=index
+    )
+
+    tm.assert_frame_equal(expected, result)
+
+
+def test_cut_with_timestamp_tuple_labels():
+    # GH 40661
+    labels = [(Timestamp(10),), (Timestamp(20),), (Timestamp(30),)]
+    result = cut([2, 4, 6], bins=[1, 3, 5, 7], labels=labels)
+
+    expected = Categorical.from_codes([0, 1, 2], labels, ordered=True)
+    tm.assert_categorical_equal(result, expected)

@@ -13,6 +13,30 @@ from pandas import (
 )
 
 
+def test_construct_with_weeks_unit_overflow():
+    # GH#47268 don't silently wrap around
+    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+        Timedelta(1000000000000000000, unit="W")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+        Timedelta(1000000000000000000.0, unit="W")
+
+
+def test_construct_from_td64_with_unit():
+    # ignore the unit, as it may cause silently overflows leading to incorrect
+    #  results, and in non-overflow cases is irrelevant GH#46827
+    obj = np.timedelta64(123456789, "h")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+        Timedelta(obj, unit="ps")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+        Timedelta(obj, unit="ns")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+        Timedelta(obj)
+
+
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
     assert Timedelta(10, unit="d").value == expected
@@ -189,30 +213,42 @@ def test_td_from_repr_roundtrip(val):
 
 
 def test_overflow_on_construction():
-    msg = "int too (large|big) to convert"
-
     # GH#3374
     value = Timedelta("1day").value * 20169940
-    with pytest.raises(OverflowError, match=msg):
+    msg = "Cannot cast 1742682816000000000000 from ns to 'ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(value)
 
     # xref GH#17637
-    with pytest.raises(OverflowError, match=msg):
+    msg = "Cannot cast 139993 from D to 'ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(7 * 19999, unit="D")
 
-    with pytest.raises(OverflowError, match=msg):
+    msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(timedelta(days=13 * 19999))
 
 
-def test_construction_out_of_bounds_td64():
+@pytest.mark.parametrize(
+    "val, unit, name",
+    [
+        (3508, "M", " months"),
+        (15251, "W", " weeks"),  # 1
+        (106752, "D", " days"),  # change from previous:
+        (2562048, "h", " hours"),  # 0 hours
+        (153722868, "m", " minutes"),  # 13 minutes
+        (9223372037, "s", " seconds"),  # 44 seconds
+    ],
+)
+def test_construction_out_of_bounds_td64(val, unit, name):
     # TODO: parametrize over units just above/below the implementation bounds
     #  once GH#38964 is resolved
 
     # Timedelta.max is just under 106752 days
-    td64 = np.timedelta64(106752, "D")
+    td64 = np.timedelta64(val, unit)
     assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
 
-    msg = "106752 days"
+    msg = str(val) + name
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(td64)
 
@@ -222,7 +258,7 @@ def test_construction_out_of_bounds_td64():
     td64 *= -1
     assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match="-" + msg):
         Timedelta(td64)
 
     # But just back in bounds and we are OK

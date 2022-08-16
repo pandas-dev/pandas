@@ -66,7 +66,7 @@ class TestDataFrameCombineFirst:
         assert (combined["A"][:10] == 1).all()
 
         # reverse overlap
-        tail["A"][:10] = 0
+        tail.iloc[:10, tail.columns.get_loc("A")] = 0
         combined = tail.combine_first(head)
         assert (combined["A"][:10] == 0).all()
 
@@ -209,15 +209,15 @@ class TestDataFrameCombineFirst:
         )
         tm.assert_frame_equal(res, exp)
         assert res["a"].dtype == "datetime64[ns]"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
         res = dfa.iloc[:0].combine_first(dfb)
         exp = DataFrame({"a": [np.nan, np.nan], "b": [4, 5]}, columns=["a", "b"])
         tm.assert_frame_equal(res, exp)
-        # ToDo: this must be datetime64
+        # TODO: this must be datetime64
         assert res["a"].dtype == "float64"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
     def test_combine_first_timezone(self):
@@ -381,15 +381,17 @@ class TestDataFrameCombineFirst:
 
         tm.assert_frame_equal(res, exp)
 
-    def test_combine_first_string_dtype_only_na(self):
+    def test_combine_first_string_dtype_only_na(self, nullable_string_dtype):
         # GH: 37519
-        df = DataFrame({"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string")
-        df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype="string")
+        df = DataFrame(
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
+        )
+        df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
         df.set_index(["a", "b"], inplace=True)
         df2.set_index(["a", "b"], inplace=True)
         result = df.combine_first(df2)
         expected = DataFrame(
-            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string"
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         ).set_index(["a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -400,7 +402,7 @@ class TestDataFrameCombineFirst:
         (datetime(2020, 1, 1), datetime(2020, 1, 2)),
         (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
         (pd.Timedelta("89 days"), pd.Timedelta("60 min")),
-        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, closed="left")),
+        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, inclusive="left")),
     ],
 )
 def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):
@@ -490,3 +492,37 @@ def test_combine_preserve_dtypes():
     )
     combined = df1.combine_first(df2)
     tm.assert_frame_equal(combined, expected)
+
+
+def test_combine_first_duplicates_rows_for_nan_index_values():
+    # GH39881
+    df1 = DataFrame(
+        {"x": [9, 10, 11]},
+        index=MultiIndex.from_arrays([[1, 2, 3], [np.nan, 5, 6]], names=["a", "b"]),
+    )
+
+    df2 = DataFrame(
+        {"y": [12, 13, 14]},
+        index=MultiIndex.from_arrays([[1, 2, 4], [np.nan, 5, 7]], names=["a", "b"]),
+    )
+
+    expected = DataFrame(
+        {
+            "x": [9.0, 10.0, 11.0, np.nan],
+            "y": [12.0, 13.0, np.nan, 14.0],
+        },
+        index=MultiIndex.from_arrays(
+            [[1, 2, 3, 4], [np.nan, 5.0, 6.0, 7.0]], names=["a", "b"]
+        ),
+    )
+    combined = df1.combine_first(df2)
+    tm.assert_frame_equal(combined, expected)
+
+
+def test_combine_first_int64_not_cast_to_float64():
+    # GH 28613
+    df_1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df_2 = DataFrame({"A": [1, 20, 30], "B": [40, 50, 60], "C": [12, 34, 65]})
+    result = df_1.combine_first(df_2)
+    expected = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [12, 34, 65]})
+    tm.assert_frame_equal(result, expected)

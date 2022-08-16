@@ -1755,8 +1755,8 @@ Missing
 
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
-- :func:`Series.isin` now treats all NaN-floats as equal also for ``np.object``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
-- :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for ``np.object``-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
+- :func:`Series.isin` now treats all NaN-floats as equal also for ``np.object_``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
+- :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for ``np.object_``-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
 - :class:`DataFrame` and :class:`Series` now properly handle numpy masked arrays with hardened masks. Previously, constructing a DataFrame or Series from a masked array with a hard mask would create a pandas object containing the underlying value, rather than the expected NaN. (:issue:`24574`)
 - Bug in :class:`DataFrame` constructor where ``dtype`` argument was not honored when handling numpy masked record arrays. (:issue:`24874`)
 

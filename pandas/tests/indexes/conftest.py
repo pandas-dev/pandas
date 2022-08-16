@@ -1,4 +1,10 @@
+import numpy as np
 import pytest
+
+from pandas import (
+    Series,
+    array,
+)
 
 
 @pytest.fixture(params=[None, False])
@@ -23,5 +29,13 @@ def freq_sample(request):
     """
     Valid values for 'freq' parameter used to create date_range and
     timedelta_range..
+    """
+    return request.param
+
+
+@pytest.fixture(params=[list, tuple, np.array, array, Series])
+def listlike_box(request):
+    """
+    Types that may be passed as the indexer to searchsorted.
     """
     return request.param

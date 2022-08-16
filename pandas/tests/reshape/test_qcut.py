@@ -21,7 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.algorithms import quantile
 
 from pandas.tseries.offsets import (
     Day,
@@ -34,8 +33,8 @@ def test_qcut():
 
     # We store the bins as Index that have been
     # rounded to comparisons are a bit tricky.
-    labels, bins = qcut(arr, 4, retbins=True)
-    ex_bins = quantile(arr, [0, 0.25, 0.5, 0.75, 1.0])
+    labels, _ = qcut(arr, 4, retbins=True)
+    ex_bins = np.quantile(arr, [0, 0.25, 0.5, 0.75, 1.0])
 
     result = labels.categories.left.values
     assert np.allclose(result, ex_bins[:-1], atol=1e-2)
@@ -77,7 +76,8 @@ def test_qcut_include_lowest():
             Interval(2.25, 4.5),
             Interval(4.5, 6.75),
             Interval(6.75, 9),
-        ]
+        ],
+        "right",
     )
     tm.assert_index_equal(ii.categories, ex_levels)
 
@@ -92,7 +92,7 @@ def test_qcut_nas():
 
 def test_qcut_index():
     result = qcut([0, 2], 2)
-    intervals = [Interval(-0.001, 1), Interval(1, 2)]
+    intervals = [Interval(-0.001, 1, "right"), Interval(1, 2, "right")]
 
     expected = Categorical(intervals, ordered=True)
     tm.assert_categorical_equal(result, expected)
@@ -128,7 +128,11 @@ def test_qcut_return_intervals():
     res = qcut(ser, [0, 0.333, 0.666, 1])
 
     exp_levels = np.array(
-        [Interval(-0.001, 2.664), Interval(2.664, 5.328), Interval(5.328, 8)]
+        [
+            Interval(-0.001, 2.664, "right"),
+            Interval(2.664, 5.328, "right"),
+            Interval(5.328, 8, "right"),
+        ]
     )
     exp = Series(exp_levels.take([0, 0, 0, 1, 1, 1, 2, 2, 2])).astype(CDT(ordered=True))
     tm.assert_series_equal(res, exp)
@@ -184,7 +188,7 @@ def test_qcut_duplicates_bin(kwargs, msg):
             qcut(values, 3, **kwargs)
     else:
         result = qcut(values, 3, **kwargs)
-        expected = IntervalIndex([Interval(-0.001, 1), Interval(1, 3)])
+        expected = IntervalIndex([Interval(-0.001, 1), Interval(1, 3)], "right")
         tm.assert_index_equal(result.categories, expected)
 
 
@@ -199,10 +203,10 @@ def test_single_quantile(data, start, end, length, labels):
     result = qcut(ser, 1, labels=labels)
 
     if labels is None:
-        intervals = IntervalIndex([Interval(start, end)] * length, closed="right")
+        intervals = IntervalIndex([Interval(start, end)] * length, inclusive="right")
         expected = Series(intervals).astype(CDT(ordered=True))
     else:
-        expected = Series([0] * length)
+        expected = Series([0] * length, dtype=np.intp)
 
     tm.assert_series_equal(result, expected)
 
@@ -218,7 +222,7 @@ def test_single_quantile(data, start, end, length, labels):
 def test_qcut_nat(ser):
     # see gh-19768
     intervals = IntervalIndex.from_tuples(
-        [(ser[0] - Nano(), ser[2] - Day()), np.nan, (ser[2] - Day(), ser[2])]
+        [(ser[0] - Nano(), ser[2] - Day()), np.nan, (ser[2] - Day(), ser[2])], "right"
     )
     expected = Series(Categorical(intervals, ordered=True))
 
@@ -248,7 +252,8 @@ def test_datetime_tz_qcut(bins):
                     Timestamp("2013-01-02 08:00:00", tz=tz),
                     Timestamp("2013-01-03 00:00:00", tz=tz),
                 ),
-            ]
+            ],
+            "right",
         )
     ).astype(CDT(ordered=True))
     tm.assert_series_equal(result, expected)
@@ -293,8 +298,8 @@ def test_qcut_bool_coercion_to_int(bins, box, compare):
 
 
 @pytest.mark.parametrize("q", [2, 5, 10])
-def test_qcut_nullable_integer(q, any_nullable_int_dtype):
-    arr = pd.array(np.arange(100), dtype=any_nullable_int_dtype)
+def test_qcut_nullable_integer(q, any_numeric_ea_dtype):
+    arr = pd.array(np.arange(100), dtype=any_numeric_ea_dtype)
     arr[::2] = pd.NA
 
     result = qcut(arr, q)

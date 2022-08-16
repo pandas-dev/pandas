@@ -1,5 +1,7 @@
 from io import BytesIO
 import os
+import tarfile
+import zipfile
 
 import numpy as np
 import pytest
@@ -13,6 +15,7 @@ from pandas import (
     read_parquet,
 )
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 from pandas.util import _test_decorators as td
 
 
@@ -88,6 +91,37 @@ def test_to_read_gcs(gcs_buffer, format):
     tm.assert_frame_equal(df1, df2)
 
 
+def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
+    """
+    For zip compression, only compare the CRC-32 checksum of the file contents
+    to avoid checking the time-dependent last-modified timestamp which
+    in some CI builds is off-by-one
+
+    See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
+    """
+    if compression == "zip":
+        # Only compare the CRC checksum of the file contents
+        with zipfile.ZipFile(BytesIO(result)) as exp, zipfile.ZipFile(
+            BytesIO(expected)
+        ) as res:
+            for res_info, exp_info in zip(res.infolist(), exp.infolist()):
+                assert res_info.CRC == exp_info.CRC
+    elif compression == "tar":
+        with tarfile.open(fileobj=BytesIO(result)) as tar_exp, tarfile.open(
+            fileobj=BytesIO(expected)
+        ) as tar_res:
+            for tar_res_info, tar_exp_info in zip(
+                tar_res.getmembers(), tar_exp.getmembers()
+            ):
+                actual_file = tar_res.extractfile(tar_res_info)
+                expected_file = tar_exp.extractfile(tar_exp_info)
+                assert (actual_file is None) == (expected_file is None)
+                if actual_file is not None and expected_file is not None:
+                    assert actual_file.read() == expected_file.read()
+    else:
+        assert result == expected
+
+
 @td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
 def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding):
@@ -112,26 +146,24 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     # write compressed file with explicit compression
     path_gcs = "gs://test/test.csv"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
-    assert gcs_buffer.getvalue() == buffer.getvalue()
+    res = gcs_buffer.getvalue()
+    expected = buffer.getvalue()
+    assert_equal_zip_safe(res, expected, compression_only)
+
     read_df = read_csv(
         path_gcs, index_col=0, compression=compression_only, encoding=encoding
     )
     tm.assert_frame_equal(df, read_df)
 
     # write compressed file with implicit compression
-    if compression_only == "gzip":
-        compression_only = "gz"
+    file_ext = _compression_to_extension[compression_only]
     compression["method"] = "infer"
-    path_gcs += f".{compression_only}"
+    path_gcs += f".{file_ext}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
 
     res = gcs_buffer.getvalue()
     expected = buffer.getvalue()
-    # We would like to assert these are equal, but the 11th byte is a last-modified
-    #  timestamp, which in some builds is off-by-one, so we check around that
-    #  See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
-    assert res[:10] == expected[:10]
-    assert res[11:] == expected[11:]
+    assert_equal_zip_safe(res, expected, compression_only)
 
     read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
     tm.assert_frame_equal(df, read_df)

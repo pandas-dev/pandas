@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.common import is_float_dtype
 
@@ -38,9 +37,9 @@ class TestSetValue:
         res._set_value("foobar", "baz", 5)
         assert is_float_dtype(res["baz"])
         assert isna(res["baz"].drop(["foobar"])).all()
-        msg = "could not convert string to float: 'sam'"
-        with pytest.raises(ValueError, match=msg):
-            res._set_value("foobar", "baz", "sam")
+
+        res._set_value("foobar", "baz", "sam")
+        assert res.loc["foobar", "baz"] == "sam"
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))

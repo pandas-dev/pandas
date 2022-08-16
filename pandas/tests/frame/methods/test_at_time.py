@@ -31,8 +31,7 @@ class TestAtTime:
     def test_at_time(self, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
         rs = ts.at_time(rng[1])
         assert (rs.index.hour == rng[1].hour).all()
         assert (rs.index.minute == rng[1].minute).all()
@@ -46,8 +45,7 @@ class TestAtTime:
         # midnight, everything
         rng = date_range("1/1/2000", "1/31/2000")
         ts = DataFrame(np.random.randn(len(rng), 3), index=rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         result = ts.at_time(time(0, 0))
         tm.assert_equal(result, ts)
@@ -56,8 +54,7 @@ class TestAtTime:
         # time doesn't exist
         rng = date_range("1/1/2012", freq="23Min", periods=384)
         ts = DataFrame(np.random.randn(len(rng)), rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
         rs = ts.at_time("16:00")
         assert len(rs) == 0
 
@@ -87,8 +84,7 @@ class TestAtTime:
     def test_at_time_raises(self, frame_or_series):
         # GH#20725
         obj = DataFrame([[1, 2, 3], [4, 5, 6]])
-        if frame_or_series is not DataFrame:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
         msg = "Index must be DatetimeIndex"
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             obj.at_time("00:00")
@@ -113,3 +109,16 @@ class TestAtTime:
         result.index = result.index._with_freq(None)
         expected.index = expected.index._with_freq(None)
         tm.assert_frame_equal(result, expected)
+
+    def test_at_time_datetimeindex(self):
+        index = date_range("2012-01-01", "2012-01-05", freq="30min")
+        df = DataFrame(np.random.randn(len(index), 5), index=index)
+        akey = time(12, 0, 0)
+        ainds = [24, 72, 120, 168]
+
+        result = df.at_time(akey)
+        expected = df.loc[akey]
+        expected2 = df.iloc[ainds]
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected2)
+        assert len(result) == 4

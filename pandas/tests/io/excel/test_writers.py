@@ -6,6 +6,7 @@ from datetime import (
 from functools import partial
 from io import BytesIO
 import os
+import re
 
 import numpy as np
 import pytest
@@ -17,8 +18,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
-    get_option,
-    set_option,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -52,10 +52,8 @@ def set_engine(engine, ext):
     the test it rolls back said change to the global option.
     """
     option_name = f"io.excel.{ext.strip('.')}.writer"
-    prev_engine = get_option(option_name)
-    set_option(option_name, engine)
-    yield
-    set_option(option_name, prev_engine)  # Roll back option change
+    with option_context(option_name, engine):
+        yield
 
 
 @pytest.mark.parametrize(
@@ -206,14 +204,18 @@ class TestRoundTrip:
     @pytest.mark.parametrize("c_idx_levels", [1, 3])
     @pytest.mark.parametrize("r_idx_levels", [1, 3])
     def test_excel_multindex_roundtrip(
-        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
+        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels, request
     ):
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
-            if c_idx_levels == 1 and c_idx_names:
-                pytest.skip(
-                    "Column index name cannot be serialized unless it's a MultiIndex"
+            if (c_idx_levels == 1 and c_idx_names) and not (
+                r_idx_levels == 3 and not r_idx_names
+            ):
+                mark = pytest.mark.xfail(
+                    reason="Column index name cannot be serialized unless "
+                    "it's a MultiIndex"
                 )
+                request.node.add_marker(mark)
 
             # Empty name case current read in as
             # unnamed levels, not Nones.
@@ -275,11 +277,14 @@ class TestRoundTrip:
 
     def test_multiindex_interval_datetimes(self, ext):
         # GH 30986
-        midx = pd.MultiIndex.from_arrays(
+        midx = MultiIndex.from_arrays(
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                    start=pd.Timestamp("2020-01-01"),
+                    periods=4,
+                    freq="6M",
+                    inclusive="right",
                 ),
             ]
         )
@@ -289,7 +294,7 @@ class TestRoundTrip:
             result = pd.read_excel(pth, index_col=[0, 1])
         expected = DataFrame(
             range(4),
-            pd.MultiIndex.from_arrays(
+            MultiIndex.from_arrays(
                 [
                     range(4),
                     [
@@ -333,8 +338,8 @@ class TestExcelWriter:
     def test_excel_sheet_size(self, path):
 
         # GH 26080
-        breaking_row_count = 2 ** 20 + 1
-        breaking_col_count = 2 ** 14 + 1
+        breaking_row_count = 2**20 + 1
+        breaking_col_count = 2**14 + 1
         # purposely using two arrays to prevent memory issues while testing
         row_arr = np.zeros(shape=(breaking_row_count, 1))
         col_arr = np.zeros(shape=(1, breaking_col_count))
@@ -348,7 +353,7 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(path)
 
-    def test_excel_sheet_by_name_raise(self, path, engine):
+    def test_excel_sheet_by_name_raise(self, path):
         gt = DataFrame(np.random.randn(10, 2))
         gt.to_excel(path)
 
@@ -436,7 +441,7 @@ class TestExcelWriter:
     def test_ts_frame(self, tsframe, path):
         df = tsframe
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
@@ -473,9 +478,12 @@ class TestExcelWriter:
         float_frame = df.astype(float)
         float_frame.columns = float_frame.columns.astype(float)
         float_frame.index = float_frame.index.astype(float)
-        recons = pd.read_excel(
-            path, sheet_name="test1", convert_float=False, index_col=0
-        )
+        with tm.assert_produces_warning(
+            FutureWarning, match="convert_float is deprecated"
+        ):
+            recons = pd.read_excel(
+                path, sheet_name="test1", convert_float=False, index_col=0
+            )
         tm.assert_frame_equal(recons, float_frame)
 
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
@@ -515,7 +523,7 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, tsframe, path):
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -644,7 +652,7 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(tsframe, recons)
 
-    def test_excel_date_datetime_format(self, engine, ext, path):
+    def test_excel_date_datetime_format(self, ext, path):
         # see gh-4133
         #
         # Excel output format strings
@@ -830,6 +838,19 @@ class TestExcelWriter:
         # Test that it is the same as the initial frame.
         tm.assert_frame_equal(frame1, frame3)
 
+    def test_to_excel_empty_multiindex(self, path):
+        # GH 19543.
+        expected = DataFrame([], columns=[0, 1, 2])
+
+        df = DataFrame([], index=MultiIndex.from_tuples([], names=[0, 1]), columns=[2])
+        df.to_excel(path, "test1")
+
+        with ExcelFile(path) as reader:
+            result = pd.read_excel(reader, sheet_name="test1")
+        tm.assert_frame_equal(
+            result, expected, check_index_type=False, check_dtype=False
+        )
+
     def test_to_excel_float_format(self, path):
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -861,7 +882,7 @@ class TestExcelWriter:
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
-    def test_to_excel_unicode_filename(self, ext, path):
+    def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
@@ -886,107 +907,6 @@ class TestExcelWriter:
             columns=["X", "Y", "Z"],
         )
         tm.assert_frame_equal(result, expected)
-
-    # FIXME: dont leave commented-out
-    # def test_to_excel_header_styling_xls(self, engine, ext):
-
-    #     import StringIO
-    #     s = StringIO(
-    #     """Date,ticker,type,value
-    #     2001-01-01,x,close,12.2
-    #     2001-01-01,x,open ,12.1
-    #     2001-01-01,y,close,12.2
-    #     2001-01-01,y,open ,12.1
-    #     2001-02-01,x,close,12.2
-    #     2001-02-01,x,open ,12.1
-    #     2001-02-01,y,close,12.2
-    #     2001-02-01,y,open ,12.1
-    #     2001-03-01,x,close,12.2
-    #     2001-03-01,x,open ,12.1
-    #     2001-03-01,y,close,12.2
-    #     2001-03-01,y,open ,12.1""")
-    #     df = read_csv(s, parse_dates=["Date"])
-    #     pdf = df.pivot_table(values="value", rows=["ticker"],
-    #                                          cols=["Date", "type"])
-
-    #     try:
-    #         import xlwt
-    #         import xlrd
-    #     except ImportError:
-    #         pytest.skip
-
-    #     filename = '__tmp_to_excel_header_styling_xls__.xls'
-    #     pdf.to_excel(filename, 'test1')
-
-    #     wbk = xlrd.open_workbook(filename,
-    #                              formatting_info=True)
-    #     assert ["test1"] == wbk.sheet_names()
-    #     ws = wbk.sheet_by_name('test1')
-    #     assert [(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)] == ws.merged_cells
-    #     for i in range(0, 2):
-    #         for j in range(0, 7):
-    #             xfx = ws.cell_xf_index(0, 0)
-    #             cell_xf = wbk.xf_list[xfx]
-    #             font = wbk.font_list
-    #             assert 1 == font[cell_xf.font_index].bold
-    #             assert 1 == cell_xf.border.top_line_style
-    #             assert 1 == cell_xf.border.right_line_style
-    #             assert 1 == cell_xf.border.bottom_line_style
-    #             assert 1 == cell_xf.border.left_line_style
-    #             assert 2 == cell_xf.alignment.hor_align
-    #     os.remove(filename)
-    # def test_to_excel_header_styling_xlsx(self, engine, ext):
-    #     import StringIO
-    #     s = StringIO(
-    #     """Date,ticker,type,value
-    #     2001-01-01,x,close,12.2
-    #     2001-01-01,x,open ,12.1
-    #     2001-01-01,y,close,12.2
-    #     2001-01-01,y,open ,12.1
-    #     2001-02-01,x,close,12.2
-    #     2001-02-01,x,open ,12.1
-    #     2001-02-01,y,close,12.2
-    #     2001-02-01,y,open ,12.1
-    #     2001-03-01,x,close,12.2
-    #     2001-03-01,x,open ,12.1
-    #     2001-03-01,y,close,12.2
-    #     2001-03-01,y,open ,12.1""")
-    #     df = read_csv(s, parse_dates=["Date"])
-    #     pdf = df.pivot_table(values="value", rows=["ticker"],
-    #                                          cols=["Date", "type"])
-    #     try:
-    #         import openpyxl
-    #         from openpyxl.cell import get_column_letter
-    #     except ImportError:
-    #         pytest.skip
-    #     if openpyxl.__version__ < '1.6.1':
-    #         pytest.skip
-    #     # test xlsx_styling
-    #     filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
-    #     pdf.to_excel(filename, 'test1')
-    #     wbk = openpyxl.load_workbook(filename)
-    #     assert ["test1"] == wbk.get_sheet_names()
-    #     ws = wbk.get_sheet_by_name('test1')
-    #     xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
-    #     xlsaddrs += ["A%s" % i for i in range(1, 6)]
-    #     xlsaddrs += ["B1", "D1", "F1"]
-    #     for xlsaddr in xlsaddrs:
-    #         cell = ws.cell(xlsaddr)
-    #         assert cell.style.font.bold
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.top.border_style)
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.right.border_style)
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.bottom.border_style)
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.left.border_style)
-    #         assert (openpyxl.style.Alignment.HORIZONTAL_CENTER ==
-    #                 cell.style.alignment.horizontal)
-    #     mergedcells_addrs = ["C1", "E1", "G1"]
-    #     for maddr in mergedcells_addrs:
-    #         assert ws.cell(maddr).merged
-    #     os.remove(filename)
 
     @pytest.mark.parametrize("use_headers", [True, False])
     @pytest.mark.parametrize("r_idx_nlevels", [1, 2, 3])
@@ -1184,7 +1104,6 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_datetimes(self, path):
-
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
@@ -1202,8 +1121,6 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if path.endswith("xlsx") or path.endswith("xlsm"):
-            pytest.skip("Defaults to openpyxl and fails - GH #38644")
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
@@ -1282,7 +1199,7 @@ class TestExcelWriter:
         result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_merged_cell_custom_objects(self, merge_cells, path):
+    def test_merged_cell_custom_objects(self, path):
         # see GH-27006
         mi = MultiIndex.from_tuples(
             [
@@ -1292,7 +1209,12 @@ class TestExcelWriter:
         )
         expected = DataFrame(np.ones((2, 2)), columns=mi)
         expected.to_excel(path)
-        result = pd.read_excel(path, header=[0, 1], index_col=0, convert_float=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="convert_float is deprecated"
+        ):
+            result = pd.read_excel(
+                path, header=[0, 1], index_col=0, convert_float=False
+            )
         # need to convert PeriodIndexes to standard Indexes for assert equal
         expected.columns = expected.columns.set_levels(
             [[str(i) for i in mi.levels[0]], [str(i) for i in mi.levels[1]]],
@@ -1324,6 +1246,55 @@ class TestExcelWriter:
         expected = DataFrame([[0, 10, 0], [1, 11, 1]], columns=["A", "B", "A.1"])
         tm.assert_frame_equal(result, expected)
 
+    def test_if_sheet_exists_raises(self, ext):
+        # GH 40230
+        msg = "if_sheet_exists is only valid in append mode (mode='a')"
+
+        with tm.ensure_clean(ext) as f:
+            with pytest.raises(ValueError, match=re.escape(msg)):
+                ExcelWriter(f, if_sheet_exists="replace")
+
+    def test_excel_writer_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path, engine=engine) as writer:
+                DataFrame().to_excel(writer)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            DataFrame().to_excel(path, engine=engine)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("attr", ["cur_sheet", "handles", "path"])
+    def test_deprecated_attr(self, engine, ext, attr):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+
+    @pytest.mark.parametrize(
+        "attr, args", [("save", ()), ("write_cells", ([], "test"))]
+    )
+    def test_deprecated_method(self, engine, ext, attr, args):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)(*args)
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
@@ -1348,39 +1319,63 @@ class TestExcelWriterEngineTests:
             ExcelWriter("nothing")
 
     def test_register_writer(self):
-        # some awkward mocking to test out dispatch and such actually works
-        called_save = []
-        called_write_cells = []
-
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
-            supported_extensions = ["xlsx", "xls"]
-            engine = "dummy"
+            called_sheets = False
+            _supported_extensions = ("xlsx", "xls")
+            _engine = "dummy"
 
-            def save(self):
-                called_save.append(True)
+            def book(self):
+                pass
 
-            def write_cells(self, *args, **kwargs):
-                called_write_cells.append(True)
+            def _save(self):
+                type(self).called_save = True
 
-        def check_called(func):
-            func()
-            assert len(called_save) >= 1
-            assert len(called_write_cells) >= 1
-            del called_save[:]
-            del called_write_cells[:]
+            def _write_cells(self, *args, **kwargs):
+                type(self).called_write_cells = True
 
-        with pd.option_context("io.excel.xlsx.writer", "dummy"):
+            @property
+            def sheets(self):
+                type(self).called_sheets = True
+
+            @classmethod
+            def assert_called_and_reset(cls):
+                assert cls.called_save
+                assert cls.called_write_cells
+                assert not cls.called_sheets
+                cls.called_save = False
+                cls.called_write_cells = False
+
+        register_writer(DummyClass)
+
+        with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"
             with tm.ensure_clean(path) as filepath:
-                register_writer(DummyClass)
                 with ExcelWriter(filepath) as writer:
                     assert isinstance(writer, DummyClass)
                 df = tm.makeCustomDataframe(1, 1)
-                check_called(lambda: df.to_excel(filepath))
-            with tm.ensure_clean("something.xls") as filepath:
-                check_called(lambda: df.to_excel(filepath, engine="dummy"))
+                df.to_excel(filepath)
+            DummyClass.assert_called_and_reset()
+
+        with tm.ensure_clean("something.xls") as filepath:
+            df.to_excel(filepath, engine="dummy")
+        DummyClass.assert_called_and_reset()
+
+    @pytest.mark.parametrize(
+        "ext",
+        [
+            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
+            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
+            pytest.param(".ods", marks=td.skip_if_no("odf")),
+        ],
+    )
+    def test_engine_kwargs_and_kwargs_raises(self, ext):
+        # GH 40430
+        msg = re.escape("Cannot use both engine_kwargs and **kwargs")
+        with pytest.raises(ValueError, match=msg):
+            with ExcelWriter("", engine_kwargs={"a": 1}, b=2):
+                pass
 
 
 @td.skip_if_no("xlrd")

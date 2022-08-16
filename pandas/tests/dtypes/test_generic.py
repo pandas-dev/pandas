@@ -1,3 +1,4 @@
+import re
 from warnings import catch_warnings
 
 import numpy as np
@@ -7,6 +8,11 @@ from pandas.core.dtypes import generic as gt
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestABCClasses:
@@ -23,9 +29,9 @@ class TestABCClasses:
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
     abc_pairs = [
-        ("ABCInt64Index", pd.Int64Index([1, 2, 3])),
-        ("ABCUInt64Index", pd.UInt64Index([1, 2, 3])),
-        ("ABCFloat64Index", pd.Float64Index([1, 2, 3])),
+        ("ABCInt64Index", Int64Index([1, 2, 3])),
+        ("ABCUInt64Index", UInt64Index([1, 2, 3])),
+        ("ABCFloat64Index", Float64Index([1, 2, 3])),
         ("ABCMultiIndex", multi_index),
         ("ABCDatetimeIndex", datetime_index),
         ("ABCRangeIndex", pd.RangeIndex(3)),
@@ -44,12 +50,27 @@ class TestABCClasses:
 
     @pytest.mark.parametrize("abctype1, inst", abc_pairs)
     @pytest.mark.parametrize("abctype2, _", abc_pairs)
-    def test_abc_pairs(self, abctype1, abctype2, inst, _):
-        # GH 38588
+    def test_abc_pairs_instance_check(self, abctype1, abctype2, inst, _):
+        # GH 38588, 46719
         if abctype1 == abctype2:
             assert isinstance(inst, getattr(gt, abctype2))
+            assert not isinstance(type(inst), getattr(gt, abctype2))
         else:
             assert not isinstance(inst, getattr(gt, abctype2))
+
+    @pytest.mark.parametrize("abctype1, inst", abc_pairs)
+    @pytest.mark.parametrize("abctype2, _", abc_pairs)
+    def test_abc_pairs_subclass_check(self, abctype1, abctype2, inst, _):
+        # GH 38588, 46719
+        if abctype1 == abctype2:
+            assert issubclass(type(inst), getattr(gt, abctype2))
+
+            with pytest.raises(
+                TypeError, match=re.escape("issubclass() arg 1 must be a class")
+            ):
+                issubclass(inst, getattr(gt, abctype2))
+        else:
+            assert not issubclass(type(inst), getattr(gt, abctype2))
 
     abc_subclasses = {
         "ABCIndex": [

@@ -3,10 +3,13 @@ datetimelike delegation
 """
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -36,7 +39,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
@@ -45,7 +51,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         "name",
     }
 
-    def __init__(self, data: Series, orig):
+    def __init__(self, data: Series, orig) -> None:
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -191,7 +197,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self) -> np.ndarray:
         """
-        Return the data as an array of native Python datetime objects.
+        Return the data as an array of :class:`datetime.datetime` objects.
 
         Timezone information is retained if present.
 
@@ -239,17 +245,16 @@ class DatetimeProperties(Properties):
     def freq(self):
         return self._get_values().inferred_freq
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         """
-        Returns a DataFrame with the year, week, and day calculated according to
-        the ISO 8601 standard.
+        Calculate year, week, and day according to the ISO 8601 standard.
 
         .. versionadded:: 1.1.0
 
         Returns
         -------
         DataFrame
-            with columns year, week and day
+            With columns year, week and day.
 
         See Also
         --------
@@ -275,18 +280,19 @@ class DatetimeProperties(Properties):
     @property
     def weekofyear(self):
         """
-        The week ordinal of the year.
+        The week ordinal of the year according to the ISO 8601 standard.
 
         .. deprecated:: 1.1.0
 
-        Series.dt.weekofyear and Series.dt.week have been deprecated.
-        Please use Series.dt.isocalendar().week instead.
+        Series.dt.weekofyear and Series.dt.week have been deprecated.  Please
+        call :func:`Series.dt.isocalendar` and access the ``week`` column
+        instead.
         """
         warnings.warn(
-            "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
+            "Series.dt.weekofyear and Series.dt.week have been deprecated. "
             "Please use Series.dt.isocalendar().week instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         week_series = self.isocalendar().week
         week_series.name = self.name
@@ -331,7 +337,7 @@ class TimedeltaProperties(Properties):
 
     def to_pytimedelta(self) -> np.ndarray:
         """
-        Return an array of native `datetime.timedelta` objects.
+        Return an array of native :class:`datetime.timedelta` objects.
 
         Python's standard `datetime` library uses a different representation
         timedelta's. This method converts a Series of pandas Timedeltas
@@ -492,6 +498,7 @@ class CombinedDatetimelikeProperties(
                 name=orig.name,
                 copy=False,
                 dtype=orig._values.categories.dtype,
+                index=orig.index,
             )
 
         if is_datetime64_dtype(data.dtype):

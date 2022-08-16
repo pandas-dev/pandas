@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -29,7 +28,7 @@ def test_str_cat_name(index_or_series, other):
 def test_str_cat(index_or_series):
     box = index_or_series
     # test_cat above tests "str_cat" from ndarray;
-    # here testing "str.cat" from Series/Indext to ndarray/list
+    # here testing "str.cat" from Series/Index to ndarray/list
     s = box(["a", "a", "b", "b", "c", np.nan])
 
     # single array
@@ -279,7 +278,11 @@ def test_str_cat_align_mixed_inputs(join):
     expected_outer = Series(["aaA", "bbB", "c-C", "ddD", "-e-"])
     # joint index of rhs [t, u]; u will be forced have index of s
     rhs_idx = (
-        t.index.intersection(s.index) if join == "inner" else t.index.union(s.index)
+        t.index.intersection(s.index)
+        if join == "inner"
+        else t.index.union(s.index)
+        if join == "outer"
+        else t.index.append(s.index.difference(t.index))
     )
 
     expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
@@ -366,10 +369,29 @@ def test_cat_on_filtered_index():
     assert str_multiple.loc[1] == "2011 2 2"
 
 
-@pytest.mark.parametrize("klass", [tuple, list, np.array, pd.Series, pd.Index])
+@pytest.mark.parametrize("klass", [tuple, list, np.array, Series, Index])
 def test_cat_different_classes(klass):
     # https://github.com/pandas-dev/pandas/issues/33425
     s = Series(["a", "b", "c"])
     result = s.str.cat(klass(["x", "y", "z"]))
     expected = Series(["ax", "by", "cz"])
     tm.assert_series_equal(result, expected)
+
+
+def test_cat_on_series_dot_str():
+    # GH 28277
+    # Test future warning of `Series.str.__iter__`
+    ps = Series(["AbC", "de", "FGHI", "j", "kLLLm"])
+    with tm.assert_produces_warning(FutureWarning):
+        ps.str.cat(others=ps.str)
+    # TODO(2.0): The following code can be uncommented
+    # when `Series.str.__iter__` is removed.
+
+    # message = re.escape(
+    #     "others must be Series, Index, DataFrame, np.ndarray "
+    #     "or list-like (either containing only strings or "
+    #     "containing only objects of type Series/Index/"
+    #     "np.ndarray[1-dim])"
+    # )
+    # with pytest.raises(TypeError, match=message):
+    #     ps.str.cat(others=ps.str)

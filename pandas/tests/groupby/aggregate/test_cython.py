@@ -5,7 +5,10 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -18,7 +21,6 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.groupby import DataError
 
 
 @pytest.mark.parametrize(
@@ -89,14 +91,20 @@ def test_cython_agg_boolean():
 
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
-    msg = "No numeric types to aggregate"
 
-    with pytest.raises(DataError, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            frame.groupby("a")["b"].mean(numeric_only=True)
+
+    with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
         frame.groupby("a")["b"].mean()
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
-    with pytest.raises(DataError, match=msg):
-        frame[["b"]].groupby(frame["a"]).mean()
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = frame[["b"]].groupby(frame["a"]).mean()
+    expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
+    tm.assert_frame_equal(result, expected)
 
 
 def test_cython_agg_nothing_to_agg_with_dates():
@@ -107,9 +115,9 @@ def test_cython_agg_nothing_to_agg_with_dates():
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
     )
-    msg = "No numeric types to aggregate"
-    with pytest.raises(DataError, match=msg):
-        frame.groupby("b").dates.mean()
+    with tm.assert_produces_warning(FutureWarning, match="This will raise a TypeError"):
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            frame.groupby("b").dates.mean(numeric_only=True)
 
 
 def test_cython_agg_frame_columns():
@@ -158,7 +166,7 @@ def test_cython_fail_agg():
         ("mean", np.mean),
         ("median", np.median),
         ("var", np.var),
-        ("add", np.sum),
+        ("sum", np.sum),
         ("prod", np.prod),
         ("min", np.min),
         ("max", np.max),
@@ -170,7 +178,7 @@ def test__cython_agg_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    result = df.groupby(labels)._cython_agg_general(op)
+    result = df.groupby(labels)._cython_agg_general(op, alt=None, numeric_only=True)
     expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 
@@ -192,7 +200,7 @@ def test_cython_agg_empty_buckets(op, targop, observed):
     # calling _cython_agg_general directly, instead of via the user API
     # which sets different values for min_count, so do that here.
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
-    result = g._cython_agg_general(op)
+    result = g._cython_agg_general(op, alt=None, numeric_only=True)
 
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
     expected = g.agg(lambda x: targop(x))
@@ -206,9 +214,9 @@ def test_cython_agg_empty_buckets_nanops(observed):
     grps = range(0, 25, 5)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
-        "add"
+        "sum", alt=None, numeric_only=True
     )
-    intervals = pd.interval_range(0, 20, freq=5)
+    intervals = pd.interval_range(0, 20, freq=5, inclusive="right")
     expected = DataFrame(
         {"a": [0, 0, 36, 0]},
         index=pd.CategoricalIndex(intervals, name="a", ordered=True),
@@ -220,7 +228,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
 
     # prod
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
-        "prod"
+        "prod", alt=None, numeric_only=True
     )
     expected = DataFrame(
         {"a": [1, 1, 1716, 1]},
@@ -281,7 +289,7 @@ def test_read_only_buffer_source_agg(agg):
             "species": ["setosa", "setosa", "setosa", "setosa", "setosa"],
         }
     )
-    df._mgr.blocks[0].values.flags.writeable = False
+    df._mgr.arrays[0].flags.writeable = False
 
     result = df.groupby(["species"]).agg({"sepal_length": agg})
     expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})
@@ -365,6 +373,9 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
     elif action == "large_int":
         # for any int/bool use Int64, for float preserve dtype
         if is_float_dtype(data.dtype):
+            expected_dtype = data.dtype
+        elif is_integer_dtype(data.dtype):
+            # match the numpy dtype we'd get with the non-nullable analogue
             expected_dtype = data.dtype
         else:
             expected_dtype = pd.Int64Dtype()

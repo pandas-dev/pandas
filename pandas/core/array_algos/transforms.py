@@ -2,9 +2,9 @@
 transforms.py is for shape-preserving functions.
 """
 
-import numpy as np
+from __future__ import annotations
 
-from pandas.core.dtypes.common import ensure_platform_int
+import numpy as np
 
 
 def shift(values: np.ndarray, periods: int, axis: int, fill_value) -> np.ndarray:
@@ -19,8 +19,12 @@ def shift(values: np.ndarray, periods: int, axis: int, fill_value) -> np.ndarray
         new_values = new_values.T
         axis = new_values.ndim - axis - 1
 
-    if np.prod(new_values.shape):
-        new_values = np.roll(new_values, ensure_platform_int(periods), axis=axis)
+    if new_values.size:
+        new_values = np.roll(
+            new_values,
+            np.intp(periods),
+            axis=axis,
+        )
 
     axis_indexer = [slice(None)] * values.ndim
     if periods > 0:

@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import functools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Optional,
-    Tuple,
 )
 
 import numpy as np
@@ -12,19 +12,15 @@ import numpy as np
 from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    get_jit_arguments,
-    jit_user_function,
-)
+from pandas.core.util.numba_ import jit_user_function
 
 
+@functools.lru_cache(maxsize=None)
 def generate_numba_apply_func(
-    args: Tuple,
-    kwargs: Dict[str, Any],
     func: Callable[..., Scalar],
-    engine_kwargs: Optional[Dict[str, bool]],
-    name: str,
+    nopython: bool,
+    nogil: bool,
+    parallel: bool,
 ):
     """
     Generate a numba jitted apply function specified by values from engine_kwargs.
@@ -37,33 +33,32 @@ def generate_numba_apply_func(
 
     Parameters
     ----------
-    args : tuple
-        *args to be passed into the function
-    kwargs : dict
-        **kwargs to be passed into the function
     func : function
         function to be applied to each window and will be JITed
-    engine_kwargs : dict
-        dictionary of arguments to be passed into numba.jit
-    name: str
-        name of the caller (Rolling/Expanding)
+    nopython : bool
+        nopython to be passed into numba.jit
+    nogil : bool
+        nogil to be passed into numba.jit
+    parallel : bool
+        parallel to be passed into numba.jit
 
     Returns
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
-
-    cache_key = (func, f"{name}_apply_single")
-    if cache_key in NUMBA_FUNC_CACHE:
-        return NUMBA_FUNC_CACHE[cache_key]
-
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+        *args: Any,
     ) -> np.ndarray:
         result = np.empty(len(begin))
         for i in numba.prange(len(result)):
@@ -80,38 +75,46 @@ def generate_numba_apply_func(
     return roll_apply
 
 
-def generate_numba_groupby_ewma_func(
-    engine_kwargs: Optional[Dict[str, bool]],
+@functools.lru_cache(maxsize=None)
+def generate_numba_ewm_func(
+    nopython: bool,
+    nogil: bool,
+    parallel: bool,
     com: float,
     adjust: bool,
     ignore_na: bool,
+    deltas: tuple,
+    normalize: bool,
 ):
     """
-    Generate a numba jitted groupby ewma function specified by values
+    Generate a numba jitted ewm mean or sum function specified by values
     from engine_kwargs.
 
     Parameters
     ----------
-    engine_kwargs : dict
-        dictionary of arguments to be passed into numba.jit
+    nopython : bool
+        nopython to be passed into numba.jit
+    nogil : bool
+        nogil to be passed into numba.jit
+    parallel : bool
+        parallel to be passed into numba.jit
     com : float
     adjust : bool
     ignore_na : bool
+    deltas : tuple
+    normalize : bool
 
     Returns
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-
-    cache_key = (lambda x: x, "groupby_ewma")
-    if cache_key in NUMBA_FUNC_CACHE:
-        return NUMBA_FUNC_CACHE[cache_key]
-
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-    def groupby_ewma(
+    def ewm(
         values: np.ndarray,
         begin: np.ndarray,
         end: np.ndarray,
@@ -119,58 +122,64 @@ def generate_numba_groupby_ewma_func(
     ) -> np.ndarray:
         result = np.empty(len(values))
         alpha = 1.0 / (1.0 + com)
+        old_wt_factor = 1.0 - alpha
+        new_wt = 1.0 if adjust else alpha
+
         for i in numba.prange(len(begin)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
             sub_result = np.empty(len(window))
 
-            old_wt_factor = 1.0 - alpha
-            new_wt = 1.0 if adjust else alpha
-
-            weighted_avg = window[0]
-            nobs = int(not np.isnan(weighted_avg))
-            sub_result[0] = weighted_avg if nobs >= minimum_periods else np.nan
+            weighted = window[0]
+            nobs = int(not np.isnan(weighted))
+            sub_result[0] = weighted if nobs >= minimum_periods else np.nan
             old_wt = 1.0
 
             for j in range(1, len(window)):
                 cur = window[j]
                 is_observation = not np.isnan(cur)
                 nobs += is_observation
-                if not np.isnan(weighted_avg):
+                if not np.isnan(weighted):
 
                     if is_observation or not ignore_na:
-
-                        old_wt *= old_wt_factor
+                        if normalize:
+                            # note that len(deltas) = len(vals) - 1 and deltas[i]
+                            # is to be used in conjunction with vals[i+1]
+                            old_wt *= old_wt_factor ** deltas[start + j - 1]
+                        else:
+                            weighted = old_wt_factor * weighted
                         if is_observation:
-
-                            # avoid numerical errors on constant series
-                            if weighted_avg != cur:
-                                weighted_avg = (
-                                    (old_wt * weighted_avg) + (new_wt * cur)
-                                ) / (old_wt + new_wt)
-                            if adjust:
-                                old_wt += new_wt
+                            if normalize:
+                                # avoid numerical errors on constant series
+                                if weighted != cur:
+                                    weighted = old_wt * weighted + new_wt * cur
+                                    if normalize:
+                                        weighted = weighted / (old_wt + new_wt)
+                                if adjust:
+                                    old_wt += new_wt
+                                else:
+                                    old_wt = 1.0
                             else:
-                                old_wt = 1.0
+                                weighted += cur
                 elif is_observation:
-                    weighted_avg = cur
+                    weighted = cur
 
-                sub_result[j] = weighted_avg if nobs >= minimum_periods else np.nan
+                sub_result[j] = weighted if nobs >= minimum_periods else np.nan
 
             result[start:stop] = sub_result
 
         return result
 
-    return groupby_ewma
+    return ewm
 
 
+@functools.lru_cache(maxsize=None)
 def generate_numba_table_func(
-    args: Tuple,
-    kwargs: Dict[str, Any],
     func: Callable[..., np.ndarray],
-    engine_kwargs: Optional[Dict[str, bool]],
-    name: str,
+    nopython: bool,
+    nogil: bool,
+    parallel: bool,
 ):
     """
     Generate a numba jitted function to apply window calculations table-wise.
@@ -184,36 +193,35 @@ def generate_numba_table_func(
 
     Parameters
     ----------
-    args : tuple
-        *args to be passed into the function
-    kwargs : dict
-        **kwargs to be passed into the function
     func : function
         function to be applied to each window and will be JITed
-    engine_kwargs : dict
-        dictionary of arguments to be passed into numba.jit
-    name : str
-        caller (Rolling/Expanding) and original method name for numba cache key
+    nopython : bool
+        nopython to be passed into numba.jit
+    nogil : bool
+        nogil to be passed into numba.jit
+    parallel : bool
+        parallel to be passed into numba.jit
 
     Returns
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
-
-    cache_key = (func, f"{name}_table")
-    if cache_key in NUMBA_FUNC_CACHE:
-        return NUMBA_FUNC_CACHE[cache_key]
-
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_table(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+        *args: Any,
     ):
-        result = np.empty(values.shape)
-        min_periods_mask = np.empty(values.shape)
+        result = np.empty((len(begin), values.shape[1]))
+        min_periods_mask = np.empty(result.shape)
         for i in numba.prange(len(result)):
             start = begin[i]
             stop = end[i]
@@ -234,7 +242,10 @@ def generate_numba_table_func(
 # https://github.com/numba/numba/issues/1269
 @functools.lru_cache(maxsize=None)
 def generate_manual_numpy_nan_agg_with_axis(nan_func):
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=True, nogil=True, parallel=True)
     def nan_agg_with_axis(table):
@@ -245,3 +256,95 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
         return result
 
     return nan_agg_with_axis
+
+
+@functools.lru_cache(maxsize=None)
+def generate_numba_ewm_table_func(
+    nopython: bool,
+    nogil: bool,
+    parallel: bool,
+    com: float,
+    adjust: bool,
+    ignore_na: bool,
+    deltas: tuple,
+    normalize: bool,
+):
+    """
+    Generate a numba jitted ewm mean or sum function applied table wise specified
+    by values from engine_kwargs.
+
+    Parameters
+    ----------
+    nopython : bool
+        nopython to be passed into numba.jit
+    nogil : bool
+        nogil to be passed into numba.jit
+    parallel : bool
+        parallel to be passed into numba.jit
+    com : float
+    adjust : bool
+    ignore_na : bool
+    deltas : tuple
+    normalize: bool
+
+    Returns
+    -------
+    Numba function
+    """
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def ewm_table(
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+    ) -> np.ndarray:
+        alpha = 1.0 / (1.0 + com)
+        old_wt_factor = 1.0 - alpha
+        new_wt = 1.0 if adjust else alpha
+        old_wt = np.ones(values.shape[1])
+
+        result = np.empty(values.shape)
+        weighted = values[0].copy()
+        nobs = (~np.isnan(weighted)).astype(np.int64)
+        result[0] = np.where(nobs >= minimum_periods, weighted, np.nan)
+        for i in range(1, len(values)):
+            cur = values[i]
+            is_observations = ~np.isnan(cur)
+            nobs += is_observations.astype(np.int64)
+            for j in numba.prange(len(cur)):
+                if not np.isnan(weighted[j]):
+                    if is_observations[j] or not ignore_na:
+                        if normalize:
+                            # note that len(deltas) = len(vals) - 1 and deltas[i]
+                            # is to be used in conjunction with vals[i+1]
+                            old_wt[j] *= old_wt_factor ** deltas[i - 1]
+                        else:
+                            weighted[j] = old_wt_factor * weighted[j]
+                        if is_observations[j]:
+                            if normalize:
+                                # avoid numerical errors on constant series
+                                if weighted[j] != cur[j]:
+                                    weighted[j] = (
+                                        old_wt[j] * weighted[j] + new_wt * cur[j]
+                                    )
+                                    if normalize:
+                                        weighted[j] = weighted[j] / (old_wt[j] + new_wt)
+                                if adjust:
+                                    old_wt[j] += new_wt
+                                else:
+                                    old_wt[j] = 1.0
+                            else:
+                                weighted[j] += cur[j]
+                elif is_observations[j]:
+                    weighted[j] = cur[j]
+
+            result[i] = np.where(nobs >= minimum_periods, weighted, np.nan)
+
+        return result
+
+    return ewm_table

@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    List,
-    Optional,
-    Tuple,
+    Iterable,
+    Literal,
+    Sequence,
 )
 import warnings
 
 from matplotlib.artist import Artist
 import numpy as np
 
+from pandas._typing import (
+    IndexLabel,
+    PlottingOrientation,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -41,10 +49,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
+from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
     decorate_axes,
@@ -77,7 +86,7 @@ def _color_in_style(style: str) -> bool:
     return not set(BASE_COLORS).isdisjoint(style)
 
 
-class MPLPlot:
+class MPLPlot(ABC):
     """
     Base class for assembling a pandas plot using matplotlib
 
@@ -88,13 +97,17 @@ class MPLPlot:
     """
 
     @property
-    def _kind(self):
+    @abstractmethod
+    def _kind(self) -> str:
         """Specify kind str. Must be overridden in child class"""
         raise NotImplementedError
 
     _layout_type = "vertical"
     _default_rot = 0
-    orientation: Optional[str] = None
+
+    @property
+    def orientation(self) -> str | None:
+        return None
 
     axes: np.ndarray  # of Axes objects
 
@@ -102,14 +115,14 @@ class MPLPlot:
         self,
         data,
         kind=None,
-        by=None,
-        subplots=False,
+        by: IndexLabel | None = None,
+        subplots: bool | Sequence[Sequence[str]] = False,
         sharex=None,
-        sharey=False,
-        use_index=True,
+        sharey: bool = False,
+        use_index: bool = True,
         figsize=None,
         grid=None,
-        legend=True,
+        legend: bool | str = True,
         rot=None,
         ax=None,
         fig=None,
@@ -118,31 +131,61 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: Optional[Hashable] = None,
-        ylabel: Optional[Hashable] = None,
-        sort_columns=False,
+        xlabel: Hashable | None = None,
+        ylabel: Hashable | None = None,
+        sort_columns: bool = False,
         fontsize=None,
-        secondary_y=False,
+        secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
-        table=False,
+        table: bool = False,
         layout=None,
-        include_bool=False,
+        include_bool: bool = False,
+        column: IndexLabel | None = None,
         **kwds,
-    ):
+    ) -> None:
 
         import matplotlib.pyplot as plt
 
         self.data = data
-        self.by = by
+
+        # if users assign an empty list or tuple, raise `ValueError`
+        # similar to current `df.box` and `df.hist` APIs.
+        if by in ([], ()):
+            raise ValueError("No group keys passed!")
+        self.by = com.maybe_make_list(by)
+
+        # Assign the rest of columns into self.columns if by is explicitly defined
+        # while column is not, only need `columns` in hist/box plot when it's DF
+        # TODO: Might deprecate `column` argument in future PR (#28373)
+        if isinstance(data, DataFrame):
+            if column:
+                self.columns = com.maybe_make_list(column)
+            else:
+                if self.by is None:
+                    self.columns = [
+                        col for col in data.columns if is_numeric_dtype(data[col])
+                    ]
+                else:
+                    self.columns = [
+                        col
+                        for col in data.columns
+                        if col not in self.by and is_numeric_dtype(data[col])
+                    ]
+
+        # For `hist` plot, need to get grouped original data before `self.data` is
+        # updated later
+        if self.by is not None and self._kind == "hist":
+            self._grouped = data.groupby(self.by)
 
         self.kind = kind
 
         self.sort_columns = sort_columns
-
-        self.subplots = subplots
+        self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
-            if ax is None:
+
+            # if by is defined, subplots are used and sharex should be False
+            if ax is None and by is None:
                 self.sharex = True
             else:
                 # if we get an axis, the users should do the visibility
@@ -180,8 +223,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles: List[Artist] = []
-        self.legend_labels: List[Hashable] = []
+        self.legend_handles: list[Artist] = []
+        self.legend_labels: list[Hashable] = []
 
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
@@ -222,6 +265,112 @@ class MPLPlot:
         self.kwds = kwds
 
         self._validate_color_args()
+
+    def _validate_subplots_kwarg(
+        self, subplots: bool | Sequence[Sequence[str]]
+    ) -> bool | list[tuple[int, ...]]:
+        """
+        Validate the subplots parameter
+
+        - check type and content
+        - check for duplicate columns
+        - check for invalid column names
+        - convert column names into indices
+        - add missing columns in a group of their own
+        See comments in code below for more details.
+
+        Parameters
+        ----------
+        subplots : subplots parameters as passed to PlotAccessor
+
+        Returns
+        -------
+        validated subplots : a bool or a list of tuples of column indices. Columns
+        in the same tuple will be grouped together in the resulting plot.
+        """
+
+        if isinstance(subplots, bool):
+            return subplots
+        elif not isinstance(subplots, Iterable):
+            raise ValueError("subplots should be a bool or an iterable")
+
+        supported_kinds = (
+            "line",
+            "bar",
+            "barh",
+            "hist",
+            "kde",
+            "density",
+            "area",
+            "pie",
+        )
+        if self._kind not in supported_kinds:
+            raise ValueError(
+                "When subplots is an iterable, kind must be "
+                f"one of {', '.join(supported_kinds)}. Got {self._kind}."
+            )
+
+        if isinstance(self.data, ABCSeries):
+            raise NotImplementedError(
+                "An iterable subplots for a Series is not supported."
+            )
+
+        columns = self.data.columns
+        if isinstance(columns, ABCMultiIndex):
+            raise NotImplementedError(
+                "An iterable subplots for a DataFrame with a MultiIndex column "
+                "is not supported."
+            )
+
+        if columns.nunique() != len(columns):
+            raise NotImplementedError(
+                "An iterable subplots for a DataFrame with non-unique column "
+                "labels is not supported."
+            )
+
+        # subplots is a list of tuples where each tuple is a group of
+        # columns to be grouped together (one ax per group).
+        # we consolidate the subplots list such that:
+        # - the tuples contain indices instead of column names
+        # - the columns that aren't yet in the list are added in a group
+        #   of their own.
+        # For example with columns from a to g, and
+        # subplots = [(a, c), (b, f, e)],
+        # we end up with [(ai, ci), (bi, fi, ei), (di,), (gi,)]
+        # This way, we can handle self.subplots in a homogeneous manner
+        # later.
+        # TODO: also accept indices instead of just names?
+
+        out = []
+        seen_columns: set[Hashable] = set()
+        for group in subplots:
+            if not is_list_like(group):
+                raise ValueError(
+                    "When subplots is an iterable, each entry "
+                    "should be a list/tuple of column names."
+                )
+            idx_locs = columns.get_indexer_for(group)
+            if (idx_locs == -1).any():
+                bad_labels = np.extract(idx_locs == -1, group)
+                raise ValueError(
+                    f"Column label(s) {list(bad_labels)} not found in the DataFrame."
+                )
+            else:
+                unique_columns = set(group)
+                duplicates = seen_columns.intersection(unique_columns)
+                if duplicates:
+                    raise ValueError(
+                        "Each column should be in only one subplot. "
+                        f"Columns {duplicates} were found in multiple subplots."
+                    )
+                seen_columns = seen_columns.union(unique_columns)
+                out.append(tuple(idx_locs))
+
+        unseen_columns = columns.difference(seen_columns)
+        for column in unseen_columns:
+            idx_loc = columns.get_loc(column)
+            out.append((idx_loc,))
+        return out
 
     def _validate_color_args(self):
         if (
@@ -276,15 +425,22 @@ class MPLPlot:
 
     @property
     def nseries(self) -> int:
+
+        # When `by` is explicitly assigned, grouped data size will be defined, and
+        # this will determine number of subplots to have, aka `self.nseries`
         if self.data.ndim == 1:
             return 1
+        elif self.by is not None and self._kind == "hist":
+            return len(self._grouped)
+        elif self.by is not None and self._kind == "box":
+            return len(self.columns)
         else:
             return self.data.shape[1]
 
-    def draw(self):
+    def draw(self) -> None:
         self.plt.draw_if_interactive()
 
-    def generate(self):
+    def generate(self) -> None:
         self._args_adjust()
         self._compute_plot_data()
         self._setup_subplots()
@@ -334,8 +490,11 @@ class MPLPlot:
 
     def _setup_subplots(self):
         if self.subplots:
+            naxes = (
+                self.nseries if isinstance(self.subplots, bool) else len(self.subplots)
+            )
             fig, axes = create_subplots(
-                naxes=self.nseries,
+                naxes=naxes,
                 sharex=self.sharex,
                 sharey=self.sharey,
                 figsize=self.figsize,
@@ -388,8 +547,11 @@ class MPLPlot:
                 return self.axes
         else:
             sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
+            # error: Argument 1 to "len" has incompatible type "Union[bool,
+            # Tuple[Any, ...], List[Any], ndarray[Any, Any]]"; expected "Sized"
             all_sec = (
-                is_list_like(self.secondary_y) and len(self.secondary_y) == self.nseries
+                is_list_like(self.secondary_y)
+                and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
             )
             if sec_true or all_sec:
                 # if all data is plotted on secondary, return right axes
@@ -421,8 +583,20 @@ class MPLPlot:
         if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
-                label = "None"
-            data = data.to_frame(name=label)
+                label = ""
+            if label is None:
+                # We'll end up with columns of [0] instead of [None]
+                data = data.to_frame()
+            else:
+                data = data.to_frame(name=label)
+        elif self._kind in ("hist", "box"):
+            cols = self.columns if self.by is None else self.columns + self.by
+            data = data.loc[:, cols]
+
+        # GH15079 reconstruct data if by is defined
+        if self.by is not None:
+            self.subplots = True
+            data = reconstruct_data_with_by(self.data, by=self.by, cols=self.columns)
 
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
@@ -508,6 +682,7 @@ class MPLPlot:
             )
 
         for ax in self.axes:
+            ax = getattr(ax, "right_ax", ax)
             if self.yticks is not None:
                 ax.set_yticks(self.yticks)
 
@@ -569,7 +744,7 @@ class MPLPlot:
                     label.set_fontsize(fontsize)
 
     @property
-    def legend_title(self) -> Optional[str]:
+    def legend_title(self) -> str | None:
         if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
@@ -579,16 +754,27 @@ class MPLPlot:
             stringified = map(pprint_thing, self.data.columns.names)
             return ",".join(stringified)
 
-    def _add_legend_handle(self, handle, label, index=None):
-        if label is not None:
-            if self.mark_right and index is not None:
-                if self.on_right(index):
-                    label = label + " (right)"
-            self.legend_handles.append(handle)
-            self.legend_labels.append(label)
+    def _mark_right_label(self, label: str, index: int) -> str:
+        """
+        Append ``(right)`` to the label of a line if it's plotted on the right axis.
 
-    def _make_legend(self):
-        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
+        Note that ``(right)`` is only appended when ``subplots=False``.
+        """
+        if not self.subplots and self.mark_right and self.on_right(index):
+            label += " (right)"
+        return label
+
+    def _append_legend_handles_labels(self, handle: Artist, label: str) -> None:
+        """
+        Append current handle and label to ``legend_handles`` and ``legend_labels``.
+
+        These will be used to make the legend.
+        """
+        self.legend_handles.append(handle)
+        self.legend_labels.append(label)
+
+    def _make_legend(self) -> None:
+        ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
         labels = []
@@ -598,25 +784,16 @@ class MPLPlot:
             if leg is not None:
                 title = leg.get_title().get_text()
                 # Replace leg.LegendHandles because it misses marker info
-                handles.extend(handle)
+                handles = leg.legendHandles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
                 if self.legend == "reverse":
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Any]", variable has type "List[Any]")
-                    self.legend_handles = reversed(  # type: ignore[assignment]
-                        self.legend_handles
-                    )
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Optional[Hashable]]", variable has type
-                    # "List[Optional[Hashable]]")
-                    self.legend_labels = reversed(  # type: ignore[assignment]
-                        self.legend_labels
-                    )
-
-                handles += self.legend_handles
-                labels += self.legend_labels
+                    handles += reversed(self.legend_handles)
+                    labels += reversed(self.legend_labels)
+                else:
+                    handles += self.legend_handles
+                    labels += self.legend_labels
 
                 if self.legend_title is not None:
                     title = self.legend_title
@@ -629,14 +806,12 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend_handle(self, ax: Axes):
+    def _get_ax_legend(self, ax: Axes):
         """
-        Take in axes and return ax, legend and handle under different scenarios
+        Take in axes and return ax and legend under different scenarios
         """
         leg = ax.get_legend()
 
-        # Get handle from axes
-        handle, _ = ax.get_legend_handles_labels()
         other_ax = getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
         other_leg = None
         if other_ax is not None:
@@ -644,7 +819,7 @@ class MPLPlot:
         if leg is None and other_leg is not None:
             leg = other_leg
             ax = other_ax
-        return ax, leg, handle
+        return ax, leg
 
     @cache_readonly
     def plt(self):
@@ -684,7 +859,9 @@ class MPLPlot:
 
     @classmethod
     @register_pandas_matplotlib_converters
-    def _plot(cls, ax: Axes, x, y, style=None, is_errorbar: bool = False, **kwds):
+    def _plot(
+        cls, ax: Axes, x, y: np.ndarray, style=None, is_errorbar: bool = False, **kwds
+    ):
         mask = isna(y)
         if mask.any():
             y = np.ma.array(y)
@@ -700,19 +877,19 @@ class MPLPlot:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is
-            # unsupported
-            if style is not None:
-                args = (x, y, style)
-            else:
-                args = (x, y)  # type: ignore[assignment]
+            # prevent style kwarg from going to errorbar, where it is unsupported
+            args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
-    def _get_index_name(self) -> Optional[str]:
+    def _get_custom_index_name(self):
+        """Specify whether xlabel/ylabel should be used to override index name"""
+        return self.xlabel
+
+    def _get_index_name(self) -> str | None:
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if com.any_not_none(*name):
-                name = ",".join(pprint_thing(x) for x in name)
+                name = ",".join([pprint_thing(x) for x in name])
             else:
                 name = None
         else:
@@ -720,9 +897,10 @@ class MPLPlot:
             if name is not None:
                 name = pprint_thing(name)
 
-        # GH 9093, override the default xlabel if xlabel is provided.
-        if self.xlabel is not None:
-            name = pprint_thing(self.xlabel)
+        # GH 45145, override the default axis label if one is provided.
+        index_name = self._get_custom_index_name()
+        if index_name is not None:
+            name = pprint_thing(index_name)
 
         return name
 
@@ -734,9 +912,23 @@ class MPLPlot:
         else:
             return getattr(ax, "right_ax", ax)
 
+    def _col_idx_to_axis_idx(self, col_idx: int) -> int:
+        """Return the index of the axis where the column at col_idx should be plotted"""
+        if isinstance(self.subplots, list):
+            # Subplots is a list: some columns will be grouped together in the same ax
+            return next(
+                group_idx
+                for (group_idx, group) in enumerate(self.subplots)
+                if col_idx in group
+            )
+        else:
+            # subplots is True: one ax per column
+            return col_idx
+
     def _get_ax(self, i: int):
         # get the twinx ax if appropriate
         if self.subplots:
+            i = self._col_idx_to_axis_idx(i)
             ax = self.axes[i]
             ax = self._maybe_right_yaxis(ax, i)
             self.axes[i] = ax
@@ -748,7 +940,7 @@ class MPLPlot:
         return ax
 
     @classmethod
-    def get_default_ax(cls, ax):
+    def get_default_ax(cls, ax) -> None:
         import matplotlib.pyplot as plt
 
         if ax is None and len(plt.get_fignums()) > 0:
@@ -915,7 +1107,7 @@ class MPLPlot:
             ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
         ]
 
-    def _get_axes_layout(self) -> Tuple[int, int]:
+    def _get_axes_layout(self) -> tuple[int, int]:
         axes = self._get_subplots()
         x_set = set()
         y_set = set()
@@ -927,14 +1119,14 @@ class MPLPlot:
         return (len(y_set), len(x_set))
 
 
-class PlanePlot(MPLPlot):
+class PlanePlot(MPLPlot, ABC):
     """
     Abstract class for plotting on plane, currently scatter and hexbin.
     """
 
     _layout_type = "single"
 
-    def __init__(self, data, x, y, **kwargs):
+    def __init__(self, data, x, y, **kwargs) -> None:
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
@@ -981,35 +1173,15 @@ class PlanePlot(MPLPlot):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
-        cbar = self.fig.colorbar(img, ax=ax, **kwds)
-
-        if mpl_ge_3_0_0():
-            # The workaround below is no longer necessary.
-            return cbar
-
-        points = ax.get_position().get_points()
-        cbar_points = cbar.ax.get_position().get_points()
-
-        cbar.ax.set_position(
-            [
-                cbar_points[0, 0],
-                points[0, 1],
-                cbar_points[1, 0] - cbar_points[0, 0],
-                points[1, 1] - points[0, 1],
-            ]
-        )
-        # To see the discrepancy in axis heights uncomment
-        # the following two lines:
-        # print(points[1, 1] - points[0, 1])
-        # print(cbar_points[1, 1] - cbar_points[0, 1])
-
-        return cbar
+        return self.fig.colorbar(img, ax=ax, **kwds)
 
 
 class ScatterPlot(PlanePlot):
-    _kind = "scatter"
+    @property
+    def _kind(self) -> Literal["scatter"]:
+        return "scatter"
 
-    def __init__(self, data, x, y, s=None, c=None, **kwargs):
+    def __init__(self, data, x, y, s=None, c=None, **kwargs) -> None:
         if s is None:
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
@@ -1054,7 +1226,7 @@ class ScatterPlot(PlanePlot):
             bounds = np.linspace(0, n_cats, n_cats + 1)
             norm = colors.BoundaryNorm(bounds, cmap.N)
         else:
-            norm = None
+            norm = self.kwds.pop("norm", None)
         # plot colorbar if
         # 1. colormap is assigned, and
         # 2.`c` is a column containing only numeric values
@@ -1082,7 +1254,7 @@ class ScatterPlot(PlanePlot):
                 cbar.ax.set_yticklabels(self.data[c].cat.categories)
 
         if label is not None:
-            self._add_legend_handle(scatter, label)
+            self._append_legend_handles_labels(scatter, label)
         else:
             self.legend = False
 
@@ -1095,9 +1267,11 @@ class ScatterPlot(PlanePlot):
 
 
 class HexBinPlot(PlanePlot):
-    _kind = "hexbin"
+    @property
+    def _kind(self) -> Literal["hexbin"]:
+        return "hexbin"
 
-    def __init__(self, data, x, y, C=None, **kwargs):
+    def __init__(self, data, x, y, C=None, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
         if is_integer(C) and not self.data.columns.holds_integer():
             C = self.data.columns[C]
@@ -1125,11 +1299,17 @@ class HexBinPlot(PlanePlot):
 
 
 class LinePlot(MPLPlot):
-    _kind = "line"
     _default_rot = 0
-    orientation = "vertical"
 
-    def __init__(self, data, **kwargs):
+    @property
+    def orientation(self) -> PlottingOrientation:
+        return "vertical"
+
+    @property
+    def _kind(self) -> Literal["line", "area", "hist", "kde", "box"]:
+        return "line"
+
+    def __init__(self, data, **kwargs) -> None:
         from pandas.plotting import plot_params
 
         MPLPlot.__init__(self, data, **kwargs)
@@ -1174,6 +1354,7 @@ class LinePlot(MPLPlot):
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)  # .encode('utf-8')
+            label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 
             newlines = plotf(
@@ -1186,7 +1367,7 @@ class LinePlot(MPLPlot):
                 is_errorbar=is_errorbar,
                 **kwds,
             )
-            self._add_legend_handle(newlines[0], label, index=i)
+            self._append_legend_handles_labels(newlines[0], label)
 
             if self._is_ts_plot():
 
@@ -1196,8 +1377,9 @@ class LinePlot(MPLPlot):
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls, ax: Axes, x, y, style=None, column_num=None, stacking_id=None, **kwds
     ):
         # column_num is used to get the target column from plotf in line and
@@ -1209,8 +1391,7 @@ class LinePlot(MPLPlot):
         cls._update_stacker(ax, stacking_id, y)
         return lines
 
-    @classmethod
-    def _ts_plot(cls, ax: Axes, x, data, style=None, **kwds):
+    def _ts_plot(self, ax: Axes, x, data, style=None, **kwds):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
@@ -1223,9 +1404,9 @@ class LinePlot(MPLPlot):
             decorate_axes(ax.left_ax, freq, kwds)
         if hasattr(ax, "right_ax"):
             decorate_axes(ax.right_ax, freq, kwds)
-        ax._plot_data.append((data, cls._kind, kwds))
+        ax._plot_data.append((data, self._kind, kwds))
 
-        lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
+        lines = self._plot(ax, data.index, data.values, style=style, **kwds)
         # set date formatter, locators and rescale limits
         format_dateaxis(ax, ax.freq, data.index)
         return lines
@@ -1317,9 +1498,11 @@ class LinePlot(MPLPlot):
 
 
 class AreaPlot(LinePlot):
-    _kind = "area"
+    @property
+    def _kind(self) -> Literal["area"]:
+        return "area"
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
         data = data.fillna(value=0)
         LinePlot.__init__(self, data, **kwargs)
@@ -1331,8 +1514,9 @@ class AreaPlot(LinePlot):
         if self.logy or self.loglog:
             raise ValueError("Log-y scales are not supported in area plot")
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
         x,
@@ -1340,7 +1524,7 @@ class AreaPlot(LinePlot):
         style=None,
         column_num=None,
         stacking_id=None,
-        is_errorbar=False,
+        is_errorbar: bool = False,
         **kwds,
     ):
 
@@ -1389,11 +1573,17 @@ class AreaPlot(LinePlot):
 
 
 class BarPlot(MPLPlot):
-    _kind = "bar"
-    _default_rot = 90
-    orientation = "vertical"
+    @property
+    def _kind(self) -> Literal["bar", "barh"]:
+        return "bar"
 
-    def __init__(self, data, **kwargs):
+    _default_rot = 90
+
+    @property
+    def orientation(self) -> PlottingOrientation:
+        return "vertical"
+
+    def __init__(self, data, **kwargs) -> None:
         # we have to treat a series differently than a
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
@@ -1431,8 +1621,11 @@ class BarPlot(MPLPlot):
         if is_list_like(self.left):
             self.left = np.array(self.left)
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(cls, ax: Axes, x, y, w, start=0, log=False, **kwds):
+    def _plot(  # type: ignore[override]
+        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+    ):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
     @property
@@ -1462,6 +1655,7 @@ class BarPlot(MPLPlot):
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)
+            label = self._mark_right_label(label, index=i)
 
             if (("yerr" in kwds) or ("xerr" in kwds)) and (kwds.get("ecolor") is None):
                 kwds["ecolor"] = mpl.rcParams["xtick.color"]
@@ -1512,19 +1706,18 @@ class BarPlot(MPLPlot):
                     log=self.log,
                     **kwds,
                 )
-            self._add_legend_handle(rect, label, index=i)
+            self._append_legend_handles_labels(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data):
         if self.use_index:
             str_index = [pprint_thing(key) for key in data.index]
         else:
             str_index = [pprint_thing(key) for key in range(data.shape[0])]
-        name = self._get_index_name()
 
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
+        self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
@@ -1540,17 +1733,29 @@ class BarPlot(MPLPlot):
 
 
 class BarhPlot(BarPlot):
-    _kind = "barh"
+    @property
+    def _kind(self) -> Literal["barh"]:
+        return "barh"
+
     _default_rot = 0
-    orientation = "horizontal"
+
+    @property
+    def orientation(self) -> Literal["horizontal"]:
+        return "horizontal"
 
     @property
     def _start_base(self):
         return self.left
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(cls, ax: Axes, x, y, w, start=0, log=False, **kwds):
+    def _plot(  # type: ignore[override]
+        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+    ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
+
+    def _get_custom_index_name(self):
+        return self.ylabel
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         # horizontal bars
@@ -1559,13 +1764,17 @@ class BarhPlot(BarPlot):
         ax.set_yticklabels(ticklabels)
         if name is not None and self.use_index:
             ax.set_ylabel(name)
+        ax.set_xlabel(self.xlabel)
 
 
 class PiePlot(MPLPlot):
-    _kind = "pie"
+    @property
+    def _kind(self) -> Literal["pie"]:
+        return "pie"
+
     _layout_type = "horizontal"
 
-    def __init__(self, data, kind=None, **kwargs):
+    def __init__(self, data, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
         if (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
@@ -1606,9 +1815,7 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "List[Any]")
-                blabels = None  # type: ignore[assignment]
+                blabels = None
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
@@ -1624,4 +1831,4 @@ class PiePlot(MPLPlot):
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
             for p, l in zip(patches, leglabels):
-                self._add_legend_handle(p, l)
+                self._append_legend_handles_labels(p, l)

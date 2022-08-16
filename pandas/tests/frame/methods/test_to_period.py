@@ -21,8 +21,7 @@ class TestToPeriod:
             np.random.randn(len(dr), K), index=dr, columns=["A", "B", "C", "D", "E"]
         )
         obj["mix"] = "a"
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         pts = obj.to_period()
         exp = obj.copy()
@@ -41,8 +40,7 @@ class TestToPeriod:
         )
 
         obj = DataFrame(np.random.randn(4, 4), index=idx, columns=idx)
-        if frame_or_series is Series:
-            obj = obj[idx[0]]
+        obj = tm.get_obj(obj, frame_or_series)
         expected = obj.copy()
         expected.index = exp_idx
         tm.assert_equal(obj.to_period(), expected)

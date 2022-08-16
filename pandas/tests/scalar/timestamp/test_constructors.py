@@ -2,6 +2,7 @@ import calendar
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 
 import dateutil.tz
@@ -10,19 +11,60 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
     Period,
     Timedelta,
     Timestamp,
-    compat,
 )
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 
 
 class TestTimestampConstructors:
+    @pytest.mark.parametrize("typ", [int, float])
+    def test_constructor_int_float_with_YM_unit(self, typ):
+        # GH#47266 avoid the conversions in cast_from_unit
+        val = typ(150)
+
+        ts = Timestamp(val, unit="Y")
+        expected = Timestamp("2120-01-01")
+        assert ts == expected
+
+        ts = Timestamp(val, unit="M")
+        expected = Timestamp("1982-07-01")
+        assert ts == expected
+
+    def test_constructor_float_not_round_with_YM_unit_deprecated(self):
+        # GH#47267 avoid the conversions in cast_from-unit
+
+        with tm.assert_produces_warning(FutureWarning, match="ambiguous"):
+            Timestamp(150.5, unit="Y")
+
+        with tm.assert_produces_warning(FutureWarning, match="ambiguous"):
+            Timestamp(150.5, unit="M")
+
+    def test_constructor_datetime64_with_tz(self):
+        # GH#42288, GH#24559
+        dt = np.datetime64("1970-01-01 05:00:00")
+        tzstr = "UTC+05:00"
+
+        msg = "interpreted as a wall time"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ts = Timestamp(dt, tz=tzstr)
+
+        # Check that we match the old behavior
+        alt = Timestamp(dt).tz_localize("UTC").tz_convert(tzstr)
+        assert ts == alt
+
+        # Check that we *don't* match the future behavior
+        assert ts.hour != 5
+        expected_future = Timestamp(dt).tz_localize(tzstr)
+        assert ts != expected_future
+
     def test_constructor(self):
         base_str = "2014-07-01 09:00"
         base_dt = datetime(2014, 7, 1, 9)
@@ -194,11 +236,13 @@ class TestTimestampConstructors:
             Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
         msg = "Invalid frequency:"
+        msg2 = "The 'freq' argument"
         with pytest.raises(ValueError, match=msg):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
-            Timestamp("2012-01-01", "US/Pacific")
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                Timestamp("2012-01-01", "US/Pacific")
 
     def test_constructor_strptime(self):
         # GH25016
@@ -221,9 +265,32 @@ class TestTimestampConstructors:
         ]
         assert all(ts == stamps[0] for ts in stamps)
 
+    def test_constructor_positional_with_tzinfo(self):
+        # GH#31929
+        ts = Timestamp(2020, 12, 31, tzinfo=timezone.utc)
+        expected = Timestamp("2020-12-31", tzinfo=timezone.utc)
+        assert ts == expected
+
+    @pytest.mark.xfail(reason="GH#45307")
+    @pytest.mark.parametrize("kwd", ["nanosecond", "microsecond", "second", "minute"])
+    def test_constructor_positional_keyword_mixed_with_tzinfo(self, kwd):
+        # TODO: if we passed microsecond with a keyword we would mess up
+        #  xref GH#45307
+        kwargs = {kwd: 4}
+        ts = Timestamp(2020, 12, 31, tzinfo=timezone.utc, **kwargs)
+
+        td_kwargs = {kwd + "s": 4}
+        td = Timedelta(**td_kwargs)
+        expected = Timestamp("2020-12-31", tz=timezone.utc) + td
+        assert ts == expected
+
     def test_constructor_positional(self):
         # see gh-10758
-        msg = "an integer is required"
+        msg = (
+            "'NoneType' object cannot be interpreted as an integer"
+            if PY310
+            else "an integer is required"
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(2000, 1)
 
@@ -267,21 +334,20 @@ class TestTimestampConstructors:
             Timestamp("20151112")
         )
 
-        assert (
-            repr(
-                Timestamp(
-                    year=2015,
-                    month=11,
-                    day=12,
-                    hour=1,
-                    minute=2,
-                    second=3,
-                    microsecond=999999,
-                )
+        assert repr(
+            Timestamp(
+                year=2015,
+                month=11,
+                day=12,
+                hour=1,
+                minute=2,
+                second=3,
+                microsecond=999999,
             )
-            == repr(Timestamp("2015-11-12 01:02:03.999999"))
-        )
+        ) == repr(Timestamp("2015-11-12 01:02:03.999999"))
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
 
@@ -331,7 +397,9 @@ class TestTimestampConstructors:
                 tz="UTC",
             ),
             Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
+            # error: Argument 9 to "Timestamp" has incompatible type "_UTCclass";
+            # expected "Optional[int]"
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),  # type: ignore[arg-type]
         ],
     )
     def test_constructor_nanosecond(self, result):
@@ -430,6 +498,13 @@ class TestTimestampConstructors:
                 dt64 = np.datetime64(date_string, unit)
                 Timestamp(dt64)
 
+    @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
+    def test_out_of_bounds_string_consistency(self, arg):
+        # GH 15829
+        msg = "Out of bounds"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(arg)
+
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp
         Timestamp(Timestamp.min)
@@ -509,15 +584,18 @@ class TestTimestampConstructors:
 
     def test_construct_timestamp_preserve_original_frequency(self):
         # GH 22311
-        result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
+            result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
         expected = offsets.Day()
         assert result == expected
 
     def test_constructor_invalid_frequency(self):
         # GH 22311
         msg = "Invalid frequency:"
+        msg2 = "The 'freq' argument"
         with pytest.raises(ValueError, match=msg):
-            Timestamp("2012-01-01", freq=[])
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
@@ -547,10 +625,6 @@ class TestTimestampConstructors:
         expected = Timestamp(2000, 1, 1)
         assert result == expected
 
-    @pytest.mark.skipif(
-        not compat.PY38,
-        reason="datetime.fromisocalendar was added in Python version 3.8",
-    )
     def test_constructor_fromisocalendar(self):
         # GH 30395
         expected_timestamp = Timestamp("2000-01-03 00:00:00")

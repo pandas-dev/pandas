@@ -40,6 +40,22 @@ def test_floating_array_constructor():
         FloatingArray(values)
 
 
+def test_floating_array_disallows_float16():
+    # GH#44715
+    arr = np.array([1, 2], dtype=np.float16)
+    mask = np.array([False, False])
+
+    msg = "FloatingArray does not support np.float16 dtype"
+    with pytest.raises(TypeError, match=msg):
+        FloatingArray(arr, mask)
+
+
+def test_floating_array_disallows_Float16_dtype(request):
+    # GH#44715
+    with pytest.raises(TypeError, match="data type 'Float16' not understood"):
+        pd.array([1.0, 2.0], dtype="Float16")
+
+
 def test_floating_array_constructor_copy():
     values = np.array([1, 2, 3, 4], dtype="float64")
     mask = np.array([False, False, False, True], dtype="bool")
@@ -89,7 +105,6 @@ def test_to_array_mixed_integer_float():
     "values",
     [
         ["foo", "bar"],
-        ["1", "2"],
         "foo",
         1,
         1.0,
@@ -97,17 +112,35 @@ def test_to_array_mixed_integer_float():
         np.array(["foo"]),
         [[1, 2], [3, 4]],
         [np.nan, {"a": 1}],
+        # GH#44514 all-NA case used to get quietly swapped out before checking ndim
+        np.array([pd.NA] * 6, dtype=object).reshape(3, 2),
     ],
 )
 def test_to_array_error(values):
     # error in converting existing arrays to FloatingArray
-    msg = (
-        r"(:?.* cannot be converted to a FloatingDtype)"
-        r"|(:?values must be a 1D list-like)"
-        r"|(:?Cannot pass scalar)"
+    msg = "|".join(
+        [
+            "cannot be converted to FloatingDtype",
+            "values must be a 1D list-like",
+            "Cannot pass scalar",
+            r"float\(\) argument must be a string or a (real )?number, not 'dict'",
+            "could not convert string to float: 'foo'",
+        ]
     )
     with pytest.raises((TypeError, ValueError), match=msg):
         pd.array(values, dtype="Float64")
+
+
+@pytest.mark.parametrize("values", [["1", "2", None], ["1.5", "2", None]])
+def test_construct_from_float_strings(values):
+    # see also test_to_integer_array_str
+    expected = pd.array([float(values[0]), 2, None], dtype="Float64")
+
+    res = pd.array(values, dtype="Float64")
+    tm.assert_extension_array_equal(res, expected)
+
+    res = FloatingArray._from_sequence(values)
+    tm.assert_extension_array_equal(res, expected)
 
 
 def test_to_array_inferred_dtype():

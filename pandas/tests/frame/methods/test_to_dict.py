@@ -10,6 +10,8 @@ import pytz
 
 from pandas import (
     DataFrame,
+    Index,
+    MultiIndex,
     Series,
     Timestamp,
 )
@@ -81,7 +83,8 @@ class TestDataFrameToDict:
     def test_to_dict_short_orient_warns(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Using short name for 'orient' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
@@ -263,31 +266,158 @@ class TestDataFrameToDict:
         expected = {f"A_{i:d}": i for i in range(256)}
         assert result == expected
 
-    def test_to_dict_orient_dtype(self):
-        # GH22620 & GH21256
-
-        df = DataFrame(
-            {
-                "bool": [True, True, False],
-                "datetime": [
+    @pytest.mark.parametrize(
+        "data,dtype",
+        (
+            ([True, True, False], bool),
+            [
+                [
                     datetime(2018, 1, 1),
                     datetime(2019, 2, 2),
                     datetime(2020, 3, 3),
                 ],
-                "float": [1.0, 2.0, 3.0],
-                "int": [1, 2, 3],
-                "str": ["X", "Y", "Z"],
-            }
+                Timestamp,
+            ],
+            [[1.0, 2.0, 3.0], float],
+            [[1, 2, 3], int],
+            [["X", "Y", "Z"], str],
+        ),
+    )
+    def test_to_dict_orient_dtype(self, data, dtype):
+        # GH22620 & GH21256
+
+        df = DataFrame({"a": data})
+        d = df.to_dict(orient="records")
+        assert all(type(record["a"]) is dtype for record in d)
+
+    @pytest.mark.parametrize(
+        "data,expected_dtype",
+        (
+            [np.uint64(2), int],
+            [np.int64(-9), int],
+            [np.float64(1.1), float],
+            [np.bool_(True), bool],
+            [np.datetime64("2005-02-25"), Timestamp],
+        ),
+    )
+    def test_to_dict_scalar_constructor_orient_dtype(self, data, expected_dtype):
+        # GH22620 & GH21256
+
+        df = DataFrame({"a": data}, index=[0])
+        d = df.to_dict(orient="records")
+        result = type(d[0]["a"])
+        assert result is expected_dtype
+
+    def test_to_dict_mixed_numeric_frame(self):
+        # GH 12859
+        df = DataFrame({"a": [1.0], "b": [9.0]})
+        result = df.reset_index().to_dict("records")
+        expected = [{"index": 0, "a": 1.0, "b": 9.0}]
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            None,
+            Index(["aa", "bb"]),
+            Index(["aa", "bb"], name="cc"),
+            MultiIndex.from_tuples([("a", "b"), ("a", "c")]),
+            MultiIndex.from_tuples([("a", "b"), ("a", "c")], names=["n1", "n2"]),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            ["x", "y"],
+            Index(["x", "y"]),
+            Index(["x", "y"], name="z"),
+            MultiIndex.from_tuples([("x", 1), ("y", 2)]),
+            MultiIndex.from_tuples([("x", 1), ("y", 2)], names=["z1", "z2"]),
+        ],
+    )
+    def test_to_dict_orient_tight(self, index, columns):
+        df = DataFrame.from_records(
+            [[1, 3], [2, 4]],
+            columns=columns,
+            index=index,
         )
+        roundtrip = DataFrame.from_dict(df.to_dict(orient="tight"), orient="tight")
 
-        expected = {
-            "int": int,
-            "float": float,
-            "str": str,
-            "datetime": Timestamp,
-            "bool": bool,
-        }
+        tm.assert_frame_equal(df, roundtrip)
 
-        for df_dict in df.to_dict("records"):
-            result = {col: type(df_dict[col]) for col in list(df.columns)}
-            assert result == expected
+    @pytest.mark.parametrize(
+        "orient",
+        ["dict", "list", "split", "records", "index", "tight"],
+    )
+    @pytest.mark.parametrize(
+        "data,expected_types",
+        (
+            (
+                {
+                    "a": [np.int64(1), 1, np.int64(3)],
+                    "b": [np.float64(1.0), 2.0, np.float64(3.0)],
+                    "c": [np.float64(1.0), 2, np.int64(3)],
+                    "d": [np.float64(1.0), "a", np.int64(3)],
+                    "e": [np.float64(1.0), ["a"], np.int64(3)],
+                    "f": [np.float64(1.0), ("a",), np.int64(3)],
+                },
+                {
+                    "a": [int, int, int],
+                    "b": [float, float, float],
+                    "c": [float, float, float],
+                    "d": [float, str, int],
+                    "e": [float, list, int],
+                    "f": [float, tuple, int],
+                },
+            ),
+            (
+                {
+                    "a": [1, 2, 3],
+                    "b": [1.1, 2.2, 3.3],
+                },
+                {
+                    "a": [int, int, int],
+                    "b": [float, float, float],
+                },
+            ),
+        ),
+    )
+    def test_to_dict_returns_native_types(self, orient, data, expected_types):
+        # GH 46751
+        # Tests we get back native types for all orient types
+        df = DataFrame(data)
+        result = df.to_dict(orient)
+        if orient == "dict":
+            assertion_iterator = (
+                (i, key, value)
+                for key, index_value_map in result.items()
+                for i, value in index_value_map.items()
+            )
+        elif orient == "list":
+            assertion_iterator = (
+                (i, key, value)
+                for key, values in result.items()
+                for i, value in enumerate(values)
+            )
+        elif orient in {"split", "tight"}:
+            assertion_iterator = (
+                (i, key, result["data"][i][j])
+                for i in result["index"]
+                for j, key in enumerate(result["columns"])
+            )
+        elif orient == "records":
+            assertion_iterator = (
+                (i, key, value)
+                for i, record in enumerate(result)
+                for key, value in record.items()
+            )
+        elif orient == "index":
+            assertion_iterator = (
+                (i, key, value)
+                for i, record in result.items()
+                for key, value in record.items()
+            )
+
+        for i, key, value in assertion_iterator:
+            assert value == data[key][i]
+            assert type(value) is expected_types[key][i]

@@ -1,6 +1,22 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
+from typing import (
+    TYPE_CHECKING,
+    Iterator,
+)
 
 from pandas.plotting._core import _get_plot_backend
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+    import numpy as np
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
@@ -27,7 +43,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     )
 
 
-def register():
+def register() -> None:
     """
     Register pandas formatters and converters with matplotlib.
 
@@ -49,7 +65,7 @@ def register():
     plot_backend.register()
 
 
-def deregister():
+def deregister() -> None:
     """
     Remove pandas formatters and converters.
 
@@ -70,18 +86,18 @@ def deregister():
 
 
 def scatter_matrix(
-    frame,
-    alpha=0.5,
-    figsize=None,
-    ax=None,
-    grid=False,
-    diagonal="hist",
-    marker=".",
+    frame: DataFrame,
+    alpha: float = 0.5,
+    figsize: tuple[float, float] | None = None,
+    ax: Axes | None = None,
+    grid: bool = False,
+    diagonal: str = "hist",
+    marker: str = ".",
     density_kwds=None,
     hist_kwds=None,
-    range_padding=0.05,
+    range_padding: float = 0.05,
     **kwargs,
-):
+) -> np.ndarray:
     """
     Draw a matrix of scatter plots.
 
@@ -123,6 +139,22 @@ def scatter_matrix(
 
         >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
+        array([[<AxesSubplot:xlabel='A', ylabel='A'>,
+            <AxesSubplot:xlabel='B', ylabel='A'>,
+            <AxesSubplot:xlabel='C', ylabel='A'>,
+            <AxesSubplot:xlabel='D', ylabel='A'>],
+           [<AxesSubplot:xlabel='A', ylabel='B'>,
+            <AxesSubplot:xlabel='B', ylabel='B'>,
+            <AxesSubplot:xlabel='C', ylabel='B'>,
+            <AxesSubplot:xlabel='D', ylabel='B'>],
+           [<AxesSubplot:xlabel='A', ylabel='C'>,
+            <AxesSubplot:xlabel='B', ylabel='C'>,
+            <AxesSubplot:xlabel='C', ylabel='C'>,
+            <AxesSubplot:xlabel='D', ylabel='C'>],
+           [<AxesSubplot:xlabel='A', ylabel='D'>,
+            <AxesSubplot:xlabel='B', ylabel='D'>,
+            <AxesSubplot:xlabel='C', ylabel='D'>,
+            <AxesSubplot:xlabel='D', ylabel='D'>]], dtype=object)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.scatter_matrix(
@@ -140,7 +172,14 @@ def scatter_matrix(
     )
 
 
-def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
+def radviz(
+    frame: DataFrame,
+    class_column: str,
+    ax: Axes | None = None,
+    color: list[str] | tuple[str, ...] | None = None,
+    colormap=None,
+    **kwds,
+) -> Axes:
     """
     Plot a multidimensional dataset in 2D.
 
@@ -208,6 +247,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ...     }
         ... )
         >>> pd.plotting.radviz(df, 'Category')
+        <AxesSubplot:xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
@@ -221,11 +261,16 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
 
 def andrews_curves(
-    frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
-):
+    frame: DataFrame,
+    class_column: str,
+    ax: Axes | None = None,
+    samples: int = 200,
+    color: list[str] | tuple[str, ...] | None = None,
+    colormap=None,
+    **kwargs,
+) -> Axes:
     """
-    Generate a matplotlib plot of Andrews curves, for visualising clusters of
-    multivariate data.
+    Generate a matplotlib plot for visualising clusters of multivariate data.
 
     Andrews curves have the functional form:
 
@@ -263,9 +308,10 @@ def andrews_curves(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
+        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.andrews_curves(df, 'Name')
+        <AxesSubplot:title={'center':'width'}>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
@@ -279,7 +325,13 @@ def andrews_curves(
     )
 
 
-def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
+def bootstrap_plot(
+    series: Series,
+    fig: Figure | None = None,
+    size: int = 50,
+    samples: int = 500,
+    **kwds,
+) -> Figure:
     """
     Bootstrap plot on mean, median and mid-range statistics.
 
@@ -325,6 +377,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
         >>> s = pd.Series(np.random.uniform(size=100))
         >>> pd.plotting.bootstrap_plot(s)
+        <Figure size 640x480 with 6 Axes>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.bootstrap_plot(
@@ -333,19 +386,19 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
 
 def parallel_coordinates(
-    frame,
-    class_column,
-    cols=None,
-    ax=None,
-    color=None,
-    use_columns=False,
-    xticks=None,
+    frame: DataFrame,
+    class_column: str,
+    cols: list[str] | None = None,
+    ax: Axes | None = None,
+    color: list[str] | tuple[str, ...] | None = None,
+    use_columns: bool = False,
+    xticks: list | tuple | None = None,
     colormap=None,
-    axvlines=True,
+    axvlines: bool = True,
     axvlines_kwds=None,
-    sort_labels=False,
+    sort_labels: bool = False,
     **kwargs,
-):
+) -> Axes:
     """
     Parallel coordinates plotting.
 
@@ -387,11 +440,12 @@ def parallel_coordinates(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
+        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
         ... )
+        <AxesSubplot:xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(
@@ -410,7 +464,7 @@ def parallel_coordinates(
     )
 
 
-def lag_plot(series, lag=1, ax=None, **kwds):
+def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Axes:
     """
     Lag plot for time series.
 
@@ -440,6 +494,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
         >>> x = np.cumsum(np.random.normal(loc=1, scale=5, size=50))
         >>> s = pd.Series(x)
         >>> s.plot()
+        <AxesSubplot:xlabel='Midrange'>
 
     A lag plot with ``lag=1`` returns
 
@@ -447,12 +502,13 @@ def lag_plot(series, lag=1, ax=None, **kwds):
         :context: close-figs
 
         >>> pd.plotting.lag_plot(s, lag=1)
+        <AxesSubplot:xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
-def autocorrelation_plot(series, ax=None, **kwargs):
+def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
     """
     Autocorrelation plot for time series.
 
@@ -480,6 +536,7 @@ def autocorrelation_plot(series, ax=None, **kwargs):
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
         >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
         >>> pd.plotting.autocorrelation_plot(s)
+        <AxesSubplot:title={'center':'width'}, xlabel='Lag', ylabel='Autocorrelation'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
@@ -498,7 +555,7 @@ class _Options(dict):
     _ALIASES = {"x_compat": "xaxis.compat"}
     _DEFAULT_KEYS = ["xaxis.compat"]
 
-    def __init__(self, deprecated=False):
+    def __init__(self, deprecated: bool = False) -> None:
         self._deprecated = deprecated
         super().__setitem__("xaxis.compat", False)
 
@@ -508,21 +565,21 @@ class _Options(dict):
             raise ValueError(f"{key} is not a valid pandas plotting option")
         return super().__getitem__(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         key = self._get_canonical_key(key)
-        return super().__setitem__(key, value)
+        super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
             raise ValueError(f"Cannot remove default parameter {key}")
-        return super().__delitem__(key)
+        super().__delitem__(key)
 
     def __contains__(self, key) -> bool:
         key = self._get_canonical_key(key)
         return super().__contains__(key)
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the option store to its initial state
 
@@ -537,7 +594,7 @@ class _Options(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value):
+    def use(self, key, value) -> Iterator[_Options]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.

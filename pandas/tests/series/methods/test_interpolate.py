@@ -78,7 +78,7 @@ def interp_methods_ind(request):
 
 
 class TestSeriesInterpolateData:
-    def test_interpolate(self, datetime_series, string_series):
+    def test_interpolate(self, datetime_series):
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
         ts_copy = ts.copy()
@@ -642,7 +642,7 @@ class TestSeriesInterpolateData:
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
-        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
+        dti = date_range("2015-04-05", periods=3, tz="US/Central")
         ser = Series(dti)
         ser[1] = pd.NaT
         result = ser.interpolate(method="pad")
@@ -735,13 +735,13 @@ class TestSeriesInterpolateData:
 
     def test_series_interpolate_intraday(self):
         # #1698
-        index = pd.date_range("1/1/2012", periods=4, freq="12D")
+        index = date_range("1/1/2012", periods=4, freq="12D")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(days=1)).sort_values()
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = pd.date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12H")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")
@@ -778,7 +778,8 @@ class TestSeriesInterpolateData:
             with pytest.raises(ValueError, match=expected_error):
                 df[0].interpolate(method=method, **kwargs)
 
-    def test_interpolate_timedelta_index(self, interp_methods_ind):
+    @td.skip_if_no_scipy
+    def test_interpolate_timedelta_index(self, request, interp_methods_ind):
         """
         Tests for non numerical index types  - object, period, timedelta
         Note that all methods except time, index, nearest and values
@@ -789,17 +790,16 @@ class TestSeriesInterpolateData:
         df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
 
         method, kwargs = interp_methods_ind
-        if method == "pchip":
-            pytest.importorskip("scipy")
 
-        if method in {"linear", "pchip"}:
-            result = df[0].interpolate(method=method, **kwargs)
-            expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
-            tm.assert_series_equal(result, expected)
-        else:
-            pytest.skip(
-                "This interpolation method is not supported for Timedelta Index yet."
+        if method in {"cubic", "zero"}:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{method} interpolation is not supported for TimedeltaIndex"
+                )
             )
+        result = df[0].interpolate(method=method, **kwargs)
+        expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "ascending, expected_values",
@@ -810,4 +810,16 @@ class TestSeriesInterpolateData:
         ts = Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
         expected = Series(data=expected_values, index=expected_values, dtype=float)
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.interpolate except "
+            r"for the argument 'method' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.interpolate("pad", 0)
+        expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)

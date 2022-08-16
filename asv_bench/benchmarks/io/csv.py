@@ -10,6 +10,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    concat,
     date_range,
     read_csv,
     to_datetime,
@@ -54,6 +55,26 @@ class ToCSV(BaseIO):
         self.df.to_csv(self.fname)
 
 
+class ToCSVMultiIndexUnusedLevels(BaseIO):
+
+    fname = "__test__.csv"
+
+    def setup(self):
+        df = DataFrame({"a": np.random.randn(100_000), "b": 1, "c": 1})
+        self.df = df.set_index(["a", "b"])
+        self.df_unused_levels = self.df.iloc[:10_000]
+        self.df_single_index = df.set_index(["a"]).iloc[:10_000]
+
+    def time_full_frame(self):
+        self.df.to_csv(self.fname)
+
+    def time_sliced_frame(self):
+        self.df_unused_levels.to_csv(self.fname)
+
+    def time_single_index_frame(self):
+        self.df_single_index.to_csv(self.fname)
+
+
 class ToCSVDatetime(BaseIO):
 
     fname = "__test__.csv"
@@ -64,6 +85,21 @@ class ToCSVDatetime(BaseIO):
 
     def time_frame_date_formatting(self):
         self.data.to_csv(self.fname, date_format="%Y%m%d")
+
+
+class ToCSVDatetimeIndex(BaseIO):
+
+    fname = "__test__.csv"
+
+    def setup(self):
+        rng = date_range("2000", periods=100_000, freq="S")
+        self.data = DataFrame({"a": 1}, index=rng)
+
+    def time_frame_date_formatting_index(self):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d %H:%M:%S")
+
+    def time_frame_date_no_format_index(self):
+        self.data.to_csv(self.fname)
 
 
 class ToCSVDatetimeBig(BaseIO):
@@ -206,7 +242,7 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
 class ReadCSVSkipRows(BaseIO):
 
     fname = "__test__.csv"
-    params = ([None, 10000], ["c", "python"])
+    params = ([None, 10000], ["c", "python", "pyarrow"])
     param_names = ["skiprows", "engine"]
 
     def setup(self, skiprows, engine):
@@ -230,8 +266,8 @@ class ReadCSVSkipRows(BaseIO):
 
 class ReadUint64Integers(StringIORewind):
     def setup(self):
-        self.na_values = [2 ** 63 + 500]
-        arr = np.arange(10000).astype("uint64") + 2 ** 63
+        self.na_values = [2**63 + 500]
+        arr = np.arange(10000).astype("uint64") + 2**63
         self.data1 = StringIO("\n".join(arr.astype(str).tolist()))
         arr = arr.astype(object)
         arr[500] = -1
@@ -291,7 +327,8 @@ class ReadCSVFloatPrecision(StringIORewind):
 
     def setup(self, sep, decimal, float_precision):
         floats = [
-            "".join(random.choice(string.digits) for _ in range(28)) for _ in range(15)
+            "".join([random.choice(string.digits) for _ in range(28)])
+            for _ in range(15)
         ]
         rows = sep.join([f"0{decimal}" + "{}"] * 3) + "\n"
         data = rows * 5
@@ -319,7 +356,7 @@ class ReadCSVFloatPrecision(StringIORewind):
 
 
 class ReadCSVEngine(StringIORewind):
-    params = ["c", "python"]
+    params = ["c", "python", "pyarrow"]
     param_names = ["engine"]
 
     def setup(self, engine):
@@ -395,7 +432,7 @@ class ReadCSVCachedParseDates(StringIORewind):
     param_names = ["do_cache", "engine"]
 
     def setup(self, do_cache, engine):
-        data = ("\n".join(f"10/{year}" for year in range(2000, 2100)) + "\n") * 10
+        data = ("\n".join([f"10/{year}" for year in range(2000, 2100)]) + "\n") * 10
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_cached(self, do_cache, engine):
@@ -458,6 +495,34 @@ class ReadCSVParseSpecialDate(StringIORewind):
         )
 
 
+class ReadCSVMemMapUTF8:
+
+    fname = "__test__.csv"
+    number = 5
+
+    def setup(self):
+        lines = []
+        line_length = 128
+        start_char = " "
+        end_char = "\U00010080"
+        # This for loop creates a list of 128-char strings
+        # consisting of consecutive Unicode chars
+        for lnum in range(ord(start_char), ord(end_char), line_length):
+            line = "".join([chr(c) for c in range(lnum, lnum + 0x80)]) + "\n"
+            try:
+                line.encode("utf-8")
+            except UnicodeEncodeError:
+                # Some 16-bit words are not valid Unicode chars and must be skipped
+                continue
+            lines.append(line)
+        df = DataFrame(lines)
+        df = concat([df for n in range(100)], ignore_index=True)
+        df.to_csv(self.fname, index=False, header=False, encoding="utf-8")
+
+    def time_read_memmapped_utf8(self):
+        read_csv(self.fname, header=None, memory_map=True, encoding="utf-8", engine="c")
+
+
 class ParseDateComparison(StringIORewind):
     params = ([False, True],)
     param_names = ["cache_dates"]
@@ -493,6 +558,16 @@ class ParseDateComparison(StringIORewind):
             self.data(self.StringIO_input), dtype={"date": str}, names=["date"]
         )
         to_datetime(df["date"], cache=cache_dates, format="%d-%m-%Y")
+
+
+class ReadCSVIndexCol(StringIORewind):
+    def setup(self):
+        count_elem = 100_000
+        data = "a,b\n" + "1,2\n" * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_index_col(self):
+        read_csv(self.StringIO_input, index_col="a")
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

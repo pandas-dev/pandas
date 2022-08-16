@@ -1,45 +1,38 @@
 from __future__ import annotations
 
-import numbers
-from typing import (
-    Optional,
-    Tuple,
-    Union,
-)
-
 import numpy as np
-from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     NpDtype,
     Scalar,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    arraylike,
     nanops,
     ops,
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
-    NDArrayOperatorsMixin,
     ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
-
-    .. versionadded:: 0.24.0
 
     This is mostly for internal compatibility, and is not especially
     useful on its own.
@@ -67,11 +60,13 @@ class PandasArray(
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
+    _dtype: PandasDtype
+    _internal_fill_value = np.nan
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: Union[np.ndarray, PandasArray], copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -86,24 +81,33 @@ class PandasArray(
         if copy:
             values = values.copy()
 
-        self._ndarray = values
-        self._dtype = PandasDtype(values.dtype)
+        dtype = PandasDtype(values.dtype)
+        super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> PandasArray:
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
-        result = np.asarray(scalars, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
+        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"
+        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+        if (
+            result.ndim > 1
+            and not hasattr(scalars, "dtype")
+            and (dtype is None or dtype == object)
+        ):
+            # e.g. list-of-tuples
+            result = construct_1d_object_array_from_listlike(scalars)
+
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
-
-    @classmethod
-    def _from_factorized(cls, values, original) -> PandasArray:
-        return cls(values)
 
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
@@ -118,33 +122,34 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
-        for x in inputs + out:
-            # Only support operations with instances of _HANDLED_TYPES.
-            # Use PandasArray instead of type(self) for isinstance to
-            # allow subclasses that don't override __array_ufunc__ to
-            # handle PandasArray objects.
-            if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):
-                return NotImplemented
 
-        if ufunc not in [np.logical_or, np.bitwise_or, np.bitwise_xor]:
-            # For binary ops, use our custom dunder methods
-            # We haven't implemented logical dunder funcs, so exclude these
-            #  to avoid RecursionError
-            result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        if "out" in kwargs:
+            # e.g. test_ufunc_unary
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
                 self, ufunc, method, *inputs, **kwargs
             )
             if result is not NotImplemented:
+                # e.g. tests.series.test_ufunc.TestNumpyReductions
                 return result
 
         # Defer to the implementation of the ufunc on unwrapped values.
@@ -155,23 +160,22 @@ class PandasArray(
             )
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        if type(result) is tuple and len(result):
-            # multiple return values
-            if not lib.is_scalar(result[0]):
-                # re-box array-like results
-                return tuple(type(self)(x) for x in result)
-            else:
-                # but not scalar reductions
-                return result
+        if ufunc.nout > 1:
+            # multiple return values; re-box array-like results
+            return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value
             return None
-        else:
-            # one return value
-            if not lib.is_scalar(result):
-                # re-box array-like results, but not scalar reductions
-                result = type(self)(result)
+        elif method == "reduce":
+            if isinstance(result, np.ndarray):
+                # e.g. test_np_reduce_2d
+                return type(self)(result)
+
+            # e.g. test_np_max_nested_tuples
             return result
+        else:
+            # one return value; re-box array-like results
+            return type(self)(result)
 
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
@@ -179,50 +183,72 @@ class PandasArray(
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
-        return self._ndarray, -1
+    def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
+        if self.dtype.kind in ["i", "u", "b"]:
+            fv = None
+        else:
+            fv = np.nan
+        return self._ndarray, fv
 
     # ------------------------------------------------------------------------
     # Reductions
 
-    def any(self, *, axis=None, out=None, keepdims=False, skipna=True):
+    def any(
+        self,
+        *,
+        axis: int | None = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_any((), {"out": out, "keepdims": keepdims})
         result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def all(self, *, axis=None, out=None, keepdims=False, skipna=True):
+    def all(
+        self,
+        *,
+        axis: int | None = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_all((), {"out": out, "keepdims": keepdims})
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def sum(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def sum(
+        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
         return self._wrap_reduction_result(axis, result)
 
-    def prod(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def prod(
+        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
@@ -232,18 +258,24 @@ class PandasArray(
     def mean(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
         result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     def median(
-        self, *, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+        self,
+        *,
+        axis: int | None = None,
+        out=None,
+        overwrite_input: bool = False,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_median(
             (), {"out": out, "overwrite_input": overwrite_input, "keepdims": keepdims}
@@ -254,12 +286,12 @@ class PandasArray(
     def std(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
@@ -270,12 +302,12 @@ class PandasArray(
     def var(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
@@ -286,12 +318,12 @@ class PandasArray(
     def sem(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
@@ -302,11 +334,11 @@ class PandasArray(
     def kurt(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
@@ -317,11 +349,11 @@ class PandasArray(
     def skew(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
@@ -334,9 +366,9 @@ class PandasArray(
 
     def to_numpy(
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 
@@ -351,15 +383,27 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Ops
 
-    def __invert__(self):
+    def __invert__(self) -> PandasArray:
         return type(self)(~self._ndarray)
+
+    def __neg__(self) -> PandasArray:
+        return type(self)(-self._ndarray)
+
+    def __pos__(self) -> PandasArray:
+        return type(self)(+self._ndarray)
+
+    def __abs__(self) -> PandasArray:
+        return type(self)(abs(self._ndarray))
 
     def _cmp_method(self, other, op):
         if isinstance(other, PandasArray):
             other = other._ndarray
 
+        other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
-        result = pd_op(self._ndarray, other)
+        other = ensure_wrapped_if_datetimelike(other)
+        with np.errstate(all="ignore"):
+            result = pd_op(self._ndarray, other)
 
         if op is divmod or op is ops.rdivmod:
             a, b = result

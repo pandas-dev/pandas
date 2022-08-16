@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 class TestDataFrameUnaryOperators:
-    # __pos__, __neg__, __inv__
+    # __pos__, __neg__, __invert__
 
     @pytest.mark.parametrize(
         "df,expected",
@@ -49,7 +49,7 @@ class TestDataFrameUnaryOperators:
     def test_neg_raises(self, df):
         msg = (
             "bad operand type for unary -: 'str'|"
-            r"Unary negative expects numeric dtype, not datetime64\[ns\]"
+            r"bad operand type for unary -: 'DatetimeArray'"
         )
         with pytest.raises(TypeError, match=msg):
             (-df)
@@ -116,8 +116,53 @@ class TestDataFrameUnaryOperators:
         "df", [pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})]
     )
     def test_pos_raises(self, df):
-        msg = "Unary plus expects .* dtype, not datetime64\\[ns\\]"
+        msg = r"bad operand type for unary \+: 'DatetimeArray'"
         with pytest.raises(TypeError, match=msg):
             (+df)
         with pytest.raises(TypeError, match=msg):
             (+df["a"])
+
+    def test_unary_nullable(self):
+        df = pd.DataFrame(
+            {
+                "a": pd.array([1, -2, 3, pd.NA], dtype="Int64"),
+                "b": pd.array([4.0, -5.0, 6.0, pd.NA], dtype="Float32"),
+                "c": pd.array([True, False, False, pd.NA], dtype="boolean"),
+                # include numpy bool to make sure bool-vs-boolean behavior
+                #  is consistent in non-NA locations
+                "d": np.array([True, False, False, True]),
+            }
+        )
+
+        result = +df
+        res_ufunc = np.positive(df)
+        expected = df
+        # TODO: assert that we have copies?
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(res_ufunc, expected)
+
+        result = -df
+        res_ufunc = np.negative(df)
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([-1, 2, -3, pd.NA], dtype="Int64"),
+                "b": pd.array([-4.0, 5.0, -6.0, pd.NA], dtype="Float32"),
+                "c": pd.array([False, True, True, pd.NA], dtype="boolean"),
+                "d": np.array([False, True, True, False]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(res_ufunc, expected)
+
+        result = abs(df)
+        res_ufunc = np.abs(df)
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1, 2, 3, pd.NA], dtype="Int64"),
+                "b": pd.array([4.0, 5.0, 6.0, pd.NA], dtype="Float32"),
+                "c": pd.array([True, False, False, pd.NA], dtype="boolean"),
+                "d": np.array([True, False, False, True]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(res_ufunc, expected)

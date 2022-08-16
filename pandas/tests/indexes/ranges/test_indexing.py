@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import RangeIndex
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestGetIndexer:
@@ -55,7 +55,7 @@ class TestTake:
         # GH#12631
         idx = RangeIndex(1, 4, name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
+        expected = Int64Index([2, 1, 3], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # fill_value
@@ -65,7 +65,7 @@ class TestTake:
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
+        expected = Int64Index([2, 1, 3], name="xxx")
         tm.assert_index_equal(result, expected)
 
         msg = "Unable to fill values because RangeIndex cannot contain NA"
@@ -77,3 +77,17 @@ class TestTake:
         msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
+
+
+class TestWhere:
+    def test_where_putmask_range_cast(self):
+        # GH#43240
+        idx = RangeIndex(0, 5, name="test")
+
+        mask = np.array([True, True, False, False, False])
+        result = idx.putmask(mask, 10)
+        expected = Int64Index([10, 10, 2, 3, 4], name="test")
+        tm.assert_index_equal(result, expected)
+
+        result = idx.where(~mask, 10)
+        tm.assert_index_equal(result, expected)

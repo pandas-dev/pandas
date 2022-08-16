@@ -12,6 +12,8 @@ from pandas.compat import is_platform_linux
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_float_parser(all_parsers):
     # see gh-9565
@@ -28,8 +30,6 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
     df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
     parser, precision = all_parsers_all_precisions
-    if parser == "pyarrow":
-        pytest.skip()
 
     df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
     tm.assert_frame_equal(df_roundtrip, df)
@@ -39,8 +39,7 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
 def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
     # GH#38753
     parser, precision = all_parsers_all_precisions
-    if parser == "pyarrow":
-        pytest.skip()
+
     data = f"data\n10E{neg_exp}"
     result = parser.read_csv(StringIO(data), float_precision=precision)
     expected = DataFrame({"data": [0.0]})

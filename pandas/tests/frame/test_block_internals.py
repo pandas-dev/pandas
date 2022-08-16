@@ -2,13 +2,13 @@ from datetime import (
     datetime,
     timedelta,
 )
-from io import StringIO
 import itertools
 
 import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -30,6 +30,11 @@ from pandas.core.internals import (
 # structure
 
 
+# TODO(ArrayManager) check which of those tests need to be rewritten to test the
+# equivalent for ArrayManager
+pytestmark = td.skip_array_manager_invalid_test
+
+
 class TestDataFrameBlockInternals:
     def test_setitem_invalidates_datetime_index_freq(self):
         # GH#24096 altering a datetime64tz column inplace invalidates the
@@ -39,7 +44,7 @@ class TestDataFrameBlockInternals:
         ts = dti[1]
 
         df = DataFrame({"B": dti})
-        assert df["B"]._values.freq == "D"
+        assert df["B"]._values.freq is None
 
         df.iloc[1, 0] = pd.NaT
         assert df["B"]._values.freq is None
@@ -113,14 +118,14 @@ class TestDataFrameBlockInternals:
     def test_constructor_with_convert(self):
         # this is actually mostly a test of lib.maybe_convert_objects
         # #2845
-        df = DataFrame({"A": [2 ** 63 - 1]})
+        df = DataFrame({"A": [2**63 - 1]})
         result = df["A"]
-        expected = Series(np.asarray([2 ** 63 - 1], np.int64), name="A")
+        expected = Series(np.asarray([2**63 - 1], np.int64), name="A")
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame({"A": [2 ** 63]})
+        df = DataFrame({"A": [2**63]})
         result = df["A"]
-        expected = Series(np.asarray([2 ** 63], np.uint64), name="A")
+        expected = Series(np.asarray([2**63], np.uint64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [datetime(2005, 1, 1), True]})
@@ -252,8 +257,11 @@ class TestDataFrameBlockInternals:
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
-        f("int64")
-        f("float64")
+        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("int64")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("float64")
 
         # 10822
         # invalid error message on dt inference
@@ -280,15 +288,29 @@ class TestDataFrameBlockInternals:
     def test_consolidate_datetime64(self):
         # numpy vstack bug
 
-        data = (
-            "starting,ending,measure\n"
-            "2012-06-21 00:00,2012-06-23 07:00,77\n"
-            "2012-06-23 07:00,2012-06-23 16:30,65\n"
-            "2012-06-23 16:30,2012-06-25 08:00,77\n"
-            "2012-06-25 08:00,2012-06-26 12:00,0\n"
-            "2012-06-26 12:00,2012-06-27 08:00,77\n"
+        df = DataFrame(
+            {
+                "starting": pd.to_datetime(
+                    [
+                        "2012-06-21 00:00",
+                        "2012-06-23 07:00",
+                        "2012-06-23 16:30",
+                        "2012-06-25 08:00",
+                        "2012-06-26 12:00",
+                    ]
+                ),
+                "ending": pd.to_datetime(
+                    [
+                        "2012-06-23 07:00",
+                        "2012-06-23 16:30",
+                        "2012-06-25 08:00",
+                        "2012-06-26 12:00",
+                        "2012-06-27 08:00",
+                    ]
+                ),
+                "measure": [77, 65, 77, 0, 77],
+            }
         )
-        df = pd.read_csv(StringIO(data), parse_dates=[0, 1])
 
         ser_starting = df.starting
         ser_starting.index = ser_starting.values
@@ -330,8 +352,7 @@ class TestDataFrameBlockInternals:
             assert pd.isna(Y["g"]["c"])
 
     def test_strange_column_corruption_issue(self):
-        # FIXME: dont leave commented-out
-        # (wesm) Unclear how exactly this is related to internal matters
+        # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
@@ -382,7 +403,7 @@ def test_update_inplace_sets_valid_block_values():
     # inplace update of a single column
     df["a"].fillna(1, inplace=True)
 
-    # check we havent put a Series into any block.values
+    # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
     # smoketest for OP bug from GH#35731

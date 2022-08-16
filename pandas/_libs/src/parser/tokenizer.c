@@ -25,7 +25,8 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 #include "../headers/portable.h"
 
-void coliter_setup(coliter_t *self, parser_t *parser, int i, int start) {
+void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
+                   int64_t start) {
     // column i, starting at 0
     self->words = parser->words;
     self->col = i;
@@ -93,8 +94,7 @@ void parser_set_default_options(parser_t *self) {
     self->allow_embedded_newline = 1;
 
     self->expected_fields = -1;
-    self->error_bad_lines = 0;
-    self->warn_bad_lines = 0;
+    self->on_bad_lines = ERROR;
 
     self->commentchar = '#';
     self->thousands = '\0';
@@ -412,7 +412,7 @@ static void append_warning(parser_t *self, const char *msg) {
 static int end_line(parser_t *self) {
     char *msg;
     int64_t fields;
-    int ex_fields = self->expected_fields;
+    int64_t ex_fields = self->expected_fields;
     int64_t bufsize = 100;  // for error or warning messages
 
     fields = self->line_fields[self->lines];
@@ -446,7 +446,7 @@ static int end_line(parser_t *self) {
     }
 
     if (!(self->lines <= self->header_end + 1) &&
-        (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
+        (fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
 
@@ -457,23 +457,24 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
 
         // file_lines is now the actual file line number (starting at 1)
-        if (self->error_bad_lines) {
+        if (self->on_bad_lines == ERROR) {
             self->error_msg = malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "Expected %d fields in line %" PRIu64 ", saw %" PRId64 "\n",
-                    ex_fields, self->file_lines, fields);
+                    "Expected %" PRId64 " fields in line %" PRIu64 ", saw %"
+                    PRId64 "\n", ex_fields, self->file_lines, fields);
 
             TRACE(("Error at line %d, %d fields\n", self->file_lines, fields));
 
             return -1;
         } else {
             // simply skip bad lines
-            if (self->warn_bad_lines) {
+            if (self->on_bad_lines == WARN) {
                 // pass up error message
                 msg = malloc(bufsize);
                 snprintf(msg, bufsize,
-                        "Skipping line %" PRIu64 ": expected %d fields, saw %"
-                        PRId64 "\n", self->file_lines, ex_fields, fields);
+                        "Skipping line %" PRIu64 ": expected %" PRId64
+                        " fields, saw %" PRId64 "\n",
+                        self->file_lines, ex_fields, fields);
                 append_warning(self, msg);
                 free(msg);
             }
@@ -553,13 +554,15 @@ int parser_set_skipfirstnrows(parser_t *self, int64_t nrows) {
     return 0;
 }
 
-static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
+static int parser_buffer_bytes(parser_t *self, size_t nbytes,
+                               const char *encoding_errors) {
     int status;
     size_t bytes_read;
 
     status = 0;
     self->datapos = 0;
-    self->data = self->cb_io(self->source, nbytes, &bytes_read, &status);
+    self->data = self->cb_io(self->source, nbytes, &bytes_read, &status,
+                             encoding_errors);
     TRACE((
         "parser_buffer_bytes self->cb_io: nbytes=%zu, datalen: %d, status=%d\n",
         nbytes, bytes_read, status));
@@ -646,7 +649,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 #define END_LINE() END_LINE_STATE(START_RECORD)
 
 #define IS_TERMINATOR(c)                            \
-    (c == line_terminator)
+    (c == lineterminator)
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
@@ -715,7 +718,7 @@ int tokenize_bytes(parser_t *self,
     char *stream;
     char *buf = self->data + self->datapos;
 
-    const char line_terminator = (self->lineterminator == '\0') ?
+    const char lineterminator = (self->lineterminator == '\0') ?
             '\n' : self->lineterminator;
 
     // 1000 is something that couldn't fit in "char"
@@ -1334,7 +1337,8 @@ int parser_trim_buffers(parser_t *self) {
   all : tokenize all the data vs. certain number of rows
  */
 
-int _tokenize_helper(parser_t *self, size_t nrows, int all) {
+int _tokenize_helper(parser_t *self, size_t nrows, int all,
+                     const char *encoding_errors) {
     int status = 0;
     uint64_t start_lines = self->lines;
 
@@ -1350,7 +1354,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         if (!all && self->lines - start_lines >= nrows) break;
 
         if (self->datapos == self->datalen) {
-            status = parser_buffer_bytes(self, self->chunksize);
+            status = parser_buffer_bytes(self, self->chunksize,
+                                         encoding_errors);
 
             if (status == REACHED_EOF) {
                 // close out last line
@@ -1383,13 +1388,13 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     return status;
 }
 
-int tokenize_nrows(parser_t *self, size_t nrows) {
-    int status = _tokenize_helper(self, nrows, 0);
+int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) {
+    int status = _tokenize_helper(self, nrows, 0, encoding_errors);
     return status;
 }
 
-int tokenize_all_rows(parser_t *self) {
-    int status = _tokenize_helper(self, -1, 1);
+int tokenize_all_rows(parser_t *self, const char *encoding_errors) {
+    int status = _tokenize_helper(self, -1, 1, encoding_errors);
     return status;
 }
 
@@ -1781,6 +1786,8 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
     size_t length = strlen(s);
     char *s_copy = malloc(length + 1);
     char *dst = s_copy;
+    // Skip leading whitespace.
+    while (isspace_ascii(*p)) p++;
     // Copy Leading sign
     if (*p == '+' || *p == '-') {
         *dst++ = *p++;
@@ -1795,10 +1802,25 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
        *dst++ = '.';
        p++;
     }
-    // Copy the remainder of the string as is.
-    strncpy(dst, p, length + 1 - (p - s));
+    // Copy fractional part after decimal (if any)
+    while (isdigit_ascii(*p)) {
+       *dst++ = *p++;
+    }
+    // Copy exponent if any
+    if (toupper_ascii(*p) == toupper_ascii('E')) {
+       *dst++ = *p++;
+       // Copy leading exponent sign (if any)
+       if (*p == '+' || *p == '-') {
+           *dst++ = *p++;
+       }
+       // Copy exponent digits
+       while (isdigit_ascii(*p)) {
+           *dst++ = *p++;
+       }
+    }
+    *dst++ = '\0';  // terminate
     if (endpos != NULL)
-        *endpos = (char *)(s + length);
+        *endpos = (char *)p;
     return s_copy;
 }
 
@@ -1836,6 +1858,11 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
 
     PyGILState_Release(gstate);
     free(pc);
+    if (skip_trailing && q != NULL && *q != p) {
+        while (isspace_ascii(**q)) {
+            (*q)++;
+        }
+    }
     return r;
 }
 

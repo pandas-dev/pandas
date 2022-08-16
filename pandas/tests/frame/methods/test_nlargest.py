@@ -209,3 +209,31 @@ class TestNLargestNSmallest:
         result = df.nlargest(3, ("x", "b"))
         expected = df.iloc[[3, 2, 1]]
         tm.assert_frame_equal(result, expected)
+
+    def test_nlargest_nan(self):
+        # GH#43060
+        df = pd.DataFrame([np.nan, np.nan, 0, 1, 2, 3])
+        result = df.nlargest(5, 0)
+        expected = df.sort_values(0, ascending=False).head(5)
+        tm.assert_frame_equal(result, expected)
+
+    def test_nsmallest_nan_after_n_element(self):
+        # GH#46589
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3, 4, 5, None, 7],
+                "b": [7, 6, 5, 4, 3, 2, 1],
+                "c": [1, 1, 2, 2, 3, 3, 3],
+            },
+            index=range(7),
+        )
+        result = df.nsmallest(5, columns=["a", "b"])
+        expected = pd.DataFrame(
+            {
+                "a": [1, 2, 3, 4, 5],
+                "b": [7, 6, 5, 4, 3],
+                "c": [1, 1, 2, 2, 3],
+            },
+            index=range(5),
+        ).astype({"a": "float"})
+        tm.assert_frame_equal(result, expected)

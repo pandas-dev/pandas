@@ -13,8 +13,9 @@ import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
-    conversion,
+    astype_overflowsafe,
 )
+from pandas.compat import PY39
 
 import pandas as pd
 from pandas import (
@@ -30,6 +31,9 @@ from pandas.core.arrays import (
     DatetimeArray,
     period_array,
 )
+
+if PY39:
+    import zoneinfo
 
 
 class TestDatetimeIndex:
@@ -69,20 +73,20 @@ class TestDatetimeIndex:
 
     def test_categorical_preserves_tz(self):
         # GH#18664 retain tz when going DTI-->Categorical-->DTI
-        # TODO: parametrize over DatetimeIndex/DatetimeArray
-        #  once pd.CategoricalIndex(DTA) works
-
         dti = DatetimeIndex(
             [pd.NaT, "2015-01-01", "1999-04-06 15:14:13", "2015-01-01"], tz="US/Eastern"
         )
 
-        ci = pd.CategoricalIndex(dti)
-        carr = pd.Categorical(dti)
-        cser = pd.Series(ci)
+        for dtobj in [dti, dti._data]:
+            # works for DatetimeIndex or DatetimeArray
 
-        for obj in [ci, carr, cser]:
-            result = DatetimeIndex(obj)
-            tm.assert_index_equal(result, dti)
+            ci = pd.CategoricalIndex(dtobj)
+            carr = pd.Categorical(dtobj)
+            cser = pd.Series(ci)
+
+            for obj in [ci, carr, cser]:
+                result = DatetimeIndex(obj)
+                tm.assert_index_equal(result, dti)
 
     def test_dti_with_period_data_raises(self):
         # GH#23675
@@ -123,7 +127,9 @@ class TestDatetimeIndex:
             Timestamp("2016-05-01T01:00:00.000000"),
         ]
         arr = pd.arrays.SparseArray(values)
-        result = Index(arr)
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Index(arr)
         expected = DatetimeIndex(values)
         tm.assert_index_equal(result, expected)
 
@@ -515,7 +521,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
@@ -523,8 +529,8 @@ class TestDatetimeIndex:
     def test_construction_with_ndarray(self):
         # GH 5152
         dates = [datetime(2013, 10, 7), datetime(2013, 10, 8), datetime(2013, 10, 9)]
-        data = DatetimeIndex(dates, freq=pd.offsets.BDay()).values
-        result = DatetimeIndex(data, freq=pd.offsets.BDay())
+        data = DatetimeIndex(dates, freq=offsets.BDay()).values
+        result = DatetimeIndex(data, freq=offsets.BDay())
         expected = DatetimeIndex(["2013-10-07", "2013-10-08", "2013-10-09"], freq="B")
         tm.assert_index_equal(result, expected)
 
@@ -552,7 +558,7 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-        msg = "DatetimeIndex\\(\\) must be called with a collection"
+        msg = r"DatetimeIndex\(\.\.\.\) must be called with a collection"
         with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
 
@@ -919,6 +925,9 @@ class TestTimeSeries:
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
 
+        dta = DatetimeArray(rng, freq=None)
+        assert dta.freq is None
+
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
@@ -942,7 +951,7 @@ class TestTimeSeries:
         ]:
             tm.assert_index_equal(rng, expected)
 
-    def test_dti_constructor_small_int(self, any_int_dtype):
+    def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721
         exp = DatetimeIndex(
             [
@@ -952,7 +961,7 @@ class TestTimeSeries:
             ]
         )
 
-        arr = np.array([0, 10, 20], dtype=any_int_dtype)
+        arr = np.array([0, 10, 20], dtype=any_int_numpy_dtype)
         tm.assert_index_equal(DatetimeIndex(arr), exp)
 
     def test_ctor_str_intraday(self):
@@ -969,7 +978,7 @@ class TestTimeSeries:
         arr = np.arange(0, 100, 10, dtype=np.int64).view("M8[D]")
         idx = Index(arr)
 
-        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
+        assert (idx.values == astype_overflowsafe(arr, dtype=np.dtype("M8[ns]"))).all()
 
     def test_constructor_int64_nocopy(self):
         # GH#1624
@@ -1126,7 +1135,12 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+_tzs = ["dateutil/Europe/London"]
+if PY39:
+    _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+
+
+@pytest.mark.parametrize("tz", _tzs)
 @pytest.mark.parametrize(
     "ts_input,fold_out",
     [
@@ -1146,6 +1160,7 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
     result = ts.fold
     expected = fold_out
     assert result == expected
+    # TODO: belongs in Timestamp tests?
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])

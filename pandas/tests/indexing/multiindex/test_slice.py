@@ -12,7 +12,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 
@@ -144,10 +143,6 @@ class TestMultiIndexSlicers:
             #  not in the columns, so we raise
             #  This used to treat [1] as positional GH#16396
             df.loc[slice(None), [1]]
-
-        result = df.loc[(slice(None), [1]), :]
-        expected = df.iloc[[0, 3]]
-        tm.assert_frame_equal(result, expected)
 
         # not lexsorted
         assert df.index._lexsort_depth == 2
@@ -539,9 +534,7 @@ class TestMultiIndexSlicers:
         # GH29519
         df = DataFrame(
             np.arange(27).reshape(3, 9),
-            columns=pd.MultiIndex.from_product(
-                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
-            ),
+            columns=MultiIndex.from_product([["a1", "a2", "a3"], ["b1", "b2", "b3"]]),
         )
         result = df.loc(axis=1)["a1":"a2"]
         expected = df.iloc[:, :-3]
@@ -553,9 +546,7 @@ class TestMultiIndexSlicers:
         # GH29519
         df = DataFrame(
             np.arange(27).reshape(3, 9),
-            columns=pd.MultiIndex.from_product(
-                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
-            ),
+            columns=MultiIndex.from_product([["a1", "a2", "a3"], ["b1", "b2", "b3"]]),
         )
         result = df.loc(axis=1)["a1"]
         expected = df.iloc[:, :3]
@@ -711,32 +702,30 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(df, expected)
 
     def test_multiindex_label_slicing_with_negative_step(self):
-        s = Series(
+        ser = Series(
             np.arange(20), MultiIndex.from_product([list("abcde"), np.arange(4)])
         )
         SLC = pd.IndexSlice
 
-        def assert_slices_equivalent(l_slc, i_slc):
-            tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
-            tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
+        tm.assert_indexing_slices_equivalent(ser, SLC[::-1], SLC[::-1])
 
-        assert_slices_equivalent(SLC[::-1], SLC[::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC["d"::-1], SLC[15::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[("d",)::-1], SLC[15::-1])
 
-        assert_slices_equivalent(SLC["d"::-1], SLC[15::-1])
-        assert_slices_equivalent(SLC[("d",)::-1], SLC[15::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[:"d":-1], SLC[:11:-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[:("d",):-1], SLC[:11:-1])
 
-        assert_slices_equivalent(SLC[:"d":-1], SLC[:11:-1])
-        assert_slices_equivalent(SLC[:("d",):-1], SLC[:11:-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC["d":"b":-1], SLC[15:3:-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[("d",):"b":-1], SLC[15:3:-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC["d":("b",):-1], SLC[15:3:-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[("d",):("b",):-1], SLC[15:3:-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC["b":"d":-1], SLC[:0])
 
-        assert_slices_equivalent(SLC["d":"b":-1], SLC[15:3:-1])
-        assert_slices_equivalent(SLC[("d",):"b":-1], SLC[15:3:-1])
-        assert_slices_equivalent(SLC["d":("b",):-1], SLC[15:3:-1])
-        assert_slices_equivalent(SLC[("d",):("b",):-1], SLC[15:3:-1])
-        assert_slices_equivalent(SLC["b":"d":-1], SLC[:0])
-
-        assert_slices_equivalent(SLC[("c", 2)::-1], SLC[10::-1])
-        assert_slices_equivalent(SLC[:("c", 2):-1], SLC[:9:-1])
-        assert_slices_equivalent(SLC[("e", 0):("c", 2):-1], SLC[16:9:-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[("c", 2)::-1], SLC[10::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[:("c", 2):-1], SLC[:9:-1])
+        tm.assert_indexing_slices_equivalent(
+            ser, SLC[("e", 0):("c", 2):-1], SLC[16:9:-1]
+        )
 
     def test_multiindex_slice_first_level(self):
         # GH 12697
@@ -769,65 +758,48 @@ class TestMultiIndexSlicers:
         expected = ymd.reindex(s.index[5:])
         tm.assert_frame_equal(result, expected)
 
-    def test_non_reducing_slice_on_multiindex(self):
-        # GH 19861
-        dic = {
-            ("a", "d"): [1, 4],
-            ("a", "c"): [2, 3],
-            ("b", "c"): [3, 2],
-            ("b", "d"): [4, 1],
-        }
-        df = DataFrame(dic, index=[0, 1])
-        idx = pd.IndexSlice
-        slice_ = idx[:, idx["b", "d"]]
-        tslice_ = non_reducing_slice(slice_)
-
-        result = df.loc[tslice_]
-        expected = DataFrame({("b", "d"): [4, 1]})
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize(
-        "slice_",
+        "dtype, loc, iloc",
         [
-            pd.IndexSlice[:, :],
-            # check cols
-            pd.IndexSlice[:, pd.IndexSlice[["a"]]],  # inferred deeper need list
-            pd.IndexSlice[:, pd.IndexSlice[["a"], ["c"]]],  # inferred deeper need list
-            pd.IndexSlice[:, pd.IndexSlice["a", "c", :]],
-            pd.IndexSlice[:, pd.IndexSlice["a", :, "e"]],
-            pd.IndexSlice[:, pd.IndexSlice[:, "c", "e"]],
-            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d"], :]],  # check list
-            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], :]],  # allow missing
-            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], "e"]],  # no slice
-            # check rows
-            pd.IndexSlice[pd.IndexSlice[["U"]], :],  # inferred deeper need list
-            pd.IndexSlice[pd.IndexSlice[["U"], ["W"]], :],  # inferred deeper need list
-            pd.IndexSlice[pd.IndexSlice["U", "W", :], :],
-            pd.IndexSlice[pd.IndexSlice["U", :, "Y"], :],
-            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], :],
-            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z"]], :],  # check list
-            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # allow missing
-            pd.IndexSlice[pd.IndexSlice["U", "W", ["Y", "Z", "-"]], :],  # no slice
-            # check simultaneous
-            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], pd.IndexSlice["a", "c", :]],
+            # dtype = int, step = -1
+            ("int", slice(None, None, -1), slice(None, None, -1)),
+            ("int", slice(3, None, -1), slice(3, None, -1)),
+            ("int", slice(None, 1, -1), slice(None, 0, -1)),
+            ("int", slice(3, 1, -1), slice(3, 0, -1)),
+            # dtype = int, step = -2
+            ("int", slice(None, None, -2), slice(None, None, -2)),
+            ("int", slice(3, None, -2), slice(3, None, -2)),
+            ("int", slice(None, 1, -2), slice(None, 0, -2)),
+            ("int", slice(3, 1, -2), slice(3, 0, -2)),
+            # dtype = str, step = -1
+            ("str", slice(None, None, -1), slice(None, None, -1)),
+            ("str", slice("d", None, -1), slice(3, None, -1)),
+            ("str", slice(None, "b", -1), slice(None, 0, -1)),
+            ("str", slice("d", "b", -1), slice(3, 0, -1)),
+            # dtype = str, step = -2
+            ("str", slice(None, None, -2), slice(None, None, -2)),
+            ("str", slice("d", None, -2), slice(3, None, -2)),
+            ("str", slice(None, "b", -2), slice(None, 0, -2)),
+            ("str", slice("d", "b", -2), slice(3, 0, -2)),
         ],
     )
-    def test_non_reducing_multi_slice_on_multiindex(self, slice_):
-        # GH 33562
-        cols = pd.MultiIndex.from_product([["a", "b"], ["c", "d"], ["e", "f"]])
-        idxs = pd.MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
-        df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
-
-        expected = df.loc[slice_]
-        result = df.loc[non_reducing_slice(slice_)]
-        tm.assert_frame_equal(result, expected)
-
-    def test_loc_slice_negative_stepsize(self):
+    def test_loc_slice_negative_stepsize(self, dtype, loc, iloc):
         # GH#38071
-        mi = MultiIndex.from_product([["a", "b"], [0, 1]])
-        df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=mi)
-        result = df.loc[("a", slice(None, None, -1)), :]
-        expected = DataFrame(
-            [[3, 4], [1, 2]], index=MultiIndex.from_tuples([("a", 1), ("a", 0)])
-        )
-        tm.assert_frame_equal(result, expected)
+        labels = {
+            "str": list("abcde"),
+            "int": range(5),
+        }[dtype]
+
+        mi = MultiIndex.from_arrays([labels] * 2)
+        df = DataFrame(1.0, index=mi, columns=["A"])
+
+        SLC = pd.IndexSlice
+
+        expected = df.iloc[iloc, :]
+        result_get_loc = df.loc[SLC[loc], :]
+        result_get_locs_level_0 = df.loc[SLC[loc, :], :]
+        result_get_locs_level_1 = df.loc[SLC[:, loc], :]
+
+        tm.assert_frame_equal(result_get_loc, expected)
+        tm.assert_frame_equal(result_get_locs_level_0, expected)
+        tm.assert_frame_equal(result_get_locs_level_1, expected)

@@ -6,11 +6,10 @@ from io import StringIO
 
 import pytest
 
-from pandas._libs.tslib import Timestamp
-
 from pandas import (
     DataFrame,
     Index,
+    Timestamp,
 )
 import pandas._testing as tm
 
@@ -22,6 +21,10 @@ _msg_validate_usecols_arg = (
 _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
+
+# TODO(1.4): Change these to xfails whenever parse_dates support(which was
+# intentionally disable to keep small PR sizes) is added back
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize("usecols", [[0, 2, 3], [3, 0, 2]])

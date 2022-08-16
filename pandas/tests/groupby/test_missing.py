@@ -43,6 +43,18 @@ def test_ffill_missing_arguments():
         df.groupby("b").fillna()
 
 
+@pytest.mark.parametrize(
+    "method, expected", [("ffill", [None, "a", "a"]), ("bfill", ["a", "a", None])]
+)
+def test_fillna_with_string_dtype(method, expected):
+    # GH 40250
+    df = DataFrame({"a": pd.array([None, "a", None], dtype="string"), "b": [0, 0, 0]})
+    grp = df.groupby("b")
+    result = grp.fillna(method=method)
+    expected = DataFrame({"a": pd.array(expected, dtype="string")})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_fill_consistency():
 
     # GH9221
@@ -118,6 +130,8 @@ def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
 
     ridx = expected_rows.get((method, dropna, has_nan_group))
     expected = df_without_nan_rows.reindex(ridx).reset_index(drop=True)
+    # columns are a 'take' on df.columns, which are object dtype
+    expected.columns = expected.columns.astype(object)
 
     tm.assert_frame_equal(result, expected)
 
@@ -132,7 +146,7 @@ def test_min_count(func, min_count, value):
     tm.assert_frame_equal(result, expected)
 
 
-def test_indicies_with_missing():
+def test_indices_with_missing():
     # GH 9304
     df = DataFrame({"a": [1, 1, np.nan], "b": [2, 3, 4], "c": [5, 6, 7]})
     g = df.groupby(["a", "b"])

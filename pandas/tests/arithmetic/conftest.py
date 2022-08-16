@@ -2,29 +2,31 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
+from pandas import RangeIndex
+import pandas._testing as tm
+from pandas.core.api import (
     Float64Index,
     Int64Index,
-    RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
+from pandas.core.computation import expressions as expr
+
+
+@pytest.fixture(
+    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
+)
+def switch_numexpr_min_elements(request):
+    _MIN_ELEMENTS = expr._MIN_ELEMENTS
+    expr._MIN_ELEMENTS = request.param
+    yield request.param
+    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+
 
 # ------------------------------------------------------------------
-# Helper Functions
 
-
-def id_func(x):
-    if isinstance(x, tuple):
-        assert len(x) == 2
-        return x[0].__name__ + "-" + str(x[1])
-    else:
-        return x.__name__
-
-
-# ------------------------------------------------------------------
-
-
+# doctest with +SKIP for one fixture fails during setup with
+# 'DoctestItem' object has no attribute 'callspec'
+# due to switch_numexpr_min_elements fixture
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
     """
@@ -37,11 +39,11 @@ def one(request):
 
     Examples
     --------
-    >>> dti = pd.date_range('2016-01-01', periods=2, freq='H')
-    >>> dti
+    dti = pd.date_range('2016-01-01', periods=2, freq='H')
+    dti
     DatetimeIndex(['2016-01-01 00:00:00', '2016-01-01 01:00:00'],
     dtype='datetime64[ns]', freq='H')
-    >>> dti + one
+    dti + one
     DatetimeIndex(['2016-01-01 01:00:00', '2016-01-01 02:00:00'],
     dtype='datetime64[ns]', freq='H')
     """
@@ -61,6 +63,9 @@ zeros.extend([np.array(-0.0, dtype=np.float64)])
 zeros.extend([0, 0.0, -0.0])
 
 
+# doctest with +SKIP for zero fixture fails during setup with
+# 'DoctestItem' object has no attribute 'callspec'
+# due to switch_numexpr_min_elements fixture
 @pytest.fixture(params=zeros)
 def zero(request):
     """
@@ -74,8 +79,8 @@ def zero(request):
 
     Examples
     --------
-    >>> arr = RangeIndex(5)
-    >>> arr / zeros
+    arr = RangeIndex(5)
+    arr / zeros
     Float64Index([nan, inf, inf, inf, inf], dtype='float64')
     """
     return request.param
@@ -107,15 +112,15 @@ def numeric_idx(request):
 
 @pytest.fixture(
     params=[
-        pd.Timedelta("5m4s").to_pytimedelta(),
-        pd.Timedelta("5m4s"),
-        pd.Timedelta("5m4s").to_timedelta64(),
+        pd.Timedelta("10m7s").to_pytimedelta(),
+        pd.Timedelta("10m7s"),
+        pd.Timedelta("10m7s").to_timedelta64(),
     ],
     ids=lambda x: type(x).__name__,
 )
 def scalar_td(request):
     """
-    Several variants of Timedelta scalars representing 5 minutes and 4 seconds
+    Several variants of Timedelta scalars representing 10 minutes and 7 seconds.
     """
     return request.param
 
@@ -216,23 +221,12 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=id_func)
-def box_with_array(request):
-    """
-    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
-    classes
-    """
-    return request.param
-
-
-@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+@pytest.fixture(
+    params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
+)
 def box_1d_array(request):
     """
     Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
     classes
     """
     return request.param
-
-
-# alias so we can use the same fixture for multiple parameters in a test
-box_with_array2 = box_with_array

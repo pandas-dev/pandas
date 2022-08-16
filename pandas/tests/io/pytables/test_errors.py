@@ -6,7 +6,6 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -26,7 +25,7 @@ from pandas.io.pytables import (
     _maybe_adjust_name,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_pass_spec_to_storer(setup_path):
@@ -207,7 +206,7 @@ def test_unsuppored_hdf_file_error(datapath):
     )
 
     with pytest.raises(ValueError, match=message):
-        pd.read_hdf(data_path)
+        read_hdf(data_path)
 
 
 def test_read_hdf_errors(setup_path):
@@ -215,7 +214,7 @@ def test_read_hdf_errors(setup_path):
 
     with ensure_clean_path(setup_path) as path:
         msg = r"File [\S]* does not exist"
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_hdf(path, "key")
 
         df.to_hdf(path, "df")
@@ -223,7 +222,7 @@ def test_read_hdf_errors(setup_path):
         store.close()
 
         msg = "The HDFStore must be open for reading."
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_hdf(store, "df")
 
 

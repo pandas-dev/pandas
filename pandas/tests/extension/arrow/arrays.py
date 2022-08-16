@@ -8,23 +8,23 @@ current implementation is not efficient.
 """
 from __future__ import annotations
 
-import copy
 import itertools
 import operator
-from typing import Type
 
 import numpy as np
 import pyarrow as pa
 
+from pandas._typing import type_t
+
 import pandas as pd
 from pandas.api.extensions import (
-    ExtensionArray,
     ExtensionDtype,
     register_extension_dtype,
     take,
 )
 from pandas.api.types import is_scalar
-from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays.arrow import ArrowExtensionArray as _ArrowExtensionArray
+from pandas.core.construction import extract_array
 
 
 @register_extension_dtype
@@ -36,7 +36,7 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowBoolArray]:
+    def construct_array_type(cls) -> type_t[ArrowBoolArray]:
         """
         Return the array type associated with this dtype.
 
@@ -60,7 +60,7 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowStringArray]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -71,35 +71,43 @@ class ArrowStringDtype(ExtensionDtype):
         return ArrowStringArray
 
 
-class ArrowExtensionArray(OpsMixin, ExtensionArray):
+class ArrowExtensionArray(_ArrowExtensionArray):
     _data: pa.ChunkedArray
 
     @classmethod
-    def from_scalars(cls, values):
+    def _from_sequence(cls, values, dtype=None, copy=False):
+        # TODO: respect dtype, copy
+
+        if isinstance(values, cls):
+            # in particular for empty cases the pa.array(np.asarray(...))
+            #  does not round-trip
+            return cls(values._data)
+
+        elif not len(values):
+            if isinstance(values, list):
+                dtype = bool if cls is ArrowBoolArray else str
+                values = np.array([], dtype=dtype)
+
         arr = pa.chunked_array([pa.array(np.asarray(values))])
         return cls(arr)
 
-    @classmethod
-    def from_array(cls, arr):
-        assert isinstance(arr, pa.Array)
-        return cls(pa.chunked_array([arr]))
-
-    @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls.from_scalars(scalars)
-
     def __repr__(self):
         return f"{type(self).__name__}({repr(self._data)})"
+
+    def __contains__(self, obj) -> bool:
+        if obj is None or obj is self.dtype.na_value:
+            # None -> EA.__contains__ only checks for self._dtype.na_value, not
+            #  any compatible NA value.
+            # self.dtype.na_value -> <pa.NullScalar:None> isn't recognized by pd.isna
+            return bool(self.isna().any())
+        return bool(super().__contains__(obj))
 
     def __getitem__(self, item):
         if is_scalar(item):
             return self._data.to_pandas()[item]
         else:
             vals = self._data.to_pandas()[item]
-            return type(self).from_scalars(vals)
-
-    def __len__(self):
-        return len(self._data)
+            return type(self)._from_sequence(vals)
 
     def astype(self, dtype, copy=True):
         # needed to fix this astype for the Series constructor.
@@ -124,34 +132,20 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
-            return False
+            # TODO: use some pyarrow function here?
+            return np.asarray(self).__eq__(other)
 
         return self._logical_method(other, operator.eq)
 
-    @property
-    def nbytes(self) -> int:
-        return sum(
-            x.size
-            for chunk in self._data.chunks
-            for x in chunk.buffers()
-            if x is not None
-        )
-
-    def isna(self):
-        nas = pd.isna(self._data.to_pandas())
-        return type(self).from_scalars(nas)
-
     def take(self, indices, allow_fill=False, fill_value=None):
         data = self._data.to_pandas()
+        data = extract_array(data, extract_numpy=True)
 
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
 
         result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
         return self._from_sequence(result, dtype=self.dtype)
-
-    def copy(self):
-        return type(self)(copy.copy(self._data))
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -160,7 +154,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return cls(arr)
 
     def __invert__(self):
-        return type(self).from_scalars(~self._data.to_pandas())
+        return type(self)._from_sequence(~self._data.to_pandas())
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
@@ -184,20 +178,20 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
 
 class ArrowBoolArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
         assert values.type == pa.bool_()
         self._data = values
-        self._dtype = ArrowBoolDtype()
+        self._dtype = ArrowBoolDtype()  # type: ignore[assignment]
 
 
 class ArrowStringArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
         assert values.type == pa.string()
         self._data = values
-        self._dtype = ArrowStringDtype()
+        self._dtype = ArrowStringDtype()  # type: ignore[assignment]

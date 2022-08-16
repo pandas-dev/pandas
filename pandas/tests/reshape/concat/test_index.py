@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -60,7 +62,7 @@ class TestIndexConcat:
         frames = [
             DataFrame({c: [0, 1, 2]}, index=i) for i, c in zip(indices, ["x", "y", "z"])
         ]
-        result = pd.concat(frames, axis=1)
+        result = concat(frames, axis=1)
 
         exp_ind = Index(["a", "b", "c", "d", "e"], name=name_out)
         expected = DataFrame(
@@ -96,24 +98,24 @@ class TestIndexConcat:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
-    @pytest.mark.parametrize("test_series", [True, False])
-    def test_concat_copy_index(self, test_series, axis):
+    def test_concat_copy_index_series(self, axis):
         # GH 29879
-        if test_series:
-            ser = Series([1, 2])
-            comb = concat([ser, ser], axis=axis, copy=True)
-            assert comb.index is not ser.index
-        else:
-            df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-            comb = concat([df, df], axis=axis, copy=True)
-            assert comb.index is not df.index
-            assert comb.columns is not df.columns
+        ser = Series([1, 2])
+        comb = concat([ser, ser], axis=axis, copy=True)
+        assert comb.index is not ser.index
+
+    def test_concat_copy_index_frame(self, axis):
+        # GH 29879
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        comb = concat([df, df], axis=axis, copy=True)
+        assert comb.index is not df.index
+        assert comb.columns is not df.columns
 
     def test_default_index(self):
         # is_series and ignore_index
         s1 = Series([1, 2, 3], name="x")
         s2 = Series([4, 5, 6], name="y")
-        res = pd.concat([s1, s2], axis=1, ignore_index=True)
+        res = concat([s1, s2], axis=1, ignore_index=True)
         assert isinstance(res.columns, pd.RangeIndex)
         exp = DataFrame([[1, 4], [2, 5], [3, 6]])
         # use check_index_type=True to check the result have
@@ -123,7 +125,7 @@ class TestIndexConcat:
         # is_series and all inputs have no names
         s1 = Series([1, 2, 3])
         s2 = Series([4, 5, 6])
-        res = pd.concat([s1, s2], axis=1, ignore_index=False)
+        res = concat([s1, s2], axis=1, ignore_index=False)
         assert isinstance(res.columns, pd.RangeIndex)
         exp = DataFrame([[1, 4], [2, 5], [3, 6]])
         exp.columns = pd.RangeIndex(2)
@@ -133,11 +135,11 @@ class TestIndexConcat:
         df1 = DataFrame({"A": [1, 2], "B": [5, 6]})
         df2 = DataFrame({"A": [3, 4], "B": [7, 8]})
 
-        res = pd.concat([df1, df2], axis=0, ignore_index=True)
+        res = concat([df1, df2], axis=0, ignore_index=True)
         exp = DataFrame([[1, 5], [2, 6], [3, 7], [4, 8]], columns=["A", "B"])
         tm.assert_frame_equal(res, exp, check_index_type=True, check_column_type=True)
 
-        res = pd.concat([df1, df2], axis=1, ignore_index=True)
+        res = concat([df1, df2], axis=1, ignore_index=True)
         exp = DataFrame([[1, 5, 3, 7], [2, 6, 4, 8]])
         tm.assert_frame_equal(res, exp, check_index_type=True, check_column_type=True)
 
@@ -178,29 +180,21 @@ class TestIndexConcat:
         tm.assert_frame_equal(result.iloc[10:], df)
 
         # append
-        result = df.iloc[0:8, :].append(df.iloc[8:])
+        result = df.iloc[0:8, :]._append(df.iloc[8:])
         tm.assert_frame_equal(result, df)
 
-        result = df.iloc[0:8, :].append(df.iloc[8:9]).append(df.iloc[9:10])
+        result = df.iloc[0:8, :]._append(df.iloc[8:9])._append(df.iloc[9:10])
         tm.assert_frame_equal(result, df)
 
         expected = concat([df, df], axis=0)
-        result = df.append(df)
+        result = df._append(df)
         tm.assert_frame_equal(result, expected)
 
 
 class TestMultiIndexConcat:
-    def test_concat_multiindex_with_keys(self):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        frame = DataFrame(
-            np.random.randn(10, 3),
-            index=index,
-            columns=Index(["A", "B", "C"], name="exp"),
-        )
+    def test_concat_multiindex_with_keys(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        index = frame.index
         result = concat([frame, frame], keys=[0, 1], names=["iteration"])
 
         assert result.index.names == ("iteration",) + index.names
@@ -261,7 +255,202 @@ class TestMultiIndexConcat:
             names=["testname", None, None],
         )
         expected = DataFrame([[0], [1]], index=expected_index)
-        result_copy = pd.concat(deepcopy(example_dict), names=["testname"])
+        result_copy = concat(deepcopy(example_dict), names=["testname"])
         tm.assert_frame_equal(result_copy, expected)
-        result_no_copy = pd.concat(example_dict, names=["testname"])
+        result_no_copy = concat(example_dict, names=["testname"])
         tm.assert_frame_equal(result_no_copy, expected)
+
+    @pytest.mark.parametrize(
+        "mi1_list",
+        [
+            [["a"], range(2)],
+            [["b"], np.arange(2.0, 4.0)],
+            [["c"], ["A", "B"]],
+            [["d"], pd.date_range(start="2017", end="2018", periods=2)],
+        ],
+    )
+    @pytest.mark.parametrize(
+        "mi2_list",
+        [
+            [["a"], range(2)],
+            [["b"], np.arange(2.0, 4.0)],
+            [["c"], ["A", "B"]],
+            [["d"], pd.date_range(start="2017", end="2018", periods=2)],
+        ],
+    )
+    def test_concat_with_various_multiindex_dtypes(
+        self, mi1_list: list, mi2_list: list
+    ):
+        # GitHub #23478
+        mi1 = MultiIndex.from_product(mi1_list)
+        mi2 = MultiIndex.from_product(mi2_list)
+
+        df1 = DataFrame(np.zeros((1, len(mi1))), columns=mi1)
+        df2 = DataFrame(np.zeros((1, len(mi2))), columns=mi2)
+
+        if mi1_list[0] == mi2_list[0]:
+            expected_mi = MultiIndex(
+                levels=[mi1_list[0], list(mi1_list[1])],
+                codes=[[0, 0, 0, 0], [0, 1, 0, 1]],
+            )
+        else:
+            expected_mi = MultiIndex(
+                levels=[
+                    mi1_list[0] + mi2_list[0],
+                    list(mi1_list[1]) + list(mi2_list[1]),
+                ],
+                codes=[[0, 0, 1, 1], [0, 1, 2, 3]],
+            )
+
+        expected_df = DataFrame(np.zeros((1, len(expected_mi))), columns=expected_mi)
+
+        with tm.assert_produces_warning(None):
+            result_df = concat((df1, df2), axis=1)
+
+        tm.assert_frame_equal(expected_df, result_df)
+
+    def test_concat_multiindex_(self):
+        # GitHub #44786
+        df = DataFrame({"col": ["a", "b", "c"]}, index=["1", "2", "2"])
+        df = concat([df], keys=["X"])
+
+        iterables = [["X"], ["1", "2", "2"]]
+        result_index = df.index
+        expected_index = MultiIndex.from_product(iterables)
+
+        tm.assert_index_equal(result_index, expected_index)
+
+        result_df = df
+        expected_df = DataFrame(
+            {"col": ["a", "b", "c"]}, index=MultiIndex.from_product(iterables)
+        )
+        tm.assert_frame_equal(result_df, expected_df)
+
+    def test_concat_with_key_not_unique(self):
+        # GitHub #46519
+        df1 = DataFrame({"name": [1]})
+        df2 = DataFrame({"name": [2]})
+        df3 = DataFrame({"name": [3]})
+        df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
+        # the warning is caused by indexing unsorted multi-index
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_a = df_a.loc[("x", 0), :]
+
+        df_b = DataFrame(
+            {"name": [1, 2, 3]}, index=Index([("x", 0), ("y", 0), ("x", 0)])
+        )
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_b = df_b.loc[("x", 0)]
+
+        tm.assert_frame_equal(out_a, out_b)
+
+        df1 = DataFrame({"name": ["a", "a", "b"]})
+        df2 = DataFrame({"name": ["a", "b"]})
+        df3 = DataFrame({"name": ["c", "d"]})
+        df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_a = df_a.loc[("x", 0), :]
+
+        df_b = DataFrame(
+            {
+                "a": ["x", "x", "x", "y", "y", "x", "x"],
+                "b": [0, 1, 2, 0, 1, 0, 1],
+                "name": list("aababcd"),
+            }
+        ).set_index(["a", "b"])
+        df_b.index.names = [None, None]
+        with tm.assert_produces_warning(
+            PerformanceWarning, match="indexing past lexsort depth"
+        ):
+            out_b = df_b.loc[("x", 0), :]
+
+        tm.assert_frame_equal(out_a, out_b)
+
+    def test_concat_with_duplicated_levels(self):
+        # keyword levels should be unique
+        df1 = DataFrame({"A": [1]}, index=["x"])
+        df2 = DataFrame({"A": [1]}, index=["y"])
+        msg = r"Level values not unique: \['x', 'y', 'y'\]"
+        with pytest.raises(ValueError, match=msg):
+            concat([df1, df2], keys=["x", "y"], levels=[["x", "y", "y"]])
+
+    @pytest.mark.parametrize("levels", [[["x", "y"]], [["x", "y", "y"]]])
+    def test_concat_with_levels_with_none_keys(self, levels):
+        df1 = DataFrame({"A": [1]}, index=["x"])
+        df2 = DataFrame({"A": [1]}, index=["y"])
+        msg = "levels supported only when keys is not None"
+        with pytest.raises(ValueError, match=msg):
+            concat([df1, df2], levels=levels)
+
+    def test_concat_range_index_result(self):
+        # GH#47501
+        df1 = DataFrame({"a": [1, 2]})
+        df2 = DataFrame({"b": [1, 2]})
+
+        result = concat([df1, df2], sort=True, axis=1)
+        expected = DataFrame({"a": [1, 2], "b": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+        expected_index = pd.RangeIndex(0, 2)
+        tm.assert_index_equal(result.index, expected_index, exact=True)
+
+    def test_concat_index_keep_dtype(self):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype="object"))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="object"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="object")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_index_keep_dtype_ea_numeric(self, any_numeric_ea_dtype):
+        # GH#47329
+        df1 = DataFrame(
+            [[0, 1, 1]], columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype)
+        )
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype=any_numeric_ea_dtype))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]],
+            columns=Index([1, 2, 3], dtype=any_numeric_ea_dtype),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int8", "Int16", "Int32"])
+    def test_concat_index_find_common(self, dtype):
+        # GH#47329
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
+        df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="Int32"))
+        result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
+        expected = DataFrame(
+            [[0, 1, 1.0], [0, 1, np.nan]], columns=Index([1, 2, 3], dtype="Int32")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_axis_1_sort_false_rangeindex(self):
+        # GH 46675
+        s1 = Series(["a", "b", "c"])
+        s2 = Series(["a", "b"])
+        s3 = Series(["a", "b", "c", "d"])
+        s4 = Series([], dtype=object)
+        result = concat(
+            [s1, s2, s3, s4], sort=False, join="outer", ignore_index=False, axis=1
+        )
+        expected = DataFrame(
+            [
+                ["a"] * 3 + [np.nan],
+                ["b"] * 3 + [np.nan],
+                ["c", np.nan] * 2,
+                [np.nan] * 2 + ["d"] + [np.nan],
+            ],
+            dtype=object,
+        )
+        tm.assert_frame_equal(
+            result, expected, check_index_type=True, check_column_type=True
+        )

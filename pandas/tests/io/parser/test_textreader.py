@@ -6,7 +6,6 @@ from io import (
     BytesIO,
     StringIO,
 )
-import os
 
 import numpy as np
 import pytest
@@ -21,30 +20,27 @@ from pandas.io.parsers import (
     TextFileReader,
     read_csv,
 )
+from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
 
 class TestTextReader:
-    @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
-        self.dirpath = datapath("io", "parser", "data")
-        csv1_dirpath = datapath("io", "data", "csv")
-        self.csv1 = os.path.join(csv1_dirpath, "test1.csv")
-        self.csv2 = os.path.join(self.dirpath, "test2.csv")
-        self.xls1 = os.path.join(self.dirpath, "test.xls")
+    @pytest.fixture
+    def csv_path(self, datapath):
+        return datapath("io", "data", "csv", "test1.csv")
 
-    def test_file_handle(self):
-        with open(self.csv1, "rb") as f:
+    def test_file_handle(self, csv_path):
+        with open(csv_path, "rb") as f:
             reader = TextReader(f)
             reader.read()
 
-    def test_file_handle_mmap(self):
+    def test_file_handle_mmap(self, csv_path):
         # this was never using memory_map=True
-        with open(self.csv1, "rb") as f:
+        with open(csv_path, "rb") as f:
             reader = TextReader(f, header=None)
             reader.read()
 
-    def test_StringIO(self):
-        with open(self.csv1, "rb") as f:
+    def test_StringIO(self, csv_path):
+        with open(csv_path, "rb") as f:
             text = f.read()
         src = BytesIO(text)
         reader = TextReader(src, header=None)
@@ -139,11 +135,7 @@ class TestTextReader:
             reader.read()
 
         reader = TextReader(
-            StringIO(data),
-            delimiter=":",
-            header=None,
-            error_bad_lines=False,
-            warn_bad_lines=False,
+            StringIO(data), delimiter=":", header=None, on_bad_lines=2  # Skip
         )
         result = reader.read()
         expected = {
@@ -154,11 +146,7 @@ class TestTextReader:
         assert_array_dicts_equal(result, expected)
 
         reader = TextReader(
-            StringIO(data),
-            delimiter=":",
-            header=None,
-            error_bad_lines=False,
-            warn_bad_lines=True,
+            StringIO(data), delimiter=":", header=None, on_bad_lines=1  # Warn
         )
         reader.read()
         captured = capsys.readouterr()
@@ -206,6 +194,8 @@ aaaa,4
 aaaaa,5"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", header=None, **kwds)
 
         reader = _make_reader(dtype="S5,i4")
@@ -233,6 +223,8 @@ one,two
 4,d"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", **kwds)
 
         reader = _make_reader(dtype={"one": "u1", 1: "S1"})
@@ -269,34 +261,32 @@ a,b,c
         assert (result[1] == exp[1]).all()
         assert (result[2] == exp[2]).all()
 
-    def test_cr_delimited(self):
-        def _test(text, **kwargs):
-            nice_text = text.replace("\r", "\r\n")
-            result = TextReader(StringIO(text), **kwargs).read()
-            expected = TextReader(StringIO(nice_text), **kwargs).read()
-            assert_array_dicts_equal(result, expected)
-
-        data = "a,b,c\r1,2,3\r4,5,6\r7,8,9\r10,11,12"
-        _test(data, delimiter=",")
-
-        data = "a  b  c\r1  2  3\r4  5  6\r7  8  9\r10  11  12"
-        _test(data, delim_whitespace=True)
-
-        data = "a,b,c\r1,2,3\r4,5,6\r,88,9\r10,11,12"
-        _test(data, delimiter=",")
-
-        sample = (
-            "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O\r"
-            "AAAAA,BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0\r"
-            ",BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0"
-        )
-        _test(sample, delimiter=",")
-
-        data = "A  B  C\r  2  3\r4  5  6"
-        _test(data, delim_whitespace=True)
-
-        data = "A B C\r2 3\r4 5 6"
-        _test(data, delim_whitespace=True)
+    @pytest.mark.parametrize(
+        "text, kwargs",
+        [
+            ("a,b,c\r1,2,3\r4,5,6\r7,8,9\r10,11,12", {"delimiter": ","}),
+            (
+                "a  b  c\r1  2  3\r4  5  6\r7  8  9\r10  11  12",
+                {"delim_whitespace": True},
+            ),
+            ("a,b,c\r1,2,3\r4,5,6\r,88,9\r10,11,12", {"delimiter": ","}),
+            (
+                (
+                    "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O\r"
+                    "AAAAA,BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0\r"
+                    ",BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0"
+                ),
+                {"delimiter": ","},
+            ),
+            ("A  B  C\r  2  3\r4  5  6", {"delim_whitespace": True}),
+            ("A B C\r2 3\r4 5 6", {"delim_whitespace": True}),
+        ],
+    )
+    def test_cr_delimited(self, text, kwargs):
+        nice_text = text.replace("\r", "\r\n")
+        result = TextReader(StringIO(text), **kwargs).read()
+        expected = TextReader(StringIO(nice_text), **kwargs).read()
+        assert_array_dicts_equal(result, expected)
 
     def test_empty_field_eof(self):
         data = "a,b,c\n1,2,3\n4,,"

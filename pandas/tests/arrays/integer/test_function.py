@@ -79,10 +79,11 @@ def test_ufunc_binary_output():
 
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
 def test_ufunc_reduce_raises(values):
-    a = pd.array(values)
-    msg = r"The 'reduce' method is not supported."
-    with pytest.raises(NotImplementedError, match=msg):
-        np.add.reduce(a)
+    arr = pd.array(values)
+
+    res = np.add.reduce(arr)
+    expected = arr.sum(skipna=False)
+    tm.assert_almost_equal(res, expected)
 
 
 @pytest.mark.parametrize(
@@ -108,36 +109,40 @@ def test_stat_method(pandasmethname, kwargs):
 def test_value_counts_na():
     arr = pd.array([1, 2, 1, pd.NA], dtype="Int64")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=[1, 2, pd.NA], dtype="Int64")
+    ex_index = pd.Index([1, 2, pd.NA], dtype="Int64")
+    assert ex_index.dtype == "Int64"
+    expected = pd.Series([2, 1, 1], index=ex_index, dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
+    expected = pd.Series([2, 1], index=arr[:2], dtype="Int64")
+    assert expected.index.dtype == arr.dtype
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_empty():
     # https://github.com/pandas-dev/pandas/issues/33317
-    s = pd.Series([], dtype="Int64")
-    result = s.value_counts()
-    # TODO: The dtype of the index seems wrong (it's int64 for non-empty)
-    idx = pd.Index([], dtype="object")
+    ser = pd.Series([], dtype="Int64")
+    result = ser.value_counts()
+    idx = pd.Index([], dtype=ser.dtype)
+    assert idx.dtype == ser.dtype
     expected = pd.Series([], index=idx, dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize():
     # GH 33172
-    s = pd.Series([1, 2, 1, pd.NA], dtype="Int64")
-    result = s.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=[1, 2], dtype="Float64") / 3
+    ser = pd.Series([1, 2, 1, pd.NA], dtype="Int64")
+    result = ser.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64") / 3
+    assert expected.index.dtype == ser.dtype
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 4])
-def test_integer_array_sum(skipna, min_count, any_nullable_int_dtype):
-    dtype = any_nullable_int_dtype
+def test_integer_array_sum(skipna, min_count, any_int_ea_dtype):
+    dtype = any_int_ea_dtype
     arr = pd.array([1, 2, 3, None], dtype=dtype)
     result = arr.sum(skipna=skipna, min_count=min_count)
     if skipna and min_count == 0:
@@ -148,8 +153,8 @@ def test_integer_array_sum(skipna, min_count, any_nullable_int_dtype):
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
-def test_integer_array_min_max(skipna, method, any_nullable_int_dtype):
-    dtype = any_nullable_int_dtype
+def test_integer_array_min_max(skipna, method, any_int_ea_dtype):
+    dtype = any_int_ea_dtype
     arr = pd.array([0, 1, None], dtype=dtype)
     func = getattr(arr, method)
     result = func(skipna=skipna)
@@ -161,8 +166,8 @@ def test_integer_array_min_max(skipna, method, any_nullable_int_dtype):
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 9])
-def test_integer_array_prod(skipna, min_count, any_nullable_int_dtype):
-    dtype = any_nullable_int_dtype
+def test_integer_array_prod(skipna, min_count, any_int_ea_dtype):
+    dtype = any_int_ea_dtype
     arr = pd.array([1, 2, None], dtype=dtype)
     result = arr.prod(skipna=skipna, min_count=min_count)
     if skipna and min_count == 0:

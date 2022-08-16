@@ -5,9 +5,12 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
+from pandas.tests.groupby import get_groupby_method_args
 
 
 @pytest.mark.parametrize(
@@ -22,28 +25,26 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     # GH28330 -- preserve subclass through groupby operations
 
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
-        pytest.skip("Not applicable")
+        pytest.skip(f"Not applicable for Series and {groupby_func}")
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
+    warn = FutureWarning if groupby_func in ("mad", "tshift") else None
 
     grouped = obj.groupby(np.arange(0, 10))
 
     # Groups should preserve subclass type
     assert isinstance(grouped.get_group(0), type(obj))
 
-    args = []
-    if groupby_func in {"fillna", "nth"}:
-        args.append(0)
-    elif groupby_func == "corrwith":
-        args.append(obj)
-    elif groupby_func == "tshift":
-        args.extend([0, 0])
+    args = get_groupby_method_args(groupby_func, obj)
 
-    result1 = getattr(grouped, groupby_func)(*args)
-    result2 = grouped.agg(groupby_func, *args)
+    with tm.assert_produces_warning(warn, match="is deprecated"):
+        result1 = getattr(grouped, groupby_func)(*args)
+        result2 = grouped.agg(groupby_func, *args)
 
     # Reduction or transformation kernels should preserve type
     slices = {"ngroup", "cumcount", "size"}
     if isinstance(obj, DataFrame) and groupby_func in slices:
-        assert isinstance(result1, obj._constructor_sliced)
+        assert isinstance(result1, tm.SubclassedSeries)
     else:
         assert isinstance(result1, type(obj))
 
@@ -61,6 +62,28 @@ def test_groupby_preserves_metadata():
     custom_df.testattr = "hello"
     for _, group_df in custom_df.groupby("c"):
         assert group_df.testattr == "hello"
+
+    # GH-45314
+    def func(group):
+        assert isinstance(group, tm.SubclassedDataFrame)
+        assert hasattr(group, "testattr")
+        return group.testattr
+
+    result = custom_df.groupby("c").apply(func)
+    expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
+    tm.assert_series_equal(result, expected)
+
+    def func2(group):
+        assert isinstance(group, tm.SubclassedSeries)
+        assert hasattr(group, "testattr")
+        return group.testattr
+
+    custom_series = tm.SubclassedSeries([1, 2, 3])
+    custom_series.testattr = "hello"
+    result = custom_series.groupby(custom_df["c"]).apply(func2)
+    tm.assert_series_equal(result, expected)
+    result = custom_series.groupby(custom_df["c"]).agg(func2)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("obj", [DataFrame, tm.SubclassedDataFrame])
@@ -84,5 +107,7 @@ def test_groupby_resample_preserves_subclass(obj):
     df = df.set_index("Date")
 
     # Confirm groupby.resample() preserves dataframe type
-    result = df.groupby("Buyer").resample("5D").sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

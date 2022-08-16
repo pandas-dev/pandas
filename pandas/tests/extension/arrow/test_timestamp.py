@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import datetime
-from typing import Type
 
 import pytest
+
+from pandas._typing import type_t
 
 import pandas as pd
 from pandas.api.extensions import (
@@ -11,7 +12,7 @@ from pandas.api.extensions import (
     register_extension_dtype,
 )
 
-pytest.importorskip("pyarrow", minversion="0.13.0")
+pytest.importorskip("pyarrow", minversion="1.0.1")
 
 import pyarrow as pa  # isort:skip
 
@@ -27,7 +28,7 @@ class ArrowTimestampUSDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowTimestampUSArray]:
+    def construct_array_type(cls) -> type_t[ArrowTimestampUSArray]:
         """
         Return the array type associated with this dtype.
 
@@ -39,21 +40,18 @@ class ArrowTimestampUSDtype(ExtensionDtype):
 
 
 class ArrowTimestampUSArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
         assert values.type == pa.timestamp("us")
         self._data = values
-        self._dtype = ArrowTimestampUSDtype()
+        self._dtype = ArrowTimestampUSDtype()  # type: ignore[assignment]
 
 
 def test_constructor_extensionblock():
     # GH 34986
-    pd.DataFrame(
-        {
-            "timestamp": ArrowTimestampUSArray.from_scalars(
-                [None, datetime.datetime(2010, 9, 8, 7, 6, 5, 4)]
-            )
-        }
+    arr = ArrowTimestampUSArray._from_sequence(
+        [None, datetime.datetime(2010, 9, 8, 7, 6, 5, 4)]
     )
+    pd.DataFrame({"timestamp": arr})

@@ -1,4 +1,5 @@
 include RELEASE.md
+include versioneer.py
 
 graft doc
 prune doc/build
@@ -17,31 +18,43 @@ global-exclude *.h5
 global-exclude *.html
 global-exclude *.json
 global-exclude *.jsonl
+global-exclude *.msgpack
+global-exclude *.pdf
 global-exclude *.pickle
 global-exclude *.png
-global-exclude *.pyc
-global-exclude *.pyd
+global-exclude *.pptx
 global-exclude *.ods
 global-exclude *.odt
+global-exclude *.orc
 global-exclude *.sas7bdat
 global-exclude *.sav
 global-exclude *.so
 global-exclude *.xls
+global-exclude *.xlsb
 global-exclude *.xlsm
 global-exclude *.xlsx
 global-exclude *.xpt
+global-exclude *.cpt
 global-exclude *.xz
 global-exclude *.zip
+global-exclude *.zst
 global-exclude *~
 global-exclude .DS_Store
 global-exclude .git*
 global-exclude \#*
+
+global-exclude *.c
+global-exclude *.cpp
+global-exclude *.h
+
+global-exclude *.py[ocd]
+global-exclude *.pxi
 
 # GH 39321
 # csv_dir_path fixture checks the existence of the directory
 # exclude the whole directory to avoid running related tests in sdist
 prune pandas/tests/io/parser/data
 
-include versioneer.py
-include pandas/_version.py
-include pandas/io/formats/templates/*.tpl
+# Selectively re-add *.cxx files that were excluded above
+graft pandas/_libs/src
+graft pandas/_libs/tslibs/src

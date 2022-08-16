@@ -1,22 +1,16 @@
 """ parquet compat """
 from __future__ import annotations
 
-from distutils.version import LooseVersion
 import io
 import os
-from typing import (
-    Any,
-    AnyStr,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-)
+from typing import Any
 from warnings import catch_warnings
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
@@ -27,7 +21,8 @@ from pandas import (
     MultiIndex,
     get_option,
 )
-from pandas.core import generic
+from pandas.core.shared_docs import _shared_docs
+from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,
@@ -39,7 +34,7 @@ from pandas.io.common import (
 
 
 def get_engine(engine: str) -> BaseImpl:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 
@@ -73,12 +68,14 @@ def get_engine(engine: str) -> BaseImpl:
 
 
 def _get_path_or_handle(
-    path: FilePathOrBuffer,
+    path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
     fs: Any,
     storage_options: StorageOptions = None,
     mode: str = "rb",
     is_dir: bool = False,
-) -> Tuple[FilePathOrBuffer, Optional[IOHandles], Any]:
+) -> tuple[
+    FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], IOHandles[bytes] | None, Any
+]:
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
     if is_fsspec_url(path_or_handle) and fs is None:
@@ -112,7 +109,7 @@ def _get_path_or_handle(
 
 class BaseImpl:
     @staticmethod
-    def validate_dataframe(df: DataFrame):
+    def validate_dataframe(df: DataFrame) -> None:
 
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
@@ -142,35 +139,35 @@ class BaseImpl:
     def write(self, df: DataFrame, path, compression, **kwargs):
         raise AbstractMethodError(self)
 
-    def read(self, path, columns=None, **kwargs):
+    def read(self, path, columns=None, **kwargs) -> DataFrame:
         raise AbstractMethodError(self)
 
 
 class PyArrowImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays._arrow_utils  # noqa
+        import pandas.core.arrays.arrow._arrow_utils  # pyright: ignore # noqa:F401
 
         self.api = pyarrow
 
     def write(
         self,
         df: DataFrame,
-        path: FilePathOrBuffer[AnyStr],
-        compression: Optional[str] = "snappy",
-        index: Optional[bool] = None,
+        path: FilePath | WriteBuffer[bytes],
+        compression: str | None = "snappy",
+        index: bool | None = None,
         storage_options: StorageOptions = None,
-        partition_cols: Optional[List[str]] = None,
+        partition_cols: list[str] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         self.validate_dataframe(df)
 
-        from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
+        from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
@@ -183,6 +180,13 @@ class PyArrowImpl(BaseImpl):
             mode="wb",
             is_dir=partition_cols is not None,
         )
+        if (
+            isinstance(path_or_handle, io.BufferedWriter)
+            and hasattr(path_or_handle, "name")
+            and isinstance(path_or_handle.name, (str, bytes))
+        ):
+            path_or_handle = path_or_handle.name
+
         try:
             if partition_cols is not None:
                 # writes to multiple files under the given path
@@ -209,32 +213,31 @@ class PyArrowImpl(BaseImpl):
         use_nullable_dtypes=False,
         storage_options: StorageOptions = None,
         **kwargs,
-    ):
+    ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            if LooseVersion(self.api.__version__) >= "0.16":
-                import pandas as pd
+            import pandas as pd
 
-                mapping = {
-                    self.api.int8(): pd.Int8Dtype(),
-                    self.api.int16(): pd.Int16Dtype(),
-                    self.api.int32(): pd.Int32Dtype(),
-                    self.api.int64(): pd.Int64Dtype(),
-                    self.api.uint8(): pd.UInt8Dtype(),
-                    self.api.uint16(): pd.UInt16Dtype(),
-                    self.api.uint32(): pd.UInt32Dtype(),
-                    self.api.uint64(): pd.UInt64Dtype(),
-                    self.api.bool_(): pd.BooleanDtype(),
-                    self.api.string(): pd.StringDtype(),
-                }
-                to_pandas_kwargs["types_mapper"] = mapping.get
-            else:
-                raise ValueError(
-                    "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16 "
-                    f"({self.api.__version__} is installed"
-                )
+            mapping = {
+                self.api.int8(): pd.Int8Dtype(),
+                self.api.int16(): pd.Int16Dtype(),
+                self.api.int32(): pd.Int32Dtype(),
+                self.api.int64(): pd.Int64Dtype(),
+                self.api.uint8(): pd.UInt8Dtype(),
+                self.api.uint16(): pd.UInt16Dtype(),
+                self.api.uint32(): pd.UInt32Dtype(),
+                self.api.uint64(): pd.UInt64Dtype(),
+                self.api.bool_(): pd.BooleanDtype(),
+                self.api.string(): pd.StringDtype(),
+                self.api.float32(): pd.Float32Dtype(),
+                self.api.float64(): pd.Float64Dtype(),
+            }
+            to_pandas_kwargs["types_mapper"] = mapping.get
+        manager = get_option("mode.data_manager")
+        if manager == "array":
+            to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
@@ -243,16 +246,19 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            return self.api.parquet.read_table(
+            result = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
             ).to_pandas(**to_pandas_kwargs)
+            if manager == "array":
+                result = result._as_manager("array", copy=False)
+            return result
         finally:
             if handles is not None:
                 handles.close()
 
 
 class FastParquetImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         # since pandas is a dependency of fastparquet
         # we need to import on first use
         fastparquet = import_optional_dependency(
@@ -269,7 +275,7 @@ class FastParquetImpl(BaseImpl):
         partition_cols=None,
         storage_options: StorageOptions = None,
         **kwargs,
-    ):
+    ) -> None:
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
@@ -312,22 +318,30 @@ class FastParquetImpl(BaseImpl):
 
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
-    ):
+    ) -> DataFrame:
+        parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        if Version(self.api.__version__) >= Version("0.7.1"):
+            # We are disabling nullable dtypes for fastparquet pending discussion
+            parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
                 "The 'use_nullable_dtypes' argument is not supported for the "
                 "fastparquet engine"
             )
         path = stringify_path(path)
-        parquet_kwargs = {}
         handles = None
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
-                path, "rb", **(storage_options or {})
-            ).open()
+            if Version(self.api.__version__) > Version("0.6.1"):
+                parquet_kwargs["fs"] = fsspec.open(
+                    path, "rb", **(storage_options or {})
+                ).fs
+            else:
+                parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
+                    path, "rb", **(storage_options or {})
+                ).open()
         elif isinstance(path, str) and not os.path.isdir(path):
             # use get_handle only when we are very certain that it is not a directory
             # fsspec resources can also point to directories
@@ -336,39 +350,38 @@ class FastParquetImpl(BaseImpl):
                 path, "rb", is_text=False, storage_options=storage_options
             )
             path = handles.handle
-        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
-        result = parquet_file.to_pandas(columns=columns, **kwargs)
+        try:
+            parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
+            return parquet_file.to_pandas(columns=columns, **kwargs)
+        finally:
+            if handles is not None:
+                handles.close()
 
-        if handles is not None:
-            handles.close()
-        return result
 
-
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
-    path: Optional[FilePathOrBuffer] = None,
+    path: FilePath | WriteBuffer[bytes] | None = None,
     engine: str = "auto",
-    compression: Optional[str] = "snappy",
-    index: Optional[bool] = None,
+    compression: str | None = "snappy",
+    index: bool | None = None,
     storage_options: StorageOptions = None,
-    partition_cols: Optional[List[str]] = None,
+    partition_cols: list[str] | None = None,
     **kwargs,
-) -> Optional[bytes]:
+) -> bytes | None:
     """
     Write a DataFrame to the parquet format.
 
     Parameters
     ----------
     df : DataFrame
-    path : str or file-like object, default None
-        If a string, it will be used as Root Directory path
-        when writing a partitioned dataset. By file-like object,
-        we refer to objects with a write() method, such as a file handle
-        (e.g. via builtin open function) or io.BytesIO. The engine
-        fastparquet does not accept file-like objects. If path is None,
-        a bytes object is returned.
+    path : str, path object, file-like object, or None, default None
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``write()`` function. If None, the result is
+        returned as bytes. If a string, it will be used as Root Directory path
+        when writing a partitioned dataset. The engine fastparquet does not
+        accept file-like objects.
 
         .. versionchanged:: 1.2.0
 
@@ -377,8 +390,12 @@ def to_parquet(
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
-        Name of the compression to use. Use ``None`` for no compression.
+    compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
+        default 'snappy'. Name of the compression to use. Use ``None``
+        for no compression. The supported compression methods actually
+        depend on which engine is used. For 'pyarrow', 'snappy', 'gzip',
+        'brotli', 'lz4', 'zstd' are all supported. For 'fastparquet',
+        only 'gzip' and 'snappy' are supported.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -387,16 +404,10 @@ def to_parquet(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-
-        .. versionadded:: 0.24.0
-
     partition_cols : str or list, optional, default None
         Column names by which to partition the dataset.
         Columns are partitioned in the order they are given.
         Must be None if path is not a string.
-
-        .. versionadded:: 0.24.0
-
     {storage_options}
 
         .. versionadded:: 1.2.0
@@ -412,7 +423,7 @@ def to_parquet(
         partition_cols = [partition_cols]
     impl = get_engine(engine)
 
-    path_or_buf: FilePathOrBuffer = io.BytesIO() if path is None else path
+    path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
 
     impl.write(
         df,
@@ -431,36 +442,30 @@ def to_parquet(
         return None
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
-    path,
+    path: FilePath | ReadBuffer[bytes],
     engine: str = "auto",
-    columns=None,
+    columns: list[str] | None = None,
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
     **kwargs,
-):
+) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
 
     Parameters
     ----------
     path : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
-        expected. A local file could be:
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``read()`` function.
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gs, and file. For file URLs, a host is expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
         A file URL can also be a path to a directory that contains multiple
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
-        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
-
-        If you want to pass in a path object, pandas accepts any
-        ``os.PathLike``.
-
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``.
     engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -475,7 +480,8 @@ def read_parquet(
 
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
+        for the resulting DataFrame. (only applicable for the ``pyarrow``
+        engine)
         As new dtypes are added that support ``pd.NA`` in the future, the
         output with this option will change to use those dtypes.
         Note: this is an experimental option, and behaviour (e.g. additional

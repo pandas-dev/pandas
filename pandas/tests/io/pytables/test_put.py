@@ -15,13 +15,13 @@ from pandas import (
     DataFrame,
     HDFStore,
     Index,
-    Int64Index,
     MultiIndex,
     RangeIndex,
     Series,
     _testing as tm,
     concat,
 )
+from pandas.core.api import Int64Index
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
@@ -29,7 +29,7 @@ from pandas.tests.io.pytables.common import (
 )
 from pandas.util import _test_decorators as td
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_format_type(setup_path):
@@ -59,46 +59,41 @@ def test_api_default_format(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = tm.makeDataFrame()
 
-        pd.set_option("io.hdf.default_format", "fixed")
-        _maybe_remove(store, "df")
-        store.put("df", df)
-        assert not store.get_storer("df").is_table
+        with pd.option_context("io.hdf.default_format", "fixed"):
+            _maybe_remove(store, "df")
+            store.put("df", df)
+            assert not store.get_storer("df").is_table
 
-        msg = "Can only append to Tables"
+            msg = "Can only append to Tables"
+            with pytest.raises(ValueError, match=msg):
+                store.append("df2", df)
 
-        with pytest.raises(ValueError, match=msg):
+        with pd.option_context("io.hdf.default_format", "table"):
+            _maybe_remove(store, "df")
+            store.put("df", df)
+            assert store.get_storer("df").is_table
+
+            _maybe_remove(store, "df2")
             store.append("df2", df)
-
-        pd.set_option("io.hdf.default_format", "table")
-        _maybe_remove(store, "df")
-        store.put("df", df)
-        assert store.get_storer("df").is_table
-        _maybe_remove(store, "df2")
-        store.append("df2", df)
-        assert store.get_storer("df").is_table
-
-        pd.set_option("io.hdf.default_format", None)
+            assert store.get_storer("df").is_table
 
     with ensure_clean_path(setup_path) as path:
-
         df = tm.makeDataFrame()
 
-        pd.set_option("io.hdf.default_format", "fixed")
-        df.to_hdf(path, "df")
-        with HDFStore(path) as store:
-            assert not store.get_storer("df").is_table
-        with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, "df2", append=True)
+        with pd.option_context("io.hdf.default_format", "fixed"):
+            df.to_hdf(path, "df")
+            with HDFStore(path) as store:
+                assert not store.get_storer("df").is_table
+            with pytest.raises(ValueError, match=msg):
+                df.to_hdf(path, "df2", append=True)
 
-        pd.set_option("io.hdf.default_format", "table")
-        df.to_hdf(path, "df3")
-        with HDFStore(path) as store:
-            assert store.get_storer("df3").is_table
-        df.to_hdf(path, "df4", append=True)
-        with HDFStore(path) as store:
-            assert store.get_storer("df4").is_table
-
-        pd.set_option("io.hdf.default_format", None)
+        with pd.option_context("io.hdf.default_format", "table"):
+            df.to_hdf(path, "df3")
+            with HDFStore(path) as store:
+                assert store.get_storer("df3").is_table
+            df.to_hdf(path, "df4", append=True)
+            with HDFStore(path) as store:
+                assert store.get_storer("df4").is_table
 
 
 def test_put(setup_path):
@@ -176,7 +171,7 @@ def test_put_compression(setup_path):
             store.put("b", df, format="fixed", complib="zlib")
 
 
-@td.skip_if_windows_python_3
+@td.skip_if_windows
 def test_put_compression_blosc(setup_path):
     df = tm.makeTimeDataFrame()
 
@@ -219,39 +214,33 @@ def test_put_mixed_type(setup_path):
         tm.assert_frame_equal(expected, df)
 
 
-def test_store_index_types(setup_path):
+@pytest.mark.parametrize(
+    "format, index",
+    [
+        ["table", tm.makeFloatIndex],
+        ["table", tm.makeStringIndex],
+        ["table", tm.makeIntIndex],
+        ["table", tm.makeDateIndex],
+        ["fixed", tm.makeFloatIndex],
+        ["fixed", tm.makeStringIndex],
+        ["fixed", tm.makeIntIndex],
+        ["fixed", tm.makeDateIndex],
+        ["table", tm.makePeriodIndex],  # GH#7796
+        ["fixed", tm.makePeriodIndex],
+    ],
+)
+def test_store_index_types(setup_path, format, index):
     # GH5386
     # test storing various index types
 
     with ensure_clean_store(setup_path) as store:
 
-        def check(format, index):
-            df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
-            df.index = index(len(df))
+        df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+        df.index = index(len(df))
 
-            _maybe_remove(store, "df")
-            store.put("df", df, format=format)
-            tm.assert_frame_equal(df, store["df"])
-
-        for index in [
-            tm.makeFloatIndex,
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-        ]:
-
-            check("table", index)
-            check("fixed", index)
-
-        # period index currently broken for table
-        # seee GH7796 FIXME
-        check("fixed", tm.makePeriodIndex)
-        # check('table',tm.makePeriodIndex)
-
-        # unicode
-        index = tm.makeUnicodeIndex
-        check("table", index)
-        check("fixed", index)
+        _maybe_remove(store, "df")
+        store.put("df", df, format=format)
+        tm.assert_frame_equal(df, store["df"])
 
 
 def test_column_multiindex(setup_path):

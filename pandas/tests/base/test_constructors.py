@@ -47,15 +47,12 @@ class TestPandasDelegate:
         foo = property(_get_foo, _set_foo, doc="foo property")
 
         def bar(self, *args, **kwargs):
-            """ a test bar method """
+            """a test bar method"""
             pass
 
     class Delegate(PandasDelegate, PandasObject):
-        def __init__(self, obj):
+        def __init__(self, obj) -> None:
             self.obj = obj
-
-    def setup_method(self, method):
-        pass
 
     def test_invalid_delegation(self):
         # these show that in order for the delegation to work
@@ -124,9 +121,7 @@ class TestConstruction:
         [
             Series,
             lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-            pytest.param(
-                lambda x, **kwargs: DataFrame(x, **kwargs)[0], marks=pytest.mark.xfail
-            ),
+            lambda x, **kwargs: DataFrame(x, **kwargs)[0],
             Index,
         ],
     )
@@ -162,7 +157,7 @@ class TestConstruction:
 
         # Explicit dtype specified
         # Forced conversion fails for all -> all cases raise error
-        msg = "Out of bounds"
+        msg = "Out of bounds|Out of bounds .* present at position 0"
         with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
             klass(a, dtype="datetime64[ns]")
 

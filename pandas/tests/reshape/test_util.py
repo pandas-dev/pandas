@@ -22,7 +22,7 @@ class TestCartesianProduct:
         # regression test for GitHub issue #6439
         # make sure that the ordering on datetimeindex is consistent
         x = date_range("2000-01-01", periods=2)
-        result1, result2 = [Index(y).day for y in cartesian_product([x, x])]
+        result1, result2 = (Index(y).day for y in cartesian_product([x, x]))
         expected1 = Index([1, 1, 2, 2])
         expected2 = Index([1, 2, 1, 2])
         tm.assert_index_equal(result1, expected1)
@@ -44,17 +44,16 @@ class TestCartesianProduct:
         expected = x.repeat(2)
         tm.assert_index_equal(result1, expected)
 
-    def test_empty(self):
+    @pytest.mark.parametrize("x, y", [[[], []], [[0, 1], []], [[], ["a", "b", "c"]]])
+    def test_empty(self, x, y):
         # product of empty factors
-        X = [[], [0, 1], []]
-        Y = [[], [], ["a", "b", "c"]]
-        for x, y in zip(X, Y):
-            expected1 = np.array([], dtype=np.asarray(x).dtype)
-            expected2 = np.array([], dtype=np.asarray(y).dtype)
-            result1, result2 = cartesian_product([x, y])
-            tm.assert_numpy_array_equal(result1, expected1)
-            tm.assert_numpy_array_equal(result2, expected2)
+        expected1 = np.array([], dtype=np.asarray(x).dtype)
+        expected2 = np.array([], dtype=np.asarray(y).dtype)
+        result1, result2 = cartesian_product([x, y])
+        tm.assert_numpy_array_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result2, expected2)
 
+    def test_empty_input(self):
         # empty product (empty input):
         result = cartesian_product([])
         expected = []

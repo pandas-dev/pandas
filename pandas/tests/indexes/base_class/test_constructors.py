@@ -36,8 +36,15 @@ class TestIndexConstructor:
             with tm.assert_produces_warning(FutureWarning):
                 Index([], foo="bar")
 
-    @pytest.mark.xfail(reason="see GH#21311: Index doesn't enforce dtype argument")
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
+
+    @pytest.mark.parametrize("tuple_list", [[()], [(), ()]])
+    def test_construct_empty_tuples(self, tuple_list):
+        # GH #45608
+        result = Index(tuple_list)
+        expected = MultiIndex.from_tuples(tuple_list)
+
+        tm.assert_index_equal(result, expected)

@@ -28,9 +28,11 @@ def test_series_getitem_multiindex(access_method, level1_value, expected):
     # GH 6018
     # series regression getitem with a multi-index
 
-    s = Series([1, 2, 3])
-    s.index = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 1)])
-    result = access_method(s, level1_value)
+    mi = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 1)], names=["A", "B"])
+    ser = Series([1, 2, 3], index=mi)
+    expected.index.name = "A"
+
+    result = access_method(ser, level1_value)
     tm.assert_series_equal(result, expected)
 
 
@@ -62,26 +64,22 @@ def test_series_getitem_duplicates_multiindex(level0_value):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("indexer", [lambda s: s[2000, 3], lambda s: s.loc[2000, 3]])
-def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer):
+def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer_sl):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.reindex(s.index[42:65])
     expected.index = expected.index.droplevel(0).droplevel(0)
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3]
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "indexer", [lambda s: s[2000, 3, 10], lambda s: s.loc[2000, 3, 10]]
-)
 def test_series_getitem_returns_scalar(
-    multiindex_year_month_day_dataframe_random_data, indexer
+    multiindex_year_month_day_dataframe_random_data, indexer_sl
 ):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.iloc[49]
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3, 10]
     assert result == expected
 
 
@@ -210,27 +208,26 @@ def test_frame_getitem_nan_multiindex(nulls_fixture):
     df = DataFrame(
         [[11, n, 13], [21, n, 23], [31, n, 33], [41, n, 43]],
         columns=cols,
-        dtype="int64",
     ).set_index(["a", "b"])
+    df["c"] = df["c"].astype("int64")
 
     idx = (21, n)
     result = df.loc[:idx]
-    expected = DataFrame(
-        [[11, n, 13], [21, n, 23]], columns=cols, dtype="int64"
-    ).set_index(["a", "b"])
+    expected = DataFrame([[11, n, 13], [21, n, 23]], columns=cols).set_index(["a", "b"])
+    expected["c"] = expected["c"].astype("int64")
     tm.assert_frame_equal(result, expected)
 
     result = df.loc[idx:]
     expected = DataFrame(
-        [[21, n, 23], [31, n, 33], [41, n, 43]], columns=cols, dtype="int64"
+        [[21, n, 23], [31, n, 33], [41, n, 43]], columns=cols
     ).set_index(["a", "b"])
+    expected["c"] = expected["c"].astype("int64")
     tm.assert_frame_equal(result, expected)
 
     idx1, idx2 = (21, n), (31, n)
     result = df.loc[idx1:idx2]
-    expected = DataFrame(
-        [[21, n, 23], [31, n, 33]], columns=cols, dtype="int64"
-    ).set_index(["a", "b"])
+    expected = DataFrame([[21, n, 23], [31, n, 33]], columns=cols).set_index(["a", "b"])
+    expected["c"] = expected["c"].astype("int64")
     tm.assert_frame_equal(result, expected)
 
 

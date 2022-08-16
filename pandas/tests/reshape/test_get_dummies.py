@@ -196,6 +196,22 @@ class TestGetDummies:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_dataframe_dummies_string_dtype(self, df):
+        # GH44965
+        df = df[["A", "B"]]
+        df = df.astype({"A": "object", "B": "string"})
+        result = get_dummies(df)
+        expected = DataFrame(
+            {
+                "A_a": [1, 0, 1],
+                "A_b": [0, 1, 0],
+                "B_b": [1, 1, 0],
+                "B_c": [0, 0, 1],
+            },
+            dtype=np.uint8,
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_dataframe_dummies_mix_default(self, df, sparse, dtype):
         result = get_dummies(df, sparse=sparse, dtype=dtype)
         if sparse:
@@ -272,8 +288,9 @@ class TestGetDummies:
                 "from_A_a": [1, 0, 1],
                 "from_A_b": [0, 1, 0],
             },
-            dtype=np.uint8,
         )
+        cols = expected.columns
+        expected[cols[1:]] = expected[cols[1:]].astype(np.uint8)
         expected[["C"]] = df[["C"]]
         if sparse:
             cols = ["from_A_a", "from_A_b"]

@@ -1,6 +1,14 @@
 """
 Quantilization functions and related stuff
 """
+from __future__ import annotations
+
+from typing import (
+    Any,
+    Callable,
+    Literal,
+)
+
 import numpy as np
 
 from pandas._libs import (
@@ -8,10 +16,11 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas._libs.lib import infer_dtype
+from pandas._typing import IntervalLeftRight
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
-    ensure_int64,
+    ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -19,8 +28,8 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype,
     is_extension_array_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -107,7 +116,7 @@ def cut(
         An array-like object representing the respective bin for each value
         of `x`. The type depends on the value of `labels`.
 
-        * True (default) : returns a Series for Series `x` or a
+        * None (default) : returns a Series for Series `x` or a
           Categorical for all other inputs. The values stored within
           are Interval dtype.
 
@@ -136,6 +145,8 @@ def cut(
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
+
+    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
     Examples
     --------
@@ -220,7 +231,7 @@ def cut(
     is to the left of the first bin (which is closed on the right), and 1.5
     falls between two bins.
 
-    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], inclusive="right")
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
@@ -245,7 +256,7 @@ def cut(
             raise ValueError("Cannot cut empty array")
 
         rng = (nanops.nanmin(x), nanops.nanmax(x))
-        mn, mx = [mi + 0.0 for mi in rng]
+        mn, mx = (mi + 0.0 for mi in rng)
 
         if np.isinf(mn) or np.isinf(mx):
             # GH 24314
@@ -359,11 +370,12 @@ def qcut(
     x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
-    if is_integer(q):
-        quantiles = np.linspace(0, 1, q + 1)
-    else:
-        quantiles = q
-    bins = algos.quantile(x, quantiles)
+    quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
+
+    x_np = np.asarray(x)
+    x_np = x_np[~np.isnan(x_np)]
+    bins = np.quantile(x_np, quantiles)
+
     fac, bins = _bins_to_cuts(
         x,
         bins,
@@ -379,7 +391,7 @@ def qcut(
 
 def _bins_to_cuts(
     x,
-    bins,
+    bins: np.ndarray,
     right: bool = True,
     labels=None,
     precision: int = 3,
@@ -412,11 +424,11 @@ def _bins_to_cuts(
         else:
             bins = unique_bins
 
-    side = "left" if right else "right"
-    ids = ensure_int64(bins.searchsorted(x, side=side))
+    side: Literal["left", "right"] = "left" if right else "right"
+    ids = ensure_platform_int(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        ids[x == bins[0]] = 1
+        ids[np.asarray(x) == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
@@ -434,7 +446,8 @@ def _bins_to_cuts(
             )
         elif ordered and len(set(labels)) != len(labels):
             raise ValueError(
-                "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
+                "labels must be unique if ordered=True; pass ordered=False "
+                "for duplicate labels"
             )
         else:
             if len(labels) != len(bins) - 1:
@@ -483,7 +496,7 @@ def _coerce_to_type(x):
     # Will properly support in the future.
     # https://github.com/pandas-dev/pandas/pull/31290
     # https://github.com/pandas-dev/pandas/issues/31389
-    elif is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
+    elif is_extension_array_dtype(x.dtype) and is_numeric_dtype(x.dtype):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
     if dtype is not None:
@@ -547,8 +560,10 @@ def _convert_bin_to_datelike_type(bins, dtype):
 def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
-    """ based on the dtype, return our labels """
-    closed = "right" if right else "left"
+    """based on the dtype, return our labels"""
+    inclusive: IntervalLeftRight = "right" if right else "left"
+
+    formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
     if is_datetime64tz_dtype(dtype):
         formatter = lambda x: Timestamp(x, tz=dtype.tz)
@@ -569,7 +584,7 @@ def _format_labels(
         # adjust lhs of first interval by precision to account for being right closed
         breaks[0] = adjust(breaks[0])
 
-    return IntervalIndex.from_breaks(breaks, closed=closed)
+    return IntervalIndex.from_breaks(breaks, inclusive=inclusive)
 
 
 def _preprocess_for_cut(x):

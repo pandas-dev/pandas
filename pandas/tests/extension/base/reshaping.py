@@ -4,7 +4,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.internals import ExtensionBlock
+import pandas._testing as tm
+from pandas.api.extensions import ExtensionArray
+from pandas.core.internals.blocks import EABackedBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -26,7 +28,9 @@ class BaseReshapingTests(BaseExtensionTests):
             dtype = result.dtype
 
         assert dtype == data.dtype
-        assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+        if hasattr(result._mgr, "blocks"):
+            assert isinstance(result._mgr.blocks[0], EABackedBlock)
+        assert isinstance(result._mgr.arrays[0], ExtensionArray)
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
@@ -315,10 +319,22 @@ class BaseReshapingTests(BaseExtensionTests):
                 alt = df.unstack(level=level).droplevel(0, axis=1)
                 self.assert_frame_equal(result, alt)
 
-            expected = ser.astype(object).unstack(
-                level=level, fill_value=data.dtype.na_value
-            )
-            result = result.astype(object)
+            if obj == "series":
+                is_sparse = isinstance(ser.dtype, pd.SparseDtype)
+            else:
+                is_sparse = isinstance(ser.dtypes.iat[0], pd.SparseDtype)
+            warn = None if not is_sparse else FutureWarning
+            with tm.assert_produces_warning(warn, match="astype from Sparse"):
+                obj_ser = ser.astype(object)
+
+            expected = obj_ser.unstack(level=level, fill_value=data.dtype.na_value)
+            if obj == "series" and not is_sparse:
+                # GH#34457 SparseArray.astype(object) gives Sparse[object]
+                #  instead of np.dtype(object)
+                assert (expected.dtypes == object).all()
+
+            with tm.assert_produces_warning(warn, match="astype from Sparse"):
+                result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
 

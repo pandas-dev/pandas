@@ -297,23 +297,18 @@ positional argument (a regex object) and return a string.
    # Reverse every lowercase alphabetic word
    pat = r"[a-z]+"
 
-
    def repl(m):
        return m.group(0)[::-1]
-
 
    pd.Series(["foo 123", "bar baz", np.nan], dtype="string").str.replace(
        pat, repl, regex=True
    )
 
-
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
 
-
    def repl(m):
        return m.group("two").swapcase()
-
 
    pd.Series(["Foo Bar Baz", np.nan], dtype="string").str.replace(
        pat, repl, regex=True
@@ -339,6 +334,19 @@ regular expression object will raise a ``ValueError``.
     In [1]: s3.str.replace(regex_pat, 'XX-XX ', flags=re.IGNORECASE)
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
+
+``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in Python 3.9
+<https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
+
+.. versionadded:: 1.4.0
+
+.. ipython:: python
+
+   s = pd.Series(["str_foo", "str_bar", "no_prefix"])
+   s.str.removeprefix("str_")
+
+   s = pd.Series(["foo_str", "bar_str", "no_suffix"])
+   s.str.removesuffix("_str")
 
 .. _text.concatenate:
 
@@ -747,6 +755,8 @@ Method summary
     :meth:`~Series.str.get_dummies`;Split strings on the delimiter returning DataFrame of dummy variables
     :meth:`~Series.str.contains`;Return boolean array if each string contains pattern/regex
     :meth:`~Series.str.replace`;Replace occurrences of pattern/regex/string with some other string or the return value of a callable given the occurrence
+    :meth:`~Series.str.removeprefix`;Remove prefix from string, i.e. only remove if string starts with prefix.
+    :meth:`~Series.str.removesuffix`;Remove suffix from string, i.e. only remove if string ends with suffix.
     :meth:`~Series.str.repeat`;Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
     :meth:`~Series.str.pad`;"Add whitespace to left, right, or both sides of strings"
     :meth:`~Series.str.center`;Equivalent to ``str.center``

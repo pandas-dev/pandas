@@ -84,7 +84,12 @@ class TestCategoricalMissing:
         # https://github.com/pandas-dev/pandas/issues/13628
         cat = Categorical([1, 2, 3, None, None])
 
-        with pytest.raises(ValueError, match=msg):
+        if len(fillna_kwargs) == 1 and "value" in fillna_kwargs:
+            err = TypeError
+        else:
+            err = ValueError
+
+        with pytest.raises(err, match=msg):
             cat.fillna(**fillna_kwargs)
 
     @pytest.mark.parametrize("named", [True, False])
@@ -100,6 +105,13 @@ class TestCategoricalMissing:
 
         tm.assert_categorical_equal(result, expected)
 
+        # Case where the Point is not among our categories; we want ValueError,
+        #  not NotImplementedError GH#41914
+        cat = Categorical(np.array([Point(1, 0), Point(0, 1), None], dtype=object))
+        msg = "Cannot setitem on a Categorical with a new category"
+        with pytest.raises(TypeError, match=msg):
+            cat.fillna(Point(0, 0))
+
     def test_fillna_array(self):
         # accept Categorical or ndarray value if it holds appropriate values
         cat = Categorical(["A", "B", "C", None, None])
@@ -107,13 +119,13 @@ class TestCategoricalMissing:
         other = cat.fillna("C")
         result = cat.fillna(other)
         tm.assert_categorical_equal(result, other)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
         other = np.array(["A", "B", "C", "B", "A"])
         result = cat.fillna(other)
         expected = Categorical(["A", "B", "C", "B", "A"], dtype=cat.dtype)
         tm.assert_categorical_equal(result, expected)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
     @pytest.mark.parametrize(
         "values, expected",
@@ -154,14 +166,14 @@ class TestCategoricalMissing:
         cat = Categorical(values)
 
         with pd.option_context("mode.use_inf_as_na", True):
-            result = pd.isna(cat)
+            result = isna(cat)
             tm.assert_numpy_array_equal(result, expected)
 
-            result = pd.isna(Series(cat))
+            result = isna(Series(cat))
             expected = Series(expected)
             tm.assert_series_equal(result, expected)
 
-            result = pd.isna(DataFrame(cat))
+            result = isna(DataFrame(cat))
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
 
@@ -185,3 +197,17 @@ class TestCategoricalMissing:
         result = Series(a1, dtype=cat_type) == Series(a2, dtype=cat_type)
         expected = Series(a1) == Series(a2)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "na_value, dtype",
+        [
+            (pd.NaT, "datetime64[ns]"),
+            (None, "float64"),
+            (np.nan, "float64"),
+            (pd.NA, "float64"),
+        ],
+    )
+    def test_categorical_only_missing_values_no_cast(self, na_value, dtype):
+        # GH#44900
+        result = Categorical([na_value, na_value])
+        tm.assert_index_equal(result.categories, Index([], dtype=dtype))

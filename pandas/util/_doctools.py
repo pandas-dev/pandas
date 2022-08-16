@@ -1,7 +1,6 @@
-from typing import (
-    Optional,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Iterable
 
 import numpy as np
 
@@ -19,19 +18,19 @@ class TablePlotter:
         cell_width: float = 0.37,
         cell_height: float = 0.25,
         font_size: float = 7.5,
-    ):
+    ) -> None:
         self.cell_width = cell_width
         self.cell_height = cell_height
         self.font_size = font_size
 
-    def _shape(self, df: pd.DataFrame) -> Tuple[int, int]:
+    def _shape(self, df: pd.DataFrame) -> tuple[int, int]:
         """
         Calculate table shape considering index levels.
         """
         row, col = df.shape
         return row + df.columns.nlevels, col + df.index.nlevels
 
-    def _get_cells(self, left, right, vertical) -> Tuple[int, int]:
+    def _get_cells(self, left, right, vertical) -> tuple[int, int]:
         """
         Calculate appropriate figure size based on left and right data.
         """
@@ -44,7 +43,7 @@ class TablePlotter:
             hcells = sum([self._shape(df)[1] for df in left] + [self._shape(right)[1]])
         return hcells, vcells
 
-    def plot(self, left, right, labels=None, vertical: bool = True):
+    def plot(self, left, right, labels: Iterable[str] = (), vertical: bool = True):
         """
         Plot left / right DataFrames in specified layout.
 
@@ -137,7 +136,7 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title: str, height: Optional[float] = None):
+    def _make_table(self, ax, df, title: str, height: float | None = None):
         if df is None:
             ax.set_visible(False)
             return

@@ -1,23 +1,26 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 import os
 from pathlib import Path
-import random
 from shutil import rmtree
-import string
 import tempfile
 from typing import (
     IO,
     Any,
-    Union,
+    Iterator,
 )
+import uuid
 
 import numpy as np
+
+from pandas import set_option
 
 from pandas.io.common import get_handle
 
 
 @contextmanager
-def decompress_file(path, compression):
+def decompress_file(path, compression) -> Iterator[IO[bytes]]:
     """
     Open a compressed file and return a file object.
 
@@ -26,7 +29,7 @@ def decompress_file(path, compression):
     path : str
         The path where the file is read from.
 
-    compression : {'gzip', 'bz2', 'zip', 'xz', None}
+    compression : {'gzip', 'bz2', 'zip', 'xz', 'zstd', None}
         Name of the decompression to use
 
     Returns
@@ -38,7 +41,7 @@ def decompress_file(path, compression):
 
 
 @contextmanager
-def set_timezone(tz: str):
+def set_timezone(tz: str) -> Iterator[None]:
     """
     Context manager for temporarily setting a timezone.
 
@@ -51,13 +54,13 @@ def set_timezone(tz: str):
     --------
     >>> from datetime import datetime
     >>> from dateutil.tz import tzlocal
-    >>> tzlocal().tzname(datetime.now())
+    >>> tzlocal().tzname(datetime(2021, 1, 1))  # doctest: +SKIP
     'IST'
 
     >>> with set_timezone('US/Eastern'):
-    ...     tzlocal().tzname(datetime.now())
+    ...     tzlocal().tzname(datetime(2021, 1, 1))
     ...
-    'EDT'
+    'EST'
     """
     import os
     import time
@@ -104,14 +107,12 @@ def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
 
     if filename is None:
         filename = ""
-    filename = (
-        "".join(random.choices(string.ascii_letters + string.digits, k=30)) + filename
-    )
+    filename = str(uuid.uuid4()) + filename
     path = folder / filename
 
     path.touch()
 
-    handle_or_str: Union[str, IO] = str(path)
+    handle_or_str: str | IO = str(path)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
         handle_or_str = open(path, **kwargs)
@@ -126,7 +127,7 @@ def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
 
 
 @contextmanager
-def ensure_clean_dir():
+def ensure_clean_dir() -> Iterator[str]:
     """
     Get a temporary directory path and agrees to remove on close.
 
@@ -145,7 +146,7 @@ def ensure_clean_dir():
 
 
 @contextmanager
-def ensure_safe_environment_variables():
+def ensure_safe_environment_variables() -> Iterator[None]:
     """
     Get a context manager to safely set environment variables
 
@@ -161,7 +162,7 @@ def ensure_safe_environment_variables():
 
 
 @contextmanager
-def with_csv_dialect(name, **kwargs):
+def with_csv_dialect(name, **kwargs) -> Iterator[None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -188,12 +189,14 @@ def with_csv_dialect(name, **kwargs):
         raise ValueError("Cannot override builtin dialect.")
 
     csv.register_dialect(name, **kwargs)
-    yield
-    csv.unregister_dialect(name)
+    try:
+        yield
+    finally:
+        csv.unregister_dialect(name)
 
 
 @contextmanager
-def use_numexpr(use, min_elements=None):
+def use_numexpr(use, min_elements=None) -> Iterator[None]:
     from pandas.core.computation import expressions as expr
 
     if min_elements is None:
@@ -201,11 +204,13 @@ def use_numexpr(use, min_elements=None):
 
     olduse = expr.USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
-    expr.set_use_numexpr(use)
+    set_option("compute.use_numexpr", use)
     expr._MIN_ELEMENTS = min_elements
-    yield
-    expr._MIN_ELEMENTS = oldmin
-    expr.set_use_numexpr(olduse)
+    try:
+        yield
+    finally:
+        expr._MIN_ELEMENTS = oldmin
+        set_option("compute.use_numexpr", olduse)
 
 
 class RNGContext:
@@ -224,14 +229,14 @@ class RNGContext:
         np.random.randn()
     """
 
-    def __init__(self, seed):
+    def __init__(self, seed) -> None:
         self.seed = seed
 
-    def __enter__(self):
+    def __enter__(self) -> None:
 
         self.start_state = np.random.get_state()
         np.random.seed(self.seed)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
 
         np.random.set_state(self.start_state)

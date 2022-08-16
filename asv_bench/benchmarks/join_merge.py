@@ -158,6 +158,19 @@ class JoinIndex:
         self.left.join(self.right, on="jim")
 
 
+class JoinEmpty:
+    def setup(self):
+        N = 100_000
+        self.df = DataFrame({"A": np.arange(N)})
+        self.df_empty = DataFrame(columns=["B", "C"], dtype="int64")
+
+    def time_inner_join_left_empty(self):
+        self.df_empty.join(self.df, how="inner")
+
+    def time_inner_join_right_empty(self):
+        self.df.join(self.df_empty, how="inner")
+
+
 class JoinNonUnique:
     # outer join of non-unique
     # GH 6329
@@ -216,6 +229,12 @@ class Merge:
     def time_merge_dataframe_integer_key(self, sort):
         merge(self.df, self.df2, on="key1", sort=sort)
 
+    def time_merge_dataframe_empty_right(self, sort):
+        merge(self.left, self.right.iloc[:0], sort=sort)
+
+    def time_merge_dataframe_empty_left(self, sort):
+        merge(self.left.iloc[:0], self.right, sort=sort)
+
     def time_merge_dataframes_cross(self, sort):
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
@@ -226,7 +245,7 @@ class I8Merge:
     param_names = ["how"]
 
     def setup(self, how):
-        low, high, n = -1000, 1000, 10 ** 6
+        low, high, n = -1000, 1000, 10**6
         self.left = DataFrame(
             np.random.randint(low, high, (n, 7)), columns=list("ABCDEFG")
         )
@@ -262,11 +281,23 @@ class MergeCategoricals:
             Z=self.right_object["Z"].astype("category")
         )
 
+        self.left_cat_col = self.left_object.astype({"X": "category"})
+        self.right_cat_col = self.right_object.astype({"X": "category"})
+
+        self.left_cat_idx = self.left_cat_col.set_index("X")
+        self.right_cat_idx = self.right_cat_col.set_index("X")
+
     def time_merge_object(self):
         merge(self.left_object, self.right_object, on="X")
 
     def time_merge_cat(self):
         merge(self.left_cat, self.right_cat, on="X")
+
+    def time_merge_on_cat_col(self):
+        merge(self.left_cat_col, self.right_cat_col, on="X")
+
+    def time_merge_on_cat_idx(self):
+        merge(self.left_cat_idx, self.right_cat_idx, on="X")
 
 
 class MergeOrdered:
@@ -382,8 +413,8 @@ class MergeAsof:
 
 class Align:
     def setup(self):
-        size = 5 * 10 ** 5
-        rng = np.arange(0, 10 ** 13, 10 ** 7)
+        size = 5 * 10**5
+        rng = np.arange(0, 10**13, 10**7)
         stamps = np.datetime64("now").view("i8") + rng
         idx1 = np.sort(np.random.choice(stamps, size, replace=False))
         idx2 = np.sort(np.random.choice(stamps, size, replace=False))

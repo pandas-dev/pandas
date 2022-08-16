@@ -1,10 +1,17 @@
-import logging
 import os
 import shlex
 import subprocess
 import time
 
 import pytest
+
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_arm,
+    is_platform_mac,
+    is_platform_windows,
+)
+import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
@@ -36,8 +43,12 @@ def feather_file(datapath):
 
 @pytest.fixture
 def s3so(worker_id):
-    worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-    return {"client_kwargs": {"endpoint_url": f"http://127.0.0.1:555{worker_id}/"}}
+    if is_ci_environment():
+        url = "http://localhost:5000/"
+    else:
+        worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+        url = f"http://127.0.0.1:555{worker_id}/"
+    return {"client_kwargs": {"endpoint_url": url}}
 
 
 @pytest.fixture(scope="session")
@@ -45,54 +56,66 @@ def s3_base(worker_id):
     """
     Fixture for mocking S3 interaction.
 
-    Sets up moto server in separate process
+    Sets up moto server in separate process locally
+    Return url for motoserver/moto CI service
     """
     pytest.importorskip("s3fs")
     pytest.importorskip("boto3")
-    requests = pytest.importorskip("requests")
-    logging.getLogger("requests").disabled = True
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
         # see https://github.com/spulec/moto/issues/1924 & 1952
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
+        if is_ci_environment():
+            if is_platform_arm() or is_platform_mac() or is_platform_windows():
+                # NOT RUN on Windows/MacOS/ARM, only Ubuntu
+                # - subprocess in CI can cause timeouts
+                # - Github Actions do not support
+                #   container services for the above OSs
+                # - CircleCI will probably hit the Docker rate pull limit
+                pytest.skip(
+                    "S3 tests do not have a corresponding service in "
+                    "Windows, MacOS or ARM platforms"
+                )
+            else:
+                yield "http://localhost:5000"
+        else:
+            requests = pytest.importorskip("requests")
+            pytest.importorskip("moto", minversion="1.3.14")
+            pytest.importorskip("flask")  # server mode needs flask too
 
-        pytest.importorskip("moto", minversion="1.3.14")
-        pytest.importorskip("flask")  # server mode needs flask too
+            # Launching moto in server mode, i.e., as a separate process
+            # with an S3 endpoint on localhost
 
-        # Launching moto in server mode, i.e., as a separate process
-        # with an S3 endpoint on localhost
+            worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+            endpoint_port = f"555{worker_id}"
+            endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
 
-        worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-        endpoint_port = f"555{worker_id}"
-        endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
+            # pipe to null to avoid logging in terminal
+            with subprocess.Popen(
+                shlex.split(f"moto_server s3 -p {endpoint_port}"),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            ) as proc:
 
-        # pipe to null to avoid logging in terminal
-        proc = subprocess.Popen(
-            shlex.split(f"moto_server s3 -p {endpoint_port}"),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+                timeout = 5
+                while timeout > 0:
+                    try:
+                        # OK to go once server is accepting connections
+                        r = requests.get(endpoint_uri)
+                        if r.ok:
+                            break
+                    except Exception:
+                        pass
+                    timeout -= 0.1
+                    time.sleep(0.1)
+                yield endpoint_uri
 
-        timeout = 5
-        while timeout > 0:
-            try:
-                # OK to go once server is accepting connections
-                r = requests.get(endpoint_uri)
-                if r.ok:
-                    break
-            except Exception:
-                pass
-            timeout -= 0.1
-            time.sleep(0.1)
-        yield endpoint_uri
-
-        proc.terminate()
-        proc.wait()
+                proc.terminate()
 
 
-@pytest.fixture()
+@pytest.fixture
 def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     """
     Sets up S3 bucket with contents
@@ -131,12 +154,12 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
 
     try:
         cli.create_bucket(Bucket=bucket)
-    except:  # noqa
+    except Exception:
         # OK is bucket already exists
         pass
     try:
         cli.create_bucket(Bucket="cant_get_it", ACL="private")
-    except:  # noqa
+    except Exception:
         # OK is bucket already exists
         pass
     timeout = 2
@@ -153,13 +176,39 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
 
     try:
         s3.rm(bucket, recursive=True)
-    except:  # noqa
+    except Exception:
         pass
     try:
         s3.rm("cant_get_it", recursive=True)
-    except:  # noqa
+    except Exception:
         pass
     timeout = 2
     while cli.list_buckets()["Buckets"] and timeout > 0:
         time.sleep(0.1)
         timeout -= 0.1
+
+
+_compression_formats_params = [
+    (".no_compress", None),
+    ("", None),
+    (".gz", "gzip"),
+    (".GZ", "gzip"),
+    (".bz2", "bz2"),
+    (".BZ2", "bz2"),
+    (".zip", "zip"),
+    (".ZIP", "zip"),
+    (".xz", "xz"),
+    (".XZ", "xz"),
+    pytest.param((".zst", "zstd"), marks=td.skip_if_no("zstandard")),
+    pytest.param((".ZST", "zstd"), marks=td.skip_if_no("zstandard")),
+]
+
+
+@pytest.fixture(params=_compression_formats_params[1:])
+def compression_format(request):
+    return request.param
+
+
+@pytest.fixture(params=_compression_formats_params)
+def compression_ext(request):
+    return request.param[0]

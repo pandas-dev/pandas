@@ -26,7 +26,6 @@ from pandas._libs.tslibs.timezones import (
     dateutil_gettz,
     maybe_get_tz,
 )
-from pandas.compat import np_datetime64_compat
 
 import pandas as pd
 from pandas import (
@@ -40,6 +39,17 @@ import pandas._testing as tm
 
 
 class TestPeriodConstruction:
+    def test_from_td64nat_raises(self):
+        # GH#44507
+        td = NaT.to_numpy("m8[ns]")
+
+        msg = "Value must be Period, string, integer, or datetime"
+        with pytest.raises(ValueError, match=msg):
+            Period(td)
+
+        with pytest.raises(ValueError, match=msg):
+            Period(td, freq="D")
+
     def test_construction(self):
         i1 = Period("1/1/2005", freq="M")
         i2 = Period("Jan 2005")
@@ -81,14 +91,14 @@ class TestPeriodConstruction:
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq="L")
         assert i1 == expected
 
-        expected = Period(np_datetime64_compat("2007-01-01 09:00:00.001Z"), freq="L")
+        expected = Period("2007-01-01 09:00:00.001", freq="L")
         assert i1 == expected
 
         i1 = Period("2007-01-01 09:00:00.00101")
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="U")
         assert i1 == expected
 
-        expected = Period(np_datetime64_compat("2007-01-01 09:00:00.00101Z"), freq="U")
+        expected = Period("2007-01-01 09:00:00.00101", freq="U")
         assert i1 == expected
 
         msg = "Must supply freq for ordinal value"
@@ -102,6 +112,21 @@ class TestPeriodConstruction:
         # GH#34703 tuple freq disallowed
         with pytest.raises(TypeError, match="pass as a string instead"):
             Period("1982", freq=("Min", 1))
+
+    def test_construction_from_timestamp_nanos(self):
+        # GH#46811 don't drop nanos from Timestamp
+        ts = Timestamp("2022-04-20 09:23:24.123456789")
+        per = Period(ts, freq="ns")
+
+        # should losslessly round-trip, not lose the 789
+        rt = per.to_timestamp()
+        assert rt == ts
+
+        # same thing but from a datetime64 object
+        dt64 = ts.asm8
+        per2 = Period(dt64, freq="ns")
+        rt2 = per2.to_timestamp()
+        assert rt2.asm8 == dt64
 
     def test_construction_bday(self):
 
@@ -179,8 +204,8 @@ class TestPeriodConstruction:
         i1 = Period(date(2007, 1, 1), freq="M")
         i2 = Period(datetime(2007, 1, 1), freq="M")
         i3 = Period(np.datetime64("2007-01-01"), freq="M")
-        i4 = Period(np_datetime64_compat("2007-01-01 00:00:00Z"), freq="M")
-        i5 = Period(np_datetime64_compat("2007-01-01 00:00:00.000Z"), freq="M")
+        i4 = Period("2007-01-01 00:00:00", freq="M")
+        i5 = Period("2007-01-01 00:00:00.000", freq="M")
         assert i1 == i2
         assert i1 == i3
         assert i1 == i4
@@ -234,8 +259,8 @@ class TestPeriodConstruction:
         i1 = Period(date(2007, 1, 1), freq="M")
         i2 = Period(datetime(2007, 1, 1), freq="M")
         i3 = Period(np.datetime64("2007-01-01"), freq="M")
-        i4 = Period(np_datetime64_compat("2007-01-01 00:00:00Z"), freq="M")
-        i5 = Period(np_datetime64_compat("2007-01-01 00:00:00.000Z"), freq="M")
+        i4 = Period("2007-01-01 00:00:00", freq="M")
+        i5 = Period("2007-01-01 00:00:00.000", freq="M")
         assert i1 == i2
         assert i1 == i3
         assert i1 == i4
@@ -245,14 +270,14 @@ class TestPeriodConstruction:
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq="L")
         assert i1 == expected
 
-        expected = Period(np_datetime64_compat("2007-01-01 09:00:00.001Z"), freq="L")
+        expected = Period("2007-01-01 09:00:00.001", freq="L")
         assert i1 == expected
 
         i1 = Period("2007-01-01 09:00:00.00101")
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="U")
         assert i1 == expected
 
-        expected = Period(np_datetime64_compat("2007-01-01 09:00:00.00101Z"), freq="U")
+        expected = Period("2007-01-01 09:00:00.00101", freq="U")
         assert i1 == expected
 
     def test_invalid_arguments(self):
@@ -314,8 +339,10 @@ class TestPeriodConstruction:
         p = Period("2007-01-01 07:10:15.123")
         assert p.freq == "L"
 
+        # We see that there are 6 digits after the decimal, so get microsecond
+        #  even though they are all zeros.
         p = Period("2007-01-01 07:10:15.123000")
-        assert p.freq == "L"
+        assert p.freq == "U"
 
         p = Period("2007-01-01 07:10:15.123400")
         assert p.freq == "U"
@@ -572,7 +599,7 @@ class TestPeriodMethods:
 
         with tm.assert_produces_warning(FutureWarning):
             p = Period("1/1/2005", freq="A").to_timestamp(freq="A", tz=tzstr)
-        exp = Timestamp("31/12/2005", tz="UTC").tz_convert(tzstr)
+        exp = Timestamp(day=31, month=12, year=2005, tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
         assert p == exp
@@ -646,7 +673,7 @@ class TestPeriodMethods:
                 return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
-        for i, fcode in enumerate(from_lst):
+        for fcode in from_lst:
             p = Period("1982", freq=fcode)
             result = p.to_timestamp().to_period(fcode)
             assert result == p
@@ -826,7 +853,7 @@ class TestPeriodProperties:
 
     @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
     @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
-    def test_outter_bounds_start_and_end_time(self, bound, offset, period_property):
+    def test_outer_bounds_start_and_end_time(self, bound, offset, period_property):
         # GH #13346
         period = TestPeriodProperties._period_constructor(bound, offset)
         with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
@@ -1148,8 +1175,31 @@ class TestPeriodComparisons:
             assert not left <= right
             assert not left >= right
 
+    @pytest.mark.parametrize(
+        "zerodim_arr, expected",
+        ((np.array(0), False), (np.array(Period("2000-01", "M")), True)),
+    )
+    def test_comparison_numpy_zerodim_arr(self, zerodim_arr, expected):
+        p = Period("2000-01", "M")
+
+        assert (p == zerodim_arr) is expected
+        assert (zerodim_arr == p) is expected
+
 
 class TestArithmetic:
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "m"])
+    def test_add_sub_td64_nat(self, unit):
+        # GH#47196
+        per = Period("2022-06-01", "D")
+        nat = np.timedelta64("NaT", unit)
+
+        assert per + nat is NaT
+        assert nat + per is NaT
+        assert per - nat is NaT
+
+        with pytest.raises(TypeError, match="unsupported operand"):
+            nat - per
+
     def test_sub_delta(self):
         left, right = Period("2011", freq="A"), Period("2007", freq="A")
         result = left - right
@@ -1287,20 +1337,8 @@ class TestArithmetic:
                 msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
         for freq in ["M", "2M", "3M"]:
             p = Period("2011-03", freq=freq)
@@ -1312,6 +1350,13 @@ class TestArithmetic:
             assert p + offsets.MonthEnd(12) == exp
             assert offsets.MonthEnd(12) + p == exp
 
+            msg = "|".join(
+                [
+                    "Input has different freq",
+                    "Input cannot be converted to Period",
+                ]
+            )
+
             for o in [
                 offsets.YearBegin(2),
                 offsets.MonthBegin(1),
@@ -1319,23 +1364,11 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
+
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
@@ -1351,14 +1384,11 @@ class TestArithmetic:
 
             exp = Period("2011-04-03", freq=freq)
             assert p + np.timedelta64(2, "D") == exp
-            msg = "cannot use operands with types"
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(2, "D") + p
+            assert np.timedelta64(2, "D") + p == exp
 
             exp = Period("2011-04-02", freq=freq)
             assert p + np.timedelta64(3600 * 24, "s") == exp
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(3600 * 24, "s") + p
+            assert np.timedelta64(3600 * 24, "s") + p == exp
 
             exp = Period("2011-03-30", freq=freq)
             assert p + timedelta(-2) == exp
@@ -1368,6 +1398,13 @@ class TestArithmetic:
             assert p + timedelta(hours=48) == exp
             assert timedelta(hours=48) + p == exp
 
+            msg = "|".join(
+                [
+                    "Input has different freq",
+                    "Input cannot be converted to Period",
+                ]
+            )
+
             for o in [
                 offsets.YearBegin(2),
                 offsets.MonthBegin(1),
@@ -1375,23 +1412,10 @@ class TestArithmetic:
                 np.timedelta64(4, "h"),
                 timedelta(hours=23),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
         for freq in ["H", "2H", "3H"]:
             p = Period("2011-04-01 09:00", freq=freq)
@@ -1407,13 +1431,11 @@ class TestArithmetic:
             msg = "cannot use operands with types"
             exp = Period("2011-04-01 12:00", freq=freq)
             assert p + np.timedelta64(3, "h") == exp
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(3, "h") + p
+            assert np.timedelta64(3, "h") + p == exp
 
             exp = Period("2011-04-01 10:00", freq=freq)
             assert p + np.timedelta64(3600, "s") == exp
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(3600, "s") + p
+            assert np.timedelta64(3600, "s") + p == exp
 
             exp = Period("2011-04-01 11:00", freq=freq)
             assert p + timedelta(minutes=120) == exp
@@ -1423,6 +1445,13 @@ class TestArithmetic:
             assert p + timedelta(days=4, minutes=180) == exp
             assert timedelta(days=4, minutes=180) + p == exp
 
+            msg = "|".join(
+                [
+                    "Input has different freq",
+                    "Input cannot be converted to Period",
+                ]
+            )
+
             for o in [
                 offsets.YearBegin(2),
                 offsets.MonthBegin(1),
@@ -1430,27 +1459,20 @@ class TestArithmetic:
                 np.timedelta64(3200, "s"),
                 timedelta(hours=23, minutes=30),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
     def test_sub_offset(self):
         # freq is DateOffset
-        msg = "Input has different freq|Input cannot be converted to Period"
+        msg = "|".join(
+            [
+                "Input has different freq",
+                "Input cannot be converted to Period",
+            ]
+        )
+
         for freq in ["A", "2A", "3A"]:
             p = Period("2011", freq=freq)
             assert p - offsets.YearEnd(2) == Period("2009", freq=freq)

@@ -12,6 +12,23 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
+    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+        # GH#44749
+        if using_array_manager and frame_or_series is DataFrame:
+            mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
+            request.node.add_marker(mark)
+
+        obj = frame_or_series([1, np.nan, 2])
+        orig = obj.values
+
+        obj.interpolate(inplace=True)
+        expected = frame_or_series([1, 1.5, 2])
+        tm.assert_equal(obj, expected)
+
+        # check we operated *actually* inplace
+        assert np.shares_memory(orig, obj.values)
+        assert orig.squeeze()[1] == 1.5
+
     def test_interp_basic(self):
         df = DataFrame(
             {
@@ -31,6 +48,38 @@ class TestDataFrameInterpolate:
         )
         result = df.interpolate()
         tm.assert_frame_equal(result, expected)
+
+        # check we didn't operate inplace GH#45791
+        cvalues = df["C"]._values
+        dvalues = df["D"].values
+        assert not np.shares_memory(cvalues, result["C"]._values)
+        assert not np.shares_memory(dvalues, result["D"]._values)
+
+        res = df.interpolate(inplace=True)
+        assert res is None
+        tm.assert_frame_equal(df, expected)
+
+        # check we DID operate inplace
+        assert np.shares_memory(df["C"]._values, cvalues)
+        assert np.shares_memory(df["D"]._values, dvalues)
+
+    def test_interp_basic_with_non_range_index(self):
+        df = DataFrame(
+            {
+                "A": [1, 2, np.nan, 4],
+                "B": [1, 4, 9, np.nan],
+                "C": [1, 2, 3, 5],
+                "D": list("abcd"),
+            }
+        )
+        expected = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, 4.0],
+                "B": [1.0, 4.0, 9.0, 9.0],
+                "C": [1, 2, 3, 5],
+                "D": list("abcd"),
+            }
+        )
 
         result = df.set_index("C").interpolate()
         expected = df.set_index("C")
@@ -102,34 +151,34 @@ class TestDataFrameInterpolate:
         expected = df.copy()
         result = df.interpolate(method="polynomial", order=1)
 
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923076
+        expected.loc[3, "A"] = 2.66666667
+        expected.loc[13, "A"] = 5.76923076
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="cubic")
         # GH #15662.
-        expected.A.loc[3] = 2.81547781
-        expected.A.loc[13] = 5.52964175
+        expected.loc[3, "A"] = 2.81547781
+        expected.loc[13, "A"] = 5.52964175
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="nearest")
-        expected.A.loc[3] = 2
-        expected.A.loc[13] = 5
+        expected.loc[3, "A"] = 2
+        expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method="quadratic")
-        expected.A.loc[3] = 2.82150771
-        expected.A.loc[13] = 6.12648668
+        expected.loc[3, "A"] = 2.82150771
+        expected.loc[13, "A"] = 6.12648668
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="slinear")
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923077
+        expected.loc[3, "A"] = 2.66666667
+        expected.loc[13, "A"] = 5.76923077
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="zero")
-        expected.A.loc[3] = 2.0
-        expected.A.loc[13] = 5
+        expected.loc[3, "A"] = 2.0
+        expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     @td.skip_if_no_scipy
@@ -218,7 +267,7 @@ class TestDataFrameInterpolate:
         )
         result = df.interpolate()
         expected = df.copy()
-        expected["B"].loc[3] = -3.75
+        expected.loc[3, "B"] = -3.75
         tm.assert_frame_equal(result, expected)
 
         if check_scipy:
@@ -303,7 +352,7 @@ class TestDataFrameInterpolate:
         result = df[["B", "D"]].interpolate(downcast=None)
         tm.assert_frame_equal(result, df[["B", "D"]])
 
-    def test_interp_time_inplace_axis(self, axis):
+    def test_interp_time_inplace_axis(self):
         # GH 9687
         periods = 5
         idx = date_range(start="2014-01-01", periods=periods)
@@ -328,10 +377,13 @@ class TestDataFrameInterpolate:
         expected = df.interpolate(method="linear", axis=axis_number)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) support axis=1
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
-    def test_interp_fillna_methods(self, axis, method):
+    def test_interp_fillna_methods(self, request, axis, method, using_array_manager):
         # GH 12918
+        if using_array_manager and (axis == 1 or axis == "columns"):
+            # TODO(ArrayManager) support axis=1
+            td.mark_array_manager_not_yet_implemented(request)
+
         df = DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],
@@ -341,4 +393,16 @@ class TestDataFrameInterpolate:
         )
         expected = df.fillna(axis=axis, method=method)
         result = df.interpolate(method=method, axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.interpolate "
+            r"except for the argument 'method' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.interpolate("pad", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

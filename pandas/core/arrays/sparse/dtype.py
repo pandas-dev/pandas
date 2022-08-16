@@ -1,14 +1,11 @@
 """Sparse Dtype"""
 from __future__ import annotations
 
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Tuple,
-    Type,
 )
 import warnings
 
@@ -17,17 +14,18 @@ import numpy as np
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    type_t,
 )
 from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -48,8 +46,6 @@ class SparseDtype(ExtensionDtype):
     Dtype for data stored in :class:`SparseArray`.
 
     This dtype implements the pandas ExtensionDtype interface.
-
-    .. versionadded:: 0.24.0
 
     Parameters
     ----------
@@ -86,7 +82,7 @@ class SparseDtype(ExtensionDtype):
     # hash(nan) is (sometimes?) 0.
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
-    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None):
+    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
@@ -100,12 +96,11 @@ class SparseDtype(ExtensionDtype):
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
 
-        if not is_scalar(fill_value):
-            raise ValueError(f"fill_value must be a scalar. Got {fill_value} instead")
         self._dtype = dtype
         self._fill_value = fill_value
+        self._check_fill_value()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.
         return super().__hash__()
@@ -154,8 +149,26 @@ class SparseDtype(ExtensionDtype):
         """
         return self._fill_value
 
+    def _check_fill_value(self):
+        if not is_scalar(self._fill_value):
+            raise ValueError(
+                f"fill_value must be a scalar. Got {self._fill_value} instead"
+            )
+        # TODO: Right now we can use Sparse boolean array
+        #       with any fill_value. Here was an attempt
+        #       to allow only 3 value: True, False or nan
+        #       but plenty test has failed.
+        # see pull 44955
+        # if self._is_boolean and not (
+        #    is_bool(self._fill_value) or isna(self._fill_value)
+        # ):
+        #    raise ValueError(
+        #        "fill_value must be True, False or nan "
+        #        f"for boolean type. Got {self._fill_value} instead"
+        #    )
+
     @property
-    def _is_na_fill_value(self):
+    def _is_na_fill_value(self) -> bool:
         return isna(self.fill_value)
 
     @property
@@ -167,7 +180,7 @@ class SparseDtype(ExtensionDtype):
         return is_bool_dtype(self.subtype)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The sparse kind. Either 'integer', or 'block'.
         """
@@ -182,14 +195,14 @@ class SparseDtype(ExtensionDtype):
         return self._dtype
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
 
     def __repr__(self) -> str:
         return self.name
 
     @classmethod
-    def construct_array_type(cls) -> Type[SparseArray]:
+    def construct_array_type(cls) -> type_t[SparseArray]:
         """
         Return the array type associated with this dtype.
 
@@ -254,7 +267,7 @@ class SparseDtype(ExtensionDtype):
             raise TypeError(msg)
 
     @staticmethod
-    def _parse_subtype(dtype: str) -> Tuple[str, bool]:
+    def _parse_subtype(dtype: str) -> tuple[str, bool]:
         """
         Parse a string to get the subtype
 
@@ -297,7 +310,7 @@ class SparseDtype(ExtensionDtype):
             return True
         return isinstance(dtype, np.dtype) or dtype == "Sparse"
 
-    def update_dtype(self, dtype):
+    def update_dtype(self, dtype) -> SparseDtype:
         """
         Convert the SparseDtype to a new dtype.
 
@@ -339,10 +352,12 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
 
         if not isinstance(dtype, cls):
-            if is_extension_array_dtype(dtype):
+            if not isinstance(dtype, np.dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
+            fvarr = astype_nansafe(np.array(self.fill_value), dtype)
+            # NB: not fv_0d.item(), as that casts dt64->int
+            fill_value = fvarr[0]
             dtype = cls(dtype, fill_value=fill_value)
 
         return dtype
@@ -375,9 +390,9 @@ class SparseDtype(ExtensionDtype):
             return type(self.fill_value)
         return self.subtype
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
-        # with other compatibtle extension dtypes
+        # with other compatible extension dtypes
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
             for x in dtypes
@@ -395,7 +410,7 @@ class SparseDtype(ExtensionDtype):
                 f"values: '{fill_values}'. Picking the first and "
                 "converting the rest.",
                 PerformanceWarning,
-                stacklevel=6,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]

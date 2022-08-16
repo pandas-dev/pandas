@@ -12,6 +12,7 @@ from pandas.core.arrays import DatetimeArray
 class TestReductions:
     @pytest.fixture
     def arr1d(self, tz_naive_fixture):
+        """Fixture returning DatetimeArray with parametrized timezones"""
         tz = tz_naive_fixture
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence(
@@ -40,10 +41,10 @@ class TestReductions:
         assert result == expected
 
         result = arr.min(skipna=False)
-        assert result is pd.NaT
+        assert result is NaT
 
         result = arr.max(skipna=False)
-        assert result is pd.NaT
+        assert result is NaT
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     @pytest.mark.parametrize("skipna", [True, False])
@@ -51,10 +52,10 @@ class TestReductions:
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence([], dtype=dtype)
         result = arr.min(skipna=skipna)
-        assert result is pd.NaT
+        assert result is NaT
 
         result = arr.max(skipna=skipna)
-        assert result is pd.NaT
+        assert result is NaT
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     @pytest.mark.parametrize("skipna", [True, False])
@@ -62,11 +63,11 @@ class TestReductions:
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence([], dtype=dtype)
         result = arr.median(skipna=skipna)
-        assert result is pd.NaT
+        assert result is NaT
 
         arr = arr.reshape(0, 3)
         result = arr.median(axis=0, skipna=skipna)
-        expected = type(arr)._from_sequence([pd.NaT, pd.NaT, pd.NaT], dtype=arr.dtype)
+        expected = type(arr)._from_sequence([NaT, NaT, NaT], dtype=arr.dtype)
         tm.assert_equal(result, expected)
 
         result = arr.median(axis=1, skipna=skipna)
@@ -79,7 +80,7 @@ class TestReductions:
         result = arr.median()
         assert result == arr[0]
         result = arr.median(skipna=False)
-        assert result is pd.NaT
+        assert result is NaT
 
         result = arr.dropna().median(skipna=False)
         assert result == arr[0]
@@ -90,7 +91,7 @@ class TestReductions:
     def test_median_axis(self, arr1d):
         arr = arr1d
         assert arr.median(axis=0) == arr.median()
-        assert arr.median(axis=0, skipna=False) is pd.NaT
+        assert arr.median(axis=0, skipna=False) is NaT
 
         msg = r"abs\(axis\) must be less than ndim"
         with pytest.raises(ValueError, match=msg):
@@ -102,7 +103,7 @@ class TestReductions:
 
         # axis = None
         assert arr.median() == arr1d.median()
-        assert arr.median(skipna=False) is pd.NaT
+        assert arr.median(skipna=False) is NaT
 
         # axis = 0
         result = arr.median(axis=0)
@@ -120,7 +121,7 @@ class TestReductions:
         tm.assert_equal(result, expected)
 
         result = arr.median(axis=1, skipna=False)
-        expected = type(arr)._from_sequence([pd.NaT], dtype=arr.dtype)
+        expected = type(arr)._from_sequence([NaT], dtype=arr.dtype)
         tm.assert_equal(result, expected)
 
     def test_mean(self, arr1d):
@@ -132,7 +133,7 @@ class TestReductions:
         result = arr.mean()
         assert result == expected
         result = arr.mean(skipna=False)
-        assert result is pd.NaT
+        assert result is NaT
 
         result = arr.dropna().mean(skipna=False)
         assert result == expected

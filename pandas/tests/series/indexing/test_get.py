@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 
 
 def test_get():
@@ -64,7 +65,7 @@ def test_get():
                 54,
             ]
         ),
-        index=pd.Float64Index(
+        index=Float64Index(
             [
                 25.0,
                 36.0,
@@ -111,7 +112,7 @@ def test_get():
 
 def test_get_nan():
     # GH 8569
-    s = pd.Float64Index(range(10)).to_series()
+    s = Float64Index(range(10)).to_series()
     assert s.get(np.nan) is None
     assert s.get(np.nan, default="Missing") == "Missing"
 
@@ -120,7 +121,7 @@ def test_get_nan_multiple():
     # GH 8569
     # ensure that fixing "test_get_nan" above hasn't broken get
     # with multiple elements
-    s = pd.Float64Index(range(10)).to_series()
+    s = Float64Index(range(10)).to_series()
 
     idx = [2, 30]
     assert s.get(idx) is None
@@ -157,8 +158,7 @@ def test_get_with_default():
     "arr",
     [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
 )
-def test_get2(arr):
-    # TODO: better name, possibly split
+def test_get_with_ea(arr):
     # GH#21260
     ser = Series(arr, index=[2 * i for i in range(len(arr))])
     assert ser.get(4) == ser.iloc[2]
@@ -167,7 +167,8 @@ def test_get2(arr):
     expected = ser.iloc[[2, 3]]
     tm.assert_series_equal(result, expected)
 
-    result = ser.get(slice(2))
+    with tm.assert_produces_warning(FutureWarning, match="label-based"):
+        result = ser.get(slice(2))
     expected = ser.iloc[[0, 1]]
     tm.assert_series_equal(result, expected)
 

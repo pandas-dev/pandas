@@ -50,7 +50,7 @@ decorate a class, providing the name of attribute to add. The class's
 
 Now users can access your methods using the ``geo`` namespace:
 
-      >>> ds = pd.Dataframe(
+      >>> ds = pd.DataFrame(
       ...     {"longitude": np.linspace(0, 10), "latitude": np.linspace(0, 20)}
       ... )
       >>> ds.geo.center
@@ -74,10 +74,11 @@ applies only to certain dtypes.
 Extension types
 ---------------
 
-.. warning::
+.. note::
 
-   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
-   experimental. They may change between versions without warning.
+   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs were
+   experimental prior to pandas 1.5. Starting with version 1.5, future changes will follow
+   the :ref:`pandas deprecation policy <policies.version>`.
 
 pandas defines an interface for implementing data types and arrays that *extend*
 NumPy's type system. pandas itself uses the extension system for some types
@@ -106,9 +107,7 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-.. versionadded:: 0.24.0
-
-:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+:class:`pandas.api.extensions.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
 This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
 example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
 
@@ -127,7 +126,7 @@ data. We do require that your array be convertible to a NumPy array, even if
 this is relatively expensive (as it is for ``Categorical``).
 
 They may be backed by none, one, or many NumPy arrays. For example,
-``pandas.Categorical`` is an extension array backed by two arrays,
+:class:`pandas.Categorical` is an extension array backed by two arrays,
 one for codes and one for categories. An array of IPv6 addresses may
 be backed by a NumPy structured array with two fields, one for the
 lower 64 bits and one for the upper 64 bits. Or they may be backed
@@ -140,8 +139,6 @@ and comments contain guidance for properly implementing the interface.
 
 :class:`~pandas.api.extensions.ExtensionArray` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. versionadded:: 0.24.0
 
 By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
 There are two approaches for providing operator support for your ExtensionArray:
@@ -235,7 +232,7 @@ Testing extension arrays
 We provide a test suite for ensuring that your extension arrays satisfy the expected
 behavior. To use the test suite, you must provide several pytest fixtures and inherit
 from the base test class. The required fixtures are found in
-https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
+https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/conftest.py.
 
 To use a test, subclass it:
 
@@ -248,7 +245,7 @@ To use a test, subclass it:
        pass
 
 
-See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
+See https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/base/__init__.py
 for a list of all the tests available.
 
 .. _extending.extension.arrow:
@@ -294,9 +291,9 @@ See more in the `Arrow documentation <https://arrow.apache.org/docs/python/exten
 Those methods have been implemented for the nullable integer and string extension
 dtypes included in pandas, and ensure roundtrip to pyarrow and the Parquet file format.
 
-.. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/dtypes.py
-.. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
-.. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
+.. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/main/pandas/core/dtypes/dtypes.py
+.. _extension dtype source: https://github.com/pandas-dev/pandas/blob/main/pandas/core/dtypes/base.py
+.. _extension array source: https://github.com/pandas-dev/pandas/blob/main/pandas/core/arrays/base.py
 
 .. _extending.subclassing-pandas:
 
@@ -472,7 +469,7 @@ This would be more or less equivalent to:
 The backend module can then use other visualization tools (Bokeh, Altair,...)
 to generate the plots.
 
-Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
+Libraries implementing the plotting backend should use `entry points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`__
 to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
 registers the default "matplotlib" backend as follows.
 
@@ -490,4 +487,4 @@ registers the default "matplotlib" backend as follows.
 
 
 More information on how to implement a third-party plotting backend can be found at
-https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
+https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1.

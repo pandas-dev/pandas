@@ -8,9 +8,10 @@ from __future__ import annotations
 import numbers
 import random
 import string
-from typing import Type
 
 import numpy as np
+
+from pandas._typing import type_t
 
 from pandas.core.dtypes.base import ExtensionDtype
 
@@ -28,7 +29,7 @@ class ListDtype(ExtensionDtype):
     na_value = np.nan
 
     @classmethod
-    def construct_array_type(cls) -> Type[ListArray]:
+    def construct_array_type(cls) -> type_t[ListArray]:
         """
         Return the array type associated with this dtype.
 
@@ -43,7 +44,7 @@ class ListArray(ExtensionArray):
     dtype = ListDtype()
     __array_priority__ = 1000
 
-    def __init__(self, values, dtype=None, copy=False):
+    def __init__(self, values, dtype=None, copy=False) -> None:
         if not isinstance(values, np.ndarray):
             raise TypeError("Need to pass a numpy array as values")
         for val in values:

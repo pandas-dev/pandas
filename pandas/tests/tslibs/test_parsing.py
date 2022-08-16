@@ -23,6 +23,12 @@ def test_parse_time_string():
     assert parsed == parsed_lower
 
 
+def test_parse_time_string_nanosecond_reso():
+    # GH#46811
+    parsed, reso = parse_time_string("2022-04-20 09:19:19.123456789")
+    assert reso == "nanosecond"
+
+
 def test_parse_time_string_invalid_type():
     # Raise on invalid input, don't just return it
     msg = "Argument 'arg' has incorrect type (expected str, got tuple)"
@@ -144,7 +150,31 @@ def test_parsers_month_freq(date_str, expected):
         ("30-12-2011", "%d-%m-%Y"),
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
+        ("2011-12-30T00:00:00UTC", "%Y-%m-%dT%H:%M:%S%Z"),
+        ("2011-12-30T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+9", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+09", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+090", None),
+        ("2011-12-30T00:00:00+0900", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00-0900", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+09:00", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+09:000", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+9:0", "%Y-%m-%dT%H:%M:%S%z"),
+        ("2011-12-30T00:00:00+09:", None),
+        ("2011-12-30T00:00:00.000000UTC", "%Y-%m-%dT%H:%M:%S.%f%Z"),
+        ("2011-12-30T00:00:00.000000Z", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+9", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+09", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+090", None),
+        ("2011-12-30T00:00:00.000000+0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000-0900", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+09:00", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+09:000", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+9:0", "%Y-%m-%dT%H:%M:%S.%f%z"),
+        ("2011-12-30T00:00:00.000000+09:", None),
         ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f"),
+        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p"),
+        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
@@ -159,7 +189,7 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_has_locale
+@td.skip_if_not_us_locale
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -225,4 +255,32 @@ def test_parse_time_string_check_instance_type_raise_exception():
 
     result = parse_time_string("2019")
     expected = (datetime(2019, 1, 1), "year")
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "fmt,expected",
+    [
+        ("%Y %m %d %H:%M:%S", True),
+        ("%Y/%m/%d %H:%M:%S", True),
+        (r"%Y\%m\%d %H:%M:%S", True),
+        ("%Y-%m-%d %H:%M:%S", True),
+        ("%Y.%m.%d %H:%M:%S", True),
+        ("%Y%m%d %H:%M:%S", True),
+        ("%Y-%m-%dT%H:%M:%S", True),
+        ("%Y-%m-%dT%H:%M:%S%z", True),
+        ("%Y-%m-%dT%H:%M:%S%Z", True),
+        ("%Y-%m-%dT%H:%M:%S.%f", True),
+        ("%Y-%m-%dT%H:%M:%S.%f%z", True),
+        ("%Y-%m-%dT%H:%M:%S.%f%Z", True),
+        ("%Y%m%d", False),
+        ("%Y%m", False),
+        ("%Y", False),
+        ("%Y-%m-%d", True),
+        ("%Y-%m", True),
+    ],
+)
+def test_is_iso_format(fmt, expected):
+    # see gh-41047
+    result = parsing.format_is_iso(fmt)
     assert result == expected

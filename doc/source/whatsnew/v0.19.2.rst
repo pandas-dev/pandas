@@ -18,7 +18,7 @@ We recommend that all users upgrade to this version.
 Highlights include:
 
 - Compatibility with Python 3.6
-- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
+- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/main/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
 
 
 .. contents:: What's new in v0.19.2

@@ -122,6 +122,14 @@ class TestIndexRendering:
             assert len(result) < 200
             assert "..." in result
 
+    def test_summary_bug(self):
+        # GH#3869
+        ind = Index(["{other}%s", "~:{range}:0"], name="A")
+        result = ind._summary()
+        # shouldn't be formatted accidentally.
+        assert "~:{range}:0" in result
+        assert "{other}%s" in result
+
     def test_index_repr_bool_nan(self):
         # GH32146
         arr = Index([True, False, np.nan], dtype=object)
@@ -132,3 +140,9 @@ class TestIndexRendering:
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
+
+    def test_format_different_scalar_lengths(self):
+        # GH#35439
+        idx = Index(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected

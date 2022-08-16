@@ -17,12 +17,12 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    UInt64Index,
     concat,
     date_range,
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.api import UInt64Index
 
 
 def _check_cast(df, v):
@@ -92,7 +92,6 @@ class TestAstype:
         casted = mn.astype("O")
         _check_cast(casted, "object")
 
-    @td.skip_array_manager_not_yet_implemented
     def test_astype_with_exclude_string(self, float_frame):
         df = float_frame.copy()
         expected = float_frame.astype(int)
@@ -127,7 +126,6 @@ class TestAstype:
         casted = tf.astype(np.int64)
         casted = tf.astype(np.float32)  # noqa
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
     def test_astype_cast_nan_inf_int(self, val, dtype):
@@ -223,10 +221,13 @@ class TestAstype:
         # in the keys of the dtype dict
         dt4 = dtype_class({"b": str, 2: str})
         dt5 = dtype_class({"e": str})
-        msg = "Only a column name can be used for the key in a dtype mappings argument"
-        with pytest.raises(KeyError, match=msg):
+        msg_frame = (
+            "Only a column name can be used for the key in a dtype mappings argument. "
+            "'{}' not found in columns."
+        )
+        with pytest.raises(KeyError, match=msg_frame.format(2)):
             df.astype(dt4)
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match=msg_frame.format("e")):
             df.astype(dt5)
         tm.assert_frame_equal(df, original)
 
@@ -260,6 +261,26 @@ class TestAstype:
 
         result = df.astype({"a": "str"})
         expected = concat([a1_str, b, a2_str], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_duplicate_col_series_arg(self):
+        # GH#44417
+        vals = np.random.randn(3, 4)
+        df = DataFrame(vals, columns=["A", "B", "C", "A"])
+        dtypes = df.dtypes
+        dtypes.iloc[0] = str
+        dtypes.iloc[2] = "Float64"
+
+        result = df.astype(dtypes)
+        expected = DataFrame(
+            {
+                0: vals[:, 0].astype(str),
+                1: vals[:, 1],
+                2: pd.array(vals[:, 2], dtype="Float64"),
+                3: vals[:, 3],
+            }
+        )
+        expected.columns = df.columns
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -386,7 +407,6 @@ class TestAstype:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
     def test_astype_to_datetime_unit(self, unit):
         # tests all units from datetime origination
@@ -411,7 +431,6 @@ class TestAstype:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("unit", ["us", "ms", "s", "h", "m", "D"])
     def test_astype_to_timedelta_unit(self, unit):
         # coerce to float
@@ -432,24 +451,31 @@ class TestAstype:
         other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        msg = (
-            fr"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
-            fr"\[timedelta64\[{unit}\]\]"
-            fr"|(Cannot cast DatetimeArray to dtype timedelta64\[{unit}\])"
+        msg = "|".join(
+            [
+                # BlockManager path
+                rf"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a datetimelike from "
+                rf"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = (
-            fr"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
-            fr"\[datetime64\[{unit}\]\]"
-            fr"|(Cannot cast TimedeltaArray to dtype datetime64\[{unit}\])"
+        msg = "|".join(
+            [
+                # BlockManager path
+                rf"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a timedelta from "
+                rf"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
+            ]
         )
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_astype_arg_for_errors(self):
         # GH#14878
 
@@ -578,19 +604,24 @@ class TestAstype:
         tm.assert_frame_equal(result, df)
         assert result is not df
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) ignore keyword
     @pytest.mark.parametrize(
-        "df",
+        "data, dtype",
         [
-            DataFrame(Series(["x", "y", "z"], dtype="string")),
-            DataFrame(Series(["x", "y", "z"], dtype="category")),
-            DataFrame(Series(3 * [Timestamp("2020-01-01", tz="UTC")])),
-            DataFrame(Series(3 * [Interval(0, 1)])),
+            (["x", "y", "z"], "string[python]"),
+            pytest.param(
+                ["x", "y", "z"],
+                "string[pyarrow]",
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+            ),
+            (["x", "y", "z"], "category"),
+            (3 * [Timestamp("2020-01-01", tz="UTC")], None),
+            (3 * [Interval(0, 1)], None),
         ],
     )
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
-    def test_astype_ignores_errors_for_extension_dtypes(self, df, errors):
+    def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
+        df = DataFrame(Series(data, dtype=dtype))
         if errors == "ignore":
             expected = df
             result = df.astype(float, errors=errors)
@@ -624,13 +655,9 @@ class TestAstype:
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
 
-    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture, request):
+    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture):
+        # GH#41409
         tz = tz_naive_fixture
-        if tz is None:
-            mark = pytest.mark.xfail(
-                reason="GH#36153 uses ndarray formatting instead of DTA formatting"
-            )
-            request.node.add_marker(mark)
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
         dta = dti._data
@@ -652,7 +679,105 @@ class TestAstype:
         alt = obj.astype(str)
         assert np.all(alt.iloc[1:] == result.iloc[1:])
 
+    def test_astype_td64_to_string(self, frame_or_series):
+        # GH#41409
+        tdi = pd.timedelta_range("1 Day", periods=3)
+        obj = frame_or_series(tdi)
+
+        expected = frame_or_series(["1 days", "2 days", "3 days"], dtype="string")
+        result = obj.astype("string")
+        tm.assert_equal(result, expected)
+
     def test_astype_bytes(self):
         # GH#39474
         result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes[0] == np.dtype("S3")
+
+    @pytest.mark.parametrize(
+        "index_slice",
+        [
+            np.s_[:2, :2],
+            np.s_[:1, :2],
+            np.s_[:2, :1],
+            np.s_[::2, ::2],
+            np.s_[::1, ::2],
+            np.s_[::2, ::1],
+        ],
+    )
+    def test_astype_noncontiguous(self, index_slice):
+        # GH#42396
+        data = np.arange(16).reshape(4, 4)
+        df = DataFrame(data)
+
+        result = df.iloc[index_slice].astype("int16")
+        expected = df.iloc[index_slice]
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_astype_retain_attrs(self, any_numpy_dtype):
+        # GH#44414
+        df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
+        df.attrs["Location"] = "Michigan"
+
+        result = df.astype({"a": any_numpy_dtype}).attrs
+        expected = df.attrs
+
+        tm.assert_dict_equal(expected, result)
+
+
+class TestAstypeCategorical:
+    def test_astype_from_categorical3(self):
+        df = DataFrame({"cats": [1, 2, 3, 4, 5, 6], "vals": [1, 2, 3, 4, 5, 6]})
+        cats = Categorical([1, 2, 3, 4, 5, 6])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+    def test_astype_from_categorical4(self):
+        df = DataFrame(
+            {"cats": ["a", "b", "b", "a", "a", "d"], "vals": [1, 2, 3, 4, 5, 6]}
+        )
+        cats = Categorical(["a", "b", "b", "a", "a", "d"])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+    def test_categorical_astype_to_int(self, any_int_dtype):
+        # GH#39402
+
+        df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
+        df.col1 = df.col1.astype("category")
+        df.col1 = df.col1.astype(any_int_dtype)
+        expected = DataFrame({"col1": pd.array([2, 1, 3], dtype=any_int_dtype)})
+        tm.assert_frame_equal(df, expected)
+
+    def test_astype_categorical_to_string_missing(self):
+        # https://github.com/pandas-dev/pandas/issues/41797
+        df = DataFrame(["a", "b", np.nan])
+        expected = df.astype(str)
+        cat = df.astype("category")
+        result = cat.astype(str)
+        tm.assert_frame_equal(result, expected)
+
+
+class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
+    # GH 42501
+
+    def copy(self):
+        assert False
+
+
+class Int16DtypeNoCopy(pd.Int16Dtype):
+    # GH 42501
+
+    @classmethod
+    def construct_array_type(cls):
+        return IntegerArrayNoCopy
+
+
+def test_frame_astype_no_copy():
+    # GH 42501
+    df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
+    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+
+    assert result.a.dtype == pd.Int16Dtype()
+    assert np.shares_memory(df.b.values, result.b.values)

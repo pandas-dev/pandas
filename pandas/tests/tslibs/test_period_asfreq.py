@@ -1,15 +1,23 @@
+import numpy as np
 import pytest
 
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import (
+    iNaT,
+    to_offset,
+)
 from pandas._libs.tslibs.period import (
+    extract_ordinals,
     period_asfreq,
     period_ordinal,
 )
 
+import pandas._testing as tm
+
 
 def get_freq_code(freqstr: str) -> int:
     off = to_offset(freqstr)
-    code = off._period_dtype_code
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
+    code = off._period_dtype_code  # type: ignore[attr-defined]
     return code
 
 
@@ -88,3 +96,21 @@ def test_period_ordinal_business_day(day, expected):
     # 5000 is PeriodDtypeCode for BusinessDay
     args = (2013, 10, day, 0, 0, 0, 0, 0, 5000)
     assert period_ordinal(*args) == expected
+
+
+class TestExtractOrdinals:
+    def test_extract_ordinals_raises(self):
+        # with non-object, make sure we raise TypeError, not segfault
+        arr = np.arange(5)
+        freq = to_offset("D")
+        with pytest.raises(TypeError, match="values must be object-dtype"):
+            extract_ordinals(arr, freq)
+
+    def test_extract_ordinals_2d(self):
+        freq = to_offset("D")
+        arr = np.empty(10, dtype=object)
+        arr[:] = iNaT
+
+        res = extract_ordinals(arr, freq)
+        res2 = extract_ordinals(arr.reshape(5, 2), freq)
+        tm.assert_numpy_array_equal(res, res2.reshape(-1))

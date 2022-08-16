@@ -6,6 +6,7 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 def test_pipe():
@@ -26,7 +27,7 @@ def test_pipe():
         return dfgb.B.max() - dfgb.C.min().min()
 
     def square(srs):
-        return srs ** 2
+        return srs**2
 
     # Note that the transformations are
     # GroupBy -> Series
@@ -59,7 +60,9 @@ def test_pipe_args():
         )
 
     def g(dfgb, arg2):
-        return dfgb.sum() / dfgb.sum().sum() + arg2
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return dfgb.sum() / dfgb.sum().sum() + arg2
 
     def h(df, arg3):
         return df.x + df.y - arg3
@@ -76,6 +79,6 @@ def test_pipe_args():
     ser = pd.Series([1, 1, 2, 2, 3, 3])
     result = ser.groupby(ser).pipe(lambda grp: grp.sum() * grp.count())
 
-    expected = pd.Series([4, 8, 12], index=pd.Int64Index([1, 2, 3]))
+    expected = pd.Series([4, 8, 12], index=Int64Index([1, 2, 3]))
 
     tm.assert_series_equal(result, expected)

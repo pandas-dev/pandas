@@ -29,3 +29,20 @@ def test_iat_getitem_series_with_period_index():
     expected = ser[index[0]]
     result = ser.iat[0]
     assert expected == result
+
+
+def test_iat_setitem_item_cache_cleared(indexer_ial):
+    # GH#45684
+    data = {"x": np.arange(8, dtype=np.int64), "y": np.int64(0)}
+    df = DataFrame(data).copy()
+    ser = df["y"]
+
+    # previously this iat setting would split the block and fail to clear
+    #  the item_cache.
+    indexer_ial(df)[7, 0] = 9999
+
+    indexer_ial(df)[7, 1] = 1234
+
+    assert df.iat[7, 1] == 1234
+    assert ser.iloc[-1] == 1234
+    assert df.iloc[-1, -1] == 1234

@@ -9,13 +9,13 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
 from datetime import datetime
 import importlib
 import inspect
 import logging
 import os
 import sys
+import warnings
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
@@ -50,22 +50,25 @@ sys.path.extend(
 # sphinxext.
 
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.doctest",
-    "sphinx.ext.extlinks",
-    "sphinx.ext.todo",
-    "numpydoc",  # handle NumPy documentation formatted docstrings
+    "contributors",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.intersphinx",
+    "numpydoc",
+    "sphinx_copybutton",
+    "sphinx_panels",
+    "sphinx_toggleprompt",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
+    "sphinx.ext.doctest",
+    "sphinx.ext.extlinks",
     "sphinx.ext.ifconfig",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.linkcode",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.todo",
     "nbsphinx",
-    "contributors",  # custom pandas extension
 ]
 
 exclude_patterns = [
@@ -138,6 +141,13 @@ import pandas as pd"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
+
+# sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
+# already loads it
+panels_add_bootstrap_css = False
+
+# https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
+toggleprompt_offset_right = 35
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
@@ -220,11 +230,24 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+
+switcher_version = version
+if ".dev" in version:
+    switcher_version = "dev"
+elif "rc" in version:
+    switcher_version = version.split("rc")[0] + " (rc)"
+
 html_theme_options = {
     "external_links": [],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
     "google_analytics_id": "UA-27880019-2",
+    "navbar_end": ["version-switcher", "navbar-icon-links"],
+    "switcher": {
+        "json_url": "https://pandas.pydata.org/versions.json",
+        "url_template": "https://pandas.pydata.org/{version}/",
+        "version_match": switcher_version,
+    },
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -423,20 +446,18 @@ latex_documents = [
 if include_api:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
-        "matplotlib": ("https://matplotlib.org/", None),
+        "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
         "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
-        "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-        "statsmodels": ("https://www.statsmodels.org/devel/", None),
+        "scipy": ("https://docs.scipy.org/doc/scipy/", None),
         "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
 # extlinks alias
 extlinks = {
     "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
-    "wiki": ("https://github.com/pandas-dev/pandas/wiki/%s", "wiki "),
 }
 
 
@@ -456,7 +477,6 @@ ipython_execlines = [
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
 import sphinx  # isort:skip
-from sphinx.util import rpartition  # isort:skip
 from sphinx.ext.autodoc import (  # isort:skip
     AttributeDocumenter,
     Documenter,
@@ -516,8 +536,8 @@ class AccessorLevelDocumenter(Documenter):
             # HACK: this is added in comparison to ClassLevelDocumenter
             # mod_cls still exists of class.accessor, so an extra
             # rpartition is needed
-            modname, accessor = rpartition(mod_cls, ".")
-            modname, cls = rpartition(modname, ".")
+            modname, _, accessor = mod_cls.rpartition(".")
+            modname, _, cls = modname.rpartition(".")
             parents = [cls, accessor]
             # if the module name is still missing, get it like above
             if not modname:
@@ -623,19 +643,30 @@ def linkcode_resolve(domain, info):
     obj = submod
     for part in fullname.split("."):
         try:
-            obj = getattr(obj, part)
+            with warnings.catch_warnings():
+                # Accessing deprecated objects will generate noisy warnings
+                warnings.simplefilter("ignore", FutureWarning)
+                obj = getattr(obj, part)
         except AttributeError:
             return None
 
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
-        fn = None
+        try:  # property
+            fn = inspect.getsourcefile(inspect.unwrap(obj.fget))
+        except (AttributeError, TypeError):
+            fn = None
     if not fn:
         return None
 
     try:
         source, lineno = inspect.getsourcelines(obj)
+    except TypeError:
+        try:  # property
+            source, lineno = inspect.getsourcelines(obj.fget)
+        except (AttributeError, TypeError):
+            lineno = None
     except OSError:
         lineno = None
 
@@ -647,7 +678,7 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return f"https://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
+        return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"

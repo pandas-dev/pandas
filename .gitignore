@@ -50,6 +50,8 @@ dist
 *.egg-info
 .eggs
 .pypirc
+# type checkers
+pandas/py.typed
 
 # tox testing tool
 .tox
@@ -104,6 +106,7 @@ asv_bench/env/
 asv_bench/html/
 asv_bench/results/
 asv_bench/pandas/
+test-data.xml
 
 # Documentation generated files #
 #################################
@@ -119,3 +122,7 @@ doc/build/html/index.html
 doc/tmp.sv
 env/
 doc/source/savefig/
+
+# Interactive terminal generated files #
+########################################
+.jupyterlite.doit.db

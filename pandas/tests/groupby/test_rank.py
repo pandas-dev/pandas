@@ -1,14 +1,16 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    NaT,
     Series,
     concat,
 )
 import pandas._testing as tm
-from pandas.core.base import DataError
 
 
 def test_rank_apply():
@@ -441,14 +443,26 @@ def test_rank_resets_each_group(pct, exp):
     tm.assert_frame_equal(result, exp_df)
 
 
-def test_rank_avg_even_vals():
+@pytest.mark.parametrize(
+    "dtype", ["int64", "int32", "uint64", "uint32", "float64", "float32"]
+)
+@pytest.mark.parametrize("upper", [True, False])
+def test_rank_avg_even_vals(dtype, upper):
+    if upper:
+        # use IntegerDtype/FloatingDtype
+        dtype = dtype[0].upper() + dtype[1:]
+        dtype = dtype.replace("Ui", "UI")
     df = DataFrame({"key": ["a"] * 4, "val": [1] * 4})
+    df["val"] = df["val"].astype(dtype)
+    assert df["val"].dtype == dtype
+
     result = df.groupby("key").rank()
     exp_df = DataFrame([2.5, 2.5, 2.5, 2.5], columns=["val"])
+    if upper:
+        exp_df = exp_df.astype("Float64")
     tm.assert_frame_equal(result, exp_df)
 
 
-@pytest.mark.xfail(reason="Works now, needs tests")
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
@@ -456,13 +470,25 @@ def test_rank_avg_even_vals():
 @pytest.mark.parametrize(
     "vals", [["bar", "bar", "foo", "bar", "baz"], ["bar", np.nan, "foo", np.nan, "baz"]]
 )
-def test_rank_object_raises(ties_method, ascending, na_option, pct, vals):
+def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
+    mask = df["val"].isna()
 
-    with pytest.raises(DataError, match="No numeric types to aggregate"):
-        df.groupby("key").rank(
-            method=ties_method, ascending=ascending, na_option=na_option, pct=pct
-        )
+    gb = df.groupby("key")
+    res = gb.rank(method=ties_method, ascending=ascending, na_option=na_option, pct=pct)
+
+    # construct our expected by using numeric values with the same ordering
+    if mask.any():
+        df2 = DataFrame({"key": ["foo"] * 5, "val": [0, np.nan, 2, np.nan, 1]})
+    else:
+        df2 = DataFrame({"key": ["foo"] * 5, "val": [0, 0, 2, 0, 1]})
+
+    gb2 = df2.groupby("key")
+    alt = gb2.rank(
+        method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+    )
+
+    tm.assert_frame_equal(res, alt)
 
 
 @pytest.mark.parametrize("na_option", [True, "bad", 1])
@@ -517,3 +543,139 @@ def test_rank_zero_div(input_key, input_value, output_value):
     result = df.groupby("A").rank(method="dense", pct=True)
     expected = DataFrame({"B": output_value})
     tm.assert_frame_equal(result, expected)
+
+
+def test_rank_min_int():
+    # GH-32859
+    df = DataFrame(
+        {
+            "grp": [1, 1, 2],
+            "int_col": [
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                np.iinfo(np.int64).min,
+            ],
+            "datetimelike": [NaT, datetime(2001, 1, 1), NaT],
+        }
+    )
+
+    result = df.groupby("grp").rank()
+    expected = DataFrame(
+        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.NaN, 1.0, np.NaN]}
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("use_nan", [True, False])
+def test_rank_pct_equal_values_on_group_transition(use_nan):
+    # GH#40518
+    fill_value = np.nan if use_nan else 3
+    df = DataFrame(
+        [
+            [-1, 1],
+            [-1, 2],
+            [1, fill_value],
+            [-1, fill_value],
+        ],
+        columns=["group", "val"],
+    )
+    result = df.groupby(["group"])["val"].rank(
+        method="dense",
+        pct=True,
+    )
+    if use_nan:
+        expected = Series([0.5, 1, np.nan, np.nan], name="val")
+    else:
+        expected = Series([1 / 3, 2 / 3, 1, 1], name="val")
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rank_multiindex():
+    # GH27721
+    df = concat(
+        {
+            "a": DataFrame({"col1": [3, 4], "col2": [1, 2]}),
+            "b": DataFrame({"col3": [5, 6], "col4": [7, 8]}),
+        },
+        axis=1,
+    )
+
+    gb = df.groupby(level=0, axis=1)
+    result = gb.rank(axis=1)
+
+    expected = concat(
+        [
+            df["a"].rank(axis=1),
+            df["b"].rank(axis=1),
+        ],
+        axis=1,
+        keys=["a", "b"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_axis0_rank_axis1():
+    # GH#41320
+    df = DataFrame(
+        {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
+        index=["a", "a", "b", "b"],
+    )
+    gb = df.groupby(level=0, axis=0)
+
+    res = gb.rank(axis=1)
+
+    # This should match what we get when "manually" operating group-by-group
+    expected = concat([df.loc["a"].rank(axis=1), df.loc["b"].rank(axis=1)], axis=0)
+    tm.assert_frame_equal(res, expected)
+
+    # check that we haven't accidentally written a case that coincidentally
+    # matches rank(axis=0)
+    alt = gb.rank(axis=0)
+    assert not alt.equals(expected)
+
+
+def test_groupby_axis0_cummax_axis1():
+    # case where groupby axis is 0 and axis keyword in transform is 1
+
+    # df has mixed dtype -> multiple blocks
+    df = DataFrame(
+        {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
+        index=["a", "a", "b", "b"],
+    )
+    gb = df.groupby(level=0, axis=0)
+
+    cmax = gb.cummax(axis=1)
+    expected = df[[0, 1]].astype(np.float64)
+    expected[2] = expected[1]
+    tm.assert_frame_equal(cmax, expected)
+
+
+def test_non_unique_index():
+    # GH 16577
+    df = DataFrame(
+        {"A": [1.0, 2.0, 3.0, np.nan], "value": 1.0},
+        index=[pd.Timestamp("20170101", tz="US/Eastern")] * 4,
+    )
+    result = df.groupby([df.index, "A"]).value.rank(ascending=True, pct=True)
+    expected = Series(
+        [1.0, 1.0, 1.0, np.nan],
+        index=[pd.Timestamp("20170101", tz="US/Eastern")] * 4,
+        name="value",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_rank_categorical():
+    cat = pd.Categorical(["a", "a", "b", np.nan, "c", "b"], ordered=True)
+    cat2 = pd.Categorical([1, 2, 3, np.nan, 4, 5], ordered=True)
+
+    df = DataFrame({"col1": [0, 1, 0, 1, 0, 1], "col2": cat, "col3": cat2})
+
+    gb = df.groupby("col1")
+
+    res = gb.rank()
+
+    expected = df.astype(object).groupby("col1").rank()
+    tm.assert_frame_equal(res, expected)

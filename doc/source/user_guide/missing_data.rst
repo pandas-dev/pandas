@@ -470,7 +470,7 @@ at the new values.
    interp_s = ser.reindex(new_index).interpolate(method="pchip")
    interp_s[49:51]
 
-.. _scipy: https://www.scipy.org
+.. _scipy: https://scipy.org/
 .. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
@@ -580,7 +580,7 @@ String/regular expression replacement
    backslashes than strings without this prefix. Backslashes in raw strings
    will be interpreted as an escaped backslash, e.g., ``r'\' == '\\'``. You
    should `read about them
-   <https://docs.python.org/3/reference/lexical_analysis.html#string-literals>`__
+   <https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals>`__
    if this is unclear.
 
 Replace the '.' with ``NaN`` (str -> str):

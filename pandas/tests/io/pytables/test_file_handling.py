@@ -4,8 +4,11 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_little_endian
+from pandas.errors import (
+    ClosedFileError,
+    PossibleDataLossError,
+)
 
-import pandas as pd
 from pandas import (
     DataFrame,
     HDFStore,
@@ -21,80 +24,69 @@ from pandas.tests.io.pytables.common import (
 )
 
 from pandas.io import pytables as pytables
-from pandas.io.pytables import (
-    ClosedFileError,
-    PossibleDataLossError,
-    Term,
-)
+from pandas.io.pytables import Term
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
-def test_mode(setup_path):
+@pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
+def test_mode(setup_path, mode):
 
     df = tm.makeTimeDataFrame()
+    msg = r"[\S]* does not exist"
+    with ensure_clean_path(setup_path) as path:
 
-    def check(mode):
+        # constructor
+        if mode in ["r", "r+"]:
+            with pytest.raises(OSError, match=msg):
+                HDFStore(path, mode=mode)
 
-        msg = r"[\S]* does not exist"
-        with ensure_clean_path(setup_path) as path:
+        else:
+            store = HDFStore(path, mode=mode)
+            assert store._handle.mode == mode
+            store.close()
 
-            # constructor
-            if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
-                    HDFStore(path, mode=mode)
+    with ensure_clean_path(setup_path) as path:
 
-            else:
-                store = HDFStore(path, mode=mode)
-                assert store._handle.mode == mode
-                store.close()
-
-        with ensure_clean_path(setup_path) as path:
-
-            # context
-            if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
-                    with HDFStore(path, mode=mode) as store:
-                        pass
-            else:
+        # context
+        if mode in ["r", "r+"]:
+            with pytest.raises(OSError, match=msg):
                 with HDFStore(path, mode=mode) as store:
-                    assert store._handle.mode == mode
+                    pass
+        else:
+            with HDFStore(path, mode=mode) as store:
+                assert store._handle.mode == mode
 
-        with ensure_clean_path(setup_path) as path:
+    with ensure_clean_path(setup_path) as path:
 
-            # conv write
-            if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
-                    df.to_hdf(path, "df", mode=mode)
-                df.to_hdf(path, "df", mode="w")
-            else:
+        # conv write
+        if mode in ["r", "r+"]:
+            with pytest.raises(OSError, match=msg):
                 df.to_hdf(path, "df", mode=mode)
-
-            # conv read
-            if mode in ["w"]:
-                msg = (
-                    "mode w is not allowed while performing a read. "
-                    r"Allowed modes are r, r\+ and a."
-                )
-                with pytest.raises(ValueError, match=msg):
-                    read_hdf(path, "df", mode=mode)
-            else:
-                result = read_hdf(path, "df", mode=mode)
-                tm.assert_frame_equal(result, df)
-
-    def check_default_mode():
-
-        # read_hdf uses default mode
-        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="w")
-            result = read_hdf(path, "df")
+        else:
+            df.to_hdf(path, "df", mode=mode)
+
+        # conv read
+        if mode in ["w"]:
+            msg = (
+                "mode w is not allowed while performing a read. "
+                r"Allowed modes are r, r\+ and a."
+            )
+            with pytest.raises(ValueError, match=msg):
+                read_hdf(path, "df", mode=mode)
+        else:
+            result = read_hdf(path, "df", mode=mode)
             tm.assert_frame_equal(result, df)
 
-    check("r")
-    check("r+")
-    check("a")
-    check("w")
-    check_default_mode()
+
+def test_default_mode(setup_path):
+    # read_hdf uses default mode
+    df = tm.makeTimeDataFrame()
+    with ensure_clean_path(setup_path) as path:
+        df.to_hdf(path, "df", mode="w")
+        result = read_hdf(path, "df")
+        tm.assert_frame_equal(result, df)
 
 
 def test_reopen_handle(setup_path):
@@ -188,7 +180,7 @@ def test_complibs_default_settings(setup_path):
     # default value
     with ensure_clean_path(setup_path) as tmpfile:
         df.to_hdf(tmpfile, "df", complevel=9)
-        result = pd.read_hdf(tmpfile, "df")
+        result = read_hdf(tmpfile, "df")
         tm.assert_frame_equal(result, df)
 
         with tables.open_file(tmpfile, mode="r") as h5file:
@@ -199,7 +191,7 @@ def test_complibs_default_settings(setup_path):
     # Set complib and check to see if compression is disabled
     with ensure_clean_path(setup_path) as tmpfile:
         df.to_hdf(tmpfile, "df", complib="zlib")
-        result = pd.read_hdf(tmpfile, "df")
+        result = read_hdf(tmpfile, "df")
         tm.assert_frame_equal(result, df)
 
         with tables.open_file(tmpfile, mode="r") as h5file:
@@ -210,7 +202,7 @@ def test_complibs_default_settings(setup_path):
     # Check if not setting complib or complevel results in no compression
     with ensure_clean_path(setup_path) as tmpfile:
         df.to_hdf(tmpfile, "df")
-        result = pd.read_hdf(tmpfile, "df")
+        result = read_hdf(tmpfile, "df")
         tm.assert_frame_equal(result, df)
 
         with tables.open_file(tmpfile, mode="r") as h5file:
@@ -256,7 +248,7 @@ def test_complibs(setup_path):
 
             # Write and read file to see if data is consistent
             df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
-            result = pd.read_hdf(tmpfile, gname)
+            result = read_hdf(tmpfile, gname)
             tm.assert_frame_equal(result, df)
 
             # Open file and check metadata

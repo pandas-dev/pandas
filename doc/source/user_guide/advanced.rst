@@ -7,7 +7,7 @@ MultiIndex / advanced indexing
 ******************************
 
 This section covers :ref:`indexing with a MultiIndex <advanced.hierarchical>`
-and :ref:`other advanced indexing features <indexing.index_types>`.
+and :ref:`other advanced indexing features <advanced.index_types>`.
 
 See the :ref:`Indexing and Selecting Data <indexing>` for general indexing documentation.
 
@@ -39,11 +39,6 @@ non-trivial applications to illustrate how it aids in structuring data for
 analysis.
 
 See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies.
-
-.. versionchanged:: 0.24.0
-
-   :attr:`MultiIndex.labels` has been renamed to :attr:`MultiIndex.codes`
-   and :attr:`MultiIndex.set_labels` to :attr:`MultiIndex.set_codes`.
 
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,8 +81,6 @@ to use the :meth:`MultiIndex.from_product` method:
 You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using
 the method :meth:`MultiIndex.from_frame`. This is a complementary method to
 :meth:`MultiIndex.to_frame`.
-
-.. versionadded:: 0.24.0
 
 .. ipython:: python
 
@@ -498,7 +491,7 @@ values across a level. For instance:
    )
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
-   df2 = df.mean(level=0)
+   df2 = df.groupby(level=0).mean()
    df2
    df2.reindex(df.index, level=0)
 
@@ -745,7 +738,7 @@ faster than fancy indexing.
    %timeit ser.iloc[indexer]
    %timeit ser.take(indexer)
 
-.. _indexing.index_types:
+.. _advanced.index_types:
 
 Index types
 -----------
@@ -756,7 +749,7 @@ and documentation about ``TimedeltaIndex`` is found :ref:`here <timedeltas.index
 
 In the following sub-sections we will highlight some other index types.
 
-.. _indexing.categoricalindex:
+.. _advanced.categoricalindex:
 
 CategoricalIndex
 ~~~~~~~~~~~~~~~~
@@ -853,10 +846,16 @@ values **not** in the categories, similarly to how you can reindex **any** panda
       In [1]: pd.concat([df4, df5])
       TypeError: categories must match existing categories when appending
 
-.. _indexing.rangeindex:
+.. _advanced.rangeindex:
 
 Int64Index and RangeIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. deprecated:: 1.4.0
+    In pandas 2.0, :class:`Index` will become the default index type for numeric types
+    instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
+    are therefore deprecated and will be removed in a futire version.
+    ``RangeIndex`` will not be removed, as it represents an optimized version of an integer index.
 
 :class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
 implementing an ordered, sliceable set.
@@ -864,10 +863,16 @@ implementing an ordered, sliceable set.
 :class:`RangeIndex` is a sub-class of ``Int64Index``  that provides the default index for all ``NDFrame`` objects.
 ``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
-.. _indexing.float64index:
+.. _advanced.float64index:
 
 Float64Index
 ~~~~~~~~~~~~
+
+.. deprecated:: 1.4.0
+    :class:`Index` will become the default index type for numeric types in the future
+    instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
+    are therefore deprecated and will be removed in a future version of Pandas.
+    ``RangeIndex`` will not be removed as it represents an optimized version of an integer index.
 
 By default a :class:`Float64Index` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
 This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
@@ -963,6 +968,7 @@ If you need integer based selection, you should use ``iloc``:
 
    dfir.iloc[0:5]
 
+
 .. _advanced.intervalindex:
 
 IntervalIndex
@@ -1014,7 +1020,7 @@ Trying to select an ``Interval`` that is not exactly contained in the ``Interval
 
    In [7]: df.loc[pd.Interval(0.5, 2.5)]
    ---------------------------------------------------------------------------
-   KeyError: Interval(0.5, 2.5, closed='right')
+   KeyError: Interval(0.5, 2.5, inclusive='right')
 
 Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed using the
 :meth:`~IntervalIndex.overlaps` method to create a boolean indexer.
@@ -1076,14 +1082,14 @@ of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like inter
 
    pd.interval_range(start=pd.Timedelta("0 days"), periods=3, freq="9H")
 
-Additionally, the ``closed`` parameter can be used to specify which side(s) the intervals
-are closed on.  Intervals are closed on the right side by default.
+Additionally, the ``inclusive`` parameter can be used to specify which side(s) the intervals
+are closed on.  Intervals are closed on the both side by default.
 
 .. ipython:: python
 
-   pd.interval_range(start=0, end=4, closed="both")
+   pd.interval_range(start=0, end=4, inclusive="both")
 
-   pd.interval_range(start=0, end=4, closed="neither")
+   pd.interval_range(start=0, end=4, inclusive="neither")
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements
@@ -1240,5 +1246,5 @@ This is because the (re)indexing operations above silently inserts ``NaNs`` and 
 changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
 such as ``numpy.logical_and``.
 
-See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
+See the :issue:`2388` for a more
 detailed discussion.

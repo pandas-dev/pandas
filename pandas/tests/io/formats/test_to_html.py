@@ -342,9 +342,9 @@ def test_to_html_truncate_multi_index(sparsify, expected, datapath):
     "option,result,expected",
     [
         (None, lambda df: df.to_html(), "1"),
-        (None, lambda df: df.to_html(border=0), "0"),
-        (0, lambda df: df.to_html(), "0"),
-        (0, lambda df: df._repr_html_(), "0"),
+        (None, lambda df: df.to_html(border=2), "2"),
+        (2, lambda df: df.to_html(), "2"),
+        (2, lambda df: df._repr_html_(), "2"),
     ],
 )
 def test_to_html_border(option, result, expected):
@@ -452,43 +452,59 @@ def test_to_html_invalid_justify(justify):
         df.to_html(justify=justify)
 
 
-def test_to_html_index(datapath):
-    # TODO: split this test
-    index = ["foo", "bar", "baz"]
-    df = DataFrame(
-        {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
-        columns=["A", "B", "C"],
-        index=index,
-    )
-    expected_with_index = expected_html(datapath, "index_1")
-    assert df.to_html() == expected_with_index
+class TestHTMLIndex:
+    @pytest.fixture
+    def df(self):
+        index = ["foo", "bar", "baz"]
+        df = DataFrame(
+            {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
+            columns=["A", "B", "C"],
+            index=index,
+        )
+        return df
 
-    expected_without_index = expected_html(datapath, "index_2")
-    result = df.to_html(index=False)
-    for i in index:
-        assert i not in result
-    assert result == expected_without_index
-    df.index = Index(["foo", "bar", "baz"], name="idx")
-    expected_with_index = expected_html(datapath, "index_3")
-    assert df.to_html() == expected_with_index
-    assert df.to_html(index=False) == expected_without_index
+    @pytest.fixture
+    def expected_without_index(self, datapath):
+        return expected_html(datapath, "index_2")
 
-    tuples = [("foo", "car"), ("foo", "bike"), ("bar", "car")]
-    df.index = MultiIndex.from_tuples(tuples)
+    def test_to_html_flat_index_without_name(
+        self, datapath, df, expected_without_index
+    ):
+        expected_with_index = expected_html(datapath, "index_1")
+        assert df.to_html() == expected_with_index
 
-    expected_with_index = expected_html(datapath, "index_4")
-    assert df.to_html() == expected_with_index
+        result = df.to_html(index=False)
+        for i in df.index:
+            assert i not in result
+        assert result == expected_without_index
 
-    result = df.to_html(index=False)
-    for i in ["foo", "bar", "car", "bike"]:
-        assert i not in result
-    # must be the same result as normal index
-    assert result == expected_without_index
+    def test_to_html_flat_index_with_name(self, datapath, df, expected_without_index):
+        df.index = Index(["foo", "bar", "baz"], name="idx")
+        expected_with_index = expected_html(datapath, "index_3")
+        assert df.to_html() == expected_with_index
+        assert df.to_html(index=False) == expected_without_index
 
-    df.index = MultiIndex.from_tuples(tuples, names=["idx1", "idx2"])
-    expected_with_index = expected_html(datapath, "index_5")
-    assert df.to_html() == expected_with_index
-    assert df.to_html(index=False) == expected_without_index
+    def test_to_html_multiindex_without_names(
+        self, datapath, df, expected_without_index
+    ):
+        tuples = [("foo", "car"), ("foo", "bike"), ("bar", "car")]
+        df.index = MultiIndex.from_tuples(tuples)
+
+        expected_with_index = expected_html(datapath, "index_4")
+        assert df.to_html() == expected_with_index
+
+        result = df.to_html(index=False)
+        for i in ["foo", "bar", "car", "bike"]:
+            assert i not in result
+        # must be the same result as normal index
+        assert result == expected_without_index
+
+    def test_to_html_multiindex_with_names(self, datapath, df, expected_without_index):
+        tuples = [("foo", "car"), ("foo", "bike"), ("bar", "car")]
+        df.index = MultiIndex.from_tuples(tuples, names=["idx1", "idx2"])
+        expected_with_index = expected_html(datapath, "index_5")
+        assert df.to_html() == expected_with_index
+        assert df.to_html(index=False) == expected_without_index
 
 
 @pytest.mark.parametrize("classes", ["sortable draggable", ["sortable", "draggable"]])
@@ -763,7 +779,7 @@ def test_to_html_render_links(render_links, expected, datapath):
 def test_ignore_display_max_colwidth(method, expected, max_colwidth):
     # see gh-17004
     df = DataFrame([lorem_ipsum])
-    with pd.option_context("display.max_colwidth", max_colwidth):
+    with option_context("display.max_colwidth", max_colwidth):
         result = getattr(df, method)()
     expected = expected(max_colwidth)
     assert expected in result
@@ -782,7 +798,7 @@ def test_to_html_invalid_classes_type(classes):
 def test_to_html_round_column_headers():
     # GH 17280
     df = DataFrame([1], columns=[0.55555])
-    with pd.option_context("display.precision", 3):
+    with option_context("display.precision", 3):
         html = df.to_html(notebook=False)
         notebook = df.to_html(notebook=True)
     assert "0.55555" in html
@@ -851,7 +867,7 @@ def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
 
 
 @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
-def test_to_html_na_rep_and_float_format(na_rep):
+def test_to_html_na_rep_and_float_format(na_rep, datapath):
     # https://github.com/pandas-dev/pandas/issues/13828
     df = DataFrame(
         [
@@ -861,25 +877,14 @@ def test_to_html_na_rep_and_float_format(na_rep):
         columns=["Group", "Data"],
     )
     result = df.to_html(na_rep=na_rep, float_format="{:.2f}".format)
-    expected = f"""<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Group</th>
-      <th>Data</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>A</td>
-      <td>1.22</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>A</td>
-      <td>{na_rep}</td>
-    </tr>
-  </tbody>
-</table>"""
+    expected = expected_html(datapath, "gh13828_expected_output")
+    expected = expected.format(na_rep=na_rep)
+    assert result == expected
+
+
+def test_to_html_float_format_object_col(datapath):
+    # GH#40024
+    df = DataFrame(data={"x": [1000.0, "test"]})
+    result = df.to_html(float_format=lambda x: f"{x:,.0f}")
+    expected = expected_html(datapath, "gh40024_expected_output")
     assert result == expected

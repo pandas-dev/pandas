@@ -194,7 +194,7 @@ class TestSeriesValueCounts:
             (
                 Series([False, True, True, pd.NA]),
                 True,
-                Series([2, 1], index=[True, False]),
+                Series([2, 1], index=pd.Index([True, False], dtype=object)),
             ),
             (
                 Series(range(3), index=[True, False, np.nan]).index,
@@ -207,3 +207,21 @@ class TestSeriesValueCounts:
         # GH32146
         out = ser.value_counts(dropna=dropna)
         tm.assert_series_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "input_array,expected",
+        [
+            (
+                [1 + 1j, 1 + 1j, 1, 3j, 3j, 3j],
+                Series([3, 2, 1], index=pd.Index([3j, 1 + 1j, 1], dtype=np.complex128)),
+            ),
+            (
+                np.array([1 + 1j, 1 + 1j, 1, 3j, 3j, 3j], dtype=np.complex64),
+                Series([3, 2, 1], index=pd.Index([3j, 1 + 1j, 1], dtype=np.complex64)),
+            ),
+        ],
+    )
+    def test_value_counts_complex_numbers(self, input_array, expected):
+        # GH 17927
+        result = Series(input_array).value_counts()
+        tm.assert_series_equal(result, expected)

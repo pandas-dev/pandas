@@ -66,7 +66,7 @@ class TestDataFrameMissingData:
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
-        df[2][:2] = np.nan
+        df.iloc[:2, 2] = np.nan
 
         dropped = df.dropna(axis=1)
         expected = df.loc[:, [0, 1, 3]]
@@ -158,9 +158,6 @@ class TestDataFrameMissingData:
         msg = "invalid how option: foo"
         with pytest.raises(ValueError, match=msg):
             float_frame.dropna(how="foo")
-        msg = "must specify how or thresh"
-        with pytest.raises(TypeError, match=msg):
-            float_frame.dropna(how=None)
         # non-existent column - 8303
         with pytest.raises(KeyError, match=r"^\['X'\]$"):
             float_frame.dropna(subset=["A", "X"])
@@ -210,3 +207,82 @@ class TestDataFrameMissingData:
         expected = df
         result = df.dropna()
         tm.assert_frame_equal(result, expected)
+
+    def test_dropna_with_duplicate_columns(self):
+        df = DataFrame(
+            {
+                "A": np.random.randn(5),
+                "B": np.random.randn(5),
+                "C": np.random.randn(5),
+                "D": ["a", "b", "c", "d", "e"],
+            }
+        )
+        df.iloc[2, [0, 1, 2]] = np.nan
+        df.iloc[0, 0] = np.nan
+        df.iloc[1, 1] = np.nan
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 3] = np.nan
+        expected = df.dropna(subset=["A", "B", "C"], how="all")
+        expected.columns = ["A", "A", "B", "C"]
+
+        df.columns = ["A", "A", "B", "C"]
+
+        result = df.dropna(subset=["A", "C"], how="all")
+        tm.assert_frame_equal(result, expected)
+
+    def test_dropna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame\.dropna "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.dropna(1)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_set_single_column_subset(self):
+        # GH 41021
+        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.NaN, 5]})
+        expected = DataFrame(
+            {"A": [1, 3], "B": list("ac"), "C": [4.0, 5.0]}, index=[0, 2]
+        )
+        result = df.dropna(subset="C")
+        tm.assert_frame_equal(result, expected)
+
+    def test_single_column_not_present_in_axis(self):
+        # GH 41021
+        df = DataFrame({"A": [1, 2, 3]})
+
+        # Column not present
+        with pytest.raises(KeyError, match="['D']"):
+            df.dropna(subset="D", axis=0)
+
+    def test_subset_is_nparray(self):
+        # GH 41021
+        df = DataFrame({"A": [1, 2, np.NaN], "B": list("abc"), "C": [4, np.NaN, 5]})
+        expected = DataFrame({"A": [1.0], "B": ["a"], "C": [4.0]})
+        result = df.dropna(subset=np.array(["A", "C"]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_no_nans_in_frame(self, axis):
+        # GH#41965
+        df = DataFrame([[1, 2], [3, 4]], columns=pd.RangeIndex(0, 2))
+        expected = df.copy()
+        result = df.dropna(axis=axis)
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+    def test_how_thresh_param_incompatible(self):
+        # GH46575
+        df = DataFrame([1, 2, pd.NA])
+        msg = "You cannot set both the how and thresh arguments at the same time"
+        with pytest.raises(TypeError, match=msg):
+            df.dropna(how="all", thresh=2)
+
+        with pytest.raises(TypeError, match=msg):
+            df.dropna(how="any", thresh=2)
+
+        with pytest.raises(TypeError, match=msg):
+            df.dropna(how=None, thresh=None)

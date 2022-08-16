@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -137,3 +139,23 @@ class TestDataFrameUpdate:
         result.update(result)
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
+
+    def test_update_with_different_dtype(self):
+        # GH#3217
+        df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
+        df["c"] = np.nan
+        df["c"].update(Series(["foo"], index=[0]))
+
+        expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
+        tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_invalid_test
+    def test_update_modify_view(self):
+        # GH#47188
+        df = DataFrame({"A": ["1", np.nan], "B": ["100", np.nan]})
+        df2 = DataFrame({"A": ["a", "x"], "B": ["100", "200"]})
+        result_view = df2[:]
+        df2.update(df)
+        expected = DataFrame({"A": ["1", "x"], "B": ["100", "200"]})
+        tm.assert_frame_equal(df2, expected)
+        tm.assert_frame_equal(result_view, expected)

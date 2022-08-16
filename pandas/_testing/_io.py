@@ -1,22 +1,24 @@
+from __future__ import annotations
+
 import bz2
 from functools import wraps
 import gzip
+import io
+import socket
+import tarfile
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Optional,
-    Tuple,
 )
 import zipfile
 
 from pandas._typing import (
-    FilePathOrBuffer,
-    FrameOrSeries,
+    FilePath,
+    ReadPickleBuffer,
 )
-from pandas.compat import (
-    get_lzma_file,
-    import_lzma,
-)
+from pandas.compat import get_lzma_file
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas._testing._random import rands
@@ -24,9 +26,11 @@ from pandas._testing.contexts import ensure_clean
 
 from pandas.io.common import urlopen
 
-_RAISE_NETWORK_ERROR_DEFAULT = False
-
-lzma = import_lzma()
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 # skip tests on exceptions with these messages
 _network_error_messages = (
@@ -67,10 +71,18 @@ _network_errno_vals = (
 
 
 def _get_default_network_errors():
-    # Lazy import for http.client because it imports many things from the stdlib
+    # Lazy import for http.client & urllib.error
+    # because it imports many things from the stdlib
     import http.client
+    import urllib.error
 
-    return (IOError, http.client.HTTPException, TimeoutError)
+    return (
+        OSError,
+        http.client.HTTPException,
+        TimeoutError,
+        urllib.error.URLError,
+        socket.timeout,
+    )
 
 
 def optional_args(decorator):
@@ -93,9 +105,7 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            # error: Incompatible types in assignment (expression has type
-            # "List[<nothing>]", variable has type "Tuple[Any, ...]")
-            args = []  # type: ignore[assignment]
+            args = ()
             return dec(f)
         else:
             return dec
@@ -107,7 +117,7 @@ def optional_args(decorator):
 def network(
     t,
     url="https://www.google.com",
-    raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
+    raise_on_error=False,
     check_before_test=False,
     error_classes=None,
     skip_errnos=_network_errno_vals,
@@ -137,7 +147,7 @@ def network(
         If True, checks connectivity before running the test case.
     error_classes : tuple or Exception
         error classes to ignore. If not in ``error_classes``, raises the error.
-        defaults to IOError. Be careful about changing the error classes here.
+        defaults to OSError. Be careful about changing the error classes here.
     skip_errnos : iterable of int
         Any exception that has .errno or .reason.erno set to one
         of these values will be skipped with an appropriate
@@ -162,40 +172,40 @@ def network(
     Tests decorated with @network will fail if it's possible to make a network
     connection to another URL (defaults to google.com)::
 
-      >>> from pandas._testing import network
-      >>> from pandas.io.common import urlopen
-      >>> @network
+      >>> from pandas import _testing as tm
+      >>> @tm.network
       ... def test_network():
-      ...     with urlopen("rabbit://bonanza.com"):
+      ...     with pd.io.common.urlopen("rabbit://bonanza.com"):
       ...         pass
+      >>> test_network()  # doctest: +SKIP
       Traceback
          ...
-      URLError: <urlopen error unknown url type: rabit>
+      URLError: <urlopen error unknown url type: rabbit>
 
       You can specify alternative URLs::
 
-        >>> @network("https://www.yahoo.com")
+        >>> @tm.network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
-        ...    raise IOError("Failure Message")
-        >>> test_something_with_yahoo()
+        ...    raise OSError("Failure Message")
+        >>> test_something_with_yahoo()  # doctest: +SKIP
         Traceback (most recent call last):
             ...
-        IOError: Failure Message
+        OSError: Failure Message
 
     If you set check_before_test, it will check the url first and not run the
     test on failure::
 
-        >>> @network("failing://url.blaher", check_before_test=True)
+        >>> @tm.network("failing://url.blaher", check_before_test=True)
         ... def test_something():
         ...     print("I ran!")
         ...     raise ValueError("Failure")
-        >>> test_something()
+        >>> test_something()  # doctest: +SKIP
         Traceback (most recent call last):
             ...
 
     Errors not related to networking will always be raised.
     """
-    from pytest import skip
+    import pytest
 
     if error_classes is None:
         error_classes = _get_default_network_errors()
@@ -209,7 +219,9 @@ def network(
             and not raise_on_error
             and not can_connect(url, error_classes)
         ):
-            skip()
+            pytest.skip(
+                f"May not have network connectivity because cannot connect to {url}"
+            )
         try:
             return t(*args, **kwargs)
         except Exception as err:
@@ -219,32 +231,28 @@ def network(
                 errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:
-                skip(f"Skipping test due to known errno and error {err}")
+                pytest.skip(f"Skipping test due to known errno and error {err}")
 
             e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
-                skip(
+                pytest.skip(
                     f"Skipping test because exception message is known and error {err}"
                 )
 
-            if not isinstance(err, error_classes):
-                raise
-
-            if raise_on_error or can_connect(url, error_classes):
+            if not isinstance(err, error_classes) or raise_on_error:
                 raise
             else:
-                skip(f"Skipping test due to lack of connectivity and error {err}")
+                pytest.skip(
+                    f"Skipping test due to lack of connectivity and error {err}"
+                )
 
     return wrapper
 
 
-with_connectivity_check = network
-
-
-def can_connect(url, error_classes=None):
+def can_connect(url, error_classes=None) -> bool:
     """
-    Try to connect to the given url. True if succeeds, False if IOError
+    Try to connect to the given url. True if succeeds, False if OSError
     raised
 
     Parameters
@@ -255,15 +263,17 @@ def can_connect(url, error_classes=None):
     Returns
     -------
     connectable : bool
-        Return True if no IOError (unable to connect) or URLError (bad url) was
+        Return True if no OSError (unable to connect) or URLError (bad url) was
         raised
     """
     if error_classes is None:
         error_classes = _get_default_network_errors()
 
     try:
-        with urlopen(url):
-            pass
+        with urlopen(url, timeout=20) as response:
+            # Timeout just in case rate-limiting is applied
+            if response.status != 200:
+                return False
     except error_classes:
         return False
     else:
@@ -275,8 +285,8 @@ def can_connect(url, error_classes=None):
 
 
 def round_trip_pickle(
-    obj: Any, path: Optional[FilePathOrBuffer] = None
-) -> FrameOrSeries:
+    obj: Any, path: FilePath | ReadPickleBuffer | None = None
+) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
 
@@ -300,7 +310,7 @@ def round_trip_pickle(
         return pd.read_pickle(temp_path)
 
 
-def round_trip_pathlib(writer, reader, path: Optional[str] = None):
+def round_trip_pathlib(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -329,7 +339,7 @@ def round_trip_pathlib(writer, reader, path: Optional[str] = None):
     return obj
 
 
-def round_trip_localpath(writer, reader, path: Optional[str] = None):
+def round_trip_localpath(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a py.path LocalPath and read it back.
 
@@ -364,7 +374,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 
     Parameters
     ----------
-    compression : {'gzip', 'bz2', 'zip', 'xz'}
+    compression : {'gzip', 'bz2', 'zip', 'xz', 'zstd'}
         The compression type to use.
     path : str
         The file path to write the data.
@@ -377,7 +387,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-    args: Tuple[Any, ...] = (data,)
+    args: tuple[Any, ...] = (data,)
     mode = "wb"
     method = "write"
     compress_method: Callable
@@ -387,12 +397,22 @@ def write_to_compressed(compression, path, data, dest="test"):
         mode = "w"
         args = (dest, data)
         method = "writestr"
+    elif compression == "tar":
+        compress_method = tarfile.TarFile
+        mode = "w"
+        file = tarfile.TarInfo(name=dest)
+        bytes = io.BytesIO(data)
+        file.size = len(data)
+        args = (file, bytes)
+        method = "addfile"
     elif compression == "gzip":
         compress_method = gzip.GzipFile
     elif compression == "bz2":
         compress_method = bz2.BZ2File
+    elif compression == "zstd":
+        compress_method = import_optional_dependency("zstandard").open
     elif compression == "xz":
-        compress_method = get_lzma_file(lzma)
+        compress_method = get_lzma_file()
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
@@ -404,7 +424,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 # Plotting
 
 
-def close(fignum=None):
+def close(fignum=None) -> None:
     from matplotlib.pyplot import (
         close as _close,
         get_fignums,

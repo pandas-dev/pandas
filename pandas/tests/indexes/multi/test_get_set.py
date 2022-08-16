@@ -67,6 +67,23 @@ def test_get_dtypes_no_level_name():
     tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
+def test_get_dtypes_duplicate_level_names():
+    # Test MultiIndex.dtypes with non-unique level names (# GH45174)
+    result = MultiIndex.from_product(
+        [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            pd.date_range("20200101", periods=2, tz="UTC"),
+        ],
+        names=["A", "A", "A"],
+    ).dtypes
+    expected = pd.Series(
+        [np.dtype("int64"), np.dtype("O"), DatetimeTZDtype(tz="utc")],
+        index=["A", "A", "A"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
 
@@ -345,13 +362,30 @@ def test_set_names_with_nlevel_1(inplace):
     tm.assert_index_equal(result, expected)
 
 
+def test_multi_set_names_pos_args_deprecation():
+    # GH#41485
+    idx = MultiIndex.from_product([["python", "cobra"], [2018, 2019]])
+    msg = (
+        "In a future version of pandas all arguments of MultiIndex.set_names "
+        "except for the argument 'names' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_names(["kind", "year"], None)
+    expected = MultiIndex(
+        levels=[["python", "cobra"], [2018, 2019]],
+        codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+        names=["kind", "year"],
+    )
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("ordered", [True, False])
 def test_set_levels_categorical(ordered):
     # GH13854
     index = MultiIndex.from_arrays([list("xyzx"), [0, 1, 2, 3]])
 
     cidx = CategoricalIndex(list("bac"), ordered=ordered)
-    result = index.set_levels(cidx, 0)
+    result = index.set_levels(cidx, level=0)
     expected = MultiIndex(levels=[cidx, [0, 1, 2, 3]], codes=index.codes)
     tm.assert_index_equal(result, expected)
 
@@ -405,3 +439,52 @@ def test_set_levels_inplace_deprecated(idx, inplace):
 
     with tm.assert_produces_warning(FutureWarning):
         idx.set_levels(levels=new_level, level=1, inplace=inplace)
+
+
+def test_set_levels_pos_args_deprecation():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    idx = MultiIndex.from_tuples(
+        [
+            (1, "one"),
+            (2, "one"),
+            (3, "one"),
+        ],
+        names=["foo", "bar"],
+    )
+    msg = (
+        r"In a future version of pandas all arguments of MultiIndex.set_levels except "
+        r"for the argument 'levels' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_levels(["a", "b", "c"], 0)
+    expected = MultiIndex.from_tuples(
+        [
+            ("a", "one"),
+            ("b", "one"),
+            ("c", "one"),
+        ],
+        names=["foo", "bar"],
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_set_codes_pos_args_depreciation(idx):
+    # https://github.com/pandas-dev/pandas/issues/41485
+    msg = (
+        r"In a future version of pandas all arguments of MultiIndex.set_codes except "
+        r"for the argument 'codes' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_codes([[0, 0, 1, 2, 3, 3], [0, 1, 0, 1, 0, 1]], [0, 1])
+    expected = MultiIndex.from_tuples(
+        [
+            ("foo", "one"),
+            ("foo", "two"),
+            ("bar", "one"),
+            ("baz", "two"),
+            ("qux", "one"),
+            ("qux", "two"),
+        ],
+        names=["first", "second"],
+    )
+    tm.assert_index_equal(result, expected)

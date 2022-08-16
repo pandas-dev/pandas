@@ -1,4 +1,10 @@
+# pyright: reportUnusedImport = false
+from __future__ import annotations
+
+import inspect
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.indexes.api import (  # noqa:F401
     CategoricalIndex,
@@ -23,8 +29,10 @@ from pandas.core.indexes.multi import sparsify_labels  # noqa:F401
 
 # GH#30193
 warnings.warn(
-    "pandas.core.index is deprecated and will be removed in a future version.  "
+    "pandas.core.index is deprecated and will be removed in a future version. "
     "The public classes are available in the top-level namespace.",
     FutureWarning,
-    stacklevel=2,
+    stacklevel=find_stack_level(inspect.currentframe()),
 )
+
+__all__: list[str] = []

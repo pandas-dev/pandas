@@ -2,15 +2,30 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+from __future__ import annotations
+
+import inspect
 from typing import (
+    Any,
     Iterable,
-    Union,
+    Sequence,
+    TypeVar,
+    overload,
 )
 import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_bool
+from pandas._typing import IntervalInclusiveType
+from pandas.util._exceptions import find_stack_level
+
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_integer,
+)
+
+BoolishT = TypeVar("BoolishT", bool, int)
+BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
@@ -71,7 +86,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
             )
 
 
-def validate_args(fname, args, max_fname_arg_count, compat_args):
+def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     """
     Checks whether the length of the `*args` argument passed into a function
     has at most `len(compat_args)` arguments and whether or not all of these
@@ -125,7 +140,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
-def validate_kwargs(fname, kwargs, compat_args):
+def validate_kwargs(fname, kwargs, compat_args) -> None:
     """
     Checks whether parameters passed to the **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
@@ -152,7 +167,9 @@ def validate_kwargs(fname, kwargs, compat_args):
     _check_for_default_values(fname, kwds, compat_args)
 
 
-def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_args):
+def validate_args_and_kwargs(
+    fname, args, kwargs, max_fname_arg_count, compat_args
+) -> None:
     """
     Checks whether parameters passed to the *args and **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
@@ -208,9 +225,41 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     validate_kwargs(fname, kwargs, compat_args)
 
 
-def validate_bool_kwarg(value, arg_name):
-    """ Ensures that argument passed in arg_name is of type bool. """
-    if not (is_bool(value) or value is None):
+def validate_bool_kwarg(
+    value: BoolishNoneT, arg_name, none_allowed=True, int_allowed=False
+) -> BoolishNoneT:
+    """
+    Ensure that argument passed in arg_name can be interpreted as boolean.
+
+    Parameters
+    ----------
+    value : bool
+        Value to be validated.
+    arg_name : str
+        Name of the argument. To be reflected in the error message.
+    none_allowed : bool, default True
+        Whether to consider None to be a valid boolean.
+    int_allowed : bool, default False
+        Whether to consider integer value to be a valid boolean.
+
+    Returns
+    -------
+    value
+        The same value as input.
+
+    Raises
+    ------
+    ValueError
+        If the value is not a valid boolean.
+    """
+    good_value = is_bool(value)
+    if none_allowed:
+        good_value = good_value or value is None
+
+    if int_allowed:
+        good_value = good_value or isinstance(value, int)
+
+    if not good_value:
         raise ValueError(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
@@ -218,7 +267,9 @@ def validate_bool_kwarg(value, arg_name):
     return value
 
 
-def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
+def validate_axis_style_args(
+    data, args, kwargs, arg_name, method_name
+) -> dict[str, Any]:
     """
     Argument handler for mixed index, columns / axis functions
 
@@ -244,14 +295,15 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
 
     Examples
     --------
-    >>> df._validate_axis_style_args((str.upper,), {'columns': id},
-    ...                              'mapper', 'rename')
-    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+    >>> df = pd.DataFrame(range(2))
+    >>> validate_axis_style_args(df, (str.upper,), {'columns': id},
+    ...                          'mapper', 'rename')
+    {'columns': <built-in function id>, 'index': <method 'upper' of 'str' objects>}
 
     This emits a warning
-    >>> df._validate_axis_style_args((str.upper, id), {},
-    ...                              'mapper', 'rename')
-    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+    >>> validate_axis_style_args(df, (str.upper, id), {},
+    ...                          'mapper', 'rename')
+    {'index': <method 'upper' of 'str' objects>, 'columns': <built-in function id>}
     """
     # TODO: Change to keyword-only args and remove all this
 
@@ -304,7 +356,9 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=4)
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:
@@ -313,7 +367,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     return out
 
 
-def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
+def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
     """
     Validate the keyword arguments to 'fillna'.
 
@@ -352,7 +406,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
     return value, method
 
 
-def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
+def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     """
     Validate percentiles (used by describe and quantile).
 
@@ -384,3 +438,109 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
         if not all(0 <= qs <= 1 for qs in q_arr):
             raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
+
+
+@overload
+def validate_ascending(ascending: BoolishT) -> BoolishT:
+    ...
+
+
+@overload
+def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
+    ...
+
+
+def validate_ascending(
+    ascending: bool | int | Sequence[BoolishT],
+) -> bool | int | list[BoolishT]:
+    """Validate ``ascending`` kwargs for ``sort_index`` method."""
+    kwargs = {"none_allowed": False, "int_allowed": True}
+    if not isinstance(ascending, Sequence):
+        return validate_bool_kwarg(ascending, "ascending", **kwargs)
+
+    return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]
+
+
+def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
+    """
+    Check that the `closed` argument is among [None, "left", "right"]
+
+    Parameters
+    ----------
+    closed : {None, "left", "right"}
+
+    Returns
+    -------
+    left_closed : bool
+    right_closed : bool
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_closed = False
+    right_closed = False
+
+    if closed is None:
+        left_closed = True
+        right_closed = True
+    elif closed == "left":
+        left_closed = True
+    elif closed == "right":
+        right_closed = True
+    else:
+        raise ValueError("Closed has to be either 'left', 'right' or None")
+
+    return left_closed, right_closed
+
+
+def validate_inclusive(inclusive: IntervalInclusiveType | None) -> tuple[bool, bool]:
+    """
+    Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
+
+    Parameters
+    ----------
+    inclusive : {"both", "neither", "left", "right"}
+
+    Returns
+    -------
+    left_right_inclusive : tuple[bool, bool]
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_right_inclusive: tuple[bool, bool] | None = None
+
+    if isinstance(inclusive, str):
+        left_right_inclusive = {
+            "both": (True, True),
+            "left": (True, False),
+            "right": (False, True),
+            "neither": (False, False),
+        }.get(inclusive)
+
+    if left_right_inclusive is None:
+        raise ValueError(
+            "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
+        )
+
+    return left_right_inclusive
+
+
+def validate_insert_loc(loc: int, length: int) -> int:
+    """
+    Check that we have an integer between -length and length, inclusive.
+
+    Standardize negative loc to within [0, length].
+
+    The exceptions we raise on failure match np.insert.
+    """
+    if not is_integer(loc):
+        raise TypeError(f"loc must be an integer between -{length} and {length}")
+
+    if loc < 0:
+        loc += length
+    if not 0 <= loc <= length:
+        raise IndexError(f"loc must be an integer between -{length} and {length}")
+    return loc

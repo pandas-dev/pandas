@@ -10,17 +10,15 @@ import pytest
 
 import pandas._config.config as cf
 
-from pandas.compat import (
-    is_platform_windows,
-    np_datetime64_compat,
-)
 import pandas.util._test_decorators as td
 
 from pandas import (
     Index,
     Period,
+    PeriodIndex,
     Series,
     Timestamp,
+    arrays,
     date_range,
 )
 import pandas._testing as tm
@@ -45,9 +43,6 @@ except ImportError:
 
 pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
-
-
-pytestmark = pytest.mark.slow
 
 
 def test_registry_mpl_resets():
@@ -92,11 +87,6 @@ class TestRegistration:
         ax.plot(s.index, s.values)
         plt.close()
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="Getting two warnings intermittently, see GH#37746",
-        strict=False,
-    )
     def test_pandas_plots_register(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -166,48 +156,41 @@ class TestRegistration:
 
 
 class TestDateTimeConverter:
-    def setup_method(self, method):
-        self.dtc = converter.DatetimeConverter()
-        self.tc = converter.TimeFormatter(None)
+    @pytest.fixture
+    def dtc(self):
+        return converter.DatetimeConverter()
 
-    def test_convert_accepts_unicode(self):
-        r1 = self.dtc.convert("12:22", None, None)
-        r2 = self.dtc.convert("12:22", None, None)
+    def test_convert_accepts_unicode(self, dtc):
+        r1 = dtc.convert("12:22", None, None)
+        r2 = dtc.convert("12:22", None, None)
         assert r1 == r2, "DatetimeConverter.convert should accept unicode"
 
-    def test_conversion(self):
-        rs = self.dtc.convert(["2012-1-1"], None, None)[0]
+    def test_conversion(self, dtc):
+        rs = dtc.convert(["2012-1-1"], None, None)[0]
         xp = dates.date2num(datetime(2012, 1, 1))
         assert rs == xp
 
-        rs = self.dtc.convert("2012-1-1", None, None)
+        rs = dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
-        rs = self.dtc.convert(date(2012, 1, 1), None, None)
+        rs = dtc.convert(date(2012, 1, 1), None, None)
         assert rs == xp
 
-        rs = self.dtc.convert("2012-1-1", None, None)
+        rs = dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
-        rs = self.dtc.convert(Timestamp("2012-1-1"), None, None)
+        rs = dtc.convert(Timestamp("2012-1-1"), None, None)
         assert rs == xp
 
         # also testing datetime64 dtype (GH8614)
-        rs = self.dtc.convert(np_datetime64_compat("2012-01-01"), None, None)
+        rs = dtc.convert("2012-01-01", None, None)
         assert rs == xp
 
-        rs = self.dtc.convert(
-            np_datetime64_compat("2012-01-01 00:00:00+0000"), None, None
-        )
+        rs = dtc.convert("2012-01-01 00:00:00+0000", None, None)
         assert rs == xp
 
-        rs = self.dtc.convert(
-            np.array(
-                [
-                    np_datetime64_compat("2012-01-01 00:00:00+0000"),
-                    np_datetime64_compat("2012-01-02 00:00:00+0000"),
-                ]
-            ),
+        rs = dtc.convert(
+            np.array(["2012-01-01 00:00:00+0000", "2012-01-02 00:00:00+0000"]),
             None,
             None,
         )
@@ -216,48 +199,48 @@ class TestDateTimeConverter:
         # we have a tz-aware date (constructed to that when we turn to utc it
         # is the same as our sample)
         ts = Timestamp("2012-01-01").tz_localize("UTC").tz_convert("US/Eastern")
-        rs = self.dtc.convert(ts, None, None)
+        rs = dtc.convert(ts, None, None)
         assert rs == xp
 
-        rs = self.dtc.convert(ts.to_pydatetime(), None, None)
+        rs = dtc.convert(ts.to_pydatetime(), None, None)
         assert rs == xp
 
-        rs = self.dtc.convert(Index([ts - Day(1), ts]), None, None)
+        rs = dtc.convert(Index([ts - Day(1), ts]), None, None)
         assert rs[1] == xp
 
-        rs = self.dtc.convert(Index([ts - Day(1), ts]).to_pydatetime(), None, None)
+        rs = dtc.convert(Index([ts - Day(1), ts]).to_pydatetime(), None, None)
         assert rs[1] == xp
 
-    def test_conversion_float(self):
-        rtol = 0.5 * 10 ** -9
+    def test_conversion_float(self, dtc):
+        rtol = 0.5 * 10**-9
 
-        rs = self.dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
+        rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
         xp = converter.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-        rs = self.dtc.convert(
+        rs = dtc.convert(
             Timestamp("2012-1-1 09:02:03", tz="Asia/Hong_Kong"), None, None
         )
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-        rs = self.dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
+        rs = dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-    def test_conversion_outofbounds_datetime(self):
+    def test_conversion_outofbounds_datetime(self, dtc):
         # 2579
         values = [date(1677, 1, 1), date(1677, 1, 2)]
-        rs = self.dtc.convert(values, None, None)
+        rs = dtc.convert(values, None, None)
         xp = converter.dates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
-        rs = self.dtc.convert(values[0], None, None)
+        rs = dtc.convert(values[0], None, None)
         xp = converter.dates.date2num(values[0])
         assert rs == xp
 
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
-        rs = self.dtc.convert(values, None, None)
+        rs = dtc.convert(values, None, None)
         xp = converter.dates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
-        rs = self.dtc.convert(values[0], None, None)
+        rs = dtc.convert(values[0], None, None)
         xp = converter.dates.date2num(values[0])
         assert rs == xp
 
@@ -273,42 +256,38 @@ class TestDateTimeConverter:
     )
     def test_time_formatter(self, time, format_expected):
         # issue 18478
-        result = self.tc(time)
+        result = converter.TimeFormatter(None)(time)
         assert result == format_expected
 
-    def test_dateindex_conversion(self):
-        rtol = 10 ** -9
+    @pytest.mark.parametrize("freq", ("B", "L", "S"))
+    def test_dateindex_conversion(self, freq, dtc):
+        rtol = 10**-9
+        dateindex = tm.makeDateIndex(k=10, freq=freq)
+        rs = dtc.convert(dateindex, None, None)
+        xp = converter.dates.date2num(dateindex._mpl_repr())
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-        for freq in ("B", "L", "S"):
-            dateindex = tm.makeDateIndex(k=10, freq=freq)
-            rs = self.dtc.convert(dateindex, None, None)
-            xp = converter.dates.date2num(dateindex._mpl_repr())
-            tm.assert_almost_equal(rs, xp, rtol=rtol)
-
-    def test_resolution(self):
-        def _assert_less(ts1, ts2):
-            val1 = self.dtc.convert(ts1, None, None)
-            val2 = self.dtc.convert(ts2, None, None)
-            if not val1 < val2:
-                raise AssertionError(f"{val1} is not less than {val2}.")
-
+    @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])
+    def test_resolution(self, offset, dtc):
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.
-        ts = Timestamp("2012-1-1")
-        _assert_less(ts, ts + Second())
-        _assert_less(ts, ts + Milli())
-        _assert_less(ts, ts + Micro(50))
+        ts1 = Timestamp("2012-1-1")
+        ts2 = ts1 + offset
+        val1 = dtc.convert(ts1, None, None)
+        val2 = dtc.convert(ts2, None, None)
+        if not val1 < val2:
+            raise AssertionError(f"{val1} is not less than {val2}.")
 
-    def test_convert_nested(self):
+    def test_convert_nested(self, dtc):
         inner = [Timestamp("2017-01-01"), Timestamp("2017-01-02")]
         data = [inner, inner]
-        result = self.dtc.convert(data, None, None)
-        expected = [self.dtc.convert(x, None, None) for x in data]
+        result = dtc.convert(data, None, None)
+        expected = [dtc.convert(x, None, None) for x in data]
         assert (np.array(result) == expected).all()
 
 
 class TestPeriodConverter:
-    def setup_method(self, method):
+    def setup_method(self):
         self.pc = converter.PeriodConverter()
 
         class Axis:
@@ -342,20 +321,16 @@ class TestPeriodConverter:
         rs = self.pc.convert(Timestamp("2012-1-1"), None, self.axis)
         assert rs == xp
 
-        rs = self.pc.convert(np_datetime64_compat("2012-01-01"), None, self.axis)
+        rs = self.pc.convert("2012-01-01", None, self.axis)
         assert rs == xp
 
-        rs = self.pc.convert(
-            np_datetime64_compat("2012-01-01 00:00:00+0000"), None, self.axis
-        )
+        rs = self.pc.convert("2012-01-01 00:00:00+0000", None, self.axis)
         assert rs == xp
 
         rs = self.pc.convert(
             np.array(
-                [
-                    np_datetime64_compat("2012-01-01 00:00:00+0000"),
-                    np_datetime64_compat("2012-01-02 00:00:00+0000"),
-                ]
+                ["2012-01-01 00:00:00", "2012-01-02 00:00:00"],
+                dtype="datetime64[ns]",
             ),
             None,
             self.axis,
@@ -402,3 +377,32 @@ class TestTimeDeltaConverter:
         tdc = converter.TimeSeries_TimedeltaFormatter()
         monkeypatch.setattr(tdc, "axis", mock_axis())
         tdc(0.0, 0)
+
+
+@pytest.mark.parametrize("year_span", [11.25, 30, 80, 150, 400, 800, 1500, 2500, 3500])
+# The range is limited to 11.25 at the bottom by if statements in
+# the _quarterly_finder() function
+def test_quarterly_finder(year_span):
+    vmin = -1000
+    vmax = vmin + year_span * 4
+    span = vmax - vmin + 1
+    if span < 45:  # the quarterly finder is only invoked if the span is >= 45
+        return
+    nyears = span / 4
+    (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
+    result = converter._quarterly_finder(vmin, vmax, "Q")
+    quarters = PeriodIndex(
+        arrays.PeriodArray(np.array([x[0] for x in result]), freq="Q")
+    )
+    majors = np.array([x[1] for x in result])
+    minors = np.array([x[2] for x in result])
+    major_quarters = quarters[majors]
+    minor_quarters = quarters[minors]
+    check_major_years = major_quarters.year % maj_anndef == 0
+    check_minor_years = minor_quarters.year % min_anndef == 0
+    check_major_quarters = major_quarters.quarter == 1
+    check_minor_quarters = minor_quarters.quarter == 1
+    assert np.all(check_major_years)
+    assert np.all(check_minor_years)
+    assert np.all(check_major_quarters)
+    assert np.all(check_minor_quarters)

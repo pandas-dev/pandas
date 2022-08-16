@@ -1,4 +1,7 @@
 """Sparse accessor"""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -13,11 +16,17 @@ from pandas.core.accessor import (
 from pandas.core.arrays.sparse.array import SparseArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+
 
 class BaseAccessor:
     _validation_msg = "Can only use the '.sparse' accessor with Sparse data."
 
-    def __init__(self, data=None):
+    def __init__(self, data=None) -> None:
         self._parent = data
         self._validate(data)
 
@@ -49,7 +58,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             raise ValueError
 
     @classmethod
-    def from_coo(cls, A, dense_index=False):
+    def from_coo(cls, A, dense_index=False) -> Series:
         """
         Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
@@ -113,6 +122,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         column_levels : tuple/list
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
+            When `row_levels` and/or `column_levels` refer to a single level,
+            set to `True` for a faster execution.
 
         Returns
         -------
@@ -178,7 +189,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         )
         return A, rows, columns
 
-    def to_dense(self):
+    def to_dense(self) -> Series:
         """
         Convert a Series from sparse values to dense.
 
@@ -226,7 +237,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             raise AttributeError(self._validation_msg)
 
     @classmethod
-    def from_spmatrix(cls, data, index=None, columns=None):
+    def from_spmatrix(cls, data, index=None, columns=None) -> DataFrame:
         """
         Create a new DataFrame from a scipy sparse matrix.
 
@@ -282,7 +293,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             arrays, columns=columns, index=index, verify_integrity=False
         )
 
-    def to_dense(self):
+    def to_dense(self) -> DataFrame:
         """
         Convert a DataFrame with sparse values to dense.
 
@@ -337,12 +348,15 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype = dtype.subtype
 
         cols, rows, data = [], [], []
-        for col, name in enumerate(self._parent):
-            s = self._parent[name]
-            row = s.array.sp_index.to_int_index().indices
+        for col, (_, ser) in enumerate(self._parent.items()):
+            sp_arr = ser.array
+            if sp_arr.fill_value != 0:
+                raise ValueError("fill value must be 0 when converting to COO matrix")
+
+            row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            data.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(sp_arr.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
@@ -354,20 +368,23 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Ratio of non-sparse points to total (dense) data points.
         """
-        return np.mean([column.array.density for _, column in self._parent.items()])
+        tmp = np.mean([column.array.density for _, column in self._parent.items()])
+        return tmp
 
     @staticmethod
     def _prep_index(data, index, columns):
-        from pandas.core.indexes.api import ensure_index
-        import pandas.core.indexes.base as ibase
+        from pandas.core.indexes.api import (
+            default_index,
+            ensure_index,
+        )
 
         N, K = data.shape
         if index is None:
-            index = ibase.default_index(N)
+            index = default_index(N)
         else:
             index = ensure_index(index)
         if columns is None:
-            columns = ibase.default_index(K)
+            columns = default_index(K)
         else:
             columns = ensure_index(columns)
 

@@ -145,7 +145,7 @@ Other new features
 - Add :ref:`'kde' <visualization.kde>` plot option for density plots
 - Support for converting DataFrame to R data.frame through rpy2
 - Improved support for complex numbers in Series and DataFrame
-- Add :ref:`pct_change <computation.pct_change>` method to all data structures
+- Add ``pct_change`` method to all data structures
 - Add max_colwidth configuration option for DataFrame console output
 - :ref:`Interpolate <missing_data.interpolate>` Series values using index values
 - Can select multiple columns from GroupBy

@@ -1,4 +1,7 @@
+import numpy as np
 import pytest
+
+from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
 from pandas import (
@@ -105,17 +108,20 @@ def test_series_not_equal_metadata_mismatch(kwargs):
 
 
 @pytest.mark.parametrize("data1,data2", [(0.12345, 0.12346), (0.1235, 0.1236)])
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("dtype", ["float32", "float64", "Float32"])
 @pytest.mark.parametrize("decimals", [0, 1, 2, 3, 5, 10])
 def test_less_precise(data1, data2, dtype, decimals):
-    rtol = 10 ** -decimals
+    rtol = 10**-decimals
     s1 = Series([data1], dtype=dtype)
     s2 = Series([data2], dtype=dtype)
 
     if (decimals == 5 or decimals == 10) or (
         decimals >= 3 and abs(data1 - data2) >= 0.0005
     ):
-        msg = "Series values are different"
+        if is_extension_array_dtype(dtype):
+            msg = "ExtensionArray are different"
+        else:
+            msg = "Series values are different"
         with pytest.raises(AssertionError, match=msg):
             tm.assert_series_equal(s1, s2, rtol=rtol)
     else:
@@ -151,6 +157,39 @@ def test_series_equal_index_dtype(s1, s2, msg, check_index_type):
             tm.assert_series_equal(s1, s2, **kwargs)
     else:
         tm.assert_series_equal(s1, s2, **kwargs)
+
+
+@pytest.mark.parametrize("check_like", [True, False])
+def test_series_equal_order_mismatch(check_like):
+    s1 = Series([1, 2, 3], index=["a", "b", "c"])
+    s2 = Series([3, 2, 1], index=["c", "b", "a"])
+
+    if not check_like:  # Do not ignore index ordering.
+        with pytest.raises(AssertionError, match="Series.index are different"):
+            tm.assert_series_equal(s1, s2, check_like=check_like)
+    else:
+        _assert_series_equal_both(s1, s2, check_like=check_like)
+
+
+@pytest.mark.parametrize("check_index", [True, False])
+def test_series_equal_index_mismatch(check_index):
+    s1 = Series([1, 2, 3], index=["a", "b", "c"])
+    s2 = Series([1, 2, 3], index=["c", "b", "a"])
+
+    if check_index:  # Do not ignore index.
+        with pytest.raises(AssertionError, match="Series.index are different"):
+            tm.assert_series_equal(s1, s2, check_index=check_index)
+    else:
+        _assert_series_equal_both(s1, s2, check_index=check_index)
+
+
+def test_series_invalid_param_combination():
+    left = Series(dtype=object)
+    right = Series(dtype=object)
+    with pytest.raises(
+        ValueError, match="check_like must be False if check_index is False"
+    ):
+        tm.assert_series_equal(left, right, check_index=False, check_like=True)
 
 
 def test_series_equal_length_mismatch(rtol):
@@ -251,7 +290,7 @@ Attribute "dtype" are different
 
 def test_assert_series_equal_interval_dtype_mismatch():
     # https://github.com/pandas-dev/pandas/issues/32747
-    left = Series([pd.Interval(0, 1)], dtype="interval")
+    left = Series([pd.Interval(0, 1, "right")], dtype="interval")
     right = left.astype(object)
 
     msg = """Attributes of Series are different
@@ -336,3 +375,39 @@ def test_allows_duplicate_labels():
 
     with pytest.raises(AssertionError, match="<Flags"):
         tm.assert_series_equal(left, right)
+
+
+def test_assert_series_equal_identical_na(nulls_fixture):
+    ser = Series([nulls_fixture])
+
+    tm.assert_series_equal(ser, ser.copy())
+
+    # while we're here do Index too
+    idx = pd.Index(ser)
+    tm.assert_index_equal(idx, idx.copy(deep=True))
+
+
+def test_identical_nested_series_is_equal():
+    # GH#22400
+    x = Series(
+        [
+            0,
+            0.0131142231938,
+            1.77774652865e-05,
+            np.array([0.4722720840328748, 0.4216929783681722]),
+        ]
+    )
+    y = Series(
+        [
+            0,
+            0.0131142231938,
+            1.77774652865e-05,
+            np.array([0.4722720840328748, 0.4216929783681722]),
+        ]
+    )
+    # These two arrays should be equal, nesting could cause issue
+
+    tm.assert_series_equal(x, x)
+    tm.assert_series_equal(x, x, check_exact=True)
+    tm.assert_series_equal(x, y)
+    tm.assert_series_equal(x, y, check_exact=True)

@@ -363,16 +363,12 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 .. ipython:: python
 
    df = pd.DataFrame({u"国籍": ["UK", u"日本"], u"名前": ["Alice", u"しのぶ"]})
-   df;
-
-.. image:: ../_static/option_unicode01.png
+   df
 
 .. ipython:: python
 
    pd.set_option("display.unicode.east_asian_width", True)
-   df;
-
-.. image:: ../_static/option_unicode02.png
+   df
 
 For further details, see :ref:`here <options.east_asian_width>`
 
@@ -423,7 +419,7 @@ Other enhancements
 
   .. code-block:: ipython
 
-     In [1]: pd.concat([foo, bar, baz], 1)
+     In [1]: pd.concat([foo, bar, baz], axis=1)
      Out[1]:
            0  1  2
         0  1  1  4
@@ -433,7 +429,7 @@ Other enhancements
 
   .. ipython:: python
 
-    pd.concat([foo, bar, baz], 1)
+    pd.concat([foo, bar, baz], axis=1)
 
 - ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
 

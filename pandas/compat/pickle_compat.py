@@ -9,13 +9,22 @@ import io
 import pickle as pkl
 from typing import (
     TYPE_CHECKING,
-    Optional,
+    Iterator,
 )
 import warnings
 
+import numpy as np
+
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import BaseOffset
 
 from pandas import Index
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+from pandas.core.internals import BlockManager
 
 if TYPE_CHECKING:
     from pandas import (
@@ -28,9 +37,6 @@ def load_reduce(self):
     stack = self.stack
     args = stack.pop()
     func = stack[-1]
-
-    if len(args) and type(args[0]) is type:
-        n = args[0].__name__  # noqa
 
     try:
         stack[-1] = func(*args)
@@ -49,10 +55,14 @@ def load_reduce(self):
                 return
             except TypeError:
                 pass
-        elif args and issubclass(args[0], BaseOffset):
+        elif args and isinstance(args[0], type) and issubclass(args[0], BaseOffset):
             # TypeError: object.__new__(Day) is not safe, use Day.__new__()
             cls = args[0]
             stack[-1] = cls.__new__(*args)
+            return
+        elif args and issubclass(args[0], PeriodArray):
+            cls = args[0]
+            stack[-1] = NDArrayBacked.__new__(*args)
             return
 
         raise
@@ -187,8 +197,8 @@ _class_locations_map = {
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat and uses a non-public class of the pickle module.
 
-# error: Name 'pkl._Unpickler' is not defined
-class Unpickler(pkl._Unpickler):  # type: ignore[name-defined]
+
+class Unpickler(pkl._Unpickler):
     def find_class(self, module, name):
         # override superclass
         key = (module, name)
@@ -207,6 +217,14 @@ def load_newobj(self):
     # compat
     if issubclass(cls, Index):
         obj = object.__new__(cls)
+    elif issubclass(cls, DatetimeArray) and not args:
+        arr = np.array([], dtype="M8[ns]")
+        obj = cls.__new__(cls, arr, arr.dtype)
+    elif issubclass(cls, TimedeltaArray) and not args:
+        arr = np.array([], dtype="m8[ns]")
+        obj = cls.__new__(cls, arr, arr.dtype)
+    elif cls is BlockManager and not args:
+        obj = cls.__new__(cls, (), [], False)
     else:
         obj = cls.__new__(cls, *args)
 
@@ -235,7 +253,7 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+def load(fh, encoding: str | None = None, is_verbose: bool = False):
     """
     Load a pickle, with a provided encoding,
 
@@ -251,7 +269,8 @@ def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
             up = Unpickler(fh, encoding=encoding)
         else:
             up = Unpickler(fh)
-        up.is_verbose = is_verbose
+        # "Unpickler" has no attribute "is_verbose"  [attr-defined]
+        up.is_verbose = is_verbose  # type: ignore[attr-defined]
 
         return up.load()
     except (ValueError, TypeError):
@@ -275,7 +294,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle():
+def patch_pickle() -> Iterator[None]:
     """
     Temporarily patch pickle to use our unpickler.
     """

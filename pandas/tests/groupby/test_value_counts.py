@@ -22,6 +22,26 @@ from pandas import (
 import pandas._testing as tm
 
 
+def tests_value_counts_index_names_category_column():
+    # GH44324 Missing name of index category column
+    df = DataFrame(
+        {
+            "gender": ["female"],
+            "country": ["US"],
+        }
+    )
+    df["gender"] = df["gender"].astype("category")
+    result = df.groupby("country")["gender"].value_counts()
+
+    # Construct expected, very specific multiindex
+    df_mi_expected = DataFrame([["US", "female"]], columns=["country", "gender"])
+    df_mi_expected["gender"] = df_mi_expected["gender"].astype("category")
+    mi_expected = MultiIndex.from_frame(df_mi_expected)
+    expected = Series([1], index=mi_expected, name="gender")
+
+    tm.assert_series_equal(result, expected)
+
+
 # our starting frame
 def seed_df(seed_nans, n, m):
     np.random.seed(1234)
@@ -122,23 +142,27 @@ def test_series_groupby_value_counts_with_grouper():
     tm.assert_series_equal(result, expected)
 
 
-def test_series_groupby_value_counts_empty():
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_empty(columns):
     # GH39172
-    df = DataFrame(columns=["A", "B"])
-    dfg = df.groupby("A")
+    df = DataFrame(columns=columns)
+    dfg = df.groupby(columns[:-1])
 
-    result = dfg["B"].value_counts()
-    expected = Series([], name="B", dtype=result.dtype)
-    expected.index = MultiIndex.from_arrays([[]] * 2, names=["A", "B"])
+    result = dfg[columns[-1]].value_counts()
+    expected = Series([], name=columns[-1], dtype=result.dtype)
+    expected.index = MultiIndex.from_arrays([[]] * len(columns), names=columns)
 
     tm.assert_series_equal(result, expected)
 
-    df = DataFrame(columns=["A", "B", "C"])
-    dfg = df.groupby(["A", "B"])
 
-    result = dfg["C"].value_counts()
-    expected = Series([], name="C", dtype=result.dtype)
-    expected.index = MultiIndex.from_arrays([[]] * 3, names=["A", "B", "C"])
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_one_row(columns):
+    # GH42618
+    df = DataFrame(data=[range(len(columns))], columns=columns)
+    dfg = df.groupby(columns[:-1])
+
+    result = dfg[columns[-1]].value_counts()
+    expected = df.value_counts().rename(columns[-1])
 
     tm.assert_series_equal(result, expected)
 
@@ -159,12 +183,11 @@ def test_series_groupby_value_counts_on_categorical():
                 ),
             ]
         ),
-        name=0,
     )
 
     # Expected:
     # 0  a    1
     #    b    0
-    # Name: 0, dtype: int64
+    # dtype: int64
 
     tm.assert_series_equal(result, expected)

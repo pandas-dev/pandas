@@ -23,6 +23,7 @@ Data manipulations
    merge_asof
    concat
    get_dummies
+   from_dummies
    factorize
    unique
    wide_to_long
@@ -37,15 +38,15 @@ Top-level missing data
    notna
    notnull
 
-Top-level conversions
-~~~~~~~~~~~~~~~~~~~~~
+Top-level dealing with numeric data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
    to_numeric
 
-Top-level dealing with datetimelike
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Top-level dealing with datetimelike data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
@@ -57,8 +58,8 @@ Top-level dealing with datetimelike
    timedelta_range
    infer_freq
 
-Top-level dealing with intervals
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Top-level dealing with Interval data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
@@ -79,9 +80,9 @@ Hashing
    util.hash_array
    util.hash_pandas_object
 
-Testing
-~~~~~~~
+Importing from other DataFrame libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
-   test
+   api.interchange.from_dataframe

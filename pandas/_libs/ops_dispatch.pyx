@@ -18,6 +18,14 @@ DISPATCHED_UFUNCS = {
     "or",
     "xor",
     "and",
+    "neg",
+    "pos",
+    "abs",
+}
+UNARY_UFUNCS = {
+    "neg",
+    "pos",
+    "abs",
 }
 UFUNC_ALIASES = {
     "subtract": "sub",
@@ -26,7 +34,7 @@ UFUNC_ALIASES = {
     "true_divide": "truediv",
     "power": "pow",
     "remainder": "mod",
-    "divide": "div",
+    "divide": "truediv",
     "equal": "eq",
     "not_equal": "ne",
     "less": "lt",
@@ -36,6 +44,9 @@ UFUNC_ALIASES = {
     "bitwise_or": "or",
     "bitwise_and": "and",
     "bitwise_xor": "xor",
+    "negative": "neg",
+    "absolute": "abs",
+    "positive": "pos",
 }
 
 # For op(., Array) -> Array.__r{op}__
@@ -80,15 +91,31 @@ def maybe_dispatch_ufunc_to_dunder_op(
     def not_implemented(*args, **kwargs):
         return NotImplemented
 
-    if (method == "__call__"
-            and op_name in DISPATCHED_UFUNCS
-            and kwargs.get("out") is None):
-        if isinstance(inputs[0], type(self)):
+    if kwargs or ufunc.nin > 2:
+        return NotImplemented
+
+    if method == "__call__" and op_name in DISPATCHED_UFUNCS:
+
+        if inputs[0] is self:
             name = f"__{op_name}__"
-            return getattr(self, name, not_implemented)(inputs[1])
-        else:
+            meth = getattr(self, name, not_implemented)
+
+            if op_name in UNARY_UFUNCS:
+                assert len(inputs) == 1
+                return meth()
+
+            return meth(inputs[1])
+
+        elif inputs[1] is self:
             name = REVERSED_NAMES.get(op_name, f"__r{op_name}__")
-            result = getattr(self, name, not_implemented)(inputs[0])
+
+            meth = getattr(self, name, not_implemented)
+            result = meth(inputs[0])
             return result
+
+        else:
+            # should not be reached, but covering our bases
+            return NotImplemented
+
     else:
         return NotImplemented

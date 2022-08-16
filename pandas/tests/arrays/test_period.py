@@ -4,7 +4,7 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
@@ -115,6 +115,20 @@ def test_sub_period():
         arr - other
 
 
+def test_sub_period_overflow():
+    # GH#47538
+    dti = pd.date_range("1677-09-22", periods=2, freq="D")
+    pi = dti.to_period("ns")
+
+    per = pd.Period._from_ordinal(10**14, pi.freq)
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        pi - per
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        per - pi
+
+
 # ----------------------------------------------------------------------------
 # Methods
 
@@ -124,10 +138,16 @@ def test_sub_period():
     [pd.Period("2000", freq="H"), period_array(["2000", "2001", "2000"], freq="H")],
 )
 def test_where_different_freq_raises(other):
+    # GH#45768 The PeriodArray method raises, the Series method coerces
     ser = pd.Series(period_array(["2000", "2001", "2002"], freq="D"))
     cond = np.array([True, False, True])
+
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        ser.where(cond, other)
+        ser.array._where(cond, other)
+
+    res = ser.where(cond, other)
+    expected = ser.astype(object).where(cond, other)
+    tm.assert_series_equal(res, expected)
 
 
 # ----------------------------------------------------------------------------

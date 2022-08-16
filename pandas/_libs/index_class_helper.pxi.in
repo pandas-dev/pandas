@@ -21,6 +21,8 @@ dtypes = [('Float64', 'float64'),
           ('UInt32', 'uint32'),
           ('UInt16', 'uint16'),
           ('UInt8', 'uint8'),
+          ('Complex64', 'complex64'),
+          ('Complex128', 'complex128'),
           ]
 }}
 
@@ -28,52 +30,36 @@ dtypes = [('Float64', 'float64'),
 
 
 cdef class {{name}}Engine(IndexEngine):
-    # constructor-caller is responsible for ensuring that vgetter()
-    #  returns an ndarray with dtype {{dtype}}_t
 
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.{{name}}HashTable(n)
 
     cdef _check_type(self, object val):
-    {{if name not in {'Float64', 'Float32'} }}
+    {{if name not in {'Float64', 'Float32', 'Complex64', 'Complex128'} }}
         if not util.is_integer_object(val):
+            if util.is_float_object(val):
+                # Make sure Int64Index.get_loc(2.0) works
+                if val.is_integer():
+                    return int(val)
+            raise KeyError(val)
+        {{if name.startswith("U")}}
+        if val < 0:
+            # cannot have negative values with unsigned int dtype
+            raise KeyError(val)
+        {{endif}}
+    {{elif name not in {'Complex64', 'Complex128'} }}
+        if not util.is_integer_object(val) and not util.is_float_object(val):
+            # in particular catch bool and avoid casting True -> 1.0
             raise KeyError(val)
     {{else}}
-        if util.is_bool_object(val):
-            # avoid casting to True -> 1.0
+        if (not util.is_integer_object(val)
+            and not util.is_float_object(val)
+            and not util.is_complex_object(val)
+        ):
+            # in particular catch bool and avoid casting True -> 1.0
             raise KeyError(val)
     {{endif}}
+        return val
 
-    cdef void _call_map_locations(self, values):
-        self.mapping.map_locations(algos.ensure_{{name.lower()}}(values))
-
-    cdef _maybe_get_bool_indexer(self, object val):
-        cdef:
-            ndarray[uint8_t, ndim=1, cast=True] indexer
-            ndarray[intp_t, ndim=1] found
-            ndarray[{{dtype}}_t, ndim=1] values
-            int count = 0
-
-        self._check_type(val)
-
-        values = self._get_index_values()
-        try:
-            with warnings.catch_warnings():
-                # e.g. if values is float64 and `val` is a str, suppress warning
-                warnings.filterwarnings("ignore", category=FutureWarning)
-                {{if name in {'Float64', 'Float32'} }}
-                if util.is_nan(val):
-                    indexer = np.isnan(values)
-                else:
-                    indexer = values == val
-                {{else}}
-                indexer = values == val
-                {{endif}}
-        except TypeError:
-            # if the equality above returns a bool, cython will raise TypeError
-            #  when trying to cast it to ndarray
-            raise KeyError(val)
-
-        return self._unpack_bool_indexer(indexer, val)
 
 {{endfor}}

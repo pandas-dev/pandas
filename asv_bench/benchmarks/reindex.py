@@ -9,10 +9,7 @@ from pandas import (
     period_range,
 )
 
-from .pandas_vb_common import (
-    lib,
-    tm,
-)
+from .pandas_vb_common import tm
 
 
 class Reindex:
@@ -31,6 +28,11 @@ class Reindex:
         index = MultiIndex.from_arrays([level1, level2])
         self.s = Series(np.random.randn(N * K), index=index)
         self.s_subset = self.s[::2]
+        self.s_subset_no_cache = self.s[::2].copy()
+
+        mi = MultiIndex.from_product([rng, range(100)])
+        self.s2 = Series(np.random.randn(len(mi)), index=mi)
+        self.s2_subset = self.s2[::2].copy()
 
     def time_reindex_dates(self):
         self.df.reindex(self.rng_subset)
@@ -38,8 +40,17 @@ class Reindex:
     def time_reindex_columns(self):
         self.df2.reindex(columns=self.df.columns[1:5])
 
-    def time_reindex_multiindex(self):
+    def time_reindex_multiindex_with_cache(self):
+        # MultiIndex._values gets cached
         self.s.reindex(self.s_subset.index)
+
+    def time_reindex_multiindex_no_cache(self):
+        # Copy to avoid MultiIndex._values getting cached
+        self.s.reindex(self.s_subset_no_cache.index.copy())
+
+    def time_reindex_multiindex_no_cache_dates(self):
+        # Copy to avoid MultiIndex._values getting cached
+        self.s2_subset.reindex(self.s2.index.copy())
 
 
 class ReindexMethod:
@@ -153,21 +164,6 @@ class Align:
 
     def time_align_series_irregular_string(self):
         self.x + self.y
-
-
-class LibFastZip:
-    def setup(self):
-        N = 10000
-        K = 10
-        key1 = tm.makeStringIndex(N).values.repeat(K)
-        key2 = tm.makeStringIndex(N).values.repeat(K)
-        col_array = np.vstack([key1, key2, np.random.randn(N * K)])
-        col_array2 = col_array.copy()
-        col_array2[:, :10000] = np.nan
-        self.col_array_list = list(col_array)
-
-    def time_lib_fast_zip(self):
-        lib.fast_zip(self.col_array_list)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

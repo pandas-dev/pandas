@@ -15,6 +15,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_converters_type_must_be_dict(all_parsers):
     parser = all_parsers
@@ -150,14 +152,52 @@ def test_converters_corner_with_nans(all_parsers):
     tm.assert_frame_equal(results[0], results[1])
 
 
-def test_converter_index_col_bug(all_parsers):
-    # see gh-1835
+@pytest.mark.parametrize("conv_f", [lambda x: x, str])
+def test_converter_index_col_bug(all_parsers, conv_f):
+    # see gh-1835 , GH#40589
     parser = all_parsers
     data = "A;B\n1;2\n3;4"
 
     rs = parser.read_csv(
-        StringIO(data), sep=";", index_col="A", converters={"A": lambda x: x}
+        StringIO(data), sep=";", index_col="A", converters={"A": conv_f}
     )
 
-    xp = DataFrame({"B": [2, 4]}, index=Index([1, 3], name="A"))
+    xp = DataFrame({"B": [2, 4]}, index=Index(["1", "3"], name="A", dtype="object"))
     tm.assert_frame_equal(rs, xp)
+
+
+def test_converter_identity_object(all_parsers):
+    # GH#40589
+    parser = all_parsers
+    data = "A,B\n1,2\n3,4"
+
+    rs = parser.read_csv(StringIO(data), converters={"A": lambda x: x})
+
+    xp = DataFrame({"A": ["1", "3"], "B": [2, 4]})
+    tm.assert_frame_equal(rs, xp)
+
+
+def test_converter_multi_index(all_parsers):
+    # GH 42446
+    parser = all_parsers
+    data = "A,B,B\nX,Y,Z\n1,2,3"
+
+    result = parser.read_csv(
+        StringIO(data),
+        header=list(range(2)),
+        converters={
+            ("A", "X"): np.int32,
+            ("B", "Y"): np.int32,
+            ("B", "Z"): np.float32,
+        },
+    )
+
+    expected = DataFrame(
+        {
+            ("A", "X"): np.int32([1]),
+            ("B", "Y"): np.int32([2]),
+            ("B", "Z"): np.float32([3]),
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)

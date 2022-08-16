@@ -9,7 +9,9 @@ from pandas.util._decorators import deprecate_nonkeyword_arguments
 import pandas._testing as tm
 
 
-@deprecate_nonkeyword_arguments(version="1.1", allowed_args=["a", "b"])
+@deprecate_nonkeyword_arguments(
+    version="1.1", allowed_args=["a", "b"], name="f_add_inputs"
+)
 def f(a, b=0, c=0, d=0):
     return a + b + c + d
 
@@ -44,6 +46,19 @@ def test_four_arguments():
         assert f(1, 2, 3, 4) == 10
 
 
+def test_three_arguments_with_name_in_warning():
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        assert f(6, 3, 3) == 12
+        assert len(w) == 1
+        for actual_warning in w:
+            assert actual_warning.category == FutureWarning
+            assert str(actual_warning.message) == (
+                "Starting with pandas version 1.1 all arguments of f_add_inputs "
+                "except for the arguments 'a' and 'b' will be keyword-only."
+            )
+
+
 @deprecate_nonkeyword_arguments(version="1.1")
 def g(a, b=0, c=0, d=0):
     with tm.assert_produces_warning(None):
@@ -68,8 +83,8 @@ def test_three_positional_argument_with_warning_message_analysis():
         for actual_warning in w:
             assert actual_warning.category == FutureWarning
             assert str(actual_warning.message) == (
-                "Starting with Pandas version 1.1 all arguments of g "
-                "except for the argument 'a' will be keyword-only"
+                "Starting with pandas version 1.1 all arguments of g "
+                "except for the argument 'a' will be keyword-only."
             )
 
 
@@ -96,6 +111,21 @@ def test_one_positional_argument_with_warning_message_analysis():
         for actual_warning in w:
             assert actual_warning.category == FutureWarning
             assert str(actual_warning.message) == (
-                "Starting with Pandas version 1.1 all arguments "
-                "of h will be keyword-only"
+                "Starting with pandas version 1.1 all arguments "
+                "of h will be keyword-only."
             )
+
+
+class Foo:
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "bar"])
+    def baz(self, bar=None, foobar=None):
+        ...
+
+
+def test_class():
+    msg = (
+        r"In a future version of pandas all arguments of Foo\.baz "
+        r"except for the argument \'bar\' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        Foo().baz("qux", "quox")
