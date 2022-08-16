@@ -139,7 +139,7 @@ class Clip:
 
     def setup(self, n):
         self.s = Series(np.random.randn(n))
-        dr = date_range("20220101", periods=500_000, freq="s", tz="UTC")
+        dr = date_range("20220101", periods=n, freq="s", tz="UTC")
         self.clipper_dt = dr[0:1000].repeat(100)
         self.ser_dt = Series(dr)
 
