@@ -1843,10 +1843,18 @@ class TestLocWithMultiIndex:
         )
         # enlarge
         srs.loc[3] = np.nan
-        assert srs.values.dtype._categories.dtype == any_numeric_ea_dtype
+        expected = Series(
+            [1, 2, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
         # set into
         srs.loc[1] = np.nan
-        assert srs.values.dtype._categories.dtype == any_numeric_ea_dtype
+        expected = Series(
+            [1, np.nan, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
 
     @pytest.mark.parametrize("na", (np.nan, pd.NA, None))
     def test_loc_consistency_series_enlarge_set_into(self, na):
