@@ -2358,6 +2358,8 @@ def test_group_on_empty_multiindex(transformation_func, request):
         data=[[1, Timestamp("today"), 3, 4]],
         columns=["col_1", "col_2", "col_3", "col_4"],
     )
+    df["col_3"] = df["col_3"].astype(int)
+    df["col_4"] = df["col_4"].astype(int)
     df = df.set_index(["col_1", "col_2"])
     if transformation_func == "fillna":
         args = ("ffill",)
