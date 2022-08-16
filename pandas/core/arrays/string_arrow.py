@@ -202,7 +202,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
                     raise ValueError("Scalar must be NA or str")
         return value
 
-    def isin(self, values):
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if pa_version_under2p0:
             fallback_performancewarning(version="2")
             return super().isin(values)
