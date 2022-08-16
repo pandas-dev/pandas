@@ -322,8 +322,6 @@ def unique(values):
     Parameters
     ----------
     values : 1d array-like
-    mask : 1d bool array
-        Mask of the values.
 
     Returns
     -------
@@ -406,11 +404,11 @@ def unique(values):
     >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
-    return _unique(values)
+    return unique_with_mask(values)
 
 
-def _unique(values, mask: npt.NDArray[np.bool_] | None = None):
-    """See algorithms.unique for docs"""
+def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
+    """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values.dtype):

@@ -859,7 +859,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         -------
         uniques : BaseMaskedArray
         """
-        uniques, mask = algos._unique(self._data, self._mask)
+        uniques, mask = algos.unique_with_mask(self._data, self._mask)
         return type(self)(uniques, mask, copy=False)
 
     @doc(ExtensionArray.searchsorted)
