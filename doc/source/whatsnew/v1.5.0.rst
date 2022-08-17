@@ -328,6 +328,7 @@ Other enhancements
 - :class:`Series` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) will now successfully operate when the dtype is numeric and ``numeric_only=True`` is provided; previously this would raise a ``NotImplementedError`` (:issue:`47500`)
 - :meth:`RangeIndex.union` now can return a :class:`RangeIndex` instead of a :class:`Int64Index` if the resulting values are equally spaced (:issue:`47557`, :issue:`43885`)
 - :meth:`DataFrame.compare` now accepts an argument ``result_names`` to allow the user to specify the result's names of both left and right DataFrame which are being compared. This is by default ``'self'`` and ``'other'`` (:issue:`44354`)
+- :meth:`DataFrame.quantile` gained a ``method`` argument that can accept ``table`` to evaluate multi-column quantiles (:issue:`43881`)
 - :class:`Interval` now supports checking whether one interval is contained by another interval (:issue:`46613`)
 - Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support a ``copy`` argument. If ``False``, the underlying data is not copied in the returned object (:issue:`47934`)
@@ -1130,6 +1131,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` reduction methods when used with ``on`` would attempt to aggregate the provided column (:issue:`47079`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would not respect ``dropna=False`` when the input DataFrame/Series had a NaN values in a :class:`MultiIndex` (:issue:`46783`)
 - Bug in :meth:`DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list which misses the resample key (:issue:`47362`)
+- Bug in :meth:`DataFrame.groupby` would lose index columns when the DataFrame is empty for transforms, like fillna (:issue:`47787`)
 -
 
 Reshaping
