@@ -293,6 +293,8 @@ def group_cumsum(
                     if isna_prev:
                         if uses_mask:
                             result_mask[i, j] = True
+                            # Be deterministic, out was initialized as empty
+                            out[i, j] = 0
                         else:
                             out[i, j] = na_val
                         continue
@@ -301,6 +303,8 @@ def group_cumsum(
 
                     if uses_mask:
                         result_mask[i, j] = True
+                        # Be deterministic, out was initialized as empty
+                        out[i, j] = 0
                     else:
                         out[i, j] = na_val
 
