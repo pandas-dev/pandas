@@ -29,10 +29,7 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-from typing import (
-    Callable,
-    Literal,
-)
+from typing import Callable
 
 from dateutil.tz import (
     tzlocal,
@@ -1844,7 +1841,7 @@ def using_array_manager():
 
 
 @pytest.fixture
-def using_copy_on_write() -> Literal[False]:
+def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """

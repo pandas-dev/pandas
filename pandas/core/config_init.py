@@ -544,8 +544,8 @@ with cf.config_prefix("mode"):
 copy_on_write_doc = """
 : bool
     Use new copy-view behaviour using Copy-on-Write. Defaults to False,
-    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable (needs
-    to be set before pandas is imported).
+    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable
+    (if set to "1" for True, needs to be set before pandas is imported).
 """
 
 
