@@ -9,7 +9,7 @@ from pandas._typing import IntervalInclusiveType
 from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.arrays.interval import VALID_INCLUSIVE
+from pandas.core.arrays.interval import VALID_CLOSED
 
 
 class ArrowPeriodType(pyarrow.ExtensionType):
@@ -57,7 +57,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def __init__(self, subtype, inclusive: IntervalInclusiveType) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
-        assert inclusive in VALID_INCLUSIVE
+        assert inclusive in VALID_CLOSED
         self._inclusive: IntervalInclusiveType = inclusive
         if not isinstance(subtype, pyarrow.DataType):
             subtype = pyarrow.type_for_alias(str(subtype))
