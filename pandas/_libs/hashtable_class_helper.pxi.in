@@ -690,6 +690,9 @@ cdef class {{name}}HashTable(HashTable):
         return_inverse : bool, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
+        mask : ndarray[bool], optional
+            If not None, the mask is used as indicator for missing values
+            (True = missing, False = valid) instead of `na_value` or
 
         Returns
         -------
@@ -697,9 +700,8 @@ cdef class {{name}}HashTable(HashTable):
             Unique values of input, not sorted
         labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
-        mask : ndarray[bool], optional
-            If not None, the mask is used as indicator for missing values
-            (True = missing, False = valid) instead of `na_value` or
+        result_mask: ndarray[bool], if mask is given as input
+            The mask for the result values.
         """
         uniques = {{name}}Vector()
         use_result_mask = True if mask is not None else False
