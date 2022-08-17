@@ -31,7 +31,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    IntervalInclusiveType,
+    IntervalClosedType,
     npt,
 )
 from pandas.errors import InvalidIndexError
@@ -199,7 +199,7 @@ class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 
     # annotate properties pinned via inherit_names
-    inclusive: IntervalInclusiveType
+    inclusive: IntervalClosedType
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
@@ -218,7 +218,7 @@ class IntervalIndex(ExtensionIndex):
     def __new__(
         cls,
         data,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive=None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
@@ -267,7 +267,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive=None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -303,7 +303,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive=None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -338,7 +338,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive=None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -990,7 +990,7 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    inclusive: IntervalInclusiveType | None = None,
+    inclusive: IntervalClosedType | None = None,
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.

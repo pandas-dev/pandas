@@ -33,7 +33,7 @@ from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
     Dtype,
-    IntervalInclusiveType,
+    IntervalClosedType,
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
@@ -231,7 +231,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __new__(
         cls: type[IntervalArrayT],
         data,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive: str | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
@@ -278,7 +278,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive=None,
         copy: bool = False,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
@@ -432,7 +432,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -514,7 +514,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -587,7 +587,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_tuples(
         cls: type[IntervalArrayT],
         data,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive=None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -1362,7 +1362,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     @property
-    def inclusive(self) -> IntervalInclusiveType:
+    def inclusive(self) -> IntervalClosedType:
         """
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
@@ -1370,7 +1370,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self.dtype.inclusive
 
     @property
-    def closed(self) -> IntervalInclusiveType:
+    def closed(self) -> IntervalClosedType:
         """
         String describing the inclusive side the intervals.
 
@@ -1424,9 +1424,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def set_closed(
-        self: IntervalArrayT, closed: IntervalInclusiveType
-    ) -> IntervalArrayT:
+    def set_closed(self: IntervalArrayT, closed: IntervalClosedType) -> IntervalArrayT:
         warnings.warn(
             "set_closed is deprecated and will be removed in a future version. "
             "Use set_inclusive instead.",
@@ -1477,7 +1475,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def set_inclusive(
-        self: IntervalArrayT, inclusive: IntervalInclusiveType
+        self: IntervalArrayT, inclusive: IntervalClosedType
     ) -> IntervalArrayT:
         if inclusive not in VALID_CLOSED:
             msg = f"invalid option for 'inclusive': {inclusive}"
