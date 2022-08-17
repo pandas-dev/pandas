@@ -687,7 +687,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert not isinstance(offset, Tick)
 
         if self.tz is not None:
-            values = self.tz_localize(None)
+            if not offset._use_relativedelta:
+                values = self.tz_convert("utc").tz_localize(None)
+            else:
+                values = self.tz_localize(None)
         else:
             values = self
 
@@ -708,7 +711,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = DatetimeArray._simple_new(result, dtype=result.dtype)
             if self.tz is not None:
                 # FIXME: tz_localize with non-nano
-                result = result.tz_localize(self.tz)
+                if not offset._use_relativedelta:
+                    result = result.tz_localize("utc").tz_convert(self.tz)
+                else:
+                    result = result.tz_localize(self.tz)
 
         return result
 

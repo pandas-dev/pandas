@@ -30,6 +30,8 @@ from pandas._libs.tslibs.offsets import (
     YearEnd,
 )
 
+import pandas as pd
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.test_offsets import get_utc_offset_hours
 
 
@@ -225,3 +227,27 @@ def test_nontick_offset_with_ambiguous_time_error(original_dt, target_dt, offset
     msg = f"Cannot infer dst time from {target_dt}, try using the 'ambiguous' argument"
     with pytest.raises(pytz.AmbiguousTimeError, match=msg):
         localized_dt + offset
+
+
+def test_series_dst_addition():
+    # GH#43784
+    startdates = pd.Series(
+        [
+            Timestamp("2020-10-25", tz="Europe/Berlin"),
+            Timestamp("2017-03-12", tz="US/Pacific"),
+        ]
+    )
+    offset1 = DateOffset(hours=3)
+    offset2 = DateOffset(days=1)
+
+    expected1 = pd.Series(
+        [Timestamp("2020-10-25 02:00:00+01:00"), Timestamp("2017-03-12 04:00:00-07:00")]
+    )
+
+    expected2 = pd.Series(
+        [Timestamp("2020-10-26 00:00:00+01:00"), Timestamp("2017-03-13 00:00:00-07:00")]
+    )
+
+    tm.assert_series_equal((startdates + offset1), expected1)
+
+    tm.assert_series_equal((startdates + offset2), expected2)
