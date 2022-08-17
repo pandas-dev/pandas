@@ -476,7 +476,7 @@ class ExtensionArray:
                 f"instead.  Add this argument to `{name}.factorize` to be compatible "
                 f"with future versions of pandas and silence this warning.",
                 DeprecationWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     def to_numpy(
@@ -985,7 +985,7 @@ class ExtensionArray:
             equal_na = self.isna() & other.isna()  # type: ignore[operator]
             return bool((equal_values | equal_na).all())
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         """
         Pointwise comparison for set containment in the given values.
 

@@ -47,6 +47,7 @@ import pandas.core.config_init  # pyright: ignore # noqa:F401
 
 from pandas.core.api import (
     # dtype
+    ArrowDtype,
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
@@ -308,6 +309,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "ArrowDtype",
     "BooleanDtype",
     "Categorical",
     "CategoricalDtype",
