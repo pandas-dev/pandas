@@ -561,6 +561,8 @@ cdef class {{name}}HashTable(HashTable):
             Unique values of input, not sorted
         labels : ndarray[intp_t] (if return_inverse=True)
             The labels from values to uniques
+        result_mask: ndarray[bool], if use_result_mask is true
+            The mask for the result values.
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
