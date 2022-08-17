@@ -1,17 +1,17 @@
 # This workflow may or may not run depending on the state of the next
 # unreleased Python version. DO NOT DELETE IT.
-# 
+#
 # In general, this file will remain frozen(present, but not running) until:
 #    - The next unreleased Python version has released beta 1
 #      - This version should be available on Github Actions.
-#    - Our required build/runtime dependencies(numpy, pytz, Cython, python-dateutil) 
+#    - Our required build/runtime dependencies(numpy, pytz, Cython, python-dateutil)
 #      support that unreleased Python version.
-#    To unfreeze, comment out the ``if: false`` condition, and make sure you update 
+#    To unfreeze, comment out the ``if: false`` condition, and make sure you update
 #    the name of the workflow and Python version in actions/setup-python to: '3.12-dev'
 # 
 # After it has been unfrozen, this file should remain unfrozen(present, and running) until:
 #    - The next Python version has been officially released.
-#    OR 
+#    OR
 #    - Most/All of our optional dependencies support Python 3.11 AND
 #    - The next Python version has released a rc(we are guaranteed a stable ABI).
 #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
