@@ -69,21 +69,15 @@ maintainers:
   - jorisvandenbossche
   - TomAugspurger
   - jreback
-  - sinhrks
-  - cpcloud
   - gfyoung
   - WillAyd
   - mroeschke
-  - jschendel
   - jbrockmendel
   - datapythonista
   - simonjayhawkins
-  - topper-123
   - alimcmaster1
   - bashtage
-  - charlesdong1991
   - Dr-Irv
-  - dsaxton
   - MarcoGorelli
   - rhshadrach
   - phofl
@@ -98,7 +92,13 @@ maintainers:
   - jtratner
   - shoyer
   - chris-b1
+  - sinhrks
+  - cpcloud
   - toobaz
+  - jschendel
+  - topper-123
+  - charlesdong1991
+  - dsaxton
   coc:
   - Safia Abdalla
   - Tom Augspurger
