@@ -29,6 +29,7 @@ from typing import (
 )
 import warnings
 
+from pandas.util._decorators import deprecate_nonkeyword_arguments
 from dateutil.relativedelta import relativedelta
 import numpy as np
 
@@ -1980,6 +1981,7 @@ The repeated labels are:
 
 
 @Appender(_read_stata_doc)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     convert_dates: bool = True,
