@@ -5036,17 +5036,34 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
     @overload
-    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        copy: bool | lib.NoDefault = ...,
+    ) -> None:
         ...
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: bool = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -5091,10 +5108,15 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(  # type: ignore[override]
-        self, labels, axis: Axis = 0, inplace: bool = False
-    ) -> DataFrame | None:
-        return super().set_axis(labels, axis=axis, inplace=inplace)
+    def set_axis(
+        self,
+        labels,
+        axis: Axis = 0,
+        inplace: bool = False,
+        *,
+        copy: bool | lib.NoDefault = lib.no_default,
+    ):
+        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
