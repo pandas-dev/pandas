@@ -2576,6 +2576,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression_options=_shared_docs["compression_options"] % "path",
     )
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "path"])
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
