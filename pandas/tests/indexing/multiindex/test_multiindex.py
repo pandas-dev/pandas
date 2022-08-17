@@ -131,7 +131,7 @@ class TestMultiIndexBasic:
                 "z": non_complex_data,
             }
         )
-        result.set_index(["x", "y"], inplace=True)
+        result = result.set_index(["x", "y"], copy=False)
         expected = DataFrame(
             {"z": non_complex_data},
             index=MultiIndex.from_arrays(

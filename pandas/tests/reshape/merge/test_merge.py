@@ -1347,7 +1347,7 @@ class TestMerge:
             ],
             columns=["a", "key", "b"],
         )
-        expected.set_index(expected_index, inplace=True)
+        expected = expected.set_index(expected_index, copy=False)
         tm.assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):

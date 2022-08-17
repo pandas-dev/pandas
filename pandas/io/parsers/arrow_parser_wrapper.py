@@ -117,7 +117,7 @@ class ArrowParserWrapper(ParserBase):
                     # String case
                     if item not in frame.columns:
                         raise ValueError(f"Index {item} invalid")
-            frame.set_index(self.index_col, drop=True, inplace=True)
+            frame = frame.set_index(self.index_col, drop=True, copy=False)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)

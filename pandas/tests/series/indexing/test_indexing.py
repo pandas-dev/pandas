@@ -247,7 +247,9 @@ def test_timedelta_assignment():
 def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
-    return_value = df.set_index(["a", "b", "c"], inplace=True)
+    msg = "The 'inplace' keyword"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        return_value = df.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     s = Series([1], index=[(2, 2, 2)])
     df["val"] = 0
@@ -257,7 +259,8 @@ def test_underlying_data_conversion():
     expected = DataFrame(
         {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
     )
-    return_value = expected.set_index(["a", "b", "c"], inplace=True)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        return_value = expected.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     tm.assert_frame_equal(df, expected)
 

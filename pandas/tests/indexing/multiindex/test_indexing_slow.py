@@ -60,15 +60,18 @@ def validate(mi, df, key):
         assert key[: i + 1] in mi.index
         right = df[mask].copy()
 
+        msg = "The 'inplace' keyword in DataFrame.set_index is deprecated"
         if i + 1 != len(key):  # partial key
             return_value = right.drop(cols[: i + 1], axis=1, inplace=True)
             assert return_value is None
-            return_value = right.set_index(cols[i + 1 : -1], inplace=True)
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                return_value = right.set_index(cols[i + 1 : -1], inplace=True)
             assert return_value is None
             tm.assert_frame_equal(mi.loc[key[: i + 1]], right)
 
         else:  # full key
-            return_value = right.set_index(cols[:-1], inplace=True)
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                return_value = right.set_index(cols[:-1], inplace=True)
             assert return_value is None
             if len(right) == 1:  # single hit
                 right = Series(
