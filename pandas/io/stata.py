@@ -29,7 +29,6 @@ from typing import (
 )
 import warnings
 
-from pandas.util._decorators import deprecate_nonkeyword_arguments
 from dateutil.relativedelta import relativedelta
 import numpy as np
 
@@ -50,6 +49,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
