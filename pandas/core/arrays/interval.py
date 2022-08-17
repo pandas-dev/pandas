@@ -1334,8 +1334,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def closed(self) -> IntervalClosedType:
         """
-        Whether the intervals are closed on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         return self.dtype.closed
 

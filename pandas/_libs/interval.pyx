@@ -264,7 +264,7 @@ cdef class Interval(IntervalMixin):
 
     >>> 2.5 in iv
     True
-    >>> pd.Interval(left=2, right=5, inclusive='both') in iv
+    >>> pd.Interval(left=2, right=5, closed='both') in iv
     True
 
     You can test the bounds (``closed='right'``, so ``0 < x <= 5``):
@@ -317,8 +317,9 @@ cdef class Interval(IntervalMixin):
 
     cdef readonly str closed
     """
-    Whether the interval is closed on the left-side, right-side, both or
-    neither.
+    String describing the inclusive side the intervals.
+
+    Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
     def __init__(self, left, right, str closed='right'):
@@ -353,8 +354,8 @@ cdef class Interval(IntervalMixin):
 
     def __contains__(self, key) -> bool:
         if _interval_like(key):
-            key_closed_left = key.inclusive in ('left', 'both')
-            key_closed_right = key.inclusive in ('right', 'both')
+            key_closed_left = key.closed in ('left', 'both')
+            key_closed_right = key.closed in ('right', 'both')
             if self.open_left and key_closed_left:
                 left_contained = self.left < key.left
             else:

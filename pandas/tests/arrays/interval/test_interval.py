@@ -406,10 +406,10 @@ def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
     result = IntervalIndex.from_arrays(
         ["2022-01-01", "2022-01-02"],
         ["2022-01-02", "2022-01-03"],
-        inclusive=inclusive_endpoints_fixture,
+        closed=inclusive_endpoints_fixture,
         dtype=dtype,
     )
     expected = IntervalIndex.from_arrays(
-        dates[:-1], dates[1:], inclusive=inclusive_endpoints_fixture
+        dates[:-1], dates[1:], closed=inclusive_endpoints_fixture
     )
     tm.assert_index_equal(result, expected)
