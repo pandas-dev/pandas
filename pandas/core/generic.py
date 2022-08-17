@@ -2086,7 +2086,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "The __array_wrap__ method of DataFrame and Series will be removed in "
             "a future version",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         res = lib.item_from_zerodim(result)
         if is_scalar(res):
