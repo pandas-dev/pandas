@@ -850,7 +850,7 @@ Other Deprecations
 - Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 - Fixed up warning message of deprecation of :meth:`MultiIndex.lesort_depth` as public method, as the message previously referred to :meth:`MultiIndex.is_lexsorted` instead (:issue:`38701`)
 - Deprecated the ``sort_columns`` argument in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`).
-- Deprecated positional arguments for all but the frist argument of :meth:`DataFrame.to_stata` and :func:`read_stata`, use keyword arguments instead (:issue:`48128`).
+- Deprecated positional arguments for all but the first argument of :meth:`DataFrame.to_stata` and :func:`read_stata`, use keyword arguments instead (:issue:`48128`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
