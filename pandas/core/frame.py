@@ -198,6 +198,7 @@ from pandas.core.sorting import (
     nargsort,
 )
 
+from pandas.errors import InvalidIndexError
 from pandas.io.common import get_handle
 from pandas.io.formats import (
     console,
@@ -3872,7 +3873,7 @@ class DataFrame(NDFrame, OpsMixin):
             #  or ValueError
             series._mgr.setitem_inplace(loc, value)
 
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, InvalidIndexError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
