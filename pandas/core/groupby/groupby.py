@@ -1034,6 +1034,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self.apply(curried)
 
             is_transform = name in base.transformation_kernels
+
+            # Transform needs to keep the same schema, including when empty
+            if is_transform and self._obj_with_exclusions.empty:
+                return self._obj_with_exclusions
+
             result = self._python_apply_general(
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
