@@ -83,7 +83,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+    np_percentile_argname,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -4064,13 +4067,30 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(self.columns, MultiIndex) and isinstance(
                 loc, (slice, Series, np.ndarray, Index)
             ):
-                cols = maybe_droplevels(cols, key)
-                if len(cols) and not cols.equals(value.columns):
-                    value = value.reindex(cols, axis=1)
+                cols_droplevel = maybe_droplevels(cols, key)
+                if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
+                    value = value.reindex(cols_droplevel, axis=1)
 
-        # now align rows
-        arraylike = _reindex_for_setitem(value, self.index)
-        self._set_item_mgr(key, arraylike)
+                for col, col_droplevel in zip(cols, cols_droplevel):
+                    self[col] = value[col_droplevel]
+                return
+
+            if is_scalar(cols):
+                self[cols] = value[value.columns[0]]
+                return
+
+            # now align rows
+            arraylike = _reindex_for_setitem(value, self.index)
+            self._set_item_mgr(key, arraylike)
+            return
+
+        if len(value.columns) != 1:
+            raise ValueError(
+                "Cannot set a DataFrame with multiple columns to the single "
+                f"column {key}"
+            )
+
+        self[key] = value[value.columns[0]]
 
     def _iset_item_mgr(
         self, loc: int | slice | np.ndarray, value, inplace: bool = False
@@ -11151,6 +11171,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = 0,
         numeric_only: bool | lib.NoDefault = no_default,
         interpolation: QuantileInterpolation = "linear",
+        method: Literal["single", "table"] = "single",
     ) -> Series | DataFrame:
         """
         Return values at the given quantile over requested axis.
@@ -11179,6 +11200,10 @@ Parrot 2  Parrot       24.0
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
+        method : {'single', 'table'}, default 'single'
+            Whether to compute quantiles per-column ('single') or over all columns
+            ('table'). When 'table', the only allowed interpolation methods are
+            'nearest', 'lower', and 'higher'.
 
         Returns
         -------
@@ -11208,6 +11233,17 @@ Parrot 2  Parrot       24.0
         0.1  1.3   3.7
         0.5  2.5  55.0
 
+        Specifying `method='table'` will compute the quantile over all columns.
+
+        >>> df.quantile(.1, method="table", interpolation="nearest")
+        a    1
+        b    1
+        Name: 0.1, dtype: int64
+        >>> df.quantile([.1, .5], method="table", interpolation="nearest")
+             a    b
+        0.1  1    1
+        0.5  3  100
+
         Specifying `numeric_only=False` will also compute the quantile of
         datetime and timedelta data.
 
@@ -11234,13 +11270,18 @@ Parrot 2  Parrot       24.0
             # error: List item 0 has incompatible type "Union[float, Union[Union[
             # ExtensionArray, ndarray[Any, Any]], Index, Series], Sequence[float]]";
             # expected "float"
-            res_df = self.quantile(
-                [q],  # type: ignore[list-item]
+            res_df = self.quantile(  # type: ignore[call-overload]
+                [q],
                 axis=axis,
                 numeric_only=numeric_only,
                 interpolation=interpolation,
+                method=method,
             )
-            res = res_df.iloc[0]
+            if method == "single":
+                res = res_df.iloc[0]
+            else:
+                # cannot directly iloc over sparse arrays
+                res = res_df.T.iloc[:, 0]
             if axis == 1 and len(self) == 0:
                 # GH#41544 try to get an appropriate dtype
                 dtype = find_common_type(list(self.dtypes))
@@ -11268,11 +11309,47 @@ Parrot 2  Parrot       24.0
             res = self._constructor([], index=q, columns=cols, dtype=dtype)
             return res.__finalize__(self, method="quantile")
 
-        # error: Argument "qs" to "quantile" of "BlockManager" has incompatible type
-        # "Index"; expected "Float64Index"
-        res = data._mgr.quantile(
-            qs=q, axis=1, interpolation=interpolation  # type: ignore[arg-type]
-        )
+        valid_method = {"single", "table"}
+        if method not in valid_method:
+            raise ValueError(
+                f"Invalid method: {method}. Method must be in {valid_method}."
+            )
+        if method == "single":
+            # error: Argument "qs" to "quantile" of "BlockManager" has incompatible type
+            # "Index"; expected "Float64Index"
+            res = data._mgr.quantile(
+                qs=q, axis=1, interpolation=interpolation  # type: ignore[arg-type]
+            )
+        elif method == "table":
+            valid_interpolation = {"nearest", "lower", "higher"}
+            if interpolation not in valid_interpolation:
+                raise ValueError(
+                    f"Invalid interpolation: {interpolation}. "
+                    f"Interpolation must be in {valid_interpolation}"
+                )
+            # handle degenerate case
+            if len(data) == 0:
+                if data.ndim == 2:
+                    dtype = find_common_type(list(self.dtypes))
+                else:
+                    dtype = self.dtype
+                return self._constructor([], index=q, columns=data.columns, dtype=dtype)
+
+            q_idx = np.quantile(  # type: ignore[call-overload]
+                np.arange(len(data)), q, **{np_percentile_argname: interpolation}
+            )
+
+            by = data.columns
+            if len(by) > 1:
+                keys = [data._get_label_or_level_values(x) for x in by]
+                indexer = lexsort_indexer(keys)
+            else:
+                by = by[0]
+                k = data._get_label_or_level_values(by)  # type: ignore[arg-type]
+                indexer = nargsort(k)
+
+            res = data._mgr.take(indexer[q_idx], verify=False)
+            res.axes[1] = q
 
         result = self._constructor(res)
         return result.__finalize__(self, method="quantile")
