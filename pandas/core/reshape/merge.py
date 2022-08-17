@@ -11,6 +11,7 @@ import string
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Sequence,
     cast,
 )
 import uuid
@@ -25,6 +26,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     DtypeObj,
     IndexLabel,
@@ -81,7 +83,6 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
-from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -609,6 +610,21 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
+    how: str
+    on: IndexLabel | None
+    # left_on/right_on may be None when passed, but in validate_specification
+    #  get replaced with non-None.
+    left_on: Sequence[Hashable | AnyArrayLike]
+    right_on: Sequence[Hashable | AnyArrayLike]
+    left_index: bool
+    right_index: bool
+    axis: int
+    bm_axis: int
+    sort: bool
+    suffixes: Suffixes
+    copy: bool
+    indicator: bool
+    validate: str | None
 
     def __init__(
         self,
@@ -699,28 +715,69 @@ class _MergeOperation:
         if validate is not None:
             self._validate(validate)
 
+    def _reindex_and_concat(
+        self,
+        join_index: Index,
+        left_indexer: npt.NDArray[np.intp] | None,
+        right_indexer: npt.NDArray[np.intp] | None,
+        copy: bool,
+    ) -> DataFrame:
+        """
+        reindex along index and concat along columns.
+        """
+        # Take views so we do not alter the originals
+        left = self.left[:]
+        right = self.right[:]
+
+        llabels, rlabels = _items_overlap_with_suffix(
+            self.left._info_axis, self.right._info_axis, self.suffixes
+        )
+
+        if left_indexer is not None:
+            # Pinning the index here (and in the right code just below) is not
+            #  necessary, but makes the `.take` more performant if we have e.g.
+            #  a MultiIndex for left.index.
+            lmgr = left._mgr.reindex_indexer(
+                join_index,
+                left_indexer,
+                axis=1,
+                copy=False,
+                only_slice=True,
+                allow_dups=True,
+                use_na_proxy=True,
+            )
+            left = left._constructor(lmgr)
+        left.index = join_index
+
+        if right_indexer is not None:
+            rmgr = right._mgr.reindex_indexer(
+                join_index,
+                right_indexer,
+                axis=1,
+                copy=False,
+                only_slice=True,
+                allow_dups=True,
+                use_na_proxy=True,
+            )
+            right = right._constructor(rmgr)
+        right.index = join_index
+
+        from pandas import concat
+
+        result = concat([left, right], axis=1, copy=copy)
+        result.columns = llabels.append(rlabels)
+        return result
+
     def get_result(self, copy: bool = True) -> DataFrame:
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, self.right._info_axis, self.suffixes
+        result = self._reindex_and_concat(
+            join_index, left_indexer, right_indexer, copy=copy
         )
-
-        lindexers = {1: left_indexer} if left_indexer is not None else {}
-        rindexers = {1: right_indexer} if right_indexer is not None else {}
-
-        result_data = concatenate_managers(
-            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
-            axes=[llabels.append(rlabels), join_index],
-            concat_axis=0,
-            copy=copy,
-        )
-
-        typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method=self._merge_type)
+        result = result.__finalize__(self, method=self._merge_type)
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -819,8 +876,16 @@ class _MergeOperation:
             self.join_names, self.left_on, self.right_on
         ):
             if (
-                self.orig_left._is_level_reference(left_key)
-                and self.orig_right._is_level_reference(right_key)
+                # Argument 1 to "_is_level_reference" of "NDFrame" has incompatible
+                # type "Union[Hashable, ExtensionArray, Index, Series]"; expected
+                # "Hashable"
+                self.orig_left._is_level_reference(left_key)  # type: ignore[arg-type]
+                # Argument 1 to "_is_level_reference" of "NDFrame" has incompatible
+                # type "Union[Hashable, ExtensionArray, Index, Series]"; expected
+                # "Hashable"
+                and self.orig_right._is_level_reference(
+                    right_key  # type: ignore[arg-type]
+                )
                 and left_key == right_key
                 and name not in result.index.names
             ):
@@ -1049,13 +1114,13 @@ class _MergeOperation:
 
         Returns
         -------
-        left_keys, right_keys
+        left_keys, right_keys, join_names
         """
-        left_keys = []
-        right_keys = []
-        # error: Need type annotation for 'join_names' (hint: "join_names: List[<type>]
-        # = ...")
-        join_names = []  # type: ignore[var-annotated]
+        # left_keys, right_keys entries can actually be anything listlike
+        #  with a 'dtype' attr
+        left_keys: list[AnyArrayLike] = []
+        right_keys: list[AnyArrayLike] = []
+        join_names: list[Hashable] = []
         right_drop = []
         left_drop = []
 
@@ -1078,11 +1143,16 @@ class _MergeOperation:
         if _any(self.left_on) and _any(self.right_on):
             for lk, rk in zip(self.left_on, self.right_on):
                 if is_lkey(lk):
+                    lk = cast(AnyArrayLike, lk)
                     left_keys.append(lk)
                     if is_rkey(rk):
+                        rk = cast(AnyArrayLike, rk)
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
                     else:
+                        # Then we're either Hashable or a wrong-length arraylike,
+                        #  the latter of which will raise
+                        rk = cast(Hashable, rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                             join_names.append(rk)
@@ -1092,6 +1162,9 @@ class _MergeOperation:
                             join_names.append(right.index.name)
                 else:
                     if not is_rkey(rk):
+                        # Then we're either Hashable or a wrong-length arraylike,
+                        #  the latter of which will raise
+                        rk = cast(Hashable, rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                         else:
@@ -1104,8 +1177,12 @@ class _MergeOperation:
                             else:
                                 left_drop.append(lk)
                     else:
+                        rk = cast(AnyArrayLike, rk)
                         right_keys.append(rk)
                     if lk is not None:
+                        # Then we're either Hashable or a wrong-length arraylike,
+                        #  the latter of which will raise
+                        lk = cast(Hashable, lk)
                         left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
@@ -1115,9 +1192,13 @@ class _MergeOperation:
         elif _any(self.left_on):
             for k in self.left_on:
                 if is_lkey(k):
+                    k = cast(AnyArrayLike, k)
                     left_keys.append(k)
                     join_names.append(None)
                 else:
+                    # Then we're either Hashable or a wrong-length arraylike,
+                    #  the latter of which will raise
+                    k = cast(Hashable, k)
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
@@ -1132,9 +1213,13 @@ class _MergeOperation:
         elif _any(self.right_on):
             for k in self.right_on:
                 if is_rkey(k):
+                    k = cast(AnyArrayLike, k)
                     right_keys.append(k)
                     join_names.append(None)
                 else:
+                    # Then we're either Hashable or a wrong-length arraylike,
+                    #  the latter of which will raise
+                    k = cast(Hashable, k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
@@ -1680,19 +1765,9 @@ class _OrderedMerge(_MergeOperation):
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
 
-        lindexers = {1: left_join_indexer} if left_join_indexer is not None else {}
-        rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
-
-        result_data = concatenate_managers(
-            [(self.left._mgr, lindexers), (self.right._mgr, rindexers)],
-            axes=[llabels.append(rlabels), join_index],
-            concat_axis=0,
-            copy=copy,
+        result = self._reindex_and_concat(
+            join_index, left_join_indexer, right_join_indexer, copy=copy
         )
-
-        typ = self.left._constructor
-        result = typ(result_data)
-
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
