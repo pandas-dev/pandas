@@ -532,10 +532,7 @@ def _unstack_extension_series(series: Series, level, fill_value) -> DataFrame:
     df = series.to_frame()
     result = df.unstack(level=level, fill_value=fill_value)
 
-    # equiv: result.droplevel(level=0, axis=1)
-    #  but this avoids an extra copy
-    result.columns = result.columns.droplevel(0)
-    return result
+    return result.droplevel(level=0, axis=1, copy=False)
 
 
 def stack(frame: DataFrame, level=-1, dropna: bool = True):

@@ -843,7 +843,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
-    def droplevel(self: NDFrameT, level: IndexLabel, axis: Axis = 0) -> NDFrameT:
+    def droplevel(
+        self: NDFrameT, level: IndexLabel, axis: Axis = 0, copy: bool_t = True
+    ) -> NDFrameT:
         """
         Return {klass} with requested index / column level(s) removed.
 
@@ -861,6 +863,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 1 or 'columns': remove level(s) in row.
 
             For `Series` this parameter is unused and defaults to 0.
+
+        copy : bool, default True
+            Whether to make a copy of the underlying data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -904,7 +911,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = self._get_axis(axis)
         new_labels = labels.droplevel(level)
-        return self.set_axis(new_labels, axis=axis, inplace=False)
+        return self.set_axis(new_labels, axis=axis, copy=copy)
 
     def pop(self, item: Hashable) -> Series | Any:
         result = self[item]

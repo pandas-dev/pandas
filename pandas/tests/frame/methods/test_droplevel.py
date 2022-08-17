@@ -34,3 +34,28 @@ class TestDropLevel:
             # test that droplevel raises ValueError on axis != 0
             with pytest.raises(ValueError, match="No axis named columns"):
                 df.droplevel(1, axis="columns")
+
+    def test_droplevel_copy(self, frame_or_series):
+        cols = MultiIndex.from_tuples(
+            [("c", "e"), ("d", "f")], names=["level_1", "level_2"]
+        )
+        mi = MultiIndex.from_tuples([(1, 2), (5, 6), (9, 10)], names=["a", "b"])
+        df = DataFrame([[3, 4], [7, 8], [11, 12]], index=mi, columns=cols)
+        if frame_or_series is not DataFrame:
+            df = df.iloc[:, 0]
+
+        # Check that we DID make a copy
+        res = df.droplevel("a", axis="index", copy=True)
+        if frame_or_series is DataFrame:
+            for i in range(df.shape[1]):
+                assert not tm.shares_memory(df.iloc[:, i], res.iloc[:, i])
+        else:
+            assert not tm.shares_memory(res, df)
+
+        # Check that we did NOT make a copy
+        res = df.droplevel("a", axis="index", copy=False)
+        if frame_or_series is DataFrame:
+            for i in range(df.shape[1]):
+                assert tm.shares_memory(df.iloc[:, i], res.iloc[:, i])
+        else:
+            assert tm.shares_memory(res, df)

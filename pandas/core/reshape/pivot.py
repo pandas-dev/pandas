@@ -241,7 +241,7 @@ def __internal_pivot_table(
 
     # discard the top level
     if values_passed and not values_multi and table.columns.nlevels > 1:
-        table = table.droplevel(0, axis=1)
+        table = table.droplevel(0, axis=1, copy=False)
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 
