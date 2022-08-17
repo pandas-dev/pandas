@@ -4064,13 +4064,30 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(self.columns, MultiIndex) and isinstance(
                 loc, (slice, Series, np.ndarray, Index)
             ):
-                cols = maybe_droplevels(cols, key)
-                if len(cols) and not cols.equals(value.columns):
-                    value = value.reindex(cols, axis=1)
+                cols_droplevel = maybe_droplevels(cols, key)
+                if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
+                    value = value.reindex(cols_droplevel, axis=1)
 
-        # now align rows
-        arraylike = _reindex_for_setitem(value, self.index)
-        self._set_item_mgr(key, arraylike)
+                for col, col_droplevel in zip(cols, cols_droplevel):
+                    self[col] = value[col_droplevel]
+                return
+
+            if is_scalar(cols):
+                self[cols] = value[value.columns[0]]
+                return
+
+            # now align rows
+            arraylike = _reindex_for_setitem(value, self.index)
+            self._set_item_mgr(key, arraylike)
+            return
+
+        if len(value.columns) != 1:
+            raise ValueError(
+                "Cannot set a DataFrame with multiple columns to the single "
+                f"column {key}"
+            )
+
+        self[key] = value[value.columns[0]]
 
     def _iset_item_mgr(
         self, loc: int | slice | np.ndarray, value, inplace: bool = False
@@ -5036,17 +5053,34 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
     @overload
-    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        copy: bool | lib.NoDefault = ...,
+    ) -> None:
         ...
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: bool = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -5091,10 +5125,15 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(  # type: ignore[override]
-        self, labels, axis: Axis = 0, inplace: bool = False
-    ) -> DataFrame | None:
-        return super().set_axis(labels, axis=axis, inplace=inplace)
+    def set_axis(
+        self,
+        labels,
+        axis: Axis = 0,
+        inplace: bool = False,
+        *,
+        copy: bool | lib.NoDefault = lib.no_default,
+    ):
+        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
