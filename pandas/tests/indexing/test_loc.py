@@ -18,6 +18,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
@@ -1828,6 +1829,54 @@ class TestLocWithMultiIndex:
 
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
+
+    def test_additional_element_to_categorical_series_loc(self):
+        # GH#47677
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = 0
+        expected = Series(["a", "b", "c", 0], dtype="object")
+        tm.assert_series_equal(result, expected)
+
+    def test_additional_categorical_element_loc(self):
+        # GH#47677
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = "a"
+        expected = Series(["a", "b", "c", "a"], dtype="category")
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_set_nan_in_categorical_series(self, any_numeric_ea_dtype):
+        # GH#47677
+        srs = Series(
+            [1, 2, 3],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        # enlarge
+        srs.loc[3] = np.nan
+        expected = Series(
+            [1, 2, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
+        # set into
+        srs.loc[1] = np.nan
+        expected = Series(
+            [1, np.nan, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
+
+    @pytest.mark.parametrize("na", (np.nan, pd.NA, None, pd.NaT))
+    def test_loc_consistency_series_enlarge_set_into(self, na):
+        # GH#47677
+        srs_enlarge = Series(["a", "b", "c"], dtype="category")
+        srs_enlarge.loc[3] = na
+
+        srs_setinto = Series(["a", "b", "c", "a"], dtype="category")
+        srs_setinto.loc[3] = na
+
+        tm.assert_series_equal(srs_enlarge, srs_setinto)
+        expected = Series(["a", "b", "c", na], dtype="category")
+        tm.assert_series_equal(srs_enlarge, expected)
 
     def test_loc_getitem_preserves_index_level_category_dtype(self):
         # GH#15166

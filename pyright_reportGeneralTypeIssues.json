@@ -16,6 +16,7 @@
         "pandas/util/version",
         # and all files that currently don't pass
         "pandas/_testing/__init__.py",
+        "pandas/_testing/_hypothesis.py",
         "pandas/core/algorithms.py",
         "pandas/core/apply.py",
         "pandas/core/array_algos/take.py",
@@ -57,6 +58,7 @@
         "pandas/core/indexes/multi.py",
         "pandas/core/indexes/numeric.py",
         "pandas/core/indexes/period.py",
+        "pandas/core/indexes/timedeltas.py",
         "pandas/core/indexing.py",
         "pandas/core/internals/api.py",
         "pandas/core/internals/array_manager.py",

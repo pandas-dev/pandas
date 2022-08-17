@@ -4,6 +4,7 @@ SparseArray data structure
 from __future__ import annotations
 
 from collections import abc
+import inspect
 import numbers
 import operator
 from typing import (
@@ -414,7 +415,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 "to construct an array with the desired repeats of the "
                 "scalar value instead.\n\n",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if index is not None and not is_scalar(data):
@@ -493,7 +494,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         "loses timezone information. Cast to object before "
                         "sparse to retain timezone information.",
                         UserWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
                     if fill_value is NaT:
@@ -1182,7 +1183,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> npt.NDArray[np.intp] | np.intp:
 
         msg = "searchsorted requires high memory usage."
-        warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, PerformanceWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
         if not is_scalar(v):
             v = np.asarray(v)
         v = np.asarray(v)
@@ -1322,7 +1325,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 "array with the requested dtype. To retain the old behavior, use "
                 "`obj.astype(SparseDtype(dtype))`",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         dtype = self.dtype.update_dtype(dtype)
