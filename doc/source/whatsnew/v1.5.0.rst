@@ -287,11 +287,16 @@ Other enhancements
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
 - :class:`.DataError`, :class:`.SpecificationError`, :class:`.SettingWithCopyError`, :class:`.SettingWithCopyWarning`, :class:`.NumExprClobberingError`, :class:`.UndefinedVariableError`, :class:`.IndexingError`, :class:`.PyperclipException`, :class:`.PyperclipWindowsException`, :class:`.CSSWarning`, :class:`.PossibleDataLossError`, :class:`.ClosedFileError`, :class:`.IncompatibilityWarning`, :class:`.AttributeConflictWarning`, :class:`.DatabaseError, :class:`.PossiblePrecisionLoss, :class:`.ValueLabelTypeMismatch, :class:`.InvalidColumnName, and :class:`.CategoricalConversionWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
+- Add support for :meth:`GroupBy.ohlc` for extension array dtypes (:issue:`37493`)
 - Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
+- :func:`pandas.read_html` now supports extracting links from table cells (:issue:`13141`)
 - :meth:`DatetimeIndex.astype` now supports casting timezone-naive indexes to ``datetime64[s]``, ``datetime64[ms]``, and ``datetime64[us]``, and timezone-aware indexes to the corresponding ``datetime64[unit, tzname]`` dtypes (:issue:`47579`)
 - :class:`Series` reducers (e.g. ``min``, ``max``, ``sum``, ``mean``) will now successfully operate when the dtype is numeric and ``numeric_only=True`` is provided; previously this would raise a ``NotImplementedError`` (:issue:`47500`)
 - :meth:`RangeIndex.union` now can return a :class:`RangeIndex` instead of a :class:`Int64Index` if the resulting values are equally spaced (:issue:`47557`, :issue:`43885`)
 - :meth:`DataFrame.compare` now accepts an argument ``result_names`` to allow the user to specify the result's names of both left and right DataFrame which are being compared. This is by default ``'self'`` and ``'other'`` (:issue:`44354`)
+- :meth:`DataFrame.quantile` gained a ``method`` argument that can accept ``table`` to evaluate multi-column quantiles (:issue:`43881`)
+- :class:`Interval` now supports checking whether one interval is contained by another interval (:issue:`46613`)
+- Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support a ``copy`` argument. If ``False``, the underlying data is not copied in the returned object (:issue:`47934`)
 - :meth:`DataFrame.set_index` now supports a ``copy`` keyword. If ``False``, the underlying data is not copied when a new :class:`DataFrame` is returned (:issue:`48043`)
 
@@ -404,7 +409,6 @@ upon serialization. (Related issue :issue:`12997`)
     a.to_json(date_format='iso')
     # Roundtripping now works
     pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
-
 
 .. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
 
@@ -845,6 +849,7 @@ Other Deprecations
 - Deprecated unused arguments ``encoding`` and ``verbose`` in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:issue:`47912`)
 - Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 - Fixed up warning message of deprecation of :meth:`MultiIndex.lesort_depth` as public method, as the message previously referred to :meth:`MultiIndex.is_lexsorted` instead (:issue:`38701`)
+- Deprecated the ``sort_columns`` argument in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -885,8 +890,9 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
-- Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
+- Bug in :meth:`.Categorical.view` not accepting integer dtypes (:issue:`25464`)
+- Bug in :meth:`.CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
+- Bug in :meth:`DataFrame.concat` when concatenating two (or more) unordered ``CategoricalIndex`` variables, whose categories are permutations, yields incorrect index values (:issue:`24845`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -899,6 +905,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.resolution` incorrectly returning "day" instead of "nanosecond" for nanosecond-resolution indexes (:issue:`46903`)
 - Bug in :class:`Timestamp` with an integer or float value and ``unit="Y"`` or ``unit="M"`` giving slightly-wrong results (:issue:`47266`)
 - Bug in :class:`.DatetimeArray` construction when passed another :class:`.DatetimeArray` and ``freq=None`` incorrectly inferring the freq from the given array (:issue:`47296`)
+- Bug in :func:`to_datetime` where ``OutOfBoundsDatetime`` would be thrown even if ``errors=coerce`` if there were more than 50 rows (:issue:`45319`)
 - Bug when adding a :class:`DateOffset` to a :class:`Series` would not add the ``nanoseconds`` field (:issue:`47856`)
 -
 
@@ -964,6 +971,7 @@ Indexing
 - Bug in :meth:`Index.reindex` raising ``AssertionError`` when ``level`` was specified but no :class:`MultiIndex` was given; level is ignored now (:issue:`35132`)
 - Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
+- Bug in :meth:`DataFrame.__setitem__` casting extension array dtypes to object when setting with a scalar key and :class:`DataFrame` as value (:issue:`46896`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.loc` raising with boolean indexer containing ``NA`` when :class:`Index` did not match (:issue:`46551`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
@@ -1075,6 +1083,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
 - Bug in :meth:`DataFrame.groupby` raising error when ``None`` is in first level of :class:`MultiIndex` (:issue:`47348`)
 - Bug in :meth:`.GroupBy.cummax` with ``int64`` dtype with leading value being the smallest possible int64 (:issue:`46382`)
+- Bug in :meth:`GroupBy.cumprod` ``NaN`` influences calculation in different columns with ``skipna=False`` (:issue:`48064`)
 - Bug in :meth:`.GroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
 - Bug in :meth:`.GroupBy.apply` would fail when ``func`` was a string and args or kwargs were supplied (:issue:`46479`)
 - Bug in :meth:`SeriesGroupBy.apply` would incorrectly name its result when there was a unique group (:issue:`46369`)
@@ -1088,6 +1097,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` reduction methods when used with ``on`` would attempt to aggregate the provided column (:issue:`47079`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` would not respect ``dropna=False`` when the input DataFrame/Series had a NaN values in a :class:`MultiIndex` (:issue:`46783`)
 - Bug in :meth:`DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list which misses the resample key (:issue:`47362`)
+- Bug in :meth:`DataFrame.groupby` would lose index columns when the DataFrame is empty for transforms, like fillna (:issue:`47787`)
 -
 
 Reshaping

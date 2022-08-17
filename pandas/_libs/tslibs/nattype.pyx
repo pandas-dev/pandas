@@ -1206,6 +1206,13 @@ default 'raise'
         NaT
         """,
     )
+    @property
+    def tz(self) -> None:
+        return None
+
+    @property
+    def tzinfo(self) -> None:
+        return None
 
 
 c_NaT = NaTType()  # C-visible
