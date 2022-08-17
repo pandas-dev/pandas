@@ -711,23 +711,45 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @overload
     def set_axis(
-        self: NDFrameT, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
+        self: NDFrameT,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
 
     @overload
-    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        copy: bool_t | lib.NoDefault = ...,
+    ) -> None:
         ...
 
     @overload
     def set_axis(
-        self: NDFrameT, labels, *, axis: Axis = ..., inplace: bool_t = ...
+        self: NDFrameT,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: bool_t = ...,
+        copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def set_axis(
-        self: NDFrameT, labels, axis: Axis = 0, inplace: bool_t = False
+        self: NDFrameT,
+        labels,
+        axis: Axis = 0,
+        inplace: bool_t = False,
+        *,
+        copy: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
         """
         Assign desired index to given axis.
@@ -747,6 +769,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Whether to return a new %(klass)s instance.
 
+        copy : bool, default True
+            Whether to make a copy of the underlying data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         renamed : %(klass)s or None
@@ -756,16 +783,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
+        if inplace:
+            if copy is True:
+                raise ValueError("Cannot specify both inplace=True and copy=True")
+            copy = False
+        elif copy is lib.no_default:
+            copy = True
+
         self._check_inplace_and_allows_duplicate_labels(inplace)
-        return self._set_axis_nocheck(labels, axis, inplace)
+        return self._set_axis_nocheck(labels, axis, inplace, copy=copy)
 
     @final
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t):
+    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t, copy: bool_t):
         # NDFrame.rename with inplace=False calls set_axis(inplace=True) on a copy.
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
-            obj = self.copy()
+            # With copy=False, we create a new object but don't copy the
+            #  underlying data.
+            obj = self.copy(deep=copy)
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
@@ -1053,7 +1089,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise KeyError(f"{missing_labels} not found in axis")
 
             new_index = ax._transform_index(f, level=level)
-            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
+            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True, copy=False)
             result._clear_item_cache()
 
         if inplace:

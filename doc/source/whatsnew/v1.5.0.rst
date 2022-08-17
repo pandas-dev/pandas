@@ -295,6 +295,7 @@ Other enhancements
 - :meth:`RangeIndex.union` now can return a :class:`RangeIndex` instead of a :class:`Int64Index` if the resulting values are equally spaced (:issue:`47557`, :issue:`43885`)
 - :meth:`DataFrame.compare` now accepts an argument ``result_names`` to allow the user to specify the result's names of both left and right DataFrame which are being compared. This is by default ``'self'`` and ``'other'`` (:issue:`44354`)
 - :class:`Interval` now supports checking whether one interval is contained by another interval (:issue:`46613`)
+- Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support a ``copy`` argument. If ``False``, the underlying data is not copied in the returned object (:issue:`47934`)
 - :meth:`DataFrame.set_index` now supports a ``copy`` keyword. If ``False``, the underlying data is not copied when a new :class:`DataFrame` is returned (:issue:`48043`)
 
