@@ -365,17 +365,15 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Accumulations
 
-    def _accumulate(
-        self, name: str, *, skipna: bool = True, **kwargs
-    ) -> TimedeltaArray:
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
 
         data = self._data.copy()
 
         if name in {"cumsum", "cumprod"}:
             func = np.cumsum if name == "cumsum" else np.cumprod
-            data = nanops.na_accum_func(data, func, skipna=skipna)
+            result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
 
-            return type(self)._simple_new(data, freq=None, dtype=self.dtype)
+            return type(self)._simple_new(result, freq=None, dtype=self.dtype)
 
         else:
             return super()._accumulate(name, skipna=skipna, **kwargs)

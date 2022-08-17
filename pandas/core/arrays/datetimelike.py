@@ -1425,17 +1425,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
 
-    def _accumulate(
-        self, name: str, *, skipna: bool = True, **kwargs
-    ) -> DatetimeLikeArrayT:
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
 
         data = self._data.copy()
 
         if name in {"cummin", "cummax"}:
             func = np.minimum.accumulate if name == "cummin" else np.maximum.accumulate
-            data = nanops.na_accum_func(data, func, skipna=skipna)
+            result = cast(np.ndarray, nanops.na_accum_func(data, func, skipna=skipna))
 
-            return type(self)._simple_new(data, freq=self.freq, dtype=self.dtype)
+            # error: Unexpected keyword argument "freq" for
+            # "_simple_new" of "NDArrayBacked"  [call-arg]
+            return type(self)._simple_new(
+                result, freq=self.freq, dtype=self.dtype  # type: ignore[call-arg]
+            )
 
         raise NotImplementedError(
             f"Accumlation {name} not implemented for {type(self)}"

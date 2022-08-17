@@ -36,6 +36,7 @@ def _cum_func(
     skipna : bool, default True
         Whether to skip NA.
     """
+    dtype_info: np.iinfo | np.finfo
     if is_float_dtype(values):
         dtype_info = np.finfo(values.dtype.type)
     elif is_integer_dtype(values):

@@ -11129,6 +11129,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             values = ensure_wrapped_if_datetimelike(values)
 
+            result: np.ndarray | ExtensionArray
             if isinstance(values, ExtensionArray):
                 result = values._accumulate(name, skipna=skipna, **kwargs)
             else:
