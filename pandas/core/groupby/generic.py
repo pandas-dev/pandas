@@ -1160,7 +1160,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             result[i] = sgb.aggregate(func, *args, **kwargs)
 
-        res_df = self.obj._constructor(result)
+        res_df = self.obj._constructor(result, columns=obj.columns)
         res_df.columns = obj.columns
         return res_df
 
@@ -1335,7 +1335,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if len(res_mgr) < orig_mgr_len:
             warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
 
-        res_df = self.obj._constructor(res_mgr)
+        # FIXME: get axes without mgr.axes
+        res_df = self.obj._constructor(res_mgr, index=res_mgr.axes[1], columns=res_mgr.axes[0])
         if self.axis == 1:
             res_df = res_df.T
         return res_df
@@ -1657,7 +1658,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             index = Index(range(rows))
             mgr.set_axis(1, index)
             # FIXME: get axes without mgr.axes
-            result = self.obj._constructor(mgr, index=mgr.axes[1], columns=mgr.axes[0])
+            result = self.obj._constructor(mgr, index=index, columns=mgr.axes[0])
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
@@ -1665,7 +1666,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             index = self.grouper.result_index
             mgr.set_axis(1, index)
             # FIXME: get axes without mgr.axes
-            result = self.obj._constructor(mgr, index=mgr.axes[1], columns=mgr.axes[0])
+            result = self.obj._constructor(mgr, index=index, columns=mgr.axes[0])
 
         if self.axis == 1:
             result = result.T

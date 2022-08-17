@@ -2906,7 +2906,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mgr = obj._mgr
         res_mgr = mgr.apply(blk_func)
 
-        new_obj = obj._constructor(res_mgr)
+        axes_dict = obj._construct_axes_dict()
+        new_obj = obj._constructor(res_mgr, **axes_dict)
         if isinstance(new_obj, Series):
             new_obj.name = obj.name
 

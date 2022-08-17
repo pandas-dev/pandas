@@ -354,8 +354,11 @@ class Series(base.IndexOpsMixin, NDFrame):
         if isinstance(data, (SingleBlockManager, SingleArrayManager)):
             if index is None:
                 assert False
-            if not index.equals(data.axes[0]):#index is not data.axes[0]:
-                assert False
+            if data.axes[0] is not index:
+                # Adding check to try to avoid segfualt in json tests
+                data.axes = [ensure_index(index)]
+            #if not index.equals(data.axes[0]):#index is not data.axes[0]:
+            #    assert False
 
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))

@@ -3924,7 +3924,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             convert_indices=convert_indices,
         )
         axes_dict = self._construct_axes_dict()
-        #axes_dict[axis] = self.axes[axis].take(indices)  # FIXME: get axes without mgr.axes
+        # FIXME: get axes without mgr.axes
         axes_dict[self._get_axis_name(axis)] = new_data.axes[self._get_block_manager_axis(axis)]
         return self._constructor(new_data, **axes_dict).__finalize__(self, method="take")
 
@@ -4113,7 +4113,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_mgr = self._mgr.fast_xs(loc)
 
             result = self._constructor_sliced(
-                new_mgr, name=self.index[loc]
+                new_mgr, name=self.index[loc], index=self.columns
             ).__finalize__(self)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
@@ -4155,6 +4155,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         is_copy = axis != 0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
         return result
+
+    @staticmethod
+    def _get_axes_from_mgr(mgr):
+        axes_dict = {}
+        axes_dict["index"] = mgr.axes[-1]
+        if mgr.ndim == 2:
+            axes_dict["columns"] = mgr.axes[0]
+        return axes_dict
 
     @final
     def _set_is_copy(self, ref: NDFrame, copy: bool_t = True) -> None:
@@ -4291,6 +4299,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # exception:
             loc = self.axes[-1].get_loc(key)
             self._mgr = self._mgr.idelete(loc)
+            # FIXME: get axes without mgr.axes
+            if self.ndim == 1:
+                self._index = self._mgr.axes[0]
+            else:
+                self._columns = self._mgr.axes[0]
 
         # delete from the caches
         try:
@@ -4639,10 +4652,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             only_slice=only_slice,
         )
         # FIXME: get axes without mgr.axes
-        axes_dict = {}
-        axes_dict["index"] = new_mgr.axes[-1]
-        if self.ndim == 2:
-            axes_dict["columns"] = new_mgr.axes[0]
+        axes_dict = self._get_axes_from_mgr(new_mgr)
         result = self._constructor(new_mgr, **axes_dict)
         if self.ndim == 1:
             result.name = self.name
@@ -5104,11 +5114,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = 1 if isinstance(self, ABCDataFrame) else 0
             new_data.set_axis(axis, default_index(len(indexer)))
 
-        axes_dict = {}#self._construct_axes_dict()
         # FIXME: get axes without mgr.axes
-        axes_dict["index"] = new_data.axes[-1]
-        if self.ndim == 2:
-            axes_dict["columns"] = new_data.axes[0]
+        axes_dict = self._get_axes_from_mgr(new_data)
         result = self._constructor(new_data, **axes_dict)
 
         if inplace:
@@ -5447,10 +5454,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = new_data.copy()
 
         # FIXME: get axes without mgr.axes
-        if self.ndim == 1:
-            axes_dict = {"index": new_data.axes[0]}
-        else:
-            axes_dict = {"index": new_data.axes[1], "columns": new_data.axes[0]}
+        axes_dict = self._get_axes_from_mgr(new_data)
 
         return self._constructor(new_data, **axes_dict).__finalize__(self)
 
@@ -6110,22 +6114,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _get_numeric_data(self: NDFrameT) -> NDFrameT:
-        # FIXME: get axes without mgr.axes
         mgr = self._mgr.get_numeric_data()
-        axes_dict = {}
-        axes_dict["index"] = mgr.axes[-1]
-        if self.ndim == 2:
-            axes_dict["columns"] = mgr.axes[0]
+        # FIXME: get axes without mgr.axes
+        axes_dict = self._get_axes_from_mgr(mgr)
         return self._constructor(mgr, **axes_dict).__finalize__(self)
 
     @final
     def _get_bool_data(self):
-        # FIXME: get axes without mgr.axes
         mgr = self._mgr.get_bool_data()
-        axes_dict = {}
-        axes_dict["index"] = mgr.axes[-1]
-        if self.ndim == 2:
-            axes_dict["columns"] = mgr.axes[0]
+        # FIXME: get axes without mgr.axes
+        axes_dict = self._get_axes_from_mgr(mgr)
         return self._constructor(mgr, **axes_dict).__finalize__(self)
 
     # ----------------------------------------------------------------------
@@ -6563,8 +6561,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # numeric=False necessary to only soft convert;
         # python objects will still be converted to
         # native numpy numeric types
+        axes_dict = self._construct_axes_dict()
         return self._constructor(
-            self._mgr.convert(datetime=True, numeric=False, timedelta=True, copy=True)
+            self._mgr.convert(datetime=True, numeric=False, timedelta=True, copy=True),
+            **axes_dict,
         ).__finalize__(self, method="infer_objects")
 
     @final
@@ -9693,10 +9693,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 fdata = fdata.copy()
 
             # FIXME: get axes without mgr.axes
-            if self.ndim == 1:
-                axes_dict = {"index": fdata.axes[0]}
-            else:
-                axes_dict = {"index": fdata.axes[1], "columns": fdata.axes[0]}
+            axes_dict = self._get_axes_from_mgr(fdata)
             left = self._constructor(fdata, **axes_dict)
 
             if ridx is None:
@@ -10282,7 +10279,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = self._mgr.shift(
                 periods=periods, axis=axis, fill_value=fill_value
             )
-            return self._constructor(new_data).__finalize__(self, method="shift")
+            axes_dict = self._construct_axes_dict()
+            return self._constructor(new_data, **axes_dict).__finalize__(self, method="shift")
 
         # when freq is given, index is shifted, data is not
         index = self._get_axis(axis)

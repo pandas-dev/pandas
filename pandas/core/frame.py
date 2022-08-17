@@ -621,8 +621,9 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
-            if index is None and columns is None:
+            if index is None:
                 index = data.index
+            if columns is None:
                 columns = data.columns
             data = data._mgr
 
@@ -631,10 +632,14 @@ class DataFrame(NDFrame, OpsMixin):
             # -> use fastpath (without checking Manager type)
             if index is None or columns is None:
                 assert False
-            if not index.equals(data.axes[-1]):#index is not data.axes[-1]:
-                assert False
-            if not columns.equals(data.axes[0]):#columns is not data.axes[0]:
-                assert False
+            if data.axes[0] is not columns or data.axes[1] is not index:
+                # FIXME: without this check, json tests segfault...
+                #  nope, segfaults even with this check
+                data.axes = [ensure_index(columns), ensure_index(index)]
+            #if not index.equals(data.axes[-1]):#index is not data.axes[-1]:
+            #    assert False
+            #if not columns.equals(data.axes[0]):#columns is not data.axes[0]:
+            #    assert False
             if index is None and columns is None and dtype is None and not copy:
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
@@ -2410,7 +2415,6 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
         mgr, index, columns = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        # FIXME: get axes without mgr.axes
         return cls(mgr, index=index, columns=columns)
 
     def to_records(
@@ -4164,6 +4168,7 @@ class DataFrame(NDFrame, OpsMixin):
         except KeyError:
             # This item wasn't present, just insert at end
             self._mgr.insert(len(self._info_axis), key, value)
+            self._columns = self.columns.insert(len(self._info_axis), key)
         else:
             self._iset_item_mgr(loc, value)
 
@@ -4765,7 +4770,9 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
-        return type(self)(mgr).__finalize__(self)
+        # FIXME: get axes without mgr.axes
+        assert mgr.axes[1] is self.index  # WTF why does passing columns/index cause segfault?
+        return type(self)(mgr, columns=mgr.axes[0], index=mgr.axes[1]).__finalize__(self)
 
     def insert(
         self,
@@ -5865,7 +5872,7 @@ class DataFrame(NDFrame, OpsMixin):
                     fill_value=fill_value,
                     allow_dups=True,
                 )
-                res_df = self._constructor(mgr)
+                res_df = self._constructor(mgr, columns=self.columns, index=self.index)
                 return res_df.__finalize__(self, method="shift")
 
         return super().shift(
@@ -6392,7 +6399,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
-        result = self._constructor(self._mgr.isna(func=isna))
+        axes_dict = self._construct_axes_dict()
+        result = self._constructor(self._mgr.isna(func=isna), **axes_dict)
         return result.__finalize__(self, method="isna")
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
@@ -6944,19 +6952,26 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return self.copy()
 
+        bm_axis = self._get_block_manager_axis(axis)
+
         new_data = self._mgr.take(
-            indexer, axis=self._get_block_manager_axis(axis), verify=False
+            indexer, axis=bm_axis, verify=False
         )
 
-        if ignore_index:
-            new_data.set_axis(
-                self._get_block_manager_axis(axis), default_index(len(indexer))
-            )
-        # FIXME: get axes without mgr.axes
+        axis_name = self._get_axis_name(axis)
+
         axes_dict = {}
-        axes_dict["index"] = new_data.axes[-1]
-        if self.ndim == 2:
-            axes_dict["columns"] = new_data.axes[0]
+        axes_dict[axis_name] = self.axes[axis].take(indexer)
+        if axis == 0:
+            axes_dict["columns"] = self.columns
+        else:
+            axes_dict["index"] = self.index
+
+        if ignore_index:
+            rng = default_index(len(indexer))
+            new_data.set_axis(bm_axis, rng)
+            axes_dict[axis_name] = rng
+
         result = self._constructor(new_data, **axes_dict)
         if inplace:
             return self._update_inplace(result)
@@ -10913,9 +10928,12 @@ Parrot 2  Parrot       24.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
-            # FIXME: get axes without mgr.axes
-            out = df._constructor(res, index=res.axes[1], columns=res.axes[0]).iloc[0]
+            res, indexer = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            index = Index([None], dtype=object)
+            assert index.equals(res.axes[1])
+            columns = self.columns.take(indexer)
+            assert columns.equals(res.axes[0])
+            out = df._constructor(res, index=index, columns=columns).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
@@ -11413,7 +11431,8 @@ Parrot 2  Parrot       24.0
             res = data._mgr.take(indexer[q_idx], verify=False)
             res.axes[1] = q
 
-        result = self._constructor(res)
+        # FIXME: get axes without mgr.axes
+        result = self._constructor(res, columns=res.axes[0], index=res.axes[1])
         return result.__finalize__(self, method="quantile")
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)

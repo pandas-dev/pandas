@@ -803,6 +803,9 @@ class _LocationIndexer(NDFrameIndexerBase):
             keys = self.obj.columns.union(key, sort=False)
 
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)
+            assert self.obj._mgr.axes[0].equals(keys)
+            self.obj._columns = Index(keys)
+            
 
     @final
     def __setitem__(self, key, value) -> None:
@@ -1765,8 +1768,13 @@ class _iLocIndexer(_LocationIndexer):
                         reindexers, allow_dups=True
                     )
                     self.obj._mgr = new_obj._mgr
+                    self.obj._index = self.obj._mgr.axes[-1]
+                    if self.ndim == 2:
+                        # FIXME: get axes without mgr.axes
+                        self.obj._columns = self.obj._mgr.axes[0]
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
+                    
 
                     nindexer.append(labels.get_loc(key))
 
@@ -1988,6 +1996,7 @@ class _iLocIndexer(_LocationIndexer):
             #  falling back to casting if necessary)
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
             self.obj._clear_item_cache()
+            
             return
 
         # We will not operate in-place, but will attempt to in the future.
@@ -2078,6 +2087,7 @@ class _iLocIndexer(_LocationIndexer):
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
         self.obj._maybe_update_cacher(clear=True, inplace=True)
+        
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -2129,7 +2139,9 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr
+            self.obj._index = new_index
             self.obj._maybe_update_cacher(clear=True)
+
 
         elif self.ndim == 2:
 
@@ -2172,8 +2184,10 @@ class _iLocIndexer(_LocationIndexer):
                     #  dtype.  But if we had a list or dict, then do inference
                     df = df.infer_objects()
                 self.obj._mgr = df._mgr
+                
             else:
                 self.obj._mgr = self.obj._append(value)._mgr
+                
             self.obj._maybe_update_cacher(clear=True)
 
     def _ensure_iterable_column_indexer(self, column_indexer):

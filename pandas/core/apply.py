@@ -726,7 +726,8 @@ class FrameApply(NDFrameApply):
             with np.errstate(all="ignore"):
                 results = self.obj._mgr.apply("apply", func=self.f)
             # _constructor will retain self.index and self.columns
-            return self.obj._constructor(data=results)
+            axes_dict = self.obj._construct_axes_dict()
+            return self.obj._constructor(data=results, **axes_dict)
 
         # broadcasting
         if self.result_type == "broadcast":
