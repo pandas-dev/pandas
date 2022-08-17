@@ -173,14 +173,16 @@ class TestMethods(base.BaseMethodsTests):
     def test_argsort(self, data_for_sorting):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_for_sorting.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
         ):
             super().test_argsort(data_for_sorting)
 
     def test_argsort_missing(self, data_missing_for_sorting):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_missing_for_sorting.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
         ):
             super().test_argsort_missing(data_missing_for_sorting)
 
@@ -237,14 +239,14 @@ class TestMethods(base.BaseMethodsTests):
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0
-            and all_data.dtype == "string[pyarrow]"
+            and getattr(all_data.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
             result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         with tm.maybe_produces_warning(
             PerformanceWarning,
             pa_version_under7p0
-            and other.dtype == "string[pyarrow]"
+            and getattr(other.dtype, "storage", "") == "pyarrow"
             and not (dropna and "data_missing" in request.node.nodeid),
         ):
             expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
@@ -258,7 +260,8 @@ class TestMethods(base.BaseMethodsTests):
     def test_argsort_missing_array(self, data_missing_for_sorting):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_missing_for_sorting.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
         ):
             super().test_argsort_missing(data_missing_for_sorting)
 
@@ -273,7 +276,8 @@ class TestMethods(base.BaseMethodsTests):
         # GH 25439
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_missing_for_sorting.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
         ):
             super().test_nargsort(data_missing_for_sorting, na_position, expected)
 
@@ -281,7 +285,8 @@ class TestMethods(base.BaseMethodsTests):
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_for_sorting.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
         ):
             super().test_sort_values(data_for_sorting, ascending, sort_by_key)
 
@@ -291,7 +296,8 @@ class TestMethods(base.BaseMethodsTests):
     ):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_missing_for_sorting.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
         ):
             super().test_sort_values_missing(
                 data_missing_for_sorting, ascending, sort_by_key
@@ -301,7 +307,8 @@ class TestMethods(base.BaseMethodsTests):
     def test_sort_values_frame(self, data_for_sorting, ascending):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_for_sorting.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
 
@@ -336,12 +343,14 @@ class TestGroupBy(base.BaseGroupbyTests):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_for_grouping.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
         ):
             result = df.groupby("B", as_index=as_index).A.mean()
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_for_grouping.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
         ):
             _, uniques = pd.factorize(data_for_grouping, sort=True)
 
@@ -356,7 +365,8 @@ class TestGroupBy(base.BaseGroupbyTests):
     def test_groupby_extension_transform(self, data_for_grouping):
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and data_for_grouping.dtype == "string[pyarrow]",
+            pa_version_under7p0
+            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
         ):
             super().test_groupby_extension_transform(data_for_grouping)
 
