@@ -3545,7 +3545,11 @@ class Table(Fixed):
         if where is not None:
             if self.is_old_version:
                 ws = incompatibility_doc % ".".join([str(x) for x in self.version])
-                warnings.warn(ws, IncompatibilityWarning)
+                warnings.warn(
+                    ws,
+                    IncompatibilityWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
         """
