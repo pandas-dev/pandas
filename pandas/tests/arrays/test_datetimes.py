@@ -648,27 +648,26 @@ class TestDatetimeArray:
     )
     def test_coerce_fallback(self, error):
         # GH#46071
+        # 2 valid dates with different formats
+        # Should parse with no errors
         s = pd.Series(["6/30/2025", "1 27 2024"])
         expected = pd.Series(
             [pd.Timestamp("2025-06-30 00:00:00"), pd.Timestamp("2024-01-27 00:00:00")]
         )
-
         result = pd.to_datetime(s, errors=error, infer_datetime_format=True)
-
-        if error == "coerce":
-            assert result[1] is not pd.NaT
-
         tm.assert_series_equal(expected, result)
 
+        # Invalid inputs
+        # Errors should be raised for the second element
         expected2 = pd.Series([pd.Timestamp("2000-01-01 00:00:00"), pd.NaT])
-
+        # Out of bounds date
         es1 = pd.Series(["1/1/2000", "7/12/1200"])
-        es2 = pd.Series(["1/1/2000", "Hello"])
-
+        # Invalid input string
+        es2 = pd.Series(["1/1/2000", "Invalid input"])
         if error == "coerce":
             eres1 = pd.to_datetime(es1, errors=error, infer_datetime_format=True)
-            eres2 = pd.to_datetime(es2, errors=error, infer_datetime_format=True)
             tm.assert_series_equal(expected2, eres1)
+            eres2 = pd.to_datetime(es2, errors=error, infer_datetime_format=True)
             tm.assert_series_equal(expected2, eres2)
         else:
             with pytest.raises(
@@ -676,5 +675,7 @@ class TestDatetimeArray:
             ):
                 pd.to_datetime(es1, errors=error, infer_datetime_format=True)
 
-            with pytest.raises(ParserError, match="Unknown string format: Hello"):
+            with pytest.raises(
+                ParserError, match="Unknown string format: Invalid input"
+            ):
                 pd.to_datetime(es2, errors=error, infer_datetime_format=True)
