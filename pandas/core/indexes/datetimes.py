@@ -146,8 +146,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), optional
-        Optional datetime-like data to construct index with.
+    data : array-like (1-dimensional)
+        Datetime-like data to construct index with.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
