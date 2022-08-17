@@ -1,7 +1,10 @@
+import inspect
 import operator
 import re
 import time
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport cython
 from cpython.datetime cimport (
@@ -499,7 +502,7 @@ cdef class BaseOffset:
             "DateOffset.__call__ is deprecated and will be removed in a future "
             "version.  Use `offset + other` instead.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._apply(other)
 
@@ -509,7 +512,7 @@ cdef class BaseOffset:
             f"{type(self).__name__}.apply is deprecated and will be removed "
             "in a future version. Use `offset + other` instead",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._apply(other)
 
@@ -820,7 +823,7 @@ cdef class BaseOffset:
         warnings.warn(
             "onOffset is a deprecated, use is_on_offset instead.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.is_on_offset(dt)
 
@@ -828,7 +831,7 @@ cdef class BaseOffset:
         warnings.warn(
             "isAnchored is a deprecated, use is_anchored instead.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.is_anchored()
 

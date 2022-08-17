@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import datetime
+import inspect
 import struct
 import warnings
 
@@ -23,6 +24,7 @@ from pandas._typing import (
     ReadBuffer,
 )
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 
@@ -412,7 +414,10 @@ class XportReader(ReaderBase, abc.Iterator):
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
         if total_records_length % 80 != 0:
-            warnings.warn("xport file may be corrupted.")
+            warnings.warn(
+                "xport file may be corrupted.",
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
 
         if self.record_length > 80:
             self.filepath_or_buffer.seek(self.record_start)

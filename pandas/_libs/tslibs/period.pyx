@@ -1,4 +1,7 @@
+import inspect
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport numpy as cnp
 from cpython.object cimport (
@@ -1827,7 +1830,7 @@ cdef class _Period(PeriodMixin):
                 "be removed in a future version.  Use "
                 "`per.to_timestamp(...).tz_localize(tz)` instead.",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         how = validate_end_alias(how)

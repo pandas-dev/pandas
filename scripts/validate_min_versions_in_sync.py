@@ -26,9 +26,11 @@ EXCLUDE_DEPS = {"tzdata"}
 # in pre-commit environment
 sys.path.append("pandas/compat")
 sys.path.append("pandas/util")
+import _exceptions
 import version
 
 sys.modules["pandas.util.version"] = version
+sys.modules["pandas.util._exceptions"] = _exceptions
 import _optional
 
 

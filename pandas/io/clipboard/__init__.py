@@ -40,7 +40,10 @@ A malicious user could rename or add programs with these names, tricking
 Pyperclip into running them with whatever permissions the Python process has.
 
 """
+import inspect
+
 __version__ = "1.7.0"
+
 
 import contextlib
 import ctypes
@@ -62,6 +65,7 @@ from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
 )
+from pandas.util._exceptions import find_stack_level
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
@@ -270,10 +274,14 @@ def init_dev_clipboard_clipboard():
         if text == "":
             warnings.warn(
                 "Pyperclip cannot copy a blank string to the clipboard on Cygwin. "
-                "This is effectively a no-op."
+                "This is effectively a no-op.",
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         if "\r" in text:
-            warnings.warn("Pyperclip cannot handle \\r characters on Cygwin.")
+            warnings.warn(
+                "Pyperclip cannot handle \\r characters on Cygwin.",
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
 
         with open("/dev/clipboard", "wt") as fd:
             fd.write(text)
@@ -517,7 +525,8 @@ def determine_clipboard():
         if os.path.exists("/dev/clipboard"):
             warnings.warn(
                 "Pyperclip's support for Cygwin is not perfect, "
-                "see https://github.com/asweigart/pyperclip/issues/55"
+                "see https://github.com/asweigart/pyperclip/issues/55",
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return init_dev_clipboard_clipboard()
 

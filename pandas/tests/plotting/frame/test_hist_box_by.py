@@ -164,7 +164,7 @@ class TestHistWithBy(TestPlotBase):
     def test_hist_plot_layout_with_by(self, by, column, layout, axes_num, hist_df):
         # GH 15079
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 hist_df.plot.hist, column=column, by=by, layout=layout
             )

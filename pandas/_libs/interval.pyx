@@ -230,7 +230,7 @@ def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if closed is None:
             inclusive = "right"

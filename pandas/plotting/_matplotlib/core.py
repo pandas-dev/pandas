@@ -4,6 +4,7 @@ from abc import (
     ABC,
     abstractmethod,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -22,6 +23,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -394,7 +396,8 @@ class MPLPlot(ABC):
             "color" in self.kwds or "colors" in self.kwds
         ) and self.colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if "color" in self.kwds and self.style is not None:

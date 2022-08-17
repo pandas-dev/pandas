@@ -7437,7 +7437,7 @@ def _maybe_cast_data_without_dtype(
             "In a future version, the Index constructor will not infer numeric "
             "dtypes when passed object-dtype sequences (matching Series behavior)",
             FutureWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     result = ensure_wrapped_if_datetimelike(result)
     return result

@@ -1373,6 +1373,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             "Adding/subtracting object-dtype array to "
             f"{type(self).__name__} not vectorized.",
             PerformanceWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         # Caller is responsible for broadcasting if necessary

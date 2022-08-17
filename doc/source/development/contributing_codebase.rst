@@ -122,6 +122,7 @@ Otherwise, you need to do it manually:
 .. code-block:: python
 
     import warnings
+    from pandas.util._exceptions import find_stack_level
 
 
     def old_func():
@@ -130,7 +131,11 @@ Otherwise, you need to do it manually:
         .. deprecated:: 1.1.0
            Use new_func instead.
         """
-        warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
+        warnings.warn(
+            'Use new_func instead.',
+            FutureWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
         new_func()
 
 
