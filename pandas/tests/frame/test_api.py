@@ -272,7 +272,9 @@ class TestDataFrameMisc:
 
         # rename
         f = lambda x: x.rename({1: "foo"}, inplace=True)
-        _check_f(data.copy(), f)
+        msg = "inplace' keyword in DataFrame.rename"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            _check_f(data.copy(), f)
 
         # -----Series-----
         d = data.copy()["c"]
@@ -291,7 +293,9 @@ class TestDataFrameMisc:
 
         # rename
         f = lambda x: x.rename({1: "foo"}, inplace=True)
-        _check_f(d.copy(), f)
+        msg = "inplace' keyword in Series.rename"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            _check_f(d.copy(), f)
 
     @async_mark()
     @td.check_file_leaks

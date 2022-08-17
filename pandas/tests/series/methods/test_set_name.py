@@ -6,7 +6,7 @@ from pandas import Series
 class TestSetName:
     def test_set_name(self):
         ser = Series([1, 2, 3])
-        ser2 = ser._set_name("foo")
+        ser2 = ser._set_name("foo", copy=True)
         assert ser2.name == "foo"
         assert ser.name is None
         assert ser is not ser2

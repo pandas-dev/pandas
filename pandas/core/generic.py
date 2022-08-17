@@ -1034,12 +1034,29 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool_t = True,
-        inplace: bool_t = False,
+        copy: bool_t | lib.NoDefault = lib.no_default,
+        inplace: bool_t | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         errors: str = "ignore",
     ) -> NDFrameT | None:
         # called by Series.rename and DataFrame.rename
+        if inplace is not lib.no_default:
+            warnings.warn(
+                f"The 'inplace' keyword in {type(self).__name__}.rename is "
+                "deprecated and will be removed in a future version. "
+                "Use `obj=obj.rename(..., copy=False)` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+        else:
+            inplace = False
+
+        if inplace:
+            if copy is not lib.no_default:
+                raise ValueError("Cannot specify copy when inplace=True")
+            copy = False
+        elif copy is lib.no_default:
+            copy = True
 
         if mapper is None and index is None and columns is None:
             raise TypeError("must pass an index to rename")

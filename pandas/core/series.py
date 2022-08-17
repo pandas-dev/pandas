@@ -1915,7 +1915,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace=False) -> Series:
+    def _set_name(self, name, inplace=False, copy=True) -> Series:
         """
         Set the Series name.
 
@@ -1924,9 +1924,29 @@ class Series(base.IndexOpsMixin, NDFrame):
         name : str
         inplace : bool
             Whether to modify `self` directly or return a copy.
+        copy : bool, default True
+            Whether to make a copy of the underlying data.
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                f"The 'inplace' keyword in {type(self).__name__}.rename is "
+                "deprecated and will be removed in a future version. "
+                "Use `obj=obj.rename(..., copy=False)` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
-        ser = self if inplace else self.copy()
+        if inplace:
+            if copy is not lib.no_default:
+                raise ValueError("Cannot pass copy when inplace=True")
+            copy = False
+        elif copy is lib.no_default:
+            copy = True
+
+        ser = self if inplace else self.copy(deep=copy)
         ser.name = name
         return ser
 
@@ -4847,7 +4867,7 @@ Keep all original rows and also all original values
         index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | lib.NoDefault = ...,
         inplace: Literal[True],
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
@@ -4860,8 +4880,8 @@ Keep all original rows and also all original values
         index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
-        copy: bool = ...,
-        inplace: Literal[False] = ...,
+        copy: bool | lib.NoDefault = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
     ) -> Series:
@@ -4873,8 +4893,8 @@ Keep all original rows and also all original values
         index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
-        copy: bool = ...,
-        inplace: bool = ...,
+        copy: bool | lib.NoDefault = ...,
+        inplace: bool | lib.NoDefault = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
     ) -> Series | None:
@@ -4885,8 +4905,8 @@ Keep all original rows and also all original values
         index: Renamer | Hashable | None = None,
         *,
         axis: Axis | None = None,
-        copy: bool = True,
-        inplace: bool = False,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
     ) -> Series | None:
@@ -4972,7 +4992,7 @@ Keep all original rows and also all original values
                 errors=errors,
             )
         else:
-            return self._set_name(index, inplace=inplace)
+            return self._set_name(index, inplace=inplace, copy=copy)
 
     @overload
     def set_axis(

@@ -1,5 +1,7 @@
 import pytest
 
+import pandas._testing as tm
+
 
 @pytest.mark.parametrize(
     "func",
@@ -19,8 +21,14 @@ def test_validate_bool_args(string_series, func, inplace):
     msg = 'For argument "inplace" expected type bool'
     kwargs = {"inplace": inplace}
 
+    warn_msg = "'inplace' keyword in Series.rename"
+    warn = None
     if func == "_set_name":
         kwargs["name"] = "hello"
+        warn = FutureWarning
+    elif func == "rename":
+        warn = FutureWarning
 
     with pytest.raises(ValueError, match=msg):
-        getattr(string_series, func)(**kwargs)
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            getattr(string_series, func)(**kwargs)

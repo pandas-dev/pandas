@@ -56,7 +56,9 @@ class TestRename:
     def test_rename_set_name_inplace(self):
         ser = Series(range(3), index=list("abc"))
         for name in ["foo", 123, 123.0, datetime(2001, 11, 11), ("foo",)]:
-            ser.rename(name, inplace=True)
+            msg = "'inplace' keyword in Series.rename"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                ser.rename(name, inplace=True)
             assert ser.name == name
 
             exp = np.array(["a", "b", "c"], dtype=np.object_)
@@ -75,7 +77,9 @@ class TestRename:
         renamer = lambda x: x.strftime("%Y%m%d")
         expected = renamer(datetime_series.index[0])
 
-        datetime_series.rename(renamer, inplace=True)
+        msg = "'inplace' keyword in Series.rename"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            datetime_series.rename(renamer, inplace=True)
         assert datetime_series.index[0] == expected
 
     def test_rename_with_custom_indexer(self):
@@ -94,7 +98,9 @@ class TestRename:
 
         ix = MyIndexer()
         ser = Series([1, 2, 3])
-        ser.rename(ix, inplace=True)
+        msg = "'inplace' keyword in Series.rename"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.rename(ix, inplace=True)
         assert ser.name is ix
 
     def test_rename_callable(self):

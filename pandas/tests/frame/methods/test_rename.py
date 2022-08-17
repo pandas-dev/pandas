@@ -189,7 +189,10 @@ class TestRename:
 
         c_values = float_frame["C"]
         float_frame = float_frame.copy()
-        return_value = float_frame.rename(columns={"C": "foo"}, inplace=True)
+
+        msg = "'inplace' keyword in DataFrame.rename"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = float_frame.rename(columns={"C": "foo"}, inplace=True)
         assert return_value is None
 
         assert "C" not in float_frame
