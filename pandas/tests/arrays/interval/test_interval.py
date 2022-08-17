@@ -60,12 +60,12 @@ class TestAttributes:
 
 
 class TestMethods:
-    @pytest.mark.parametrize("new_inclusive", ["left", "right", "both", "neither"])
-    def test_set_inclusive(self, closed, new_inclusive):
+    @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
+    def test_set_closed(self, closed, new_closed):
         # GH 21670
         array = IntervalArray.from_breaks(range(10), inclusive=closed)
-        result = array.set_inclusive(new_inclusive)
-        expected = IntervalArray.from_breaks(range(10), inclusive=new_inclusive)
+        result = array.set_closed(new_closed)
+        expected = IntervalArray.from_breaks(range(10), inclusive=new_closed)
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -134,10 +134,10 @@ class TestSetitem:
 
         tm.assert_extension_array_equal(result, expected)
 
-    def test_setitem_mismatched_inclusive(self):
+    def test_setitem_mismatched_closed(self):
         arr = IntervalArray.from_breaks(range(4), "right")
         orig = arr.copy()
-        other = arr.set_inclusive("both")
+        other = arr.set_closed("both")
 
         msg = "'value.inclusive' is 'both', expected 'right'"
         with pytest.raises(ValueError, match=msg):
@@ -488,8 +488,17 @@ def test_from_arrays_deprecation():
         IntervalArray.from_arrays([0, 1, 2], [1, 2, 3], closed="right")
 
 
-def test_set_closed_deprecated():
+def test_set_closed_deprecated_closed():
     # GH#40245
     array = IntervalArray.from_breaks(range(10))
     with tm.assert_produces_warning(FutureWarning):
         array.set_closed(closed="both")
+
+
+def test_set_closed_both_provided_deprecation():
+    # GH#40245
+    array = IntervalArray.from_breaks(range(10))
+    msg = "Can only specify 'closed' or 'inclusive', not both."
+    with pytest.raises(TypeError, match=msg):
+        with tm.assert_produces_warning(FutureWarning):
+            array.set_closed(inclusive="both", closed="both")

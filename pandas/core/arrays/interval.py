@@ -160,7 +160,6 @@ from_breaks
 contains
 overlaps
 set_closed
-set_inclusive
 to_tuples
 %(extra_methods)s\
 
@@ -1387,11 +1386,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an identical %(klass)s closed on the specified side.
 
-        .. deprecated:: 1.5.0
-
         Parameters
         ----------
-        closed : {'left', 'right', 'both', 'neither'}
+        inclusive : {'left', 'right', 'both', 'neither'}
             Whether the intervals are closed on the left-side, right-side, both
             or neither.
 
@@ -1424,57 +1421,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def set_closed(self: IntervalArrayT, closed: IntervalClosedType) -> IntervalArrayT:
-        warnings.warn(
-            "set_closed is deprecated and will be removed in a future version. "
-            "Use set_inclusive instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.set_inclusive(closed)
-
-    _interval_shared_docs["set_inclusive"] = textwrap.dedent(
-        """
-        Return an identical %(klass)s but closed on the specified side.
-
-        .. versionadded:: 1.5
-
-        Parameters
-        ----------
-        inclusive : {'left', 'right', 'both', 'neither'}
-            Whether the intervals are closed on the left-side, right-side, both
-            or neither.
-
-        Returns
-        -------
-        new_index : %(klass)s
-
-        %(examples)s\
-        """
-    )
-
-    @Appender(
-        _interval_shared_docs["set_inclusive"]
-        % {
-            "klass": "IntervalArray",
-            "examples": textwrap.dedent(
-                """\
-        Examples
-        --------
-        >>> index = pd.arrays.IntervalArray.from_breaks(range(4), "right")
-        >>> index
-        <IntervalArray>
-        [(0, 1], (1, 2], (2, 3]]
-        Length: 3, dtype: interval[int64, right]
-        >>> index.set_inclusive('both')
-        <IntervalArray>
-        [[0, 1], [1, 2], [2, 3]]
-        Length: 3, dtype: interval[int64, both]
-        """
-            ),
-        }
-    )
-    def set_inclusive(
+    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
+    def set_closed(
         self: IntervalArrayT, inclusive: IntervalClosedType
     ) -> IntervalArrayT:
         if inclusive not in VALID_CLOSED:
