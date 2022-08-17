@@ -157,6 +157,7 @@ class WrappedCythonOp:
         "first",
         "rank",
         "sum",
+        "ohlc",
         "mean",
         "var",
     }
