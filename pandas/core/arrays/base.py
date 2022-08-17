@@ -1411,9 +1411,9 @@ class ExtensionArray:
         return self.dtype._can_hold_na
 
     def _accumulate(self, name: str, *, skipna=True, **kwargs) -> ExtensionArray:
-        """
-        Return an ExtensionArray performing an accumulation operation.
-        The underlying data type might change
+        """Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
 
         Parameters
         ----------

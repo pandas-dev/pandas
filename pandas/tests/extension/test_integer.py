@@ -16,6 +16,11 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
@@ -228,11 +233,17 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
     def check_accumulate(self, s, op_name, skipna):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
+        length = 64
+        if not IS64 or is_platform_windows():
+            if not s.dtype.itemsize == 8:
+                length = 32
+
+        if s.dtype.name.startswith("U"):
+            expected_dtype = f"UInt{length}"
+        else:
+            expected_dtype = f"Int{length}"
+
         if op_name == "cumsum":
-            if s.dtype.name.startswith("U"):
-                expected_dtype = "UInt64"
-            else:
-                expected_dtype = "Int64"
             result = getattr(s, op_name)(skipna=skipna)
             expected = pd.Series(
                 pd.array(
@@ -251,10 +262,6 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
             )
             tm.assert_series_equal(result, expected)
         elif op_name == "cumprod":
-            if s.dtype.name.startswith("U"):
-                expected_dtype = "UInt64"
-            else:
-                expected_dtype = "Int64"
             result = getattr(s[:20], op_name)(skipna=skipna)
             expected = pd.Series(
                 pd.array(
