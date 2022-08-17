@@ -821,7 +821,6 @@ Other Deprecations
 - Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
 - Deprecated :attr:`Timedelta.delta` (:issue:`46476`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.any` and :meth:`Series.any` (:issue:`44802`)
-- Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
 - Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
 - Deprecated positional arguments to :meth:`StringMethods.rsplit` and :meth:`StringMethods.split` except for ``pat``, use keyword-only arguments instead of positional arguments (:issue:`47423`)

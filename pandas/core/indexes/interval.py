@@ -12,7 +12,6 @@ from typing import (
     Hashable,
     Literal,
 )
-import warnings
 
 import numpy as np
 
@@ -162,7 +161,7 @@ def _new_IntervalIndex(cls, d):
     A new ``IntervalIndex`` is typically constructed using
     :func:`interval_range`:
 
-    >>> pd.interval_range(start=0, end=5, inclusive="right")
+    >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
                   dtype='interval[int64, right]')
 
@@ -445,7 +444,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that share closed endpoints overlap:
 
-        >>> index = pd.interval_range(0, 3, inclusive='both')
+        >>> index = pd.interval_range(0, 3, closed='both')
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               dtype='interval[int64, both]')
@@ -454,7 +453,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> index = pd.interval_range(0, 3, inclusive='left')
+        >>> index = pd.interval_range(0, 3, closed='left')
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               dtype='interval[int64, left]')
@@ -958,8 +957,7 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: IntervalClosedType | lib.NoDefault = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    closed: IntervalClosedType = "right",
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -981,14 +979,6 @@ def interval_range(
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
-
-        .. deprecated:: 1.5.0
-           Argument `closed` has been deprecated to standardize boundary inputs.
-           Use `inclusive` instead, to set each bound as closed or open.
-    inclusive : {"both", "neither", "left", "right"}, default "both"
-        Include boundaries; Whether to set each bound as closed or open.
-
-        .. versionadded:: 1.5.0
 
     Returns
     -------
@@ -1012,14 +1002,14 @@ def interval_range(
     --------
     Numeric ``start`` and  ``end`` is supported.
 
-    >>> pd.interval_range(start=0, end=5, inclusive="right")
+    >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
                   dtype='interval[int64, right]')
 
     Additionally, datetime-like input is also supported.
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   end=pd.Timestamp('2017-01-04'), inclusive="right")
+    ...                   end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
                    (2017-01-03, 2017-01-04]],
                   dtype='interval[datetime64[ns], right]')
@@ -1028,7 +1018,7 @@ def interval_range(
     endpoints of the individual intervals within the ``IntervalIndex``.  For
     numeric ``start`` and ``end``, the frequency must also be numeric.
 
-    >>> pd.interval_range(start=0, periods=4, freq=1.5, inclusive="right")
+    >>> pd.interval_range(start=0, periods=4, freq=1.5)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
                   dtype='interval[float64, right]')
 
@@ -1036,7 +1026,7 @@ def interval_range(
     convertible to a DateOffset.
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
-    ...                   periods=3, freq='MS', inclusive="right")
+    ...                   periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
                    (2017-03-01, 2017-04-01]],
                   dtype='interval[datetime64[ns], right]')
@@ -1044,40 +1034,17 @@ def interval_range(
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
 
-    >>> pd.interval_range(start=0, end=6, periods=4, inclusive="right")
+    >>> pd.interval_range(start=0, end=6, periods=4)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
               dtype='interval[float64, right]')
 
-    The ``inclusive`` parameter specifies which endpoints of the individual
+    The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
-    >>> pd.interval_range(end=5, periods=4, inclusive='both')
+    >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
-    if inclusive is not None and closed is not lib.no_default:
-        raise ValueError(
-            "Deprecated argument `closed` cannot be passed "
-            "if argument `inclusive` is not None"
-        )
-    elif closed is not lib.no_default:
-        warnings.warn(
-            "Argument `closed` is deprecated in favor of `inclusive`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        if closed is None:
-            inclusive = "both"
-        elif closed in ("both", "neither", "left", "right"):
-            inclusive = closed
-        else:
-            raise ValueError(
-                "Argument `closed` has to be either"
-                "'both', 'neither', 'left' or 'right'"
-            )
-    elif inclusive is None:
-        inclusive = "both"
-
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
@@ -1150,4 +1117,4 @@ def interval_range(
         else:
             breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
-    return IntervalIndex.from_breaks(breaks, name=name, closed=inclusive)
+    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
