@@ -6546,7 +6546,7 @@ class DataFrame(NDFrame, OpsMixin):
         if np.all(mask):
             result = self.copy()
         else:
-            result = self.loc(axis=axis)[mask]
+            result = self.loc(axis=axis)[mask].copy()
 
         if not inplace:
             return result
