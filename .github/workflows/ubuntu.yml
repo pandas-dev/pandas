@@ -15,6 +15,9 @@ on:
 env:
   PANDAS_CI: 1
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     runs-on: ubuntu-latest
@@ -61,7 +64,7 @@ jobs:
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_testing_mode: "deprecate"
-            test_args: "-W error::DeprecationWarning:numpy"
+            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
         exclude:
           - env_file: actions-39.yaml
             pyarrow_version: "6"
@@ -133,15 +136,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-
-    - name: Cache conda
-      uses: actions/cache@v3
-      env:
-        CACHE_NUMBER: 0
-      with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('${{ env.ENV_FILE }}') }}
 
     - name: Extra installs
       # xsel for clipboard tests

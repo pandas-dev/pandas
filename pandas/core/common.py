@@ -169,7 +169,7 @@ def cast_scalar_indexer(val, warn_float: bool = False):
                 "Indexing with a float is deprecated, and will raise an IndexError "
                 "in pandas 2.0. You can manually convert to an integer key instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return int(val)
     return val
@@ -553,7 +553,7 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
         setattr(obj, attr, old_value)
 
 
-def require_length_match(data, index: Index):
+def require_length_match(data, index: Index) -> None:
     """
     Check the length of data matches the length of the index.
     """
@@ -665,7 +665,9 @@ def resolve_numeric_only(numeric_only: bool | None | lib.NoDefault) -> bool:
     return result
 
 
-def deprecate_numeric_only_default(cls: type, name: str, deprecate_none: bool = False):
+def deprecate_numeric_only_default(
+    cls: type, name: str, deprecate_none: bool = False
+) -> None:
     """Emit FutureWarning message for deprecation of numeric_only.
 
     See GH#46560 for details on the deprecation.
@@ -695,4 +697,6 @@ def deprecate_numeric_only_default(cls: type, name: str, deprecate_none: bool = 
         "this warning."
     )
 
-    warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+    warnings.warn(
+        msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+    )

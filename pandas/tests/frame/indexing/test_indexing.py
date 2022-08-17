@@ -1227,6 +1227,13 @@ class TestDataFrameIndexing:
         df.iloc[:] = df.iloc[:, :]
         tm.assert_frame_equal(df, orig)
 
+    def test_getitem_segfault_with_empty_like_object(self):
+        # GH#46848
+        df = DataFrame(np.empty((1, 1), dtype=object))
+        df[0] = np.empty_like(df[0])
+        # this produces the segfault
+        df[[0]]
+
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1296,6 +1303,72 @@ class TestDataFrameIndexing:
             {"d": ["foo"]},
             index=MultiIndex.from_tuples([(1, 2, 3)], names=["a", "b", "c"]),
         )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("val", ["x", 1])
+    @pytest.mark.parametrize("idxr", ["a", ["a"]])
+    def test_loc_setitem_rhs_frame(self, idxr, val):
+        # GH#47578
+        df = DataFrame({"a": [1, 2]})
+        df.loc[:, "a"] = DataFrame({"a": [val, 11]}, index=[1, 2])
+        expected = DataFrame({"a": [np.nan, val]})
+        tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_invalid_test
+    def test_iloc_setitem_enlarge_no_warning(self):
+        # GH#47381
+        df = DataFrame(columns=["a", "b"])
+        expected = df.copy()
+        view = df[:]
+        with tm.assert_produces_warning(None):
+            df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
+        tm.assert_frame_equal(view, expected)
+
+    def test_loc_internals_not_updated_correctly(self):
+        # GH#47867 all steps are necessary to reproduce the initial bug
+        df = DataFrame(
+            {"bool_col": True, "a": 1, "b": 2.5},
+            index=MultiIndex.from_arrays([[1, 2], [1, 2]], names=["idx1", "idx2"]),
+        )
+        idx = [(1, 1)]
+
+        df["c"] = 3
+        df.loc[idx, "c"] = 0
+
+        df.loc[idx, "c"]
+        df.loc[idx, ["a", "b"]]
+
+        df.loc[idx, "c"] = 15
+        result = df.loc[idx, "c"]
+        expected = df = Series(
+            15,
+            index=MultiIndex.from_arrays([[1], [1]], names=["idx1", "idx2"]),
+            name="c",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [None, [None], pd.NA, [pd.NA]])
+    def test_iloc_setitem_string_list_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[[0], :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("val", [None, pd.NA])
+    def test_iloc_setitem_string_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[0, :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("func", [list, Series, np.array])
+    def test_iloc_setitem_ea_null_slice_length_one_list(self, func):
+        # GH#48016
+        df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+        df.iloc[:, func([0])] = 5
+        expected = DataFrame({"a": [5, 5, 5]}, dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
 

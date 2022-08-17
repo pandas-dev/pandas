@@ -29,6 +29,10 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+from typing import (
+    Callable,
+    Literal,
+)
 
 from dateutil.tz import (
     tzlocal,
@@ -79,6 +83,14 @@ if pd.compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
 
+    # Although zoneinfo can be imported in Py39, it is effectively
+    # "not available" without tzdata/IANA tz data.
+    # We will set zoneinfo to not found in this case
+    try:
+        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
+    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
+        zoneinfo = None
+
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
     "ignore:Promotion of numbers and bools:FutureWarning"
@@ -90,7 +102,7 @@ suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
 # pytest
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser) -> None:
     parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
     parser.addoption("--skip-network", action="store_true", help="skip network tests")
     parser.addoption("--skip-db", action="store_true", help="skip db tests")
@@ -231,7 +243,7 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 
 
 @pytest.fixture
-def add_doctest_imports(doctest_namespace):
+def add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
     """
@@ -243,7 +255,7 @@ def add_doctest_imports(doctest_namespace):
 # Autouse fixtures
 # ----------------------------------------------------------------
 @pytest.fixture(autouse=True)
-def configure_tests():
+def configure_tests() -> None:
     """
     Configure settings for all tests and test modules.
     """
@@ -530,7 +542,7 @@ def multiindex_year_month_day_dataframe_random_data():
 
 
 @pytest.fixture
-def lexsorted_two_level_string_multiindex():
+def lexsorted_two_level_string_multiindex() -> MultiIndex:
     """
     2-level MultiIndex, lexsorted, with string names.
     """
@@ -542,7 +554,9 @@ def lexsorted_two_level_string_multiindex():
 
 
 @pytest.fixture
-def multiindex_dataframe_random_data(lexsorted_two_level_string_multiindex):
+def multiindex_dataframe_random_data(
+    lexsorted_two_level_string_multiindex,
+) -> DataFrame:
     """DataFrame with 2 level MultiIndex with random data"""
     index = lexsorted_two_level_string_multiindex
     return DataFrame(
@@ -663,21 +677,6 @@ index_flat2 = index_flat
     params=[
         key
         for key in indices_dict
-        if not isinstance(indices_dict[key], MultiIndex) and indices_dict[key].is_unique
-    ]
-)
-def index_flat_unique(request):
-    """
-    index_flat with uniqueness requirement.
-    """
-    key = request.param
-    return indices_dict[key].copy()
-
-
-@pytest.fixture(
-    params=[
-        key
-        for key in indices_dict
         if not (
             key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
             or key.startswith("num_")
@@ -715,7 +714,7 @@ def index_with_missing(request):
 # Series'
 # ----------------------------------------------------------------
 @pytest.fixture
-def string_series():
+def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
@@ -725,7 +724,7 @@ def string_series():
 
 
 @pytest.fixture
-def object_series():
+def object_series() -> Series:
     """
     Fixture for Series of dtype object with Index of unique strings
     """
@@ -735,7 +734,7 @@ def object_series():
 
 
 @pytest.fixture
-def datetime_series():
+def datetime_series() -> Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
@@ -758,7 +757,7 @@ _series = {
 
 
 @pytest.fixture
-def series_with_simple_index(index):
+def series_with_simple_index(index) -> Series:
     """
     Fixture for tests on series with changing types of indices.
     """
@@ -766,7 +765,7 @@ def series_with_simple_index(index):
 
 
 @pytest.fixture
-def series_with_multilevel_index():
+def series_with_multilevel_index() -> Series:
     """
     Fixture with a Series with a 2-level MultiIndex.
     """
@@ -804,7 +803,7 @@ def index_or_series_obj(request):
 # DataFrames
 # ----------------------------------------------------------------
 @pytest.fixture
-def int_frame():
+def int_frame() -> DataFrame:
     """
     Fixture for DataFrame of ints with index of unique strings
 
@@ -833,7 +832,7 @@ def int_frame():
 
 
 @pytest.fixture
-def datetime_frame():
+def datetime_frame() -> DataFrame:
     """
     Fixture for DataFrame of floats with DatetimeIndex
 
@@ -862,7 +861,7 @@ def datetime_frame():
 
 
 @pytest.fixture
-def float_frame():
+def float_frame() -> DataFrame:
     """
     Fixture for DataFrame of floats with index of unique strings
 
@@ -891,7 +890,7 @@ def float_frame():
 
 
 @pytest.fixture
-def mixed_type_frame():
+def mixed_type_frame() -> DataFrame:
     """
     Fixture for DataFrame of float/int/string columns with RangeIndex
     Columns are ['a', 'b', 'c', 'float32', 'int32'].
@@ -909,7 +908,7 @@ def mixed_type_frame():
 
 
 @pytest.fixture
-def rand_series_with_duplicate_datetimeindex():
+def rand_series_with_duplicate_datetimeindex() -> Series:
     """
     Fixture for Series with a DatetimeIndex that has duplicates.
     """
@@ -1151,7 +1150,7 @@ def strict_data_files(pytestconfig):
 
 
 @pytest.fixture
-def datapath(strict_data_files):
+def datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
 
@@ -1186,7 +1185,7 @@ def datapath(strict_data_files):
 
 
 @pytest.fixture
-def iris(datapath):
+def iris(datapath) -> DataFrame:
     """
     The iris dataset as a DataFrame.
     """
@@ -1376,7 +1375,7 @@ def timedelta64_dtype(request):
 
 
 @pytest.fixture
-def fixed_now_ts():
+def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
@@ -1728,7 +1727,7 @@ def spmatrix(request):
     params=[
         getattr(pd.offsets, o)
         for o in pd.offsets.__all__
-        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick)
+        if issubclass(getattr(pd.offsets, o), pd.offsets.Tick) and o != "Tick"
     ]
 )
 def tick_classes(request):
@@ -1845,7 +1844,7 @@ def using_array_manager():
 
 
 @pytest.fixture
-def using_copy_on_write():
+def using_copy_on_write() -> Literal[False]:
     """
     Fixture to check if Copy-on-Write is enabled.
     """

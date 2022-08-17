@@ -131,7 +131,7 @@ def format_array_from_datetime(
     cdef:
         int64_t val, ns, N = values.size
         bint show_ms = False, show_us = False, show_ns = False
-        bint basic_format = False
+        bint basic_format = False, basic_format_day = False
         _Timestamp ts
         object res
         npy_datetimestruct dts
@@ -147,14 +147,31 @@ def format_array_from_datetime(
     if na_rep is None:
         na_rep = 'NaT'
 
-    # if we don't have a format nor tz, then choose
-    # a format based on precision
-    basic_format = format is None and tz is None
-    if basic_format:
-        reso_obj = get_resolution(values, reso=reso)
-        show_ns = reso_obj == Resolution.RESO_NS
-        show_us = reso_obj == Resolution.RESO_US
-        show_ms = reso_obj == Resolution.RESO_MS
+    if tz is None:
+        # if we don't have a format nor tz, then choose
+        # a format based on precision
+        basic_format = format is None
+        if basic_format:
+            reso_obj = get_resolution(values, tz=tz, reso=reso)
+            show_ns = reso_obj == Resolution.RESO_NS
+            show_us = reso_obj == Resolution.RESO_US
+            show_ms = reso_obj == Resolution.RESO_MS
+
+        elif format == "%Y-%m-%d %H:%M:%S":
+            # Same format as default, but with hardcoded precision (s)
+            basic_format = True
+            show_ns = show_us = show_ms = False
+
+        elif format == "%Y-%m-%d %H:%M:%S.%f":
+            # Same format as default, but with hardcoded precision (us)
+            basic_format = show_us = True
+            show_ns = show_ms = False
+
+        elif format == "%Y-%m-%d":
+            # Default format for dates
+            basic_format_day = True
+
+    assert not (basic_format_day and basic_format)
 
     for i in range(N):
         # Analogous to: utc_val = values[i]
@@ -162,6 +179,11 @@ def format_array_from_datetime(
 
         if val == NPY_NAT:
             res = na_rep
+        elif basic_format_day:
+
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
+            res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
+
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
@@ -176,11 +198,11 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f'.{dts.us // 1000:03d}'
 
-
         else:
 
             ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
+                # Use datetime.str, that returns ts.isoformat(sep=' ')
                 res = str(ts)
             else:
 
@@ -190,6 +212,7 @@ def format_array_from_datetime(
                     # Note: dispatches to pydatetime
                     res = ts.strftime(format)
                 except ValueError:
+                    # Use datetime.str, that returns ts.isoformat(sep=' ')
                     res = str(ts)
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
@@ -572,7 +595,7 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data {val} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't match format specified"
                                 )
                             return values, tz_out
 
@@ -588,7 +611,7 @@ cpdef array_to_datetime(
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
-                            raise TypeError("invalid string coercion to datetime")
+                            raise TypeError(f"invalid string coercion to datetime for \"{val}\" at position {i}")
 
                         if tz is not None:
                             seen_datetime_offset = True
@@ -629,7 +652,8 @@ cpdef array_to_datetime(
                     else:
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            except OutOfBoundsDatetime:
+            except OutOfBoundsDatetime as ex:
+                ex.args = (str(ex) + f" present at position {i}", )
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
@@ -775,6 +799,7 @@ cdef _array_to_datetime_object(
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
+    # 3) special strings - "now" & "today"
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
@@ -793,7 +818,8 @@ cdef _array_to_datetime_object(
                                                    yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError) as ex:
+                ex.args = (f"{ex} present at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue

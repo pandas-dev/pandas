@@ -1,3 +1,4 @@
+import inspect
 import numbers
 from operator import (
     le,
@@ -8,6 +9,8 @@ from cpython.datetime cimport (
     PyDelta_Check,
     import_datetime,
 )
+
+from pandas.util._exceptions import find_stack_level
 
 import_datetime()
 
@@ -43,6 +46,7 @@ cnp.import_array()
 import warnings
 
 from pandas._libs import lib
+
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
@@ -54,7 +58,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-VALID_CLOSED = frozenset(['both', 'neither', 'left', 'right'])
+VALID_INCLUSIVE = frozenset(['both', 'neither', 'left', 'right'])
 
 
 cdef class IntervalMixin:
@@ -83,7 +87,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            True if the Interval is closed on the left-side.
+            True if the Interval is closed on the right-side.
         """
         return self.inclusive in ('right', 'both')
 
@@ -97,7 +101,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            True if the Interval is closed on the left-side.
+            True if the Interval is not closed on the left-side.
         """
         return not self.closed_left
 
@@ -111,7 +115,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            True if the Interval is closed on the left-side.
+            True if the Interval is not closed on the right-side.
         """
         return not self.closed_right
 
@@ -186,7 +190,7 @@ cdef class IntervalMixin:
         """
         return (self.right == self.left) & (self.inclusive != 'both')
 
-    def _check_closed_matches(self, other, name='other'):
+    def _check_inclusive_matches(self, other, name='other'):
         """
         Check if the inclusive attribute of `other` matches.
 
@@ -201,7 +205,7 @@ cdef class IntervalMixin:
         Raises
         ------
         ValueError
-            When `other` is not closed exactly the same as self.
+            When `other` is not inclusive exactly the same as self.
         """
         if self.inclusive != other.inclusive:
             raise ValueError(f"'{name}.inclusive' is {repr(other.inclusive)}, "
@@ -229,7 +233,7 @@ def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault
             stacklevel=2,
         )
         if closed is None:
-            inclusive = "both"
+            inclusive = "right"
         elif closed in ("both", "neither", "left", "right"):
             inclusive = closed
         else:
@@ -257,14 +261,14 @@ cdef class Interval(IntervalMixin):
         .. deprecated:: 1.5.0
 
     inclusive : {'both', 'neither', 'left', 'right'}, default 'both'
-        Whether the interval is closed on the left-side, right-side, both or
+        Whether the interval is inclusive on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
 
         .. versionadded:: 1.5.0
 
     See Also
     --------
-    IntervalIndex : An Index of Interval objects that are all closed on the
+    IntervalIndex : An Index of Interval objects that are all inclusive on the
         same side.
     cut : Convert continuous data into discrete bins (Categorical
         of Interval objects).
@@ -277,13 +281,13 @@ cdef class Interval(IntervalMixin):
     The parameters `left` and `right` must be from the same type, you must be
     able to compare them and they must satisfy ``left <= right``.
 
-    A closed interval (in mathematics denoted by square brackets) contains
-    its endpoints, i.e. the closed interval ``[0, 5]`` is characterized by the
+    A inclusive interval (in mathematics denoted by square brackets) contains
+    its endpoints, i.e. the inclusive interval ``[0, 5]`` is characterized by the
     conditions ``0 <= x <= 5``. This is what ``inclusive='both'`` stands for.
     An open interval (in mathematics denoted by parentheses) does not contain
     its endpoints, i.e. the open interval ``(0, 5)`` is characterized by the
     conditions ``0 < x < 5``. This is what ``inclusive='neither'`` stands for.
-    Intervals can also be half-open or half-closed, i.e. ``[0, 5)`` is
+    Intervals can also be half-open or half-inclusive, i.e. ``[0, 5)`` is
     described by ``0 <= x < 5`` (``inclusive='left'``) and ``(0, 5]`` is
     described by ``0 < x <= 5`` (``inclusive='right'``).
 
@@ -295,9 +299,11 @@ cdef class Interval(IntervalMixin):
     >>> iv
     Interval(0, 5, inclusive='right')
 
-    You can check if an element belongs to it
+    You can check if an element belongs to it, or if it contains another interval:
 
     >>> 2.5 in iv
+    True
+    >>> pd.Interval(left=2, right=5, inclusive='both') in iv
     True
 
     You can test the bounds (``inclusive='right'``, so ``0 < x <= 5``):
@@ -350,8 +356,9 @@ cdef class Interval(IntervalMixin):
 
     cdef readonly str inclusive
     """
-    Whether the interval is closed on the left-side, right-side, both or
-    neither.
+    String describing the inclusive side the intervals.
+
+    Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
     def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
@@ -364,9 +371,9 @@ cdef class Interval(IntervalMixin):
         inclusive, closed = _warning_interval(inclusive, closed)
 
         if inclusive is None:
-            inclusive = "both"
+            inclusive = "right"
 
-        if inclusive not in VALID_CLOSED:
+        if inclusive not in VALID_INCLUSIVE:
             raise ValueError(f"invalid option for 'inclusive': {inclusive}")
         if not left <= right:
             raise ValueError("left side of interval must be <= right side")
@@ -378,6 +385,22 @@ cdef class Interval(IntervalMixin):
         self.left = left
         self.right = right
         self.inclusive = inclusive
+
+    @property
+    def closed(self):
+        """
+        String describing the inclusive side the intervals.
+
+        .. deprecated:: 1.5.0
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
+        """
+        warnings.warn(
+            "Attribute `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
+        return self.inclusive
 
     def _validate_endpoint(self, endpoint):
         # GH 23013
@@ -391,7 +414,17 @@ cdef class Interval(IntervalMixin):
 
     def __contains__(self, key) -> bool:
         if _interval_like(key):
-            raise TypeError("__contains__ not defined for two intervals")
+            key_closed_left = key.inclusive in ('left', 'both')
+            key_closed_right = key.inclusive in ('right', 'both')
+            if self.open_left and key_closed_left:
+                left_contained = self.left < key.left
+            else:
+                left_contained = self.left <= key.left
+            if self.open_right and key_closed_right:
+                right_contained = key.right < self.right
+            else:
+                right_contained = key.right <= self.right
+            return left_contained and right_contained
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
@@ -505,7 +538,7 @@ cdef class Interval(IntervalMixin):
         """
         Check whether two Interval objects overlap.
 
-        Two intervals overlap if they share a common point, including closed
+        Two intervals overlap if they share a common point, including inclusive
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
@@ -534,7 +567,7 @@ cdef class Interval(IntervalMixin):
         >>> i1.overlaps(i3)
         False
 
-        Intervals that share closed endpoints overlap:
+        Intervals that share inclusive endpoints overlap:
 
         >>> i4 = pd.Interval(0, 1, inclusive='both')
         >>> i5 = pd.Interval(1, 2, inclusive='both')
@@ -551,7 +584,7 @@ cdef class Interval(IntervalMixin):
             raise TypeError("`other` must be an Interval, "
                             f"got {type(other).__name__}")
 
-        # equality is okay if both endpoints are closed (overlap at a point)
+        # equality is okay if both endpoints are inclusive (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt
         op2 = le if (other.closed_left and self.closed_right) else lt
 
@@ -563,16 +596,16 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals, bint validate_inclusive=True):
     """
     Parameters
     ----------
     intervals : ndarray
         Object array of Intervals / nulls.
 
-    validate_closed: bool, default True
-        Boolean indicating if all intervals must be closed on the same side.
-        Mismatching closed will raise if True, else return None for closed.
+    validate_inclusive: bool, default True
+        Boolean indicating if all intervals must be inclusive on the same side.
+        Mismatching inclusive will raise if True, else return None for inclusive.
 
     Returns
     -------
@@ -585,7 +618,7 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
         object inclusive = None, interval
         Py_ssize_t i, n = len(intervals)
         ndarray left, right
-        bint seen_closed = False
+        bint seen_inclusive = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
@@ -603,13 +636,13 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
 
         left[i] = interval.left
         right[i] = interval.right
-        if not seen_closed:
-            seen_closed = True
+        if not seen_inclusive:
+            seen_inclusive = True
             inclusive = interval.inclusive
         elif inclusive != interval.inclusive:
             inclusive = None
-            if validate_closed:
-                raise ValueError("intervals must all be closed on the same side")
+            if validate_inclusive:
+                raise ValueError("intervals must all be inclusive on the same side")
 
     return left, right, inclusive
 

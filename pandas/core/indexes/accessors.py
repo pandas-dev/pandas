@@ -3,6 +3,7 @@ datetimelike delegation
 """
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING
 import warnings
 
@@ -38,7 +39,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
@@ -241,7 +245,7 @@ class DatetimeProperties(Properties):
     def freq(self):
         return self._get_values().inferred_freq
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         """
         Calculate year, week, and day according to the ISO 8601 standard.
 
@@ -288,7 +292,7 @@ class DatetimeProperties(Properties):
             "Series.dt.weekofyear and Series.dt.week have been deprecated. "
             "Please use Series.dt.isocalendar().week instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         week_series = self.isocalendar().week
         week_series.name = self.name

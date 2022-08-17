@@ -16,7 +16,7 @@ __all__ = [
     "options",
 ]
 from pandas._config import config
-from pandas._config import dates  # noqa:F401
+from pandas._config import dates  # pyright: ignore # noqa:F401
 from pandas._config.config import (
     describe_option,
     get_option,

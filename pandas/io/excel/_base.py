@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import datetime
 from functools import partial
+import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -357,15 +358,20 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 def read_excel(
     io,
     # sheet name is str or int -> DataFrame
-    sheet_name: str | int,
+    sheet_name: str | int = ...,
     header: int | Sequence[int] | None = ...,
-    names=...,
+    names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols=...,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = ...,
     squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
-    converters=...,
+    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -374,8 +380,8 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates=...,
-    date_parser=...,
+    parse_dates: list | dict | bool = ...,
+    date_parser: Callable | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -393,13 +399,18 @@ def read_excel(
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     header: int | Sequence[int] | None = ...,
-    names=...,
+    names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols=...,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = ...,
     squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
-    converters=...,
+    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -408,8 +419,8 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates=...,
-    date_parser=...,
+    parse_dates: list | dict | bool = ...,
+    date_parser: Callable | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -428,13 +439,18 @@ def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
     header: int | Sequence[int] | None = 0,
-    names=None,
+    names: list[str] | None = None,
     index_col: int | Sequence[int] | None = None,
-    usecols=None,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = None,
     squeeze: bool | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
-    converters=None,
+    converters: dict[str, Callable] | dict[int, Callable] | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
@@ -443,8 +459,8 @@ def read_excel(
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
-    parse_dates=False,
-    date_parser=None,
+    parse_dates: list | dict | bool = False,
+    date_parser: Callable | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
@@ -687,8 +703,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         nrows: int | None = None,
         na_values=None,
         verbose: bool = False,
-        parse_dates=False,
-        date_parser=None,
+        parse_dates: list | dict | bool = False,
+        date_parser: Callable | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -704,7 +720,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         validate_header_arg(header)
@@ -788,9 +804,27 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
             # If there is a MultiIndex header and an index then there is also
             # a row containing just the index name(s)
-            has_index_names = (
-                is_list_header and not is_len_one_list_header and index_col is not None
-            )
+            has_index_names = False
+            if is_list_header and not is_len_one_list_header and index_col is not None:
+
+                index_col_list: Sequence[int]
+                if isinstance(index_col, int):
+                    index_col_list = [index_col]
+                else:
+                    assert isinstance(index_col, Sequence)
+                    index_col_list = index_col
+
+                # We have to handle mi without names. If any of the entries in the data
+                # columns are not empty, this is a regular row
+                assert isinstance(header, Sequence)
+                if len(header) < len(data):
+                    potential_index_names = data[len(header)]
+                    potential_data = [
+                        x
+                        for i, x in enumerate(potential_index_names)
+                        if not control_row[i] and i not in index_col_list
+                    ]
+                    has_index_names = all(x == "" or x is None for x in potential_data)
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
@@ -871,11 +905,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use :
-    * xlwt for xls
-    * xlsxwriter for xlsx if xlsxwriter is installed otherwise openpyxl
-    * odf for ods.
-    See DataFrame.to_excel for typical usage.
+    Default is to use:
+
+    * `xlwt <https://pypi.org/project/xlwt/>`__ for xls files
+    * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
+      is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
+    * `odswriter <https://pypi.org/project/odswriter/>`__ for ods files
+
+    See ``DataFrame.to_excel`` for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
     and close any opened file handles.
@@ -1069,7 +1106,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     _supported_extensions: tuple[str, ...]
 
     def __new__(
-        cls,
+        cls: type[ExcelWriter],
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
         date_format: str | None = None,
@@ -1079,14 +1116,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
         engine_kwargs: dict | None = None,
         **kwargs,
-    ):
+    ) -> ExcelWriter:
         if kwargs:
             if engine_kwargs is not None:
                 raise ValueError("Cannot use both engine_kwargs and **kwargs")
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -1120,7 +1157,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
             # for mypy
@@ -1290,7 +1327,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             f"{attr} is not part of the public API, usage can give in unexpected "
             "results and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     @property
@@ -1325,7 +1362,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self._cur_sheet
 
     @property
-    def handles(self):
+    def handles(self) -> IOHandles[bytes]:
         """
         Handles to Excel sheets.
 
@@ -1344,7 +1381,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self._deprecate("path")
         return self._path
 
-    def __fspath__(self):
+    def __fspath__(self) -> str:
         return getattr(self._handles.handle, "name", "")
 
     def _get_sheet_name(self, sheet_name: str | None) -> str:
@@ -1402,10 +1439,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             return True
 
     # Allow use as a contextmanager
-    def __enter__(self):
+    def __enter__(self) -> ExcelWriter:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
     def close(self) -> None:
@@ -1644,8 +1681,8 @@ class ExcelFile:
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
-        parse_dates=False,
-        date_parser=None,
+        parse_dates: list | dict | bool = False,
+        date_parser: Callable | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
@@ -1699,13 +1736,13 @@ class ExcelFile:
         """close io if necessary"""
         self._reader.close()
 
-    def __enter__(self):
+    def __enter__(self) -> ExcelFile:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         # Ensure we don't leak file descriptors, but put in try/except in case
         # attributes are already deleted
         try:
