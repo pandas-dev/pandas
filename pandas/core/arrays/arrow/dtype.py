@@ -3,15 +3,18 @@ from __future__ import annotations
 import re
 
 import numpy as np
-import pyarrow as pa
 
 from pandas._typing import DtypeObj
+from pandas.compat import pa_version_under1p01
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import (
     StorageExtensionDtype,
     register_extension_dtype,
 )
+
+if not pa_version_under1p01:
+    import pyarrow as pa
 
 
 @register_extension_dtype
@@ -25,6 +28,8 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
+        if pa_version_under1p01:
+            raise ImportError("pyarrow>=1.0.1 is required for ArrowDtype")
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
@@ -77,7 +82,7 @@ class ArrowDtype(StorageExtensionDtype):
         return ArrowExtensionArray
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(cls, string: str) -> ArrowDtype:
         """
         Construct this type from a string.
 
@@ -93,6 +98,9 @@ class ArrowDtype(StorageExtensionDtype):
             )
         if not string.endswith("[pyarrow]"):
             raise TypeError(f"'{string}' must end with '[pyarrow]'")
+        if string == "string[pyarrow]":
+            # Ensure Registry.find skips ArrowDtype to use StringDtype instead
+            raise TypeError("string[pyarrow] should be constructed by StringDtype")
         base_type = string.split("[pyarrow]")[0]
         try:
             pa_dtype = pa.type_for_alias(base_type)

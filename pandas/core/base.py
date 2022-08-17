@@ -4,6 +4,7 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
+import inspect
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -81,7 +82,10 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        Series,
+    )
 
 
 _shared_docs: dict[str, str] = {}
@@ -161,7 +165,7 @@ class NoNewAttributesMixin:
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key: str, value):
+    def __setattr__(self, key: str, value) -> None:
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
@@ -765,7 +769,7 @@ class IndexOpsMixin(OpsMixin):
         # has no attribute "any"
         return bool(isna(self).any())  # type: ignore[union-attr]
 
-    def isna(self):
+    def isna(self) -> npt.NDArray[np.bool_]:
         return isna(self._values)
 
     def _reduce(
@@ -840,6 +844,10 @@ class IndexOpsMixin(OpsMixin):
                     f"{na_action} was passed"
                 )
                 raise ValueError(msg)
+
+            if na_action == "ignore":
+                mapper = mapper[mapper.index.notna()]
+
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
             if is_categorical_dtype(self.dtype):
@@ -890,7 +898,7 @@ class IndexOpsMixin(OpsMixin):
         ascending: bool = False,
         bins=None,
         dropna: bool = True,
-    ):
+    ) -> Series:
         """
         Return a Series containing counts of unique values.
 
@@ -1047,8 +1055,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_increasing.
+        Return boolean if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1058,15 +1065,14 @@ class IndexOpsMixin(OpsMixin):
             "is_monotonic is deprecated and will be removed in a future version. "
             "Use is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_increasing.
+        Return boolean if values in the object are monotonically increasing.
 
         Returns
         -------
@@ -1079,8 +1085,7 @@ class IndexOpsMixin(OpsMixin):
     @property
     def is_monotonic_decreasing(self) -> bool:
         """
-        Return boolean if values in the object are
-        monotonic_decreasing.
+        Return boolean if values in the object are monotonically decreasing.
 
         Returns
         -------

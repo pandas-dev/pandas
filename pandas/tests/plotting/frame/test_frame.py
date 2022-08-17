@@ -2204,6 +2204,30 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_xlabel() == (xcol if xlabel is None else xlabel)
         assert ax.get_ylabel() == (ycol if ylabel is None else ylabel)
 
+    @pytest.mark.parametrize("secondary_y", (False, True))
+    def test_secondary_y(self, secondary_y):
+        ax_df = DataFrame([0]).plot(
+            secondary_y=secondary_y, ylabel="Y", ylim=(0, 100), yticks=[99]
+        )
+        for ax in ax_df.figure.axes:
+            if ax.yaxis.get_visible():
+                assert ax.get_ylabel() == "Y"
+                assert ax.get_ylim() == (0, 100)
+                assert ax.get_yticks()[0] == 99
+
+    def test_sort_columns_deprecated(self):
+        # GH 47563
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.plot.box("a", sort_columns=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.plot.box(sort_columns=False)
+
+        with tm.assert_produces_warning(False):
+            df.plot.box("a")
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib as mpl

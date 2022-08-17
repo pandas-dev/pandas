@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections import abc
 import csv
+import inspect
 import sys
 from textwrap import fill
 from typing import (
@@ -381,6 +382,8 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
 
     .. versionadded:: 1.3.0
 
+    .. versionadded:: 1.4.0
+
         - callable, function with signature
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
@@ -388,8 +391,6 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
           If the function returns a new list of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine="python"``
-
-    .. versionadded:: 1.4.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -499,7 +500,7 @@ def validate_integer(name, val: None, min_val=...) -> None:
 
 
 @overload
-def validate_integer(name, val: int | float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val=...) -> int:
     ...
 
 
@@ -852,7 +853,8 @@ def read_csv(
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
         storage_options=_shared_docs["storage_options"],
-        decompression_options=_shared_docs["decompression_options"],
+        decompression_options=_shared_docs["decompression_options"]
+        % "filepath_or_buffer",
     )
 )
 def read_csv(
@@ -1189,7 +1191,8 @@ def read_table(
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
         storage_options=_shared_docs["storage_options"],
-        decompression_options=_shared_docs["decompression_options"],
+        decompression_options=_shared_docs["decompression_options"]
+        % "filepath_or_buffer",
     )
 )
 def read_table(
@@ -1607,7 +1610,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         index_col = options["index_col"]
@@ -1626,7 +1629,11 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    msg,
+                    FutureWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
             else:
                 result[arg] = parser_default
 
@@ -1908,7 +1915,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """return a stringified and numeric for these values"""
-    result: list[int | str | float] = []
+    result: list[str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -2201,7 +2208,9 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
+                "\n\n".join(conflict_msgs),
+                ParserWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         kwds[param] = dialect_val
     return kwds

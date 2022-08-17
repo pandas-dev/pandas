@@ -57,7 +57,9 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
         tm.assert_equal(df, expected)
 
-    @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
+    @pytest.mark.parametrize(
+        "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
+    )
     def test_setitem_dtype(self, dtype, float_frame):
         arr = np.random.randn(len(float_frame))
 
@@ -89,8 +91,8 @@ class TestDataFrameSetItem:
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
 
-        msg = "incompatible index of inserted column with frame index"
-        with pytest.raises(TypeError, match=msg):
+        msg = "Cannot set a DataFrame with multiple columns to the single column gr"
+        with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
     def test_setitem_benchmark(self):
@@ -210,6 +212,7 @@ class TestDataFrameSetItem:
                 "a": Series([0, 1, 2], dtype="int64"),
                 "b": Series([1, 2, 3], dtype=float),
                 "c": Series([1, 2, 3], dtype=float),
+                "d": Series([1, 2, 3], dtype="uint32"),
             }
         )
         df = DataFrame(
@@ -217,10 +220,16 @@ class TestDataFrameSetItem:
                 "a": Series([], dtype="int64"),
                 "b": Series([], dtype=float),
                 "c": Series([], dtype=float),
+                "d": Series([], dtype="uint32"),
             }
         )
         for idx, b in enumerate([1, 2, 3]):
-            df.loc[df.shape[0]] = {"a": int(idx), "b": float(b), "c": float(b)}
+            df.loc[df.shape[0]] = {
+                "a": int(idx),
+                "b": float(b),
+                "c": float(b),
+                "d": np.uint32(b),
+            }
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
@@ -732,6 +741,18 @@ class TestDataFrameSetItem:
         df.isetitem(0, DataFrame({"a": [10, 11]}, index=[1, 2]))
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_overwrite_with_ea_dtype(self, any_numeric_ea_dtype):
+        # GH#46896
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+        df["a"] = DataFrame({"a": [10, 11]}, dtype=any_numeric_ea_dtype)
+        expected = DataFrame(
+            {
+                "a": Series([10, 11], dtype=any_numeric_ea_dtype),
+                "b": [2, 4],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -806,9 +827,7 @@ class TestDataFrameSetItemWithExpansion:
     def test_setitem_empty_df_duplicate_columns(self):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.loc[:, "a"] = list(range(2))
+        df.loc[:, "a"] = list(range(2))
         expected = DataFrame(
             [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
         )
@@ -895,6 +914,19 @@ class TestDataFrameSetItemWithExpansion:
         result = df.loc[[1], :]
         expected = DataFrame({"a": ["b"], "b": [100]}, index=[1])
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_frame_keep_ea_dtype(self, any_numeric_ea_dtype):
+        # GH#46896
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+        df["c"] = DataFrame({"a": [10, 11]}, dtype=any_numeric_ea_dtype)
+        expected = DataFrame(
+            {
+                "a": [1, 3],
+                "b": [2, 4],
+                "c": Series([10, 11], dtype=any_numeric_ea_dtype),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:
