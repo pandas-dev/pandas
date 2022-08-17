@@ -58,7 +58,10 @@ from pandas.errors import (
     PerformanceWarning,
     PossibleDataLossError,
 )
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    deprecate_nonkeyword_arguments,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -247,6 +250,9 @@ def _tables():
 # interface to/from ###
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["path_or_buf", "key", "value"]
+)
 def to_hdf(
     path_or_buf: FilePath | HDFStore,
     key: str,
@@ -303,6 +309,7 @@ def to_hdf(
         f(path_or_buf)
 
 
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["path_or_buf", "key"])
 def read_hdf(
     path_or_buf: FilePath | HDFStore,
     key=None,

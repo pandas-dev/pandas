@@ -2646,6 +2646,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             storage_options=storage_options,
         )
 
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "path_or_buf", "key"]
+    )
     @final
     def to_hdf(
         self,
