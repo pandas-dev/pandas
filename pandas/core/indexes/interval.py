@@ -1,7 +1,6 @@
 """ define the IntervalIndex """
 from __future__ import annotations
 
-import inspect
 from operator import (
     le,
     lt,

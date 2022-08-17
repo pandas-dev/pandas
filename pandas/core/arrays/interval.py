@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import operator
 from operator import (
     le,
