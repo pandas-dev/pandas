@@ -8,7 +8,7 @@
 #      support that unreleased Python version.
 #    To unfreeze, comment out the ``if: false`` condition, and make sure you update
 #    the name of the workflow and Python version in actions/setup-python to: '3.12-dev'
-# 
+#
 # After it has been unfrozen, this file should remain unfrozen(present, and running) until:
 #    - The next Python version has been officially released.
 #    OR
