@@ -705,6 +705,8 @@ def group_prod(
                     # else case is not possible
                     if uses_mask:
                         result_mask[i, j] = True
+                        # Be deterministic, out was initialized as empty
+                        out[i, j] = 0
                     elif int64float_t is float32_t or int64float_t is float64_t:
                         out[i, j] = NAN
                     else:
