@@ -262,10 +262,10 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
             )
             tm.assert_series_equal(result, expected)
         elif op_name == "cumprod":
-            result = getattr(s[:20], op_name)(skipna=skipna)
+            result = getattr(s[:12], op_name)(skipna=skipna)
             expected = pd.Series(
                 pd.array(
-                    getattr(s[:20].astype("float64"), op_name)(skipna=skipna),
+                    getattr(s[:12].astype("float64"), op_name)(skipna=skipna),
                     dtype=expected_dtype,
                 )
             )
