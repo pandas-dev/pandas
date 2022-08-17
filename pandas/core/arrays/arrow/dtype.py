@@ -34,19 +34,27 @@ class ArrowDtype(StorageExtensionDtype):
     Parameters
     ----------
     pyarrow_dtype : pa.DataType
-        An instance of a `pyarrow.DataType <https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions>`__
+        An instance of a `pyarrow.DataType <https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions>`__.
+
+    Attributes
+    ----------
+    pyarrow_dtype
+
+    Methods
+    -------
+    None
 
     Returns
     -------
     ArrowDtype
 
-    Example
-    -------
+    Examples
+    --------
     >>> import pyarrow as pa
     >>> pd.ArrowDtype(pa.int64())
     int64[pyarrow]
 
-    Types with parameters must be constructed with ArrowDtype
+    Types with parameters must be constructed with ArrowDtype.
 
     >>> pd.ArrowDtype(pa.timestamp("s", tz="America/New_York"))
     timestamp[s, tz=America/New_York][pyarrow]

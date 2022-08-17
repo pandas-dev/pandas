@@ -170,6 +170,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
     Returns
     -------
     ArrowExtensionArray
