@@ -108,6 +108,10 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     Length: 4, dtype: string
     """
 
+    # error: Incompatible types in assignment (expression has type "StringDtype",
+    # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
+    _dtype: StringDtype  # type: ignore[assignment]
+
     def __init__(self, values) -> None:
         super().__init__(values)
         # TODO: Migrate to ArrowDtype instead
@@ -198,7 +202,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
                     raise ValueError("Scalar must be NA or str")
         return value
 
-    def isin(self, values):
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if pa_version_under2p0:
             fallback_performancewarning(version="2")
             return super().isin(values)
