@@ -414,15 +414,15 @@ def test_interval_error_and_warning():
 
 def test_interval_array_error_and_warning():
     # GH 40245
-    msg = "Can only specify 'closed' or 'inclusive', not both."
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            IntervalArray(
-                [Interval(0, 1), Interval(1, 5)], closed="both", inclusive="both"
-            )
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        IntervalArray([Interval(0, 1), Interval(1, 5)], closed="both", inclusive="both")
 
-    msg = "the 'closed'' keyword is deprecated, use 'inclusive' instead."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
         IntervalArray([Interval(0, 1), Interval(1, 5)], closed="both")
 
 
@@ -433,13 +433,15 @@ def test_arrow_interval_type_error_and_warning():
 
     from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
-    msg = "Can only specify 'closed' or 'inclusive', not both."
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            ArrowIntervalType(pa.int64(), closed="both", inclusive="both")
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        ArrowIntervalType(pa.int64(), closed="both", inclusive="both")
 
-    msg = "the 'closed'' keyword is deprecated, use 'inclusive' instead."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
         ArrowIntervalType(pa.int64(), closed="both")
 
 
@@ -458,47 +460,3 @@ def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
         dates[:-1], dates[1:], inclusive=inclusive_endpoints_fixture
     )
     tm.assert_index_equal(result, expected)
-
-
-def test_from_tuples_deprecation():
-    # GH#40245
-    with tm.assert_produces_warning(FutureWarning):
-        IntervalArray.from_tuples([(0, 1), (1, 2)], closed="right")
-
-
-def test_from_tuples_deprecation_error():
-    # GH#40245
-    msg = "Can only specify 'closed' or 'inclusive', not both."
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            IntervalArray.from_tuples(
-                [(0, 1), (1, 2)], closed="right", inclusive="right"
-            )
-
-
-def test_from_breaks_deprecation():
-    # GH#40245
-    with tm.assert_produces_warning(FutureWarning):
-        IntervalArray.from_breaks([0, 1, 2, 3], closed="right")
-
-
-def test_from_arrays_deprecation():
-    # GH#40245
-    with tm.assert_produces_warning(FutureWarning):
-        IntervalArray.from_arrays([0, 1, 2], [1, 2, 3], closed="right")
-
-
-def test_set_closed_deprecated_closed():
-    # GH#40245
-    array = IntervalArray.from_breaks(range(10))
-    with tm.assert_produces_warning(FutureWarning):
-        array.set_closed(closed="both")
-
-
-def test_set_closed_both_provided_deprecation():
-    # GH#40245
-    array = IntervalArray.from_breaks(range(10))
-    msg = "Can only specify 'closed' or 'inclusive', not both."
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            array.set_closed(inclusive="both", closed="both")

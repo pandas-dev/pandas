@@ -16,7 +16,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -27,6 +26,7 @@ from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
     IntervalMixin,
+    _warning_interval,
     intervals_to_interval_bounds,
 )
 from pandas._libs.missing import NA
@@ -44,10 +44,8 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import (
     Appender,
-    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
@@ -226,15 +224,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Constructors
 
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def __new__(
         cls: type[IntervalArrayT],
         data,
         inclusive: str | None = None,
+        closed: None | lib.NoDefault = lib.no_default,
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
     ):
+        inclusive, closed = _warning_interval(inclusive, closed)
 
         data = extract_array(data, extract_numpy=True)
 
@@ -272,22 +271,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def _simple_new(
         cls: type[IntervalArrayT],
         left,
         right,
         inclusive=None,
+        closed: None | lib.NoDefault = lib.no_default,
         copy: bool = False,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
 
+        inclusive, closed = _warning_interval(inclusive, closed)
+
         if inclusive is None and isinstance(dtype, IntervalDtype):
             inclusive = dtype.inclusive
 
-        inclusive = inclusive or "right"
+        inclusive = inclusive or "both"
 
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
@@ -427,17 +428,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        inclusive: IntervalClosedType | None = None,
+        inclusive="both",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
-        if inclusive is None:
-            inclusive = "right"
-
         breaks = _maybe_convert_platform_interval(breaks)
 
         return cls.from_arrays(
@@ -508,19 +505,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_arrays(
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive: IntervalClosedType | None = None,
+        inclusive="both",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
-
-        if inclusive is None:
-            inclusive = "right"
-
         left = _maybe_convert_platform_interval(left)
         right = _maybe_convert_platform_interval(right)
 
@@ -582,17 +574,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def from_tuples(
         cls: type[IntervalArrayT],
         data,
-        inclusive=None,
+        inclusive="both",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
-        if inclusive is None:
-            inclusive = "right"
-
         if len(data):
             left, right = [], []
         else:
@@ -1368,20 +1356,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         return self.dtype.inclusive
 
-    @property
-    def closed(self) -> IntervalClosedType:
-        """
-        String describing the inclusive side the intervals.
-
-        Either ``left``, ``right``, ``both`` or ``neither`.
-        """
-        warnings.warn(
-            "Attribute `closed` is deprecated in favor of `inclusive`.",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        return self.dtype.inclusive
-
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
         Return an identical %(klass)s closed on the specified side.
@@ -1421,7 +1395,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    @deprecate_kwarg(old_arg_name="closed", new_arg_name="inclusive")
     def set_closed(
         self: IntervalArrayT, inclusive: IntervalClosedType
     ) -> IntervalArrayT:
