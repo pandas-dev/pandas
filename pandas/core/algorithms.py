@@ -734,6 +734,10 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
+    # GH#46910 deprecated na_sentinel in favor of use_na_sentinel:
+    #   na_sentinel=None corresponds to use_na_sentinel=False
+    #   na_sentinel=-1 correspond to use_na_sentinel=True
+    # Other na_sentinel values will not be supported when the deprecation is enforced.
     na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
     if isinstance(values, ABCRangeIndex):
         return values.factorize(sort=sort)
