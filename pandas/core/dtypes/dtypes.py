@@ -1077,7 +1077,8 @@ class IntervalDtype(PandasExtensionDtype):
     )
 
     _match = re.compile(
-        r"(I|i)nterval\[(?P<subtype>[^,]+)(, (?P<closed>(right|left|both|neither)))?\]"
+        r"(I|i)nterval\[(?P<subtype>[^,]+(\[.+\])?)"
+        r"(, (?P<closed>(right|left|both|neither)))?\]"
     )
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
