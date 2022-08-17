@@ -39,8 +39,9 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate && \
           python -m pip install --no-deps -U pip wheel 'setuptools<60.0.0' && \
           pip install cython numpy python-dateutil pytz pytest pytest-xdist pytest-asyncio>=0.17 hypothesis && \
-          python setup.py build_ext -q -j2 && \
+          python setup.py build_ext -q -j1 && \
           python -m pip install --no-build-isolation --no-use-pep517 -e . && \
+          python -m pip list && \
           export PANDAS_CI=1 && \
           pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml"
 
