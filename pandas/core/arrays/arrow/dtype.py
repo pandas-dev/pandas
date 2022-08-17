@@ -67,6 +67,9 @@ class ArrowDtype(StorageExtensionDtype):
             )
         self.pyarrow_dtype = pyarrow_dtype
 
+    def __repr__(self) -> str:
+        return self.name
+
     @property
     def type(self):
         """
