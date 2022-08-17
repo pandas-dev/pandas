@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import (
     Literal,
     cast,
@@ -112,7 +113,7 @@ def assert_almost_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -339,7 +340,7 @@ def assert_index_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -842,7 +843,7 @@ def assert_extension_array_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -892,7 +893,7 @@ def assert_series_equal(
     left,
     right,
     check_dtype: bool | Literal["equiv"] = True,
-    check_index_type="equiv",
+    check_index_type: bool | Literal["equiv"] = "equiv",
     check_series_type=True,
     check_less_precise: bool | int | NoDefault = no_default,
     check_names=True,
@@ -997,7 +998,7 @@ def assert_series_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -1166,7 +1167,7 @@ def assert_frame_equal(
     left,
     right,
     check_dtype: bool | Literal["equiv"] = True,
-    check_index_type="equiv",
+    check_index_type: bool | Literal["equiv"] = "equiv",
     check_column_type="equiv",
     check_frame_type=True,
     check_less_precise=no_default,
@@ -1296,7 +1297,7 @@ def assert_frame_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 

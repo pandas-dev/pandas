@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import inspect
 from typing import Hashable
 import warnings
 
@@ -366,7 +367,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 "will be removed in a future version. "
                 "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         else:
             how = "start"

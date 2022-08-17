@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from collections import abc
 from functools import partial
+import inspect
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -69,10 +71,10 @@ from pandas.core.apply import (
     reconstruct_func,
     validate_func_kwargs,
 )
+from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
@@ -87,11 +89,15 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
 )
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
@@ -1230,7 +1236,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "`.to_numpy()` to the result in the transform function to keep "
                 "the current behavior and silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
@@ -1400,7 +1406,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "Indexing with multiple keys (implicitly converted to a tuple "
                 "of keys) will be deprecated, use a list instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return super().__getitem__(key)
 
@@ -1821,6 +1827,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     key=key,
                     axis=self.axis,
                     sort=self.sort,
+                    observed=False,
                     dropna=dropna,
                 )
                 groupings += list(grouper.groupings)
@@ -1834,6 +1841,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             )
             result_series = cast(Series, gb.size())
 
+            # GH-46357 Include non-observed categories
+            # of non-grouping columns regardless of `observed`
+            if any(
+                isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
+                and not grouping._observed
+                for grouping in groupings
+            ):
+                levels_list = [ping.result_index for ping in groupings]
+                multi_index, _ = MultiIndex.from_product(
+                    levels_list, names=[ping.name for ping in groupings]
+                ).sortlevel()
+                result_series = result_series.reindex(multi_index, fill_value=0)
+
             if normalize:
                 # Normalize the results by dividing by the original group sizes.
                 # We are guaranteed to have the first N levels be the
@@ -1844,11 +1864,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 indexed_group_size = result_series.groupby(
                     result_series.index.droplevel(levels),
                     sort=self.sort,
-                    observed=self.observed,
                     dropna=self.dropna,
                 ).transform("sum")
-
                 result_series /= indexed_group_size
+
+                # Handle groups of non-observed categories
+                result_series = result_series.fillna(0.0)
 
             if sort:
                 # Sort the values and then resort by the main grouping

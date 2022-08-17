@@ -36,10 +36,6 @@ class TestInterval:
         assert 1 in interval
         assert 0 not in interval
 
-        msg = "__contains__ not defined for two intervals"
-        with pytest.raises(TypeError, match=msg):
-            interval in interval
-
         interval_both = Interval(0, 1, "both")
         assert 0 in interval_both
         assert 1 in interval_both
