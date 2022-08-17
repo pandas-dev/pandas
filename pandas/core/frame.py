@@ -5060,7 +5060,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = ...,
-        inplace: Literal[False] = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
         copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
@@ -5082,7 +5082,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         copy: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
@@ -5111,10 +5111,9 @@ class DataFrame(NDFrame, OpsMixin):
         1  2   5
         2  3   6
 
-        Now, update the labels inplace.
+        Now, update the labels without copying the underlying data.
 
-        >>> df.set_axis(['i', 'ii'], axis='columns', inplace=True)
-        >>> df
+        >>> df.set_axis(['i', 'ii'], axis='columns', copy=False)
            i  ii
         0  1   4
         1  2   5
@@ -5132,7 +5131,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         labels,
         axis: Axis = 0,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         *,
         copy: bool | lib.NoDefault = lib.no_default,
     ):
