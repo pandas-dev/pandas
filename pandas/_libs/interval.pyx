@@ -96,7 +96,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            True if the Interval is closed on the left-side.
+            True if the Interval is not closed on the left-side.
         """
         return not self.closed_left
 
@@ -110,7 +110,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            True if the Interval is closed on the left-side.
+            True if the Interval is not closed on the left-side.
         """
         return not self.closed_right
 
