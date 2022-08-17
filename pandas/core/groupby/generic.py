@@ -175,7 +175,9 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             mgr = cast(Manager2D, mgr)
             single = mgr.iget(0)
-        ser = self.obj._constructor(single, name=self.obj.name)
+        # FIXME: get axes without mgr.axes
+        index = single.axes[0]
+        ser = self.obj._constructor(single, index=index, name=self.obj.name)
         # NB: caller is responsible for setting ser.index
         return ser
 
@@ -1654,14 +1656,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             rows = mgr.shape[1] if mgr.shape[0] > 0 else 0
             index = Index(range(rows))
             mgr.set_axis(1, index)
-            result = self.obj._constructor(mgr)
+            # FIXME: get axes without mgr.axes
+            result = self.obj._constructor(mgr, index=mgr.axes[1], columns=mgr.axes[0])
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
             mgr.set_axis(1, index)
-            result = self.obj._constructor(mgr)
+            # FIXME: get axes without mgr.axes
+            result = self.obj._constructor(mgr, index=mgr.axes[1], columns=mgr.axes[0])
 
         if self.axis == 1:
             result = result.T

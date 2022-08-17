@@ -45,7 +45,7 @@ class DataManager(PandasObject):
 
     @final
     def __len__(self) -> int:
-        return len(self.items)
+        raise AbstractMethodError(self)
 
     @property
     def ndim(self) -> int:
@@ -159,6 +159,9 @@ class SingleDataManager(DataManager):
     @property
     def ndim(self) -> Literal[1]:
         return 1
+
+    def __len__(self) -> int:
+        return len(self.arrays[0])
 
     @final
     @property

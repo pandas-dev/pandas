@@ -590,7 +590,7 @@ class DataFrame(NDFrame, OpsMixin):
     2  2  3
     """
 
-    _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
+    _internal_names_set = {"_columns", "columns", "_index", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
     _accessors: set[str] = {"sparse"}
@@ -621,11 +621,20 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
+            if index is None and columns is None:
+                index = data.index
+                columns = data.columns
             data = data._mgr
 
         if isinstance(data, (BlockManager, ArrayManager)):
             # first check if a Manager is passed without any other arguments
             # -> use fastpath (without checking Manager type)
+            if index is None or columns is None:
+                assert False
+            if not index.equals(data.axes[-1]):#index is not data.axes[-1]:
+                assert False
+            if not columns.equals(data.axes[0]):#columns is not data.axes[0]:
+                assert False
             if index is None and columns is None and dtype is None and not copy:
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
@@ -751,7 +760,7 @@ class DataFrame(NDFrame, OpsMixin):
                         index,  # type: ignore[arg-type]
                         dtype,
                     )
-                    mgr = arrays_to_mgr(
+                    mgr, _, _ = arrays_to_mgr(
                         arrays,
                         columns,
                         index,
@@ -794,7 +803,7 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, dtype=None, typ=manager)
+                mgr, _, _ = arrays_to_mgr(values, columns, index, dtype=None, typ=manager)
             else:
                 arr2d = construct_2d_arraylike_from_scalar(
                     data,
@@ -2399,9 +2408,10 @@ class DataFrame(NDFrame, OpsMixin):
             columns = columns.drop(exclude)
 
         manager = get_option("mode.data_manager")
-        mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
+        mgr, index, columns = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        return cls(mgr)
+        # FIXME: get axes without mgr.axes
+        return cls(mgr, index=index, columns=columns)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2603,7 +2613,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
-        mgr = arrays_to_mgr(
+        mgr, index, columns = arrays_to_mgr(
             arrays,
             columns,
             index,
@@ -2611,7 +2621,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls(mgr)
+        return cls(mgr, index=index, columns=columns)
 
     @doc(
         storage_options=_shared_docs["storage_options"],
@@ -3729,7 +3739,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # if we are a copy, mark as such
             copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
-            result = self._constructor_sliced(new_mgr, name=self.index[i]).__finalize__(
+            result = self._constructor_sliced(new_mgr, index=self.columns, name=self.index[i]).__finalize__(
                 self
             )
             result._set_is_copy(self, copy=copy)
@@ -4267,7 +4277,7 @@ class DataFrame(NDFrame, OpsMixin):
         name = self.columns[loc]
         klass = self._constructor_sliced
         # We get index=self.index bc values is a SingleDataManager
-        return klass(values, name=name, fastpath=True).__finalize__(self)
+        return klass(values, name=name, index=self.index, fastpath=True).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -6942,8 +6952,12 @@ class DataFrame(NDFrame, OpsMixin):
             new_data.set_axis(
                 self._get_block_manager_axis(axis), default_index(len(indexer))
             )
-
-        result = self._constructor(new_data)
+        # FIXME: get axes without mgr.axes
+        axes_dict = {}
+        axes_dict["index"] = new_data.axes[-1]
+        if self.ndim == 2:
+            axes_dict["columns"] = new_data.axes[0]
+        result = self._constructor(new_data, **axes_dict)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -7627,7 +7641,7 @@ class DataFrame(NDFrame, OpsMixin):
             # i.e. scalar, faster than checking np.ndim(right) == 0
             with np.errstate(all="ignore"):
                 bm = self._mgr.apply(array_op, right=right)
-            return self._constructor(bm)
+            return self._constructor(bm, index=self.index, columns=self.columns)
 
         elif isinstance(right, DataFrame):
             assert self.index.equals(right.index)
@@ -7648,7 +7662,7 @@ class DataFrame(NDFrame, OpsMixin):
                     right._mgr,  # type: ignore[arg-type]
                     array_op,
                 )
-            return self._constructor(bm)
+            return self._constructor(bm, index=self.index, columns=self.columns)
 
         elif isinstance(right, Series) and axis == 1:
             # axis=1 means we want to operate row-by-row
@@ -10900,7 +10914,8 @@ Parrot 2  Parrot       24.0
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
             res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
-            out = df._constructor(res).iloc[0]
+            # FIXME: get axes without mgr.axes
+            out = df._constructor(res, index=res.axes[1], columns=res.axes[0]).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
@@ -11665,9 +11680,9 @@ Parrot 2  Parrot       24.0
     _info_axis_name = "columns"
 
     index = properties.AxisProperty(
-        axis=1, doc="The index (row labels) of the DataFrame."
+        axis=0, doc="The index (row labels) of the DataFrame."
     )
-    columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
+    columns = properties.AxisProperty(axis=1, doc="The column labels of the DataFrame.")
 
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:

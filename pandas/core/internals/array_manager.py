@@ -1180,6 +1180,9 @@ class ArrayManager(BaseArrayManager):
 
         return result
 
+    def __len__(self) -> int:
+        return len(self.arrays)
+
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
 

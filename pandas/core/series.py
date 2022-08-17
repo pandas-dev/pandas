@@ -318,7 +318,7 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     _name: Hashable
     _metadata: list[str] = ["name"]
-    _internal_names_set = {"index"} | NDFrame._internal_names_set
+    _internal_names_set = {"_index", "index"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs
@@ -350,6 +350,12 @@ class Series(base.IndexOpsMixin, NDFrame):
         copy: bool = False,
         fastpath: bool = False,
     ) -> None:
+
+        if isinstance(data, (SingleBlockManager, SingleArrayManager)):
+            if index is None:
+                assert False
+            if not index.equals(data.axes[0]):#index is not data.axes[0]:
+                assert False
 
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
@@ -592,7 +598,8 @@ class Series(base.IndexOpsMixin, NDFrame):
                     pass
 
         # The ensure_index call above ensures we have an Index object
-        self._mgr.set_axis(axis, labels)
+        self._validate_set_axis(0, labels)
+        object.__setattr__(self, "_index", labels)
 
     # ndarray compatibility
     @property
@@ -1071,7 +1078,8 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
-        return self._constructor(new_mgr).__finalize__(self)
+        new_index = self.index[indexer]
+        return self._constructor(new_mgr, index=new_index).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1946,7 +1954,7 @@ class Series(base.IndexOpsMixin, NDFrame):
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        df = self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim(mgr, index=self.index, columns=columns)
         return df.__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace=False) -> Series:

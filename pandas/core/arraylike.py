@@ -358,6 +358,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             return result
         if isinstance(result, BlockManager):
             # we went through BlockManager.apply e.g. np.sqrt
+            # TODO: any cases that aren't index/columns-preserving?
+            if self.ndim == 1:
+                reconstruct_kwargs["index"] = self.index
+            else:
+                reconstruct_kwargs["index"] = self.index
+                reconstruct_kwargs["columns"] = self.columns
             result = self._constructor(result, **reconstruct_kwargs, copy=False)
         else:
             # we converted an array, lost our axes

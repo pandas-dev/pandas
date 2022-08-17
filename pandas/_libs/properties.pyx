@@ -61,9 +61,10 @@ cdef class AxisProperty:
         if obj is None:
             # Only instances have _mgr, not classes
             return self
+        if self.axis == 0:
+            return obj._index
         else:
-            axes = obj._mgr.axes
-        return axes[self.axis]
+            return obj._columns
 
     def __set__(self, obj, value):
         obj._set_axis(self.axis, value)

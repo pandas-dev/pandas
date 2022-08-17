@@ -1856,6 +1856,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
 
+    def __len__(self) -> int:
+        # TODO: cache? would need to invalidate akin to blklocs
+        return sum(x.shape[1] for x in self.blocks)
+
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """manage a single block with"""

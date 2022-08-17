@@ -107,7 +107,7 @@ def arrays_to_mgr(
     verify_integrity: bool = True,
     typ: str | None = None,
     consolidate: bool = True,
-) -> Manager:
+) -> tuple[Manager, Index, Index]:
     """
     Segregate Series based on type and coerce into matrices.
 
@@ -152,13 +152,14 @@ def arrays_to_mgr(
     axes = [columns, index]
 
     if typ == "block":
-        return create_block_manager_from_column_arrays(
+        mgr = create_block_manager_from_column_arrays(
             arrays, axes, consolidate=consolidate
         )
     elif typ == "array":
-        return ArrayManager(arrays, [index, columns])
+        mgr = ArrayManager(arrays, [index, columns])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
+    return mgr, index, columns
 
 
 def rec_array_to_mgr(
@@ -204,7 +205,7 @@ def rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ)
+    mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ)[0]
 
     if copy:
         mgr = mgr.copy()
@@ -242,7 +243,7 @@ def mgr_to_mgr(mgr, typ: str, copy: bool = True):
             new_mgr = mgr
         else:
             if mgr.ndim == 2:
-                new_mgr = arrays_to_mgr(
+                new_mgr, _, _ = arrays_to_mgr(
                     mgr.arrays, mgr.axes[0], mgr.axes[1], typ="block"
                 )
             else:
@@ -314,7 +315,7 @@ def ndarray_to_mgr(
         else:
             columns = ensure_index(columns)
 
-        return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
+        return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)[0]
 
     elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
         # i.e. Datetime64TZ, PeriodDtype
@@ -491,7 +492,7 @@ def dict_to_mgr(
             # dtype check to exclude e.g. range objects, scalars
             arrays = [x.copy() if hasattr(x, "dtype") else x for x in arrays]
 
-    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
+    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)[0]
 
 
 def nested_data_to_arrays(

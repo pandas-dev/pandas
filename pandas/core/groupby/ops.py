@@ -1348,7 +1348,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        index = sdata.index[slice_obj]
+        ser = sdata._constructor(mgr, index=index, name=sdata.name, fastpath=True)
         return ser.__finalize__(sdata, method="groupby")
 
 
@@ -1360,7 +1361,13 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        df = sdata._constructor(mgr)
+        if self.axis == 0:
+            index = sdata.index[slice_obj]
+            columns = sdata.columns
+        else:
+            index = sdata.index
+            columns = sdata.columns[slice_obj]
+        df = sdata._constructor(mgr, index=index, columns=columns)
         return df.__finalize__(sdata, method="groupby")
 
 

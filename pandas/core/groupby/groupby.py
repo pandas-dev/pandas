@@ -3864,7 +3864,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if is_ser:
             out = self._wrap_agged_manager(res_mgr)
         else:
-            out = obj._constructor(res_mgr)
+            # FIXME: get axes without mgr.axes
+            out = obj._constructor(res_mgr, index=res_mgr.axes[1], columns=res_mgr.axes[0])
 
         return self._wrap_aggregated_output(out)
 

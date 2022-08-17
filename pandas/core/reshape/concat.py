@@ -621,7 +621,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = sample._constructor
-            return cons(new_data).__finalize__(self, method="concat")
+            return cons(new_data, index=self.new_axes[1], columns=self.new_axes[0]).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.bm_axis == 1:
