@@ -468,14 +468,14 @@ class TestSetitemWithExpansion:
     def test_setitem_empty_series(self):
         # GH#10193
         key = Timestamp("2012-01-01")
-        series = Series(dtype=object)
+        series = Series()
         series[key] = 47
         expected = Series(47, [key])
         tm.assert_series_equal(series, expected)
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
         # GH#33573 our index should retain its freq
-        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
+        series = Series([], DatetimeIndex([], freq="D"))
         key = Timestamp("2012-01-01")
         series[key] = 47
         expected = Series(47, DatetimeIndex([key], freq="D"))
