@@ -712,16 +712,16 @@ class TestFillNA:
         # GH 47649
         pdf = DataFrame(
             {
-                ("x", "a"): [np.nan, 2.0, 3.0, 4.0, np.nan, 6.0],
-                ("x", "b"): [1.0, 2.0, np.nan, 4.0, np.nan, np.nan],
-                ("y", "c"): [1.0, 2.0, 3.0, 4.0, np.nan, np.nan],
+                ("x", "a"): [np.nan, 2.0, 3.0],
+                ("x", "b"): [1.0, 2.0, np.nan],
+                ("y", "c"): [1.0, 2.0, np.nan],
             }
         )
         expected = DataFrame(
             {
-                ("x", "a"): [-1.0, 2.0, 3.0, 4.0, -1.0, 6.0],
-                ("x", "b"): [1.0, 2.0, -1.0, 4.0, -1.0, -1.0],
-                ("y", "c"): [1.0, 2.0, 3.0, 4.0, np.nan, np.nan],
+                ("x", "a"): [-1.0, 2.0, 3.0],
+                ("x", "b"): [1.0, 2.0, -1.0],
+                ("y", "c"): [1.0, 2.0, np.nan],
             }
         )
         tm.assert_frame_equal(pdf.fillna({"x": -1}), expected)
@@ -729,9 +729,9 @@ class TestFillNA:
 
         expected = DataFrame(
             {
-                ("x", "a"): [-1.0, 2.0, 3.0, 4.0, -1.0, 6.0],
-                ("x", "b"): [1.0, 2.0, -2.0, 4.0, -2.0, -2.0],
-                ("y", "c"): [1.0, 2.0, 3.0, 4.0, np.nan, np.nan],
+                ("x", "a"): [-1.0, 2.0, 3.0],
+                ("x", "b"): [1.0, 2.0, -2.0],
+                ("y", "c"): [1.0, 2.0, np.nan],
             }
         )
         tm.assert_frame_equal(pdf.fillna({("x", "b"): -2, "x": -1}), expected)

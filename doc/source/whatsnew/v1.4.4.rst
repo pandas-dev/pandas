@@ -14,6 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.fillna` not working :class:`DataFrame` with :class:`MultiIndex` and ``inplace=True`` (:issue:`47649`)
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
 -
 
