@@ -33,7 +33,7 @@ With `Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ installed, us
 that are backed by a ``pyarrow.ChunkedArray`` and ``pyarrow.DataType``.
 
 The ``dtype`` argument can accept a string of a `pyarrow data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
-with ``pyarrow`` in brackets e.g. ``int64[pyarrow]`` or, for pyarrow data types that take parameters, a :class:`ArrowDtype`
+with ``pyarrow`` in brackets e.g. ``"int64[pyarrow]"`` or, for pyarrow data types that take parameters, a :class:`ArrowDtype`
 initialized with a ``pyarrow.DataType``.
 
 .. ipython:: python

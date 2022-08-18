@@ -190,6 +190,15 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     Please install the latest version of PyArrow to enable the best functionality and avoid
     potential bugs in prior versions of PyArrow.
+
+    Examples
+    --------
+    Create an ArrowExtensionArray with :func:`pandas.array`:
+
+    >>> pd.array([1, 1, None], dtype="int64[pyarrow]")
+    <ArrowExtensionArray>
+    [1, 1, <NA>]
+    Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
     _data: pa.ChunkedArray
