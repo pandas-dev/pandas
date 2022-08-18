@@ -42,6 +42,7 @@ from pandas.compat._optional import (
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
 )
@@ -280,6 +281,11 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+
+    .. deprecated:: 1.5.0
+        Not implemented, and a new argument to specify the pattern for the
+        names of duplicated columns will be added instead
+
 {storage_options}
 
     .. versionadded:: 1.2.0
@@ -433,6 +439,7 @@ def read_excel(
 
 
 @doc(storage_options=_shared_docs["storage_options"])
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
