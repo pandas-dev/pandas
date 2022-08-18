@@ -1182,7 +1182,7 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize("interval_constructor", [IntervalIndex, IntervalArray])
     def test_construction_interval(self, interval_constructor):
         # construction from interval & array of intervals
-        intervals = interval_constructor.from_breaks(np.arange(3), inclusive="right")
+        intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
         assert result.dtype == "interval[int64, right]"
         tm.assert_index_equal(Index(result.values), Index(intervals))
@@ -1192,7 +1192,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_infer_interval(self, data_constructor):
         # GH 23563: consistent closed results in interval dtype
-        data = [Interval(0, 1, "right"), Interval(0, 2, "right"), None]
+        data = [Interval(0, 1), Interval(0, 2), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
         assert result.dtype == "interval[float64, right]"
@@ -1201,9 +1201,9 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
     )
-    def test_constructor_interval_mixed_inclusive(self, data_constructor):
-        # GH 23563: mixed inclusive results in object dtype (not interval dtype)
-        data = [Interval(0, 1, inclusive="both"), Interval(0, 2, inclusive="neither")]
+    def test_constructor_interval_mixed_closed(self, data_constructor):
+        # GH 23563: mixed closed results in object dtype (not interval dtype)
+        data = [Interval(0, 1, closed="both"), Interval(0, 2, closed="neither")]
         result = Series(data_constructor(data))
         assert result.dtype == object
         assert result.tolist() == data

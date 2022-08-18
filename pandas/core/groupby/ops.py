@@ -158,6 +158,7 @@ class WrappedCythonOp:
         "rank",
         "sum",
         "ohlc",
+        "cumsum",
         "prod",
     }
 
@@ -227,7 +228,7 @@ class WrappedCythonOp:
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how in ["sum", "ohlc", "prod"]:
+            elif how in ["sum", "ohlc", "prod", "cumsum"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)

@@ -2846,13 +2846,15 @@ def test_single_element_list_grouping():
         values, _ = next(iter(df.groupby(["a"])))
 
 
-@pytest.mark.parametrize("func", ["prod", "sum"])
+@pytest.mark.parametrize("func", ["sum", "cumsum", "prod"])
 def test_groupby_avoid_casting_to_float(func):
     # GH#37493
     val = 922337203685477580
     df = DataFrame({"a": 1, "b": [val]})
     result = getattr(df.groupby("a"), func)() - val
     expected = DataFrame({"b": [0]}, index=Index([1], name="a"))
+    if func == "cumsum":
+        expected = expected.reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2870,7 +2872,7 @@ def test_groupby_sum_support_mask(any_numeric_ea_dtype, func, val):
 
 
 @pytest.mark.parametrize("val, dtype", [(111, "int"), (222, "uint")])
-def test_groupby_sum_overflow(val, dtype):
+def test_groupby_overflow(val, dtype):
     # GH#37493
     df = DataFrame({"a": 1, "b": [val, val]}, dtype=f"{dtype}8")
     result = df.groupby("a").sum()
@@ -2881,10 +2883,26 @@ def test_groupby_sum_overflow(val, dtype):
     )
     tm.assert_frame_equal(result, expected)
 
+    result = df.groupby("a").cumsum()
+    expected = DataFrame({"b": [val, val * 2]}, dtype=f"{dtype}64")
+    tm.assert_frame_equal(result, expected)
+
     result = df.groupby("a").prod()
     expected = DataFrame(
         {"b": [val * val]},
         index=Index([1], name="a", dtype=f"{dtype}64"),
         dtype=f"{dtype}64",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna, val", [(True, 3), (False, pd.NA)])
+def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
+    # GH#37493
+    df = DataFrame({"a": 1, "b": [1, pd.NA, 2]}, dtype=any_numeric_ea_dtype)
+    result = df.groupby("a").cumsum(skipna=skipna)
+    expected = DataFrame(
+        {"b": [1, pd.NA, val]},
+        dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)
