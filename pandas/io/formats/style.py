@@ -2986,7 +2986,10 @@ class Styler(StylerRenderer):
         name="background",
         alt="text",
         image_prefix="bg",
-        text_threshold="",
+        text_threshold="""text_color_threshold : float or int\n
+            Luminance threshold for determining text color in [0, 1]. Facilitates text\n
+            visibility across varying background colors. All text is dark if 0, and\n
+            light if 1, defaults to 0.408.""",
     )
     @Substitution(subset=subset)
     def background_gradient(
@@ -3025,11 +3028,7 @@ class Styler(StylerRenderer):
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(subset)s
-        text_color_threshold : float or int
-            {text_threshold}
-            Luminance threshold for determining text color in [0, 1]. Facilitates text
-            visibility across varying background colors. All text is dark if 0, and
-            light if 1, defaults to 0.408.
+        {text_threshold}
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
@@ -3146,7 +3145,7 @@ class Styler(StylerRenderer):
         name="text",
         alt="background",
         image_prefix="tg",
-        text_threshold="This argument is ignored (only used in `background_gradient`).",
+        text_threshold="",
     )
     def text_gradient(
         self,
