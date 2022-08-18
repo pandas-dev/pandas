@@ -429,9 +429,13 @@ def test_inplace_raises(method, frame_only):
     s.flags.allows_duplicate_labels = False
     msg = "Cannot specify"
 
-    warn_msg = "'inplace' keyword in Series.rename"
+    warn_msg = None
     warn = None
     if "rename" in str(method):
+        warn_msg = "'inplace' keyword in Series.rename"
+        warn = FutureWarning
+    elif "set_axis" in str(method):
+        warn_msg = "Series.set_axis 'inplace' keyword"
         warn = FutureWarning
 
     with pytest.raises(ValueError, match=msg):

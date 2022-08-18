@@ -3545,7 +3545,11 @@ class Table(Fixed):
         if where is not None:
             if self.is_old_version:
                 ws = incompatibility_doc % ".".join([str(x) for x in self.version])
-                warnings.warn(ws, IncompatibilityWarning)
+                warnings.warn(
+                    ws,
+                    IncompatibilityWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
         """
@@ -4663,7 +4667,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s.set_index(self.levels, inplace=True)
+            s = s.set_index(self.levels, copy=False)
 
         s = s.iloc[:, 0]
 
