@@ -40,7 +40,7 @@ RUN mkdir "$pandas_home" \
 # we just update the base/root one from the 'environment.yml' file instead of creating a new one.
 #
 # Set up environment
-RUN conda install -y mamba
+RUN conda install -y mamba conda=4.13.0
 RUN mamba env update -n base -f "$pandas_home/environment.yml"
 
 # Build C extensions and pandas
