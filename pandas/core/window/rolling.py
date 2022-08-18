@@ -1320,6 +1320,32 @@ class Window(BaseWindow):
         create_section_header("See Also"),
         template_see_also[:-1],
         window_method="rolling",
+        aggregation_description="weighted window product",
+        agg_method="prod",
+    )
+    def prod(self, numeric_only: bool = False, *args, **kwargs):
+        nv.validate_window_func("prod", args, kwargs)
+        window_func = window_aggregations.roll_weighted_prod
+        # error: Argument 1 to "_apply" of "Window" has incompatible type
+        # "Callable[[ndarray, ndarray, int], ndarray]"; expected
+        # "Callable[[ndarray, int, int], ndarray]"
+        return self._apply(
+            window_func,  # type: ignore[arg-type]
+            name="prod",
+            numeric_only=numeric_only,
+            **kwargs,
+        )
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        kwargs_scipy,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="rolling",
         aggregation_description="weighted window mean",
         agg_method="mean",
     )
@@ -1474,6 +1500,15 @@ class RollingAndExpandingMixin(BaseWindow):
                 return self._numba_apply(sliding_sum, engine_kwargs)
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", numeric_only=numeric_only, **kwargs)
+    def prod(
+        self,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ): 
+        nv.validate_window_func("prod", args, kwargs)
+        window_func = window_aggregations.roll_prod
+        return self._apply(window_func, name="prod", numeric_only=numeric_only, **kwargs)
 
     def max(
         self,
@@ -2081,6 +2116,88 @@ class Rolling(RollingAndExpandingMixin):
     ):
         maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
         nv.validate_rolling_func("sum", args, kwargs)
+        return super().sum(
+            numeric_only=numeric_only,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            **kwargs,
+        )
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        kwargs_numeric_only,
+        args_compat,
+        window_agg_numba_parameters(),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 2, 3, 4, 5])
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        dtype: int64
+
+        >>> s.rolling(3).prod()
+        0     NaN
+        1     NaN
+        2     6.0
+        3    24.0
+        4    60.0
+        dtype: float64
+
+        >>> s.rolling(3, center=True).sum()
+        0     NaN
+        1     6.0
+        2    24.0
+        3    60.0
+        4     NaN
+        dtype: float64
+
+        For DataFrame, each product is computed column-wise.
+
+        >>> df = pd.DataFrame({{"A": s, "B": s * 2}})
+        >>> df
+           A   B
+        0  1   2
+        1  2   4
+        2  3   6
+        3  4   8
+        4  5  10
+
+        >>> df.rolling(3).sum()
+              A      B
+        0   NaN    NaN
+        1   NaN    NaN
+        2   6.0   48.0
+        3  24.0  192.0
+        4  60.0  480.0
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="product",
+        agg_method="prod",
+    )
+    def prod(
+        self,
+        numeric_only: bool = False,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
+        maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
+        nv.validate_rolling_func("prod", args, kwargs)
         return super().sum(
             numeric_only=numeric_only,
             engine=engine,

@@ -153,7 +153,7 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
     tm.assert_frame_equal(result_roll_generic, expected)
 
 
-@pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
+@pytest.mark.parametrize("method", ["std", "mean", "sum", "prod", "max", "min", "var"])
 def test_numpy_compat(method):
     # see gh-12811
     r = Rolling(Series([2, 4, 6]), window=2)
@@ -1273,7 +1273,7 @@ def test_timeoffset_as_window_parameter_for_corr():
     tm.assert_frame_equal(exp, res)
 
 
-@pytest.mark.parametrize("method", ["var", "sum", "mean", "skew", "kurt", "min", "max"])
+@pytest.mark.parametrize("method", ["var", "sum", "prod", "mean", "skew", "kurt", "min", "max"])
 def test_rolling_decreasing_indices(method):
     """
     Make sure that decreasing indices give the same results as increasing indices.

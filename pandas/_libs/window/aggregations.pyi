@@ -17,6 +17,12 @@ def roll_sum(
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
 ) -> np.ndarray: ...  # np.ndarray[float]
+def roll_prod(
+    values: np.ndarray,  # const float64_t[:]
+    start: np.ndarray,  # np.ndarray[np.int64]
+    end: np.ndarray,  # np.ndarray[np.int64]
+    minp: int,  # int64_t
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_mean(
     values: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # np.ndarray[np.int64]
@@ -88,6 +94,11 @@ def roll_apply(
     kwargs: dict[str, Any],
 ) -> npt.NDArray[np.float64]: ...
 def roll_weighted_sum(
+    values: np.ndarray,  # const float64_t[:]
+    weights: np.ndarray,  # const float64_t[:]
+    minp: int,
+) -> np.ndarray: ...  # np.ndarray[np.float64]
+def roll_weighted_prod(
     values: np.ndarray,  # const float64_t[:]
     weights: np.ndarray,  # const float64_t[:]
     minp: int,
