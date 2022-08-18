@@ -7,6 +7,7 @@ from functools import (
     lru_cache,
     reduce,
 )
+import inspect
 import itertools
 import re
 from typing import (
@@ -28,6 +29,7 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import (
@@ -427,7 +429,11 @@ class CSSToExcelConverter:
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
+            warnings.warn(
+                f"Unhandled color format: {repr(val)}",
+                CSSWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
         return None
 
     def _is_hex_color(self, color_string: str) -> bool:
