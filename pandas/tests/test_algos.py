@@ -455,13 +455,13 @@ class TestFactorize:
         [
             (
                 ["a", None, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", None, "b"], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", np.nan, "b"], dtype=object),
             ),
         ],
     )
@@ -478,13 +478,13 @@ class TestFactorize:
         [
             (
                 [1, None, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype="O"),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, None, 2], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype=np.float64),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, np.nan, 2], dtype=np.float64),
             ),
         ],
     )
@@ -1134,26 +1134,19 @@ class TestValueCounts:
         # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        index = IntervalIndex.from_breaks(breaks, inclusive="right").astype(
-            CDT(ordered=True)
-        )
+        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
         expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)
-        expected = Series(
-            [4], index=IntervalIndex.from_tuples([(0.996, 4.0)], inclusive="right")
-        )
+        expected = Series([4], index=IntervalIndex.from_tuples([(0.996, 4.0)]))
         tm.assert_series_equal(result, expected)
 
         result = algos.value_counts(s, bins=2, sort=False)
         expected = Series(
-            [2, 2],
-            index=IntervalIndex.from_tuples(
-                [(0.996, 2.5), (2.5, 4.0)], inclusive="right"
-            ),
+            [2, 2], index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)])
         )
         tm.assert_series_equal(result, expected)
 
