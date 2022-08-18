@@ -967,16 +967,11 @@ class _MergeOperation:
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
                 mask_left = left_indexer == -1
-                mask_right = right_indexer == -1
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 if mask_left.all():  # type: ignore[union-attr]
                     key_col = Index(rvals)
                     result_dtype = rvals.dtype
-                # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
-                elif (
-                    right_indexer is not None
-                    and mask_right.all()  # type: ignore[union-attr]
-                ):
+                elif right_indexer is not None and (right_indexer == -1).all():
                     key_col = Index(lvals)
                     result_dtype = lvals.dtype
                 else:
