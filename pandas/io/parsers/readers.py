@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections import abc
 import csv
+import inspect
 import sys
 from textwrap import fill
 from typing import (
@@ -38,6 +39,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
@@ -162,6 +164,10 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+
+    .. deprecated:: 1.5.0
+        Not implemented, and a new argument to specify the pattern for the
+        names of duplicated columns will be added instead
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -381,6 +387,8 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
 
     .. versionadded:: 1.3.0
 
+    .. versionadded:: 1.4.0
+
         - callable, function with signature
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
@@ -388,8 +396,6 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
           If the function returns a new list of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine="python"``
-
-    .. versionadded:: 1.4.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -499,7 +505,7 @@ def validate_integer(name, val: None, min_val=...) -> None:
 
 
 @overload
-def validate_integer(name, val: int | float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val=...) -> int:
     ...
 
 
@@ -845,6 +851,7 @@ def read_csv(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -1183,6 +1190,7 @@ def read_table(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -1609,7 +1617,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         index_col = options["index_col"]
@@ -1628,7 +1636,11 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    msg,
+                    FutureWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
             else:
                 result[arg] = parser_default
 
@@ -1910,7 +1922,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """return a stringified and numeric for these values"""
-    result: list[int | str | float] = []
+    result: list[str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -2203,7 +2215,9 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
+                "\n\n".join(conflict_msgs),
+                ParserWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         kwds[param] = dialect_val
     return kwds
