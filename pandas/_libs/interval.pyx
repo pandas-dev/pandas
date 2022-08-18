@@ -1,3 +1,4 @@
+import inspect
 import numbers
 from operator import (
     le,
@@ -45,6 +46,7 @@ cnp.import_array()
 import warnings
 
 from pandas._libs import lib
+
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
@@ -228,7 +230,7 @@ def _warning_interval(inclusive: str | None = None, closed: None | lib.NoDefault
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if closed is None:
             inclusive = "right"
@@ -297,9 +299,11 @@ cdef class Interval(IntervalMixin):
     >>> iv
     Interval(0, 5, inclusive='right')
 
-    You can check if an element belongs to it
+    You can check if an element belongs to it, or if it contains another interval:
 
     >>> 2.5 in iv
+    True
+    >>> pd.Interval(left=2, right=5, inclusive='both') in iv
     True
 
     You can test the bounds (``inclusive='right'``, so ``0 < x <= 5``):
@@ -352,8 +356,9 @@ cdef class Interval(IntervalMixin):
 
     cdef readonly str inclusive
     """
-    Whether the interval is inclusive on the left-side, right-side, both or
-    neither.
+    String describing the inclusive side the intervals.
+
+    Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
     def __init__(self, left, right, inclusive: str | None = None, closed: None | lib.NoDefault = lib.no_default):
@@ -384,15 +389,16 @@ cdef class Interval(IntervalMixin):
     @property
     def closed(self):
         """
-        Whether the interval is closed on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
 
         .. deprecated:: 1.5.0
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         warnings.warn(
             "Attribute `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.inclusive
 
@@ -408,7 +414,17 @@ cdef class Interval(IntervalMixin):
 
     def __contains__(self, key) -> bool:
         if _interval_like(key):
-            raise TypeError("__contains__ not defined for two intervals")
+            key_closed_left = key.inclusive in ('left', 'both')
+            key_closed_right = key.inclusive in ('right', 'both')
+            if self.open_left and key_closed_left:
+                left_contained = self.left < key.left
+            else:
+                left_contained = self.left <= key.left
+            if self.open_right and key_closed_right:
+                right_contained = key.right < self.right
+            else:
+                right_contained = key.right <= self.right
+            return left_contained and right_contained
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 

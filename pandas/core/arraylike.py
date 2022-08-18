@@ -6,6 +6,7 @@ Methods that can be shared by many array-like classes or subclasses:
 """
 from __future__ import annotations
 
+import inspect
 import operator
 from typing import Any
 import warnings
@@ -220,7 +221,7 @@ def _maybe_fallback(ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
                 "or align manually (eg 'df1, df2 = df1.align(df2)') before passing to "
                 "the ufunc to obtain the future behaviour and silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
             # keep the first dataframe of the inputs, other DataFrame/Series is
@@ -348,7 +349,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
                         "to an array with '.to_numpy()' first."
                     )
                     warnings.warn(
-                        msg.format(ufunc), FutureWarning, stacklevel=find_stack_level()
+                        msg.format(ufunc),
+                        FutureWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
                     return result
                 raise NotImplementedError

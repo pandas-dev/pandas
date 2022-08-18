@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections import abc
 import datetime
+import inspect
 from io import BytesIO
 import os
 import struct
@@ -41,10 +42,18 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.errors import (
+    CategoricalConversionWarning,
+    InvalidColumnName,
+    PossiblePrecisionLoss,
+    ValueLabelTypeMismatch,
+)
 from pandas.util._decorators import (
     Appender,
+    deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -342,7 +351,10 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         conv_dates = convert_delta_safe(base, ms, "ms")
     elif fmt.startswith(("%tC", "tC")):
 
-        warnings.warn("Encountered %tC format. Leaving in Stata Internal Format.")
+        warnings.warn(
+            "Encountered %tC format. Leaving in Stata Internal Format.",
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
         conv_dates = Series(dates, dtype=object)
         if has_bad_values:
             conv_dates[bad_locs] = NaT
@@ -456,7 +468,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = parse_dates_safe(dates, delta=True)
         conv_dates = d.delta / 1000
     elif fmt in ["%tC", "tC"]:
-        warnings.warn("Stata Internal Format tC not supported.")
+        warnings.warn(
+            "Stata Internal Format tC not supported.",
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
         conv_dates = dates
     elif fmt in ["%td", "td"]:
         d = parse_dates_safe(dates, delta=True)
@@ -493,18 +508,10 @@ characters.  Column '{0}' does not satisfy this restriction. Use the
 """
 
 
-class PossiblePrecisionLoss(Warning):
-    pass
-
-
 precision_loss_doc: Final = """
 Column converted from {0} to {1}, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
-
-
-class ValueLabelTypeMismatch(Warning):
-    pass
 
 
 value_label_mismatch_doc: Final = """
@@ -512,10 +519,6 @@ Stata value labels (pandas categories) must be strings. Column {0} contains
 non-string labels which will be converted to strings.  Please check that the
 Stata data file created has not lost information due to duplicate labels.
 """
-
-
-class InvalidColumnName(Warning):
-    pass
 
 
 invalid_name_doc: Final = """
@@ -530,11 +533,7 @@ alphanumerics and underscores, no Stata reserved words)
 """
 
 
-class CategoricalConversionWarning(Warning):
-    pass
-
-
-categorical_conversion_warning = """
+categorical_conversion_warning: Final = """
 One or more series with value labels are not fully labeled. Reading this
 dataset with an iterator results in categorical variable with different
 categories. This occurs since it is not possible to know all possible values
@@ -652,7 +651,11 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
                 data.loc[orig_missing, col] = sentinel
     if ws:
-        warnings.warn(ws, PossiblePrecisionLoss)
+        warnings.warn(
+            ws,
+            PossiblePrecisionLoss,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
 
     return data
 
@@ -707,6 +710,7 @@ class StataValueLabel:
                 warnings.warn(
                     value_label_mismatch_doc.format(self.labname),
                     ValueLabelTypeMismatch,
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             category = category.encode(self._encoding)
             offsets.append(self.text_len)
@@ -1516,7 +1520,11 @@ One or more strings in the dta file could not be decoded using {encoding}, and
 so the fallback encoding of latin-1 is being used.  This can happen when a file
 has been incorrectly encoded by Stata or some other software. You should verify
 the string values returned are correct."""
-            warnings.warn(msg, UnicodeWarning)
+            warnings.warn(
+                msg,
+                UnicodeWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
             return s.decode("latin-1")
 
     def _read_value_labels(self) -> None:
@@ -1912,7 +1920,9 @@ the string values returned are correct."""
                     if self._using_iterator:
                         # warn is using an iterator
                         warnings.warn(
-                            categorical_conversion_warning, CategoricalConversionWarning
+                            categorical_conversion_warning,
+                            CategoricalConversionWarning,
+                            stacklevel=find_stack_level(inspect.currentframe()),
                         )
                     initial_categories = None
                 cat_data = Categorical(
@@ -1931,9 +1941,8 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    # error: Incompatible types in assignment (expression has
-                    # type "List[str]", variable has type "Index")
-                    cat_data.categories = categories  # type: ignore[assignment]
+                    # TODO: if we get a non-copying rename_categories, use that
+                    cat_data = cat_data.rename_categories(categories)
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
@@ -1968,8 +1977,7 @@ The repeated labels are:
 
     def variable_labels(self) -> dict[str, str]:
         """
-        Return variable labels as a dict, associating each variable name
-        with corresponding label.
+        Return a dict associating each variable name with corresponding label.
 
         Returns
         -------
@@ -1979,8 +1987,7 @@ The repeated labels are:
 
     def value_labels(self) -> dict[str, dict[float, str]]:
         """
-        Return a dict, associating each variable name a dict, associating
-        each value its corresponding label.
+        Return a nested dict associating each variable name to its value and label.
 
         Returns
         -------
@@ -1993,6 +2000,7 @@ The repeated labels are:
 
 
 @Appender(_read_stata_doc)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     convert_dates: bool = True,
@@ -2495,7 +2503,11 @@ class StataWriter(StataParser):
                 conversion_warning.append(msg)
 
             ws = invalid_name_doc.format("\n    ".join(conversion_warning))
-            warnings.warn(ws, InvalidColumnName)
+            warnings.warn(
+                ws,
+                InvalidColumnName,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
 
         self._converted_names = converted_names
         self._update_strl_names()
@@ -2662,6 +2674,7 @@ supported types."""
                             f"This save was not successful but {self._fname} could not "
                             "be deleted. This file is not valid.",
                             ResourceWarning,
+                            stacklevel=find_stack_level(inspect.currentframe()),
                         )
                 raise exc
 

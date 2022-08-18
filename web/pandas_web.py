@@ -24,10 +24,12 @@ main:
 The rest of the items in the file will be added directly to the context.
 """
 import argparse
+import collections
 import datetime
 import importlib
 import operator
 import os
+import pathlib
 import re
 import shutil
 import sys
@@ -146,13 +148,20 @@ class Preprocessors:
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
         """
-        context["maintainers"]["people"] = []
-        for user in context["maintainers"]["active"]:
-            resp = requests.get(f"https://api.github.com/users/{user}")
-            if context["ignore_io_errors"] and resp.status_code == 403:
-                return context
-            resp.raise_for_status()
-            context["maintainers"]["people"].append(resp.json())
+        repeated = set(context["maintainers"]["active"]) & set(
+            context["maintainers"]["inactive"]
+        )
+        if repeated:
+            raise ValueError(f"Maintainers {repeated} are both active and inactive")
+
+        for kind in ("active", "inactive"):
+            context["maintainers"][f"{kind}_with_github_info"] = []
+            for user in context["maintainers"][kind]:
+                resp = requests.get(f"https://api.github.com/users/{user}")
+                if context["ignore_io_errors"] and resp.status_code == 403:
+                    return context
+                resp.raise_for_status()
+                context["maintainers"][f"{kind}_with_github_info"].append(resp.json())
         return context
 
     @staticmethod
@@ -183,6 +192,61 @@ class Preprocessors:
                     ),
                 }
             )
+        return context
+
+    @staticmethod
+    def roadmap_pdeps(context):
+        """
+        PDEP's (pandas enhancement proposals) are not part of the bar
+        navigation. They are included as lists in the "Roadmap" page
+        and linked from there. This preprocessor obtains the list of
+        PDEP's in different status from the directory tree and GitHub.
+        """
+        KNOWN_STATUS = {"Under discussion", "Accepted", "Implemented", "Rejected"}
+        context["pdeps"] = collections.defaultdict(list)
+
+        # accepted, rejected and implemented
+        pdeps_path = (
+            pathlib.Path(context["source_path"]) / context["roadmap"]["pdeps_path"]
+        )
+        for pdep in sorted(pdeps_path.iterdir()):
+            if pdep.suffix != ".md":
+                continue
+            with pdep.open() as f:
+                title = f.readline()[2:]  # removing markdown title "# "
+                status = None
+                for line in f:
+                    if line.startswith("- Status: "):
+                        status = line.strip().split(": ", 1)[1]
+                        break
+                if status not in KNOWN_STATUS:
+                    raise RuntimeError(
+                        f'PDEP "{pdep}" status "{status}" is unknown. '
+                        f"Should be one of: {KNOWN_STATUS}"
+                    )
+            html_file = pdep.with_suffix(".html").name
+            context["pdeps"][status].append(
+                {
+                    "title": title,
+                    "url": f"/pdeps/{html_file}",
+                }
+            )
+
+        # under discussion
+        github_repo_url = context["main"]["github_repo_url"]
+        resp = requests.get(
+            "https://api.github.com/search/issues?"
+            f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
+        )
+        if context["ignore_io_errors"] and resp.status_code == 403:
+            return context
+        resp.raise_for_status()
+
+        for pdep in resp.json()["items"]:
+            context["pdeps"]["under_discussion"].append(
+                {"title": pdep["title"], "url": pdep["url"]}
+            )
+
         return context
 
 
