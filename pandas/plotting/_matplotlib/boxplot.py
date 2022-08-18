@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -9,6 +10,8 @@ import warnings
 
 from matplotlib.artist import setp
 import numpy as np
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
 from pandas.core.dtypes.missing import remove_na_arraylike
@@ -89,7 +92,8 @@ class BoxPlot(LinePlot):
             if self.colormap is not None:
                 warnings.warn(
                     "'color' and 'colormap' cannot be used "
-                    "simultaneously. Using 'color'"
+                    "simultaneously. Using 'color'",
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             self.color = self.kwds.pop("color")
 
