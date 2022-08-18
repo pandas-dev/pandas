@@ -130,9 +130,7 @@ def _assert_caught_expected_warning(
         if issubclass(actual_warning.category, expected_warning):
             saw_warning = True
 
-            if check_stacklevel and issubclass(
-                actual_warning.category, (FutureWarning, DeprecationWarning)
-            ):
+            if check_stacklevel:
                 _assert_raised_with_correct_stacklevel(actual_warning)
 
             if match is not None:

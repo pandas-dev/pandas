@@ -242,7 +242,7 @@ IntervalIndex components
    IntervalIndex.left
    IntervalIndex.right
    IntervalIndex.mid
-   IntervalIndex.inclusive
+   IntervalIndex.closed
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_empty
@@ -251,7 +251,6 @@ IntervalIndex components
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
-   IntervalIndex.set_inclusive
    IntervalIndex.contains
    IntervalIndex.overlaps
    IntervalIndex.to_tuples

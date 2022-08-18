@@ -39,6 +39,7 @@ if TYPE_CHECKING:
         Timedelta,
         Timestamp,
     )
+    from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -63,7 +64,6 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
-    from pandas.tseries.offsets import DateOffset
 
     # numpy compatible types
     NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
@@ -113,7 +113,7 @@ Shape = Tuple[int, ...]
 Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
-Frequency = Union[str, "DateOffset"]
+Frequency = Union[str, "BaseOffset"]
 Axes = Union[AnyArrayLike, List, range]
 
 RandomState = Union[
@@ -313,7 +313,7 @@ XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
 IntervalLeftRight = Literal["left", "right"]
-IntervalInclusiveType = Union[IntervalLeftRight, Literal["both", "neither"]]
+IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]

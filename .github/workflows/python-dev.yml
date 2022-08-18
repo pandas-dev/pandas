@@ -1,9 +1,21 @@
-# This file is purposely frozen(does not run). DO NOT DELETE IT
-# Unfreeze(by commentingthe if: false() condition) once the
-# next Python Dev version has released beta 1 and both Cython and numpy support it
-# After that Python has released, migrate the workflows to the
-# posix GHA workflows and "freeze" this file by
-# uncommenting the if: false() condition
+# This workflow may or may not run depending on the state of the next
+# unreleased Python version. DO NOT DELETE IT.
+#
+# In general, this file will remain frozen(present, but not running) until:
+#    - The next unreleased Python version has released beta 1
+#      - This version should be available on Github Actions.
+#    - Our required build/runtime dependencies(numpy, pytz, Cython, python-dateutil)
+#      support that unreleased Python version.
+#    To unfreeze, comment out the ``if: false`` condition, and make sure you update
+#    the name of the workflow and Python version in actions/setup-python to: '3.12-dev'
+#
+# After it has been unfrozen, this file should remain unfrozen(present, and running) until:
+#    - The next Python version has been officially released.
+#    OR
+#    - Most/All of our optional dependencies support Python 3.11 AND
+#    - The next Python version has released a rc(we are guaranteed a stable ABI).
+#    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
+#    to the corresponding posix/windows-macos/sdist etc. workflows.
 # Feel free to modify this comment as necessary.
 
 name: Python Dev
@@ -32,7 +44,7 @@ permissions:
 
 jobs:
   build:
-    if: false # Comment this line out to "unfreeze"
+    # if: false # Uncomment this to freeze the workflow, comment it to unfreeze
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -53,27 +65,27 @@ jobs:
         fetch-depth: 0
 
     - name: Set up Python Dev Version
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: '3.11-dev'
 
     - name: Install dependencies
-      shell: bash -el {0}
       run: |
-        python3 -m pip install --upgrade pip setuptools wheel
-        python3 -m pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
-        python3 -m pip install git+https://github.com/nedbat/coveragepy.git
-        python3 -m pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov pytest-asyncio>=0.17
-        python3 -m pip list
+        python --version
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install git+https://github.com/numpy/numpy.git
+        python -m pip install git+https://github.com/nedbat/coveragepy.git
+        python -m pip install python-dateutil pytz cython hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-cov pytest-asyncio>=0.17
+        python -m pip list
 
     - name: Build Pandas
       run: |
-        python3 setup.py build_ext -q -j2
-        python3 -m pip install -e . --no-build-isolation --no-use-pep517
+        python setup.py build_ext -q -j2
+        python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Build Version
       run: |
-        python3 -c "import pandas; pandas.show_versions();"
+        python -c "import pandas; pandas.show_versions();"
 
     - name: Test
       uses: ./.github/actions/run-tests
