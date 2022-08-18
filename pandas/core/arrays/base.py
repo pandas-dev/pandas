@@ -1081,14 +1081,10 @@ class ExtensionArray:
         # 2. ExtensionArray.factorize.
         #    Complete control over factorization.
         resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
-        if resolved_na_sentinel is None:
-            raise NotImplementedError("Encoding NaN values is not yet implemented")
-        else:
-            na_sentinel = resolved_na_sentinel
         arr, na_value = self._values_for_factorize()
 
         codes, uniques = factorize_array(
-            arr, na_sentinel=na_sentinel, na_value=na_value
+            arr, na_sentinel=resolved_na_sentinel, na_value=na_value
         )
 
         uniques_ea = self._from_factorized(uniques, self)

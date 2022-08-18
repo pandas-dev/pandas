@@ -879,6 +879,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         codes, uniques = algos.factorize(
             np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
         )
+        if na_sentinel is lib.no_default:
+            na_sentinel = -1
+        if use_na_sentinel is lib.no_default or use_na_sentinel:
+            codes[codes == -1] = na_sentinel
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
