@@ -44,8 +44,8 @@ RUN mamba env update -n base -f "$pandas_home/environment.yml"
 
 # Build C extensions and pandas
 SHELL ["/bin/bash", "-c"]
-RUN . /opt/conda/etc/profile.d/mamba.sh \
-    && mamba activate base \
+RUN . /opt/conda/etc/profile.d/conda.sh \
+    && conda activate base \
     && cd "$pandas_home" \
     && export \
     && python setup.py build_ext -j 4 \
