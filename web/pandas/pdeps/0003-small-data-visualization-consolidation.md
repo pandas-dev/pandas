@@ -69,7 +69,7 @@ and avoids mixing column dtypes.
 >>> df = DataFrame({"norm": np.random.randn(10000),
                     "poisson": np.random.poisson(1, 10000)})
 >>> df_summary = df.agg(["mean"])
->>> pd.options.styler.render.max_rows=5
+>>> pd.options.styler.render.max_rows = 5
 >>> df.style.concat(df_summary.style)
            norm    poisson
 0     -0.111111          0
