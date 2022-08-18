@@ -481,7 +481,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype([1, 2, 3])
     False
     >>>
-    >>> interval = pd.Interval(1, 2, inclusive="right")
+    >>> interval = pd.Interval(1, 2, closed="right")
     >>> is_interval_dtype(interval)
     False
     >>> is_interval_dtype(pd.IntervalIndex([interval]))

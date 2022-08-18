@@ -281,10 +281,7 @@ class TestRoundTrip:
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"),
-                    periods=4,
-                    freq="6M",
-                    inclusive="right",
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
                 ),
             ]
         )

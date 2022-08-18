@@ -1316,7 +1316,7 @@ class TestDataFrameToCSV:
                     pd.Interval(
                         Timestamp("2020-01-01"),
                         Timestamp("2020-01-02"),
-                        inclusive="both",
+                        closed="both",
                     )
                 ]
             }

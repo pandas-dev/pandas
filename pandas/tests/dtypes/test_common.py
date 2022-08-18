@@ -269,7 +269,7 @@ def test_is_interval_dtype():
 
     assert com.is_interval_dtype(IntervalDtype())
 
-    interval = pd.Interval(1, 2, inclusive="right")
+    interval = pd.Interval(1, 2, closed="right")
     assert not com.is_interval_dtype(interval)
     assert com.is_interval_dtype(pd.IntervalIndex([interval]))
 

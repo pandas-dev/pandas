@@ -448,7 +448,7 @@ Selecting via a specific interval:
 
 .. ipython:: python
 
-   df.loc[pd.Interval(1.5, 3.0, "right")]
+   df.loc[pd.Interval(1.5, 3.0)]
 
 Selecting via a scalar value that is contained *in* the intervals.
 

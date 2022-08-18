@@ -807,14 +807,9 @@ class SetitemCastingEquivalents:
         pytest.param(
             # GH#45568 setting a valid NA value into IntervalDtype[int] should
             #  cast to IntervalDtype[float]
-            Series(interval_range(1, 5, inclusive="right")),
+            Series(interval_range(1, 5)),
             Series(
-                [
-                    Interval(1, 2, "right"),
-                    np.nan,
-                    Interval(3, 4, "right"),
-                    Interval(4, 5, "right"),
-                ],
+                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
                 dtype="interval[float64]",
             ),
             1,
@@ -1085,9 +1080,9 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
     def test_setitem_example(self):
         # Just a case here to make obvious what this test class is aimed at
-        idx = IntervalIndex.from_breaks(range(4), inclusive="right")
+        idx = IntervalIndex.from_breaks(range(4))
         obj = Series(idx)
-        val = Interval(0.5, 1.5, "right")
+        val = Interval(0.5, 1.5)
 
         obj[0] = val
         assert obj.dtype == "Interval[float64, right]"
@@ -1381,7 +1376,7 @@ class TestCoercionTimedelta64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, inclusive="both")]
+    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, closed="both")]
 )
 @pytest.mark.parametrize("exp_dtype", [object])
 class TestPeriodIntervalCoercion(CoercionTest):
@@ -1389,7 +1384,7 @@ class TestPeriodIntervalCoercion(CoercionTest):
     @pytest.fixture(
         params=[
             period_range("2016-01-01", periods=3, freq="D"),
-            interval_range(1, 5, inclusive="right"),
+            interval_range(1, 5),
         ]
     )
     def obj(self, request):
@@ -1580,7 +1575,7 @@ def test_setitem_int_as_positional_fallback_deprecation():
     # Once the deprecation is enforced, we will have
     #  expected = Series([1, 2, 3, 4, 5], index=[1.1, 2.1, 3.0, 4.1, 5.0])
 
-    ii = IntervalIndex.from_breaks(range(10), inclusive="right")[::2]
+    ii = IntervalIndex.from_breaks(range(10))[::2]
     ser2 = Series(range(len(ii)), index=ii)
     expected2 = ser2.copy()
     expected2.iloc[-1] = 9

@@ -133,9 +133,9 @@ from pandas.tests.extension.decimal import (
         ),
         # Interval
         (
-            [pd.Interval(1, 2, "right"), pd.Interval(3, 4, "right")],
+            [pd.Interval(1, 2), pd.Interval(3, 4)],
             "interval",
-            IntervalArray.from_tuples([(1, 2), (3, 4)], "right"),
+            IntervalArray.from_tuples([(1, 2), (3, 4)]),
         ),
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
@@ -206,10 +206,7 @@ cet = pytz.timezone("CET")
             period_array(["2000", "2001"], freq="D"),
         ),
         # interval
-        (
-            [pd.Interval(0, 1, "right"), pd.Interval(1, 2, "right")],
-            IntervalArray.from_breaks([0, 1, 2], "right"),
-        ),
+        ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2])),
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
@@ -298,8 +295,8 @@ def test_array_inference(data, expected):
     [
         # mix of frequencies
         [pd.Period("2000", "D"), pd.Period("2001", "A")],
-        # mix of inclusive
-        [pd.Interval(0, 1, "left"), pd.Interval(1, 2, "right")],
+        # mix of closed
+        [pd.Interval(0, 1, closed="left"), pd.Interval(1, 2, closed="right")],
         # Mix of timezones
         [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2000", tz="UTC")],
         # Mix of tz-aware and tz-naive

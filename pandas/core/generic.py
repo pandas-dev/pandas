@@ -56,7 +56,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
-    IntervalInclusiveType,
+    IntervalClosedType,
     JSONSerializable,
     Level,
     Manager,
@@ -8257,7 +8257,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         end_time,
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive: IntervalClosedType | None = None,
         axis=None,
     ) -> NDFrameT:
         """
@@ -8363,7 +8363,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = True if include_start is lib.no_default else include_start
             right = True if include_end is lib.no_default else include_end
 
-            inc_dict: dict[tuple[bool_t, bool_t], IntervalInclusiveType] = {
+            inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
                 (True, False): "left",
                 (False, True): "right",

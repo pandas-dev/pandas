@@ -966,7 +966,7 @@ class TestInference:
     @pytest.mark.parametrize(
         "idx",
         [
-            pd.IntervalIndex.from_breaks(range(5), inclusive="both"),
+            pd.IntervalIndex.from_breaks(range(5), closed="both"),
             pd.period_range("2016-01-01", periods=3, freq="D"),
         ],
     )
@@ -1659,7 +1659,7 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("asobject", [True, False])
     def test_interval(self, asobject):
-        idx = pd.IntervalIndex.from_breaks(range(5), inclusive="both")
+        idx = pd.IntervalIndex.from_breaks(range(5), closed="both")
         if asobject:
             idx = idx.astype(object)
 
@@ -1675,21 +1675,21 @@ class TestTypeInference:
     @pytest.mark.parametrize("value", [Timestamp(0), Timedelta(0), 0, 0.0])
     def test_interval_mismatched_closed(self, value):
 
-        first = Interval(value, value, inclusive="left")
-        second = Interval(value, value, inclusive="right")
+        first = Interval(value, value, closed="left")
+        second = Interval(value, value, closed="right")
 
-        # if inclusive match, we should infer "interval"
+        # if closed match, we should infer "interval"
         arr = np.array([first, first], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
 
-        # if inclusive dont match, we should _not_ get "interval"
+        # if closed dont match, we should _not_ get "interval"
         arr2 = np.array([first, second], dtype=object)
         assert lib.infer_dtype(arr2, skipna=False) == "mixed"
 
     def test_interval_mismatched_subtype(self):
-        first = Interval(0, 1, inclusive="left")
-        second = Interval(Timestamp(0), Timestamp(1), inclusive="left")
-        third = Interval(Timedelta(0), Timedelta(1), inclusive="left")
+        first = Interval(0, 1, closed="left")
+        second = Interval(Timestamp(0), Timestamp(1), closed="left")
+        third = Interval(Timedelta(0), Timedelta(1), closed="left")
 
         arr = np.array([first, second])
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
@@ -1701,7 +1701,7 @@ class TestTypeInference:
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
         # float vs int subdtype are compatible
-        flt_interval = Interval(1.5, 2.5, inclusive="left")
+        flt_interval = Interval(1.5, 2.5, closed="left")
         arr = np.array([first, flt_interval], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
 
