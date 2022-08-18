@@ -614,8 +614,8 @@ def test_setitem_scalar_with_mask_validation(dtype):
 
 
 def test_consitency_inplace():
+    expected = pd.DataFrame({"M": [""]}, dtype="string")
     df = pd.DataFrame({"M": [""]}, dtype="string")
-    df2 = pd.DataFrame({"M": [""]}, dtype="string")
-    df2.where(df2 != "", np.nan, inplace=True)
-    df = df.where(df != "", np.nan)
-    tm.assert_frame_equal(df, df2)
+    df.where(df != "", np.nan, inplace=True)
+    expected = expected.where(expected != "", np.nan)
+    tm.assert_frame_equal(expected, df)
