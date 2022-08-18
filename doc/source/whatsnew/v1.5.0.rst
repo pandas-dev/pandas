@@ -852,6 +852,7 @@ Other Deprecations
 - Deprecated the ``inplace`` keyword in :meth:`DataFrame.set_index`, use ``df = df.set_index(..., copy=False)`` instead (:issue:`48115`)
 - Deprecated the ``sort_columns`` argument in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`).
 - Deprecated positional arguments for all but the first argument of :meth:`DataFrame.to_stata` and :func:`read_stata`, use keyword arguments instead (:issue:`48128`).
+- Deprecated the ``mangle_dupe_cols`` argument in :func:`read_csv`, :func:`read_fwf` and :func:`read_excel`. The argument was never implemented, and a new argument where the renaming pattern can be specified will be added instead (:issue:`47718`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:

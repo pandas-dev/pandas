@@ -21,7 +21,15 @@ def test_basic(all_parsers, kwargs):
     parser = all_parsers
 
     data = "a,a,b,b,b\n1,2,3,4,5"
-    result = parser.read_csv(StringIO(data), sep=",", **kwargs)
+    if "mangle_dupe_cols" in kwargs:
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="the 'mangle_dupe_cols' keyword is deprecated",
+            check_stacklevel=False,
+        ):
+            result = parser.read_csv(StringIO(data), sep=",", **kwargs)
+    else:
+        result = parser.read_csv(StringIO(data), sep=",", **kwargs)
 
     expected = DataFrame([[1, 2, 3, 4, 5]], columns=["a", "a.1", "b", "b.1", "b.2"])
     tm.assert_frame_equal(result, expected)
