@@ -1939,7 +1939,7 @@ class TestLocSetitemWithExpansion:
         # GH#5226
 
         # partially set with an empty object series
-        ser = Series(dtype=object)
+        ser = Series()
         ser.loc[1] = 1
         tm.assert_series_equal(ser, Series([1], index=[1]))
         ser.loc[3] = 3
@@ -1949,7 +1949,7 @@ class TestLocSetitemWithExpansion:
         # GH#5226
 
         # partially set with an empty object series
-        ser = Series(dtype=object)
+        ser = Series()
         ser.loc[1] = 1.0
         tm.assert_series_equal(ser, Series([1.0], index=[1]))
         ser.loc[3] = 3.0
@@ -1959,7 +1959,7 @@ class TestLocSetitemWithExpansion:
         # GH#5226
 
         # partially set with an empty object series
-        ser = Series(dtype=object)
+        ser = Series()
         ser.loc["foo"] = 1
         tm.assert_series_equal(ser, Series([1], index=["foo"]))
         ser.loc["bar"] = 3
