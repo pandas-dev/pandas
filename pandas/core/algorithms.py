@@ -404,6 +404,11 @@ def unique(values):
     >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
+    return unique_with_mask(values)
+
+
+def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
+    """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values.dtype):
@@ -414,9 +419,16 @@ def unique(values):
     htable, values = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, original.dtype, original)
-    return uniques
+    if mask is None:
+        uniques = table.unique(values)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        return uniques
+
+    else:
+        uniques, mask = table.unique(values, mask=mask)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        assert mask is not None  # for mypy
+        return uniques, mask.astype("bool")
 
 
 unique1d = unique
@@ -1036,7 +1048,10 @@ def mode(
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
-        warnings.warn(f"Unable to sort modes: {err}")
+        warnings.warn(
+            f"Unable to sort modes: {err}",
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
 
     result = _reconstruct_data(npresult, original.dtype, original)
     return result

@@ -771,7 +771,7 @@ class PandasSQLTest:
         assert self.pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
         result = self.pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
-        result.set_index("level_0", inplace=True)
+        result = result.set_index("level_0", copy=False)
         # result.index.astype(int)
 
         result.index.name = None
@@ -928,7 +928,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # HACK!
         result.index = test_frame1.index
-        result.set_index("level_0", inplace=True)
+        result = result.set_index("level_0", copy=False)
         result.index.astype(int)
         result.index.name = None
         tm.assert_frame_equal(result, test_frame1)

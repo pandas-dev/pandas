@@ -1723,13 +1723,12 @@ the given columns to a MultiIndex:
    frame
 
 Other options in ``set_index`` allow you not drop the index columns or to add
-the index in-place (without creating a new object):
+the index without creating a copy of the underlying data:
 
 .. ipython:: python
 
    data.set_index('c', drop=False)
-   data.set_index(['a', 'b'], inplace=True)
-   data
+   data.set_index(['a', 'b'], copy=False)
 
 Reset the index
 ~~~~~~~~~~~~~~~

@@ -782,9 +782,9 @@ class _MergeOperation:
         if self.indicator:
             result = self._indicator_post_merge(result)
 
-        self._maybe_add_join_keys(result, left_indexer, right_indexer)
+        result = self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
-        self._maybe_restore_index_levels(result)
+        result = self._maybe_restore_index_levels(result)
 
         self._maybe_drop_cross_column(result, self._cross)
 
@@ -851,7 +851,7 @@ class _MergeOperation:
         result = result.drop(labels=["_left_indicator", "_right_indicator"], axis=1)
         return result
 
-    def _maybe_restore_index_levels(self, result: DataFrame) -> None:
+    def _maybe_restore_index_levels(self, result: DataFrame) -> DataFrame:
         """
         Restore index levels specified as `on` parameters
 
@@ -869,7 +869,7 @@ class _MergeOperation:
 
         Returns
         -------
-        None
+        DataFrame
         """
         names_to_restore = []
         for name, left_key, right_key in zip(
@@ -893,14 +893,15 @@ class _MergeOperation:
                 names_to_restore.append(name)
 
         if names_to_restore:
-            result.set_index(names_to_restore, inplace=True)
+            result = result.set_index(names_to_restore, copy=False)
+        return result
 
     def _maybe_add_join_keys(
         self,
         result: DataFrame,
         left_indexer: np.ndarray | None,
         right_indexer: np.ndarray | None,
-    ) -> None:
+    ) -> DataFrame:
 
         left_has_missing = None
         right_has_missing = None
@@ -996,11 +997,12 @@ class _MergeOperation:
                             for level_name in result.index.names
                         ]
 
-                        result.set_index(idx_list, inplace=True)
+                        result = result.set_index(idx_list, copy=False)
                     else:
                         result.index = Index(key_col, name=name)
                 else:
                     result.insert(i, name or f"key_{i}", key_col)
+        return result
 
     def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
@@ -1293,6 +1295,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
+                                stacklevel=find_stack_level(inspect.currentframe()),
                             )
                     continue
 
@@ -1305,6 +1308,7 @@ class _MergeOperation:
                                 "columns where the float values "
                                 "are not equal to their int representation.",
                                 UserWarning,
+                                stacklevel=find_stack_level(inspect.currentframe()),
                             )
                     continue
 
@@ -1768,7 +1772,8 @@ class _OrderedMerge(_MergeOperation):
         result = self._reindex_and_concat(
             join_index, left_join_indexer, right_join_indexer, copy=copy
         )
-        self._maybe_add_join_keys(result, left_indexer, right_indexer)
+
+        result = self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
 
