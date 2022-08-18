@@ -429,11 +429,19 @@ def test_inplace_raises(method, frame_only):
     s.flags.allows_duplicate_labels = False
     msg = "Cannot specify"
 
+    warn_msg = "Series.set_axis 'inplace' keyword"
+    if "set_axis" in str(method):
+        warn = FutureWarning
+    else:
+        warn = None
+
     with pytest.raises(ValueError, match=msg):
-        method(df)
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            method(df)
     if not frame_only:
         with pytest.raises(ValueError, match=msg):
-            method(s)
+            with tm.assert_produces_warning(warn, match=warn_msg):
+                method(s)
 
 
 def test_pickle():

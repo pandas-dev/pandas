@@ -4980,7 +4980,7 @@ Keep all original rows and also all original values
         labels,
         *,
         axis: Axis = ...,
-        inplace: Literal[False] = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
         copy: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
@@ -5002,7 +5002,7 @@ Keep all original rows and also all original values
         labels,
         *,
         axis: Axis = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         copy: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
@@ -5038,7 +5038,7 @@ Keep all original rows and also all original values
         self,
         labels,
         axis: Axis = 0,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
