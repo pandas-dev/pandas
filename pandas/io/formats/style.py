@@ -3134,10 +3134,10 @@ class Styler(StylerRenderer):
             axis=axis,
             low=low,
             high=high,
+            text_color_threshold=text_color_threshold,
             vmin=vmin,
             vmax=vmax,
             gmap=gmap,
-            text_only=True,
         )
         return self
 
@@ -3165,10 +3165,10 @@ class Styler(StylerRenderer):
         return self.apply(
             _background_gradient,
             cmap=cmap,
+            subset=subset,
+            axis=axis,
             low=low,
             high=high,
-            axis=axis,
-            subset=subset,
             vmin=vmin,
             vmax=vmax,
             gmap=gmap,
