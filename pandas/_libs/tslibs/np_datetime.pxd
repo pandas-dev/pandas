@@ -76,9 +76,9 @@ cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil
-cdef void dt64_to_dtstruct(int64_t dt64, npy_datetimestruct* out) nogil
 
 cdef int64_t pydatetime_to_dt64(datetime val, npy_datetimestruct *dts)
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts)
 cdef int64_t pydate_to_dt64(date val, npy_datetimestruct *dts)
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts)
 
@@ -101,6 +101,18 @@ cpdef cnp.ndarray astype_overflowsafe(
     cnp.ndarray values,  # ndarray[datetime64[anyunit]]
     cnp.dtype dtype,  # ndarray[datetime64[anyunit]]
     bint copy=*,
+    bint round_ok=*,
 )
+cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1
 
 cdef bint cmp_dtstructs(npy_datetimestruct* left, npy_datetimestruct* right, int op)
+cdef get_implementation_bounds(
+    NPY_DATETIMEUNIT reso, npy_datetimestruct *lower, npy_datetimestruct *upper
+)
+
+cdef int64_t convert_reso(
+    int64_t value,
+    NPY_DATETIMEUNIT from_reso,
+    NPY_DATETIMEUNIT to_reso,
+    bint round_ok,
+) except? -1

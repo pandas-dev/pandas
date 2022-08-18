@@ -15,16 +15,18 @@ on:
 env:
   PANDAS_CI: 1
   PYTEST_TARGET: pandas
-  PYTEST_WORKERS: auto
   PATTERN: "not slow and not db and not network and not single_cpu"
 
+
+permissions:
+  contents: read
 
 jobs:
   pytest:
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
@@ -36,6 +38,9 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.os }}
       cancel-in-progress: true
+    env:
+      # GH 47443: PYTEST_WORKERS > 1 crashes Windows builds with memory related errors
+      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '1' }}
 
     steps:
     - name: Checkout
@@ -53,18 +58,4 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: ci/run_tests.sh
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v3
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: false
+      uses: ./.github/actions/run-tests

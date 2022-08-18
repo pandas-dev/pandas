@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
+import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -68,7 +69,6 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.core.indexes.api import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -96,6 +96,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -205,7 +206,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
     @property
-    def obj(self) -> NDFrameT:  # type: ignore[override]
+    def obj(self) -> NDFrame:  # type: ignore[override]
         # error: Incompatible return value type (got "Optional[Any]",
         # expected "NDFrameT")
         return self.groupby.obj  # type: ignore[return-value]
@@ -362,8 +363,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def transform(self, arg, *args, **kwargs):
         """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values.
+        Call function producing a like-indexed Series on each group.
+
+        Return a Series with the transformed values.
 
         Parameters
         ----------
@@ -502,11 +504,11 @@ class Resampler(BaseGroupBy, PandasObject):
         self.loffset = None
         return result
 
-    def _get_resampler_for_grouping(self, groupby):
+    def _get_resampler_for_grouping(self, groupby, key=None):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(self, groupby=groupby)
+        return self._resampler_for_grouping(self, groupby=groupby, key=key)
 
     def _wrap_result(self, result):
         """
@@ -548,7 +550,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
 
@@ -721,7 +723,7 @@ class Resampler(BaseGroupBy, PandasObject):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
 
@@ -937,7 +939,13 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
-    def std(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
+    def std(
+        self,
+        ddof=1,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -958,7 +966,13 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("std", args, kwargs)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
-    def var(self, ddof=1, numeric_only: bool = False, *args, **kwargs):
+    def var(
+        self,
+        ddof=1,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        *args,
+        **kwargs,
+    ):
         """
         Compute variance of groups, excluding missing values.
 
@@ -1132,7 +1146,7 @@ class _GroupByMixin(PandasObject):
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
 
-    def __init__(self, obj, parent=None, groupby=None, **kwargs) -> None:
+    def __init__(self, obj, parent=None, groupby=None, key=None, **kwargs) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
         if parent is None:
@@ -1145,6 +1159,7 @@ class _GroupByMixin(PandasObject):
         self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
+        self.key = key
 
         self._groupby = groupby
         self._groupby.mutated = True
@@ -1197,6 +1212,8 @@ class _GroupByMixin(PandasObject):
 
         # Try to select from a DataFrame, falling back to a Series
         try:
+            if isinstance(key, list) and self.key not in key:
+                key.append(self.key)
             groupby = self._groupby[key]
         except IndexError:
             groupby = self._groupby
@@ -1491,7 +1508,9 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
         return TimedeltaIndexResampler
 
 
-def get_resampler(obj, kind=None, **kwds):
+def get_resampler(
+    obj, kind=None, **kwds
+) -> DatetimeIndexResampler | PeriodIndexResampler | TimedeltaIndexResampler:
     """
     Create a TimeGrouper and return our resampler.
     """
@@ -1511,7 +1530,7 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(groupby=groupby)
+    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
 
 
 class TimeGrouper(Grouper):

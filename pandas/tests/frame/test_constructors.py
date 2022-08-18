@@ -52,6 +52,7 @@ from pandas.arrays import (
     IntervalArray,
     PeriodArray,
     SparseArray,
+    TimedeltaArray,
 )
 from pandas.core.api import Int64Index
 
@@ -431,6 +432,25 @@ class TestDataFrameConstructors:
         result = DataFrame(values)
 
         assert result[0].dtype == object
+        assert result[0][0] == value
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            np.array([1], dtype=np.uint16),
+            np.array([1], dtype=np.uint32),
+            np.array([1], dtype=np.uint64),
+            [np.uint16(1)],
+            [np.uint32(1)],
+            [np.uint64(1)],
+        ],
+    )
+    def test_constructor_numpy_uints(self, values):
+        # GH#47294
+        value = values[0]
+        result = DataFrame(values)
+
+        assert result[0].dtype == value.dtype
         assert result[0][0] == value
 
     def test_constructor_ordereddict(self):
@@ -882,10 +902,7 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (
-                Interval(left=0, right=5, inclusive="right"),
-                IntervalDtype("int64", "right"),
-            ),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -1370,7 +1387,7 @@ class TestDataFrameConstructors:
             def __getitem__(self, n):
                 return self._lst.__getitem__(n)
 
-            def __len__(self, n):
+            def __len__(self):
                 return self._lst.__len__()
 
         lst_containers = [DummyContainer([1, "a"]), DummyContainer([2, "b"])]
@@ -2411,16 +2428,16 @@ class TestDataFrameConstructors:
         result = DataFrame({"1": ser1, "2": ser2})
         index = CategoricalIndex(
             [
-                Interval(-0.099, 9.9, inclusive="right"),
-                Interval(9.9, 19.8, inclusive="right"),
-                Interval(19.8, 29.7, inclusive="right"),
-                Interval(29.7, 39.6, inclusive="right"),
-                Interval(39.6, 49.5, inclusive="right"),
-                Interval(49.5, 59.4, inclusive="right"),
-                Interval(59.4, 69.3, inclusive="right"),
-                Interval(69.3, 79.2, inclusive="right"),
-                Interval(79.2, 89.1, inclusive="right"),
-                Interval(89.1, 99, inclusive="right"),
+                Interval(-0.099, 9.9, closed="right"),
+                Interval(9.9, 19.8, closed="right"),
+                Interval(19.8, 29.7, closed="right"),
+                Interval(29.7, 39.6, closed="right"),
+                Interval(39.6, 49.5, closed="right"),
+                Interval(49.5, 59.4, closed="right"),
+                Interval(59.4, 69.3, closed="right"),
+                Interval(69.3, 79.2, closed="right"),
+                Interval(79.2, 89.1, closed="right"),
+                Interval(89.1, 99, closed="right"),
             ],
             ordered=True,
         )
@@ -2664,6 +2681,12 @@ class TestDataFrameConstructors:
             dtype=object,
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_construction_empty_array_multi_column_raises(self):
+        # GH#46822
+        msg = "Empty data passed with indices specified."
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(data=np.array([]), columns=["a", "b"])
 
 
 class TestDataFrameConstructorIndexInference:
@@ -2975,6 +2998,14 @@ class TestDataFrameConstructorWithDatetimeTZ:
         with pytest.raises(ValueError, match=msg):
             DataFrame(arr2, columns=["foo", "bar"])
 
+    def test_columns_indexes_raise_on_sets(self):
+        # GH 47215
+        data = [[1, 2, 3], [4, 5, 6]]
+        with pytest.raises(ValueError, match="index cannot be a set"):
+            DataFrame(data, index={"a", "b"})
+        with pytest.raises(ValueError, match="columns cannot be a set"):
+            DataFrame(data, columns={"a", "b", "c"})
+
 
 def get1(obj):  # TODO: make a helper in tm?
     if isinstance(obj, Series):
@@ -3085,3 +3116,51 @@ class TestFromScalar:
 
         assert np.all(result.dtypes == "M8[ns]")
         assert np.all(result == ts_naive)
+
+
+# TODO: better location for this test?
+class TestAllowNonNano:
+    # Until 2.0, we do not preserve non-nano dt64/td64 when passed as ndarray,
+    #  but do preserve it when passed as DTA/TDA
+
+    @pytest.fixture(params=[True, False])
+    def as_td(self, request):
+        return request.param
+
+    @pytest.fixture
+    def arr(self, as_td):
+        values = np.arange(5).astype(np.int64).view("M8[s]")
+        if as_td:
+            values = values - values[0]
+            return TimedeltaArray._simple_new(values, dtype=values.dtype)
+        else:
+            return DatetimeArray._simple_new(values, dtype=values.dtype)
+
+    def test_index_allow_non_nano(self, arr):
+        idx = Index(arr)
+        assert idx.dtype == arr.dtype
+
+    def test_dti_tdi_allow_non_nano(self, arr, as_td):
+        if as_td:
+            idx = pd.TimedeltaIndex(arr)
+        else:
+            idx = DatetimeIndex(arr)
+        assert idx.dtype == arr.dtype
+
+    def test_series_allow_non_nano(self, arr):
+        ser = Series(arr)
+        assert ser.dtype == arr.dtype
+
+    def test_frame_allow_non_nano(self, arr):
+        df = DataFrame(arr)
+        assert df.dtypes[0] == arr.dtype
+
+    @pytest.mark.xfail(
+        # TODO(2.0): xfail should become unnecessary
+        strict=False,
+        reason="stack_arrays converts TDA to ndarray, then goes "
+        "through ensure_wrapped_if_datetimelike",
+    )
+    def test_frame_from_dict_allow_non_nano(self, arr):
+        df = DataFrame({0: arr})
+        assert df.dtypes[0] == arr.dtype

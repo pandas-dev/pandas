@@ -322,13 +322,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
 
-    def __neg__(self):
+    def __neg__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(-self._data, self._mask.copy())
 
-    def __pos__(self):
+    def __pos__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return self.copy()
 
-    def __abs__(self):
+    def __abs__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(abs(self._data), self._mask.copy())
 
     # ------------------------------------------------------------------
@@ -851,6 +851,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
+    def unique(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
+        """
+        Compute the BaseMaskedArray of unique values.
+
+        Returns
+        -------
+        uniques : BaseMaskedArray
+        """
+        uniques, mask = algos.unique_with_mask(self._data, self._mask)
+        return type(self)(uniques, mask, copy=False)
+
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
@@ -869,16 +880,45 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self,
+        na_sentinel: int | lib.NoDefault = lib.no_default,
+        use_na_sentinel: bool | lib.NoDefault = lib.no_default,
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        resolved_na_sentinel = algos.resolve_na_sentinel(na_sentinel, use_na_sentinel)
         arr = self._data
         mask = self._mask
 
-        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+        # Pass non-None na_sentinel; recode and add NA to uniques if necessary below
+        na_sentinel_arg = -1 if resolved_na_sentinel is None else resolved_na_sentinel
+        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel_arg, mask=mask)
 
         # check that factorize_array correctly preserves dtype.
         assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
 
-        uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        has_na = mask.any()
+        if resolved_na_sentinel is not None or not has_na:
+            size = len(uniques)
+        else:
+            # Make room for an NA value
+            size = len(uniques) + 1
+        uniques_mask = np.zeros(size, dtype=bool)
+        if resolved_na_sentinel is None and has_na:
+            na_index = mask.argmax()
+            # Insert na with the proper code
+            if na_index == 0:
+                na_code = np.intp(0)
+            else:
+                # mypy error: Slice index must be an integer or None
+                # https://github.com/python/mypy/issues/2410
+                na_code = codes[:na_index].argmax() + 1  # type: ignore[misc]
+            codes[codes >= na_code] += 1
+            codes[codes == -1] = na_code
+            # dummy value for uniques; not used since uniques_mask will be True
+            uniques = np.insert(uniques, na_code, 0)
+            uniques_mask[na_code] = True
+        uniques_ea = type(self)(uniques, uniques_mask)
+
         return codes, uniques_ea
 
     @doc(ExtensionArray._values_for_argsort)
@@ -936,9 +976,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         index = index.astype(self.dtype)
 
         mask = np.zeros(len(counts), dtype="bool")
-        counts = IntegerArray(counts, mask)
+        counts_array = IntegerArray(counts, mask)
 
-        return Series(counts, index=index)
+        return Series(counts_array, index=index)
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
@@ -1151,10 +1191,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        # Argument 3 to "putmask" has incompatible type "object"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
-        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Nested
-        # Sequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
+        # error: Argument 3 to "putmask" has incompatible type "object";
+        # expected "Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]],
+        # bool, int, float, complex, str, bytes,
+        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
         result = values.any()
         if skipna:
@@ -1231,10 +1272,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        # Argument 3 to "putmask" has incompatible type "object"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
-        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Neste
-        # dSequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
+        # error: Argument 3 to "putmask" has incompatible type "object";
+        # expected "Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]],
+        # bool, int, float, complex, str, bytes,
+        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
         result = values.all()
 

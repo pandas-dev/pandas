@@ -3,6 +3,12 @@ inputs:
   environment-file:
     description: Conda environment file to use.
     default: environment.yml
+  environment-name:
+    description: Name to use for the Conda environment
+    default: test
+  extra-specs:
+    description: Extra packages to install
+    required: false
   pyarrow-version:
     description: If set, overrides the PyArrow version in the Conda environment to the given string.
     required: false
@@ -18,10 +24,13 @@ runs:
       if: ${{ inputs.pyarrow-version }}
 
     - name: Install ${{ inputs.environment-file }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: mamba-org/provision-with-micromamba@v12
       with:
         environment-file: ${{ inputs.environment-file }}
-        channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
+        environment-name: ${{ inputs.environment-name }}
+        extra-specs: ${{ inputs.extra-specs }}
         channels: conda-forge
-        mamba-version: "0.23"
-        use-mamba: true
+        channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
+        condarc-file: ci/condarc.yml
+        cache-env: true
+        cache-downloads: true

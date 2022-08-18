@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import inspect
 import itertools
 from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -142,7 +144,10 @@ class BaseBlockManager(DataManager):
     blocks: tuple[Block, ...]
     axes: list[Index]
 
-    ndim: int
+    @property
+    def ndim(self) -> int:
+        raise NotImplementedError
+
     _known_consolidated: bool
     _is_consolidated: bool
 
@@ -905,7 +910,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         "will assume that a DatetimeTZBlock with block.ndim==2 "
                         "has block.values.ndim == 2.",
                         DeprecationWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
                     # error: Incompatible types in assignment (expression has type
@@ -1244,7 +1249,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "Consider joining all columns at once using pd.concat(axis=1) "
                 "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     def _insert_update_mgr_locs(self, loc) -> None:
@@ -1678,7 +1683,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """manage a single block with"""
 
-    ndim = 1
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
+
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
@@ -1700,7 +1708,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 "The `fastpath` keyword is deprecated and will be removed "
                 "in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         self.axes = [axis]

@@ -409,7 +409,7 @@ class TestJoin:
         df = DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
         new_df = df.groupby(["a"]).agg({"b": [np.mean, np.sum]})
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
-        other_df.set_index("a", inplace=True)
+        other_df = other_df.set_index("a", copy=False)
         # GH 9455, 12219
         msg = "merging between different levels is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -709,6 +709,21 @@ class TestJoin:
             ],
             index=[2, 4],
             columns=["x", "y", "z", "a"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_join_with_categorical_index(self):
+        # GH47812
+        ix = ["a", "b"]
+        id1 = pd.CategoricalIndex(ix, categories=ix)
+        id2 = pd.CategoricalIndex(reversed(ix), categories=reversed(ix))
+
+        df1 = DataFrame({"c1": ix}, index=id1)
+        df2 = DataFrame({"c2": reversed(ix)}, index=id2)
+        result = df1.join(df2)
+        expected = DataFrame(
+            {"c1": ["a", "b"], "c2": ["a", "b"]},
+            index=pd.CategoricalIndex(["a", "b"], categories=["a", "b"]),
         )
         tm.assert_frame_equal(result, expected)
 

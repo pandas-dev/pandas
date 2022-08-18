@@ -1,3 +1,4 @@
+import inspect
 import warnings
 
 cimport cython
@@ -8,6 +9,8 @@ from cpython.datetime cimport (
     import_datetime,
     tzinfo,
 )
+
+from pandas.util._exceptions import find_stack_level
 
 # import datetime C API
 import_datetime()
@@ -28,11 +31,12 @@ import pytz
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    NPY_FR_ns,
     check_dts_bounds,
-    dt64_to_dtstruct,
     dtstruct_to_dt64,
     get_datetime64_value,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     pydatetime_to_dt64,
     string_to_dts,
@@ -104,10 +108,11 @@ def _test_parse_iso8601(ts: str):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def format_array_from_datetime(
-    ndarray[int64_t] values,
+    ndarray values,
     tzinfo tz=None,
     str format=None,
-    object na_rep=None
+    object na_rep=None,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -120,40 +125,71 @@ def format_array_from_datetime(
           a strftime capable string
     na_rep : optional, default is None
           a nat format
+    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
     np.ndarray[object]
     """
     cdef:
-        int64_t val, ns, N = len(values)
+        int64_t val, ns, N = values.size
         bint show_ms = False, show_us = False, show_ns = False
-        bint basic_format = False
-        ndarray[object] result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+        bint basic_format = False, basic_format_day = False
         _Timestamp ts
-        str res
+        object res
         npy_datetimestruct dts
+
+        # Note that `result` (and thus `result_flat`) is C-order and
+        #  `it` iterates C-order as well, so the iteration matches
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
+        ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+        object[::1] res_flat = result.ravel()     # should NOT be a copy
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
 
     if na_rep is None:
         na_rep = 'NaT'
 
-    # if we don't have a format nor tz, then choose
-    # a format based on precision
-    basic_format = format is None and tz is None
-    if basic_format:
-        reso_obj = get_resolution(values)
-        show_ns = reso_obj == Resolution.RESO_NS
-        show_us = reso_obj == Resolution.RESO_US
-        show_ms = reso_obj == Resolution.RESO_MS
+    if tz is None:
+        # if we don't have a format nor tz, then choose
+        # a format based on precision
+        basic_format = format is None
+        if basic_format:
+            reso_obj = get_resolution(values, tz=tz, reso=reso)
+            show_ns = reso_obj == Resolution.RESO_NS
+            show_us = reso_obj == Resolution.RESO_US
+            show_ms = reso_obj == Resolution.RESO_MS
+
+        elif format == "%Y-%m-%d %H:%M:%S":
+            # Same format as default, but with hardcoded precision (s)
+            basic_format = True
+            show_ns = show_us = show_ms = False
+
+        elif format == "%Y-%m-%d %H:%M:%S.%f":
+            # Same format as default, but with hardcoded precision (us)
+            basic_format = show_us = True
+            show_ns = show_ms = False
+
+        elif format == "%Y-%m-%d":
+            # Default format for dates
+            basic_format_day = True
+
+    assert not (basic_format_day and basic_format)
 
     for i in range(N):
-        val = values[i]
+        # Analogous to: utc_val = values[i]
+        val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
         if val == NPY_NAT:
-            result[i] = na_rep
+            res = na_rep
+        elif basic_format_day:
+
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
+            res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
+
         elif basic_format:
 
-            dt64_to_dtstruct(val, &dts)
+            pandas_datetime_to_datetimestruct(val, reso, &dts)
             res = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
                    f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
 
@@ -165,22 +201,32 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f'.{dts.us // 1000:03d}'
 
-            result[i] = res
-
         else:
 
-            ts = Timestamp(val, tz=tz)
+            ts = Timestamp._from_value_and_reso(val, reso=reso, tz=tz)
             if format is None:
-                result[i] = str(ts)
+                # Use datetime.str, that returns ts.isoformat(sep=' ')
+                res = str(ts)
             else:
 
                 # invalid format string
                 # requires dates > 1900
                 try:
                     # Note: dispatches to pydatetime
-                    result[i] = ts.strftime(format)
+                    res = ts.strftime(format)
                 except ValueError:
-                    result[i] = str(ts)
+                    # Use datetime.str, that returns ts.isoformat(sep=' ')
+                    res = str(ts)
+
+        # Note: we can index result directly instead of using PyArray_MultiIter_DATA
+        #  like we do for the other functions because result is known C-contiguous
+        #  and is the first argument to PyArray_MultiIterNew2.  The usual pattern
+        #  does not seem to work with object dtype.
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
+        res_flat[i] = res
+
+        cnp.PyArray_ITER_NEXT(it)
 
     return result
 
@@ -552,7 +598,7 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data {val} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't match format specified"
                                 )
                             return values, tz_out
 
@@ -568,7 +614,7 @@ cpdef array_to_datetime(
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
-                            raise TypeError("invalid string coercion to datetime")
+                            raise TypeError(f"invalid string coercion to datetime for \"{val}\" at position {i}")
 
                         if tz is not None:
                             seen_datetime_offset = True
@@ -609,7 +655,8 @@ cpdef array_to_datetime(
                     else:
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            except OutOfBoundsDatetime:
+            except OutOfBoundsDatetime as ex:
+                ex.args = (str(ex) + f" present at position {i}", )
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
@@ -755,6 +802,7 @@ cdef _array_to_datetime_object(
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
+    # 3) special strings - "now" & "today"
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
@@ -773,7 +821,8 @@ cdef _array_to_datetime_object(
                                                    yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError) as ex:
+                ex.args = (f"{ex} present at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue
@@ -799,7 +848,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
                 "deprecated. In a future version, this will match Timestamp('now') "
                 "and Timestamp.now()",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         return True

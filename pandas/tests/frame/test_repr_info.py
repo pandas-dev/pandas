@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     MultiIndex,
@@ -219,7 +220,7 @@ NaT   4"""
         )
         repr(unsortable)
 
-        fmt.set_option("display.precision", 3, "display.column_space", 10)
+        fmt.set_option("display.precision", 3)
         repr(float_frame)
 
         fmt.set_option("display.max_rows", 10, "display.max_columns", 2)
@@ -341,6 +342,19 @@ NaT   4"""
 
         # it works!
         frame.to_string()
+
+    def test_to_string_ea_na_in_multiindex(self):
+        # GH#47986
+        df = DataFrame(
+            {"a": [1, 2]},
+            index=MultiIndex.from_arrays([Series([NA, 1], dtype="Int64")]),
+        )
+
+        result = df.to_string()
+        expected = """      a
+<NA>  1
+1     2"""
+        assert result == expected
 
     def test_datetime64tz_slice_non_truncate(self):
         # GH 30263

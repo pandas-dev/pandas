@@ -12,11 +12,13 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
@@ -24,6 +26,7 @@ from pandas import (
     IndexSlice,
     MultiIndex,
     Period,
+    PeriodIndex,
     Series,
     SparseDtype,
     Timedelta,
@@ -36,10 +39,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
-from pandas.core.indexing import (
-    IndexingError,
-    _one_ellipsis_message,
-)
+from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import Base
 
 
@@ -1539,12 +1539,12 @@ class TestLocBaseIndependent:
 
     def test_loc_getitem_interval_index2(self):
         # GH#19977
-        index = pd.interval_range(start=0, periods=3, inclusive="both")
+        index = pd.interval_range(start=0, periods=3, closed="both")
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=index, columns=["A", "B", "C"]
         )
 
-        index_exp = pd.interval_range(start=0, periods=2, freq=1, inclusive="both")
+        index_exp = pd.interval_range(start=0, periods=2, freq=1, closed="both")
         expected = Series([1, 4], index=index_exp, name="A")
         result = df.loc[1, "A"]
         tm.assert_series_equal(result, expected)
@@ -1820,6 +1820,54 @@ class TestLocWithMultiIndex:
 
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
+
+    def test_additional_element_to_categorical_series_loc(self):
+        # GH#47677
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = 0
+        expected = Series(["a", "b", "c", 0], dtype="object")
+        tm.assert_series_equal(result, expected)
+
+    def test_additional_categorical_element_loc(self):
+        # GH#47677
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = "a"
+        expected = Series(["a", "b", "c", "a"], dtype="category")
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_set_nan_in_categorical_series(self, any_numeric_ea_dtype):
+        # GH#47677
+        srs = Series(
+            [1, 2, 3],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        # enlarge
+        srs.loc[3] = np.nan
+        expected = Series(
+            [1, 2, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
+        # set into
+        srs.loc[1] = np.nan
+        expected = Series(
+            [1, np.nan, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
+
+    @pytest.mark.parametrize("na", (np.nan, pd.NA, None, pd.NaT))
+    def test_loc_consistency_series_enlarge_set_into(self, na):
+        # GH#47677
+        srs_enlarge = Series(["a", "b", "c"], dtype="category")
+        srs_enlarge.loc[3] = na
+
+        srs_setinto = Series(["a", "b", "c", "a"], dtype="category")
+        srs_setinto.loc[3] = na
+
+        tm.assert_series_equal(srs_enlarge, srs_setinto)
+        expected = Series(["a", "b", "c", na], dtype="category")
+        tm.assert_series_equal(srs_enlarge, expected)
 
     def test_loc_getitem_preserves_index_level_category_dtype(self):
         # GH#15166
@@ -2867,6 +2915,31 @@ def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
     data.append("2022-01-08")
     expected_index = DatetimeIndex(data, dtype=exp_dtype)
     tm.assert_index_equal(df.index, expected_index, exact=True)
+
+
+def test_loc_set_int_dtype():
+    # GH#23326
+    df = DataFrame([list("abc")])
+    df.loc[:, "col1"] = 5
+
+    expected = DataFrame({0: ["a"], 1: ["b"], 2: ["c"], "col1": [5]})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_periodindex_3_levels():
+    # GH#24091
+    p_index = PeriodIndex(
+        ["20181101 1100", "20181101 1200", "20181102 1300", "20181102 1400"],
+        name="datetime",
+        freq="B",
+    )
+    mi_series = DataFrame(
+        [["A", "B", 1.0], ["A", "C", 2.0], ["Z", "Q", 3.0], ["W", "F", 4.0]],
+        index=p_index,
+        columns=["ONE", "TWO", "VALUES"],
+    )
+    mi_series = mi_series.set_index(["ONE", "TWO"], append=True)["VALUES"]
+    assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
 
 
 class TestLocSeries:

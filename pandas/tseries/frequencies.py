@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import warnings
 
 import numpy as np
@@ -22,7 +23,7 @@ from pandas._libs.tslibs.fields import (
     build_field_sarray,
     month_position_check,
 )
-from pandas._libs.tslibs.offsets import (  # noqa:F401
+from pandas._libs.tslibs.offsets import (
     BaseOffset,
     DateOffset,
     Day,
@@ -116,7 +117,7 @@ def get_offset(name: str) -> BaseOffset:
         "get_offset is deprecated and will be removed in a future version, "
         "use to_offset instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return _get_offset(name)
 
@@ -234,7 +235,7 @@ class _FrequencyInferer:
                 "warn is deprecated (and never implemented) and "
                 "will be removed in a future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         self.warn = warn
 
@@ -314,12 +315,12 @@ class _FrequencyInferer:
             return _maybe_add_count("N", delta)
 
     @cache_readonly
-    def day_deltas(self):
+    def day_deltas(self) -> list[int]:
         ppd = periods_per_day(self._reso)
         return [x / ppd for x in self.deltas]
 
     @cache_readonly
-    def hour_deltas(self):
+    def hour_deltas(self) -> list[int]:
         pph = periods_per_day(self._reso) // 24
         return [x / pph for x in self.deltas]
 
@@ -328,10 +329,10 @@ class _FrequencyInferer:
         return build_field_sarray(self.i8values, reso=self._reso)
 
     @cache_readonly
-    def rep_stamp(self):
+    def rep_stamp(self) -> Timestamp:
         return Timestamp(self.i8values[0])
 
-    def month_position_check(self):
+    def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
@@ -394,7 +395,11 @@ class _FrequencyInferer:
             return None
 
         pos_check = self.month_position_check()
-        return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
+
+        if pos_check is None:
+            return None
+        else:
+            return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -404,13 +409,21 @@ class _FrequencyInferer:
             return None
 
         pos_check = self.month_position_check()
-        return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
+
+        if pos_check is None:
+            return None
+        else:
+            return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
 
     def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
-        return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
+
+        if pos_check is None:
+            return None
+        else:
+            return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily
@@ -635,3 +648,14 @@ def _is_monthly(rule: str) -> bool:
 def _is_weekly(rule: str) -> bool:
     rule = rule.upper()
     return rule == "W" or rule.startswith("W-")
+
+
+__all__ = [
+    "Day",
+    "get_offset",
+    "get_period_alias",
+    "infer_freq",
+    "is_subperiod",
+    "is_superperiod",
+    "to_offset",
+]

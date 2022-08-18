@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import inspect
 from io import TextIOWrapper
 from typing import (
+    TYPE_CHECKING,
     Hashable,
     Mapping,
     Sequence,
@@ -28,16 +30,18 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import union_categoricals
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
-from pandas import (
-    Index,
-    MultiIndex,
-)
 from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
     is_index_col,
 )
+
+if TYPE_CHECKING:
+    from pandas import (
+        Index,
+        MultiIndex,
+    )
 
 
 class CParserWrapper(ParserBase):
@@ -367,7 +371,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result = {}
+    result: dict = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
@@ -383,7 +387,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            if common_type == object:
+            if common_type == np.dtype(object):
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
@@ -400,13 +404,14 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                     arrs  # type: ignore[arg-type]
                 )
             else:
-                # Argument 1 to "concatenate" has incompatible type
-                # "List[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
-                # "Union[_SupportsArray[dtype[Any]],
+                # error: Argument 1 to "concatenate" has incompatible
+                # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
+                # ; expected "Union[_SupportsArray[dtype[Any]],
                 # Sequence[_SupportsArray[dtype[Any]]],
                 # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]],
-                # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]]"
+                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
+                # , Sequence[Sequence[Sequence[Sequence[
+                # _SupportsArray[dtype[Any]]]]]]]"
                 result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
 
     if warning_columns:
@@ -417,7 +422,11 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            warning_message,
+            DtypeWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
     return result
 
 

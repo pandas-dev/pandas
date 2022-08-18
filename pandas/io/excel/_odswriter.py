@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import datetime
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
     Tuple,
@@ -21,7 +22,9 @@ from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
-from pandas.io.formats.excel import ExcelCell
+
+if TYPE_CHECKING:
+    from pandas.io.formats.excel import ExcelCell
 
 
 class ODSWriter(ExcelWriter):
@@ -189,14 +192,18 @@ class ODSWriter(ExcelWriter):
             value = str(val).lower()
             pvalue = str(val).upper()
         if isinstance(val, datetime.datetime):
+            # Fast formatting
             value = val.isoformat()
+            # Slow but locale-dependent
             pvalue = val.strftime("%c")
             return (
                 pvalue,
                 TableCell(valuetype="date", datevalue=value, attributes=attributes),
             )
         elif isinstance(val, datetime.date):
-            value = val.strftime("%Y-%m-%d")
+            # Fast formatting
+            value = f"{val.year}-{val.month:02d}-{val.day:02d}"
+            # Slow but locale-dependent
             pvalue = val.strftime("%x")
             return (
                 pvalue,

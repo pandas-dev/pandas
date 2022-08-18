@@ -22,6 +22,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.core.groupby.generic import DataFrameGroupBy
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def assert_fp_equal(a, b):
@@ -172,14 +173,10 @@ def test_transform_axis_1(request, transformation_func):
         msg = "ngroup fails with axis=1: #45986"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
-    warn = None
-    if transformation_func == "tshift":
-        warn = FutureWarning
-
-        request.node.add_marker(pytest.mark.xfail(reason="tshift is deprecated"))
-    args = ("ffill",) if transformation_func == "fillna" else ()
+    warn = FutureWarning if transformation_func == "tshift" else None
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    args = get_groupby_method_args(transformation_func, df)
     with tm.assert_produces_warning(warn):
         result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
         expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
@@ -1168,7 +1165,7 @@ def test_transform_agg_by_name(request, reduction_func, obj):
             pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
         )
 
-    args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
+    args = get_groupby_method_args(reduction_func, obj)
     with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
         result = g.transform(func, *args)
 
@@ -1329,12 +1326,8 @@ def test_transform_cumcount():
 
 
 @pytest.mark.parametrize("keys", [["A1"], ["A1", "A2"]])
-def test_null_group_lambda_self(request, sort, dropna, keys):
+def test_null_group_lambda_self(sort, dropna, keys):
     # GH 17093
-    if not sort and not dropna:
-        msg = "GH#46584: null values get sorted when sort=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
-
     size = 50
     nulls1 = np.random.choice([False, True], size)
     nulls2 = np.random.choice([False, True], size)
@@ -1370,12 +1363,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
     gb = df.groupby("A", dropna=dropna)
 
-    if reduction_func == "corrwith":
-        args = (df["B"],)
-    elif reduction_func == "nth":
-        args = (0,)
-    else:
-        args = ()
+    args = get_groupby_method_args(reduction_func, df)
 
     # Manually handle reducers that don't fit the generic pattern
     # Set expected with dropna=False, then replace if necessary
@@ -1418,8 +1406,8 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
     if transformation_func == "tshift":
         msg = "tshift requires timeseries"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    args = (0,) if transformation_func == "fillna" else ()
     df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
+    args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby("A", dropna=dropna)
 
     buffer = []
@@ -1461,12 +1449,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     ser = Series([1, 2, 2, 3], index=index)
     gb = ser.groupby([1, 1, np.nan, np.nan], dropna=dropna)
 
-    if reduction_func == "corrwith":
-        args = (ser,)
-    elif reduction_func == "nth":
-        args = (0,)
-    else:
-        args = ()
+    args = get_groupby_method_args(reduction_func, ser)
 
     # Manually handle reducers that don't fit the generic pattern
     # Set expected with dropna=False, then replace if necessary
@@ -1506,8 +1489,8 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
     if transformation_func == "tshift":
         msg = "tshift requires timeseries"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    args = (0,) if transformation_func == "fillna" else ()
     ser = Series([1, 2, 2], index=[1, 2, 3])
+    args = get_groupby_method_args(transformation_func, ser)
     gb = ser.groupby([1, 1, np.nan], dropna=dropna)
 
     buffer = []
@@ -1531,3 +1514,42 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, series, expected_values",
+    [
+        (Series.sort_values, False, [4, 5, 3, 1, 2]),
+        (lambda x: x.head(1), False, ValueError),
+        # SeriesGroupBy already has correct behavior
+        (Series.sort_values, True, [5, 4, 3, 2, 1]),
+        (lambda x: x.head(1), True, [5.0, np.nan, 3.0, 2.0, np.nan]),
+    ],
+)
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+@pytest.mark.parametrize("keys_in_index", [True, False])
+def test_transform_aligns_depr(func, series, expected_values, keys, keys_in_index):
+    # GH#45648 - transform should align with the input's index
+    df = DataFrame({"a1": [1, 1, 3, 2, 2], "b": [5, 4, 3, 2, 1]})
+    if "a2" in keys:
+        df["a2"] = df["a1"]
+    if keys_in_index:
+        df = df.set_index(keys, append=True)
+
+    gb = df.groupby(keys)
+    if series:
+        gb = gb["b"]
+
+    warn = None if series else FutureWarning
+    msg = "returning a DataFrame in groupby.transform will align"
+    if expected_values is ValueError:
+        with tm.assert_produces_warning(warn, match=msg):
+            with pytest.raises(ValueError, match="Length mismatch"):
+                gb.transform(func)
+    else:
+        with tm.assert_produces_warning(warn, match=msg):
+            result = gb.transform(func)
+        expected = DataFrame({"b": expected_values}, index=df.index)
+        if series:
+            expected = expected["b"]
+        tm.assert_equal(result, expected)
