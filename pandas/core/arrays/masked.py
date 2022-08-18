@@ -1266,12 +1266,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data
         mask = self._mask
 
-        if name in {"cumsum", "cumprod", "cummin", "cummax"}:
-            op = getattr(masked_accumulations, name)
-            data, mask = op(data, mask, skipna=skipna, **kwargs)
+        op = getattr(masked_accumulations, name)
+        data, mask = op(data, mask, skipna=skipna, **kwargs)
 
-            return type(self)(data, mask, copy=False)
-
-        raise NotImplementedError(
-            "Accumlation {name} not implemented for BaseMaskedArray"
-        )
+        return type(self)(data, mask, copy=False)

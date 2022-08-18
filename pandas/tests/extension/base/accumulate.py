@@ -12,7 +12,7 @@ class BaseAccumulateTests(BaseExtensionTests):
 
     def check_accumulate(self, s, op_name, skipna):
         result = getattr(s, op_name)(skipna=skipna)
-        print(s.tolist())
+
         if result.dtype == pd.Float32Dtype() and op_name == "cumprod" and skipna:
             pytest.skip("Float32 precision lead to large differences")
 
