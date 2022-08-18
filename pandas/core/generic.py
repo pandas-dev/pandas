@@ -56,7 +56,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
-    IntervalInclusiveType,
+    IntervalClosedType,
     JSONSerializable,
     Level,
     Manager,
@@ -715,7 +715,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = ...,
-        inplace: Literal[False] = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
         copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
@@ -737,7 +737,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         *,
         axis: Axis = ...,
-        inplace: bool_t = ...,
+        inplace: bool_t | lib.NoDefault = ...,
         copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
@@ -747,7 +747,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         labels,
         axis: Axis = 0,
-        inplace: bool_t = False,
+        inplace: bool_t | lib.NoDefault = lib.no_default,
         *,
         copy: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
@@ -769,6 +769,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Whether to return a new %(klass)s instance.
 
+            .. deprecated:: 1.5.0
+
         copy : bool, default True
             Whether to make a copy of the underlying data.
 
@@ -783,6 +785,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                f"{type(self).__name__}.set_axis 'inplace' keyword is deprecated "
+                "and will be removed in a future version. Use "
+                "`obj = obj.set_axis(..., copy=False)` instead",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+        else:
+            inplace = False
+
         if inplace:
             if copy is True:
                 raise ValueError("Cannot specify both inplace=True and copy=True")
@@ -795,14 +808,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t, copy: bool_t):
-        # NDFrame.rename with inplace=False calls set_axis(inplace=True) on a copy.
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
             # With copy=False, we create a new object but don't copy the
             #  underlying data.
             obj = self.copy(deep=copy)
-            obj.set_axis(labels, axis=axis, inplace=True)
+            setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
     def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
@@ -1370,7 +1382,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         renamed = self if inplace else self.copy()
-        renamed.set_axis(idx, axis=axis, inplace=True)
+        if axis == 0:
+            renamed.index = idx
+        else:
+            renamed.columns = idx
+
         if not inplace:
             return renamed
 
@@ -8264,7 +8280,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         end_time,
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive: IntervalClosedType | None = None,
         axis=None,
     ) -> NDFrameT:
         """
@@ -8370,7 +8386,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = True if include_start is lib.no_default else include_start
             right = True if include_end is lib.no_default else include_end
 
-            inc_dict: dict[tuple[bool_t, bool_t], IntervalInclusiveType] = {
+            inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
                 (True, False): "left",
                 (False, True): "right",
@@ -10212,8 +10228,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_obj = self._slice(vslicer, axis=axis)
         shifted_axis = self._get_axis(axis)[islicer]
-        new_obj.set_axis(shifted_axis, axis=axis, inplace=True)
-
+        new_obj = new_obj.set_axis(shifted_axis, axis=axis, copy=False)
         return new_obj.__finalize__(self, method="slice_shift")
 
     @final
@@ -10472,7 +10487,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ax = _tz_convert(ax, tz)
 
         result = self.copy(deep=copy)
-        result = result.set_axis(ax, axis=axis, inplace=False)
+        result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_convert")
 
     @final
@@ -10642,7 +10657,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self.copy(deep=copy)
-        result = result.set_axis(ax, axis=axis, inplace=False)
+        result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_localize")
 
     # ----------------------------------------------------------------------
