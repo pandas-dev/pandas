@@ -2196,6 +2196,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
 
 
 def test_merge_series_multilevel():
+    # GH#47946
     a = DataFrame(
         {"A": [1, 2, 3, 4]},
         index=MultiIndex.from_product([["a", "b"], [0, 1]], names=["outer", "inner"]),
