@@ -24,6 +24,40 @@ https://github.com/pandas-dev/pandas-stubs for more information.
 
 We thank VirtusLab and Microsoft for their initial, significant contributions to ``pandas-stubs``
 
+.. _whatsnew_150.enhancements.arrow:
+
+Native PyArrow-backed ExtensionArray
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With `Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ installed, users can now create pandas objects
+that are backed by a ``pyarrow.ChunkedArray`` and ``pyarrow.DataType``.
+
+The ``dtype`` argument can accept a string of a `pyarrow data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
+with ``pyarrow`` in brackets e.g. ``"int64[pyarrow]"`` or, for pyarrow data types that take parameters, a :class:`ArrowDtype`
+initialized with a ``pyarrow.DataType``.
+
+.. ipython:: python
+
+    import pyarrow as pa
+    ser_float = pd.Series([1.0, 2.0, None], dtype="float32[pyarrow]")
+    ser_float
+
+    list_of_int_type = pd.ArrowDtype(pa.list_(pa.int64()))
+    ser_list = pd.Series([[1, 2], [3, None]], dtype=list_of_int_type)
+    ser_list
+
+    ser_list.take([1, 0])
+    ser_float * 5
+    ser_float.mean()
+    ser_float.dropna()
+
+Most operations are supported and have been implemented using `pyarrow compute <https://arrow.apache.org/docs/python/api/compute.html>`__ functions.
+We recommend installing the latest version of PyArrow to access the most recently implemented compute functions.
+
+.. warning::
+
+    This feature is experimental, and the API can change in a future release without warning.
+
 .. _whatsnew_150.enhancements.dataframe_interchange:
 
 DataFrame interchange protocol implementation

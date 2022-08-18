@@ -159,8 +159,47 @@ def to_pyarrow_type(
 
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
     """
-    Base class for ExtensionArray backed by Arrow ChunkedArray.
-    """
+    Pandas ExtensionArray backed by a PyArrow ChunkedArray.
+
+    .. warning::
+
+       ArrowExtensionArray is considered experimental. The implementation and
+       parts of the API may change without warning.
+
+    Parameters
+    ----------
+    values : pyarrow.Array or pyarrow.ChunkedArray
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
+    Returns
+    -------
+    ArrowExtensionArray
+
+    Notes
+    -----
+    Most methods are implemented using `pyarrow compute functions. <https://arrow.apache.org/docs/python/api/compute.html>`__
+    Some methods may either raise an exception or raise a ``PerformanceWarning`` if an
+    associated compute function is not available based on the installed version of PyArrow.
+
+    Please install the latest version of PyArrow to enable the best functionality and avoid
+    potential bugs in prior versions of PyArrow.
+
+    Examples
+    --------
+    Create an ArrowExtensionArray with :func:`pandas.array`:
+
+    >>> pd.array([1, 1, None], dtype="int64[pyarrow]")
+    <ArrowExtensionArray>
+    [1, 1, <NA>]
+    Length: 3, dtype: int64[pyarrow]
+    """  # noqa: E501 (http link too long)
 
     _data: pa.ChunkedArray
     _dtype: ArrowDtype
