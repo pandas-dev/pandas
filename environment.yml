@@ -127,6 +127,7 @@ dependencies:
 
   # build the interactive terminal
   - jupyterlab >=3.4,<4
+  - pip # Add explicitly to prevent conda/mamba using incorrect pip
   - pip:
       - jupyterlite==0.1.0b10
       - sphinx-toggleprompt
