@@ -997,15 +997,15 @@ class StringMethods(NoNewAttributesMixin):
 
     def get(self, i):
         """
-        Extract element from each component at specified position.
+        Extract element from each component at specified position or with specified key.
 
-        Extract element from lists, tuples, or strings in each element in the
+        Extract element from lists, tuples, dict, or strings in each element in the
         Series/Index.
 
         Parameters
         ----------
-        i : int
-            Position of element to extract.
+        i : int or hashable dict label
+            Position or key of element to extract.
 
         Returns
         -------
@@ -1044,6 +1044,15 @@ class StringMethods(NoNewAttributesMixin):
         3    NaN
         4    NaN
         5    None
+        dtype: object
+
+        Return element with given key
+
+        >>> s = pd.Series([{"name": "Hello", "value": "World"},
+        ...               {"name": "Goodbye", "value": "Planet"}])
+        >>> s.str.get('name')
+        0      Hello
+        1    Goodbye
         dtype: object
         """
         result = self._data.array._str_get(i)

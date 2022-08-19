@@ -234,6 +234,7 @@ def create_subplots(
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored.",
                     UserWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             if sharex or sharey:
                 warnings.warn(

@@ -204,18 +204,26 @@ def group_cumprod_float64(
                     out[i, j] = NaN
                     if not skipna:
                         accum[lab, j] = NaN
-                        break
+
+
+ctypedef fused int64float_t:
+    int64_t
+    uint64_t
+    float32_t
+    float64_t
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cumsum(
-    numeric_t[:, ::1] out,
-    ndarray[numeric_t, ndim=2] values,
+    int64float_t[:, ::1] out,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
     int ngroups,
     bint is_datetimelike,
     bint skipna=True,
+    const uint8_t[:, :] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Cumulative sum of columns of `values`, in row groups `labels`.
@@ -234,6 +242,10 @@ def group_cumsum(
         True if `values` contains datetime-like entries.
     skipna : bool
         If true, ignore nans in `values`.
+    mask: np.ndarray[uint8], optional
+        Mask of values
+    result_mask: np.ndarray[int8], optional
+        Mask of out array
 
     Notes
     -----
@@ -241,16 +253,22 @@ def group_cumsum(
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        numeric_t val, y, t, na_val
-        numeric_t[:, ::1] accum, compensation
+        int64float_t val, y, t, na_val
+        int64float_t[:, ::1] accum, compensation
+        uint8_t[:, ::1] accum_mask
         intp_t lab
         bint isna_entry, isna_prev = False
+        bint uses_mask = mask is not None
 
     N, K = (<object>values).shape
+
+    if uses_mask:
+        accum_mask = np.zeros((ngroups, K), dtype="uint8")
+
     accum = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
     compensation = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
 
-    na_val = _get_na_val(<numeric_t>0, is_datetimelike)
+    na_val = _get_na_val(<int64float_t>0, is_datetimelike)
 
     with nogil:
         for i in range(N):
@@ -261,23 +279,45 @@ def group_cumsum(
             for j in range(K):
                 val = values[i, j]
 
-                isna_entry = _treat_as_na(val, is_datetimelike)
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not skipna:
-                    isna_prev = _treat_as_na(accum[lab, j], is_datetimelike)
+                    if uses_mask:
+                        isna_prev = accum_mask[lab, j]
+                    else:
+                        isna_prev = _treat_as_na(accum[lab, j], is_datetimelike)
+
                     if isna_prev:
-                        out[i, j] = na_val
+                        if uses_mask:
+                            result_mask[i, j] = True
+                            # Be deterministic, out was initialized as empty
+                            out[i, j] = 0
+                        else:
+                            out[i, j] = na_val
                         continue
 
                 if isna_entry:
-                    out[i, j] = na_val
+
+                    if uses_mask:
+                        result_mask[i, j] = True
+                        # Be deterministic, out was initialized as empty
+                        out[i, j] = 0
+                    else:
+                        out[i, j] = na_val
+
                     if not skipna:
-                        accum[lab, j] = na_val
+                        if uses_mask:
+                            accum_mask[lab, j] = True
+                        else:
+                            accum[lab, j] = na_val
 
                 else:
                     # For floats, use Kahan summation to reduce floating-point
                     # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
-                    if numeric_t == float32_t or numeric_t == float64_t:
+                    if int64float_t == float32_t or int64float_t == float64_t:
                         y = val - compensation[lab, j]
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
@@ -838,18 +878,22 @@ def group_mean(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_ohlc(
-    floating[:, ::1] out,
+    int64float_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[floating, ndim=2] values,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
     Py_ssize_t min_count=-1,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab
-        floating val
+        int64float_t val
+        uint8_t[::1] first_element_set
+        bint isna_entry, uses_mask = not mask is None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -863,7 +907,15 @@ def group_ohlc(
 
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only one dimension")
-    out[:] = np.nan
+
+    if int64float_t is float32_t or int64float_t is float64_t:
+        out[:] = np.nan
+    else:
+        out[:] = 0
+
+    first_element_set = np.zeros((<object>counts).shape, dtype=np.uint8)
+    if uses_mask:
+        result_mask[:] = True
 
     with nogil:
         for i in range(N):
@@ -873,11 +925,22 @@ def group_ohlc(
 
             counts[lab] += 1
             val = values[i, 0]
-            if val != val:
+
+            if uses_mask:
+                isna_entry = mask[i, 0]
+            elif int64float_t is float32_t or int64float_t is float64_t:
+                isna_entry = val != val
+            else:
+                isna_entry = False
+
+            if isna_entry:
                 continue
 
-            if out[lab, 0] != out[lab, 0]:
+            if not first_element_set[lab]:
                 out[lab, 0] = out[lab, 1] = out[lab, 2] = out[lab, 3] = val
+                first_element_set[lab] = True
+                if uses_mask:
+                    result_mask[lab] = False
             else:
                 out[lab, 1] = max(out[lab, 1], val)
                 out[lab, 2] = min(out[lab, 2], val)
@@ -1041,7 +1104,7 @@ cdef numeric_t _get_na_val(numeric_t val, bint is_datetimelike):
     elif numeric_t is int64_t and is_datetimelike:
         na_val = NPY_NAT
     else:
-        # Will not be used, but define to avoid uninitialized warning.
+        # Used in case of masks
         na_val = 0
     return na_val
 
