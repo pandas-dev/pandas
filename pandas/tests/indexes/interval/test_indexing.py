@@ -8,6 +8,7 @@ from pandas.errors import InvalidIndexError
 from pandas import (
     NA,
     CategoricalIndex,
+    DatetimeIndex,
     Index,
     Interval,
     IntervalIndex,
@@ -296,6 +297,20 @@ class TestGetIndexer:
         # non-unique target, non-unique nans
         result = ii2.get_indexer(ci2.append(ci2))
         expected = np.array([0, 1, 2, 3, 4, 0, 1, 2, 3, 4], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_datetime(self):
+        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4))
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]))
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).astype(str))
+        tm.assert_numpy_array_equal(result, expected)
+
+        # TODO this should probably be deprecated?
+        # https://github.com/pandas-dev/pandas/issues/47772
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).asi8)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
