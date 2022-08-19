@@ -1053,6 +1053,36 @@ class TestDataFrameAnalytics:
         expected = Series([4, 3, 4])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("func, val", [("idxmin", "a"), ("idxmax", "b")])
+    def test_idxmin_timedelta_all_nan_row(self, func, val):
+        # GH#48123
+        df = DataFrame(
+            {
+                "a": [pd.Timedelta("1 days"), pd.NaT, pd.NaT],
+                "b": [pd.Timedelta("2 days"), pd.Timedelta("2 days"), pd.NaT],
+            },
+        )
+        result = getattr(df, func)(axis=1)
+        expected = Series([val, "b", np.nan])
+        tm.assert_series_equal(result, expected)
+
+        df = DataFrame(
+            {
+                "a": Series([1, pd.NA, pd.NA], dtype="Int64"),
+                "b": Series([2, 2, pd.NA], dtype="Int64"),
+            },
+        )
+        result = getattr(df, func)(axis=1)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("func, val", [("idxmin", "a"), ("idxmax", "b")])
+    def test_idxmin_timedelta_all_nan_column(self, func, val):
+        # GH#48123
+        df = DataFrame({"a": [pd.Timedelta("1 days"), pd.NaT], "b": pd.NaT})
+        result = getattr(df, func)(axis=0)
+        expected = Series([0.0, np.nan], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Logical reductions
 

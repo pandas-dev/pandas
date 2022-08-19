@@ -488,6 +488,9 @@ def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
+    if len(non_nans) == 0:
+        return -1
+
     return non_nan_idx[func(non_nans)]
 
 
