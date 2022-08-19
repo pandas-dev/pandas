@@ -817,7 +817,8 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         with tm.ensure_clean() as path:
             expected.index.name = "index"
-            expected.to_stata(path, date_conversion)
+            with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
+                expected.to_stata(path, date_conversion)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
                 written_and_read_again.set_index("index"),
