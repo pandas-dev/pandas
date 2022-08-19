@@ -1389,6 +1389,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         name: Level = ...,
         inplace: Literal[False] = ...,
         allow_duplicates: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -1401,6 +1402,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         name: Level = ...,
         inplace: Literal[False] = ...,
         allow_duplicates: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -1413,6 +1415,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         name: Level = ...,
         inplace: Literal[True],
         allow_duplicates: bool = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -1424,6 +1427,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         name: Level = lib.no_default,
         inplace: bool = False,
         allow_duplicates: bool = False,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Series | None:
         """
         Generate a new DataFrame or Series with the index reset.
@@ -1448,6 +1452,11 @@ class Series(base.IndexOpsMixin, NDFrame):
             Modify the Series in place (do not create a new object).
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
+
+            .. versionadded:: 1.5.0
+
+        copy : bool, default True
+            Whether to copy the underlying data when returning a new object.
 
             .. versionadded:: 1.5.0
 
@@ -1537,6 +1546,13 @@ class Series(base.IndexOpsMixin, NDFrame):
         3  baz  two    3
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if copy is not lib.no_default:
+                raise ValueError("Cannot specify copy when inplace=True")
+            copy = False
+        elif copy is lib.no_default:
+            copy = True
+
         if drop:
             new_index = default_index(len(self))
             if level is not None:
@@ -1552,9 +1568,12 @@ class Series(base.IndexOpsMixin, NDFrame):
             if inplace:
                 self.index = new_index
             else:
-                return self._constructor(
-                    self._values.copy(), index=new_index
-                ).__finalize__(self, method="reset_index")
+                new_values = self._values
+                if copy:
+                    new_values = new_values.copy()
+                return self._constructor(new_values, index=new_index).__finalize__(
+                    self, method="reset_index"
+                )
         elif inplace:
             raise TypeError(
                 "Cannot reset_index inplace on a Series to create a DataFrame"
@@ -1570,7 +1589,7 @@ class Series(base.IndexOpsMixin, NDFrame):
 
             df = self.to_frame(name)
             return df.reset_index(
-                level=level, drop=drop, allow_duplicates=allow_duplicates
+                level=level, drop=drop, allow_duplicates=allow_duplicates, copy=copy
             )
         return None
 

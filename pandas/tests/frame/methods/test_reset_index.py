@@ -34,6 +34,34 @@ def multiindex_df():
 
 
 class TestResetIndex:
+    def test_reset_index_copy(self, multiindex_df, frame_or_series):
+        df = multiindex_df
+        if frame_or_series is Series:
+            df = df.iloc[:, 0]
+
+        msg = "Cannot specify copy when inplace=True"
+        with pytest.raises(ValueError, match=msg):
+            df.reset_index(0, inplace=True, copy=True)
+        with pytest.raises(ValueError, match=msg):
+            df.reset_index(0, inplace=True, copy=False)
+
+        for copy in [True, False]:
+            shares = not copy
+
+            res = df.reset_index(0, drop=True, copy=copy)
+            if frame_or_series is Series:
+                assert tm.shares_memory(res, df) is shares
+            else:
+                for col in df.columns:
+                    assert tm.shares_memory(res[col], df[col]) is shares
+
+            res = df.reset_index(0, drop=False, copy=copy)
+            if frame_or_series is Series:
+                assert tm.shares_memory(res.iloc[:, -1], df) is shares
+            else:
+                for col in df.columns:
+                    assert tm.shares_memory(res[col], df[col]) is shares
+
     def test_reset_index_empty_rangeindex(self):
         # GH#45230
         df = DataFrame(

@@ -6078,6 +6078,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] = None,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -6092,6 +6093,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] = None,
+        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6106,6 +6108,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] = None,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -6119,6 +6122,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill: Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
         names: Hashable | Sequence[Hashable] = None,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -6153,6 +6157,11 @@ class DataFrame(NDFrame, OpsMixin):
             Using the given string, rename the DataFrame column which contains the
             index data. If the DataFrame has a MultiIndex, this has to be a list or
             tuple with length equal to the number of levels.
+
+            .. versionadded:: 1.5.0
+
+        copy : bool, default True
+            Whether to copy the underlying data when returning a new object.
 
             .. versionadded:: 1.5.0
 
@@ -6283,11 +6292,18 @@ class DataFrame(NDFrame, OpsMixin):
         monkey         mammal    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if copy is not lib.no_default:
+                raise ValueError("Cannot specify copy when inplace=True")
+            copy = False
+        elif copy is lib.no_default:
+            copy = True
+
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
             new_obj = self
         else:
-            new_obj = self.copy()
+            new_obj = self.copy(deep=copy)
         if allow_duplicates is not lib.no_default:
             allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
