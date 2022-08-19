@@ -37,7 +37,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    IntervalInclusiveType,
+    IntervalClosedType,
     IntervalLeftRight,
     npt,
 )
@@ -146,8 +146,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), optional
-        Optional datetime-like data to construct index with.
+    data : array-like (1-dimensional)
+        Datetime-like data to construct index with.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
@@ -926,7 +926,7 @@ def date_range(
     normalize: bool = False,
     name: Hashable = None,
     closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
-    inclusive: IntervalInclusiveType | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1132,7 +1132,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
-    inclusive: IntervalInclusiveType | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
