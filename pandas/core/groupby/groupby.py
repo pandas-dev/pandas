@@ -2322,7 +2322,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 alt=lambda x: Series(x).var(ddof=ddof),
                 numeric_only=numeric_only,
                 ignore_failures=numeric_only is lib.no_default,
-                **{"ddof": ddof},
+                ddof=ddof,
             )
 
     @final
