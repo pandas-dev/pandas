@@ -59,15 +59,17 @@ def test_buffer_rd_bytes(c_parser_only):
     )
     parser = c_parser_only
 
-    with tm.assert_produces_warning(RuntimeWarning):
-        # compression has no effect when passing a non-binary object as input
-        for _ in range(100):
-            try:
-                parser.read_csv(
-                    StringIO(data), compression="gzip", delim_whitespace=True
-                )
-            except Exception:
-                pass
+    for _ in range(100):
+        try:
+            parser.read_csv_check_warnings(
+                RuntimeWarning,
+                "compression has no effect when passing a non-binary object as input",
+                StringIO(data),
+                compression="gzip",
+                delim_whitespace=True,
+            )
+        except Exception:
+            pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):

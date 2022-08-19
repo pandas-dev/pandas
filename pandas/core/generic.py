@@ -56,7 +56,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
-    IntervalInclusiveType,
+    IntervalClosedType,
     JSONSerializable,
     Level,
     Manager,
@@ -711,23 +711,45 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @overload
     def set_axis(
-        self: NDFrameT, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
+        self: NDFrameT,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
+        copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT:
         ...
 
     @overload
-    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        copy: bool_t | lib.NoDefault = ...,
+    ) -> None:
         ...
 
     @overload
     def set_axis(
-        self: NDFrameT, labels, *, axis: Axis = ..., inplace: bool_t = ...
+        self: NDFrameT,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: bool_t | lib.NoDefault = ...,
+        copy: bool_t | lib.NoDefault = ...,
     ) -> NDFrameT | None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def set_axis(
-        self: NDFrameT, labels, axis: Axis = 0, inplace: bool_t = False
+        self: NDFrameT,
+        labels,
+        axis: Axis = 0,
+        inplace: bool_t | lib.NoDefault = lib.no_default,
+        *,
+        copy: bool_t | lib.NoDefault = lib.no_default,
     ) -> NDFrameT | None:
         """
         Assign desired index to given axis.
@@ -747,6 +769,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Whether to return a new %(klass)s instance.
 
+            .. deprecated:: 1.5.0
+
+        copy : bool, default True
+            Whether to make a copy of the underlying data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         renamed : %(klass)s or None
@@ -756,17 +785,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                f"{type(self).__name__}.set_axis 'inplace' keyword is deprecated "
+                "and will be removed in a future version. Use "
+                "`obj = obj.set_axis(..., copy=False)` instead",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+        else:
+            inplace = False
+
+        if inplace:
+            if copy is True:
+                raise ValueError("Cannot specify both inplace=True and copy=True")
+            copy = False
+        elif copy is lib.no_default:
+            copy = True
+
         self._check_inplace_and_allows_duplicate_labels(inplace)
-        return self._set_axis_nocheck(labels, axis, inplace)
+        return self._set_axis_nocheck(labels, axis, inplace, copy=copy)
 
     @final
-    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t):
-        # NDFrame.rename with inplace=False calls set_axis(inplace=True) on a copy.
+    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool_t, copy: bool_t):
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
-            obj = self.copy()
-            obj.set_axis(labels, axis=axis, inplace=True)
+            # With copy=False, we create a new object but don't copy the
+            #  underlying data.
+            obj = self.copy(deep=copy)
+            setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
     def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
@@ -868,7 +916,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = self._get_axis(axis)
         new_labels = labels.droplevel(level)
-        return self.set_axis(new_labels, axis=axis, inplace=False)
+        return self.set_axis(new_labels, axis=axis)
 
     def pop(self, item: Hashable) -> Series | Any:
         result = self[item]
@@ -1053,7 +1101,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise KeyError(f"{missing_labels} not found in axis")
 
             new_index = ax._transform_index(f, level=level)
-            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
+            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True, copy=False)
             result._clear_item_cache()
 
         if inplace:
@@ -1327,7 +1375,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         renamed = self if inplace else self.copy()
-        renamed.set_axis(idx, axis=axis, inplace=True)
+        if axis == 0:
+            renamed.index = idx
+        else:
+            renamed.columns = idx
+
         if not inplace:
             return renamed
 
@@ -1613,7 +1665,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # have consistent precedence and validation logic throughout the library.
 
     @final
-    def _is_level_reference(self, key, axis=0):
+    def _is_level_reference(self, key: Level, axis=0) -> bool_t:
         """
         Test whether a key is a level reference for a given axis.
 
@@ -1625,7 +1677,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
+        key : Hashable
             Potential level name for the given axis
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
@@ -1644,7 +1696,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _is_label_reference(self, key, axis=0) -> bool_t:
+    def _is_label_reference(self, key: Level, axis=0) -> bool_t:
         """
         Test whether a key is a label reference for a given axis.
 
@@ -1654,8 +1706,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
-            Potential label name
+        key : Hashable
+            Potential label name, i.e. Index entry.
         axis : int, default 0
             Axis perpendicular to the axis that labels are associated with
             (0 means search for column labels, 1 means search for index labels)
@@ -1674,7 +1726,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _is_label_or_level_reference(self, key: str, axis: int = 0) -> bool_t:
+    def _is_label_or_level_reference(self, key: Level, axis: int = 0) -> bool_t:
         """
         Test whether a key is a label or level reference for a given axis.
 
@@ -1685,7 +1737,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
+        key : Hashable
             Potential label or level name
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
@@ -1699,7 +1751,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _check_label_or_level_ambiguity(self, key, axis: int = 0) -> None:
+    def _check_label_or_level_ambiguity(self, key: Level, axis: int = 0) -> None:
         """
         Check whether `key` is ambiguous.
 
@@ -1708,7 +1760,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str or object
+        key : Hashable
             Label or level name.
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns).
@@ -1717,6 +1769,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ------
         ValueError: `key` is ambiguous
         """
+
         axis = self._get_axis_number(axis)
         other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
 
@@ -1743,7 +1796,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(msg)
 
     @final
-    def _get_label_or_level_values(self, key: Level, axis: int = 0) -> np.ndarray:
+    def _get_label_or_level_values(self, key: Level, axis: int = 0) -> ArrayLike:
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1758,14 +1811,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : str
+        key : Hashable
             Label or level name.
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
 
         Returns
         -------
-        values : np.ndarray
+        np.ndarray or ExtensionArray
 
         Raises
         ------
@@ -2042,7 +2095,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "The __array_wrap__ method of DataFrame and Series will be removed in "
             "a future version",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         res = lib.item_from_zerodim(result)
         if is_scalar(res):
@@ -2256,6 +2309,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ExcelWriter : Class for writing DataFrame objects into excel sheets.
         read_excel : Read an Excel file into a pandas DataFrame.
         read_csv : Read a comma-separated values (csv) file into DataFrame.
+        io.formats.style.Styler.to_excel : Add styles to Excel sheet.
 
         Notes
         -----
@@ -3351,7 +3405,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {returns}
         See Also
         --------
-        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
+        io.formats.style.Styler.to_latex : Render a DataFrame to LaTeX
+            with conditional formatting.
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
@@ -8218,7 +8273,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         end_time,
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: IntervalInclusiveType | None = None,
+        inclusive: IntervalClosedType | None = None,
         axis=None,
     ) -> NDFrameT:
         """
@@ -8324,7 +8379,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = True if include_start is lib.no_default else include_start
             right = True if include_end is lib.no_default else include_end
 
-            inc_dict: dict[tuple[bool_t, bool_t], IntervalInclusiveType] = {
+            inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
                 (True, False): "left",
                 (False, True): "right",
@@ -10166,8 +10221,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_obj = self._slice(vslicer, axis=axis)
         shifted_axis = self._get_axis(axis)[islicer]
-        new_obj.set_axis(shifted_axis, axis=axis, inplace=True)
-
+        new_obj = new_obj.set_axis(shifted_axis, axis=axis, copy=False)
         return new_obj.__finalize__(self, method="slice_shift")
 
     @final
@@ -10426,7 +10480,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ax = _tz_convert(ax, tz)
 
         result = self.copy(deep=copy)
-        result = result.set_axis(ax, axis=axis, inplace=False)
+        result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_convert")
 
     @final
@@ -10596,7 +10650,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self.copy(deep=copy)
-        result = result.set_axis(ax, axis=axis, inplace=False)
+        result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_localize")
 
     # ----------------------------------------------------------------------
@@ -12119,6 +12173,9 @@ skipna : bool, default True
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a {name1}.
+
+    .. deprecated:: 1.3.0
+        The level keyword is deprecated. Use groupby instead.
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
@@ -12151,6 +12208,9 @@ skipna : bool, default True
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a {name1}.
+
+    .. deprecated:: 1.3.0
+        The level keyword is deprecated. Use groupby instead.
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
@@ -12256,6 +12316,9 @@ skipna : bool, default True
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a {name1}.
+
+    .. deprecated:: 1.3.0
+        The level keyword is deprecated. Use groupby instead.
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
