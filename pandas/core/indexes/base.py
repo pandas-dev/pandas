@@ -940,7 +940,7 @@ class Index(IndexOpsMixin, PandasObject):
             return NotImplemented
 
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
+            self, ufunc, method, *inputs, _no_index=False, **kwargs
         )
         if result is not NotImplemented:
             return result

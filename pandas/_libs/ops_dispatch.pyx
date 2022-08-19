@@ -15,12 +15,21 @@ DISPATCHED_UFUNCS = {
     "ge",
     "remainder",
     "matmul",
-    "or",
-    "xor",
-    "and",
+    # those three are currently set operations, not logical operations, for the
+    # Index dunder method (but this is deprecated)
+    # TODO(2.0) this can be uncommented (and DISPATCHED_UFUNCS_NO_INDEX removed)
+    # once deprecation is enforced in 2.0
+    # "or",
+    # "xor",
+    # "and",
     "neg",
     "pos",
     "abs",
+}
+DISPATCHED_UFUNCS_NO_INDEX = {
+    "or",
+    "xor",
+    "and",
 }
 UNARY_UFUNCS = {
     "neg",
@@ -61,7 +70,7 @@ REVERSED_NAMES = {
 
 
 def maybe_dispatch_ufunc_to_dunder_op(
-    object self, object ufunc, str method, *inputs, **kwargs
+    object self, object ufunc, str method, *inputs, bint _no_index=True, **kwargs
 ):
     """
     Dispatch a ufunc to the equivalent dunder method.
@@ -94,7 +103,11 @@ def maybe_dispatch_ufunc_to_dunder_op(
     if kwargs or ufunc.nin > 2:
         return NotImplemented
 
-    if method == "__call__" and op_name in DISPATCHED_UFUNCS:
+    if method == "__call__" and (
+        op_name in DISPATCHED_UFUNCS or (
+            _no_index and op_name in DISPATCHED_UFUNCS_NO_INDEX
+        )
+    ):
 
         if inputs[0] is self:
             name = f"__{op_name}__"
