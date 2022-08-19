@@ -19,7 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
 - Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
-- Fixed regression in :func:`merge` throwing an error when passing a :class:`Series` with a multi-level name
+- Fixed regression in :func:`merge` throwing an error when passing a :class:`Series` with a multi-level name (:issue:`47946`)
 - Fixed regression in :meth:`DataFrame.eval` creating a copy when updating inplace (:issue:`47449`)
 -
 
