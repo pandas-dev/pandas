@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -13,6 +14,7 @@ import pandas._libs.reshape as libreshape
 from pandas._typing import npt
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -130,6 +132,7 @@ class _Unstacker:
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
                 PerformanceWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         self._make_selectors()

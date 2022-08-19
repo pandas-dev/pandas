@@ -339,6 +339,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             f"{compression} will not write the byte order mark for {encoding}",
             UnicodeWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     # Use binary mode when converting path-like objects to file-like objects (fsspec)

@@ -114,7 +114,7 @@ class TestCategoricalIndex:
         df = DataFrame({"value": (np.arange(100) + 1).astype("int64")})
         df["D"] = pd.cut(df.value, bins=[0, 25, 50, 75, 100])
 
-        expected = Series([11, Interval(0, 25, "right")], index=["value", "D"], name=10)
+        expected = Series([11, Interval(0, 25)], index=["value", "D"], name=10)
         result = df.iloc[10]
         tm.assert_series_equal(result, expected)
 
@@ -126,7 +126,7 @@ class TestCategoricalIndex:
         result = df.iloc[10:20]
         tm.assert_frame_equal(result, expected)
 
-        expected = Series([9, Interval(0, 25, "right")], index=["value", "D"], name=8)
+        expected = Series([9, Interval(0, 25)], index=["value", "D"], name=8)
         result = df.loc[8]
         tm.assert_series_equal(result, expected)
 
@@ -495,13 +495,13 @@ class TestCategoricalIndex:
             # numpy object
             np.array([1, "b", 3.5], dtype=object),
             # pandas scalars
-            [Interval(1, 4, "right"), Interval(4, 6, "right"), Interval(6, 9, "right")],
+            [Interval(1, 4), Interval(4, 6), Interval(6, 9)],
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
             [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
             # pandas Integer arrays
             *(pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES),
             # other pandas arrays
-            pd.IntervalIndex.from_breaks([1, 4, 6, 9], "right").array,
+            pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
             pd.date_range("2019-01-01", periods=3).array,
             pd.timedelta_range(start="1d", periods=3).array,
         ],
