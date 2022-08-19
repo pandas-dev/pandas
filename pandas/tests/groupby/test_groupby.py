@@ -2837,7 +2837,7 @@ def test_single_element_list_grouping():
     )
     msg = (
         "In a future version of pandas, a length 1 "
-        "tuple will be returned when iterating over a "
+        "tuple will be returned when iterating over "
         "a groupby with a grouper equal to a list of "
         "length 1. Don't supply a list with a single grouper "
         "to avoid this warning."
