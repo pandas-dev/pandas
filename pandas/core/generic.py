@@ -1115,7 +1115,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
-        inplace: Literal[False] = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
         **kwargs,
     ) -> NDFrameT:
         ...
@@ -1135,7 +1135,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
-        inplace: bool_t = ...,
+        inplace: bool_t | lib.NoDefault = ...,
         **kwargs,
     ) -> NDFrameT | None:
         ...
@@ -1145,7 +1145,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rename_axis(
         self: NDFrameT,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
-        inplace: bool_t = False,
+        inplace: bool_t | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> NDFrameT | None:
         """
@@ -1172,6 +1172,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
+
+            .. deprecated:: 1.5.0
 
         Returns
         -------
@@ -1271,6 +1273,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                cat            4         0
                monkey         2         2
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                f"{type(self).__name__}.rename_axis 'inplace' keyword is "
+                "deprecated and will be removed in a future version. Use "
+                "`obj = obj.rename_axis(..., copy=False)` instead",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+        else:
+            inplace = False
+
         kwargs["inplace"] = inplace
         axes, kwargs = self._construct_axes_from_arguments(
             (), kwargs, sentinel=lib.no_default
@@ -1287,7 +1300,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f'argument "{list(kwargs.keys())[0]}"'
             )
 
-        inplace = validate_bool_kwarg(inplace, "inplace")
+        # Value of type variable "BoolishNoneT" of "validate_bool_kwarg" cannot
+        # be "Union[Any, bool, Literal[_NoDefault.no_default]]"
+        inplace = validate_bool_kwarg(inplace, "inplace")  # type: ignore[type-var]
 
         if mapper is not lib.no_default:
             # Use v0.23 behavior if a scalar or list

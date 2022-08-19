@@ -14,7 +14,8 @@ class TestDataFrameRenameAxis:
         # GH#15704
         expected = float_frame.rename_axis("foo")
         result = float_frame.copy()
-        return_value = no_return = result.rename_axis("foo", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="'inplace'"):
+            return_value = no_return = result.rename_axis("foo", inplace=True)
         assert return_value is None
 
         assert no_return is None
@@ -22,7 +23,8 @@ class TestDataFrameRenameAxis:
 
         expected = float_frame.rename_axis("bar", axis=1)
         result = float_frame.copy()
-        return_value = no_return = result.rename_axis("bar", axis=1, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="'inplace'"):
+            return_value = no_return = result.rename_axis("bar", axis=1, inplace=True)
         assert return_value is None
 
         assert no_return is None

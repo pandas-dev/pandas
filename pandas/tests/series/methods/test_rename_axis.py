@@ -30,7 +30,8 @@ class TestSeriesRenameAxis:
         # GH 15704
         expected = datetime_series.rename_axis("foo")
         result = datetime_series
-        no_return = result.rename_axis("foo", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="'inplace'"):
+            no_return = result.rename_axis("foo", inplace=True)
 
         assert no_return is None
         tm.assert_series_equal(result, expected)
