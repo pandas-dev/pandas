@@ -12173,6 +12173,9 @@ skipna : bool, default True
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a {name1}.
+
+    .. deprecated:: 1.3.0
+        The level keyword is deprecated. Use groupby instead.
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
@@ -12205,6 +12208,9 @@ skipna : bool, default True
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a {name1}.
+
+    .. deprecated:: 1.3.0
+        The level keyword is deprecated. Use groupby instead.
 ddof : int, default 1
     Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
     where N represents the number of elements.
@@ -12310,6 +12316,9 @@ skipna : bool, default True
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a {name1}.
+
+    .. deprecated:: 1.3.0
+        The level keyword is deprecated. Use groupby instead.
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
