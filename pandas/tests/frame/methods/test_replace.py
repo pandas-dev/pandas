@@ -1559,3 +1559,17 @@ class TestDataFrameReplaceRegex:
         result = df.replace({0: 1, 1: np.nan})
         expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_categorical_no_replacement(self):
+        # GH#46672
+        df = DataFrame(
+            {
+                "a": ["one", "two", None, "three"],
+                "b": ["one", None, "two", "three"],
+            },
+            dtype="category",
+        )
+        expected = df.copy()
+
+        result = df.replace(to_replace=[".", "def"], value=["_", None])
+        tm.assert_frame_equal(result, expected)
