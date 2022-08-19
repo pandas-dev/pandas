@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+import pytz
 
 import pandas.util._test_decorators as td
 
@@ -594,7 +595,9 @@ class TestCustomDatetimeIndex:
         tm.assert_index_equal(result, b)
         assert result.freq == b.freq
 
-    @pytest.mark.parametrize("tz", [None, "UTC", "Europe/Berlin"])
+    @pytest.mark.parametrize(
+        "tz", [None, "UTC", "Europe/Berlin", pytz.FixedOffset(-60)]
+    )
     def test_intersection_dst_transition(self, tz):
         # GH 46702: Europe/Berlin has DST transition
         idx1 = date_range("2020-03-27", periods=5, freq="D", tz=tz)
