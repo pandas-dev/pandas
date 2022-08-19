@@ -1966,6 +1966,21 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented
+def test_set_inplace():
+    # https://github.com/pandas-dev/pandas/issues/47449
+    # Ensure we don't only update the DataFrame inplace, but also the actual
+    # column values, such that references to this column also get updated
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+    result_view = df[:]
+    ser = df["A"]
+    df.eval("A = B + C", inplace=True)
+    expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
+    tm.assert_frame_equal(df, expected)
+    tm.assert_series_equal(ser, expected["A"])
+    tm.assert_series_equal(result_view["A"], expected["A"])
+
+
 class TestValidate:
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
