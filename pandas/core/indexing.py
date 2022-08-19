@@ -1749,8 +1749,10 @@ class _iLocIndexer(_LocationIndexer):
                 # We get here in one case via .loc with a all-False mask
                 pass
 
-            elif self._is_scalar_access(indexer):
-                # We are setting nested data
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes[ilocs[0]]
+            ):
+                # We are setting nested data, only possible for object dtype data
                 self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
