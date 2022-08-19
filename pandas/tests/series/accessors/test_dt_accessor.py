@@ -618,6 +618,17 @@ class TestSeriesDatetimeValues:
         expected = Series(["2019-01-01", np.nan])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data", [DatetimeIndex([pd.NaT]), PeriodIndex([pd.NaT], dtype="period[D]")]
+    )
+    def test_strftime_all_nat(self, data):
+        # https://github.com/pandas-dev/pandas/issues/45858
+        ser = Series(data)
+        with tm.assert_produces_warning(None):
+            result = ser.dt.strftime("%Y-%m-%d")
+        expected = Series([np.nan], dtype=object)
+        tm.assert_series_equal(result, expected)
+
     def test_valid_dt_with_missing_values(self):
 
         from datetime import (
