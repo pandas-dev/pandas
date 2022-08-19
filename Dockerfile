@@ -1,4 +1,4 @@
-FROM quay.io/condaforge/miniforge3
+FROM quay.io/condaforge/mambaforge
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
@@ -40,7 +40,6 @@ RUN mkdir "$pandas_home" \
 # we just update the base/root one from the 'environment.yml' file instead of creating a new one.
 #
 # Set up environment
-RUN conda install -y mamba
 RUN mamba env update -n base -f "$pandas_home/environment.yml"
 
 # Build C extensions and pandas
