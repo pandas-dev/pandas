@@ -2155,6 +2155,26 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
             )
 
 
+def test_merge_series_multilevel():
+    # GH#47946
+    a = DataFrame(
+        {"A": [1, 2, 3, 4]},
+        index=MultiIndex.from_product([["a", "b"], [0, 1]], names=["outer", "inner"]),
+    )
+    b = Series(
+        [1, 2, 3, 4],
+        index=MultiIndex.from_product([["a", "b"], [1, 2]], names=["outer", "inner"]),
+        name=("B", "C"),
+    )
+    expected = DataFrame(
+        {"A": [2, 4], ("B", "C"): [1, 3]},
+        index=MultiIndex.from_product([["a", "b"], [1]], names=["outer", "inner"]),
+    )
+    with tm.assert_produces_warning(FutureWarning):
+        result = merge(a, b, on=["outer", "inner"])
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "col1, col2, kwargs, expected_cols",
     [
