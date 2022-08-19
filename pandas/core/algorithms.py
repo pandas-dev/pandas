@@ -1042,6 +1042,7 @@ def duplicated(
     duplicated : ndarray[bool]
     """
     if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
+        values = cast("BaseMaskedArray", values)
         return htable.duplicated(values._data, keep=keep, mask=values._mask)
 
     values = _ensure_data(values)
