@@ -828,7 +828,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 (
                     "In a future version of pandas, a length 1 "
                     "tuple will be returned when iterating over a "
-                    "a groupby with a grouper equal to a list of "
+                    "groupby with a grouper equal to a list of "
                     "length 1. Don't supply a list with a single grouper "
                     "to avoid this warning."
                 ),

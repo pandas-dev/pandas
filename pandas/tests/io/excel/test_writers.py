@@ -875,7 +875,7 @@ class TestExcelWriter:
         )
 
         with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
-            df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
+            df.to_excel(filename, sheet_name="TestSheet")
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
@@ -1287,6 +1287,7 @@ class TestExcelWriter:
                 # Some engines raise if nothing is written
                 DataFrame().to_excel(writer)
 
+    @pytest.mark.filterwarnings("ignore:Calling close():UserWarning:xlsxwriter")
     @pytest.mark.parametrize(
         "attr, args", [("save", ()), ("write_cells", ([], "test"))]
     )
