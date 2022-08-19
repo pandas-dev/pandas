@@ -98,6 +98,7 @@ feedparser
 pyyaml
 requests
 jupyterlab >=3.4,<4
+pip
 jupyterlite==0.1.0b10
 sphinx-toggleprompt
 setuptools>=51.0.0
