@@ -1034,6 +1034,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self.apply(curried)
 
             is_transform = name in base.transformation_kernels
+
+            # Transform needs to keep the same schema, including when empty
+            if is_transform and self._obj_with_exclusions.empty:
+                return self._obj_with_exclusions
+
             result = self._python_apply_general(
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
@@ -1195,21 +1200,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
+        obj_axis = self.obj._get_axis(self.axis)
+
         if self.grouper.is_monotonic and not self.grouper.has_dropped_na:
             # shortcut if we have an already ordered grouper
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+            result = result.set_axis(obj_axis, axis=self.axis, copy=False)
             return result
 
         # row order is scrambled => sort the rows by position in original index
         original_positions = Index(self.grouper.result_ilocs())
-        result.set_axis(original_positions, axis=self.axis, inplace=True)
+        result = result.set_axis(original_positions, axis=self.axis, copy=False)
         result = result.sort_index(axis=self.axis)
-        obj_axis = self.obj._get_axis(self.axis)
         if self.grouper.has_dropped_na:
             # Add back in any missing rows due to dropna - index here is integral
             # with values referring to the row of the input so can use RangeIndex
             result = result.reindex(RangeIndex(len(obj_axis)), axis=self.axis)
-        result.set_axis(obj_axis, axis=self.axis, inplace=True)
+        result = result.set_axis(obj_axis, axis=self.axis, copy=False)
 
         return result
 
@@ -2403,7 +2409,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            result = result.rename("size").reset_index()
+            # error: Incompatible types in assignment (expression has
+            # type "DataFrame", variable has type "Series")
+            result = result.rename("size").reset_index()  # type: ignore[assignment]
 
         return self._reindex_output(result, fill_value=0)
 
