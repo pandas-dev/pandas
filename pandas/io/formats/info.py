@@ -21,14 +21,13 @@ from pandas._typing import (
     WriteBuffer,
 )
 
-from pandas.core.indexes.api import Index
-
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import (
+    from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
