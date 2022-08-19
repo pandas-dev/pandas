@@ -181,6 +181,109 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
 
     return output
 
+# ----------------------------------------------------------------------
+# Rolling product
+
+cdef inline float64_t calc_prod(int64_t minp, int64_t nobs, float64_t sum_x,
+                               int64_t num_consecutive_same_value, float64_t prev_value
+                               ) nogil:
+    cdef:
+        float64_t result
+
+    #some if-else statement here
+
+cdef inline void add_prod(float64_t val, int64_t *nobs, float64_t *sum_x,
+                         float64_t *compensation, int64_t *num_consecutive_same_value,
+                         float64_t *prev_value) nogil:
+    """ add a value from the product calc using Kahan summation """
+
+    cdef:
+        float64_t y, t
+
+    # Not NaN
+    if val == val:
+        nobs[0] = nobs[0] + 1
+        y = val - compensation[0]
+        t = sum_x[0] + y
+        compensation[0] = t - sum_x[0] - y
+        sum_x[0] = t
+
+        # GH#42064, record num of same values to remove floating point artifacts
+        if val == prev_value[0]:
+            num_consecutive_same_value[0] += 1
+        else:
+            # reset to 1 (include current value itself)
+            num_consecutive_same_value[0] = 1
+        prev_value[0] = val
+
+
+cdef inline void remove_prod(float64_t val, int64_t *nobs, float64_t *sum_x,
+                            float64_t *compensation) nogil:
+    """ remove a value from the sum calc using Kahan summation """
+
+    cdef:
+        float64_t y, t
+
+        
+def roll_prod(const float64_t[:] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+    cdef:
+        Py_ssize_t i, j
+        float64_t sum_x, compensation_add, compensation_remove, prev_value
+        int64_t s, e, num_consecutive_same_value
+        int64_t nobs = 0, N = len(start)
+        ndarray[float64_t] output
+        bint is_monotonic_increasing_bounds
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    output = np.empty(N, dtype=np.float64)
+
+    nobs = np.zeros((<float64_t).shape, dtype=np.int64)
+    prodx = np.ones((<float64_t>out).shape, dtype=(<object>out).base.dtype)
+
+    with nogil:
+
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
+
+            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+                for j in range(K):
+                    val = values[i, j]
+                    if val == val:
+                        nobs[lab, j] += 1
+                        prodx[lab, j] *= val
+                    elif nobs[i, j] < min_val:
+                        ndarray[i, j] = NAN
+                    else:
+                        ndarray[i, j] = prodx[i, j]
+
+                for j in range(s, e):
+                    add_prod(values[j], &nobs, &sum_x, &neg_ct, &compensation_add,
+                             &num_consecutive_same_value, &prev_value)
+
+            else:
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    remove_prod(values[j], &nobs, &sum_x, &neg_ct, &compensation_remove)
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j]
+                    add_prod(val, &nobs, &sum_x, &neg_ct, &compensation_add,
+                             &num_consecutive_same_value, &prev_value)
+
+            output[i] = calc_prod(minp, nobs=0, neg_ct, sum_x, num_consecutive_same_value, prev_value)
+
+            if not is_monotonic_increasing_bounds:
+                nobs = 0
+                neg_ct = 0
+                sum_x = 0.0
+                compensation_remove = 0.0
+    return output
 
 # ----------------------------------------------------------------------
 # Rolling mean
