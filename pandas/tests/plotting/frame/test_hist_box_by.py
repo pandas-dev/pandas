@@ -357,7 +357,9 @@ class TestBoxWithBy(TestPlotBase):
     )
     def test_box_plot_layout_with_by(self, by, column, layout, axes_num, hist_df):
         # GH 15079
-        axes = _check_plot_works(hist_df.plot.box, column=column, by=by, layout=layout)
+        axes = _check_plot_works(
+            hist_df.plot.box, default_axes=True, column=column, by=by, layout=layout
+        )
         self._check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
     @pytest.mark.parametrize(
