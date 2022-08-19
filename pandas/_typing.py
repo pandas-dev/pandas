@@ -207,7 +207,7 @@ class BaseBuffer(Protocol):
 
 
 class ReadBuffer(BaseBuffer, Protocol[AnyStr_cov]):
-    def read(self, __n: int | None = ...) -> AnyStr_cov:
+    def read(self, __n: int = ...) -> AnyStr_cov:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
@@ -223,7 +223,7 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_con]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
-    def readline(self) -> AnyStr_cov:
+    def readline(self) -> bytes:
         ...
 
 
