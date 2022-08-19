@@ -18,6 +18,7 @@ from pandas.core.computation.expr import (
 from pandas.core.computation.ops import BinOp
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
+from pandas.core.generic import NDFrame
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -384,7 +385,10 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    target[assigner] = ret
+                    if inplace and isinstance(target, NDFrame):
+                        target.loc[:, assigner] = ret
+                    else:
+                        target[assigner] = ret
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
