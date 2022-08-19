@@ -353,7 +353,7 @@ class BaseBlockManager(DataManager):
             result_blocks = extend_blocks(applied, result_blocks)
 
         if ignore_failures:
-            return self._combine(result_blocks)
+            return self._combine(result_blocks)[0]
 
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
@@ -524,11 +524,11 @@ class BaseBlockManager(DataManager):
 
         return False
 
-    def _get_data_subset(self: T, predicate: Callable) -> T:
+    def _get_data_subset(self: T, predicate: Callable) -> tuple[T, npt.NDArray[np.intp]]:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks, copy=False)
 
-    def get_bool_data(self: T, copy: bool = False) -> T:
+    def get_bool_data(self: T, copy: bool = False) -> tuple[T, npt.NDArray[np.intp]]:
         """
         Select blocks that are bool-dtype and columns from object-dtype blocks
         that are all-bool.
@@ -553,7 +553,7 @@ class BaseBlockManager(DataManager):
 
         return self._combine(new_blocks, copy)
 
-    def get_numeric_data(self: T, copy: bool = False) -> T:
+    def get_numeric_data(self: T, copy: bool = False) -> tuple[T, npt.NDArray[np.intp]]:
         """
         Parameters
         ----------
@@ -563,24 +563,26 @@ class BaseBlockManager(DataManager):
         numeric_blocks = [blk for blk in self.blocks if blk.is_numeric]
         if len(numeric_blocks) == len(self.blocks):
             # Avoid somewhat expensive _combine
+            taker = np.arange(len(self), dtype=np.intp)  # TODO: return None to indicate no take needed?
             if copy:
-                return self.copy(deep=True)
-            return self
+                return self.copy(deep=True), taker
+            return self, taker
         return self._combine(numeric_blocks, copy)
 
     def _combine(
         self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
-    ) -> T:
+    ) -> tuple[T, npt.NDArray[np.intp]]:
         """return a new manager with the blocks"""
         if len(blocks) == 0:
+            indexer = np.arange(0, dtype=np.intp)
             if self.ndim == 2:
                 # retain our own Index dtype
                 if index is not None:
                     axes = [self.items[:0], index]
                 else:
                     axes = [self.items[:0]] + self.axes[1:]
-                return self.make_empty(axes)
-            return self.make_empty()
+                return self.make_empty(axes), indexer
+            return self.make_empty(), indexer
 
         # FIXME: optimization potential
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
@@ -604,7 +606,7 @@ class BaseBlockManager(DataManager):
             axes[-1] = index
         axes[0] = self.items.take(indexer)
 
-        return type(self).from_blocks(new_blocks, axes, new_refs)
+        return type(self).from_blocks(new_blocks, axes, new_refs), indexer
 
     @property
     def nblocks(self) -> int:
@@ -1520,7 +1522,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if dropped_any:
             # faster to skip _combine if we haven't dropped any blocks
-            return self._combine(result_blocks, copy=False, index=index)
+            return self._combine(result_blocks, copy=False, index=index)[0]
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
@@ -1554,7 +1556,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if ignore_failures:
             if res_blocks:
                 indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
-                new_mgr = self._combine(res_blocks, copy=False, index=index)
+                new_mgr = self._combine(res_blocks, copy=False, index=index)[0]
             else:
                 indexer = []
                 new_mgr = type(self).from_blocks([], [self.items[:0], index])
@@ -1618,7 +1620,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     # ----------------------------------------------------------------
 
-    def unstack(self, unstacker, fill_value) -> BlockManager:
+    def unstack(self, unstacker, fill_value) -> tuple[BlockManager, list[np.ndarray]]:
         """
         Return a BlockManager with all blocks unstacked.
 
@@ -1677,7 +1679,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = new_columns[columns_mask]
 
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
-        return bm
+        return bm, columns_mask
 
     def to_dict(self, copy: bool = True):
         """
@@ -1697,7 +1699,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             bd.setdefault(str(b.dtype), []).append(b)
 
         # TODO(EA2D): the combine will be unnecessary with 2D EAs
-        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
+        return {dtype: self._combine(blocks, copy=copy)[0] for dtype, blocks in bd.items()}
 
     def as_array(
         self,
@@ -1858,7 +1860,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def __len__(self) -> int:
         # TODO: cache? would need to invalidate akin to blklocs
-        return sum(x.shape[1] for x in self.blocks)
+        return sum(x.shape[0] for x in self.blocks)
 
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
@@ -2053,8 +2055,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
     def get_numeric_data(self, copy: bool = False):
         if self._block.is_numeric:
-            return self.copy(deep=copy)
-        return self.make_empty()
+            return self.copy(deep=copy), taker
+        taker = np.array([], dtype=np.intp)
+        return self.make_empty(), taker
 
     @property
     def _can_hold_na(self) -> bool:

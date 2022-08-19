@@ -714,7 +714,7 @@ class TestBlockManager:
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()
         assert cons.nblocks == 4
-        cons = mgr.consolidate().get_numeric_data()
+        cons = mgr.consolidate().get_numeric_data()[0]
         assert cons.nblocks == 1
         assert isinstance(cons.blocks[0].mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
@@ -752,7 +752,7 @@ class TestBlockManager:
         )
         mgr.iset(5, np.array([1, 2, 3], dtype=np.object_))
 
-        numeric = mgr.get_numeric_data()
+        numeric = mgr.get_numeric_data()[0]
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("float")).internal_values(),
@@ -776,7 +776,7 @@ class TestBlockManager:
                 np.array([100.0, 200.0, 300.0]),
             )
 
-        numeric2 = mgr.get_numeric_data(copy=True)
+        numeric2 = mgr.get_numeric_data(copy=True)[0]
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         numeric2.iset(
             numeric2.items.get_loc("float"),
@@ -804,7 +804,7 @@ class TestBlockManager:
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools = mgr.get_bool_data()
+            bools = mgr.get_bool_data()[0]
         tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
@@ -825,7 +825,7 @@ class TestBlockManager:
 
         # Check sharing
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            bools2 = mgr.get_bool_data(copy=True)
+            bools2 = mgr.get_bool_data(copy=True)[0]
         bools2.iset(0, np.array([False, True, False]))
         if using_copy_on_write:
             tm.assert_numpy_array_equal(

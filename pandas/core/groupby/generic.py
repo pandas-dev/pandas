@@ -1320,7 +1320,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         mgr: Manager2D = self._get_data_to_aggregate()
         orig_mgr_len = len(mgr)
         if numeric_only_bool:
-            mgr = mgr.get_numeric_data(copy=False)
+            mgr = mgr.get_numeric_data(copy=False)[0]
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
             return self.grouper._cython_operation(

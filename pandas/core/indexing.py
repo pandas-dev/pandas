@@ -1587,6 +1587,7 @@ class _iLocIndexer(_LocationIndexer):
             return self.obj._take_with_is_copy(key, axis=axis)
         except IndexError as err:
             # re-raise with different error message
+            raise  # watch out for case with wrong dtype key?
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
@@ -1606,6 +1607,9 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(key, list):
             key = np.asarray(key)
+            #if len(key) == 0:
+            #    key = key.astype(np.intp)
+            # TODO: if empty, do intp instead of float64?
 
         if com.is_bool_indexer(key):
             self._validate_key(key, axis)
@@ -1768,10 +1772,11 @@ class _iLocIndexer(_LocationIndexer):
                         reindexers, allow_dups=True
                     )
                     self.obj._mgr = new_obj._mgr
-                    self.obj._index = self.obj._mgr.axes[-1]
-                    if self.ndim == 2:
-                        # FIXME: get axes without mgr.axes
-                        self.obj._columns = self.obj._mgr.axes[0]
+                    # TODO: use update_inplace?
+                    if i == 0:
+                        self.obj._index = labels
+                    else:
+                        self.obj._columns = labels
                     self.obj._maybe_update_cacher(clear=True)
                     self.obj._is_copy = None
                     
@@ -2086,8 +2091,8 @@ class _iLocIndexer(_LocationIndexer):
 
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
+        # FIXME: update axes?
         self.obj._maybe_update_cacher(clear=True, inplace=True)
-        
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -2184,9 +2189,12 @@ class _iLocIndexer(_LocationIndexer):
                     #  dtype.  But if we had a list or dict, then do inference
                     df = df.infer_objects()
                 self.obj._mgr = df._mgr
+                self.obj._index = df.index
                 
             else:
-                self.obj._mgr = self.obj._append(value)._mgr
+                new_obj = self.obj._append(value)
+                self.obj._mgr = new_obj._mgr
+                self.obj._index = new_obj.index
                 
             self.obj._maybe_update_cacher(clear=True)
 

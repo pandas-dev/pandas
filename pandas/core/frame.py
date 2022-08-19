@@ -4272,6 +4272,7 @@ class DataFrame(NDFrame, OpsMixin):
                 index_copy.name = self.index.name
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
+            self._index = index_copy
 
     def _box_col_values(self, values: SingleDataManager, loc: int) -> Series:
         """
@@ -4501,6 +4502,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if inplace:
             self._update_inplace(result)
+            self._index = result._index
+            self._columns = result._columns
             return None
         else:
             return result
@@ -4757,8 +4760,7 @@ class DataFrame(NDFrame, OpsMixin):
                 and not is_bool_dtype(dtype)
             )
 
-        def predicate(arr: ArrayLike) -> bool:
-            dtype = arr.dtype
+        def predicate(dtype: DtypeObj) -> bool:
             if include:
                 if not dtype_predicate(dtype, include):
                     return False
@@ -4769,10 +4771,16 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
+        def arr_predicate(arr: ArrayLike) -> bool:
+            dtype = arr.dtype
+            return predicate(dtype)
+
+        mgr, taker = self._mgr._get_data_subset(arr_predicate).copy(deep=None)
         # FIXME: get axes without mgr.axes
-        assert mgr.axes[1] is self.index  # WTF why does passing columns/index cause segfault?
-        return type(self)(mgr, columns=mgr.axes[0], index=mgr.axes[1]).__finalize__(self)
+        # FIXME: return taker from _get_data_subset, this is really slow
+        #taker = self.dtypes.apply(predicate).values.nonzero()[0]
+        columns = self.columns.take(taker)
+        return type(self)(mgr, columns=columns, index=self.index).__finalize__(self)
 
     def insert(
         self,
@@ -4841,6 +4849,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         value = self._sanitize_column(value)
         self._mgr.insert(loc, column, value)
+        self._columns = self.columns.insert(loc, column)
 
     def assign(self, **kwargs) -> DataFrame:
         r"""
@@ -6605,6 +6614,8 @@ class DataFrame(NDFrame, OpsMixin):
         if not inplace:
             return result
         self._update_inplace(result)
+        self._columns = result._columns
+        self._index = result._index
         return None
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "subset"])
@@ -6703,6 +6714,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         if inplace:
             self._update_inplace(result)
+            self._index = result._index
+            self._columns = result._columns
             return None
         else:
             return result
@@ -9268,7 +9281,7 @@ Parrot 2  Parrot       24.0
             axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
-        return self._constructor(new_data).__finalize__(self, "diff")
+        return self._constructor(new_data, index=self.index, columns=self.columns).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
@@ -10879,8 +10892,9 @@ Parrot 2  Parrot       24.0
                 #  cols = self.columns[~dt64_cols]
                 #  self = self[cols]
                 predicate = lambda x: not is_datetime64_any_dtype(x.dtype)
-                mgr = self._mgr._get_data_subset(predicate)
-                self = type(self)(mgr)
+                mgr, taker = self._mgr._get_data_subset(predicate)
+                columns = self.columns[taker]
+                self = type(self)(mgr, index=self.index, columns=columns)
 
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
@@ -10928,11 +10942,20 @@ Parrot 2  Parrot       24.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res, indexer = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            res, _ = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
             index = Index([None], dtype=object)
             assert index.equals(res.axes[1])
-            columns = self.columns.take(indexer)
-            assert columns.equals(res.axes[0])
+            if ignore_failures:
+                if len(res.items) == len(df.columns):
+                    # i.e. nothing was dropped
+                    columns = df.columns
+                else:
+                    # FIXME: get axes without mgr.axes; THIS IS WRONG TOO
+                    columns = res.axes[0]
+            else:
+                columns = df.columns
+                assert columns.equals(res.axes[0])
+
             out = df._constructor(res, index=index, columns=columns).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
@@ -11736,8 +11759,9 @@ Parrot 2  Parrot       24.0
         # convert to BlockManager if needed -> this way support ArrayManager as well
         mgr = mgr_to_mgr(mgr, "block")
         mgr = cast(BlockManager, mgr)
+        # FIXME: get axes without mgr.axes
         return {
-            k: self._constructor(v).__finalize__(self)
+            k: self._constructor(v, index=self.index, columns=v.axes[0]).__finalize__(self)
             for k, v, in mgr.to_dict(copy=copy).items()
         }
 

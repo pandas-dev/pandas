@@ -22,6 +22,7 @@ import pandas._testing as tm
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
+    # TODO: is the comment below still accurate for supported numpies?
     # __array_interface__ is not defined for older numpies
     # and on some pythons
     try:

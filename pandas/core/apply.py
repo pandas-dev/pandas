@@ -1002,6 +1002,7 @@ class FrameColumnApply(FrameApply):
         # We create one Series object, and will swap out the data inside
         #  of it.  Kids: don't do this at home.
         ser = self.obj._ixs(0, axis=0)
+        index = ser.index
         mgr = ser._mgr
 
         if is_extension_array_dtype(ser.dtype):
@@ -1013,9 +1014,10 @@ class FrameColumnApply(FrameApply):
 
         else:
             for (arr, name) in zip(values, self.index):
-                # GH#35462 re-pin mgr in case setitem changed it
+                # GH#35462 re-pin mgr, index in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
+                ser._index = index
                 object.__setattr__(ser, "_name", name)
                 yield ser
 

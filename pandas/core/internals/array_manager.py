@@ -485,6 +485,7 @@ class BaseArrayManager(DataManager):
             Whether to copy the blocks
         """
         return self._get_data_subset(is_inferred_bool_dtype)
+        # FIXME: return indexer
 
     def get_numeric_data(self: T, copy: bool = False) -> T:
         """

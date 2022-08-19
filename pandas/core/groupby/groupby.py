@@ -1757,7 +1757,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
             elif not is_ser:
-                data = data.get_numeric_data(copy=False)
+                data = data.get_numeric_data(copy=False)[0]
 
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
@@ -3372,7 +3372,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
-        data = mgr.get_numeric_data() if numeric_only_bool else mgr
+        data = mgr.get_numeric_data()[0] if numeric_only_bool else mgr
         ignore_failures = numeric_only_bool
         res_mgr = data.grouped_reduce(blk_func, ignore_failures=ignore_failures)
 
@@ -3396,7 +3396,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if is_ser:
             res = self._wrap_agged_manager(res_mgr)
         else:
-            res = obj._constructor(res_mgr)
+            # FIXME: get axes without mgr.axes
+            axes_dict = {}
+            axes_dict["index"] = res_mgr.axes[-1]
+            if res_mgr.ndim == 2:
+                axes_dict["columns"] = res_mgr.axes[0]
+            res = obj._constructor(res_mgr, **axes_dict)
 
         if orig_scalar:
             # Avoid expensive MultiIndex construction
@@ -3846,7 +3851,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         orig_mgr_len = len(mgr)
 
         if numeric_only_bool:
-            mgr = mgr.get_numeric_data()
+            mgr = mgr.get_numeric_data()[0]
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
 

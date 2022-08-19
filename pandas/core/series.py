@@ -2360,6 +2360,7 @@ Name: Max Speed, dtype: float64
         result = super().drop_duplicates(keep=keep)
         if inplace:
             self._update_inplace(result)
+            self._index = result.index
             return None
         else:
             return result

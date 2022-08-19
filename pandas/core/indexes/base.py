@@ -828,7 +828,9 @@ class Index(IndexOpsMixin, PandasObject):
         result = self._simple_new(self._values, name=self._name)
 
         result._cache = self._cache
+        result._id = self._id
         return result
+        # TODO: preserve _id?
 
     @final
     def _rename(self: _IndexT, name: Hashable) -> _IndexT:

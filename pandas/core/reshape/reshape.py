@@ -500,8 +500,10 @@ def _unstack_frame(obj: DataFrame, level, fill_value=None):
     unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
 
     if not obj._can_fast_transpose:
-        mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
-        return obj._constructor(mgr)
+        mgr, columns_mask = obj._mgr.unstack(unstacker, fill_value=fill_value)
+        new_columns = unstacker.get_new_columns(obj.columns)
+        new_columns = new_columns[columns_mask]
+        return obj._constructor(mgr, index=unstacker.new_index, columns=new_columns)
     else:
         return unstacker.get_result(
             obj._values, value_columns=obj.columns, fill_value=fill_value
