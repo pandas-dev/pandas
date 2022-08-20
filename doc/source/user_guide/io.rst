@@ -179,6 +179,10 @@ mangle_dupe_cols : boolean, default ``True``
   Passing in ``False`` will cause data to be overwritten if there are duplicate
   names in the columns.
 
+  .. deprecated:: 1.5.0
+     The argument was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 General parsing configuration
 +++++++++++++++++++++++++++++
 
@@ -610,6 +614,10 @@ If the header is in a row other than the first, pass the row number to
 
 Duplicate names parsing
 '''''''''''''''''''''''
+
+  .. deprecated:: 1.5.0
+     ``mangle_dupe_cols`` was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
 
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
