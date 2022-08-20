@@ -1324,7 +1324,35 @@ class DataFrame(NDFrame, OpsMixin):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(_shared_docs["items"])
+    _shared_docs[
+        "iteritems"
+    ] = r"""
+        .. deprecated:: 1.5.0
+            iteritems is deprecated and will be removed in a future version.
+            Use .items instead.
+
+        Iterate over (column name, Series) pairs.
+
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
+
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iter : Recommended alternative.
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+        """
+
+    @Appender(_shared_docs["iteritems"])
     def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "

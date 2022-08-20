@@ -1054,6 +1054,11 @@ cdef class _Timedelta(timedelta):
 
     @property
     def freq(self) -> None:
+        """
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
+
+        """
         # GH#46430
         warnings.warn(
             "Timedelta.freq is deprecated and will be removed in a future version",
@@ -1064,6 +1069,11 @@ cdef class _Timedelta(timedelta):
 
     @property
     def is_populated(self) -> bool:
+        """
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
+
+        """
         # GH#46430
         warnings.warn(
             "Timedelta.is_populated is deprecated and will be removed in a future version",
@@ -1244,6 +1254,9 @@ cdef class _Timedelta(timedelta):
     def delta(self):
         """
         Return the timedelta in nanoseconds (ns), for internal compatibility.
+
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
 
         Returns
         -------
