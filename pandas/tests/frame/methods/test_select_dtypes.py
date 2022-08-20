@@ -441,3 +441,18 @@ class TestSelectDtypes:
         df = df.astype(dtype_dict)
         result = df.select_dtypes(include=float_dtypes)
         tm.assert_frame_equal(result, expected)
+
+    def test_np_bool_ea_boolean_include_number(self):
+        # GH 46870
+        df = DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": pd.Series([True, False, True], dtype="boolean"),
+                "c": np.array([True, False, True]),
+                "d": pd.Categorical([True, False, True]),
+                "e": pd.arrays.SparseArray([True, False, True]),
+            }
+        )
+        result = df.select_dtypes(include="number")
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
