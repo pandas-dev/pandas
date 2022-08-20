@@ -1245,8 +1245,6 @@ def is_float_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a float dtype.
 
-    This function is internal and should not be exposed in the public API.
-
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
