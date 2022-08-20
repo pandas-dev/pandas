@@ -1663,21 +1663,35 @@ def test_setitem_empty_mask_dont_upcast_dt64():
 
 
 @pytest.mark.parametrize(
-    "values, columns",
+    "rhs_values, rhs_error_values, msg",
     [
-        (np.zeros((4, 1)), ["A"]),
-        (np.zeros((4, 2)), ["A", "A"]),
+        (
+            np.array([[5, 6], [5, 6], [5, 6]]),
+            np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]]),
+            "Shape of new values must be compatible with manager shape",
+        ),
+        (
+            DataFrame([[5, 6], [5, 6], [5, 6]], columns=["foo", "foo"]),
+            DataFrame([[5, 6, 7], [5, 6, 7], [5, 6, 7]], columns=["foo", "foo", "foo"]),
+            "Columns must be same length as key",
+        ),
     ],
 )
-def test_setitem_multi_dimension_array_to_dataframe(values, columns):
+def test_regular_setitem_incompatible_array(rhs_values, rhs_error_values, msg):
     # GH#40827
-    df = DataFrame(np.zeros((4, 1)), columns=["A"])
-    input = np.random.randn(4, 3)
+    df = DataFrame(
+        [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
+        columns=["foo", "bar", "foo", "hello"],
+    )
 
-    msg = "could not broadcast input array to dataframe"
+    result = df.copy()
+    result["foo"] = rhs_values
 
-    with pytest.raises(
-        AssertionError,
-        match=msg,
-    ):
-        df["A"] = input
+    expected = DataFrame(
+        [[5, 2, 6, 4], [5, 2, 6, 4], [5, 2, 6, 4]],
+        columns=["foo", "bar", "foo", "hello"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    with pytest.raises(ValueError, match=msg):
+        df["foo"] = rhs_error_values

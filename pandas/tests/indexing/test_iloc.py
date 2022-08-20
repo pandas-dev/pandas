@@ -1215,6 +1215,40 @@ class TestiLocBaseIndependent:
         )
         tm.assert_frame_equal(df, expected, check_dtype=using_array_manager)
 
+    @pytest.mark.parametrize(
+        "rhs_values, rhs_error_values",
+        [
+            (
+                np.array([[5, 6], [5, 6], [5, 6]]),
+                np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]]),
+            ),
+            (
+                DataFrame([[5, 6], [5, 6], [5, 6]], columns=["foo", "foo"]),
+                DataFrame(
+                    [[5, 6, 7], [5, 6, 7], [5, 6, 7]], columns=["foo", "foo", "foo"]
+                ),
+            ),
+        ],
+    )
+    def test_iloc_setitem_incompatible_array(self, rhs_values, rhs_error_values):
+        # GH#40827
+        df = DataFrame(
+            [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
+            columns=["foo", "bar", "foo", "hello"],
+        )
+        result = df.copy()
+        result.iloc[:, [0, 2]] = rhs_values
+
+        expected = DataFrame(
+            [[5, 2, 6, 4], [5, 2, 6, 4], [5, 2, 6, 4]],
+            columns=["foo", "bar", "foo", "hello"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+        msg = "cannot reindex on an axis with duplicate labels"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[:, [0, 2]] = rhs_error_values
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as

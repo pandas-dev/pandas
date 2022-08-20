@@ -3914,6 +3914,9 @@ class DataFrame(NDFrame, OpsMixin):
         `frame[frame.columns[i]] = value`.
         """
         arraylike = self._sanitize_column(value)
+        loc_num = len(loc) if isinstance(loc, list) else 1
+        if value.shape[1] > loc_num:
+            raise ValueError("could not broadcast input array to dataframe")
         self._iset_item_mgr(loc, arraylike, inplace=False)
 
     def __setitem__(self, key, value):
@@ -4147,6 +4150,15 @@ class DataFrame(NDFrame, OpsMixin):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
+
+        if key in self:
+            num_col_value = 1 if len(value.shape) == 1 else value.shape[1]
+            num_col_self = 1 if len(self[key].shape) == 1 else self[key].shape[1]
+
+            if num_col_value > num_col_self:
+                raise ValueError(
+                    "Shape of new values must be compatible with manager shape"
+                )
 
         self._set_item_mgr(key, value)
 

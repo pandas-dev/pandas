@@ -222,6 +222,45 @@ class TestLoc(Base):
         else:
             assert res == exp
 
+    @pytest.mark.parametrize(
+        "rhs_values, rhs_error_values, msg",
+        [
+            (
+                np.array([[5, 6], [5, 6], [5, 6]]),
+                np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]]),
+                "|".join(
+                    [
+                        r"shape mismatch: value array of shape \(3,3\)",
+                        r"cannot reshape array of size 4 into shape \(3,2\)",
+                    ]
+                ),
+            ),
+            (
+                DataFrame([[5, 6], [5, 6], [5, 6]], columns=["foo", "foo"]),
+                DataFrame(
+                    [[5, 6, 7], [5, 6, 7], [5, 6, 7]], columns=["foo", "foo", "foo"]
+                ),
+                "cannot reindex on an axis with duplicate labels",
+            ),
+        ],
+    )
+    def test_loc_setitem_incompatible_array(self, rhs_values, rhs_error_values, msg):
+        # GH#40827
+        df = DataFrame(
+            [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
+            columns=["foo", "bar", "foo", "hello"],
+        )
+        result = df.copy()
+        result.loc[:, ["foo"]] = rhs_values
+        expected = DataFrame(
+            [[5, 2, 6, 4], [5, 2, 6, 4], [5, 2, 6, 4]],
+            columns=["foo", "bar", "foo", "hello"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+        with pytest.raises(ValueError, match=msg):
+            df.loc[:, ["foo"]] = rhs_error_values
+
 
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
