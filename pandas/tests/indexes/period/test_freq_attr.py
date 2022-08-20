@@ -20,7 +20,7 @@ class TestFreq:
 
         # warning for setter
         msg = (
-            "property 'freq' of 'PeriodArray' object has no setter"
+            "property 'freq' of 'PeriodIndex' object has no setter"
             if PY311
             else "can't set attribute"
         )
