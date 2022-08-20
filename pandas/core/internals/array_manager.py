@@ -1332,8 +1332,11 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         self._axes = [self._axes[0][to_keep]]
         return self
 
-    def _get_data_subset(self, predicate: Callable) -> SingleArrayManager:
+    def _get_data_subset(
+        self, predicate: Callable, copy: bool = False
+    ) -> SingleArrayManager:
         # used in get_numeric_data / get_bool_data
+        # copy keyword is being ignored, only added for signature compat with base class
         if predicate(self.array):
             return type(self)(self.arrays, self._axes, verify_integrity=False)
         else:
