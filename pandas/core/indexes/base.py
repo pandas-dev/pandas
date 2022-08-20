@@ -939,11 +939,19 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
-        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, _no_index=False, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
+        # TODO(2.0) the 'and', 'or' and 'xor' dunder methods are currently set
+        # operations and not logical operations, so don't dispatch
+        # This is deprecated, so this full 'if' clause can be removed once
+        # deprecation is enforced in 2.0
+        if not (
+            method == "__call__"
+            and ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor)
+        ):
+            result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         if "out" in kwargs:
             # e.g. test_dti_isub_tdi
