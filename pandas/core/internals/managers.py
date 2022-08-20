@@ -464,9 +464,9 @@ class BaseBlockManager(DataManager):
 
         return False
 
-    def _get_data_subset(self: T, predicate: Callable) -> T:
+    def _get_data_subset(self: T, predicate: Callable, copy: bool = False) -> T:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
-        return self._combine(blocks, copy=False)
+        return self._combine(blocks, copy=copy)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
         """

@@ -477,9 +477,12 @@ class BaseArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return len(self.arrays) == 1
 
-    def _get_data_subset(self: T, predicate: Callable) -> T:
+    def _get_data_subset(self: T, predicate: Callable, copy: bool = False) -> T:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
-        arrays = [self.arrays[i] for i in indices]
+        if copy:
+            arrays = [self.arrays[i].copy() for i in indices]
+        else:
+            arrays = [self.arrays[i] for i in indices]
         # TODO copy?
         # Note: using Index.take ensures we can retain e.g. DatetimeIndex.freq,
         #  see test_describe_datetime_columns
