@@ -607,7 +607,7 @@ def assert_interval_array_equal(
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
     assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
-    assert_attr_equal("inclusive", left, right, obj=obj)
+    assert_attr_equal("closed", left, right, obj=obj)
 
 
 def assert_period_array_equal(left, right, obj="PeriodArray") -> None:
@@ -866,7 +866,7 @@ def assert_series_equal(
     left,
     right,
     check_dtype: bool | Literal["equiv"] = True,
-    check_index_type="equiv",
+    check_index_type: bool | Literal["equiv"] = "equiv",
     check_series_type=True,
     check_less_precise: bool | int | NoDefault = no_default,
     check_names=True,
@@ -1134,7 +1134,7 @@ def assert_frame_equal(
     left,
     right,
     check_dtype: bool | Literal["equiv"] = True,
-    check_index_type="equiv",
+    check_index_type: bool | Literal["equiv"] = "equiv",
     check_column_type="equiv",
     check_frame_type=True,
     check_less_precise=no_default,

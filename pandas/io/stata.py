@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections import abc
 import datetime
+import inspect
 from io import BytesIO
 import os
 import struct
@@ -49,8 +50,10 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
+    deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -348,7 +351,10 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         conv_dates = convert_delta_safe(base, ms, "ms")
     elif fmt.startswith(("%tC", "tC")):
 
-        warnings.warn("Encountered %tC format. Leaving in Stata Internal Format.")
+        warnings.warn(
+            "Encountered %tC format. Leaving in Stata Internal Format.",
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
         conv_dates = Series(dates, dtype=object)
         if has_bad_values:
             conv_dates[bad_locs] = NaT
@@ -462,7 +468,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         d = parse_dates_safe(dates, delta=True)
         conv_dates = d.delta / 1000
     elif fmt in ["%tC", "tC"]:
-        warnings.warn("Stata Internal Format tC not supported.")
+        warnings.warn(
+            "Stata Internal Format tC not supported.",
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
         conv_dates = dates
     elif fmt in ["%td", "td"]:
         d = parse_dates_safe(dates, delta=True)
@@ -642,7 +651,11 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
                 data.loc[orig_missing, col] = sentinel
     if ws:
-        warnings.warn(ws, PossiblePrecisionLoss)
+        warnings.warn(
+            ws,
+            PossiblePrecisionLoss,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
 
     return data
 
@@ -697,6 +710,7 @@ class StataValueLabel:
                 warnings.warn(
                     value_label_mismatch_doc.format(self.labname),
                     ValueLabelTypeMismatch,
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             category = category.encode(self._encoding)
             offsets.append(self.text_len)
@@ -1506,7 +1520,11 @@ One or more strings in the dta file could not be decoded using {encoding}, and
 so the fallback encoding of latin-1 is being used.  This can happen when a file
 has been incorrectly encoded by Stata or some other software. You should verify
 the string values returned are correct."""
-            warnings.warn(msg, UnicodeWarning)
+            warnings.warn(
+                msg,
+                UnicodeWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
             return s.decode("latin-1")
 
     def _read_value_labels(self) -> None:
@@ -1902,7 +1920,9 @@ the string values returned are correct."""
                     if self._using_iterator:
                         # warn is using an iterator
                         warnings.warn(
-                            categorical_conversion_warning, CategoricalConversionWarning
+                            categorical_conversion_warning,
+                            CategoricalConversionWarning,
+                            stacklevel=find_stack_level(inspect.currentframe()),
                         )
                     initial_categories = None
                 cat_data = Categorical(
@@ -1980,6 +2000,7 @@ The repeated labels are:
 
 
 @Appender(_read_stata_doc)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     convert_dates: bool = True,
@@ -2482,7 +2503,11 @@ class StataWriter(StataParser):
                 conversion_warning.append(msg)
 
             ws = invalid_name_doc.format("\n    ".join(conversion_warning))
-            warnings.warn(ws, InvalidColumnName)
+            warnings.warn(
+                ws,
+                InvalidColumnName,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
 
         self._converted_names = converted_names
         self._update_strl_names()
@@ -2649,6 +2674,7 @@ supported types."""
                             f"This save was not successful but {self._fname} could not "
                             "be deleted. This file is not valid.",
                             ResourceWarning,
+                            stacklevel=find_stack_level(inspect.currentframe()),
                         )
                 raise exc
 

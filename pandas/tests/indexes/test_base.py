@@ -1432,10 +1432,10 @@ class TestIndexUtils:
     def test_ensure_index_mixed_closed_intervals(self):
         # GH27172
         intervals = [
-            pd.Interval(0, 1, inclusive="left"),
-            pd.Interval(1, 2, inclusive="right"),
-            pd.Interval(2, 3, inclusive="neither"),
-            pd.Interval(3, 4, inclusive="both"),
+            pd.Interval(0, 1, closed="left"),
+            pd.Interval(1, 2, closed="right"),
+            pd.Interval(2, 3, closed="neither"),
+            pd.Interval(3, 4, closed="both"),
         ]
         result = ensure_index(intervals)
         expected = Index(intervals, dtype=object)

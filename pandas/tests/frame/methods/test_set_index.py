@@ -25,6 +25,27 @@ import pandas._testing as tm
 
 
 class TestSetIndex:
+    def test_set_index_copy(self):
+        # GH#48043
+        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+        expected = DataFrame({"B": [3, 4], "C": [5, 6]}, index=Index([1, 2], name="A"))
+
+        res = df.set_index("A", copy=True)
+        tm.assert_frame_equal(res, expected)
+        assert not any(tm.shares_memory(df[col], res[col]) for col in res.columns)
+
+        res = df.set_index("A", copy=False)
+        tm.assert_frame_equal(res, expected)
+        assert all(tm.shares_memory(df[col], res[col]) for col in res.columns)
+
+        msg = "Cannot specify copy when inplace=True"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match="The 'inplace'"):
+                df.set_index("A", inplace=True, copy=True)
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match="The 'inplace'"):
+                df.set_index("A", inplace=True, copy=False)
+
     def test_set_index_multiindex(self):
         # segfault in GH#3308
         d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
@@ -178,7 +199,10 @@ class TestSetIndex:
 
         if inplace:
             result = df.copy()
-            return_value = result.set_index(keys, drop=drop, inplace=True)
+            with tm.assert_produces_warning(
+                FutureWarning, match="The 'inplace' keyword"
+            ):
+                return_value = result.set_index(keys, drop=drop, inplace=True)
             assert return_value is None
         else:
             result = df.set_index(keys, drop=drop)

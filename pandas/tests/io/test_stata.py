@@ -285,7 +285,7 @@ class TestStata:
         original.index.name = "index"
 
         with tm.ensure_clean() as path:
-            original.to_stata(path, None)
+            original.to_stata(path, convert_dates=None)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), original)
 
@@ -297,7 +297,7 @@ class TestStata:
         original["quarter"] = original["quarter"].astype(np.int32)
 
         with tm.ensure_clean() as path:
-            original.to_stata(path, None)
+            original.to_stata(path, convert_dates=None)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
                 written_and_read_again.set_index("index"),
@@ -317,7 +317,7 @@ class TestStata:
         original["integer"] = original["integer"].astype(np.int32)
 
         with tm.ensure_clean() as path:
-            original.to_stata(path, {"datetime": "tc"}, version=version)
+            original.to_stata(path, convert_dates={"datetime": "tc"}, version=version)
             written_and_read_again = self.read_dta(path)
             # original.index is np.int32, read index is np.int64
             tm.assert_frame_equal(
@@ -377,7 +377,7 @@ class TestStata:
 
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(InvalidColumnName):
-                original.to_stata(path, None)
+                original.to_stata(path, convert_dates=None)
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
@@ -412,7 +412,7 @@ class TestStata:
         with tm.ensure_clean() as path:
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always", InvalidColumnName)
-                original.to_stata(path, None, version=version)
+                original.to_stata(path, convert_dates=None, version=version)
                 # should get a warning for that format.
                 assert len(w) == 1
 
@@ -453,7 +453,7 @@ class TestStata:
         tm.assert_frame_equal(parsed_114, parsed)
 
         with tm.ensure_clean() as path:
-            parsed_114.to_stata(path, {"date_td": "td"}, version=version)
+            parsed_114.to_stata(path, convert_dates={"date_td": "td"}, version=version)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
 
@@ -573,7 +573,7 @@ class TestStata:
         original.index.name = "index"
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(InvalidColumnName):
-                original.to_stata(path, {0: "tc"})
+                original.to_stata(path, convert_dates={0: "tc"})
 
             written_and_read_again = self.read_dta(path)
             modified = original.copy()
@@ -623,7 +623,7 @@ class TestStata:
         expected = DataFrame([expected_values], columns=columns)
         expected.index.name = "index"
         with tm.ensure_clean() as path:
-            original.to_stata(path, conversions)
+            original.to_stata(path, convert_dates=conversions)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
@@ -817,7 +817,8 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         with tm.ensure_clean() as path:
             expected.index.name = "index"
-            expected.to_stata(path, date_conversion)
+            with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
+                expected.to_stata(path, date_conversion)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
                 written_and_read_again.set_index("index"),
