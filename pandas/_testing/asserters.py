@@ -607,7 +607,7 @@ def assert_interval_array_equal(
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
     assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
-    assert_attr_equal("inclusive", left, right, obj=obj)
+    assert_attr_equal("closed", left, right, obj=obj)
 
 
 def assert_period_array_equal(left, right, obj="PeriodArray") -> None:
