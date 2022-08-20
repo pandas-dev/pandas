@@ -828,7 +828,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 (
                     "In a future version of pandas, a length 1 "
                     "tuple will be returned when iterating over a "
-                    "a groupby with a grouper equal to a list of "
+                    "groupby with a grouper equal to a list of "
                     "length 1. Don't supply a list with a single grouper "
                     "to avoid this warning."
                 ),
@@ -1744,6 +1744,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only: bool | lib.NoDefault,
         min_count: int = -1,
         ignore_failures: bool = True,
+        **kwargs,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
@@ -1768,7 +1769,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
                 result = self.grouper._cython_operation(
-                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
+                    "aggregate",
+                    values,
+                    how,
+                    axis=data.ndim - 1,
+                    min_count=min_count,
+                    **kwargs,
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -2311,20 +2317,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
-            numeric_only_bool = self._resolve_numeric_only("var", numeric_only, axis=0)
-            if ddof == 1:
-                return self._cython_agg_general(
-                    "var",
-                    alt=lambda x: Series(x).var(ddof=ddof),
-                    numeric_only=numeric_only,
-                    ignore_failures=numeric_only is lib.no_default,
-                )
-            else:
-                func = lambda x: x.var(ddof=ddof)
-                with self._group_selection_context():
-                    return self._python_agg_general(
-                        func, raise_on_typeerror=not numeric_only_bool
-                    )
+            return self._cython_agg_general(
+                "var",
+                alt=lambda x: Series(x).var(ddof=ddof),
+                numeric_only=numeric_only,
+                ignore_failures=numeric_only is lib.no_default,
+                ddof=ddof,
+            )
 
     @final
     @Substitution(name="groupby")
