@@ -439,8 +439,15 @@ def test_no_sort_keep_na(values, dtype, test_series):
     gb = df.groupby("key", dropna=False, sort=False)
     if test_series:
         gb = gb["a"]
-    result = gb.sum()
-    expected = pd.DataFrame({"a": [5, 2, 3]}, index=key[:-1].rename("key"))
+
+    warn = None
+    if isinstance(values, pd.arrays.SparseArray):
+        warn = FutureWarning
+    msg = "passing a SparseArray to pd.Index will store that array directly"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.sum()
+        expected = pd.DataFrame({"a": [5, 2, 3]}, index=key[:-1].rename("key"))
+
     if test_series:
         expected = expected["a"]
     if expected.index.is_categorical():
