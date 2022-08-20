@@ -1301,7 +1301,16 @@ class Series(base.IndexOpsMixin, NDFrame):
             # a copy
             if ref is None:
                 del self._cacher
-            elif len(self) == len(ref) and self.name in ref.columns:
+            # for CoW, we never want to update the parent DataFrame cache
+            # if the Series changed, and always pop the cached item
+            elif (
+                not (
+                    get_option("mode.copy_on_write")
+                    and get_option("mode.data_manager") == "block"
+                )
+                and len(self) == len(ref)
+                and self.name in ref.columns
+            ):
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays

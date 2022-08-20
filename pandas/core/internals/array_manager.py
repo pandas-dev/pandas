@@ -527,6 +527,11 @@ class BaseArrayManager(DataManager):
         -------
         BlockManager
         """
+        if deep is None:
+            # ArrayManager does not yet support CoW, so deep=None always means
+            # deep=True for now
+            deep = True
+
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
@@ -591,6 +596,11 @@ class BaseArrayManager(DataManager):
 
         pandas-indexer with -1's only.
         """
+        if copy is None:
+            # ArrayManager does not yet support CoW, so deep=None always means
+            # deep=True for now
+            copy = True
+
         if indexer is None:
             if new_axis is self._axes[axis] and not copy:
                 return self

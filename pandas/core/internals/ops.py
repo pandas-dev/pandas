@@ -36,7 +36,7 @@ def _iter_block_pairs(
 
         left_ea = blk_vals.ndim == 1
 
-        rblks = right._slice_take_blocks_ax0(locs.indexer, only_slice=True)
+        rblks, _ = right._slice_take_blocks_ax0(locs.indexer, only_slice=True)
 
         # Assertions are disabled for performance, but should hold:
         # if left_ea:

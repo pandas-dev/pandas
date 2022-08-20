@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -126,3 +129,47 @@ def test_reindex_columns(using_copy_on_write):
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_select_dtypes(using_copy_on_write):
+    # Case: selecting columns using `select_dtypes()` returns a new dataframe
+    # + afterwards modifying the result
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.select_dtypes("int64")
+    df2._mgr._verify_integrity()
+
+    # currently this always returns a "view"
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+    # mutating df2 triggers a copy-on-write for that column/block
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        # but currently select_dtypes() actually returns a view -> mutates parent
+        df_orig.iloc[0, 0] = 0
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_to_frame(using_copy_on_write):
+    # Case: converting a Series to a DataFrame with to_frame
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+
+    df = ser.to_frame()
+
+    # currently this always returns a "view"
+    assert np.shares_memory(ser.values, get_array(df, 0))
+
+    df.iloc[0, 0] = 0
+
+    if using_copy_on_write:
+        # mutating df triggers a copy-on-write for that column
+        assert not np.shares_memory(ser.values, get_array(df, 0))
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        # but currently select_dtypes() actually returns a view -> mutates parent
+        ser_orig.iloc[0] = 0
+        tm.assert_series_equal(ser, ser_orig)
