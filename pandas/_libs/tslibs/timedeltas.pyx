@@ -1057,7 +1057,6 @@ cdef class _Timedelta(timedelta):
         """
         .. deprecated:: 1.5.0
             This argument is deprecated.
-
         """
         # GH#46430
         warnings.warn(
@@ -1072,7 +1071,6 @@ cdef class _Timedelta(timedelta):
         """
         .. deprecated:: 1.5.0
             This argument is deprecated.
-
         """
         # GH#46430
         warnings.warn(

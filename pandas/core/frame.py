@@ -1327,11 +1327,11 @@ class DataFrame(NDFrame, OpsMixin):
     _shared_docs[
         "iteritems"
     ] = r"""
+        Iterate over (column name, Series) pairs.
+
         .. deprecated:: 1.5.0
             iteritems is deprecated and will be removed in a future version.
             Use .items instead.
-
-        Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
         the column name and the content as a Series.

@@ -2289,7 +2289,6 @@ class Index(IndexOpsMixin, PandasObject):
         .. deprecated:: 1.5.0
             is_monotonic is deprecated and will be removed in a future version.
             Use is_monotonic_increasing instead.
-
         """
         warnings.warn(
             "is_monotonic is deprecated and will be removed in a future version. "
