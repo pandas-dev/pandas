@@ -4687,8 +4687,11 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"include and exclude overlap on {(include & exclude)}")
 
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
+            # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             return issubclass(dtype.type, tuple(dtypes_set)) or (
-                np.number in dtypes_set and getattr(dtype, "_is_numeric", False)
+                np.number in dtypes_set
+                and getattr(dtype, "_is_numeric", False)
+                and not is_bool_dtype(dtype)
             )
 
         def predicate(arr: ArrayLike) -> bool:
