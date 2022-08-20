@@ -609,7 +609,7 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                 )
             else:
-                func(result, counts, values, comp_ids, min_count)
+                func(result, counts, values, comp_ids, min_count, **kwargs)
         else:
             # TODO: min_count
             if self.uses_mask():

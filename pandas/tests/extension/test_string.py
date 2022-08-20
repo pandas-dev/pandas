@@ -18,7 +18,10 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import (
+    pa_version_under6p0,
+    pa_version_under7p0,
+)
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -167,6 +170,24 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
+    def test_argsort(self, data_for_sorting):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_argsort(data_for_sorting)
+
+    def test_argsort_missing(self, data_missing_for_sorting):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_argsort_missing(data_missing_for_sorting)
+
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
@@ -210,6 +231,94 @@ class TestMethods(base.BaseMethodsTests):
             data_missing_for_sorting, op_name, skipna, expected
         )
 
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts(self, all_data, dropna, request):
+        all_data = all_data[:10]
+        if dropna:
+            other = all_data[~all_data.isna()]
+        else:
+            other = all_data
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(all_data.dtype, "storage", "") == "pyarrow"
+            and not (dropna and "data_missing" in request.node.nodeid),
+        ):
+            result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(other.dtype, "storage", "") == "pyarrow"
+            and not (dropna and "data_missing" in request.node.nodeid),
+        ):
+            expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
+    def test_value_counts_with_normalize(self, data):
+        super().test_value_counts_with_normalize(data)
+
+    def test_argsort_missing_array(self, data_missing_for_sorting):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_argsort_missing(data_missing_for_sorting)
+
+    @pytest.mark.parametrize(
+        "na_position, expected",
+        [
+            ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
+            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
+        ],
+    )
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
+        # GH 25439
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_nargsort(data_missing_for_sorting, na_position, expected)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_sort_values_missing(
+                data_missing_for_sorting, ascending, sort_by_key
+            )
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_frame(self, data_for_sorting, ascending):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
+
 
 class TestCasting(base.BaseCastingTests):
     pass
@@ -236,8 +345,42 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestGroupBy(base.BaseGroupbyTests):
-    def test_groupby_extension_transform(self, data_for_grouping, request):
-        super().test_groupby_extension_transform(data_for_grouping)
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping):
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
+        ):
+            result = df.groupby("B", as_index=as_index).A.mean()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
+        ):
+            _, uniques = pd.factorize(data_for_grouping, sort=True)
+
+        if as_index:
+            index = pd.Index._with_infer(uniques, name="B")
+            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
+            self.assert_series_equal(result, expected)
+        else:
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
+            self.assert_frame_equal(result, expected)
+
+    def test_groupby_extension_transform(self, data_for_grouping):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0
+            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_groupby_extension_transform(data_for_grouping)
+
+    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
+    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
+        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
 
 class Test2DCompat(base.Dim2CompatTests):
