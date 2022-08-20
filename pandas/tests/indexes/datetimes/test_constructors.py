@@ -1137,7 +1137,10 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 
 _tzs = ["dateutil/Europe/London"]
 if PY39:
-    _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    try:
+        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    except zoneinfo.ZoneInfoNotFoundError:
+        pass
 
 
 @pytest.mark.parametrize("tz", _tzs)

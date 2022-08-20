@@ -68,35 +68,37 @@ maintainers:
   - wesm
   - jorisvandenbossche
   - TomAugspurger
-  - shoyer
   - jreback
-  - chris-b1
-  - sinhrks
-  - cpcloud
   - gfyoung
-  - toobaz
   - WillAyd
   - mroeschke
-  - jschendel
   - jbrockmendel
   - datapythonista
   - simonjayhawkins
   - topper-123
   - alimcmaster1
   - bashtage
-  - charlesdong1991
   - Dr-Irv
-  - dsaxton
   - MarcoGorelli
   - rhshadrach
   - phofl
   - attack68
   - fangchenli
   - twoertwein
-  emeritus:
-  - Wouter Overmeire
-  - Skipper Seabold
-  - Jeff Tratner
+  - lithomas1
+  - mzeitlin11
+  inactive:
+  - lodagro
+  - jseabold
+  - jtratner
+  - shoyer
+  - chris-b1
+  - sinhrks
+  - cpcloud
+  - toobaz
+  - jschendel
+  - charlesdong1991
+  - dsaxton
   coc:
   - Safia Abdalla
   - Tom Augspurger

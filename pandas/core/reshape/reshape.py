@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import inspect
 import itertools
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -10,6 +14,7 @@ import pandas._libs.reshape as libreshape
 from pandas._typing import npt
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -127,6 +132,7 @@ class _Unstacker:
                 f"The following operation may generate {num_cells} cells "
                 f"in the resulting pandas object.",
                 PerformanceWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         self._make_selectors()
@@ -452,7 +458,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
     return unstacked
 
 
-def unstack(obj, level, fill_value=None):
+def unstack(obj: Series | DataFrame, level, fill_value=None):
 
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
@@ -489,19 +495,20 @@ def unstack(obj, level, fill_value=None):
         )
 
 
-def _unstack_frame(obj, level, fill_value=None):
+def _unstack_frame(obj: DataFrame, level, fill_value=None):
+    assert isinstance(obj.index, MultiIndex)  # checked by caller
+    unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
+
     if not obj._can_fast_transpose:
-        unstacker = _Unstacker(obj.index, level=level)
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(mgr)
     else:
-        unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
         return unstacker.get_result(
             obj._values, value_columns=obj.columns, fill_value=fill_value
         )
 
 
-def _unstack_extension_series(series, level, fill_value):
+def _unstack_extension_series(series: Series, level, fill_value) -> DataFrame:
     """
     Unstack an ExtensionArray-backed Series.
 
@@ -534,14 +541,14 @@ def _unstack_extension_series(series, level, fill_value):
     return result
 
 
-def stack(frame, level=-1, dropna=True):
+def stack(frame: DataFrame, level=-1, dropna: bool = True):
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
     second level of the resulting hierarchical index
 
     Returns
     -------
-    stacked : Series
+    stacked : Series or DataFrame
     """
 
     def factorize(index):
@@ -676,8 +683,10 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
     )
 
 
-def _stack_multi_columns(frame, level_num=-1, dropna=True):
-    def _convert_level_number(level_num: int, columns):
+def _stack_multi_columns(
+    frame: DataFrame, level_num: int = -1, dropna: bool = True
+) -> DataFrame:
+    def _convert_level_number(level_num: int, columns: Index):
         """
         Logic for converting the level number to something we can safely pass
         to swaplevel.
@@ -690,32 +699,36 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
         return level_num
 
-    this = frame.copy()
+    this = frame.copy(deep=False)
+    mi_cols = this.columns  # cast(MultiIndex, this.columns)
+    assert isinstance(mi_cols, MultiIndex)  # caller is responsible
 
     # this makes life much simpler
-    if level_num != frame.columns.nlevels - 1:
+    if level_num != mi_cols.nlevels - 1:
         # roll levels to put selected level at end
-        roll_columns = this.columns
-        for i in range(level_num, frame.columns.nlevels - 1):
+        roll_columns = mi_cols
+        for i in range(level_num, mi_cols.nlevels - 1):
             # Need to check if the ints conflict with level names
             lev1 = _convert_level_number(i, roll_columns)
             lev2 = _convert_level_number(i + 1, roll_columns)
             roll_columns = roll_columns.swaplevel(lev1, lev2)
-        this.columns = roll_columns
+        this.columns = mi_cols = roll_columns
 
-    if not this.columns._is_lexsorted():
+    if not mi_cols._is_lexsorted():
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
-        level_to_sort = _convert_level_number(0, this.columns)
+        level_to_sort = _convert_level_number(0, mi_cols)
         this = this.sort_index(level=level_to_sort, axis=1)
+        mi_cols = this.columns
 
-    new_columns = _stack_multi_column_index(this.columns)
+    mi_cols = cast(MultiIndex, mi_cols)
+    new_columns = _stack_multi_column_index(mi_cols)
 
     # time to ravel the values
     new_data = {}
-    level_vals = this.columns.levels[-1]
-    level_codes = sorted(set(this.columns.codes[-1]))
+    level_vals = mi_cols.levels[-1]
+    level_codes = sorted(set(mi_cols.codes[-1]))
     level_vals_nan = level_vals.insert(len(level_vals), None)
 
     level_vals_used = np.take(level_vals_nan, level_codes)

@@ -100,6 +100,7 @@ ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
+ensure_uint64 = algos.ensure_uint64
 
 
 def ensure_str(value: bytes | Any) -> str:
@@ -480,7 +481,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype([1, 2, 3])
     False
     >>>
-    >>> interval = pd.Interval(1, 2, inclusive="right")
+    >>> interval = pd.Interval(1, 2, closed="right")
     >>> is_interval_dtype(interval)
     False
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
@@ -1243,8 +1244,6 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
 def is_float_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a float dtype.
-
-    This function is internal and should not be exposed in the public API.
 
     Parameters
     ----------

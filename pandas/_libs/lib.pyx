@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+import inspect
 from typing import Literal
 import warnings
 
@@ -29,6 +30,8 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+
+from pandas.util._exceptions import find_stack_level
 
 import_datetime()
 
@@ -352,6 +355,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
                 "The values in the array are unorderable. "
                 "Pass `sort=False` to suppress this warning.",
                 RuntimeWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             pass
 
@@ -2160,7 +2164,7 @@ cpdef bint is_interval_array(ndarray values):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        str inclusive = None
+        str closed = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
@@ -2173,15 +2177,15 @@ cpdef bint is_interval_array(ndarray values):
         val = values[i]
 
         if is_interval(val):
-            if inclusive is None:
-                inclusive = val.inclusive
+            if closed is None:
+                closed = val.closed
                 numeric = (
                     util.is_float_object(val.left)
                     or util.is_integer_object(val.left)
                 )
                 td64 = is_timedelta(val.left)
                 dt64 = PyDateTime_Check(val.left)
-            elif val.inclusive != inclusive:
+            elif val.closed != closed:
                 # mismatched closedness
                 return False
             elif numeric:
@@ -2204,7 +2208,7 @@ cpdef bint is_interval_array(ndarray values):
         else:
             return False
 
-    if inclusive is None:
+    if closed is None:
         # we saw all-NAs, no actual Intervals
         return False
     return True

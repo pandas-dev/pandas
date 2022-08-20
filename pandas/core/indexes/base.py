@@ -3987,8 +3987,14 @@ class Index(IndexOpsMixin, PandasObject):
         Should we attempt partial-matching indexing?
         """
         if is_interval_dtype(self.dtype):
+            if is_interval_dtype(target.dtype):
+                return False
+            # See https://github.com/pandas-dev/pandas/issues/47772 the commented
+            # out code can be restored (instead of hardcoding `return True`)
+            # once that issue if fixed
             # "Index" has no attribute "left"
-            return self.left._should_compare(target)  # type: ignore[attr-defined]
+            # return self.left._should_compare(target)  # type: ignore[attr-defined]
+            return True
         return False
 
     @final
@@ -6427,7 +6433,7 @@ class Index(IndexOpsMixin, PandasObject):
             items = [func(x) for x in self]
             return Index(items, name=self.name, tupleize_cols=False)
 
-    def isin(self, values, level=None) -> np.ndarray:
+    def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
         """
         Return a boolean array where the index values are in `values`.
 
@@ -7437,7 +7443,7 @@ def _maybe_cast_data_without_dtype(
             "In a future version, the Index constructor will not infer numeric "
             "dtypes when passed object-dtype sequences (matching Series behavior)",
             FutureWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     result = ensure_wrapped_if_datetimelike(result)
     return result

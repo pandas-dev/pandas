@@ -235,7 +235,7 @@ class _FrequencyInferer:
                 "warn is deprecated (and never implemented) and "
                 "will be removed in a future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         self.warn = warn
 
