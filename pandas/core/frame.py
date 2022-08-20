@@ -4687,8 +4687,11 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"include and exclude overlap on {(include & exclude)}")
 
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
+            # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             return issubclass(dtype.type, tuple(dtypes_set)) or (
-                np.number in dtypes_set and getattr(dtype, "_is_numeric", False)
+                np.number in dtypes_set
+                and getattr(dtype, "_is_numeric", False)
+                and not is_bool_dtype(dtype)
             )
 
         def predicate(arr: ArrayLike) -> bool:
@@ -5061,7 +5064,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = ...,
-        inplace: Literal[False] = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
         copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
@@ -5083,7 +5086,7 @@ class DataFrame(NDFrame, OpsMixin):
         labels,
         *,
         axis: Axis = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         copy: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
@@ -5112,10 +5115,9 @@ class DataFrame(NDFrame, OpsMixin):
         1  2   5
         2  3   6
 
-        Now, update the labels inplace.
+        Now, update the labels without copying the underlying data.
 
-        >>> df.set_axis(['i', 'ii'], axis='columns', inplace=True)
-        >>> df
+        >>> df.set_axis(['i', 'ii'], axis='columns', copy=False)
            i  ii
         0  1   4
         1  2   5
@@ -5133,7 +5135,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         labels,
         axis: Axis = 0,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         *,
         copy: bool | lib.NoDefault = lib.no_default,
     ):

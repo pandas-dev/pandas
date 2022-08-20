@@ -20,9 +20,47 @@ if not pa_version_under1p01:
 @register_extension_dtype
 class ArrowDtype(StorageExtensionDtype):
     """
-    Base class for dtypes for ArrowExtensionArray.
-    Modeled after BaseMaskedDtype
-    """
+    An ExtensionDtype for PyArrow data types.
+
+    .. warning::
+
+       ArrowDtype is considered experimental. The implementation and
+       parts of the API may change without warning.
+
+    While most ``dtype`` arguments can accept the "string"
+    constructor, e.g. ``"int64[pyarrow]"``, ArrowDtype is useful
+    if the data type contains parameters like ``pyarrow.timestamp``.
+
+    Parameters
+    ----------
+    pyarrow_dtype : pa.DataType
+        An instance of a `pyarrow.DataType <https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions>`__.
+
+    Attributes
+    ----------
+    pyarrow_dtype
+
+    Methods
+    -------
+    None
+
+    Returns
+    -------
+    ArrowDtype
+
+    Examples
+    --------
+    >>> import pyarrow as pa
+    >>> pd.ArrowDtype(pa.int64())
+    int64[pyarrow]
+
+    Types with parameters must be constructed with ArrowDtype.
+
+    >>> pd.ArrowDtype(pa.timestamp("s", tz="America/New_York"))
+    timestamp[s, tz=America/New_York][pyarrow]
+    >>> pd.ArrowDtype(pa.list_(pa.int64()))
+    list<item: int64>[pyarrow]
+    """  # noqa: E501
 
     _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
 
@@ -36,6 +74,9 @@ class ArrowDtype(StorageExtensionDtype):
                 f"of a pyarrow.DataType. Got {type(pyarrow_dtype)} instead."
             )
         self.pyarrow_dtype = pyarrow_dtype
+
+    def __repr__(self) -> str:
+        return self.name
 
     @property
     def type(self):

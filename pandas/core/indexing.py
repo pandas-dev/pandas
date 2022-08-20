@@ -1257,7 +1257,7 @@ class _LocIndexer(_LocationIndexer):
         return self._getitem_tuple_same_dim(tup)
 
     def _get_label(self, label, axis: int):
-        # GH#5667 this will fail if the label is not present in the axis.
+        # GH#5567 this will fail if the label is not present in the axis.
         return self.obj.xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
@@ -1854,8 +1854,10 @@ class _iLocIndexer(_LocationIndexer):
                 # We get here in one case via .loc with a all-False mask
                 pass
 
-            elif self._is_scalar_access(indexer):
-                # We are setting nested data
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes[ilocs[0]]
+            ):
+                # We are setting nested data, only possible for object dtype data
                 self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
