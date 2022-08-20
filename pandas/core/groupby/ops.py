@@ -10,10 +10,12 @@ from __future__ import annotations
 import collections
 import functools
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Generic,
     Hashable,
     Iterator,
+    NoReturn,
     Sequence,
     final,
 )
@@ -44,6 +46,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
+    ensure_uint64,
     is_1d_only_ea_dtype,
     is_bool_dtype,
     is_complex_dtype,
@@ -77,7 +80,6 @@ from pandas.core.arrays.masked import (
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
     CategoricalIndex,
@@ -94,6 +96,9 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 
 class WrappedCythonOp:
@@ -121,7 +126,7 @@ class WrappedCythonOp:
 
     _CYTHON_FUNCTIONS = {
         "aggregate": {
-            "add": "group_add",
+            "sum": "group_sum",
             "prod": "group_prod",
             "min": "group_min",
             "max": "group_max",
@@ -151,6 +156,9 @@ class WrappedCythonOp:
         "last",
         "first",
         "rank",
+        "sum",
+        "ohlc",
+        "cumsum",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -213,11 +221,18 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["add", "var", "prod", "mean", "ohlc"] or (
+            if how in ["var", "prod", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
+
+            elif how in ["sum", "ohlc", "cumsum"]:
+                # Avoid overflow during group op
+                if values.dtype.kind == "i":
+                    values = ensure_int64(values)
+                else:
+                    values = ensure_uint64(values)
 
         return values
 
@@ -241,7 +256,7 @@ class WrappedCythonOp:
         if isinstance(dtype, CategoricalDtype):
             # NotImplementedError for methods that can fall back to a
             #  non-cython implementation.
-            if how in ["add", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
             elif how not in ["rank"]:
                 # only "rank" is implemented in cython
@@ -258,7 +273,7 @@ class WrappedCythonOp:
             # TODO: same for period_dtype?  no for these methods with Period
             # we raise NotImplemented if this is an invalid operation
             #  entirely, e.g. adding datetimes
-            if how in ["add", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"datetime64 type does not support {how} operations")
         elif is_timedelta64_dtype(dtype):
             if how in ["prod", "cumprod"]:
@@ -311,7 +326,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["add", "cumsum", "sum", "prod"]:
+        if how in ["sum", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
         elif how in ["mean", "median", "var"]:
@@ -467,6 +482,9 @@ class WrappedCythonOp:
             **kwargs,
         )
 
+        if self.how == "ohlc":
+            result_mask = np.tile(result_mask, (4, 1)).T
+
         # res_values should already have the correct dtype, we just need to
         #  wrap in a MaskedArray
         return orig_values._maybe_mask_result(res_values, result_mask)
@@ -567,18 +585,22 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["add"]:
+            elif self.how in ["sum"]:
                 # We support datetimelike
                 func(
                     out=result,
                     counts=counts,
                     values=values,
                     labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
+            elif self.how == "ohlc":
+                func(result, counts, values, comp_ids, min_count, mask, result_mask)
             else:
-                func(result, counts, values, comp_ids, min_count)
+                func(result, counts, values, comp_ids, min_count, **kwargs)
         else:
             # TODO: min_count
             if self.uses_mask():
@@ -609,7 +631,8 @@ class WrappedCythonOp:
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                cutoff = max(1, min_count)
+                # Neutral value for sum is 0, so don't fill empty groups with nan
+                cutoff = max(0 if self.how == "sum" else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
                     if result_mask is not None and self.uses_mask():
@@ -625,7 +648,7 @@ class WrappedCythonOp:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
             # Casting only needed for float16, bool, datetimelike,
-            #  and self.how in ["add", "prod", "ohlc", "cumprod"]
+            #  and self.how in ["sum", "prod", "ohlc", "cumprod"]
             res_dtype = self._get_result_dtype(orig_values.dtype)
             op_result = maybe_downcast_to_dtype(result, res_dtype)
         else:
@@ -1240,7 +1263,7 @@ class BinGrouper(BaseGrouper):
         ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable) -> np.ndarray:
+    def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
         # -> np.ndarray[object]
         raise NotImplementedError(
             "This should not be reached; use _aggregate_series_pure_python"

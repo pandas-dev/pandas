@@ -37,8 +37,11 @@ class TestUnsupportedFeatures:
         msg = "is not supported"
 
         for engine in ("c", "python"):
-            with pytest.raises(ValueError, match=msg):
-                read_csv(StringIO(data), engine=engine, mangle_dupe_cols=False)
+            with tm.assert_produces_warning(
+                FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
+            ):
+                with pytest.raises(ValueError, match=msg):
+                    read_csv(StringIO(data), engine=engine, mangle_dupe_cols=False)
 
     def test_c_engine(self):
         # see gh-6607

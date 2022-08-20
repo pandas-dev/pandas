@@ -1,9 +1,12 @@
 """
 Parsing functions for datetime and datetime-like strings.
 """
+import inspect
 import re
 import time
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport cython
 from cpython.datetime cimport (
@@ -99,8 +102,14 @@ cdef:
     int MAX_DAYS_IN_MONTH = 31, MAX_MONTH = 12
 
 
-cdef inline bint _is_not_delimiter(const char ch):
-    return strchr(delimiters, ch) == NULL
+cdef inline bint _is_delimiter(const char ch):
+    return strchr(delimiters, ch) != NULL
+
+
+cdef inline int _parse_1digit(const char* s):
+    cdef int result = 0
+    result += getdigit_ascii(s[0], -10) * 1
+    return result
 
 
 cdef inline int _parse_2digit(const char* s):
@@ -151,18 +160,37 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         bint can_swap = 0
 
     buf = get_c_string_buf_and_size(date_string, &length)
-    if length == 10:
+    if length == 10 and _is_delimiter(buf[2]) and _is_delimiter(buf[5]):
         # parsing MM?DD?YYYY and DD?MM?YYYY dates
-        if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
-            return None, None
         month = _parse_2digit(buf)
         day = _parse_2digit(buf + 3)
         year = _parse_4digit(buf + 6)
         reso = 'day'
         can_swap = 1
-    elif length == 7:
+    elif length == 9 and _is_delimiter(buf[1]) and _is_delimiter(buf[4]):
+        # parsing M?DD?YYYY and D?MM?YYYY dates
+        month = _parse_1digit(buf)
+        day = _parse_2digit(buf + 2)
+        year = _parse_4digit(buf + 5)
+        reso = 'day'
+        can_swap = 1
+    elif length == 9 and _is_delimiter(buf[2]) and _is_delimiter(buf[4]):
+        # parsing MM?D?YYYY and DD?M?YYYY dates
+        month = _parse_2digit(buf)
+        day = _parse_1digit(buf + 3)
+        year = _parse_4digit(buf + 5)
+        reso = 'day'
+        can_swap = 1
+    elif length == 8 and _is_delimiter(buf[1]) and _is_delimiter(buf[3]):
+        # parsing M?D?YYYY and D?M?YYYY dates
+        month = _parse_1digit(buf)
+        day = _parse_1digit(buf + 2)
+        year = _parse_4digit(buf + 4)
+        reso = 'day'
+        can_swap = 1
+    elif length == 7 and _is_delimiter(buf[2]):
         # parsing MM?YYYY dates
-        if buf[2] == b'.' or _is_not_delimiter(buf[2]):
+        if buf[2] == b'.':
             # we cannot reliably tell whether e.g. 10.2010 is a float
             # or a date, thus we refuse to parse it here
             return None, None
@@ -189,7 +217,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='MM/DD/YYYY',
                     dayfirst='True',
                 ),
-                stacklevel=4,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
@@ -197,7 +225,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                     format='DD/MM/YYYY',
                     dayfirst='False (the default)',
                 ),
-                stacklevel=4,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
@@ -261,7 +289,7 @@ def parse_datetime_string(
         datetime dt
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError('Given date string not likely a datetime.')
+        raise ValueError(f'Given date string {date_string} not likely a datetime')
 
     if does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
@@ -271,6 +299,14 @@ def parse_datetime_string(
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
     if dt is not None:
+        return dt
+
+    # Handling special case strings today & now
+    if date_string == "now":
+        dt = datetime.now()
+        return dt
+    elif date_string == "today":
+        dt = datetime.today()
         return dt
 
     try:
@@ -287,7 +323,7 @@ def parse_datetime_string(
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
-        raise ValueError('Given date string not likely a datetime.')
+        raise ValueError(f'Given date string {date_string} not likely a datetime')
 
     return dt
 
@@ -363,7 +399,7 @@ cdef parse_datetime_string_with_reso(
         int out_tzoffset
 
     if not _does_string_look_like_datetime(date_string):
-        raise ValueError('Given date string not likely a datetime.')
+        raise ValueError(f'Given date string {date_string} not likely a datetime')
 
     parsed, reso = _parse_delimited_date(date_string, dayfirst)
     if parsed is not None:

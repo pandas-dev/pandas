@@ -329,8 +329,7 @@ Series or DataFrame
 """
 
 _pipe_template = """
-Apply a function `func` with arguments to this %(klass)s object and return
-the function's result.
+Apply a ``func`` with arguments to this %(klass)s object and return its result.
 
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
@@ -381,8 +380,9 @@ Examples
 """
 
 _transform_template = """
-Call function producing a same-indexed %(klass)s on each group and
-return a %(klass)s having the same indexes as the original object
+Call function producing a same-indexed %(klass)s on each group.
+
+Returns a %(klass)s having the same indexes as the original object
 filled with the transformed values.
 
 Parameters
@@ -645,6 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
+    keys: _KeysArgType | None = None
     group_keys: bool | lib.NoDefault
 
     @final
@@ -821,6 +822,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
+        keys = self.keys
+        if isinstance(keys, list) and len(keys) == 1:
+            warnings.warn(
+                (
+                    "In a future version of pandas, a length 1 "
+                    "tuple will be returned when iterating over a "
+                    "groupby with a grouper equal to a list of "
+                    "length 1. Don't supply a list with a single grouper "
+                    "to avoid this warning."
+                ),
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
         return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
 
@@ -1020,6 +1034,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self.apply(curried)
 
             is_transform = name in base.transformation_kernels
+
+            # Transform needs to keep the same schema, including when empty
+            if is_transform and self._obj_with_exclusions.empty:
+                return self._obj_with_exclusions
+
             result = self._python_apply_general(
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
@@ -1181,21 +1200,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
+        obj_axis = self.obj._get_axis(self.axis)
+
         if self.grouper.is_monotonic and not self.grouper.has_dropped_na:
             # shortcut if we have an already ordered grouper
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+            result = result.set_axis(obj_axis, axis=self.axis, copy=False)
             return result
 
         # row order is scrambled => sort the rows by position in original index
         original_positions = Index(self.grouper.result_ilocs())
-        result.set_axis(original_positions, axis=self.axis, inplace=True)
+        result = result.set_axis(original_positions, axis=self.axis, copy=False)
         result = result.sort_index(axis=self.axis)
-        obj_axis = self.obj._get_axis(self.axis)
         if self.grouper.has_dropped_na:
             # Add back in any missing rows due to dropna - index here is integral
             # with values referring to the row of the input so can use RangeIndex
             result = result.reindex(RangeIndex(len(obj_axis)), axis=self.axis)
-        result.set_axis(obj_axis, axis=self.axis, inplace=True)
+        result = result.set_axis(obj_axis, axis=self.axis, copy=False)
 
         return result
 
@@ -1338,13 +1358,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             # GH#47500
-            how = "sum" if how == "add" else how
             warnings.warn(
                 f"{type(self).__name__}.{how} called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}. This will "
                 "raise a TypeError in a future version of pandas",
                 category=FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             raise NotImplementedError(
                 f"{type(self).__name__}.{how} does not implement numeric_only"
@@ -1606,7 +1625,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
             # We want to behave as if `self.group_keys=False` when reconstructing
             # the object. However, we don't want to mutate the stateful GroupBy
             # object, so we just override it.
@@ -1723,6 +1744,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only: bool | lib.NoDefault,
         min_count: int = -1,
         ignore_failures: bool = True,
+        **kwargs,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
@@ -1738,9 +1760,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 kwd_name = "numeric_only"
                 if how in ["any", "all"]:
                     kwd_name = "bool_only"
-                kernel = "sum" if how == "add" else how
                 raise NotImplementedError(
-                    f"{type(self).__name__}.{kernel} does not implement {kwd_name}."
+                    f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
             elif not is_ser:
                 data = data.get_numeric_data(copy=False)
@@ -1748,7 +1769,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
                 result = self.grouper._cython_operation(
-                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
+                    "aggregate",
+                    values,
+                    how,
+                    axis=data.ndim - 1,
+                    min_count=min_count,
+                    **kwargs,
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -2291,20 +2317,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
-            numeric_only_bool = self._resolve_numeric_only("var", numeric_only, axis=0)
-            if ddof == 1:
-                return self._cython_agg_general(
-                    "var",
-                    alt=lambda x: Series(x).var(ddof=ddof),
-                    numeric_only=numeric_only,
-                    ignore_failures=numeric_only is lib.no_default,
-                )
-            else:
-                func = lambda x: x.var(ddof=ddof)
-                with self._group_selection_context():
-                    return self._python_agg_general(
-                        func, raise_on_typeerror=not numeric_only_bool
-                    )
+            return self._cython_agg_general(
+                "var",
+                alt=lambda x: Series(x).var(ddof=ddof),
+                numeric_only=numeric_only,
+                ignore_failures=numeric_only is lib.no_default,
+                ddof=ddof,
+            )
 
     @final
     @Substitution(name="groupby")
@@ -2389,7 +2408,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            result = result.rename("size").reset_index()
+            # error: Incompatible types in assignment (expression has
+            # type "DataFrame", variable has type "Series")
+            result = result.rename("size").reset_index()  # type: ignore[assignment]
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2417,7 +2438,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = self._agg_general(
                     numeric_only=numeric_only,
                     min_count=min_count,
-                    alias="add",
+                    alias="sum",
                     npfunc=np.sum,
                 )
 
@@ -2928,7 +2949,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
 
@@ -2964,7 +2985,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
 
@@ -3630,7 +3651,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.minimum.accumulate(x, axis)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
+            obj = self._selected_obj
+            if numeric_only_bool:
+                obj = obj._get_numeric_data()
+            return self._python_apply_general(f, obj, is_transform=True)
 
         return self._cython_transform(
             "cummin", numeric_only=numeric_only, skipna=skipna
@@ -3650,7 +3675,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.maximum.accumulate(x, axis)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
+            obj = self._selected_obj
+            if numeric_only_bool:
+                obj = obj._get_numeric_data()
+            return self._python_apply_general(f, obj, is_transform=True)
 
         return self._cython_transform(
             "cummax", numeric_only=numeric_only, skipna=skipna
@@ -4333,8 +4362,6 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
 
 
 def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> None:
-    if how == "add":
-        how = "sum"
     if numeric_only is not lib.no_default and not numeric_only:
         # numeric_only was specified and falsey but still dropped nuisance columns
         warnings.warn(
@@ -4344,7 +4371,7 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Before calling .{how}, select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     elif numeric_only is lib.no_default:
         warnings.warn(
@@ -4354,5 +4381,5 @@ def warn_dropping_nuisance_columns_deprecated(cls, how: str, numeric_only) -> No
             f"Either specify numeric_only or select only columns which "
             "should be valid for the function.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )

@@ -9,6 +9,9 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+from __future__ import annotations
+
+import inspect
 import os
 from typing import Callable
 import warnings
@@ -259,7 +262,7 @@ pc_width_doc = """
 
 pc_chop_threshold_doc = """
 : float or None
-    if set to a float value, all float values smaller then the given threshold
+    if set to a float value, all float values smaller than the given threshold
     will be displayed as exactly 0 by repr and friends.
 """
 
@@ -368,7 +371,7 @@ with cf.config_prefix("display"):
             "in a future version. Use df.to_string(col_space=...) "
             "instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     cf.register_option("column_space", 12, validator=is_int, cb=_deprecate_column_space)
@@ -395,7 +398,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     cf.register_option(

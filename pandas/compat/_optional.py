@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import sys
 import types
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
@@ -44,6 +47,7 @@ VERSIONS = {
     "xlwt": "1.3.0",
     "xlsxwriter": "1.4.3",
     "zstandard": "0.15.2",
+    "tzdata": "2022.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -158,7 +162,11 @@ def import_optional_dependency(
                 f"(version '{version}' currently installed)."
             )
             if errors == "warn":
-                warnings.warn(msg, UserWarning)
+                warnings.warn(
+                    msg,
+                    UserWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
                 return None
             elif errors == "raise":
                 raise ImportError(msg)

@@ -902,10 +902,7 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (
-                Interval(left=0, right=5, inclusive="right"),
-                IntervalDtype("int64", "right"),
-            ),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -1390,7 +1387,7 @@ class TestDataFrameConstructors:
             def __getitem__(self, n):
                 return self._lst.__getitem__(n)
 
-            def __len__(self, n):
+            def __len__(self):
                 return self._lst.__len__()
 
         lst_containers = [DummyContainer([1, "a"]), DummyContainer([2, "b"])]
@@ -2431,16 +2428,16 @@ class TestDataFrameConstructors:
         result = DataFrame({"1": ser1, "2": ser2})
         index = CategoricalIndex(
             [
-                Interval(-0.099, 9.9, inclusive="right"),
-                Interval(9.9, 19.8, inclusive="right"),
-                Interval(19.8, 29.7, inclusive="right"),
-                Interval(29.7, 39.6, inclusive="right"),
-                Interval(39.6, 49.5, inclusive="right"),
-                Interval(49.5, 59.4, inclusive="right"),
-                Interval(59.4, 69.3, inclusive="right"),
-                Interval(69.3, 79.2, inclusive="right"),
-                Interval(79.2, 89.1, inclusive="right"),
-                Interval(89.1, 99, inclusive="right"),
+                Interval(-0.099, 9.9, closed="right"),
+                Interval(9.9, 19.8, closed="right"),
+                Interval(19.8, 29.7, closed="right"),
+                Interval(29.7, 39.6, closed="right"),
+                Interval(39.6, 49.5, closed="right"),
+                Interval(49.5, 59.4, closed="right"),
+                Interval(59.4, 69.3, closed="right"),
+                Interval(69.3, 79.2, closed="right"),
+                Interval(79.2, 89.1, closed="right"),
+                Interval(89.1, 99, closed="right"),
             ],
             ordered=True,
         )
@@ -3000,6 +2997,14 @@ class TestDataFrameConstructorWithDatetimeTZ:
         arr2 = pd.array([2.0, 3.0, 4.0])
         with pytest.raises(ValueError, match=msg):
             DataFrame(arr2, columns=["foo", "bar"])
+
+    def test_columns_indexes_raise_on_sets(self):
+        # GH 47215
+        data = [[1, 2, 3], [4, 5, 6]]
+        with pytest.raises(ValueError, match="index cannot be a set"):
+            DataFrame(data, index={"a", "b"})
+        with pytest.raises(ValueError, match="columns cannot be a set"):
+            DataFrame(data, columns={"a", "b", "c"})
 
 
 def get1(obj):  # TODO: make a helper in tm?
