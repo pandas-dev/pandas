@@ -2349,6 +2349,7 @@ def test_groupby_duplicate_index():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*is deprecated.*:FutureWarning")
 def test_group_on_empty_multiindex(transformation_func, request):
     # GH 47787
     # With one row, those are transforms so the schema should be the same
