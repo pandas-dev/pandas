@@ -1257,7 +1257,7 @@ class _LocIndexer(_LocationIndexer):
         return self._getitem_tuple_same_dim(tup)
 
     def _get_label(self, label, axis: int):
-        # GH#5667 this will fail if the label is not present in the axis.
+        # GH#5567 this will fail if the label is not present in the axis.
         return self.obj.xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
