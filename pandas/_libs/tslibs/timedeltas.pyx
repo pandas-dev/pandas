@@ -1055,6 +1055,8 @@ cdef class _Timedelta(timedelta):
     @property
     def freq(self) -> None:
         """
+        Freq property.
+
         .. deprecated:: 1.5.0
             This argument is deprecated.
         """
@@ -1069,6 +1071,8 @@ cdef class _Timedelta(timedelta):
     @property
     def is_populated(self) -> bool:
         """
+        Is_populated property.
+
         .. deprecated:: 1.5.0
             This argument is deprecated.
         """
