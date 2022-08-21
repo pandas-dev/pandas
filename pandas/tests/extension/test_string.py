@@ -175,6 +175,7 @@ class TestMethods(base.BaseMethodsTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_argsort(data_for_sorting)
 
@@ -183,6 +184,7 @@ class TestMethods(base.BaseMethodsTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_argsort_missing(data_missing_for_sorting)
 
@@ -262,6 +264,7 @@ class TestMethods(base.BaseMethodsTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_argsort_missing(data_missing_for_sorting)
 
@@ -278,6 +281,7 @@ class TestMethods(base.BaseMethodsTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_nargsort(data_missing_for_sorting, na_position, expected)
 
@@ -287,6 +291,7 @@ class TestMethods(base.BaseMethodsTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_sort_values(data_for_sorting, ascending, sort_by_key)
 
@@ -298,6 +303,7 @@ class TestMethods(base.BaseMethodsTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_sort_values_missing(
                 data_missing_for_sorting, ascending, sort_by_key
@@ -309,6 +315,7 @@ class TestMethods(base.BaseMethodsTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
 
@@ -367,6 +374,7 @@ class TestGroupBy(base.BaseGroupbyTests):
             PerformanceWarning,
             pa_version_under7p0
             and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
         ):
             super().test_groupby_extension_transform(data_for_grouping)
 
