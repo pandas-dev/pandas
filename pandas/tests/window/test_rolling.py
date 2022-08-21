@@ -706,8 +706,8 @@ def test_rolling_window_as_string(center, expected_data):
     data = npr.randint(1, high=100, size=len(days))
     df = DataFrame({"DateCol": days, "metric": data})
 
-    df.set_index("DateCol", inplace=True)
-    result = df.rolling(window="21D", min_periods=2, inclusive="left", center=center)[
+    df = df.set_index("DateCol", copy=False)
+    result = df.rolling(window="21D", min_periods=2, closed="left", center=center)[
         "metric"
     ].agg("max")
 

@@ -269,7 +269,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame):
+    def test_setitem(self, float_frame, using_copy_on_write):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -305,8 +305,12 @@ class TestDataFrameIndexing:
         smaller = float_frame[:2]
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
+        if using_copy_on_write:
+            # With CoW, adding a new column doesn't raise a warning
             smaller["col10"] = ["1", "2"]
+        else:
+            with pytest.raises(SettingWithCopyError, match=msg):
+                smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
@@ -536,22 +540,29 @@ class TestDataFrameIndexing:
             df2.loc[3:11] = 0
 
     @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
-    def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
+    def test_fancy_getitem_slice_mixed(
+        self, float_frame, float_string_frame, using_copy_on_write
+    ):
 
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
         # get view with single block
         # setting it triggers setting with copy
+        original = float_frame.copy()
         sliced = float_frame.iloc[:, -3:]
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            sliced.loc[:, "C"] = 4.0
+        if not using_copy_on_write:
+            with pytest.raises(SettingWithCopyError, match=msg):
+                sliced.loc[:, "C"] = 4.0
 
-        assert (float_frame["C"] == 4).all()
+            assert (float_frame["C"] == 4).all()
+        else:
+            sliced.loc[:, "C"] = 4.0
+            tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
@@ -994,7 +1005,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_array_manager):
+    def test_iloc_row_slice_view(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
         original = df.copy()
 
@@ -1004,14 +1015,17 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(df[2], subset[2])
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            subset.loc[:, 2] = 0.0
-
         exp_col = original[2].copy()
-        # TODO(ArrayManager) verify it is expected that the original didn't change
-        if not using_array_manager:
-            exp_col._values[4:8] = 0.0
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        if using_copy_on_write:
+            subset.loc[:, 2] = 0.0
+        else:
+            with pytest.raises(SettingWithCopyError, match=msg):
+                subset.loc[:, 2] = 0.0
+
+            # TODO(ArrayManager) verify it is expected that the original didn't change
+            if not using_array_manager:
+                exp_col._values[4:8] = 0.0
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1036,14 +1050,13 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_col_slice_view(self, using_array_manager):
+    def test_iloc_col_slice_view(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]
 
-        if not using_array_manager:
+        if not using_array_manager and not using_copy_on_write:
             # verify slice is view
-
             assert np.shares_memory(df[8]._values, subset[8]._values)
 
             # and that we are setting a copy
@@ -1053,7 +1066,9 @@ class TestDataFrameIndexing:
 
             assert (df[8] == 0).all()
         else:
-            # TODO(ArrayManager) verify this is the desired behaviour
+            if using_copy_on_write:
+                # verify slice is view
+                assert np.shares_memory(df[8]._values, subset[8]._values)
             subset[8] = 0.0
             # subset changed
             assert (subset[8] == 0).all()
@@ -1227,6 +1242,13 @@ class TestDataFrameIndexing:
         df.iloc[:] = df.iloc[:, :]
         tm.assert_frame_equal(df, orig)
 
+    def test_getitem_segfault_with_empty_like_object(self):
+        # GH#46848
+        df = DataFrame(np.empty((1, 1), dtype=object))
+        df[0] = np.empty_like(df[0])
+        # this produces the segfault
+        df[[0]]
+
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1316,6 +1338,53 @@ class TestDataFrameIndexing:
         with tm.assert_produces_warning(None):
             df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
+
+    def test_loc_internals_not_updated_correctly(self):
+        # GH#47867 all steps are necessary to reproduce the initial bug
+        df = DataFrame(
+            {"bool_col": True, "a": 1, "b": 2.5},
+            index=MultiIndex.from_arrays([[1, 2], [1, 2]], names=["idx1", "idx2"]),
+        )
+        idx = [(1, 1)]
+
+        df["c"] = 3
+        df.loc[idx, "c"] = 0
+
+        df.loc[idx, "c"]
+        df.loc[idx, ["a", "b"]]
+
+        df.loc[idx, "c"] = 15
+        result = df.loc[idx, "c"]
+        expected = df = Series(
+            15,
+            index=MultiIndex.from_arrays([[1], [1]], names=["idx1", "idx2"]),
+            name="c",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [None, [None], pd.NA, [pd.NA]])
+    def test_iloc_setitem_string_list_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[[0], :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("val", [None, pd.NA])
+    def test_iloc_setitem_string_na(self, val):
+        # GH#45469
+        df = DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+        df.iloc[0, :] = val
+        expected = DataFrame({"a": [pd.NA, "b", "c"]}, dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("func", [list, Series, np.array])
+    def test_iloc_setitem_ea_null_slice_length_one_list(self, func):
+        # GH#48016
+        df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+        df.iloc[:, func([0])] = 5
+        expected = DataFrame({"a": [5, 5, 5]}, dtype="Int64")
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64:

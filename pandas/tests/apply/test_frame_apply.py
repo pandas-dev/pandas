@@ -1440,7 +1440,7 @@ def test_apply_dtype(col):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_mutating(using_array_manager):
+def test_apply_mutating(using_array_manager, using_copy_on_write):
     # GH#35462 case where applied func pins a new BlockManager to a row
     df = DataFrame({"a": range(100), "b": range(100, 200)})
     df_orig = df.copy()
@@ -1457,12 +1457,13 @@ def test_apply_mutating(using_array_manager):
     result = df.apply(func, axis=1)
 
     tm.assert_frame_equal(result, expected)
-    if not using_array_manager:
+    if using_copy_on_write or using_array_manager:
+        # INFO(CoW) With copy on write, mutating a viewing row doesn't mutate the parent
         # INFO(ArrayManager) With BlockManager, the row is a view and mutated in place,
         # with ArrayManager the row is not a view, and thus not mutated in place
-        tm.assert_frame_equal(df, result)
-    else:
         tm.assert_frame_equal(df, df_orig)
+    else:
+        tm.assert_frame_equal(df, result)
 
 
 def test_apply_empty_list_reduce():
@@ -1583,7 +1584,7 @@ def test_apply_on_empty_dataframe():
     # GH 39111
     df = DataFrame({"a": [1, 2], "b": [3, 0]})
     result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1)
-    expected = Series([])
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
 

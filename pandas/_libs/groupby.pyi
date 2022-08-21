@@ -20,12 +20,14 @@ def group_cumprod_float64(
     skipna: bool = ...,
 ) -> None: ...
 def group_cumsum(
-    out: np.ndarray,  # numeric[:, ::1]
-    values: np.ndarray,  # ndarray[numeric, ndim=2]
+    out: np.ndarray,  # int64float_t[:, ::1]
+    values: np.ndarray,  # ndarray[int64float_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
     skipna: bool = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_shift_indexer(
     out: np.ndarray,  # int64_t[::1]
@@ -51,10 +53,12 @@ def group_any_all(
     skipna: bool,
 ) -> None: ...
 def group_sum(
-    out: np.ndarray,  # complexfloating_t[:, ::1]
+    out: np.ndarray,  # complexfloatingintuint_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[complexfloating_t, ndim=2]
+    values: np.ndarray,  # ndarray[complexfloatingintuint_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
+    mask: np.ndarray | None,
+    result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
 ) -> None: ...
@@ -84,11 +88,13 @@ def group_mean(
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_ohlc(
-    out: np.ndarray,  # floating[:, ::1]
+    out: np.ndarray,  # floatingintuint_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[floating, ndim=2]
+    values: np.ndarray,  # ndarray[floatingintuint_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_quantile(
     out: npt.NDArray[np.float64],

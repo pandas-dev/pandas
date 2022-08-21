@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
+import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -155,6 +156,8 @@ class IndexingMixin:
           DataFrame) and that returns valid output for indexing (one of the above).
           This is useful in method chains, when you don't have a reference to the
           calling object, but would like to base your selection on some value.
+        - A tuple of row and column indexes. The tuple elements consist of one of the
+          above inputs, e.g. ``(0, 1)``.
 
         ``.iloc`` will raise ``IndexError`` if a requested indexer is
         out-of-bounds, except *slice* indexers which allow out-of-bounds
@@ -1254,7 +1257,7 @@ class _LocIndexer(_LocationIndexer):
         return self._getitem_tuple_same_dim(tup)
 
     def _get_label(self, label, axis: int):
-        # GH#5667 this will fail if the label is not present in the axis.
+        # GH#5567 this will fail if the label is not present in the axis.
         return self.obj.xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
@@ -1495,7 +1498,7 @@ class _iLocIndexer(_LocationIndexer):
                 "a future version.\n"
                 "consider using .loc with a DataFrame indexer for automatic alignment.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if not isinstance(indexer, tuple):
@@ -1851,8 +1854,10 @@ class _iLocIndexer(_LocationIndexer):
                 # We get here in one case via .loc with a all-False mask
                 pass
 
-            elif self._is_scalar_access(indexer):
-                # We are setting nested data
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes[ilocs[0]]
+            ):
+                # We are setting nested data, only possible for object dtype data
                 self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
@@ -2024,7 +2029,7 @@ class _iLocIndexer(_LocationIndexer):
                     "`df[df.columns[i]] = newvals` or, if columns are non-unique, "
                     "`df.isetitem(i, newvals)`",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 # TODO: how to get future behavior?
                 # TODO: what if we got here indirectly via loc?
@@ -2500,7 +2505,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
                     "and will be removed in a future version. Use `frame.loc[string]` "
                     "instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 return res
             except (KeyError, ValueError, NotImplementedError):
@@ -2654,7 +2659,7 @@ def check_deprecated_indexers(key) -> None:
             "Passing a set as an indexer is deprecated and will raise in "
             "a future version. Use a list instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     if (
         isinstance(key, dict)
@@ -2665,5 +2670,5 @@ def check_deprecated_indexers(key) -> None:
             "Passing a dict as an indexer is deprecated and will raise in "
             "a future version. Use a list instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
