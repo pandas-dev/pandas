@@ -103,7 +103,7 @@ class MockNumpyLikeArray:
 
         return it_outer()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._values)
 
     def __array__(self, t=None):
@@ -1954,7 +1954,7 @@ class TestIsScalar:
             def __init__(self, value) -> None:
                 self.value = value
 
-            def __int__(self):
+            def __int__(self) -> int:
                 return self.value
 
         num = Numeric(1)

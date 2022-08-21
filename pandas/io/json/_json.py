@@ -8,6 +8,7 @@ from collections import abc
 import functools
 from io import StringIO
 from itertools import islice
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -991,7 +992,12 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     def __enter__(self) -> JsonReader[FrameSeriesStrT]:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 

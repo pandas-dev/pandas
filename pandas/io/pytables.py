@@ -15,6 +15,7 @@ import itertools
 import os
 import re
 from textwrap import dedent
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -632,7 +633,12 @@ class HDFStore:
     def __enter__(self) -> HDFStore:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def keys(self, include: str = "pandas") -> list[str]:

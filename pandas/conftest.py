@@ -515,7 +515,7 @@ def non_dict_mapping_subclass():
         def __iter__(self):
             return self._data.__iter__()
 
-        def __len__(self):
+        def __len__(self) -> int:
             return self._data.__len__()
 
     return TestNonDictMapping

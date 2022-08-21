@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from shutil import rmtree
 import tempfile
+from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -237,6 +238,11 @@ class RNGContext:
         self.start_state = np.random.get_state()
         np.random.seed(self.seed)
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
 
         np.random.set_state(self.start_state)

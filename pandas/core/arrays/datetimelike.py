@@ -1937,7 +1937,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     _default_dtype: np.dtype
 
-    def __init__(self, values, dtype=None, freq=lib.no_default, copy: bool = False):
+    def __init__(
+        self, values, dtype=None, freq=lib.no_default, copy: bool = False
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=iNaT)

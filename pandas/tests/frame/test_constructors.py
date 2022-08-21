@@ -1394,7 +1394,7 @@ class TestDataFrameConstructors:
             def __getitem__(self, n):
                 return self._lst.__getitem__(n)
 
-            def __len__(self):
+            def __len__(self) -> int:
                 return self._lst.__len__()
 
         lst_containers = [DummyContainer([1, "a"]), DummyContainer([2, "b"])]
