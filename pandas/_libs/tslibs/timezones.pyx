@@ -198,7 +198,7 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
         return tz.utcoffset(obj)
 
 
-cdef inline bint is_fixed_offset(tzinfo tz):
+cpdef inline bint is_fixed_offset(tzinfo tz):
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
