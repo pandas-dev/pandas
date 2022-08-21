@@ -1666,8 +1666,8 @@ def test_setitem_empty_mask_dont_upcast_dt64():
     "rhs_values, rhs_error_values, msg",
     [
         (
-            np.array([[5, 6], [5, 6], [5, 6]]),
-            np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]]),
+            np.array([[5, 6], [5, 6], [5, 6]], dtype="int64"),
+            np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]], dtype="int64"),
             "Shape of new values must be compatible with manager shape",
         ),
         (

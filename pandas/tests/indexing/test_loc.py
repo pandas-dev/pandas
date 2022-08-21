@@ -226,8 +226,8 @@ class TestLoc(Base):
         "rhs_values, rhs_error_values, msg",
         [
             (
-                np.array([[5, 6], [5, 6], [5, 6]]),
-                np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]]),
+                np.array([[5, 6], [5, 6], [5, 6]], dtype="int64"),
+                np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]], dtype="int64"),
                 "|".join(
                     [
                         r"shape mismatch: value array of shape \(3,3\)",
