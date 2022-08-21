@@ -1,4 +1,4 @@
-# flake8: noqa
+from __future__ import annotations
 
 __docformat__ = "restructuredtext"
 
@@ -19,7 +19,7 @@ if _missing_dependencies:
 del _hard_dependencies, _dependency, _missing_dependencies
 
 # numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev
+from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
 
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
@@ -43,10 +43,11 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init
+import pandas.core.config_init  # pyright: ignore # noqa:F401
 
 from pandas.core.api import (
     # dtype
+    ArrowDtype,
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
@@ -128,11 +129,13 @@ from pandas.core.reshape.api import (
     pivot,
     pivot_table,
     get_dummies,
+    from_dummies,
     cut,
     qcut,
 )
 
-from pandas import api, arrays, errors, io, plotting, testing, tseries
+from pandas import api, arrays, errors, io, plotting, tseries
+from pandas import testing  # noqa:PDF015
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -184,7 +187,7 @@ del get_versions, v
 __deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
 
 
-def __dir__():
+def __dir__() -> list[str]:
     # GH43028
     # Int64Index etc. are deprecated, but we still want them to be available in the dir.
     # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.
@@ -306,6 +309,7 @@ Here are just a few of the things that pandas does well:
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
 __all__ = [
+    "ArrowDtype",
     "BooleanDtype",
     "Categorical",
     "CategoricalDtype",
@@ -361,6 +365,7 @@ __all__ = [
     "eval",
     "factorize",
     "get_dummies",
+    "from_dummies",
     "get_option",
     "infer_freq",
     "interval_range",

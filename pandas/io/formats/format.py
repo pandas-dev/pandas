@@ -20,8 +20,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Final,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Sequence,
@@ -42,11 +44,14 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    get_unit_from_dtype,
     iNaT,
+    periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    Axes,
     ColspaceArgType,
     ColspaceType,
     CompressionOptions,
@@ -114,7 +119,7 @@ if TYPE_CHECKING:
     )
 
 
-common_docstring = """
+common_docstring: Final = """
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -187,7 +192,7 @@ _VALID_JUSTIFY_PARAMETERS = (
     "unset",
 )
 
-return_docstring = """
+return_docstring: Final = """
         Returns
         -------
         str or None
@@ -561,7 +566,7 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[str] | None = None,
+        columns: Sequence[Hashable] | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool | Sequence[str] = True,
         index: bool = True,
@@ -683,9 +688,11 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[str] | None) -> Index:
+    def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
         if columns is not None:
-            cols = ensure_index(columns)
+            # GH 47231 - columns doesn't have to be `Sequence[str]`
+            # Will fix in later PR
+            cols = ensure_index(cast(Axes, columns))
             self.frame = self.frame[cols]
             return cols
         else:
@@ -990,8 +997,8 @@ class DataFrameFormatter:
         else:
             return adjoined
 
-    def _get_column_name_list(self) -> list[str]:
-        names: list[str] = []
+    def _get_column_name_list(self) -> list[Hashable]:
+        names: list[Hashable] = []
         columns = self.frame.columns
         if isinstance(columns, MultiIndex):
             names.extend("" if name is None else name for name in columns.names)
@@ -1029,7 +1036,7 @@ class DataFrameRenderer:
         multicolumn: bool = False,
         multicolumn_format: str | None = None,
         multirow: bool = False,
-        caption: str | None = None,
+        caption: str | tuple[str, str] | None = None,
         label: str | None = None,
         position: str | None = None,
     ) -> str | None:
@@ -1201,12 +1208,15 @@ def save_to_buffer(
     with get_buffer(buf, encoding=encoding) as f:
         f.write(string)
         if buf is None:
-            return f.getvalue()
+            # error: "WriteBuffer[str]" has no attribute "getvalue"
+            return f.getvalue()  # type: ignore[attr-defined]
         return None
 
 
 @contextmanager
-def get_buffer(buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None):
+def get_buffer(
+    buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
+) -> Iterator[WriteBuffer[str]] | Iterator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1440,7 +1450,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _value_formatter(
         self,
         float_format: FloatFormatType | None = None,
-        threshold: float | int | None = None,
+        threshold: float | None = None,
     ) -> Callable:
         """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
@@ -1738,16 +1748,21 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
     if not isinstance(values, Index):
         values = values.ravel()
 
-    values = DatetimeIndex(values)
+    if not isinstance(values, (DatetimeArray, DatetimeIndex)):
+        values = DatetimeIndex(values)
+
     if values.tz is not None:
         return False
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 10**9
-    even_days = (
-        np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
-    )
+    # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+    reso = get_unit_from_dtype(values.dtype)  # type: ignore[arg-type]
+    ppd = periods_per_day(reso)
+
+    # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
+    even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
     if even_days:
         return True
     return False
@@ -1757,6 +1772,8 @@ def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
     if x is NaT:
         return nat_rep
 
+    # Timestamp.__str__ falls back to datetime.datetime.__str__ = isoformat(sep=' ')
+    # so it already uses string formatting rather than strftime (faster).
     return str(x)
 
 
@@ -1771,12 +1788,15 @@ def _format_datetime64_dateonly(
     if date_format:
         return x.strftime(date_format)
     else:
+        # Timestamp._date_repr relies on string formatting (faster than strftime)
         return x._date_repr
 
 
 def get_format_datetime64(
     is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
+    """Return a formatter callable taking a datetime64 as input and providing
+    a string as output"""
 
     if is_dates_only:
         return lambda x: _format_datetime64_dateonly(
@@ -1797,6 +1817,7 @@ def get_format_datetime64_from_values(
 
     ido = is_dates_only(values)
     if ido:
+        # Only dates and no timezone: provide a default format
         return date_format or "%Y-%m-%d"
     return date_format
 
@@ -1870,6 +1891,8 @@ def get_format_timedelta64(
 
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
+
+        # Timedelta._repr_base uses string formatting (faster than strftime)
         result = x._repr_base(format=format)
         if box:
             result = f"'{result}'"
@@ -2027,7 +2050,7 @@ class EngFormatter:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
-    def __call__(self, num: int | float) -> str:
+    def __call__(self, num: float) -> str:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:

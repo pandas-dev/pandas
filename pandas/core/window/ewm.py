@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from functools import partial
+import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -42,7 +43,10 @@ from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
 )
-from pandas.core.window.common import zsqrt
+from pandas.core.window.common import (
+    maybe_warn_args_and_kwargs,
+    zsqrt,
+)
 from pandas.core.window.doc import (
     _shared_docs,
     args_compat,
@@ -388,7 +392,7 @@ class ExponentialMovingWindow(BaseWindow):
                         "into times instead."
                     ),
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 # self.times cannot be str anymore
                 self.times = cast("Series", self._selected_obj[self.times])
@@ -442,7 +446,9 @@ class ExponentialMovingWindow(BaseWindow):
         """
         return ExponentialMovingWindowIndexer()
 
-    def online(self, engine="numba", engine_kwargs=None):
+    def online(
+        self, engine="numba", engine_kwargs=None
+    ) -> OnlineExponentialMovingWindow:
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate
         exponentially moving window aggregations in an online method.
@@ -544,6 +550,7 @@ class ExponentialMovingWindow(BaseWindow):
         engine_kwargs=None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
@@ -601,6 +608,7 @@ class ExponentialMovingWindow(BaseWindow):
         engine_kwargs=None,
         **kwargs,
     ):
+        maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
         if not self.adjust:
             raise NotImplementedError("sum is not implemented with adjust=False")
         if maybe_use_numba(engine):
@@ -656,6 +664,7 @@ class ExponentialMovingWindow(BaseWindow):
         agg_method="std",
     )
     def std(self, bias: bool = False, numeric_only: bool = False, *args, **kwargs):
+        maybe_warn_args_and_kwargs(type(self), "std", args, kwargs)
         nv.validate_window_func("std", args, kwargs)
         if (
             numeric_only
@@ -675,7 +684,7 @@ class ExponentialMovingWindow(BaseWindow):
                 "Use std instead."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.std(bias, *args, **kwargs)
 
@@ -700,6 +709,7 @@ class ExponentialMovingWindow(BaseWindow):
         agg_method="var",
     )
     def var(self, bias: bool = False, numeric_only: bool = False, *args, **kwargs):
+        maybe_warn_args_and_kwargs(type(self), "var", args, kwargs)
         nv.validate_window_func("var", args, kwargs)
         window_func = window_aggregations.ewmcov
         wfunc = partial(
@@ -754,6 +764,7 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         from pandas import Series
 
+        maybe_warn_args_and_kwargs(type(self), "cov", None, kwargs)
         self._validate_numeric_only("cov", numeric_only)
 
         def cov_func(x, y):
@@ -827,6 +838,7 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         from pandas import Series
 
+        maybe_warn_args_and_kwargs(type(self), "corr", None, kwargs)
         self._validate_numeric_only("corr", numeric_only)
 
         def cov_func(x, y):
@@ -948,7 +960,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         else:
             raise ValueError("'numba' is the only supported engine")
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state captured by `update` calls.
         """

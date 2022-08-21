@@ -41,7 +41,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "0.29.30"
+min_cython_ver = "0.29.32"
 
 try:
     from Cython import (
@@ -520,7 +520,11 @@ ext_data = {
     "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
-    "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
+    "_libs.tslib": {
+        "pyxfile": "_libs/tslib",
+        "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+    },
     "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
     "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},

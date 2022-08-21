@@ -4,6 +4,7 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -657,9 +658,10 @@ class Grouping:
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
-        if self._passed_categorical:
+        if self._dropna and self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
-            # preserving the categories / ordered attributes
+            # preserving the categories / ordered attributes;
+            # doesn't (yet - GH#46909) handle dropna=False
             cat = self.grouping_vector
             categories = cat.categories
 
@@ -679,15 +681,17 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_index._values
+            # error: Incompatible types in assignment (expression has type "Union
+            # [ExtensionArray, ndarray[Any, Any]]", variable has type "Categorical")
+            uniques = (
+                self.grouping_vector.result_index._values  # type: ignore[assignment]
+            )
         else:
-            # GH35667, replace dropna=False with na_sentinel=None
-            if not self._dropna:
-                na_sentinel = None
-            else:
-                na_sentinel = -1
-            codes, uniques = algorithms.factorize(
-                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
+            # GH35667, replace dropna=False with use_na_sentinel=False
+            # error: Incompatible types in assignment (expression has type "Union[
+            # ndarray[Any, Any], Index]", variable has type "Categorical")
+            codes, uniques = algorithms.factorize(  # type: ignore[assignment]
+                self.grouping_vector, sort=self._sort, use_na_sentinel=self._dropna
             )
         return codes, uniques
 
@@ -835,7 +839,11 @@ def get_grouper(
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
+
         if not _is_label_like(key):
+            if obj.ndim == 1:
+                return False
+
             # items -> .columns for DataFrame, .index for Series
             items = obj.axes[-1]
             try:
@@ -975,7 +983,7 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             "\nbecomes:\n"
             '\n>>> df.resample(freq="3s", offset="2s")\n',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     if kwargs.get("loffset", None) is not None:
         warnings.warn(
@@ -986,5 +994,5 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             '\n>>> df = df.resample(freq="3s").mean()'
             '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )

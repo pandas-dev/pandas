@@ -89,6 +89,7 @@ def _transfer_marks(engine, read_ext):
         for ext in read_ext_params
         if _is_valid_engine_ext_pair(eng, ext)
     ],
+    ids=str,
 )
 def engine_and_read_ext(request):
     """
@@ -654,6 +655,7 @@ class TestReaders:
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
         if engine == "pyxlsb":
@@ -1555,6 +1557,12 @@ class TestExcelFileRead:
             result = pd.read_excel(f)
         expected = pd.read_excel("test1" + read_ext, engine=engine)
         tm.assert_frame_equal(result, expected)
+
+    def test_read_excel_header_index_out_of_range(self, engine):
+        # GH#43143
+        with open("df_header_oob.xlsx", "rb") as f:
+            with pytest.raises(ValueError, match="exceeds maximum"):
+                pd.read_excel(f, header=[0, 1])
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, filename):

@@ -54,12 +54,14 @@ from contextlib import (
     ContextDecorator,
     contextmanager,
 )
+import inspect
 import re
 from typing import (
     Any,
     Callable,
     Generic,
     Iterable,
+    Iterator,
     NamedTuple,
     cast,
 )
@@ -69,6 +71,7 @@ from pandas._typing import (
     F,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 
 class DeprecatedOption(NamedTuple):
@@ -101,8 +104,9 @@ _reserved_keys: list[str] = ["all"]
 
 class OptionError(AttributeError, KeyError):
     """
-    Exception for pandas.options, backwards compatible with KeyError
-    checks.
+    Exception raised for pandas.options.
+
+    Backwards compatible with KeyError checks.
     """
 
 
@@ -435,13 +439,13 @@ class option_context(ContextDecorator):
 
         self.ops = list(zip(args[::2], args[1::2]))
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.undo = [(pat, _get_option(pat, silent=True)) for pat, val in self.ops]
 
         for pat, val in self.ops:
             _set_option(pat, val, silent=True)
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:
         if self.undo:
             for pat, val in self.undo:
                 _set_option(pat, val, silent=True)
@@ -655,7 +659,11 @@ def _warn_if_deprecated(key: str) -> bool:
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
-            warnings.warn(d.msg, FutureWarning)
+            warnings.warn(
+                d.msg,
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
         else:
             msg = f"'{key}' is deprecated"
             if d.removal_ver:
@@ -665,7 +673,9 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(msg, FutureWarning)
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
         return True
     return False
 
@@ -733,7 +743,7 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 
 
 @contextmanager
-def config_prefix(prefix):
+def config_prefix(prefix) -> Iterator[None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

@@ -1,4 +1,7 @@
+import inspect
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -135,7 +138,7 @@ cdef class _NaT(datetime):
                 "order to match the standard library behavior. "
                 "In a future version these will be considered non-comparable.",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return False
 
@@ -379,7 +382,7 @@ class NaTType(_NaT):
         warnings.warn(
             "NaT.freq is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return None
 
@@ -446,6 +449,7 @@ class NaTType(_NaT):
         "weekday",
         """
         Return the day of the week represented by the date.
+
         Monday == 0 ... Sunday == 6.
         """,
     )
@@ -453,6 +457,7 @@ class NaTType(_NaT):
         "isoweekday",
         """
         Return the day of the week represented by the date.
+
         Monday == 1 ... Sunday == 7.
         """,
     )
@@ -533,10 +538,7 @@ class NaTType(_NaT):
     strftime = _make_error_func(
         "strftime",
         """
-        Timestamp.strftime(format)
-
-        Return a string representing the given POSIX timestamp
-        controlled by an explicit format string.
+        Return a formatted string of the Timestamp.
 
         Parameters
         ----------
@@ -680,10 +682,7 @@ class NaTType(_NaT):
     fromordinal = _make_error_func(
         "fromordinal",
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None)
-
-        Passed an ordinal, translate and convert to a ts.
-        Note: by definition there cannot be any tz info on the ordinal itself.
+        Construct a timestamp from a a proleptic Gregorian ordinal.
 
         Parameters
         ----------
@@ -693,6 +692,10 @@ class NaTType(_NaT):
             Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
+
+        Notes
+        -----
+        By definition there cannot be any tz info on the ordinal itself.
 
         Examples
         --------
@@ -725,10 +728,7 @@ class NaTType(_NaT):
     now = _make_nat_func(
         "now",
         """
-        Timestamp.now(tz=None)
-
-        Return new Timestamp object representing current time local to
-        tz.
+        Return new Timestamp object representing current time local to tz.
 
         Parameters
         ----------
@@ -749,10 +749,9 @@ class NaTType(_NaT):
     today = _make_nat_func(
         "today",
         """
-        Timestamp.today(cls, tz=None)
+        Return the current time in the local timezone.
 
-        Return the current time in the local timezone.  This differs
-        from datetime.today() in that it can be localized to a
+        This differs from datetime.today() in that it can be localized to a
         passed timezone.
 
         Parameters
@@ -1090,7 +1089,9 @@ timedelta}, default 'raise'
     tz_localize = _make_nat_func(
         "tz_localize",
         """
-        Convert naive Timestamp to local time zone, or remove
+        Localize the Timestamp to a timezone.
+
+        Convert naive Timestamp to local time zone or remove
         timezone from timezone-aware Timestamp.
 
         Parameters
@@ -1205,6 +1206,13 @@ default 'raise'
         NaT
         """,
     )
+    @property
+    def tz(self) -> None:
+        return None
+
+    @property
+    def tzinfo(self) -> None:
+        return None
 
 
 c_NaT = NaTType()  # C-visible

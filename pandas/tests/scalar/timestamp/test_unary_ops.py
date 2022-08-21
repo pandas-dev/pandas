@@ -21,6 +21,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -148,27 +149,26 @@ class TestTimestampUnaryOps:
         result = func(freq)
         assert result == expected
 
-    def test_ceil(self):
-        dt = Timestamp("20130101 09:10:11")
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_ceil(self, unit):
+        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
         result = dt.ceil("D")
         expected = Timestamp("20130102")
         assert result == expected
+        assert result._reso == dt._reso
 
-    def test_floor(self):
-        dt = Timestamp("20130101 09:10:11")
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_floor(self, unit):
+        dt = Timestamp("20130101 09:10:11")._as_unit(unit)
         result = dt.floor("D")
         expected = Timestamp("20130101")
         assert result == expected
+        assert result._reso == dt._reso
 
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
     @pytest.mark.parametrize(
         "unit",
-        [
-            "ns",
-            pytest.param("us", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("ms", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("s", marks=pytest.mark.xfail(reason="round not implemented")),
-        ],
+        ["ns", "us", "ms", "s"],
     )
     def test_round_dst_border_ambiguous(self, method, unit):
         # GH 18946 round near "fall back" DST
@@ -203,12 +203,7 @@ class TestTimestampUnaryOps:
     )
     @pytest.mark.parametrize(
         "unit",
-        [
-            "ns",
-            pytest.param("us", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("ms", marks=pytest.mark.xfail(reason="round not implemented")),
-            pytest.param("s", marks=pytest.mark.xfail(reason="round not implemented")),
-        ],
+        ["ns", "us", "ms", "s"],
     )
     def test_round_dst_border_nonexistent(self, method, ts_str, freq, unit):
         # GH 23324 round near "spring forward" DST
@@ -303,6 +298,7 @@ class TestTimestampUnaryOps:
         with pytest.raises(OverflowError, match=msg):
             Timestamp.max.ceil("s")
 
+    @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build", strict=False)
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
