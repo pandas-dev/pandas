@@ -973,7 +973,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result: dict[Hashable, NDFrame | np.ndarray] = {}
         if self.axis == 0:
             # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
-            for name, data in self:
+            for name, data in self.grouper.get_iterator(obj, self.axis):
                 fres = func(data, *args, **kwargs)
                 result[name] = fres
         else:

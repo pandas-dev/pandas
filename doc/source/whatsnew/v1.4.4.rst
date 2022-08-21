@@ -16,10 +16,13 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in taking NULL :class:`objects` from a :class:`DataFrame` causing a segmentation violation. These NULL values are created by :meth:`numpy.empty_like` (:issue:`46848`)
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
+- Fixed regression in :func:`cut` using a ``datetime64`` IntervalIndex as bins (:issue:`46218`)
+- Fixed regression in :meth:`DataFrame.select_dtypes` where ``include="number"`` included :class:`BooleanDtype` (:issue:`46870`)
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
 - Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in :meth:`DataFrame.loc` setting a length-1 array like value to a single value in the DataFrame (:issue:`46268`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
+- Fixed regression in :meth:`DatetimeIndex.intersection` when the :class:`DatetimeIndex` has dates crossing daylight savings time (:issue:`46702`)
 - Fixed regression in :func:`merge` throwing an error when passing a :class:`Series` with a multi-level name (:issue:`47946`)
 - Fixed regression in :meth:`DataFrame.eval` creating a copy when updating inplace (:issue:`47449`)
 -
