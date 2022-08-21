@@ -555,11 +555,11 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def _workbook_class(self):
+    def _workbook_class(self) -> None:
         pass
 
     @abc.abstractmethod
-    def load_workbook(self, filepath_or_buffer):
+    def load_workbook(self, filepath_or_buffer) -> None:
         pass
 
     def close(self) -> None:
@@ -581,15 +581,17 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_by_name(self, name: str):
+    def get_sheet_by_name(self, name: str) -> None:
         pass
 
     @abc.abstractmethod
-    def get_sheet_by_index(self, index: int):
+    def get_sheet_by_index(self, index: int) -> None:
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float: bool, rows: int | None = None):
+    def get_sheet_data(
+        self, sheet, convert_float: bool, rows: int | None = None
+    ) -> None:
         pass
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -1195,7 +1197,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def book(self):
+    def book(self) -> None:
         """
         Book instance. Class type will depend on the engine used.
 
@@ -1327,7 +1329,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             if_sheet_exists = "error"
         self._if_sheet_exists = if_sheet_exists
 
-    def _deprecate(self, attr: str):
+    def _deprecate(self, attr: str) -> None:
         """
         Deprecate attribute or method for ExcelWriter.
         """

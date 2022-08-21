@@ -389,7 +389,7 @@ class DataFrame(ABC):
     version = 0  # version of the protocol
 
     @abstractmethod
-    def __dataframe__(self, nan_as_null: bool = False, allow_copy: bool = True):
+    def __dataframe__(self, nan_as_null: bool = False, allow_copy: bool = True) -> None:
         """Construct a new interchange object, potentially changing the parameters."""
         pass
 

@@ -107,7 +107,7 @@ def _stringifyText(text) -> str:
 
 
 def init_osx_pbcopy_clipboard():
-    def copy_osx_pbcopy(text):
+    def copy_osx_pbcopy(text) -> None:
         text = _stringifyText(text)  # Converts non-str values to str.
         with subprocess.Popen(
             ["pbcopy", "w"], stdin=subprocess.PIPE, close_fds=True
@@ -125,7 +125,7 @@ def init_osx_pbcopy_clipboard():
 
 
 def init_osx_pyobjc_clipboard():
-    def copy_osx_pyobjc(text):
+    def copy_osx_pyobjc(text) -> None:
         """Copy string argument to clipboard"""
         text = _stringifyText(text)  # Converts non-str values to str.
         newStr = Foundation.NSString.stringWithString_(text).nsstring()
@@ -160,7 +160,7 @@ def init_qt_clipboard():
     if app is None:
         app = QApplication([])
 
-    def copy_qt(text):
+    def copy_qt(text) -> None:
         text = _stringifyText(text)  # Converts non-str values to str.
         cb = app.clipboard()
         cb.setText(text)
@@ -176,7 +176,7 @@ def init_xclip_clipboard():
     DEFAULT_SELECTION = "c"
     PRIMARY_SELECTION = "p"
 
-    def copy_xclip(text, primary=False):
+    def copy_xclip(text, primary=False) -> None:
         text = _stringifyText(text)  # Converts non-str values to str.
         selection = DEFAULT_SELECTION
         if primary:
@@ -207,7 +207,7 @@ def init_xsel_clipboard():
     DEFAULT_SELECTION = "-b"
     PRIMARY_SELECTION = "-p"
 
-    def copy_xsel(text, primary=False):
+    def copy_xsel(text, primary=False) -> None:
         text = _stringifyText(text)  # Converts non-str values to str.
         selection_flag = DEFAULT_SELECTION
         if primary:
@@ -231,7 +231,7 @@ def init_xsel_clipboard():
 
 
 def init_klipper_clipboard():
-    def copy_klipper(text):
+    def copy_klipper(text) -> None:
         text = _stringifyText(text)  # Converts non-str values to str.
         with subprocess.Popen(
             [
@@ -269,7 +269,7 @@ def init_klipper_clipboard():
 
 
 def init_dev_clipboard_clipboard():
-    def copy_dev_clipboard(text):
+    def copy_dev_clipboard(text) -> None:
         text = _stringifyText(text)  # Converts non-str values to str.
         if text == "":
             warnings.warn(
@@ -316,7 +316,7 @@ class CheckedCall:
             raise PyperclipWindowsException("Error calling " + self.f.__name__)
         return ret
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key, value) -> None:
         setattr(self.f, key, value)
 
 
@@ -439,7 +439,7 @@ def init_windows_clipboard():
         finally:
             safeCloseClipboard()
 
-    def copy_windows(text):
+    def copy_windows(text) -> None:
         # This function is heavily based on
         # http://msdn.com/ms649016#_win32_Copying_Information_to_the_Clipboard
 
@@ -487,7 +487,7 @@ def init_windows_clipboard():
 
 
 def init_wsl_clipboard():
-    def copy_wsl(text):
+    def copy_wsl(text) -> None:
         text = _stringifyText(text)  # Converts non-str values to str.
         with subprocess.Popen(["clip.exe"], stdin=subprocess.PIPE, close_fds=True) as p:
             p.communicate(input=text.encode(ENCODING))

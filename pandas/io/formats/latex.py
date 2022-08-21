@@ -211,7 +211,7 @@ class RowStringConverter(ABC):
         ncol = 1
         coltext = ""
 
-        def append_col():
+        def append_col() -> None:
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(

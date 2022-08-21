@@ -951,7 +951,7 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
 
 
-def _check_deprecated_resample_kwargs(kwargs, origin):
+def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
     """
     Check for use of deprecated parameters in ``resample`` and related functions.
 

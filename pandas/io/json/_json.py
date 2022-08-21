@@ -1082,7 +1082,7 @@ class Parser:
     def _parse_no_numpy(self):
         raise AbstractMethodError(self)
 
-    def _convert_axes(self):
+    def _convert_axes(self) -> None:
         """
         Try to convert axes.
         """
@@ -1231,7 +1231,7 @@ class SeriesParser(Parser):
     _default_orient = "index"
     _split_keys = ("name", "index", "data")
 
-    def _parse_no_numpy(self):
+    def _parse_no_numpy(self) -> None:
         data = loads(self.json, precise_float=self.precise_float)
 
         if self.orient == "split":
@@ -1241,7 +1241,7 @@ class SeriesParser(Parser):
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
-    def _parse_numpy(self):
+    def _parse_numpy(self) -> None:
         load_kwargs = {
             "dtype": None,
             "numpy": True,
@@ -1265,7 +1265,7 @@ class SeriesParser(Parser):
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
-    def _try_convert_types(self):
+    def _try_convert_types(self) -> None:
         if self.obj is None:
             return
         obj, result = self._try_convert_data(
@@ -1279,7 +1279,7 @@ class FrameParser(Parser):
     _default_orient = "columns"
     _split_keys = ("columns", "index", "data")
 
-    def _parse_numpy(self):
+    def _parse_numpy(self) -> None:
 
         json = self.json
         orient = self.orient
@@ -1317,7 +1317,7 @@ class FrameParser(Parser):
                 )
             )
 
-    def _parse_no_numpy(self):
+    def _parse_no_numpy(self) -> None:
 
         json = self.json
         orient = self.orient
@@ -1346,7 +1346,7 @@ class FrameParser(Parser):
                 loads(json, precise_float=self.precise_float), dtype=None
             )
 
-    def _process_converter(self, f, filt=None):
+    def _process_converter(self, f, filt=None) -> None:
         """
         Take a conversion function and possibly recreate the frame.
         """
@@ -1373,7 +1373,7 @@ class FrameParser(Parser):
             new_frame.columns = obj.columns
             self.obj = new_frame
 
-    def _try_convert_types(self):
+    def _try_convert_types(self) -> None:
         if self.obj is None:
             return
         if self.convert_dates:
@@ -1383,7 +1383,7 @@ class FrameParser(Parser):
             lambda col, c: self._try_convert_data(col, c, convert_dates=False)
         )
 
-    def _try_convert_dates(self):
+    def _try_convert_dates(self) -> None:
         if self.obj is None:
             return
 

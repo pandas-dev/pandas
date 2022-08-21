@@ -2060,7 +2060,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._ndarray
 
     @_codes.setter
-    def _codes(self, value: np.ndarray):
+    def _codes(self, value: np.ndarray) -> None:
         warn(
             "Setting the codes on a Categorical is deprecated and will raise in "
             "a future version. Create a new Categorical object instead",

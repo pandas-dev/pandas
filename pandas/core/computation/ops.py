@@ -171,7 +171,7 @@ class Term:
         return self._value
 
     @value.setter
-    def value(self, new_value):
+    def value(self, new_value) -> None:
         self._value = new_value
 
     @property
@@ -330,7 +330,7 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
     _binary_ops_dict.update(d)
 
 
-def _cast_inplace(terms, acceptable_dtypes, dtype):
+def _cast_inplace(terms, acceptable_dtypes, dtype) -> None:
     """
     Cast an expression inplace.
 

@@ -66,7 +66,7 @@ def set_timezone(tz: str) -> Iterator[None]:
     import os
     import time
 
-    def setTZ(tz):
+    def setTZ(tz) -> None:
         if tz is None:
             try:
                 del os.environ["TZ"]
