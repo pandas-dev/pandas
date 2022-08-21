@@ -754,11 +754,11 @@ class TestDataFrameSetItem:
         "rhs_values, rhs_error_values",
         [
             (
-                np.array([[5, 6], [5, 6], [5, 6]], dtype="int64"),
+                np.array([[5], [5], [5]], dtype="int64"),
                 np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]], dtype="int64"),
             ),
             (
-                DataFrame([[5, 6], [5, 6], [5, 6]], columns=["foo", "foo"]),
+                DataFrame([[5], [5], [5]], columns=["foo"]),
                 DataFrame(
                     [[5, 6, 7], [5, 6, 7], [5, 6, 7]], columns=["foo", "foo", "foo"]
                 ),
@@ -773,16 +773,16 @@ class TestDataFrameSetItem:
         )
 
         result = df.copy()
-        result.isetitem([0, 2], rhs_values)
+        result.isetitem(0, rhs_values)
         expected = DataFrame(
-            [[5, 2, 6, 4], [5, 2, 6, 4], [5, 2, 6, 4]],
+            [[5, 2, 3, 4], [5, 2, 3, 4], [5, 2, 3, 4]],
             columns=["foo", "bar", "foo", "hello"],
         )
         tm.assert_frame_equal(result, expected)
 
         msg = "could not broadcast input array to dataframe"
         with pytest.raises(ValueError, match=msg):
-            result.isetitem([0, 2], rhs_error_values)
+            result.isetitem(0, rhs_error_values)
 
 
 class TestSetitemTZAwareValues:
