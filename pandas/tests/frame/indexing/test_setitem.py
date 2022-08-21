@@ -754,8 +754,8 @@ class TestDataFrameSetItem:
         "rhs_values, rhs_error_values",
         [
             (
-                np.array([[5, 6], [5, 6], [5, 6]]),
-                np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]]),
+                np.array([[5, 6], [5, 6], [5, 6]], dtype="int64"),
+                np.array([[5, 6, 7], [5, 6, 7], [5, 6, 7]], dtype="int64"),
             ),
             (
                 DataFrame([[5, 6], [5, 6], [5, 6]], columns=["foo", "foo"]),
