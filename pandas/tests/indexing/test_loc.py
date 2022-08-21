@@ -231,7 +231,7 @@ class TestLoc(Base):
                 "|".join(
                     [
                         r"shape mismatch: value array of shape \(3,3\)",
-                        r"cannot reshape array of size 4 into shape \(3,2\)",
+                        r"could not be broadcast to indexing result of shape \(3,2\)",
                     ]
                 ),
             ),
