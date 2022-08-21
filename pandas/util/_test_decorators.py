@@ -111,7 +111,7 @@ def safe_import(mod_name: str, min_version: str | None = None):
     return False
 
 
-def _skip_if_no_mpl() -> bool:
+def _skip_if_no_mpl():
     mod = safe_import("matplotlib")
     if mod:
         mod.use("Agg")
@@ -119,7 +119,7 @@ def _skip_if_no_mpl() -> bool:
         return True
 
 
-def _skip_if_not_us_locale() -> bool:
+def _skip_if_not_us_locale():
     lang, _ = locale.getlocale()
     if lang != "en_US":
         return True

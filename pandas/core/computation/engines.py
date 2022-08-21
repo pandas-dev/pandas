@@ -88,7 +88,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         return self.aligned_axes is not None and self.result_type is not None
 
     @abc.abstractmethod
-    def _evaluate(self) -> None:
+    def _evaluate(self):
         """
         Return an evaluated expression.
 

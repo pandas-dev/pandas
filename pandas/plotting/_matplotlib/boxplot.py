@@ -215,7 +215,7 @@ class BoxPlot(LinePlot):
             ax.set_ylabel(pprint_thing(self.ylabel))
 
     @property
-    def orientation(self) -> str:
+    def orientation(self) -> Literal["horizontal", "vertical"]:
         if self.kwds.get("vert", True):
             return "vertical"
         else:

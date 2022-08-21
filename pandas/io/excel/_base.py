@@ -555,11 +555,11 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def _workbook_class(self) -> None:
+    def _workbook_class(self):
         pass
 
     @abc.abstractmethod
-    def load_workbook(self, filepath_or_buffer) -> None:
+    def load_workbook(self, filepath_or_buffer):
         pass
 
     def close(self) -> None:
@@ -581,17 +581,15 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_by_name(self, name: str) -> None:
+    def get_sheet_by_name(self, name: str):
         pass
 
     @abc.abstractmethod
-    def get_sheet_by_index(self, index: int) -> None:
+    def get_sheet_by_index(self, index: int):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(
-        self, sheet, convert_float: bool, rows: int | None = None
-    ) -> None:
+    def get_sheet_data(self, sheet, convert_float: bool, rows: int | None = None):
         pass
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -1197,7 +1195,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def book(self) -> None:
+    def book(self):
         """
         Book instance. Class type will depend on the engine used.
 
