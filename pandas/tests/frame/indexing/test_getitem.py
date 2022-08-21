@@ -213,26 +213,7 @@ class TestGetitemListLike:
             index=date_range("01-01-2022", periods=10, freq=DateOffset(minutes=3)),
         )
         result = df.loc["2022-01-01":"2022-01-03"]
-        expected = DataFrame(
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-            index=DatetimeIndex(
-                [
-                    "2022-01-01 00:00:00",
-                    "2022-01-01 00:03:00",
-                    "2022-01-01 00:06:00",
-                    "2022-01-01 00:09:00",
-                    "2022-01-01 00:12:00",
-                    "2022-01-01 00:15:00",
-                    "2022-01-01 00:18:00",
-                    "2022-01-01 00:21:00",
-                    "2022-01-01 00:24:00",
-                    "2022-01-01 00:27:00",
-                ],
-                dtype="datetime64[ns]",
-                freq=DateOffset(minutes=3),
-            ),
-        )
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, df)
 
 
 class TestGetitemCallable:
