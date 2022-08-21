@@ -676,7 +676,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return NaT
 
     @cache_readonly
-    def str(self):
+    def str(self) -> str:
         return f"|M8[{self._unit}]"
 
     def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
