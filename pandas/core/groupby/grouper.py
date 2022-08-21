@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Iterator,
     final,
 )
 import warnings
@@ -564,7 +565,7 @@ class Grouping:
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.indices)
 
     @cache_readonly

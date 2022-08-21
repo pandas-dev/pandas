@@ -16,6 +16,7 @@ from typing import (
     Callable,
     ClassVar,
     Hashable,
+    Iterator,
     Literal,
     Mapping,
     NoReturn,
@@ -1951,7 +1952,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # "object" defined the type as "Callable[[object], int]")
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Iterate over info axis.
 

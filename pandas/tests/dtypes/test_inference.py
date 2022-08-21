@@ -18,6 +18,7 @@ import itertools
 from numbers import Number
 import re
 import sys
+from typing import Iterator
 
 import numpy as np
 import pytest
@@ -95,7 +96,7 @@ class MockNumpyLikeArray:
     def __init__(self, values) -> None:
         self._values = values
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         iter_values = iter(self._values)
 
         def it_outer():

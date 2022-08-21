@@ -10,6 +10,7 @@ import operator
 from typing import (
     Callable,
     Iterable,
+    Iterator,
     Literal,
 )
 
@@ -214,7 +215,7 @@ class Op:
         self.operands = operands
         self.encoding = encoding
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.operands)
 
     def __repr__(self) -> str:

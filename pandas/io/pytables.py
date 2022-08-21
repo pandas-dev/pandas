@@ -1909,7 +1909,7 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         # iterate
         current = self.start
         if self.coordinates is None:
@@ -2131,7 +2131,7 @@ class IndexCol:
         """return my cython values"""
         return self.values
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None) -> None:

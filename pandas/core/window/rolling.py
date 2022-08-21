@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterator,
     Sized,
 )
 import warnings
@@ -369,7 +370,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()
