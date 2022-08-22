@@ -6912,10 +6912,12 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        # Use self._constructor instead of Index to retain NumericIndex GH#43921
-        # TODO(2.0) can use Index instead of self._constructor
-        #  Check if doing so fixes GH#47071
-        return self._constructor._with_infer(new_values, name=self.name)
+        if self._typ == "numericindex":
+            # Use self._constructor instead of Index to retain NumericIndex GH#43921
+            # TODO(2.0) can use Index instead of self._constructor
+            return self._constructor._with_infer(new_values, name=self.name)
+        else:
+            return Index._with_infer(new_values, name=self.name)
 
     def drop(
         self,
