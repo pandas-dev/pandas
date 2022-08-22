@@ -39,6 +39,7 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
+from pandas._libs.tslibs.offsets import DateOffset
 from pandas._typing import npt
 from pandas.errors import (
     OutOfBoundsDatetime,
@@ -687,7 +688,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert not isinstance(offset, Tick)
 
         if self.tz is not None:
-            if not offset._use_relativedelta:
+            if not offset._use_relativedelta and type(offset) == DateOffset:
                 values = self.tz_convert("utc").tz_localize(None)
             else:
                 values = self.tz_localize(None)
@@ -711,7 +712,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = DatetimeArray._simple_new(result, dtype=result.dtype)
             if self.tz is not None:
                 # FIXME: tz_localize with non-nano
-                if not offset._use_relativedelta:
+                if not offset._use_relativedelta and type(offset) == DateOffset:
                     result = result.tz_localize("utc").tz_convert(self.tz)
                 else:
                     result = result.tz_localize(self.tz)
