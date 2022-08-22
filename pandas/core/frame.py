@@ -174,6 +174,7 @@ from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
     PeriodIndex,
+    RangeIndex,
     default_index,
     ensure_index,
     ensure_index_from_sequences,
@@ -2283,7 +2284,7 @@ class DataFrame(NDFrame, OpsMixin):
             result_index = None
             if len(arrays) == 0 and index is None and length == 0:
                 # for backward compat use an object Index instead of RangeIndex
-                result_index = Index([])
+                result_index = RangeIndex(start=0, stop=0, step=1)
 
             arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
             return arrays, arr_columns, result_index
