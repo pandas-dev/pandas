@@ -167,7 +167,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
             values = values.copy()
             mask = mask.copy()
         return values, mask, dtype, inferred_type
-
+    initial_values = values
     values = np.array(values, copy=copy)
     inferred_type = None
     if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
@@ -211,7 +211,11 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         # a ValueError if the str cannot be parsed into a float
         values = values.astype(dtype, copy=copy)
     else:
+        values_dtype = values.dtype
         values = dtype_cls._safe_cast(values, dtype, copy=False)
+
+        if is_integer_dtype(default_dtype) and is_float_dtype(values_dtype):
+            values[~mask] = np.array(initial_values, dtype="object")[~mask]
 
     return values, mask, dtype, inferred_type
 

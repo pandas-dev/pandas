@@ -1926,6 +1926,19 @@ class TestSeriesConstructors:
             with pytest.raises(TypeError, match=msg):
                 func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
 
+    def test_series_integer_array_avoid_float_cast(self):
+        # GH#25880
+        max_val = np.iinfo(np.int64).max - 1
+        result = Series([max_val, 1.0], dtype="Int64")
+        result[0] -= max_val
+        expected = Series([0, 1], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+        result = Series([max_val, np.nan], dtype="Int64")
+        result[0] -= max_val
+        expected = Series([0, pd.NA], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
