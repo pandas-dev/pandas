@@ -252,7 +252,7 @@ release. To submit a pull request:
 #. Click on the ``Compare & pull request`` button
 #. You can then click on ``Commits`` and ``Files Changed`` to make sure everything looks
    okay one last time
-#. Write a descriptive title that inlcudes prefixes. pandas uses a convention for title
+#. Write a descriptive title that includes prefixes. pandas uses a convention for title
    prefixes. Here are some common ones along with general guidelines for when to use them:
 
     * ENH: Enhancement, new functionality
