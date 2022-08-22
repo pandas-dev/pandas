@@ -215,6 +215,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         values = dtype_cls._safe_cast(values, dtype, copy=False)
 
         if is_integer_dtype(default_dtype) and is_float_dtype(values_dtype):
+            # We cast all values to float which might have let to precision loss
             values[~mask] = np.array(initial_values, dtype="object")[~mask]
 
     return values, mask, dtype, inferred_type
