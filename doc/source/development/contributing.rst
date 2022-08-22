@@ -195,16 +195,9 @@ Doing 'git status' again should give something like::
     #
 
 Finally, commit your changes to your local repository with an explanatory commit
-message of ``< 80`` chars::
+message::
 
     git commit -m "your commit message goes here"
-
-Alternatively, you can just type ``git commit`` which opens an editor and use the
-following commit message structure:
-
-* a subject line with ``< 80`` chars.
-* One blank line.
-* Optionally, a commit message body.
 
 .. _contributing.push-code:
 
