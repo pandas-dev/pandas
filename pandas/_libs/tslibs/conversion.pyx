@@ -1,8 +1,12 @@
+import inspect
+
 cimport cython
 
 import warnings
 
 import numpy as np
+
+from pandas.util._exceptions import find_stack_level
 
 cimport numpy as cnp
 from cpython.object cimport PyObject
@@ -144,9 +148,13 @@ cpdef inline (int64_t, int) precision_from_unit(str unit):
         NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(unit)
 
     if reso == NPY_DATETIMEUNIT.NPY_FR_Y:
+        # each 400 years we have 97 leap years, for an average of 97/400=.2425
+        #  extra days each year. We get 31556952 by writing
+        #  3600*24*365.2425=31556952
         m = 1_000_000_000 * 31556952
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_M:
+        # 2629746 comes from dividing the "Y" case by 12.
         m = 1_000_000_000 * 2629746
         p = 9
     elif reso == NPY_DATETIMEUNIT.NPY_FR_W:
@@ -283,7 +291,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                         "Conversion of non-round float with unit={unit} is ambiguous "
                         "and will raise in a future version.",
                         FutureWarning,
-                        stacklevel=1,
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
             ts = cast_from_unit(ts, unit)

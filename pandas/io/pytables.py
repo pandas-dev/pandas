@@ -10,6 +10,7 @@ from datetime import (
     date,
     tzinfo,
 )
+import inspect
 import itertools
 import os
 import re
@@ -18,6 +19,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Final,
     Hashable,
     Iterator,
     Literal,
@@ -43,12 +45,19 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeArg,
+    FilePath,
     Shape,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    AttributeConflictWarning,
+    ClosedFileError,
+    IncompatibilityWarning,
+    PerformanceWarning,
+    PossibleDataLossError,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -169,44 +178,18 @@ def _ensure_term(where, scope_level: int):
     return where if where is None or len(where) else None
 
 
-class PossibleDataLossError(Exception):
-    pass
-
-
-class ClosedFileError(Exception):
-    pass
-
-
-class IncompatibilityWarning(Warning):
-    pass
-
-
-incompatibility_doc = """
+incompatibility_doc: Final = """
 where criteria is being ignored as this version [%s] is too old (or
 not-defined), read the file in and write it out to a new file to upgrade (with
 the copy_to method)
 """
 
-
-class AttributeConflictWarning(Warning):
-    pass
-
-
-attribute_conflict_doc = """
+attribute_conflict_doc: Final = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
 [%s], resetting the attribute to None
 """
 
-
-class DuplicateWarning(Warning):
-    pass
-
-
-duplicate_doc = """
-duplicate entries in table, taking most recently appended
-"""
-
-performance_doc = """
+performance_doc: Final = """
 your performance may suffer as PyTables will pickle object types that it cannot
 map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 """
@@ -218,11 +201,11 @@ _FORMAT_MAP = {"f": "fixed", "fixed": "fixed", "t": "table", "table": "table"}
 _AXES_MAP = {DataFrame: [0]}
 
 # register our configuration options
-dropna_doc = """
+dropna_doc: Final = """
 : boolean
     drop ALL nan rows when appending to a table
 """
-format_doc = """
+format_doc: Final = """
 : format
     default format writing format, if None, then
     put will default to 'fixed' and append will default to 'table'
@@ -265,7 +248,7 @@ def _tables():
 
 
 def to_hdf(
-    path_or_buf,
+    path_or_buf: FilePath | HDFStore,
     key: str,
     value: DataFrame | Series,
     mode: str = "a",
@@ -321,15 +304,15 @@ def to_hdf(
 
 
 def read_hdf(
-    path_or_buf,
+    path_or_buf: FilePath | HDFStore,
     key=None,
     mode: str = "r",
     errors: str = "strict",
-    where=None,
+    where: str | list | None = None,
     start: int | None = None,
     stop: int | None = None,
-    columns=None,
-    iterator=False,
+    columns: list[str] | None = None,
+    iterator: bool = False,
     chunksize: int | None = None,
     **kwargs,
 ):
@@ -689,7 +672,7 @@ class HDFStore:
     def __iter__(self) -> Iterator[str]:
         return iter(self.keys())
 
-    def items(self):
+    def items(self) -> Iterator[tuple[str, list]]:
         """
         iterate on key->group
         """
@@ -704,7 +687,7 @@ class HDFStore:
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         yield from self.items()
 
@@ -1232,8 +1215,9 @@ class HDFStore:
         errors: str = "strict",
     ) -> None:
         """
-        Append to Table in file. Node must already exist and be Table
-        format.
+        Append to Table in file.
+
+        Node must already exist and be Table format.
 
         Parameters
         ----------
@@ -1435,7 +1419,7 @@ class HDFStore:
             raise TypeError("cannot create table index on a Fixed format store")
         s.create_index(columns=columns, optlevel=optlevel, kind=kind)
 
-    def groups(self):
+    def groups(self) -> list:
         """
         Return a list of all the top-level nodes.
 
@@ -1463,7 +1447,7 @@ class HDFStore:
             )
         ]
 
-    def walk(self, where="/"):
+    def walk(self, where: str = "/") -> Iterator[tuple[str, list[str], list[str]]]:
         """
         Walk the pytables group hierarchy for pandas objects.
 
@@ -1979,8 +1963,8 @@ class IndexCol:
 
     """
 
-    is_an_indexable = True
-    is_data_indexable = True
+    is_an_indexable: bool = True
+    is_data_indexable: bool = True
     _info_fields = ["freq", "tz", "index_name"]
 
     name: str
@@ -2212,7 +2196,9 @@ class IndexCol:
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
                     warnings.warn(
-                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
+                        ws,
+                        AttributeConflictWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
                     # reset
@@ -2632,7 +2618,7 @@ class Fixed:
     parent: HDFStore
     group: Node
     errors: str
-    is_table = False
+    is_table: bool = False
 
     def __init__(
         self,
@@ -2883,7 +2869,8 @@ class GenericFixed(Fixed):
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
-    def write(self, obj, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
         self.set_attrs()
 
     def read_array(self, key: str, start: int | None = None, stop: int | None = None):
@@ -3109,7 +3096,11 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    ws,
+                    PerformanceWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
@@ -3168,7 +3159,8 @@ class SeriesFixed(GenericFixed):
         values = self.read_array("values", start=start, stop=stop)
         return Series(values, index=index, name=self.name)
 
-    def write(self, obj, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
         self.write_array("values", obj)
@@ -3244,7 +3236,8 @@ class BlockManagerFixed(GenericFixed):
 
         return DataFrame(columns=axes[0], index=axes[1])
 
-    def write(self, obj, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
         super().write(obj, **kwargs)
 
         # TODO(ArrayManager) HDFStore relies on accessing the blocks
@@ -3550,9 +3543,13 @@ class Table(Fixed):
     def validate_version(self, where=None) -> None:
         """are we trying to operate on an old version?"""
         if where is not None:
-            if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
+            if self.is_old_version:
                 ws = incompatibility_doc % ".".join([str(x) for x in self.version])
-                warnings.warn(ws, IncompatibilityWarning)
+                warnings.warn(
+                    ws,
+                    IncompatibilityWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
         """
@@ -4292,7 +4289,7 @@ class WORMTable(Table):
         """
         raise NotImplementedError("WORMTable needs to implement read")
 
-    def write(self, **kwargs):
+    def write(self, **kwargs) -> None:
         """
         write in a format that we can search later on (but cannot append
         to): write out the indices and the values using _write_array
@@ -4306,22 +4303,23 @@ class AppendableTable(Table):
 
     table_type = "appendable"
 
-    def write(
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(  # type: ignore[override]
         self,
         obj,
         axes=None,
-        append=False,
+        append: bool = False,
         complib=None,
         complevel=None,
         fletcher32=None,
         min_itemsize=None,
         chunksize=None,
         expectedrows=None,
-        dropna=False,
+        dropna: bool = False,
         nan_rep=None,
         data_columns=None,
         track_times=True,
-    ):
+    ) -> None:
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
 
@@ -4669,7 +4667,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s.set_index(self.levels, inplace=True)
+            s = s.set_index(self.levels, copy=False)
 
         s = s.iloc[:, 0]
 

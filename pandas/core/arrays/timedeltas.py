@@ -398,7 +398,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
-            return type(self)(result, freq=freq)
+            return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
             # list, tuple
@@ -412,13 +412,14 @@ class TimedeltaArray(dtl.TimelikeOps):
             # this multiplication will succeed only if all elements of other
             #  are int or float scalars, so we will end up with
             #  timedelta64[ns]-dtyped result
-            result = [self[n] * other[n] for n in range(len(self))]
+            arr = self._ndarray
+            result = [arr[n] * other[n] for n in range(len(self))]
             result = np.array(result)
-            return type(self)(result)
+            return type(self)._simple_new(result, dtype=result.dtype)
 
         # numpy will accept float or int dtype, raise TypeError for others
         result = self._ndarray * other
-        return type(self)(result)
+        return type(self)._simple_new(result, dtype=result.dtype)
 
     __rmul__ = __mul__
 
@@ -446,7 +447,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self.freq is not None:
                 # Tick division is not implemented, so operate on Timedelta
                 freq = self.freq.delta / other
-            return type(self)(result, freq=freq)
+                freq = to_offset(freq)
+            return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
             # e.g. list, tuple
@@ -462,6 +464,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             # We operate on raveled arrays to avoid problems in inference
             #  on NaT
+            # TODO: tests with non-nano
             srav = self.ravel()
             orav = other.ravel()
             result_list = [srav[n] / orav[n] for n in range(len(srav))]
@@ -488,7 +491,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         else:
             result = self._ndarray / other
-            return type(self)(result)
+            return type(self)._simple_new(result, dtype=result.dtype)
 
     @unpack_zerodim_and_defer("__rtruediv__")
     def __rtruediv__(self, other):
@@ -768,8 +771,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
-        Return Timedelta Array/Index as object ndarray of datetime.timedelta
-        objects.
+        Return an ndarray of datetime.timedelta objects.
 
         Returns
         -------
@@ -797,8 +799,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     @property
     def components(self) -> DataFrame:
         """
-        Return a dataframe of the components (days, hours, minutes,
-        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
+        Return a DataFrame of the individual resolution components of the Timedeltas.
+
+        The components (days, hours, minutes seconds, milliseconds, microseconds,
+        nanoseconds) are returned as columns in a DataFrame.
 
         Returns
         -------

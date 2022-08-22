@@ -1,8 +1,11 @@
 """ io on the clipboard """
 from __future__ import annotations
 
+import inspect
 from io import StringIO
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -79,7 +82,8 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
         kwargs["engine"] = "python"
     elif len(sep) > 1 and kwargs.get("engine") == "c":
         warnings.warn(
-            "read_clipboard with regex separator does not work properly with c engine."
+            "read_clipboard with regex separator does not work properly with c engine.",
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     return read_csv(StringIO(text), sep=sep, **kwargs)
@@ -135,10 +139,14 @@ def to_clipboard(
             return
         except TypeError:
             warnings.warn(
-                "to_clipboard in excel mode requires a single character separator."
+                "to_clipboard in excel mode requires a single character separator.",
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
     elif sep is not None:
-        warnings.warn("to_clipboard with excel=False ignores the sep argument.")
+        warnings.warn(
+            "to_clipboard with excel=False ignores the sep argument.",
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
 
     if isinstance(obj, ABCDataFrame):
         # str(df) has various unhelpful defaults, like truncation

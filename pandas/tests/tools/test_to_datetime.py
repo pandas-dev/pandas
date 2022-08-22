@@ -284,6 +284,8 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
+            # The 3 tests below are locale-dependent.
+            # They pass, except when the machine locale is zh_CN or it_IT .
             pytest.param(
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
@@ -291,6 +293,7 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+                    strict=False,
                 ),
             ),
             pytest.param(
@@ -300,6 +303,7 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+                    strict=False,
                 ),
             ),
             pytest.param(
@@ -309,6 +313,7 @@ class TestTimeConversionFormats:
                 marks=pytest.mark.xfail(
                     locale.getlocale()[0] in ("zh_CN", "it_IT"),
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
+                    strict=False,
                 ),
             ),
         ],
@@ -683,9 +688,10 @@ class TestToDatetime:
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
     )
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = f"Out of bounds nanosecond timestamp: {dt}"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(dt, errors="raise")
+        msg = f"Out of bounds nanosecond timestamp: {dt}"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(dt)
         assert to_datetime(dt, errors="coerce", cache=cache) is NaT
@@ -945,7 +951,7 @@ class TestToDatetime:
         msg = (
             "is a bad directive in format|"
             "second must be in 0..59|"
-            "Given date string not likely a datetime"
+            f"Given date string {value} not likely a datetime"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(
@@ -968,13 +974,13 @@ class TestToDatetime:
         assert res is NaT
 
         if format is not None:
-            msg = "is a bad directive in format|Out of bounds nanosecond timestamp"
+            msg = "is a bad directive in format|Out of bounds .* present at position 0"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
                 )
         else:
-            msg = "Out of bounds nanosecond timestamp"
+            msg = "Out of bounds .* present at position 0"
             with pytest.raises(OutOfBoundsDatetime, match=msg):
                 to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
@@ -997,7 +1003,7 @@ class TestToDatetime:
 
         msg = (
             "is a bad directive in format|"
-            "Given date string not likely a datetime|"
+            f"Given date string {values[0]} not likely a datetime|"
             "second must be in 0..59"
         )
         with pytest.raises(ValueError, match=msg):
@@ -1695,7 +1701,7 @@ class TestToDatetimeMisc:
         # in an in-bounds datetime
         arr = np.array(["2262-04-11 23:47:16.854775808"], dtype=object)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr)
 
@@ -2214,7 +2220,7 @@ class TestDaysInMonth:
 
     @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
     def test_day_not_in_month_raise_value(self, cache, arg):
-        msg = f"time data {arg} doesn't match format specified"
+        msg = f'time data "{arg}" at position 0 doesn\'t match format specified'
         with pytest.raises(ValueError, match=msg):
             to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 
@@ -2585,10 +2591,20 @@ class TestOrigin:
         with pytest.raises(ValueError, match="must be tz-naive"):
             to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
+    def test_incorrect_value_exception(self):
+        # GH47495
+        with pytest.raises(
+            ValueError, match="Unknown string format: yesterday present at position 1"
+        ):
+            to_datetime(["today", "yesterday"])
+
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
     def test_to_datetime_out_of_bounds_with_format_arg(self, format):
         # see gh-23830
-        msg = "Out of bounds nanosecond timestamp"
+        msg = (
+            "Out of bounds nanosecond timestamp: 2417-10-27 00:00:00 "
+            "present at position 0"
+        )
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime("2417-10-27 00:00:00", format=format)
 
@@ -2768,3 +2784,34 @@ def test_to_datetime_monotonic_increasing_index(cache):
     result = to_datetime(times.iloc[:, 0], cache=cache)
     expected = times.iloc[:, 0]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "series_length",
+    [40, start_caching_at, (start_caching_at + 1), (start_caching_at + 5)],
+)
+def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
+    # GH#45319
+    s = Series(
+        [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
+        + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * series_length)
+    )
+    result1 = to_datetime(s, errors="coerce", utc=True)
+
+    expected1 = Series(
+        [NaT] + ([Timestamp("1991-10-20 00:00:00+00:00")] * series_length)
+    )
+
+    tm.assert_series_equal(result1, expected1)
+
+    result2 = to_datetime(s, errors="ignore", utc=True)
+
+    expected2 = Series(
+        [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
+        + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * series_length)
+    )
+
+    tm.assert_series_equal(result2, expected2)
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"):
+        to_datetime(s, errors="raise", utc=True)

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pandas._typing import ReadBuffer
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
-from pandas.core.frame import DataFrame
-
 from pandas.io.parsers.base_parser import ParserBase
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 class ArrowParserWrapper(ParserBase):
@@ -114,7 +117,7 @@ class ArrowParserWrapper(ParserBase):
                     # String case
                     if item not in frame.columns:
                         raise ValueError(f"Index {item} invalid")
-            frame.set_index(self.index_col, drop=True, inplace=True)
+            frame = frame.set_index(self.index_col, drop=True, copy=False)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)

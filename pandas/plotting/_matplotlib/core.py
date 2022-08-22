@@ -4,6 +4,7 @@ from abc import (
     ABC,
     abstractmethod,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -22,6 +23,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -118,11 +120,11 @@ class MPLPlot(ABC):
         by: IndexLabel | None = None,
         subplots: bool | Sequence[Sequence[str]] = False,
         sharex=None,
-        sharey=False,
-        use_index=True,
+        sharey: bool = False,
+        use_index: bool = True,
         figsize=None,
         grid=None,
-        legend=True,
+        legend: bool | str = True,
         rot=None,
         ax=None,
         fig=None,
@@ -133,13 +135,13 @@ class MPLPlot(ABC):
         yticks=None,
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
-        sort_columns=False,
+        sort_columns: bool = False,
         fontsize=None,
-        secondary_y=False,
+        secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
-        table=False,
+        table: bool = False,
         layout=None,
-        include_bool=False,
+        include_bool: bool = False,
         column: IndexLabel | None = None,
         **kwds,
     ) -> None:
@@ -394,7 +396,8 @@ class MPLPlot(ABC):
             "color" in self.kwds or "colors" in self.kwds
         ) and self.colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if "color" in self.kwds and self.style is not None:
@@ -437,10 +440,10 @@ class MPLPlot(ABC):
         else:
             return self.data.shape[1]
 
-    def draw(self):
+    def draw(self) -> None:
         self.plt.draw_if_interactive()
 
-    def generate(self):
+    def generate(self) -> None:
         self._args_adjust()
         self._compute_plot_data()
         self._setup_subplots()
@@ -547,8 +550,11 @@ class MPLPlot(ABC):
                 return self.axes
         else:
             sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
+            # error: Argument 1 to "len" has incompatible type "Union[bool,
+            # Tuple[Any, ...], List[Any], ndarray[Any, Any]]"; expected "Sized"
             all_sec = (
-                is_list_like(self.secondary_y) and len(self.secondary_y) == self.nseries
+                is_list_like(self.secondary_y)
+                and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
             )
             if sec_true or all_sec:
                 # if all data is plotted on secondary, return right axes
@@ -679,6 +685,7 @@ class MPLPlot(ABC):
             )
 
         for ax in self.axes:
+            ax = getattr(ax, "right_ax", ax)
             if self.yticks is not None:
                 ax.set_yticks(self.yticks)
 
@@ -936,7 +943,7 @@ class MPLPlot(ABC):
         return ax
 
     @classmethod
-    def get_default_ax(cls, ax):
+    def get_default_ax(cls, ax) -> None:
         import matplotlib.pyplot as plt
 
         if ax is None and len(plt.get_fignums()) > 0:

@@ -13,6 +13,9 @@ on:
     paths-ignore:
       - "doc/**"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
@@ -76,9 +79,9 @@ jobs:
       run: |
         case "${{matrix.python-version}}" in
         3.8)
-          pip install numpy==1.19.5 ;;
+          pip install numpy==1.20.3 ;;
         3.9)
-          pip install numpy==1.19.5 ;;
+          pip install numpy==1.20.3 ;;
         3.10)
           pip install numpy==1.21.2 ;;
         esac

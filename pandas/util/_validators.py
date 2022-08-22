@@ -4,7 +4,9 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
+    Any,
     Iterable,
     Sequence,
     TypeVar,
@@ -264,7 +266,9 @@ def validate_bool_kwarg(
     return value
 
 
-def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
+def validate_axis_style_args(
+    data, args, kwargs, arg_name, method_name
+) -> dict[str, Any]:
     """
     Argument handler for mixed index, columns / axis functions
 
@@ -351,7 +355,9 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:
@@ -360,7 +366,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     return out
 
 
-def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
+def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
     """
     Validate the keyword arguments to 'fillna'.
 

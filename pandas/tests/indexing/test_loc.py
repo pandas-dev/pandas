@@ -18,6 +18,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
@@ -1065,7 +1066,9 @@ class TestLocBaseIndependent:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager, request):
+    def test_identity_slice_returns_new_object(
+        self, using_array_manager, request, using_copy_on_write
+    ):
         # GH13873
         if using_array_manager:
             mark = pytest.mark.xfail(
@@ -1082,8 +1085,12 @@ class TestLocBaseIndependent:
         assert np.shares_memory(original_df["a"]._values, sliced_df["a"]._values)
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        # depending on CoW
         original_df.loc[:, "a"] = [4, 4, 4]
-        assert (sliced_df["a"] == 4).all()
+        if using_copy_on_write:
+            assert (sliced_df["a"] == [1, 2, 3]).all()
+        else:
+            assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
         assert original_df is original_df.loc[:, :]
@@ -1097,7 +1104,10 @@ class TestLocBaseIndependent:
         assert original_series[:] is not original_series
 
         original_series[:3] = [7, 8, 9]
-        assert all(sliced_series[:3] == [7, 8, 9])
+        if using_copy_on_write:
+            assert all(sliced_series[:3] == [1, 2, 3])
+        else:
+            assert all(sliced_series[:3] == [7, 8, 9])
 
     @pytest.mark.xfail(reason="accidental fix reverted - GH37497")
     def test_loc_copy_vs_view(self):
@@ -1538,12 +1548,12 @@ class TestLocBaseIndependent:
 
     def test_loc_getitem_interval_index2(self):
         # GH#19977
-        index = pd.interval_range(start=0, periods=3, inclusive="both")
+        index = pd.interval_range(start=0, periods=3, closed="both")
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=index, columns=["A", "B", "C"]
         )
 
-        index_exp = pd.interval_range(start=0, periods=2, freq=1, inclusive="both")
+        index_exp = pd.interval_range(start=0, periods=2, freq=1, closed="both")
         expected = Series([1, 4], index=index_exp, name="A")
         result = df.loc[1, "A"]
         tm.assert_series_equal(result, expected)
@@ -1819,6 +1829,54 @@ class TestLocWithMultiIndex:
 
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
+
+    def test_additional_element_to_categorical_series_loc(self):
+        # GH#47677
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = 0
+        expected = Series(["a", "b", "c", 0], dtype="object")
+        tm.assert_series_equal(result, expected)
+
+    def test_additional_categorical_element_loc(self):
+        # GH#47677
+        result = Series(["a", "b", "c"], dtype="category")
+        result.loc[3] = "a"
+        expected = Series(["a", "b", "c", "a"], dtype="category")
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_set_nan_in_categorical_series(self, any_numeric_ea_dtype):
+        # GH#47677
+        srs = Series(
+            [1, 2, 3],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        # enlarge
+        srs.loc[3] = np.nan
+        expected = Series(
+            [1, 2, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
+        # set into
+        srs.loc[1] = np.nan
+        expected = Series(
+            [1, np.nan, 3, np.nan],
+            dtype=CategoricalDtype(Index([1, 2, 3], dtype=any_numeric_ea_dtype)),
+        )
+        tm.assert_series_equal(srs, expected)
+
+    @pytest.mark.parametrize("na", (np.nan, pd.NA, None, pd.NaT))
+    def test_loc_consistency_series_enlarge_set_into(self, na):
+        # GH#47677
+        srs_enlarge = Series(["a", "b", "c"], dtype="category")
+        srs_enlarge.loc[3] = na
+
+        srs_setinto = Series(["a", "b", "c", "a"], dtype="category")
+        srs_setinto.loc[3] = na
+
+        tm.assert_series_equal(srs_enlarge, srs_setinto)
+        expected = Series(["a", "b", "c", na], dtype="category")
+        tm.assert_series_equal(srs_enlarge, expected)
 
     def test_loc_getitem_preserves_index_level_category_dtype(self):
         # GH#15166
@@ -2509,7 +2567,7 @@ class TestLocBooleanMask:
 
         tm.assert_frame_equal(float_frame, expected)
 
-    def test_loc_setitem_ndframe_values_alignment(self):
+    def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
         # GH#45501
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df.loc[[False, False, True], ["a"]] = DataFrame(
@@ -2530,9 +2588,13 @@ class TestLocBooleanMask:
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df_orig = df.copy()
         ser = df["a"]
         ser.loc[[False, False, True]] = Series([10, 11, 12], index=[2, 1, 0])
-        tm.assert_frame_equal(df, expected)
+        if using_copy_on_write:
+            tm.assert_frame_equal(df, df_orig)
+        else:
+            tm.assert_frame_equal(df, expected)
 
 
 class TestLocListlike:

@@ -20,13 +20,16 @@ from pandas.tests.frame.common import _check_mixed_float
 
 class TestFillNA:
     @td.skip_array_manager_not_yet_implemented
-    def test_fillna_on_column_view(self):
+    def test_fillna_on_column_view(self, using_copy_on_write):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr)
 
         df[0].fillna(-1, inplace=True)
-        assert (arr[:, 0] == -1).all()
+        if using_copy_on_write:
+            assert np.isnan(arr[:, 0]).all()
+        else:
+            assert (arr[:, 0] == -1).all()
 
         # i.e. we didn't create a new 49-column block
         assert len(df._mgr.arrays) == 1
@@ -676,14 +679,41 @@ class TestFillNA:
 
     @td.skip_array_manager_invalid_test
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
-    def test_inplace_dict_update_view(self, val):
+    def test_inplace_dict_update_view(self, val, using_copy_on_write):
         # GH#47188
         df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
+        df_orig = df.copy()
         result_view = df[:]
         df.fillna(val, inplace=True)
         expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
         tm.assert_frame_equal(df, expected)
-        tm.assert_frame_equal(result_view, expected)
+        if using_copy_on_write:
+            tm.assert_frame_equal(result_view, df_orig)
+        else:
+            tm.assert_frame_equal(result_view, expected)
+
+    def test_single_block_df_with_horizontal_axis(self):
+        # GH 47713
+        df = DataFrame(
+            {
+                "col1": [5, 0, np.nan, 10, np.nan],
+                "col2": [7, np.nan, np.nan, 5, 3],
+                "col3": [12, np.nan, 1, 2, 0],
+                "col4": [np.nan, 1, 1, np.nan, 18],
+            }
+        )
+        result = df.fillna(50, limit=1, axis=1)
+        expected = DataFrame(
+            [
+                [5.0, 7.0, 12.0, 50.0],
+                [0.0, 50.0, np.nan, 1.0],
+                [50.0, np.nan, 1.0, 1.0],
+                [10.0, 5.0, 2.0, 50.0],
+                [50.0, 3.0, 0.0, 18.0],
+            ],
+            columns=["col1", "col2", "col3", "col4"],
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_fillna_nonconsolidated_frame():

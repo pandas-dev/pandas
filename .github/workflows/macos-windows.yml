@@ -18,12 +18,15 @@ env:
   PATTERN: "not slow and not db and not network and not single_cpu"
 
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       matrix:
         os: [macos-latest, windows-latest]

@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import datetime
 from functools import partial
+import inspect
 from io import BytesIO
 import os
 from textwrap import fill
@@ -41,6 +42,7 @@ from pandas.compat._optional import (
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
 )
@@ -279,6 +281,11 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+
+    .. deprecated:: 1.5.0
+        Not implemented, and a new argument to specify the pattern for the
+        names of duplicated columns will be added instead
+
 {storage_options}
 
     .. versionadded:: 1.2.0
@@ -357,15 +364,20 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 def read_excel(
     io,
     # sheet name is str or int -> DataFrame
-    sheet_name: str | int,
+    sheet_name: str | int = ...,
     header: int | Sequence[int] | None = ...,
-    names=...,
+    names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols=...,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = ...,
     squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
-    converters=...,
+    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -374,8 +386,8 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates=...,
-    date_parser=...,
+    parse_dates: list | dict | bool = ...,
+    date_parser: Callable | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -393,13 +405,18 @@ def read_excel(
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     header: int | Sequence[int] | None = ...,
-    names=...,
+    names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
-    usecols=...,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = ...,
     squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
-    converters=...,
+    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -408,8 +425,8 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates=...,
-    date_parser=...,
+    parse_dates: list | dict | bool = ...,
+    date_parser: Callable | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -422,19 +439,25 @@ def read_excel(
 
 
 @doc(storage_options=_shared_docs["storage_options"])
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
     header: int | Sequence[int] | None = 0,
-    names=None,
+    names: list[str] | None = None,
     index_col: int | Sequence[int] | None = None,
-    usecols=None,
+    usecols: int
+    | str
+    | Sequence[int]
+    | Sequence[str]
+    | Callable[[str], bool]
+    | None = None,
     squeeze: bool | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
-    converters=None,
+    converters: dict[str, Callable] | dict[int, Callable] | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
@@ -443,8 +466,8 @@ def read_excel(
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
-    parse_dates=False,
-    date_parser=None,
+    parse_dates: list | dict | bool = False,
+    date_parser: Callable | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
@@ -687,8 +710,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         nrows: int | None = None,
         na_values=None,
         verbose: bool = False,
-        parse_dates=False,
-        date_parser=None,
+        parse_dates: list | dict | bool = False,
+        date_parser: Callable | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -704,7 +727,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         validate_header_arg(header)
@@ -1107,7 +1130,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -1141,7 +1164,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
             # for mypy
@@ -1311,7 +1334,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             f"{attr} is not part of the public API, usage can give in unexpected "
             "results and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     @property
@@ -1665,8 +1688,8 @@ class ExcelFile:
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
-        parse_dates=False,
-        date_parser=None,
+        parse_dates: list | dict | bool = False,
+        date_parser: Callable | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,

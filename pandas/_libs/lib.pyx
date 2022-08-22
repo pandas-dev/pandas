@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+import inspect
 from typing import Literal
 import warnings
 
@@ -17,6 +18,7 @@ from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
     PyObject_RichCompareBool,
+    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -28,6 +30,8 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+
+from pandas.util._exceptions import find_stack_level
 
 import_datetime()
 
@@ -54,6 +58,11 @@ from numpy cimport (
 
 cnp.import_array()
 
+cdef extern from "Python.h":
+    # Note: importing extern-style allows us to declare these as nogil
+    # functions, whereas `from cpython cimport` does not.
+    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
     # errors in issubclass(self.dtype.type, np.bool_), so we directly
@@ -70,6 +79,9 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
+
+    PyTypeObject PySignedIntegerArrType_Type
+    PyTypeObject PyUnsignedIntegerArrType_Type
 
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
@@ -343,6 +355,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
                 "The values in the array are unorderable. "
                 "Pass `sort=False` to suppress this warning.",
                 RuntimeWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             pass
 
@@ -1283,9 +1296,9 @@ cdef class Seen:
         In addition to setting a flag that an integer was seen, we
         also set two flags depending on the type of integer seen:
 
-        1) sint_ : a negative (signed) number in the
+        1) sint_ : a signed numpy integer type or a negative (signed) number in the
                    range of [-2**63, 0) was encountered
-        2) uint_ : a positive number in the range of
+        2) uint_ : an unsigned numpy integer type or a positive number in the range of
                    [2**63, 2**64) was encountered
 
         Parameters
@@ -1294,8 +1307,18 @@ cdef class Seen:
             Value with which to set the flags.
         """
         self.int_ = True
-        self.sint_ = self.sint_ or (oINT64_MIN <= val < 0)
-        self.uint_ = self.uint_ or (oINT64_MAX < val <= oUINT64_MAX)
+        self.sint_ = (
+            self.sint_
+            or (oINT64_MIN <= val < 0)
+            # Cython equivalent of `isinstance(val, np.signedinteger)`
+            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
+        )
+        self.uint_ = (
+            self.uint_
+            or (oINT64_MAX < val <= oUINT64_MAX)
+            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
+            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
+        )
 
     @property
     def numeric_(self):
@@ -1328,8 +1351,7 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Efficiently infer the type of a passed val, or list-like
-    array of values. Return a string describing the type.
+    Return a string label of the type of a scalar or list-like of values.
 
     Parameters
     ----------
@@ -2142,7 +2164,7 @@ cpdef bint is_interval_array(ndarray values):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        str inclusive = None
+        str closed = None
         bint numeric = False
         bint dt64 = False
         bint td64 = False
@@ -2155,15 +2177,15 @@ cpdef bint is_interval_array(ndarray values):
         val = values[i]
 
         if is_interval(val):
-            if inclusive is None:
-                inclusive = val.inclusive
+            if closed is None:
+                closed = val.closed
                 numeric = (
                     util.is_float_object(val.left)
                     or util.is_integer_object(val.left)
                 )
                 td64 = is_timedelta(val.left)
                 dt64 = PyDateTime_Check(val.left)
-            elif val.inclusive != inclusive:
+            elif val.closed != closed:
                 # mismatched closedness
                 return False
             elif numeric:
@@ -2186,7 +2208,7 @@ cpdef bint is_interval_array(ndarray values):
         else:
             return False
 
-    if inclusive is None:
+    if closed is None:
         # we saw all-NAs, no actual Intervals
         return False
     return True
@@ -2542,7 +2564,6 @@ def maybe_convert_objects(ndarray[object] objects,
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
-                val = int(val)
                 seen.saw_int(val)
 
                 if ((seen.uint_ and seen.sint_) or

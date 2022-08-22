@@ -108,9 +108,12 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     Length: 4, dtype: string
     """
 
+    # error: Incompatible types in assignment (expression has type "StringDtype",
+    # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
+    _dtype: StringDtype  # type: ignore[assignment]
+
     def __init__(self, values) -> None:
         super().__init__(values)
-        # TODO: Migrate to ArrowDtype instead
         self._dtype = StringDtype(storage="pyarrow")
 
         if not pa.types.is_string(self._data.type):
@@ -178,7 +181,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             result[mask] = na_value
         return result
 
-    def insert(self, loc: int, item):
+    def insert(self, loc: int, item) -> ArrowStringArray:
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
@@ -198,7 +201,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
                     raise ValueError("Scalar must be NA or str")
         return value
 
-    def isin(self, values):
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if pa_version_under2p0:
             fallback_performancewarning(version="2")
             return super().isin(values)
@@ -242,8 +245,9 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
     # ------------------------------------------------------------------------
     # String methods interface
 
-    # error: Cannot determine type of 'na_value'
-    _str_na_value = StringDtype.na_value  # type: ignore[has-type]
+    # error: Incompatible types in assignment (expression has type "NAType",
+    # base class "ObjectStringArrayMixin" defined the type as "float")
+    _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
