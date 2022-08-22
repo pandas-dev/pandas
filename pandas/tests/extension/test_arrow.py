@@ -25,9 +25,11 @@ from pandas.compat import (
     pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under6p0,
+    pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
 )
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
@@ -446,7 +448,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        super().test_groupby_extension_transform(data_for_grouping)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_transform(data_for_grouping)
 
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request
@@ -479,7 +484,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                         reason="GH 34986",
                     )
                 )
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
     def test_in_numeric_groupby(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -518,7 +526,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason="GH 34986",
                 )
             )
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class TestBaseDtype(base.BaseDtypeTests):
