@@ -1,6 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
+pip
 cython==0.29.32
 pytest>=6.0
 pytest-cov
@@ -98,7 +99,6 @@ feedparser
 pyyaml
 requests
 jupyterlab >=3.4,<4
-pip
 jupyterlite==0.1.0b10
 sphinx-toggleprompt
 setuptools>=51.0.0
