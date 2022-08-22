@@ -235,7 +235,7 @@ cpdef int64_t delta_to_nanoseconds(
 
     cdef:
         NPY_DATETIMEUNIT in_reso
-        int64_t n, value, factor
+        int64_t n
 
     if is_tick_object(delta):
         n = delta.n
@@ -277,8 +277,6 @@ cpdef int64_t delta_to_nanoseconds(
         raise OutOfBoundsTimedelta(
             f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
         ) from err
-
-    return value
 
 
 @cython.overflowcheck(True)
