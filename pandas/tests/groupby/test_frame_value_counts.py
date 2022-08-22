@@ -743,8 +743,17 @@ def test_ambiguous_grouping():
 def test_subset_overlaps_gb_key_raises():
     # GH 46383
     df = DataFrame({"c1": ["a", "b", "c"], "c2": ["x", "y", "y"]}, index=[0, 1, 1])
-    with pytest.raises(ValueError, match="Keys {'c1'}"):
+    msg = "Keys {'c1'} in subset cannot be in the groupby column keys."
+    with pytest.raises(ValueError, match=msg):
         df.groupby("c1").value_counts(subset=["c1"])
+
+
+def test_subset_doesnt_exist_in_frame():
+    # GH 46383
+    df = DataFrame({"c1": ["a", "b", "c"], "c2": ["x", "y", "y"]}, index=[0, 1, 1])
+    msg = "Keys {'c3'} in subset do not exist in the DataFrame."
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("c1").value_counts(subset=["c3"])
 
 
 def test_subset():
@@ -753,5 +762,22 @@ def test_subset():
     result = df.groupby(level=0).value_counts(subset=["c2"])
     expected = Series(
         [1, 2], index=MultiIndex.from_arrays([[0, 1], ["x", "y"]], names=[None, "c2"])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_subset_duplicate_columns():
+    # GH 46383
+    df = DataFrame(
+        [["a", "x", "x"], ["b", "y", "y"], ["b", "y", "y"]],
+        index=[0, 1, 1],
+        columns=["c1", "c2", "c2"],
+    )
+    result = df.groupby(level=0).value_counts(subset=["c2"])
+    expected = Series(
+        [1, 2],
+        index=MultiIndex.from_arrays(
+            [[0, 1], ["x", "y"], ["x", "y"]], names=[None, "c2", "c2"]
+        ),
     )
     tm.assert_series_equal(result, expected)
