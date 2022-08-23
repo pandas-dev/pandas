@@ -27,7 +27,7 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
-If you have setup your environment using ``mamba``, the packages ``c-compiler``
+If you have setup your environment using :ref:`mamba <contributing.mamba>`, the packages ``c-compiler``
 and ``cxx-compiler`` will install a fitting compiler for your platform that is
 compatible with the remaining mamba packages. On Windows and macOS, you will
 also need to install the SDKs as they have to be distributed separately.
@@ -62,14 +62,14 @@ To setup the right paths on the commandline, call
 
 **macOS**
 
-To use the ``mamba``-based compilers, you will need to install the
+To use the :ref:`mamba <contributing.mamba>`-based compilers, you will need to install the
 Developer Tools using ``xcode-select --install``. Otherwise
 information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
 
 **Linux**
 
-For Linux-based ``mamba`` installations, you won't have to install any
+For Linux-based :ref:`mamba <contributing.mamba>` installations, you won't have to install any
 additional components outside of the mamba environment. The instructions
 below are only needed if your setup isn't based on mamba environments.
 
@@ -96,6 +96,8 @@ For other Linux distributions, consult your favorite search engine for
 compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on `Gitter <https://gitter.im/pydata/pandas/>`_.
+
+.. _contributing.mamba:
 
 Option 1a: using mamba (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -191,7 +193,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
 Below is a brief overview on how to set-up a virtual environment with Powershell
 under Windows. For details please refer to the
-`official virtualenv user guide <https://virtualenv.pypa.io/en/latest/user_guide.html#activators>`__
+`official virtualenv user guide <https://virtualenv.pypa.io/en/latest/user_guide.html#activators>`__.
 
 Use an ENV_DIR of your choice. We'll use ~\\virtualenvs\\pandas-dev where
 '~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
