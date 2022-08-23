@@ -9,6 +9,7 @@ from pandas.api.types import (
     is_extension_array_dtype,
     pandas_dtype,
 )
+from pandas.core.internals.blocks import get_block_type
 
 from .pandas_vb_common import (
     datetime_dtypes,
@@ -122,6 +123,24 @@ class CheckDtypes:
 
     def time_is_extension_array_dtype_false(self):
         is_extension_array_dtype(self.np_dtype)
+
+
+class CheckGetBlockType:
+    dtype_instances = {
+        "sparse-ExtensionBlock": pd.SparseDtype(),
+        "CategoricalBlock": pd.CategoricalDtype(),
+        "NDArrayBackedExtensionBlock": pd.PeriodDtype(),
+        "ExtensionBlock": pd.BooleanDtype(),
+        "DatetimeTZBlock": pd.DatetimeTZDtype(tz="UTC"),
+        "DatetimeLikeBlock": np.dtype("M"),
+        "NumericBlock": np.dtype("i"),
+        "ObjectBlock": np.dtype("O"),
+    }
+    params = dtype_instances.keys()
+    param_names = ["case_name"]
+
+    def time_get_block_type(self, case_name):
+        get_block_type(self.dtype_instances[case_name])
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

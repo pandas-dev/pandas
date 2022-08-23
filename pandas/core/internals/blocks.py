@@ -2107,7 +2107,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     return values
 
 
-def get_block_type(dtype: DtypeObj):
+def get_block_type(dtype: DtypeObj) -> type[Block]:
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
@@ -2121,31 +2121,25 @@ def get_block_type(dtype: DtypeObj):
     """
     # We use vtype and kind checks because they are much more performant
     #  than is_foo_dtype
-    vtype = dtype.type
-    kind = dtype.kind
-
-    cls: type[Block]
-
     if isinstance(dtype, SparseDtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
-        cls = ExtensionBlock
-    elif isinstance(dtype, CategoricalDtype):
-        cls = CategoricalBlock
-    elif vtype is Timestamp:
-        cls = DatetimeTZBlock
-    elif isinstance(dtype, PeriodDtype):
-        cls = NDArrayBackedExtensionBlock
+        return ExtensionBlock
+    if isinstance(dtype, CategoricalDtype):
+        return CategoricalBlock
+    if dtype.type is Timestamp:
+        return DatetimeTZBlock
+    if isinstance(dtype, PeriodDtype):
+        return NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
-        cls = ExtensionBlock
+        return ExtensionBlock
 
-    elif kind in ["M", "m"]:
-        cls = DatetimeLikeBlock
-    elif kind in ["f", "c", "i", "u", "b"]:
-        cls = NumericBlock
-    else:
-        cls = ObjectBlock
-    return cls
+    kind = dtype.kind
+    if kind in "Mm":
+        return DatetimeLikeBlock
+    if kind in "fciub":
+        return NumericBlock
+    return ObjectBlock
 
 
 def new_block_2d(values: ArrayLike, placement: BlockPlacement):

@@ -143,20 +143,35 @@ def ensure_python_int(value: int | np.integer) -> int:
     return new_value
 
 
-def classes(*klasses) -> Callable:
+def classes(*klasses) -> Callable[[type], bool]:
     """Evaluate if the tipo is a subclass of the klasses."""
-    return lambda tipo: issubclass(tipo, klasses)
+    if len(klasses) == 1:
+        cls: type | tuple[type, ...] = klasses[0]
+    else:
+        cls = klasses
+
+    def check(tipo: type) -> bool:
+        return issubclass(tipo, cls)
+
+    return check
 
 
-def classes_and_not_datetimelike(*klasses) -> Callable:
+def classes_and_not_datetimelike(*klasses: type) -> Callable[[type], bool]:
     """
     Evaluate if the tipo is a subclass of the klasses
     and not a datetimelike.
     """
-    return lambda tipo: (
-        issubclass(tipo, klasses)
-        and not issubclass(tipo, (np.datetime64, np.timedelta64))
-    )
+    if len(klasses) == 1:
+        cls: type | tuple[type, ...] = klasses[0]
+    else:
+        cls = klasses
+
+    def check(tipo: type) -> bool:
+        return issubclass(tipo, cls) and not issubclass(
+            tipo, (np.datetime64, np.timedelta64)
+        )
+
+    return check
 
 
 def is_object_dtype(arr_or_dtype) -> bool:
@@ -186,7 +201,10 @@ def is_object_dtype(arr_or_dtype) -> bool:
     >>> is_object_dtype([1, 2, 3])
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.object_))
+    return _is_dtype_type(arr_or_dtype, _is_object_dtype_check)
+
+
+_is_object_dtype_check = classes(np.object_)
 
 
 def is_sparse(arr) -> bool:
@@ -346,7 +364,10 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     if isinstance(arr_or_dtype, np.dtype):
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.kind == "M"
-    return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
+    return _is_dtype_type(arr_or_dtype, _is_datetime64_dtype_check)
+
+
+_is_datetime64_dtype_check = classes(np.datetime64)
 
 
 def is_datetime64tz_dtype(arr_or_dtype) -> bool:
@@ -422,7 +443,10 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.kind == "m"
 
-    return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, _is_timedelta64_dtype_check)
+
+
+_is_timedelta64_dtype_check = classes(np.timedelta64)
 
 
 def is_period_dtype(arr_or_dtype) -> bool:
@@ -570,17 +594,17 @@ def is_string_dtype(arr_or_dtype) -> bool:
     >>> is_string_dtype(pd.Series([1, 2]))
     False
     """
+    return _is_dtype(arr_or_dtype, _string_dtype_condition)
+
+
+def _string_dtype_condition(dtype: DtypeObj) -> bool:
     # TODO: gh-15585: consider making the checks stricter.
-    def condition(dtype) -> bool:
-        return dtype.kind in ("O", "S", "U") and not is_excluded_dtype(dtype)
-
-    def is_excluded_dtype(dtype) -> bool:
-        """
-        These have kind = "O" but aren't string dtypes so need to be explicitly excluded
-        """
-        return isinstance(dtype, (PeriodDtype, IntervalDtype, CategoricalDtype))
-
-    return _is_dtype(arr_or_dtype, condition)
+    return (
+        dtype.kind in "OSU"
+        # these have kind = "O" but aren't string dtypes
+        # so need to be explicitly excluded
+        and not isinstance(dtype, (PeriodDtype, IntervalDtype, CategoricalDtype))
+    )
 
 
 def is_dtype_equal(source, target) -> bool:
@@ -679,7 +703,10 @@ def is_any_int_dtype(arr_or_dtype) -> bool:
     >>> is_any_int_dtype(pd.Index([1, 2.]))  # float
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.integer, np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, _is_any_int_dtype_check)
+
+
+_is_any_int_dtype_check = classes(np.integer, np.timedelta64)
 
 
 def is_integer_dtype(arr_or_dtype) -> bool:
@@ -731,7 +758,10 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     >>> is_integer_dtype(pd.Index([1, 2.]))  # float
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.integer))
+    return _is_dtype_type(arr_or_dtype, _is_integer_dtype_check)
+
+
+_is_integer_dtype_check = classes_and_not_datetimelike(np.integer)
 
 
 def is_signed_integer_dtype(arr_or_dtype) -> bool:
@@ -785,7 +815,10 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     >>> is_signed_integer_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.signedinteger))
+    return _is_dtype_type(arr_or_dtype, _is_signed_integer_dtype_check)
+
+
+_is_signed_integer_dtype_check = classes_and_not_datetimelike(np.signedinteger)
 
 
 def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
@@ -830,9 +863,10 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     >>> is_unsigned_integer_dtype(np.array([1, 2], dtype=np.uint32))
     True
     """
-    return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.unsignedinteger)
-    )
+    return _is_dtype_type(arr_or_dtype, _is_unsigned_integer_dtype_check)
+
+
+_is_unsigned_integer_dtype_check = classes_and_not_datetimelike(np.unsignedinteger)
 
 
 def is_int64_dtype(arr_or_dtype) -> bool:
@@ -882,7 +916,10 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.int64))
+    return _is_dtype_type(arr_or_dtype, _is_int64_dtype_check)
+
+
+_is_int64_dtype_check = classes(np.int64)
 
 
 def is_datetime64_any_dtype(arr_or_dtype) -> bool:
@@ -1042,7 +1079,10 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
     >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
     True
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
+    return _is_dtype_type(arr_or_dtype, _is_datetime_or_timedelta_dtype_check)
+
+
+_is_datetime_or_timedelta_dtype_check = classes(np.datetime64, np.timedelta64)
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
@@ -1239,9 +1279,10 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     >>> is_numeric_dtype(np.array([], dtype=np.timedelta64))
     False
     """
-    return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
-    )
+    return _is_dtype_type(arr_or_dtype, _is_numeric_dtype_check)
+
+
+_is_numeric_dtype_check = classes_and_not_datetimelike(np.number, np.bool_)
 
 
 def is_float_dtype(arr_or_dtype) -> bool:
@@ -1273,7 +1314,10 @@ def is_float_dtype(arr_or_dtype) -> bool:
     >>> is_float_dtype(pd.Index([1, 2.]))
     True
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.floating))
+    return _is_dtype_type(arr_or_dtype, _is_float_dtype_check)
+
+
+_is_float_dtype_check = classes(np.floating)
 
 
 def is_bool_dtype(arr_or_dtype) -> bool:
@@ -1527,7 +1571,10 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     >>> is_complex_dtype(np.array([1 + 1j, 5]))
     True
     """
-    return _is_dtype_type(arr_or_dtype, classes(np.complexfloating))
+    return _is_dtype_type(arr_or_dtype, _is_complex_dtype_check)
+
+
+_is_complex_dtype_check = classes(np.complexfloating)
 
 
 def _is_dtype(arr_or_dtype, condition) -> bool:
@@ -1820,7 +1867,6 @@ def is_all_strings(value: ArrayLike) -> bool:
 
 
 __all__ = [
-    "classes",
     "classes_and_not_datetimelike",
     "DT64NS_DTYPE",
     "ensure_float",
