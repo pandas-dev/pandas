@@ -52,6 +52,10 @@ jobs:
             extra_apt: "language-pack-zh-hans"
             lang: "zh_CN.utf8"
             lc_all: "zh_CN.utf8"
+          - name: "Copy-on-Write"
+            env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
           - name: "Data Manager"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -64,7 +68,7 @@ jobs:
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_testing_mode: "deprecate"
-            test_args: "-W error::DeprecationWarning:numpy"
+            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
         exclude:
           - env_file: actions-39.yaml
             pyarrow_version: "6"
@@ -84,6 +88,7 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
+      PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}

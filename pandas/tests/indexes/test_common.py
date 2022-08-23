@@ -406,6 +406,7 @@ class TestCommon:
             with tm.assert_produces_warning(
                 warn,
                 raise_on_extra_warnings=is_pyarrow_str,
+                check_stacklevel=False,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):

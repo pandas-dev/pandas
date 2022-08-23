@@ -98,7 +98,7 @@ def test_builtins_apply(keys, f):
 
     if f != sum:
         expected = gb.agg(fname).reset_index()
-        expected.set_index(keys, inplace=True, drop=False)
+        expected = expected.set_index(keys, copy=False, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
@@ -454,7 +454,7 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
     df_out = DataFrame(exp)
 
     df_out["b"] = df_out.b.astype(out_type)
-    df_out.set_index("a", inplace=True)
+    df_out = df_out.set_index("a", copy=False)
 
     grpd = df.groupby("a")
     t = getattr(grpd, method)(*data["args"])
@@ -1590,6 +1590,7 @@ def test_corrwith_with_1_axis():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The 'mad' method.*:FutureWarning")
 def test_multiindex_group_all_columns_when_empty(groupby_func):
     # GH 32464
     df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])

@@ -2349,6 +2349,43 @@ def test_groupby_duplicate_index():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*is deprecated.*:FutureWarning")
+def test_group_on_empty_multiindex(transformation_func, request):
+    # GH 47787
+    # With one row, those are transforms so the schema should be the same
+    if transformation_func == "tshift":
+        mark = pytest.mark.xfail(raises=NotImplementedError)
+        request.node.add_marker(mark)
+    df = DataFrame(
+        data=[[1, Timestamp("today"), 3, 4]],
+        columns=["col_1", "col_2", "col_3", "col_4"],
+    )
+    df["col_3"] = df["col_3"].astype(int)
+    df["col_4"] = df["col_4"].astype(int)
+    df = df.set_index(["col_1", "col_2"])
+    if transformation_func == "fillna":
+        args = ("ffill",)
+    elif transformation_func == "tshift":
+        args = (1, "D")
+    else:
+        args = ()
+    result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
+    expected = df.groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
+    if transformation_func in ("diff", "shift"):
+        expected = expected.astype(int)
+    tm.assert_equal(result, expected)
+
+    result = (
+        df["col_3"].iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
+    )
+    expected = (
+        df["col_3"].groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
+    )
+    if transformation_func in ("diff", "shift"):
+        expected = expected.astype(int)
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "idx",
     [
@@ -2801,7 +2838,7 @@ def test_single_element_list_grouping():
     )
     msg = (
         "In a future version of pandas, a length 1 "
-        "tuple will be returned when iterating over a "
+        "tuple will be returned when iterating over "
         "a groupby with a grouper equal to a list of "
         "length 1. Don't supply a list with a single grouper "
         "to avoid this warning."
@@ -2810,12 +2847,15 @@ def test_single_element_list_grouping():
         values, _ = next(iter(df.groupby(["a"])))
 
 
-def test_groupby_sum_avoid_casting_to_float():
+@pytest.mark.parametrize("func", ["sum", "cumsum"])
+def test_groupby_sum_avoid_casting_to_float(func):
     # GH#37493
     val = 922337203685477580
     df = DataFrame({"a": 1, "b": [val]})
-    result = df.groupby("a").sum() - val
+    result = getattr(df.groupby("a"), func)() - val
     expected = DataFrame({"b": [0]}, index=Index([1], name="a"))
+    if func == "cumsum":
+        expected = expected.reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2832,7 +2872,7 @@ def test_groupby_sum_support_mask(any_numeric_ea_dtype):
 
 
 @pytest.mark.parametrize("val, dtype", [(111, "int"), (222, "uint")])
-def test_groupby_sum_overflow(val, dtype):
+def test_groupby_overflow(val, dtype):
     # GH#37493
     df = DataFrame({"a": 1, "b": [val, val]}, dtype=f"{dtype}8")
     result = df.groupby("a").sum()
@@ -2840,5 +2880,21 @@ def test_groupby_sum_overflow(val, dtype):
         {"b": [val * 2]},
         index=Index([1], name="a", dtype=f"{dtype}64"),
         dtype=f"{dtype}64",
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("a").cumsum()
+    expected = DataFrame({"b": [val, val * 2]}, dtype=f"{dtype}64")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna, val", [(True, 3), (False, pd.NA)])
+def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
+    # GH#37493
+    df = DataFrame({"a": 1, "b": [1, pd.NA, 2]}, dtype=any_numeric_ea_dtype)
+    result = df.groupby("a").cumsum(skipna=skipna)
+    expected = DataFrame(
+        {"b": [1, pd.NA, val]},
+        dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)
