@@ -1283,6 +1283,9 @@ class _LocIndexer(_LocationIndexer):
 
         labels = self.obj._get_axis(axis)
 
+        if isinstance(key, tuple) and isinstance(labels, MultiIndex):
+            key = tuple(key)
+
         if isinstance(key, slice):
             self._validate_key(key, axis)
             return self._get_slice_axis(key, axis=axis)
