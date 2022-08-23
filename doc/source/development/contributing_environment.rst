@@ -27,9 +27,9 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
-If you have setup your environment using ``conda``, the packages ``c-compiler``
+If you have setup your environment using ``mamba``, the packages ``c-compiler``
 and ``cxx-compiler`` will install a fitting compiler for your platform that is
-compatible with the remaining conda packages. On Windows and macOS, you will
+compatible with the remaining mamba packages. On Windows and macOS, you will
 also need to install the SDKs as they have to be distributed separately.
 These packages will automatically be installed by using the ``pandas``
 ``environment.yml`` file.
@@ -62,16 +62,16 @@ To setup the right paths on the commandline, call
 
 **macOS**
 
-To use the ``conda``-based compilers, you will need to install the
+To use the ``mamba``-based compilers, you will need to install the
 Developer Tools using ``xcode-select --install``. Otherwise
 information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
 
 **Linux**
 
-For Linux-based ``conda`` installations, you won't have to install any
-additional components outside of the conda environment. The instructions
-below are only needed if your setup isn't based on conda environments.
+For Linux-based ``mamba`` installations, you won't have to install any
+additional components outside of the mamba environment. The instructions
+below are only needed if your setup isn't based on mamba environments.
 
 Some Linux distributions will come with a pre-installed C compiler. To find out
 which compilers (and versions) are installed on your system::
@@ -117,7 +117,7 @@ We'll now kick off a three-step process:
 
    # Create and activate the build environment
    mamba env create -f environment.yml
-   conda activate pandas-dev
+   mamba activate pandas-dev
 
    # Build and install pandas
    python setup.py build_ext -j 4
@@ -135,7 +135,7 @@ nor any existing Python installation.
 
 To return to your root environment::
 
-      conda deactivate
+      mamba deactivate
 
 Option 1b: using pip
 ~~~~~~~~~~~~~~~~~~~~
