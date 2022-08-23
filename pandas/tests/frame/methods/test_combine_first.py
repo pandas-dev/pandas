@@ -392,18 +392,18 @@ class TestDataFrameCombineFirst:
         df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and getattr(df.dtype, "storage", "") == "pyarrow",
+            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
         ):
             df = df.set_index(["a", "b"], copy=False)
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and getattr(df.dtype, "storage", "") == "pyarrow",
+            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
         ):
             df2 = df2.set_index(["a", "b"], copy=False)
         result = df.combine_first(df2)
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under7p0 and getattr(df.dtype, "storage", "") == "pyarrow",
+            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
         ):
             expected = DataFrame(
                 {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
