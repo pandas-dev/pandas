@@ -37,6 +37,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.sparse import (
     SparseArray,
     SparseDtype,
@@ -1152,3 +1153,13 @@ def test_multi_column_dtype_assignment():
 
     df["b"] = 0
     tm.assert_frame_equal(df, expected)
+
+
+def test_Float64_conversion():
+    # GH#40729
+    testseries = Series(["1", "2", "3", "4"], dtype="object")
+    result = testseries.astype(Float64Dtype())
+
+    expected = Series([1.0, 2.0, 3.0, 4.0], dtype=Float64Dtype())
+
+    tm.assert_series_equal(result, expected)
