@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from functools import lru_cache
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, List, Optional
@@ -2681,28 +2682,47 @@ def get_block_type(values, dtype=None):
     Parameters
     ----------
     values : ndarray-like
-    dtype : numpy or pandas dtype
+    dtype : optional numpy or pandas dtype
 
     Returns
     -------
     cls : class, subclass of Block
     """
     dtype = dtype or values.dtype
+    values_dtype = getattr(values, 'dtype', None)
+    return _get_block_type(values_dtype, dtype)
+
+
+@lru_cache(512)
+def _get_block_type(values_dtype, dtype):
+    """
+    Find the appropriate Block subclass to use for the given values and dtype.
+
+    Parameters
+    ----------
+    values_dtype : numpy or pandas dtype
+    dtype : optional numpy or pandas dtype
+
+    Returns
+    -------
+    cls : class, subclass of Block
+    """
     vtype = dtype.type
+    dtype = dtype or values_dtype
 
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif is_categorical_dtype(values.dtype):
+    elif is_categorical_dtype(values_dtype):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values.dtype)
+        assert not is_datetime64tz_dtype(values_dtype)
         cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values.dtype):
+    elif is_datetime64tz_dtype(values_dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
-    elif is_extension_array_dtype(values.dtype):
+    elif is_extension_array_dtype(values_dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock

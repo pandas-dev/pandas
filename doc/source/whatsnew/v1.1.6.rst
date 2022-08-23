@@ -1,0 +1,26 @@
+.. _whatsnew_116:
+
+What's new in 1.1.6 (XXX XX, XXXX)
+---------------------------------------
+
+These are the changes in pandas 1.1.6. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_116.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed performance regression in the creation of blocks (:issue:`48212`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_116.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.5..v1.1.6|HEAD
