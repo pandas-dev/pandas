@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import abc
 from functools import partial
+import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -972,7 +973,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result: dict[Hashable, NDFrame | np.ndarray] = {}
         if self.axis == 0:
             # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
-            for name, data in self:
+            for name, data in self.grouper.get_iterator(obj, self.axis):
                 fres = func(data, *args, **kwargs)
                 result[name] = fres
         else:
@@ -1235,7 +1236,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "`.to_numpy()` to the result in the transform function to keep "
                 "the current behavior and silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
@@ -1405,7 +1406,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "Indexing with multiple keys (implicitly converted to a tuple "
                 "of keys) will be deprecated, use a list instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return super().__getitem__(key)
 
@@ -1804,20 +1805,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 name = self._selected_obj.name
                 keys = [] if name in in_axis_names else [self._selected_obj]
             else:
+                unique_cols = set(self._selected_obj.columns)
+                if subset is not None:
+                    subsetted = set(subset)
+                    clashing = subsetted & set(in_axis_names)
+                    if clashing:
+                        raise ValueError(
+                            f"Keys {clashing} in subset cannot be in "
+                            "the groupby column keys."
+                        )
+                    doesnt_exist = subsetted - unique_cols
+                    if doesnt_exist:
+                        raise ValueError(
+                            f"Keys {doesnt_exist} in subset do not "
+                            f"exist in the DataFrame."
+                        )
+                else:
+                    subsetted = unique_cols
+
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
                     for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names
+                    if name not in in_axis_names and name in subsetted
                 ]
-
-            if subset is not None:
-                clashing = set(subset) & set(in_axis_names)
-                if clashing:
-                    raise ValueError(
-                        f"Keys {clashing} in subset cannot be in "
-                        "the groupby column keys"
-                    )
 
             groupings = list(self.grouper.groupings)
             for key in keys:

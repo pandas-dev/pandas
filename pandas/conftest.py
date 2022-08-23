@@ -29,10 +29,7 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-from typing import (
-    Callable,
-    Literal,
-)
+from typing import Callable
 
 from dateutil.tz import (
     tzlocal,
@@ -82,6 +79,14 @@ zoneinfo = None
 if pd.compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
     import zoneinfo  # type: ignore[no-redef]
+
+    # Although zoneinfo can be imported in Py39, it is effectively
+    # "not available" without tzdata/IANA tz data.
+    # We will set zoneinfo to not found in this case
+    try:
+        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
+    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
+        zoneinfo = None
 
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
@@ -612,7 +617,7 @@ indices_dict = {
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100, inclusive="right"),
+    "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -925,14 +930,8 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (
-            Interval(left=0, right=5, inclusive="right"),
-            IntervalDtype("int64", inclusive="right"),
-        ),
-        (
-            Interval(left=0.1, right=0.5, inclusive="right"),
-            IntervalDtype("float64", inclusive="right"),
-        ),
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
@@ -1836,8 +1835,8 @@ def using_array_manager():
 
 
 @pytest.fixture
-def using_copy_on_write() -> Literal[False]:
+def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return False
+    return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"

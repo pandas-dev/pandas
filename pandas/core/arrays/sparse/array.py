@@ -4,6 +4,7 @@ SparseArray data structure
 from __future__ import annotations
 
 from collections import abc
+import inspect
 import numbers
 import operator
 from typing import (
@@ -414,7 +415,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 "to construct an array with the desired repeats of the "
                 "scalar value instead.\n\n",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if index is not None and not is_scalar(data):
@@ -493,7 +494,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         "loses timezone information. Cast to object before "
                         "sparse to retain timezone information.",
                         UserWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
                     if fill_value is NaT:
@@ -777,7 +778,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
-            warnings.warn(msg, PerformanceWarning)
+            warnings.warn(
+                msg,
+                PerformanceWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
             new_values = np.asarray(self)
             # interpolate_2d modifies new_values inplace
             interpolate_2d(new_values, method=method, limit=limit)
@@ -874,6 +879,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         codes, uniques = algos.factorize(
             np.asarray(self), na_sentinel=na_sentinel, use_na_sentinel=use_na_sentinel
         )
+        if na_sentinel is lib.no_default:
+            na_sentinel = -1
+        if use_na_sentinel is lib.no_default or use_na_sentinel:
+            codes[codes == -1] = na_sentinel
         uniques_sp = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques_sp
 
@@ -1182,7 +1191,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> npt.NDArray[np.intp] | np.intp:
 
         msg = "searchsorted requires high memory usage."
-        warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, PerformanceWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
         if not is_scalar(v):
             v = np.asarray(v)
         v = np.asarray(v)
@@ -1322,7 +1333,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 "array with the requested dtype. To retain the old behavior, use "
                 "`obj.astype(SparseDtype(dtype))`",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         dtype = self.dtype.update_dtype(dtype)

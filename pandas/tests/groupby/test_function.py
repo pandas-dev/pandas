@@ -98,7 +98,7 @@ def test_builtins_apply(keys, f):
 
     if f != sum:
         expected = gb.agg(fname).reset_index()
-        expected.set_index(keys, inplace=True, drop=False)
+        expected = expected.set_index(keys, copy=False, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
@@ -454,7 +454,7 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
     df_out = DataFrame(exp)
 
     df_out["b"] = df_out.b.astype(out_type)
-    df_out.set_index("a", inplace=True)
+    df_out = df_out.set_index("a", copy=False)
 
     grpd = df.groupby("a")
     t = getattr(grpd, method)(*data["args"])
@@ -648,6 +648,20 @@ def test_groupby_cumprod():
     expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
+
+
+def test_groupby_cumprod_nan_influences_other_columns():
+    # GH#48064
+    df = DataFrame(
+        {
+            "a": 1,
+            "b": [1, np.nan, 2],
+            "c": [1, 2, 3.0],
+        }
+    )
+    result = df.groupby("a").cumprod(numeric_only=True, skipna=False)
+    expected = DataFrame({"b": [1, np.nan, np.nan], "c": [1, 2, 6.0]})
+    tm.assert_frame_equal(result, expected)
 
 
 def scipy_sem(*args, **kwargs):
@@ -1574,3 +1588,16 @@ def test_corrwith_with_1_axis():
     )
     expected = Series([np.nan] * 6, index=index)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:The 'mad' method.*:FutureWarning")
+def test_multiindex_group_all_columns_when_empty(groupby_func):
+    # GH 32464
+    df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
+    gb = df.groupby(["a", "b", "c"])
+    method = getattr(gb, groupby_func)
+    args = get_groupby_method_args(groupby_func, df)
+
+    result = method(*args).index
+    expected = df.index
+    tm.assert_index_equal(result, expected)

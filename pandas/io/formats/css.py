@@ -3,6 +3,7 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 from __future__ import annotations
 
+import inspect
 import re
 from typing import (
     Callable,
@@ -13,6 +14,7 @@ from typing import (
 import warnings
 
 from pandas.errors import CSSWarning
+from pandas.util._exceptions import find_stack_level
 
 
 def _side_expander(prop_fmt: str) -> Callable:
@@ -46,7 +48,11 @@ def _side_expander(prop_fmt: str) -> Callable:
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
-            warnings.warn(f'Could not expand "{prop}: {value}"', CSSWarning)
+            warnings.warn(
+                f'Could not expand "{prop}: {value}"',
+                CSSWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
             return
         for key, idx in zip(self.SIDES, mapping):
             yield prop_fmt.format(key), tokens[idx]
@@ -88,7 +94,9 @@ def _border_expander(side: str = "") -> Callable:
         tokens = value.split()
         if len(tokens) == 0 or len(tokens) > 3:
             warnings.warn(
-                f'Too many tokens provided to "{prop}" (expected 1-3)', CSSWarning
+                f'Too many tokens provided to "{prop}" (expected 1-3)',
+                CSSWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         # TODO: Can we use current color as initial value to comply with CSS standards?
@@ -324,7 +332,11 @@ class CSSResolver:
 
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
-            warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
+            warnings.warn(
+                f"Unhandled size: {repr(in_val)}",
+                CSSWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
             return self.size_to_pt("1!!default", conversions=conversions)
 
         match = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val)
@@ -396,4 +408,5 @@ class CSSResolver:
                 warnings.warn(
                     f"Ill-formatted attribute: expected a colon in {repr(decl)}",
                     CSSWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
