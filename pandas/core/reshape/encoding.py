@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import inspect
 import itertools
 from typing import Hashable
 import warnings
@@ -234,7 +235,7 @@ def _get_dummies_1d(
             "In a future version of pandas the default dtype will change from "
             "'uint8' to 'bool', please specify a dtype to silence this warning",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         dtype = np.dtype(np.uint8)
     # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
