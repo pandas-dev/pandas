@@ -1187,15 +1187,15 @@ cdef class TextReader:
                 try:
                     result, na_count = _try_int64(self.parser, i, start,
                                                   end, na_filter, na_hashset)
-                    if user_dtype and na_count is not None:
-                        if na_count > 0:
-                            raise ValueError(f"Integer column has NA values in column {i}")
                 except OverflowError as err:
                     if user_dtype and dtype == 'int64':
                         raise err
                     result = _try_uint64(self.parser, i, start,
                                          end, na_filter, na_hashset)
                     na_count = 0
+                else:
+                    if user_dtype and (na_count is not None) and (na_count > 0):
+                        raise ValueError(f"Integer column has NA values in column {i}")
 
             if result is not None and dtype not in ('int64', 'uint64'):
                 casted = result.astype(dtype)
