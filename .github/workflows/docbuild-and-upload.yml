@@ -51,6 +51,9 @@ jobs:
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
 
+    - name: Build documentation zip
+      run: doc/make.py zip_html
+
     - name: Build the interactive terminal
       run: |
         cd web/interactive_terminal
