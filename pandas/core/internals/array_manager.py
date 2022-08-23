@@ -477,12 +477,9 @@ class BaseArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return len(self.arrays) == 1
 
-    def _get_data_subset(self: T, predicate: Callable, copy: bool = False) -> T:
+    def _get_data_subset(self: T, predicate: Callable) -> T:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
-        if copy:
-            arrays = [self.arrays[i].copy() for i in indices]
-        else:
-            arrays = [self.arrays[i] for i in indices]
+        arrays = [self.arrays[i] for i in indices]
         # TODO copy?
         # Note: using Index.take ensures we can retain e.g. DatetimeIndex.freq,
         #  see test_describe_datetime_columns
@@ -1342,11 +1339,8 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         self._axes = [self._axes[0][to_keep]]
         return self
 
-    def _get_data_subset(
-        self, predicate: Callable, copy: bool = False
-    ) -> SingleArrayManager:
+    def _get_data_subset(self, predicate: Callable) -> SingleArrayManager:
         # used in get_numeric_data / get_bool_data
-        # copy keyword is being ignored, only added for signature compat with base class
         if predicate(self.array):
             return type(self)(self.arrays, self._axes, verify_integrity=False)
         else:
