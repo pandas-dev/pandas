@@ -10,6 +10,7 @@ from datetime import (
     date,
     tzinfo,
 )
+import inspect
 import itertools
 import os
 import re
@@ -686,7 +687,7 @@ class HDFStore:
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         yield from self.items()
 
@@ -2195,7 +2196,9 @@ class IndexCol:
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
                     warnings.warn(
-                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
+                        ws,
+                        AttributeConflictWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
                     # reset
@@ -3093,7 +3096,11 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    ws,
+                    PerformanceWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
@@ -3538,7 +3545,11 @@ class Table(Fixed):
         if where is not None:
             if self.is_old_version:
                 ws = incompatibility_doc % ".".join([str(x) for x in self.version])
-                warnings.warn(ws, IncompatibilityWarning)
+                warnings.warn(
+                    ws,
+                    IncompatibilityWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
         """
@@ -4656,7 +4667,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s.set_index(self.levels, inplace=True)
+            s = s.set_index(self.levels, copy=False)
 
         s = s.iloc[:, 0]
 

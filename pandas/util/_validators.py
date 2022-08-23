@@ -4,6 +4,7 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     Any,
     Iterable,
@@ -15,7 +16,6 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import IntervalInclusiveType
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -355,7 +355,9 @@ def validate_axis_style_args(
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:
@@ -491,7 +493,7 @@ def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
     return left_closed, right_closed
 
 
-def validate_inclusive(inclusive: IntervalInclusiveType | None) -> tuple[bool, bool]:
+def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
     """
     Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
 

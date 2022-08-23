@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import wraps
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -181,7 +182,7 @@ class Block(PandasObject):
             "future version.  Use isinstance(block.values, Categorical) "
             "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return isinstance(self.values, Categorical)
 
@@ -252,7 +253,7 @@ class Block(PandasObject):
                     "already been cast to DatetimeArray and TimedeltaArray, "
                     "respectively.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             values = new_values
 
@@ -838,9 +839,12 @@ class Block(PandasObject):
 
         return self.values[slicer]
 
-    def set_inplace(self, locs, values: ArrayLike) -> None:
+    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
         """
         Modify block values in-place with new item value.
+
+        If copy=True, first copy the underlying values in place before modifying
+        (for Copy-on-Write).
 
         Notes
         -----
@@ -849,6 +853,8 @@ class Block(PandasObject):
 
         Caller is responsible for checking values.dtype == self.dtype.
         """
+        if copy:
+            self.values = self.values.copy()
         self.values[locs] = values
 
     def take_nd(
@@ -1061,6 +1067,8 @@ class Block(PandasObject):
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         transpose = self.ndim == 2
+
+        cond = extract_bool_array(cond)
 
         # EABlocks override where
         values = cast(np.ndarray, self.values)
@@ -1562,7 +1570,7 @@ class EABackedBlock(Block):
                     "(usually object) instead of raising, matching the "
                     "behavior of other dtypes.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 raise
             else:
@@ -1662,9 +1670,11 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def set_inplace(self, locs, values: ArrayLike) -> None:
+    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
+        if copy:
+            self.values = self.values.copy()
         self.values[:] = values
 
     def _maybe_squeeze_arg(self, arg):
@@ -1719,6 +1729,13 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 elif lib.is_integer(indexer[1]) and indexer[1] == 0:
                     # reached via setitem_single_block passing the whole indexer
                     indexer = indexer[0]
+
+                elif com.is_null_slice(indexer[1]):
+                    indexer = indexer[0]
+
+                elif is_list_like(indexer[1]) and indexer[1][0] == 0:
+                    indexer = indexer[0]
+
                 else:
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
@@ -1968,8 +1985,8 @@ def _catch_deprecated_value_error(err: Exception) -> None:
         #  is enforced, stop catching ValueError here altogether
         if isinstance(err, IncompatibleFrequency):
             pass
-        elif "'value.inclusive' is" in str(err):
-            # IntervalDtype mismatched 'inclusive'
+        elif "'value.closed' is" in str(err):
+            # IntervalDtype mismatched 'closed'
             pass
         elif "Timezones don't match" not in str(err):
             raise

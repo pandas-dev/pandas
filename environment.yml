@@ -6,7 +6,7 @@ dependencies:
   - python=3.8
 
   # test dependencies
-  - cython=0.29.30
+  - cython=0.29.32
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -48,6 +48,7 @@ dependencies:
   - scipy
   - sqlalchemy
   - tabulate
+  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter
@@ -84,9 +85,8 @@ dependencies:
   # code checks
   - black=22.3.0
   - cpplint
-  - flake8=4.0.1
-  - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
-  - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
+  - flake8=5.0.4
+  - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.971
   - pre-commit>=2.15.0

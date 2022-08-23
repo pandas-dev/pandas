@@ -179,6 +179,10 @@ mangle_dupe_cols : boolean, default ``True``
   Passing in ``False`` will cause data to be overwritten if there are duplicate
   names in the columns.
 
+  .. deprecated:: 1.5.0
+     The argument was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 General parsing configuration
 +++++++++++++++++++++++++++++
 
@@ -558,7 +562,8 @@ This matches the behavior of :meth:`Categorical.set_categories`.
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      df["col3"].cat.categories = pd.to_numeric(df["col3"].cat.categories)
+      new_categories = pd.to_numeric(df["col3"].cat.categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 
@@ -610,6 +615,10 @@ If the header is in a row other than the first, pass the row number to
 Duplicate names parsing
 '''''''''''''''''''''''
 
+  .. deprecated:: 1.5.0
+     ``mangle_dupe_cols`` was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
@@ -620,27 +629,7 @@ distinguish between them so as to prevent overwriting data:
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
 which modifies a series of duplicate columns 'X', ..., 'X' to become
-'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can
-arise:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   Out[3]:
-      a  b  a
-   0  2  1  2
-   1  5  4  5
-
-To prevent users from encountering this problem with duplicate data, a ``ValueError``
-exception is raised if ``mangle_dupe_cols != True``:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   ...
-   ValueError: Setting mangle_dupe_cols=False is not supported yet
+'X', 'X.1', ..., 'X.N'.
 
 .. _io.usecols:
 
@@ -2742,6 +2731,30 @@ succeeds, the function will return*.
 
    dfs = pd.read_html(url, "Metcalf Bank", index_col=0, flavor=["lxml", "bs4"])
 
+Links can be extracted from cells along with the text using ``extract_links="all"``.
+
+.. ipython:: python
+
+    html_table = """
+    <table>
+      <tr>
+        <th>GitHub</th>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/pandas-dev/pandas">pandas</a></td>
+      </tr>
+    </table>
+    """
+
+    df = pd.read_html(
+        html_table,
+        extract_links="all"
+    )[0]
+    df
+    df[("GitHub", None)]
+    df[("GitHub", None)].str[1]
+
+.. versionadded:: 1.5.0
 
 .. _io.html:
 

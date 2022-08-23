@@ -70,7 +70,7 @@ class ColumnNullType(enum.IntEnum):
     NON_NULLABLE : int
         Non-nullable column.
     USE_NAN : int
-        Use explicit float NaN/NaT value.
+        Use explicit float NaN value.
     USE_SENTINEL : int
         Sentinel value besides NaN/NaT.
     USE_BITMASK : int
@@ -110,7 +110,7 @@ class CategoricalDescription(TypedDict):
     is_dictionary: bool
     # Python-level only (e.g. ``{int: str}``).
     # None if not a dictionary-style categorical.
-    mapping: dict | None
+    categories: Column | None
 
 
 class Buffer(ABC):
@@ -274,17 +274,18 @@ class Column(ABC):
         """
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
-        - There is a separate dictionary-style encoding for categorical values.
+        - There is a separate non-categorical Column encoding for categorical values.
 
         Raises TypeError if the dtype is not categorical
 
         Returns the dictionary with description on how to interpret the data buffer:
             - "is_ordered" : bool, whether the ordering of dictionary indices is
                              semantically meaningful.
-            - "is_dictionary" : bool, whether a dictionary-style mapping of
+            - "is_dictionary" : bool, whether a mapping of
                                 categorical values to other objects exists
-            - "mapping" : dict, Python-level only (e.g. ``{int: str}``).
-                          None if not a dictionary-style categorical.
+            - "categories" : Column representing the (implicit) mapping of indices to
+                             category values (e.g. an array of cat1, cat2, ...).
+                             None if not a dictionary-style categorical.
 
         TBD: are there any other in-memory representations that are needed?
         """

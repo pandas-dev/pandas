@@ -268,9 +268,7 @@ class Cut:
         self.datetime_series = pd.Series(
             np.random.randint(N, size=N), dtype="datetime64[ns]"
         )
-        self.interval_bins = pd.IntervalIndex.from_breaks(
-            np.linspace(0, N, bins), "right"
-        )
+        self.interval_bins = pd.IntervalIndex.from_breaks(np.linspace(0, N, bins))
 
     def time_cut_int(self, bins):
         pd.cut(self.int_series, bins)
