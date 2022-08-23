@@ -91,8 +91,8 @@ class TestDataFrameSetItem:
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
 
-        msg = "incompatible index of inserted column with frame index"
-        with pytest.raises(TypeError, match=msg):
+        msg = "Cannot set a DataFrame with multiple columns to the single column gr"
+        with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
     def test_setitem_benchmark(self):
@@ -236,10 +236,7 @@ class TestDataFrameSetItem:
         "obj,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (
-                Interval(left=0, right=5, inclusive="right"),
-                IntervalDtype("int64", "right"),
-            ),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -741,6 +738,18 @@ class TestDataFrameSetItem:
         df.isetitem(0, DataFrame({"a": [10, 11]}, index=[1, 2]))
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_frame_overwrite_with_ea_dtype(self, any_numeric_ea_dtype):
+        # GH#46896
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+        df["a"] = DataFrame({"a": [10, 11]}, dtype=any_numeric_ea_dtype)
+        expected = DataFrame(
+            {
+                "a": Series([10, 11], dtype=any_numeric_ea_dtype),
+                "b": [2, 4],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -789,7 +798,7 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    def test_setitem_listlike_views(self):
+    def test_setitem_listlike_views(self, using_copy_on_write):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
 
@@ -802,7 +811,10 @@ class TestDataFrameSetItemWithExpansion:
         # edit in place the first column to check view semantics
         df.iloc[0, 0] = 100
 
-        expected = Series([100, 2, 3], name="a")
+        if using_copy_on_write:
+            expected = Series([1, 2, 3], name="a")
+        else:
+            expected = Series([100, 2, 3], name="a")
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_string_column_numpy_dtype_raising(self):
@@ -812,7 +824,7 @@ class TestDataFrameSetItemWithExpansion:
         expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_empty_df_duplicate_columns(self):
+    def test_setitem_empty_df_duplicate_columns(self, using_copy_on_write):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
         df.loc[:, "a"] = list(range(2))
@@ -902,6 +914,19 @@ class TestDataFrameSetItemWithExpansion:
         result = df.loc[[1], :]
         expected = DataFrame({"a": ["b"], "b": [100]}, index=[1])
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_frame_keep_ea_dtype(self, any_numeric_ea_dtype):
+        # GH#46896
+        df = DataFrame(columns=["a", "b"], data=[[1, 2], [3, 4]])
+        df["c"] = DataFrame({"a": [10, 11]}, dtype=any_numeric_ea_dtype)
+        expected = DataFrame(
+            {
+                "a": [1, 3],
+                "b": [2, 4],
+                "c": Series([10, 11], dtype=any_numeric_ea_dtype),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:
@@ -1109,7 +1134,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])
-    def test_setitem_partial_column_inplace(self, consolidate, using_array_manager):
+    def test_setitem_partial_column_inplace(
+        self, consolidate, using_array_manager, using_copy_on_write
+    ):
         # This setting should be in-place, regardless of whether frame is
         #  single-block or multi-block
         # GH#304 this used to be incorrectly not-inplace, in which case
@@ -1134,8 +1161,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_series_equal(df["z"], expected)
 
         # check setting occurred in-place
-        tm.assert_numpy_array_equal(zvals, expected.values)
-        assert np.shares_memory(zvals, df["z"]._values)
+        if not using_copy_on_write:
+            tm.assert_numpy_array_equal(zvals, expected.values)
+            assert np.shares_memory(zvals, df["z"]._values)
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510

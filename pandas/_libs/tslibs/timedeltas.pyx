@@ -1,5 +1,8 @@
 import collections
+import inspect
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport cython
 from cpython.object cimport (
@@ -232,7 +235,7 @@ cpdef int64_t delta_to_nanoseconds(
 
     cdef:
         NPY_DATETIMEUNIT in_reso
-        int64_t n, value, factor
+        int64_t n
 
     if is_tick_object(delta):
         n = delta.n
@@ -274,8 +277,6 @@ cpdef int64_t delta_to_nanoseconds(
         raise OutOfBoundsTimedelta(
             f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
         ) from err
-
-    return value
 
 
 @cython.overflowcheck(True)
@@ -683,7 +684,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
             "Units 'M', 'Y' and 'y' do not represent unambiguous "
             "timedelta values and will be removed in a future version.",
             FutureWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     if unit == 'M':
@@ -1051,21 +1052,33 @@ cdef class _Timedelta(timedelta):
 
     @property
     def freq(self) -> None:
+        """
+        Freq property.
+
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
+        """
         # GH#46430
         warnings.warn(
             "Timedelta.freq is deprecated and will be removed in a future version",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return None
 
     @property
     def is_populated(self) -> bool:
+        """
+        Is_populated property.
+
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
+        """
         # GH#46430
         warnings.warn(
             "Timedelta.is_populated is deprecated and will be removed in a future version",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._is_populated
 
@@ -1242,6 +1255,9 @@ cdef class _Timedelta(timedelta):
         """
         Return the timedelta in nanoseconds (ns), for internal compatibility.
 
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
+
         Returns
         -------
         int
@@ -1269,7 +1285,7 @@ cdef class _Timedelta(timedelta):
         warnings.warn(
             "Timedelta.delta is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=1,
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.value
 
