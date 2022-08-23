@@ -139,18 +139,16 @@ def test_select_dtypes(using_copy_on_write):
     df2 = df.select_dtypes("int64")
     df2._mgr._verify_integrity()
 
-    # currently this always returns a "view"
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
     df2.iloc[0, 0] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # but currently select_dtypes() actually returns a view -> mutates parent
-        df_orig.iloc[0, 0] = 0
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_to_frame(using_copy_on_write):
