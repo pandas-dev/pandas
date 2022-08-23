@@ -116,7 +116,7 @@ def _new_DatetimeIndex(cls, d):
     + [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize", "tz_convert")
+        if method not in ("tz_localize", "tz_convert", "strftime")
     ],
     DatetimeArray,
     wrap=True,
@@ -270,7 +270,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.strftime)
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name)
+        return Index(arr, name=self.name, dtype=object)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> DatetimeIndex:
@@ -415,6 +415,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
     # Set Operation Methods
+
+    def _can_range_setop(self, other) -> bool:
+        # GH 46702: If self or other have non-UTC tzs, DST transitions prevent
+        # range representation due to no singular step
+        if (
+            self.tz is not None
+            and not timezones.is_utc(self.tz)
+            and not timezones.is_fixed_offset(self.tz)
+        ):
+            return False
+        if (
+            other.tz is not None
+            and not timezones.is_utc(other.tz)
+            and not timezones.is_fixed_offset(other.tz)
+        ):
+            return False
+        return super()._can_range_setop(other)
 
     def union_many(self, others):
         """

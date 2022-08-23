@@ -331,7 +331,6 @@ Other enhancements
 - :meth:`DataFrame.quantile` gained a ``method`` argument that can accept ``table`` to evaluate multi-column quantiles (:issue:`43881`)
 - :class:`Interval` now supports checking whether one interval is contained by another interval (:issue:`46613`)
 - Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
-- :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support a ``copy`` argument. If ``False``, the underlying data is not copied in the returned object (:issue:`47934`)
 - :meth:`DataFrame.set_index` now supports a ``copy`` keyword. If ``False``, the underlying data is not copied when a new :class:`DataFrame` is returned (:issue:`48043`)
 - The method :meth:`.ExtensionArray.factorize` accepts ``use_na_sentinel=False`` for determining how null values are to be treated (:issue:`46601`)
 
@@ -896,6 +895,7 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
 - Performance improvement in :meth:`.GroupBy.apply` when grouping on a non-unique unsorted index (:issue:`46527`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`45681`, :issue:`46040`, :issue:`46330`)
+- Performance improvement in :meth:`.GroupBy.var` with ``ddof`` other than one (:issue:`48152`)
 - Performance improvement in :meth:`DataFrame.to_records` when the index is a :class:`MultiIndex` (:issue:`47263`)
 - Performance improvement in :attr:`MultiIndex.values` when the MultiIndex contains levels of type DatetimeIndex, TimedeltaIndex or ExtensionDtypes (:issue:`46288`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
