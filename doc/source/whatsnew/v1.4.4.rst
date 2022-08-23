@@ -22,6 +22,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
 - Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in :meth:`DataFrame.loc` setting a length-1 array like value to a single value in the DataFrame (:issue:`46268`)
+- Fixed regression when slicing with :meth:`DataFrame.loc` with :class:`DateOffset`-index (:issue:`46671`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
 - Fixed regression using custom Index subclasses (for example, used in xarray) with :meth:`~DataFrame.reset_index` or :meth:`Index.insert` (:issue:`47071`)
 - Fixed regression in :meth:`DatetimeIndex.intersection` when the :class:`DatetimeIndex` has dates crossing daylight savings time (:issue:`46702`)
