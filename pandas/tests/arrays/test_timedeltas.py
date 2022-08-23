@@ -1,7 +1,4 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -70,28 +67,11 @@ class TestNonNano:
         expected = tda_nano.total_seconds()
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_series_total_seconds(self):
+    def test_timedelta_array_total_seconds(self):
         # GH34290
-        expected = float(15)
-        out = pd.Series(
-            [pd.Timestamp("2022-03-16 08:32:26"), pd.Timestamp("2022-03-16 08:32:41")]
-        )
+        expected = pd.Timedelta("2 min").total_seconds()
 
-        result = (out - out.iloc[0]).dt.total_seconds()[1]
-        assert result == expected
-
-    def test_dateframe_total_seconds(self):
-        # GH34290
-        expected = float(120)
-        data = {"start": datetime(2020, 1, 1, 12), "end": datetime(2020, 1, 1, 12, 2)}
-        df = pd.DataFrame(data, index=[0])
-
-        # try to parse to pd.to_datetime
-        df["end"] = pd.to_datetime(df["end"])
-        df["start"] = pd.to_datetime(df["start"])
-
-        result = (df["end"] - df["start"]).dt.total_seconds().values[0]
-
+        result = pd.array([pd.Timedelta("2 min")]).total_seconds()[0]
         assert result == expected
 
     @pytest.mark.parametrize(
