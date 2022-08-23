@@ -22,8 +22,6 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core.frame import DataFrame
-
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (
     LinePlot,
@@ -33,6 +31,7 @@ from pandas.plotting._matplotlib.groupby import (
     create_iter_data_given_by,
     reformat_hist_y_given_by,
 )
+from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -43,13 +42,21 @@ from pandas.plotting._matplotlib.tools import (
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
+    from pandas import DataFrame
+
 
 class HistPlot(LinePlot):
     @property
     def _kind(self) -> Literal["hist", "kde"]:
         return "hist"
 
-    def __init__(self, data, bins=10, bottom=0, **kwargs) -> None:
+    def __init__(
+        self,
+        data,
+        bins: int | np.ndarray | list[np.ndarray] = 10,
+        bottom: int | np.ndarray = 0,
+        **kwargs,
+    ) -> None:
         self.bins = bins  # use mpl default
         self.bottom = bottom
         # Do not call LinePlot.__init__ which may fill nan
@@ -61,7 +68,8 @@ class HistPlot(LinePlot):
         # where subplots are created based on by argument
         if is_integer(self.bins):
             if self.by is not None:
-                grouped = self.data.groupby(self.by)[self.columns]
+                by_modified = unpack_single_str_list(self.by)
+                grouped = self.data.groupby(by_modified)[self.columns]
                 self.bins = [self._calculate_bins(group) for key, group in grouped]
             else:
                 self.bins = self._calculate_bins(self.data)
@@ -369,13 +377,13 @@ def hist_series(
     self,
     by=None,
     ax=None,
-    grid=True,
+    grid: bool = True,
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
     yrot=None,
     figsize=None,
-    bins=10,
+    bins: int = 10,
     legend: bool = False,
     **kwds,
 ):
@@ -441,17 +449,17 @@ def hist_frame(
     data,
     column=None,
     by=None,
-    grid=True,
+    grid: bool = True,
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
     yrot=None,
     ax=None,
-    sharex=False,
-    sharey=False,
+    sharex: bool = False,
+    sharey: bool = False,
     figsize=None,
     layout=None,
-    bins=10,
+    bins: int = 10,
     legend: bool = False,
     **kwds,
 ):

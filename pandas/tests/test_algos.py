@@ -9,6 +9,8 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
+from pandas.compat import pa_version_under7p0
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -50,7 +52,13 @@ class TestFactorize:
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
-        result_codes, result_uniques = obj.factorize(sort=sort)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            sort
+            and pa_version_under7p0
+            and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
         if isinstance(obj, MultiIndex):
@@ -64,7 +72,11 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            expected_uniques = expected_uniques.sort_values()
+            with tm.maybe_produces_warning(
+                PerformanceWarning,
+                pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+            ):
+                expected_uniques = expected_uniques.sort_values()
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`
@@ -455,13 +467,13 @@ class TestFactorize:
         [
             (
                 ["a", None, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", None, "b"], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", np.nan, "b"], dtype=object),
             ),
         ],
     )
@@ -478,13 +490,13 @@ class TestFactorize:
         [
             (
                 [1, None, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype="O"),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, None, 2], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype=np.float64),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, np.nan, 2], dtype=np.float64),
             ),
         ],
     )
@@ -834,6 +846,13 @@ class TestUnique:
         assert a[0] is unique_nulls_fixture
         assert a[1] is unique_nulls_fixture2
 
+    def test_unique_masked(self, any_numeric_ea_dtype):
+        # GH#48019
+        ser = Series([1, pd.NA, 2] * 3, dtype=any_numeric_ea_dtype)
+        result = pd.unique(ser)
+        expected = pd.array([1, pd.NA, 2], dtype=any_numeric_ea_dtype)
+        tm.assert_extension_array_equal(result, expected)
+
 
 class TestIsin:
     def test_invalid(self):
@@ -1127,26 +1146,19 @@ class TestValueCounts:
         # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        index = IntervalIndex.from_breaks(breaks, inclusive="right").astype(
-            CDT(ordered=True)
-        )
+        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
         expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)
-        expected = Series(
-            [4], index=IntervalIndex.from_tuples([(0.996, 4.0)], inclusive="right")
-        )
+        expected = Series([4], index=IntervalIndex.from_tuples([(0.996, 4.0)]))
         tm.assert_series_equal(result, expected)
 
         result = algos.value_counts(s, bins=2, sort=False)
         expected = Series(
-            [2, 2],
-            index=IntervalIndex.from_tuples(
-                [(0.996, 2.5), (2.5, 4.0)], inclusive="right"
-            ),
+            [2, 2], index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)])
         )
         tm.assert_series_equal(result, expected)
 

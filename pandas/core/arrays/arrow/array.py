@@ -22,8 +22,12 @@ from pandas.compat import (
     pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
+    pa_version_under7p0,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -155,10 +159,50 @@ def to_pyarrow_type(
 
 class ArrowExtensionArray(OpsMixin, ExtensionArray):
     """
-    Base class for ExtensionArray backed by Arrow ChunkedArray.
-    """
+    Pandas ExtensionArray backed by a PyArrow ChunkedArray.
+
+    .. warning::
+
+       ArrowExtensionArray is considered experimental. The implementation and
+       parts of the API may change without warning.
+
+    Parameters
+    ----------
+    values : pyarrow.Array or pyarrow.ChunkedArray
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+
+    Returns
+    -------
+    ArrowExtensionArray
+
+    Notes
+    -----
+    Most methods are implemented using `pyarrow compute functions. <https://arrow.apache.org/docs/python/api/compute.html>`__
+    Some methods may either raise an exception or raise a ``PerformanceWarning`` if an
+    associated compute function is not available based on the installed version of PyArrow.
+
+    Please install the latest version of PyArrow to enable the best functionality and avoid
+    potential bugs in prior versions of PyArrow.
+
+    Examples
+    --------
+    Create an ArrowExtensionArray with :func:`pandas.array`:
+
+    >>> pd.array([1, 1, None], dtype="int64[pyarrow]")
+    <ArrowExtensionArray>
+    [1, 1, <NA>]
+    Length: 3, dtype: int64[pyarrow]
+    """  # noqa: E501 (http link too long)
 
     _data: pa.ChunkedArray
+    _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if pa_version_under1p01:
@@ -418,6 +462,58 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             return self._data.is_null().to_numpy()
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def argsort(
+        self,
+        ascending: bool = True,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        *args,
+        **kwargs,
+    ) -> np.ndarray:
+        order = "ascending" if ascending else "descending"
+        null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
+        if null_placement is None or pa_version_under7p0:
+            # Although pc.array_sort_indices exists in version 6
+            # there's a bug that affects the pa.ChunkedArray backing
+            # https://issues.apache.org/jira/browse/ARROW-12042
+            fallback_performancewarning("7")
+            return super().argsort(
+                ascending=ascending, kind=kind, na_position=na_position
+            )
+
+        result = pc.array_sort_indices(
+            self._data, order=order, null_placement=null_placement
+        )
+        if pa_version_under2p0:
+            np_result = result.to_pandas().values
+        else:
+            np_result = result.to_numpy()
+        return np_result.astype(np.intp, copy=False)
+
+    def _argmin_max(self, skipna: bool, method: str) -> int:
+        if self._data.length() in (0, self._data.null_count) or (
+            self._hasna and not skipna
+        ):
+            # For empty or all null, pyarrow returns -1 but pandas expects TypeError
+            # For skipna=False and data w/ null, pandas expects NotImplementedError
+            # let ExtensionArray.arg{max|min} raise
+            return getattr(super(), f"arg{method}")(skipna=skipna)
+
+        if pa_version_under6p0:
+            raise NotImplementedError(
+                f"arg{method} only implemented for pyarrow version >= 6.0"
+            )
+
+        value = getattr(pc, method)(self._data, skip_nulls=skipna)
+        return pc.index(self._data, value).as_py()
+
+    def argmin(self, skipna: bool = True) -> int:
+        return self._argmin_max(skipna, "min")
+
+    def argmax(self, skipna: bool = True) -> int:
+        return self._argmin_max(skipna, "max")
+
     def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         """
         Return a shallow copy of the array.
@@ -444,7 +540,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             return type(self)(pc.drop_null(self._data))
 
-    def isin(self: ArrowExtensionArrayT, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if pa_version_under2p0:
             fallback_performancewarning(version="2")
             return super().isin(values)
@@ -494,20 +590,32 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     ) -> tuple[np.ndarray, ExtensionArray]:
         resolved_na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
-        if resolved_na_sentinel is None:
-            raise NotImplementedError("Encoding NaN values is not yet implemented")
+        if pa_version_under4p0:
+            encoded = self._data.dictionary_encode()
         else:
-            na_sentinel = resolved_na_sentinel
-        encoded = self._data.dictionary_encode()
+            null_encoding = "mask" if resolved_na_sentinel is not None else "encode"
+            encoded = self._data.dictionary_encode(null_encoding=null_encoding)
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
         ).to_pandas()
         if indices.dtype.kind == "f":
-            indices[np.isnan(indices)] = na_sentinel
+            indices[np.isnan(indices)] = (
+                resolved_na_sentinel if resolved_na_sentinel is not None else -1
+            )
         indices = indices.astype(np.int64, copy=False)
 
         if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
+            if resolved_na_sentinel is None and pa_version_under4p0:
+                # TODO: share logic with BaseMaskedArray.factorize
+                # Insert na with the proper code
+                na_mask = indices.values == -1
+                na_index = na_mask.argmax()
+                if na_mask[na_index]:
+                    uniques = uniques.insert(na_index, self.dtype.na_value)
+                    na_code = 0 if na_index == 0 else indices[:na_index].argmax() + 1
+                    indices[indices >= na_code] += 1
+                    indices[indices == -1] = na_code
         else:
             uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
@@ -824,6 +932,57 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             key = np.asarray(key)
             indices = np.arange(n)[key]
         return indices
+
+    # TODO: redefine _rank using pc.rank with pyarrow 9.0
+
+    def _quantile(
+        self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> ArrowExtensionArrayT:
+        """
+        Compute the quantiles of self for each quantile in `qs`.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+        interpolation: str
+
+        Returns
+        -------
+        same type as self
+        """
+        if pa_version_under4p0:
+            raise NotImplementedError(
+                "quantile only supported for pyarrow version >= 4.0"
+            )
+        result = pc.quantile(self._data, q=qs, interpolation=interpolation)
+        return type(self)(result)
+
+    def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:
+        """
+        Returns the mode(s) of the ExtensionArray.
+
+        Always returns `ExtensionArray` even if only one value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't consider counts of NA values.
+            Not implemented by pyarrow.
+
+        Returns
+        -------
+        same type as self
+            Sorted, if possible.
+        """
+        if pa_version_under6p0:
+            raise NotImplementedError("mode only supported for pyarrow version >= 6.0")
+        modes = pc.mode(self._data, pc.count_distinct(self._data).as_py())
+        values = modes.field(0)
+        counts = modes.field(1)
+        # counts sorted descending i.e counts[0] = max
+        mask = pc.equal(counts, counts[0])
+        most_common = values.filter(mask)
+        return type(self)(most_common)
 
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
