@@ -4620,7 +4620,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def add_prefix(
-        self: NDFrameT, prefix: str, copy: bool_t = True, axis: Axis | None = None
+        self: NDFrameT, prefix: str, axis: Axis | None = None
     ) -> NDFrameT:
         """
         Prefix labels with string `prefix`.
@@ -4632,8 +4632,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
-        copy : bool, default True
-            Whether to copy the underlying data.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to add prefix on
 
@@ -4696,7 +4694,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def add_suffix(
-        self: NDFrameT, suffix: str, copy: bool_t = True, axis: Axis | None = None
+        self: NDFrameT, suffix: str, axis: Axis | None = None
     ) -> NDFrameT:
         """
         Suffix labels with string `suffix`.
@@ -4708,8 +4706,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
-        copy : bool, default True
-            Whether to copy the underlying data.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to add suffix on
 
