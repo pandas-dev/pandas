@@ -1698,20 +1698,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 name = self._selected_obj.name
                 keys = [] if name in in_axis_names else [self._selected_obj]
             else:
+                unique_cols = set(self._selected_obj.columns)
+                if subset is not None:
+                    subsetted = set(subset)
+                    clashing = subsetted & set(in_axis_names)
+                    if clashing:
+                        raise ValueError(
+                            f"Keys {clashing} in subset cannot be in "
+                            "the groupby column keys."
+                        )
+                    doesnt_exist = subsetted - unique_cols
+                    if doesnt_exist:
+                        raise ValueError(
+                            f"Keys {doesnt_exist} in subset do not "
+                            f"exist in the DataFrame."
+                        )
+                else:
+                    subsetted = unique_cols
+
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
                     for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names
+                    if name not in in_axis_names and name in subsetted
                 ]
-
-            if subset is not None:
-                clashing = set(subset) & set(in_axis_names)
-                if clashing:
-                    raise ValueError(
-                        f"Keys {clashing} in subset cannot be in "
-                        "the groupby column keys"
-                    )
 
             groupings = list(self.grouper.groupings)
             for key in keys:
