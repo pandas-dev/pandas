@@ -80,7 +80,7 @@ jobs:
 
     - name: Upload prod docs
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/version/${GITHUB_REF_NAME}
-      if: github.event_name == 'push' && startsWidth(github.ref, 'refs/tags/')
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
