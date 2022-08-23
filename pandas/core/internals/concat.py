@@ -471,7 +471,7 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if blk_dtype == empty_dtype and self.indexers:
+                if is_dtype_equal(blk_dtype, empty_dtype) and self.indexers:
                     # avoid creating new empty array if we already have an array
                     # with correct dtype that can be reindexed
                     pass
