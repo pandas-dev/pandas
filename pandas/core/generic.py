@@ -6877,6 +6877,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in value.items():
                     if k not in result:
                         continue
+
                     # error: Item "None" of "Optional[Dict[Any, Any]]" has no
                     # attribute "get"
                     downcast_k = (
@@ -6884,9 +6885,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if not is_dict
                         else downcast.get(k)  # type: ignore[union-attr]
                     )
-                    result.loc[:, k] = result[k].fillna(
-                        v, limit=limit, downcast=downcast_k
+                    # GH47649
+                    result.loc[:, k] = (
+                        result[k].fillna(v, limit=limit, downcast=downcast_k).values
                     )
+                    # TODO: result.loc[:, k] = result.loc[:, k].fillna(
+                    #     v, limit=limit, downcast=downcast_k
+                    # )
+                    # Revert when GH45751 is fixed
                 return result if not inplace else None
 
             elif not is_list_like(value):
