@@ -31,7 +31,7 @@ def test_iat_getitem_series_with_period_index():
     assert expected == result
 
 
-def test_iat_setitem_item_cache_cleared(indexer_ial):
+def test_iat_setitem_item_cache_cleared(indexer_ial, using_copy_on_write):
     # GH#45684
     data = {"x": np.arange(8, dtype=np.int64), "y": np.int64(0)}
     df = DataFrame(data).copy()
@@ -44,5 +44,6 @@ def test_iat_setitem_item_cache_cleared(indexer_ial):
     indexer_ial(df)[7, 1] = 1234
 
     assert df.iat[7, 1] == 1234
-    assert ser.iloc[-1] == 1234
+    if not using_copy_on_write:
+        assert ser.iloc[-1] == 1234
     assert df.iloc[-1, -1] == 1234
