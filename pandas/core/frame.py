@@ -4378,7 +4378,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
+        mgr = self._mgr._get_data_subset(predicate).copy()
         return type(self)(mgr).__finalize__(self)
 
     def insert(
