@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in calling bitwise numpy ufuncs (for example, ``np.bitwise_and``) on Index objects (:issue:`46769`)
 - Fixed regression in :func:`cut` using a ``datetime64`` IntervalIndex as bins (:issue:`46218`)
 - Fixed regression in :meth:`DataFrame.select_dtypes` where ``include="number"`` included :class:`BooleanDtype` (:issue:`46870`)
+- Fixed regression in :meth:`DataFrame.loc` raising error when indexing with a ``NamedTuple`` (:issue:`48124`)
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
 - Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in :meth:`DataFrame.loc` setting a length-1 array like value to a single value in the DataFrame (:issue:`46268`)
