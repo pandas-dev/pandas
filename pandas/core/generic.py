@@ -4619,9 +4619,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
-    def add_prefix(
-        self: NDFrameT, prefix: str, axis: Axis | None = None
-    ) -> NDFrameT:
+    def add_prefix(self: NDFrameT, prefix: str, axis: Axis | None = None) -> NDFrameT:
         """
         Prefix labels with string `prefix`.
 
@@ -4693,9 +4691,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     @final
-    def add_suffix(
-        self: NDFrameT, suffix: str, axis: Axis | None = None
-    ) -> NDFrameT:
+    def add_suffix(self: NDFrameT, suffix: str, axis: Axis | None = None) -> NDFrameT:
         """
         Suffix labels with string `suffix`.
 
