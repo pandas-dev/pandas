@@ -150,7 +150,12 @@ CAPITALIZATION_EXCEPTIONS = {
     "LZMA",
     "Numba",
     "Timestamp",
-    "PyArrow",
+    "STUMPY",
+    "IDE",
+    "plotnine",
+    "D-Tale",
+    "pandaSDMX",
+    "PyArrow"
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -184,12 +189,20 @@ def correct_title_capitalization(title: str) -> str:
     # first word character.
     correct_title: str = re.sub(r"^\W*", "", title).capitalize()
 
-    # Remove a URL from the title. We do this because words in a URL must
-    # stay lowercase, even if they are a capitalization exception.
-    removed_https_title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", correct_title)
-
     # Split a title into a list using non-word character delimiters.
-    word_list = re.split(r"\W", removed_https_title)
+    word_list = re.split(r"\W", correct_title)
+
+    # Recombine hyphenated words
+    for word in correct_title.split():
+        if '-' in word:
+            lst = word.split('-')
+            first = lst[0]
+            for idx, val in enumerate(word_list):
+                if val == first:
+                    for _ in range(len(lst)):
+                        del word_list[idx]
+                    word_list.insert(idx, '-'.join(lst))
+                    break
 
     for word in word_list:
         if word.lower() in CAP_EXCEPTIONS_DICT:
@@ -255,10 +268,12 @@ def main(source_paths: list[str]) -> int:
 
     for filename in source_paths:
         for title, line_number in find_titles(filename):
-            if title != correct_title_capitalization(title):
+            removed_https_title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", title)
+            if removed_https_title != correct_title_capitalization(removed_https_title):
                 print(
-                    f"""{filename}:{line_number}:{err_msg} "{title}" to "{
-                    correct_title_capitalization(title)}" """
+                    f"""{filename}:{line_number}:{err_msg} "{
+                    removed_https_title.strip()}" to "{
+                    correct_title_capitalization(removed_https_title).strip()}" """
                 )
                 number_of_errors += 1
 
