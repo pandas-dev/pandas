@@ -30,7 +30,7 @@
     </ul>
     </div>
 
-How to create new columns derived from existing columns?
+How to create new columns derived from existing columns
 --------------------------------------------------------
 
 .. image:: ../../_static/schemas/05_newcolumn_1.svg

@@ -29,7 +29,7 @@
         </ul>
     </div>
 
-How to manipulate textual data?
+How to manipulate textual data
 -------------------------------
 
 .. raw:: html

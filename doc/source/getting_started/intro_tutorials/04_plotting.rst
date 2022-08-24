@@ -2,7 +2,7 @@
 
 {{ header }}
 
-How do I create plots in pandas?
+How to create plots in pandas
 ----------------------------------
 
 .. image:: ../../_static/schemas/04_plot_overview.svg

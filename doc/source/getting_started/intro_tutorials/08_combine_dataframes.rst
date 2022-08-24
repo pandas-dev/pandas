@@ -88,7 +88,7 @@ Westminster* in respectively Paris, Antwerp and London.
     </div>
 
 
-How to combine data from multiple tables?
+How to combine data from multiple tables
 -----------------------------------------
 
 Concatenating objects
