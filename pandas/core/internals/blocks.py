@@ -608,6 +608,15 @@ class Block(PandasObject):
                 blocks = [blk]
             return blocks
 
+        elif value is None and not self.is_object:
+            blk = self.astype(np.dtype(object))
+            return blk.replace(
+                to_replace=to_replace,
+                value=value,
+                inplace=True,
+                mask=mask,
+            )
+
         elif self.ndim == 1 or self.shape[0] == 1:
             blk = self.coerce_to_target_dtype(value)
             return blk.replace(
