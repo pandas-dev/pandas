@@ -4,6 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
 
   # test dependencies
   - cython=0.29.32

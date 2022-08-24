@@ -1,6 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
+pip
 cython==0.29.32
 pytest>=6.0
 pytest-cov
