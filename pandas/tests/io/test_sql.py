@@ -2974,7 +2974,7 @@ class TestXSQLite:
         self.drop_table(table_name)
 
     def test_index_consistency_df_and_sql_df(self):
-        # GH48193
+        # GH47608
         cur = self.conn.cursor()
 
         cur.execute("CREATE TABLE data (id int, val real)")
