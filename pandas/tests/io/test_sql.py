@@ -2972,21 +2972,3 @@ class TestXSQLite:
             (5, "E"),
         ]
         self.drop_table(table_name)
-
-    def test_index_consistency_df_and_sql_df(self):
-        # GH48193
-        cur = self.conn.cursor()
-
-        cur.execute("CREATE TABLE data (id int, val real)")
-        cur.execute("INSERT INTO data VALUES (1, 150.0), (2, 160.0)")
-        self.conn.commit()
-
-        result = pd.read_sql("SELECT * FROM data", self.conn)
-        expected = DataFrame({"id": [1, 2], "val": [150.0, 160.0]})
-        tm.assert_frame_equal(result, expected)
-
-        result = pd.read_sql("SELECT * FROM data WHERE (1 = 0)", self.conn).astype(
-            float
-        )
-        expected = DataFrame({"id": [], "val": []})
-        tm.assert_frame_equal(result, expected)
