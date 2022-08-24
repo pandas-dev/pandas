@@ -396,10 +396,9 @@ class TestFromRecords:
         # GH#2179
 
         data = {1: ["foo"], 2: ["bar"]}
-        index = RangeIndex(start=0, stop=0, step=1)
 
         result = DataFrame.from_records(data, columns=["a", "b"])
-        exp = DataFrame(data, columns=["a", "b"], index=index)
+        exp = DataFrame(data, columns=["a", "b"])
         tm.assert_frame_equal(result, exp)
 
         # overlap in index/index_names
@@ -433,14 +432,12 @@ class TestFromRecords:
 
     def test_from_records_empty(self):
         # GH#3562
-        index = RangeIndex(start=0, stop=0, step=1)
-
         result = DataFrame.from_records([], columns=["a", "b", "c"])
-        expected = DataFrame(columns=["a", "b", "c"], index=index)
+        expected = DataFrame(columns=["a", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
         result = DataFrame.from_records([], columns=["a", "b", "b"])
-        expected = DataFrame(columns=["a", "b", "b"], index=index)
+        expected = DataFrame(columns=["a", "b", "b"])
         tm.assert_frame_equal(result, expected)
 
     def test_from_records_empty_with_nonempty_fields_gh3682(self):
