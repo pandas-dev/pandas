@@ -459,7 +459,7 @@ class TestSelectDtypes:
         expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
+    @td.skip_array_manager_invalid_test
     def test_select_dtypes_no_view(self):
         # https://github.com/pandas-dev/pandas/issues/48090
         # result of this method is not a view on the original dataframe
