@@ -69,9 +69,9 @@ class TestNonNano:
 
     def test_timedelta_array_total_seconds(self):
         # GH34290
-        expected = pd.Timedelta("2 min").total_seconds()
+        expected = Timedelta("2 min").total_seconds()
 
-        result = pd.array([pd.Timedelta("2 min")]).total_seconds()[0]
+        result = pd.array([Timedelta("2 min")]).total_seconds()[0]
         assert result == expected
 
     @pytest.mark.parametrize(
