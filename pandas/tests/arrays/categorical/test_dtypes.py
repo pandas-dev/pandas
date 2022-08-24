@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -6,6 +7,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     Index,
+    IntervalIndex,
     Series,
     Timestamp,
 )
@@ -134,3 +136,11 @@ class TestCategoricalDtypes:
         cat = Categorical([Timestamp("2017-01-01"), Timestamp("2017-01-02")])
         assert isinstance(list(cat)[0], Timestamp)
         assert isinstance(cat.tolist()[0], Timestamp)
+
+    def test_interval_index_category(self):
+        # GH 38316
+        index = IntervalIndex.from_breaks(np.arange(5, dtype="uint64"))
+
+        result_subtype = CategoricalIndex(index).dtype.categories.dtype.subtype
+        expected_subtype = "uint64"
+        assert result_subtype == expected_subtype
