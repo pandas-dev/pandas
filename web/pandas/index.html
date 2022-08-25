@@ -66,7 +66,6 @@
                         <li><a href="docs/whatsnew/v{{ releases[0].name }}.html">What's new in {{ releases[0].name }}</a></li>
                         <li>Release date:<br/>{{ releases[0].published.strftime("%b %d, %Y") }}</li>
                         <li><a href="{{ base_url}}/docs/">Documentation (web)</a></li>
-                        <li><a href="{{ base_url }}/docs/pandas.pdf">Documentation (pdf)</a></li>
                         <li><a href="{{ releases[0].url }}">Download source code</a></li>
                     </ul>
                 {% endif %}
@@ -100,7 +99,6 @@
                                 {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
-                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/pandas.pdf">pdf</a> |
                                 <a href="{{ release.url }}">code</a>
                             </li>
                         {% endfor %}
@@ -116,7 +114,6 @@
                                 {{ release.name }} ({{ release.published.strftime("%Y-%m-%d") }})<br/>
                                 <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
                                 <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
-                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/pandas.pdf">pdf</a> |
                                 <a href="{{ release.url }}">code</a>
                             </li>
                         {% endfor %}
