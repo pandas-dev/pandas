@@ -17,8 +17,8 @@ from pandas.core.arrays import ExtensionArray
 
 
 class FloatAttrDtype(ExtensionDtype):
-    type = int
-    name = "int_attr"
+    type = float
+    name = "float_attr"
     na_value = np.nan
 
     @classmethod
@@ -82,7 +82,3 @@ class FloatAttrArray(ExtensionArray):
         data = np.concatenate([x.data for x in to_concat])
         attr = to_concat[0].attr if len(to_concat) else None
         return cls(data, attr)
-
-
-def make_data():
-    return np.arange(100, dtype="float64")

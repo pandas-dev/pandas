@@ -1,26 +1,11 @@
 import numpy as np
-import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.array_with_attr import (
-    FloatAttrArray,
-    FloatAttrDtype,
-    make_data,
-)
+from pandas.tests.extension.array_with_attr import FloatAttrArray
 
 
-@pytest.fixture
-def dtype():
-    return FloatAttrDtype()
-
-
-@pytest.fixture
-def data():
-    return FloatAttrArray(make_data())
-
-
-def test_concat_with_all_na(data):
+def test_concat_with_all_na():
     # https://github.com/pandas-dev/pandas/pull/47762
     # ensure that attribute of the column array is preserved (when it gets
     # preserved in reindexing the array) during merge/concat
