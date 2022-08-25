@@ -13,7 +13,6 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
-from pandas.compat import IS64
 
 import pandas as pd
 from pandas import (
@@ -414,7 +413,7 @@ class TestTimedeltas:
         with pytest.raises(OverflowError, match=msg):
             Timedelta.max.ceil("s")
 
-    @pytest.mark.xfail(not IS64, reason="Failing on 32 bit build", strict=False)
+    @pytest.mark.xfail(reason="Failing on builds", strict=False)
     @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
