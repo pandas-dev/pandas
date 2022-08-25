@@ -67,6 +67,13 @@ class TestNonNano:
         expected = tda_nano.total_seconds()
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_timedelta_array_total_seconds(self):
+        # GH34290
+        expected = Timedelta("2 min").total_seconds()
+
+        result = pd.array([Timedelta("2 min")]).total_seconds()[0]
+        assert result == expected
+
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )
