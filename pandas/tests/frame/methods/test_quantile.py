@@ -751,6 +751,9 @@ class TestDataFrameQuantile:
         exp = Series([np.nan, np.nan], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The behavior of DatetimeArray._from_sequence:FutureWarning"
+    )
     def test_quantile_empty_no_rows_dt64(self, interp_method):
         interpolation, method = interp_method
         # datetimes
