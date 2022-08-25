@@ -471,7 +471,7 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                elif is_datetime64tz_dtype(empty_dtype):
+                if is_datetime64tz_dtype(empty_dtype):
                     i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
