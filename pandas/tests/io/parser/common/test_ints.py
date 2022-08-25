@@ -124,12 +124,14 @@ def _iinfo(dtype):
 
 _raises_any_integer_cast_exception = pytest.raises(  # noqa: PDF010
     (OverflowError, TypeError, ValueError),
-    match=(
-        "(Overflow)|"
-        "(Python int too large to convert to C long)|"
-        "(cannot safely cast non-equivalent)|"
-        "(Integer out of range)|"
-        "(Unable to convert column)"
+    match="|".join(
+        [
+            "Overflow",
+            "cannot safely cast non-equivalent",
+            "Integer out of range",
+            "Unable to convert column",
+            "The elements provided in the data cannot all be casted to the dtype",
+        ]
     ),
 )
 
@@ -162,13 +164,13 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, ex
     ):
         expected = tm.assert_produces_warning(
             FutureWarning,
-            match=f"Values are too large to be losslessly cast to {dtype}.",
+            match=f"Values are too large to be losslessly cast to {np.dtype(dtype)}.",
             check_stacklevel=False,
         )
 
     with expected:
         result = parser.read_csv(StringIO(data), dtype=dtype)
-    if "result" in locals():
+    if isinstance(expected, nullcontext):
         expected_result = DataFrame({"A": [val]}, dtype=dtype)
         tm.assert_frame_equal(result, expected_result)
 
