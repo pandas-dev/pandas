@@ -52,6 +52,10 @@ PyArrow
 
     This feature is experimental, and the API can change in a future release without warning.
 
+The ``dtype`` argument of :class:`Series` and :class:`DataFrame` can accept a string of a `pyarrow data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
+with ``pyarrow`` in brackets e.g. ``"int64[pyarrow]"`` or, for pyarrow data types that take parameters, a :class:`ArrowDtype`
+initialized with a ``pyarrow.DataType``.
+
 The :class:`arrays.ArrowExtensionArray` is backed by a :external+pyarrow:py:class:`pyarrow.ChunkedArray` with a
 :external+pyarrow:py:class:`pyarrow.DataType` instead of a NumPy array and data type. The ``.dtype`` of a :class:`arrays.ArrowExtensionArray`
 is an :class:`ArrowDtype`.

@@ -199,6 +199,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     <ArrowExtensionArray>
     [1, 1, <NA>]
     Length: 3, dtype: int64[pyarrow]
+
+    Create a ArrowExtensionArray directly from an pyarrow array.
+    >>> import pyarrow as pa
+    >>> pd.arrays.ArrowExtensionArray(pa.array([1, 1, None]))
+    <ArrowExtensionArray>
+    [1, 1, <NA>]
+    Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
     _data: pa.ChunkedArray

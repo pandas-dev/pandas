@@ -420,15 +420,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        elif pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
         super().test_groupby_extension_no_sort(data_for_grouping)
 
     def test_groupby_extension_transform(self, data_for_grouping, request):
@@ -453,7 +444,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
         # Is there a better way to get the "series" ID for groupby_apply_op?
-        is_series = "series" in request.node.nodeid
         is_object = "object" in request.node.nodeid
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -470,13 +460,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     pytest.mark.xfail(
                         raises=TypeError,
                         reason="GH 47514: _concat_datetime expects axis arg.",
-                    )
-                )
-            elif not is_series:
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        raises=AttributeError,
-                        reason="GH 34986",
                     )
                 )
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
@@ -506,16 +489,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
-        elif as_index is True and (
-            pa.types.is_date(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
                 )
             )
         super().test_groupby_extension_agg(as_index, data_for_grouping)
@@ -752,20 +725,15 @@ class TestBaseReshaping(base.BaseReshapingTests):
 
     def test_concat_with_reindex(self, data, request, using_array_manager):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
+        if (
+            pa.types.is_duration(pa_dtype)
+            or pa.types.is_date(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=TypeError,
                     reason="GH 47514: _concat_datetime expects axis arg.",
-                )
-            )
-        elif pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError if not using_array_manager else TypeError,
-                    reason="GH 34986",
                 )
             )
         super().test_concat_with_reindex(data)
@@ -809,32 +777,6 @@ class TestBaseReshaping(base.BaseReshapingTests):
                 )
             )
         super().test_merge(data, na_value)
-
-    def test_merge_on_extension_array(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        super().test_merge_on_extension_array(data)
-
-    def test_merge_on_extension_array_duplicates(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        super().test_merge_on_extension_array_duplicates(data)
 
     def test_ravel(self, data, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
@@ -1348,16 +1290,7 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
+        if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -1368,16 +1301,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_value_counts_with_normalize(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
+        if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -2063,3 +1987,11 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     result = ser.mode(dropna=dropna)
     expected = pd.Series(data_for_grouping.take(exp_idx))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", ["Series", "DataFrame"])
+def test_repr_from_arrow_array(data, box):
+    # GH 34986 & 48238
+    pa_array = pa.array([data[0], None])
+    result = getattr(pd, box)(pa_array, dtype=ArrowDtype(pa_array.type))
+    repr(result)
