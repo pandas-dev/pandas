@@ -122,8 +122,15 @@ def _iinfo(dtype):
     return iinfo
 
 
-_raises_int_overflow = pytest.raises(  # noqa: PDF010
-    (OverflowError, TypeError, ValueError), match=None
+_raises_any_integer_cast_exception = pytest.raises(  # noqa: PDF010
+    (OverflowError, TypeError, ValueError),
+    match=(
+        "(Overflow)|"
+        "(Python int too large to convert to C long)|"
+        "(cannot safely cast non-equivalent)|"
+        "(Integer out of range)|"
+        "(Unable to convert column)"
+    ),
 )
 
 
@@ -133,8 +140,8 @@ _raises_int_overflow = pytest.raises(  # noqa: PDF010
     [
         (lambda dtype: _iinfo(dtype).max, nullcontext()),  # in range does not raise
         (lambda dtype: _iinfo(dtype).min, nullcontext()),  # in range does not raise
-        (lambda dtype: _iinfo(dtype).max + 1, _raises_int_overflow),
-        (lambda dtype: _iinfo(dtype).min - 1, _raises_int_overflow),
+        (lambda dtype: _iinfo(dtype).max + 1, _raises_any_integer_cast_exception),
+        (lambda dtype: _iinfo(dtype).min - 1, _raises_any_integer_cast_exception),
     ],
 )
 def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, expected):
@@ -147,7 +154,7 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, ex
     # int8, int16, int32 only throw a FutureWarning until deprecation from #41734
     # becomes enforced. After enforcement, the following block must be deleted.
     if (
-        (expected is _raises_int_overflow)
+        (expected == _raises_any_integer_cast_exception)
         and (parser.engine == "python")
         and (not is_extension_array_dtype(dtype))
         and (dtype < np.dtype("int64"))
