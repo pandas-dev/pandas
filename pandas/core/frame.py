@@ -2281,6 +2281,10 @@ class DataFrame(NDFrame, OpsMixin):
                 length = 0
 
             result_index = None
+            if len(arrays) == 0 and index is None and length == 0:
+                # for backward compat use an object Index instead of RangeIndex
+                result_index = Index([])
+
             arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
             return arrays, arr_columns, result_index
 
