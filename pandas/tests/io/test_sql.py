@@ -2985,8 +2985,7 @@ class TestXSQLite:
         expected = DataFrame({"id": [1, 2], "val": [150.0, 160.0]})
         tm.assert_frame_equal(result, expected)
 
-        result = pd.read_sql("SELECT * FROM data WHERE (1 = 0)", self.conn).astype(
-            float
-        )
+        result = pd.read_sql("SELECT * FROM data WHERE (1 = 0)", self.conn)
+
         expected = DataFrame({"id": [], "val": []})
         tm.assert_frame_equal(result, expected)
