@@ -22,6 +22,7 @@ from pandas import (
     Interval,
     NaT,
     Series,
+    SparseDtype,
     Timestamp,
     array,
     concat,
@@ -427,6 +428,13 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df.iloc[0:10, 2:], df1)
         tm.assert_frame_equal(df.iloc[10:, :2], df2)
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
+
+    def test_iloc_getitem_sparse_df(self):
+        # GH#46406
+        df = DataFrame([[1.0, 0.0, 1.5], [0.0, 2.0, 0.0]], dtype=SparseDtype(float))
+        result = df.iloc[0]
+        expected = Series([1.0, 0.0, 1.5], dtype=SparseDtype(float), name=0)
+        tm.assert_series_equal(result, expected)
 
     def test_iloc_setitem(self):
         df = DataFrame(
