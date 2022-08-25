@@ -384,7 +384,7 @@ class TestDataFrameSortIndex:
 
         result = model.groupby(["X1", "X2"], observed=True).mean().unstack()
         expected = IntervalIndex.from_tuples(
-            [(-3.0, -0.5), (-0.5, 0.0), (0.0, 0.5), (0.5, 3.0)], inclusive="right"
+            [(-3.0, -0.5), (-0.5, 0.0), (0.0, 0.5), (0.5, 3.0)], closed="right"
         )
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
@@ -729,11 +729,7 @@ class TestDataFrameSortIndex:
         [
             pytest.param(["a", "b", "c"], id="str"),
             pytest.param(
-                [
-                    pd.Interval(0, 1, "right"),
-                    pd.Interval(1, 2, "right"),
-                    pd.Interval(2, 3, "right"),
-                ],
+                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
                 id="pd.Interval",
             ),
         ],

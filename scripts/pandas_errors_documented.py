@@ -22,7 +22,7 @@ def get_defined_errors(content: str) -> set[str]:
     for node in ast.walk(ast.parse(content)):
         if isinstance(node, ast.ClassDef):
             errors.add(node.name)
-        elif isinstance(node, ast.ImportFrom):
+        elif isinstance(node, ast.ImportFrom) and node.module != "__future__":
             for alias in node.names:
                 errors.add(alias.name)
     return errors
@@ -41,7 +41,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     missing = file_errors.difference(doc_errors)
     if missing:
         sys.stdout.write(
-            f"The follow exceptions and/or warnings are not documented "
+            f"The following exceptions and/or warnings are not documented "
             f"in {API_PATH}: {missing}"
         )
         sys.exit(1)

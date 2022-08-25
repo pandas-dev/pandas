@@ -1,6 +1,7 @@
 # being a bit too dynamic
 from __future__ import annotations
 
+import inspect
 from math import ceil
 from typing import (
     TYPE_CHECKING,
@@ -50,7 +51,7 @@ def maybe_adjust_figure(fig: Figure, *args, **kwargs):
         fig.subplots_adjust(*args, **kwargs)
 
 
-def format_date_labels(ax: Axes, rot):
+def format_date_labels(ax: Axes, rot) -> None:
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")
@@ -83,7 +84,11 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
+def _get_layout(
+    nplots: int,
+    layout: tuple[int, int] | None = None,
+    layout_type: str = "box",
+) -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -229,13 +234,14 @@ def create_subplots(
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored.",
                     UserWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
                     "are ignored. These settings must be specified when creating axes.",
                     UserWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             if ax.size == naxes:
                 fig = ax.flat[0].get_figure()
@@ -258,7 +264,7 @@ def create_subplots(
                 "To output multiple subplots, the figure containing "
                 "the passed axes is being cleared.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             fig.clear()
 

@@ -1908,3 +1908,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH41174
         result = data.to_json()
         assert result == expected
+
+    def test_json_uint64(self):
+        # GH21073
+        expected = (
+            '{"columns":["col1"],"index":[0,1],'
+            '"data":[[13342205958987758245],[12388075603347835679]]}'
+        )
+        df = DataFrame(data={"col1": [13342205958987758245, 12388075603347835679]})
+        result = df.to_json(orient="split")
+        assert result == expected

@@ -387,8 +387,8 @@ class TestDataFrameCombineFirst:
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         )
         df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
-        df.set_index(["a", "b"], inplace=True)
-        df2.set_index(["a", "b"], inplace=True)
+        df = df.set_index(["a", "b"], copy=False)
+        df2 = df2.set_index(["a", "b"], copy=False)
         result = df.combine_first(df2)
         expected = DataFrame(
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
@@ -402,7 +402,7 @@ class TestDataFrameCombineFirst:
         (datetime(2020, 1, 1), datetime(2020, 1, 2)),
         (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
         (pd.Timedelta("89 days"), pd.Timedelta("60 min")),
-        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, inclusive="left")),
+        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, closed="left")),
     ],
 )
 def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):

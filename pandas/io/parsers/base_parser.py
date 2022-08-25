@@ -5,8 +5,10 @@ from copy import copy
 import csv
 import datetime
 from enum import Enum
+import inspect
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -32,6 +34,7 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
+    Scalar,
 )
 from pandas.errors import (
     ParserError,
@@ -58,7 +61,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import DataFrame
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.api import (
@@ -70,6 +72,9 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.date_converters import generic_parser
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 class ParserBase:
@@ -89,7 +94,7 @@ class ParserBase:
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
-        self.index_names: list | None = None
+        self.index_names: Sequence[Hashable] | None = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -219,7 +224,7 @@ class ParserBase:
             for col in cols_needed
         ]
 
-    def close(self):
+    def close(self) -> None:
         pass
 
     @final
@@ -365,7 +370,7 @@ class ParserBase:
 
     @final
     def _make_index(
-        self, data, alldata, columns, indexnamerow=False
+        self, data, alldata, columns, indexnamerow: list[Scalar] | None = None
     ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
         index: Index | None
         if not is_index_col(self.index_col) or not self.index_col:
@@ -555,7 +560,7 @@ class ParserBase:
                             f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
                 try:
@@ -853,7 +858,7 @@ class ParserBase:
                 "Length of header or names does not match length of data. This leads "
                 "to a loss of data with index_col=False.",
                 ParserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     @overload

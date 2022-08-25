@@ -3,6 +3,7 @@ Common type operations.
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     Any,
     Callable,
@@ -36,7 +37,7 @@ from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCIndex,
 )
-from pandas.core.dtypes.inference import (  # noqa:F401
+from pandas.core.dtypes.inference import (
     is_array_like,
     is_bool,
     is_complex,
@@ -99,6 +100,7 @@ ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
+ensure_uint64 = algos.ensure_uint64
 
 
 def ensure_str(value: bytes | Any) -> str:
@@ -307,7 +309,7 @@ def is_categorical(arr) -> bool:
         "is_categorical is deprecated and will be removed in a future version. "
         "Use is_categorical_dtype instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
@@ -479,7 +481,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype([1, 2, 3])
     False
     >>>
-    >>> interval = pd.Interval(1, 2, inclusive="right")
+    >>> interval = pd.Interval(1, 2, closed="right")
     >>> is_interval_dtype(interval)
     False
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
@@ -966,7 +968,9 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
             tipo = get_dtype(arr_or_dtype.dtype)
         else:
             return False
-    return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
+    return tipo == DT64NS_DTYPE or (
+        isinstance(tipo, DatetimeTZDtype) and tipo._unit == "ns"
+    )
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
@@ -1039,7 +1043,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
-def is_numeric_v_string_like(a: ArrayLike, b):
+def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     """
     Check if we are comparing a string-like object to a numeric ndarray.
     NumPy doesn't like to compare such objects, especially numeric arrays
@@ -1088,7 +1092,7 @@ def is_numeric_v_string_like(a: ArrayLike, b):
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
-def is_datetimelike_v_numeric(a, b):
+def is_datetimelike_v_numeric(a, b) -> bool:
     """
     Check if we are comparing a datetime-like object to a numeric object.
     By "numeric," we mean an object that is either of an int or float dtype.
@@ -1241,8 +1245,6 @@ def is_float_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a float dtype.
 
-    This function is internal and should not be exposed in the public API.
-
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -1384,7 +1386,7 @@ def is_extension_type(arr) -> bool:
         "'is_extension_type' is deprecated and will be removed in a future "
         "version.  Use 'is_extension_array_dtype' instead.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
 
     if is_categorical_dtype(arr):
@@ -1812,3 +1814,70 @@ def is_all_strings(value: ArrayLike) -> bool:
     elif isinstance(dtype, CategoricalDtype):
         return dtype.categories.inferred_type == "string"
     return dtype == "string"
+
+
+__all__ = [
+    "classes",
+    "classes_and_not_datetimelike",
+    "DT64NS_DTYPE",
+    "ensure_float",
+    "ensure_float64",
+    "ensure_python_int",
+    "ensure_str",
+    "get_dtype",
+    "infer_dtype_from_object",
+    "INT64_DTYPE",
+    "is_1d_only_ea_dtype",
+    "is_1d_only_ea_obj",
+    "is_all_strings",
+    "is_any_int_dtype",
+    "is_array_like",
+    "is_bool",
+    "is_bool_dtype",
+    "is_categorical",
+    "is_categorical_dtype",
+    "is_complex",
+    "is_complex_dtype",
+    "is_dataclass",
+    "is_datetime64_any_dtype",
+    "is_datetime64_dtype",
+    "is_datetime64_ns_dtype",
+    "is_datetime64tz_dtype",
+    "is_datetimelike_v_numeric",
+    "is_datetime_or_timedelta_dtype",
+    "is_decimal",
+    "is_dict_like",
+    "is_dtype_equal",
+    "is_ea_or_datetimelike_dtype",
+    "is_extension_array_dtype",
+    "is_extension_type",
+    "is_file_like",
+    "is_float_dtype",
+    "is_int64_dtype",
+    "is_integer_dtype",
+    "is_interval",
+    "is_interval_dtype",
+    "is_iterator",
+    "is_named_tuple",
+    "is_nested_list_like",
+    "is_number",
+    "is_numeric_dtype",
+    "is_numeric_v_string_like",
+    "is_object_dtype",
+    "is_period_dtype",
+    "is_re",
+    "is_re_compilable",
+    "is_scipy_sparse",
+    "is_sequence",
+    "is_signed_integer_dtype",
+    "is_sparse",
+    "is_string_dtype",
+    "is_string_or_object_np_dtype",
+    "is_timedelta64_dtype",
+    "is_timedelta64_ns_dtype",
+    "is_unsigned_integer_dtype",
+    "needs_i8_conversion",
+    "pandas_dtype",
+    "TD64NS_DTYPE",
+    "validate_all_hashable",
+]

@@ -47,8 +47,9 @@ from pandas.core.indexes.extension import inherit_names
 )
 class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
-    Immutable ndarray of timedelta64 data, represented internally as int64, and
-    which can be boxed to timedelta objects.
+    Immutable Index of timedelta64 data.
+
+    Represented internally as int64, and scalars returned Timedelta objects.
 
     Parameters
     ----------
@@ -101,7 +102,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     _typ = "timedeltaindex"
 
     _data_cls = TimedeltaArray
-    _engine_type = libindex.TimedeltaEngine
+
+    @property
+    def _engine_type(self) -> type[libindex.TimedeltaEngine]:
+        return libindex.TimedeltaEngine
 
     _data: TimedeltaArray
 
@@ -132,6 +136,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 "represent unambiguous timedelta values durations."
             )
 
+        # FIXME: need to check for dtype/data match
         if isinstance(data, TimedeltaArray) and freq is lib.no_default:
             if copy:
                 data = data.copy()
@@ -205,8 +210,7 @@ def timedelta_range(
     closed=None,
 ) -> TimedeltaIndex:
     """
-    Return a fixed frequency TimedeltaIndex, with day as the default
-    frequency.
+    Return a fixed frequency TimedeltaIndex with day as the default.
 
     Parameters
     ----------

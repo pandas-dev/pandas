@@ -159,7 +159,7 @@ class TestDataFrameAppend:
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
-    def test_append_dtypes(self):
+    def test_append_dtypes(self, using_array_manager):
 
         # GH 5754
         # row appends of different dtypes (so need to do by-item)
@@ -183,7 +183,10 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
-        expected = expected.astype(object)
+        if using_array_manager:
+            # TODO(ArrayManager) decide on exact casting rules in concat
+            # With ArrayManager, all-NaN float is not ignored
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
@@ -192,7 +195,9 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
-        expected = expected.astype(object)
+        if using_array_manager:
+            # With ArrayManager, all-NaN float is not ignored
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": np.nan}, index=range(1))
@@ -201,7 +206,9 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([np.nan, Timestamp("20130101")], dtype="M8[ns]")}
         )
-        expected = expected.astype(object)
+        if using_array_manager:
+            # With ArrayManager, all-NaN float is not ignored
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import abc
 from datetime import datetime
 from functools import partial
+import inspect
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
@@ -29,7 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     timezones,
 )
-from pandas._libs.tslibs.parsing import (  # noqa:F401
+from pandas._libs.tslibs.parsing import (
     DateParseError,
     format_is_iso,
     guess_datetime_format,
@@ -91,7 +92,7 @@ if TYPE_CHECKING:
 # types used in annotations
 
 ArrayConvertible = Union[List, Tuple, AnyArrayLike]
-Scalar = Union[int, float, str]
+Scalar = Union[float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
@@ -227,7 +228,11 @@ def _maybe_cache(
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
-            cache_array = Series(cache_dates, index=unique_dates)
+            # GH#45319
+            try:
+                cache_array = Series(cache_dates, index=unique_dates)
+            except OutOfBoundsDatetime:
+                return cache_array
             # GH#39882 and GH#35888 in case of None and NaT we get duplicates
             if not cache_array.index.is_unique:
                 cache_array = cache_array[~cache_array.index.duplicated()]
@@ -266,7 +271,7 @@ def _box_as_indexlike(
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: Series,
-    name: str | None = None,
+    name: Hashable | None = None,
 ) -> Index:
     """
     Convert array of dates with a cache and wrap the result in an Index.
@@ -1284,8 +1289,16 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     from pandas.core.tools.times import to_time
 
     return to_time(arg, format, infer_time_format, errors)
+
+
+__all__ = [
+    "DateParseError",
+    "should_cache",
+    "to_datetime",
+    "to_time",
+]

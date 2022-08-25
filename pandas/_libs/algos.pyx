@@ -180,6 +180,8 @@ def is_lexsorted(list_of_arrays: list) -> bint:
                 else:
                     result = False
                     break
+            if not result:
+                break
     free(vecs)
     return result
 
@@ -322,6 +324,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
@@ -354,8 +357,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                         nobs += 1
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1 / nobs * dx
-                        meany += 1 / nobs * dy
+                        meanx += 1. / nobs * dx
+                        meany += 1. / nobs * dy
                         ssqdmx += (vx - meanx) * dx
                         ssqdmy += (vy - meany) * dy
                         covxy += (vx - meanx) * dy

@@ -158,12 +158,16 @@ def test_numpy_compat(method):
     # see gh-12811
     r = Rolling(Series([2, 4, 6]), window=2)
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(r, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(r, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to Rolling.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(r, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to Rolling.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(r, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
@@ -702,7 +706,7 @@ def test_rolling_window_as_string(center, expected_data):
     data = npr.randint(1, high=100, size=len(days))
     df = DataFrame({"DateCol": days, "metric": data})
 
-    df.set_index("DateCol", inplace=True)
+    df = df.set_index("DateCol", copy=False)
     result = df.rolling(window="21D", min_periods=2, closed="left", center=center)[
         "metric"
     ].agg("max")
@@ -1871,3 +1875,82 @@ def test_rolling_skew_kurt_floating_artifacts():
     assert (result[-2:] == 0).all()
     result = r.kurt()
     assert (result[-2:] == -3).all()
+
+
+def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    df = DataFrame({"a": [1], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    rolling = df.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    result = op(numeric_only=numeric_only)
+
+    columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+    expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
+    assert list(expected.columns) == columns
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
+    # GH#46560
+    df = DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    arg = (df,) if use_arg else ()
+    rolling = df.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    result = op(*arg, numeric_only=numeric_only)
+
+    # Compare result to op using float dtypes, dropping c when numeric_only is True
+    columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+    df2 = df[columns].astype(float)
+    arg2 = (df2,) if use_arg else ()
+    rolling2 = df2.rolling(2, min_periods=1)
+    op2 = getattr(rolling2, kernel)
+    expected = op2(*arg2, numeric_only=numeric_only)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    ser = Series([1], dtype=dtype)
+    rolling = ser.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    if numeric_only and dtype is object:
+        msg = f"Rolling.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(numeric_only=numeric_only)
+    else:
+        result = op(numeric_only=numeric_only)
+        expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
+    # GH#46560
+    ser = Series([1, 2, 3], dtype=dtype)
+    arg = (ser,) if use_arg else ()
+    rolling = ser.rolling(2, min_periods=1)
+    op = getattr(rolling, kernel)
+    if numeric_only and dtype is object:
+        msg = f"Rolling.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(*arg, numeric_only=numeric_only)
+    else:
+        result = op(*arg, numeric_only=numeric_only)
+
+        ser2 = ser.astype(float)
+        arg2 = (ser2,) if use_arg else ()
+        rolling2 = ser2.rolling(2, min_periods=1)
+        op2 = getattr(rolling2, kernel)
+        expected = op2(*arg2, numeric_only=numeric_only)
+        tm.assert_series_equal(result, expected)

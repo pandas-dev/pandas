@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import IndexingError
+
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
@@ -30,7 +32,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
@@ -534,6 +535,33 @@ class TestSetitemWithExpansion:
         expected = concat([string_series, app])
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_keep_precision(self, any_numeric_ea_dtype):
+        # GH#32346
+        ser = Series([1, 2], dtype=any_numeric_ea_dtype)
+        ser[2] = 10
+        expected = Series([1, 2, 10], dtype=any_numeric_ea_dtype)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("indexer", [1, 2])
+    @pytest.mark.parametrize(
+        "na, target_na, dtype, target_dtype",
+        [
+            (NA, NA, "Int64", "Int64"),
+            (NA, np.nan, "int64", "float64"),
+            (NaT, NaT, "int64", "object"),
+            (np.nan, NA, "Int64", "Int64"),
+            (np.nan, NA, "Float64", "Float64"),
+            (np.nan, np.nan, "int64", "float64"),
+        ],
+    )
+    def test_setitem_enlarge_with_na(self, na, target_na, dtype, target_dtype, indexer):
+        # GH#32346
+        ser = Series([1, 2], dtype=dtype)
+        ser[indexer] = na
+        expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
+        expected = Series(expected_values, dtype=target_dtype)
+        tm.assert_series_equal(ser, expected)
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer
@@ -779,14 +807,9 @@ class SetitemCastingEquivalents:
         pytest.param(
             # GH#45568 setting a valid NA value into IntervalDtype[int] should
             #  cast to IntervalDtype[float]
-            Series(interval_range(1, 5, inclusive="right")),
+            Series(interval_range(1, 5)),
             Series(
-                [
-                    Interval(1, 2, "right"),
-                    np.nan,
-                    Interval(3, 4, "right"),
-                    Interval(4, 5, "right"),
-                ],
+                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
                 dtype="interval[float64]",
             ),
             1,
@@ -1057,9 +1080,9 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
     def test_setitem_example(self):
         # Just a case here to make obvious what this test class is aimed at
-        idx = IntervalIndex.from_breaks(range(4), inclusive="right")
+        idx = IntervalIndex.from_breaks(range(4))
         obj = Series(idx)
-        val = Interval(0.5, 1.5, "right")
+        val = Interval(0.5, 1.5)
 
         obj[0] = val
         assert obj.dtype == "Interval[float64, right]"
@@ -1353,7 +1376,7 @@ class TestCoercionTimedelta64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, inclusive="both")]
+    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, closed="both")]
 )
 @pytest.mark.parametrize("exp_dtype", [object])
 class TestPeriodIntervalCoercion(CoercionTest):
@@ -1361,7 +1384,7 @@ class TestPeriodIntervalCoercion(CoercionTest):
     @pytest.fixture(
         params=[
             period_range("2016-01-01", periods=3, freq="D"),
-            interval_range(1, 5, inclusive="right"),
+            interval_range(1, 5),
         ]
     )
     def obj(self, request):
@@ -1552,7 +1575,7 @@ def test_setitem_int_as_positional_fallback_deprecation():
     # Once the deprecation is enforced, we will have
     #  expected = Series([1, 2, 3, 4, 5], index=[1.1, 2.1, 3.0, 4.1, 5.0])
 
-    ii = IntervalIndex.from_breaks(range(10), inclusive="right")[::2]
+    ii = IntervalIndex.from_breaks(range(10))[::2]
     ser2 = Series(range(len(ii)), index=ii)
     expected2 = ser2.copy()
     expected2.iloc[-1] = 9

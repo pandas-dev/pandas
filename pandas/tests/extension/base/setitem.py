@@ -10,7 +10,6 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -77,17 +76,10 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_series_equal(ser, original)
 
     def test_setitem_empty_indexer(self, data, box_in_series):
-        data_dtype = type(data)
-
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
-
-        if data_dtype == IntervalArray:
-            data[np.array([], dtype=int)] = IntervalArray([], "right")
-        else:
-            data[np.array([], dtype=int)] = []
-
+        data[np.array([], dtype=int)] = []
         self.assert_equal(data, original)
 
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
@@ -357,6 +349,20 @@ class BaseSetitemTests(BaseExtensionTests):
 
         self.assert_frame_equal(result, expected)
 
+    def test_setitem_with_expansion_row(self, data, na_value):
+        df = pd.DataFrame({"data": data[:1]})
+
+        df.loc[1, "data"] = data[1]
+        expected = pd.DataFrame({"data": data[:2]})
+        self.assert_frame_equal(df, expected)
+
+        # https://github.com/pandas-dev/pandas/issues/47284
+        df.loc[2, "data"] = na_value
+        expected = pd.DataFrame(
+            {"data": pd.Series([data[0], data[1], na_value], dtype=data.dtype)}
+        )
+        self.assert_frame_equal(df, expected)
+
     def test_setitem_series(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
         ser = pd.Series(data, name="data")
@@ -384,6 +390,7 @@ class BaseSetitemTests(BaseExtensionTests):
         # Avoiding using_array_manager fixture
         #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
         using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
+        using_copy_on_write = pd.options.mode.copy_on_write
 
         blk_data = df._mgr.arrays[0]
 
@@ -408,7 +415,7 @@ class BaseSetitemTests(BaseExtensionTests):
         with tm.assert_produces_warning(warn, match=msg):
             df.iloc[:] = df.values
         self.assert_frame_equal(df, orig)
-        if not using_array_manager:
+        if not using_array_manager and not using_copy_on_write:
             # GH#33457 Check that this setting occurred in-place
             # FIXME(ArrayManager): this should work there too
             assert df._mgr.arrays[0] is blk_data

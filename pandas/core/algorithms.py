@@ -4,6 +4,7 @@ intended for public consumption
 """
 from __future__ import annotations
 
+import inspect
 import operator
 from textwrap import dedent
 from typing import (
@@ -14,7 +15,7 @@ from typing import (
     cast,
     final,
 )
-from warnings import warn
+import warnings
 
 import numpy as np
 
@@ -57,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_signed_integer_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
@@ -402,6 +404,11 @@ def unique(values):
     >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
+    return unique_with_mask(values)
+
+
+def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
+    """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values.dtype):
@@ -412,9 +419,16 @@ def unique(values):
     htable, values = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values)
-    uniques = _reconstruct_data(uniques, original.dtype, original)
-    return uniques
+    if mask is None:
+        uniques = table.unique(values)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        return uniques
+
+    else:
+        uniques, mask = table.unique(values, mask=mask)
+        uniques = _reconstruct_data(uniques, original.dtype, original)
+        assert mask is not None  # for mypy
+        return uniques, mask.astype("bool")
 
 
 unique1d = unique
@@ -446,7 +460,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        values = _ensure_arraylike(list(values))
+        if not is_signed_integer_dtype(comps):
+            # GH#46485 Use object to avoid upcast to float64 later
+            # TODO: Share with _find_common_type_compat
+            values = construct_1d_object_array_from_listlike(list(values))
+        else:
+            values = _ensure_arraylike(list(values))
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
         values = np.array(values)
@@ -502,7 +521,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
 def factorize_array(
     values: np.ndarray,
-    na_sentinel: int = -1,
+    na_sentinel: int | None = -1,
     size_hint: int | None = None,
     na_value: object = None,
     mask: npt.NDArray[np.bool_] | None = None,
@@ -533,6 +552,10 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
+    ignore_na = na_sentinel is not None
+    if not ignore_na:
+        na_sentinel = -1
+
     original = values
     if values.dtype.kind in ["m", "M"]:
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
@@ -545,7 +568,11 @@ def factorize_array(
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
-        values, na_sentinel=na_sentinel, na_value=na_value, mask=mask
+        values,
+        na_sentinel=na_sentinel,
+        na_value=na_value,
+        mask=mask,
+        ignore_na=ignore_na,
     )
 
     # re-cast e.g. i8->dt64/td64, uint8->bool
@@ -580,7 +607,8 @@ def factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int | None = -1,
+    na_sentinel: int | None | lib.NoDefault = lib.no_default,
+    use_na_sentinel: bool | lib.NoDefault = lib.no_default,
     size_hint: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray | Index]:
     """
@@ -598,7 +626,19 @@ def factorize(
         Value to mark "not found". If None, will not drop the NaN
         from the uniques of the values.
 
+        .. deprecated:: 1.5.0
+            The na_sentinel argument is deprecated and
+            will be removed in a future version of pandas. Specify use_na_sentinel as
+            either True or False.
+
         .. versionchanged:: 1.1.2
+
+    use_na_sentinel : bool, default True
+        If True, the sentinel -1 will be used for NaN values. If False,
+        NaN values will be encoded as non-negative integers and will not drop the
+        NaN from the uniques of the values.
+
+        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -646,8 +686,8 @@ def factorize(
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
-    Missing values are indicated in `codes` with `na_sentinel`
-    (``-1`` by default). Note that missing values are never
+    When ``use_na_sentinel=True`` (the default), missing values are indicated in
+    the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
@@ -682,16 +722,16 @@ def factorize(
     Index(['a', 'c'], dtype='object')
 
     If NaN is in the values, and we want to include NaN in the uniques of the
-    values, it can be achieved by setting ``na_sentinel=None``.
+    values, it can be achieved by setting ``use_na_sentinel=False``.
 
     >>> values = np.array([1, 2, 1, np.nan])
-    >>> codes, uniques = pd.factorize(values)  # default: na_sentinel=-1
+    >>> codes, uniques = pd.factorize(values)  # default: use_na_sentinel=True
     >>> codes
     array([ 0,  1,  0, -1])
     >>> uniques
     array([1., 2.])
 
-    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
+    >>> codes, uniques = pd.factorize(values, use_na_sentinel=False)
     >>> codes
     array([0, 1, 0, 2])
     >>> uniques
@@ -706,6 +746,11 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
+    # GH#46910 deprecated na_sentinel in favor of use_na_sentinel:
+    #   na_sentinel=None corresponds to use_na_sentinel=False
+    #   na_sentinel=-1 correspond to use_na_sentinel=True
+    # Other na_sentinel values will not be supported when the deprecation is enforced.
+    na_sentinel = resolve_na_sentinel(na_sentinel, use_na_sentinel)
     if isinstance(values, ABCRangeIndex):
         return values.factorize(sort=sort)
 
@@ -716,10 +761,7 @@ def factorize(
 
     # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
     # of values, assign na_sentinel=-1 to replace code value for NaN.
-    dropna = True
-    if na_sentinel is None:
-        na_sentinel = -1
-        dropna = False
+    dropna = na_sentinel is not None
 
     if (
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
@@ -730,31 +772,116 @@ def factorize(
         codes, uniques = values.factorize(sort=sort)
         return _re_wrap_factorize(original, uniques, codes)
 
-    if not isinstance(values.dtype, np.dtype):
-        # i.e. ExtensionDtype
-        codes, uniques = values.factorize(na_sentinel=na_sentinel)
+    elif not isinstance(values.dtype, np.dtype):
+        if (
+            na_sentinel == -1 or na_sentinel is None
+        ) and "use_na_sentinel" in inspect.signature(values.factorize).parameters:
+            # Avoid using catch_warnings when possible
+            # GH#46910 - TimelikeOps has deprecated signature
+            codes, uniques = values.factorize(  # type: ignore[call-arg]
+                use_na_sentinel=na_sentinel is not None
+            )
+        else:
+            na_sentinel_arg = -1 if na_sentinel is None else na_sentinel
+            with warnings.catch_warnings():
+                # We've already warned above
+                warnings.filterwarnings("ignore", ".*use_na_sentinel.*", FutureWarning)
+                codes, uniques = values.factorize(na_sentinel=na_sentinel_arg)
+
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
+        # TODO: pass na_sentinel=na_sentinel to factorize_array. When sort is True and
+        #       na_sentinel is None we append NA on the end because safe_sort does not
+        #       handle null values in uniques.
+        if na_sentinel is None and sort:
+            na_sentinel_arg = -1
+        elif na_sentinel is None:
+            na_sentinel_arg = None
+        else:
+            na_sentinel_arg = na_sentinel
         codes, uniques = factorize_array(
-            values, na_sentinel=na_sentinel, size_hint=size_hint
+            values,
+            na_sentinel=na_sentinel_arg,
+            size_hint=size_hint,
         )
 
     if sort and len(uniques) > 0:
+        if na_sentinel is None:
+            # TODO: Can remove when na_sentinel=na_sentinel as in TODO above
+            na_sentinel = -1
         uniques, codes = safe_sort(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
 
-    code_is_na = codes == na_sentinel
-    if not dropna and code_is_na.any():
-        # na_value is set based on the dtype of uniques, and compat set to False is
-        # because we do not want na_value to be 0 for integers
-        na_value = na_value_for_dtype(uniques.dtype, compat=False)
-        uniques = np.append(uniques, [na_value])
-        codes = np.where(code_is_na, len(uniques) - 1, codes)
+    if not dropna and sort:
+        # TODO: Can remove entire block when na_sentinel=na_sentinel as in TODO above
+        if na_sentinel is None:
+            na_sentinel_arg = -1
+        else:
+            na_sentinel_arg = na_sentinel
+        code_is_na = codes == na_sentinel_arg
+        if code_is_na.any():
+            # na_value is set based on the dtype of uniques, and compat set to False is
+            # because we do not want na_value to be 0 for integers
+            na_value = na_value_for_dtype(uniques.dtype, compat=False)
+            uniques = np.append(uniques, [na_value])
+            codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
 
     return _re_wrap_factorize(original, uniques, codes)
+
+
+def resolve_na_sentinel(
+    na_sentinel: int | None | lib.NoDefault,
+    use_na_sentinel: bool | lib.NoDefault,
+) -> int | None:
+    """
+    Determine value of na_sentinel for factorize methods.
+
+    See GH#46910 for details on the deprecation.
+
+    Parameters
+    ----------
+    na_sentinel : int, None, or lib.no_default
+        Value passed to the method.
+    use_na_sentinel : bool or lib.no_default
+        Value passed to the method.
+
+    Returns
+    -------
+    Resolved value of na_sentinel.
+    """
+    if na_sentinel is not lib.no_default and use_na_sentinel is not lib.no_default:
+        raise ValueError(
+            "Cannot specify both `na_sentinel` and `use_na_sentile`; "
+            f"got `na_sentinel={na_sentinel}` and `use_na_sentinel={use_na_sentinel}`"
+        )
+    if na_sentinel is lib.no_default:
+        result = -1 if use_na_sentinel is lib.no_default or use_na_sentinel else None
+    else:
+        if na_sentinel is None:
+            msg = (
+                "Specifying `na_sentinel=None` is deprecated, specify "
+                "`use_na_sentinel=False` instead."
+            )
+        elif na_sentinel == -1:
+            msg = (
+                "Specifying `na_sentinel=-1` is deprecated, specify "
+                "`use_na_sentinel=True` instead."
+            )
+        else:
+            msg = (
+                "Specifying the specific value to use for `na_sentinel` is "
+                "deprecated and will be removed in a future version of pandas. "
+                "Specify `use_na_sentinel=True` to use the sentinel value -1, and "
+                "`use_na_sentinel=False` to encode NaN values."
+            )
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
+        result = na_sentinel
+    return result
 
 
 def _re_wrap_factorize(original, uniques, codes: np.ndarray):
@@ -864,7 +991,7 @@ def value_counts(
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-):
+) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
     """
     Parameters
     ----------
@@ -950,7 +1077,10 @@ def mode(
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
-        warn(f"Unable to sort modes: {err}")
+        warnings.warn(
+            f"Unable to sort modes: {err}",
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
 
     result = _reconstruct_data(npresult, original.dtype, original)
     return result
@@ -1017,10 +1147,10 @@ def rank(
 
 def checked_add_with_arr(
     arr: npt.NDArray[np.int64],
-    b,
+    b: int | npt.NDArray[np.int64],
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.int64]:
     """
     Perform array addition that checks for underflow and overflow.
 
@@ -1064,11 +1194,12 @@ def checked_add_with_arr(
     elif arr_mask is not None:
         not_nan = np.logical_not(arr_mask)
     elif b_mask is not None:
-        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has incompatible type
-        # "Optional[ndarray[Any, dtype[bool_]]]"; expected
-        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[An
-        # y]]], bool, int, float, complex, str, bytes, _NestedSequence[Union[bool,
-        # int, float, complex, str, bytes]]]"  [arg-type]
+        # error: Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
+        # incompatible type "Optional[ndarray[Any, dtype[bool_]]]";
+        # expected "Union[_SupportsArray[dtype[Any]], _NestedSequence
+        # [_SupportsArray[dtype[Any]]], bool, int, float, complex, str
+        # , bytes, _NestedSequence[Union[bool, int, float, complex, str
+        # , bytes]]]"
         not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
     else:
         not_nan = np.empty(arr.shape, dtype=bool)
@@ -1098,7 +1229,12 @@ def checked_add_with_arr(
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
-    return arr + b
+
+    result = arr + b
+    if arr_mask is not None or b2_mask is not None:
+        np.putmask(result, ~not_nan, iNaT)
+
+    return result
 
 
 # --------------- #
@@ -1564,11 +1700,11 @@ def diff(arr, n: int, axis: int = 0):
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
-            warn(
+            warnings.warn(
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
@@ -1771,9 +1907,12 @@ def safe_sort(
 def _sort_mixed(values) -> np.ndarray:
     """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-    nums = np.sort(values[~str_pos])
+    none_pos = np.array([x is None for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos & ~none_pos])
     strs = np.sort(values[str_pos])
-    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+    return np.concatenate(
+        [nums, np.asarray(strs, dtype=object), np.array(values[none_pos])]
+    )
 
 
 def _sort_tuples(values: np.ndarray) -> np.ndarray:

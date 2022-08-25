@@ -1,4 +1,5 @@
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionOpsMixin,
@@ -22,6 +23,7 @@ from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 
 __all__ = [
+    "ArrowExtensionArray",
     "ExtensionArray",
     "ExtensionOpsMixin",
     "ExtensionScalarOpsMixin",

@@ -682,7 +682,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    def test_join_append_timedeltas(self):
+    def test_join_append_timedeltas(self, using_array_manager):
         # timedelta64 issues with join/merge
         # GH 5695
 
@@ -696,9 +696,11 @@ class TestMerge:
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
-            },
-            dtype=object,
+            }
         )
+        if using_array_manager:
+            # TODO(ArrayManager) decide on exact casting rules in concat
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_append_timedeltas2(self):
@@ -1345,7 +1347,7 @@ class TestMerge:
             ],
             columns=["a", "key", "b"],
         )
-        expected.set_index(expected_index, inplace=True)
+        expected = expected.set_index(expected_index, copy=False)
         tm.assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
@@ -2191,6 +2193,26 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
                 left_index=left_index,
                 right_index=right_index,
             )
+
+
+def test_merge_series_multilevel():
+    # GH#47946
+    a = DataFrame(
+        {"A": [1, 2, 3, 4]},
+        index=MultiIndex.from_product([["a", "b"], [0, 1]], names=["outer", "inner"]),
+    )
+    b = Series(
+        [1, 2, 3, 4],
+        index=MultiIndex.from_product([["a", "b"], [1, 2]], names=["outer", "inner"]),
+        name=("B", "C"),
+    )
+    expected = DataFrame(
+        {"A": [2, 4], ("B", "C"): [1, 3]},
+        index=MultiIndex.from_product([["a", "b"], [1]], names=["outer", "inner"]),
+    )
+    with tm.assert_produces_warning(FutureWarning):
+        result = merge(a, b, on=["outer", "inner"])
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

@@ -30,7 +30,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
+    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;:ref:`to_orc<io.orc>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
@@ -107,9 +107,10 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
 
-  Note: ``index_col=False`` can be used to force pandas to *not* use the first
-  column as the index, e.g. when you have a malformed file with delimiters at
-  the end of each line.
+  .. note::
+     ``index_col=False`` can be used to force pandas to *not* use the first
+     column as the index, e.g. when you have a malformed file with delimiters at
+     the end of each line.
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
@@ -178,19 +179,24 @@ mangle_dupe_cols : boolean, default ``True``
   Passing in ``False`` will cause data to be overwritten if there are duplicate
   names in the columns.
 
+  .. deprecated:: 1.5.0
+     The argument was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 General parsing configuration
 +++++++++++++++++++++++++++++
 
 dtype : Type name or dict of column -> type, default ``None``
-  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
-  (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
-  with suitable ``na_values`` settings to preserve and
-  not interpret dtype.
+  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
+  Use ``str`` or ``object`` together with suitable ``na_values`` settings to preserve
+  and not interpret dtype. If converters are specified, they will be applied INSTEAD
+  of dtype conversion.
+
   .. versionadded:: 1.5.0
 
-    Support for defaultdict was added. Specify a defaultdict as input where
-    the default determines the dtype of the columns which are not explicitly
-    listed.
+     Support for defaultdict was added. Specify a defaultdict as input where
+     the default determines the dtype of the columns which are not explicitly
+     listed.
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by
@@ -283,7 +289,9 @@ parse_dates : boolean or list of ints or names or list of lists or dict, default
   * If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
     column.
   * If ``{'foo': [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
-    A fast-path exists for iso8601-formatted dates.
+
+  .. note::
+     A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default ``False``
   If ``True`` and parse_dates is enabled for a column, attempt to infer the
   datetime format to speed up the processing.
@@ -554,7 +562,8 @@ This matches the behavior of :meth:`Categorical.set_categories`.
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      df["col3"].cat.categories = pd.to_numeric(df["col3"].cat.categories)
+      new_categories = pd.to_numeric(df["col3"].cat.categories)
+      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 
@@ -606,6 +615,10 @@ If the header is in a row other than the first, pass the row number to
 Duplicate names parsing
 '''''''''''''''''''''''
 
+  .. deprecated:: 1.5.0
+     ``mangle_dupe_cols`` was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
@@ -616,27 +629,7 @@ distinguish between them so as to prevent overwriting data:
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
 which modifies a series of duplicate columns 'X', ..., 'X' to become
-'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can
-arise:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   Out[3]:
-      a  b  a
-   0  2  1  2
-   1  5  4  5
-
-To prevent users from encountering this problem with duplicate data, a ``ValueError``
-exception is raised if ``mangle_dupe_cols != True``:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   ...
-   ValueError: Setting mangle_dupe_cols=False is not supported yet
+'X', 'X.1', ..., 'X.N'.
 
 .. _io.usecols:
 
@@ -1593,8 +1586,10 @@ of multi-columns indices.
 
    pd.read_csv("mi2.csv", header=[0, 1], index_col=0)
 
-Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
-with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will be *lost*.
+.. note::
+   If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
+   with ``df.to_csv(..., index=False)``, then any ``names`` on the columns index will
+   be *lost*.
 
 .. ipython:: python
    :suppress:
@@ -2559,16 +2554,29 @@ Let's look at a few examples.
 
 Read a URL with no options:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
-   dfs = pd.read_html(url)
-   dfs
+   In [320]: "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+   In [321]: pd.read_html(url)
+   Out[321]:
+   [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
+    0                    Almena State Bank             Almena      KS  ...                          Equity Bank    October 23, 2020    10538
+    1           First City Bank of Florida  Fort Walton Beach      FL  ...            United Fidelity Bank, fsb    October 16, 2020    10537
+    2                 The First State Bank      Barboursville      WV  ...                       MVB Bank, Inc.       April 3, 2020    10536
+    3                   Ericson State Bank            Ericson      NE  ...           Farmers and Merchants Bank   February 14, 2020    10535
+    4     City National Bank of New Jersey             Newark      NJ  ...                      Industrial Bank    November 1, 2019    10534
+    ..                                 ...                ...     ...  ...                                  ...                 ...      ...
+    558                 Superior Bank, FSB           Hinsdale      IL  ...                Superior Federal, FSB       July 27, 2001     6004
+    559                Malta National Bank              Malta      OH  ...                    North Valley Bank         May 3, 2001     4648
+    560    First Alliance Bank & Trust Co.         Manchester      NH  ...  Southern New Hampshire Bank & Trust    February 2, 2001     4647
+    561  National State Bank of Metropolis         Metropolis      IL  ...              Banterra Bank of Marion   December 14, 2000     4646
+    562                   Bank of Honolulu           Honolulu      HI  ...                   Bank of the Orient    October 13, 2000     4645
+
+    [563 rows x 7 columns]]
 
 .. note::
 
-   The data from the above URL changes every Monday so the resulting data above
-   and the data below may be slightly different.
+   The data from the above URL changes every Monday so the resulting data above may be slightly different.
 
 Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
@@ -2723,6 +2731,30 @@ succeeds, the function will return*.
 
    dfs = pd.read_html(url, "Metcalf Bank", index_col=0, flavor=["lxml", "bs4"])
 
+Links can be extracted from cells along with the text using ``extract_links="all"``.
+
+.. ipython:: python
+
+    html_table = """
+    <table>
+      <tr>
+        <th>GitHub</th>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/pandas-dev/pandas">pandas</a></td>
+      </tr>
+    </table>
+    """
+
+    df = pd.read_html(
+        html_table,
+        extract_links="all"
+    )[0]
+    df
+    df[("GitHub", None)]
+    df[("GitHub", None)].str[1]
+
+.. versionadded:: 1.5.0
 
 .. _io.html:
 
@@ -3035,15 +3067,15 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
    df = pd.read_xml(bio)
    df
 
-Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
+Even read XML from AWS S3 buckets such as NIH NCBI PMC Article Datasets providing
+Biomedical and Life Science Jorurnals:
 
 .. ipython:: python
    :okwarning:
 
    df = pd.read_xml(
-       "s3://irs-form-990/201923199349319487_public.xml",
-       xpath=".//irs:Form990PartVIISectionAGrp",
-       namespaces={"irs": "http://www.irs.gov/efile"}
+       "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
+       xpath=".//journal-meta",
    )
    df
 
@@ -5562,13 +5594,64 @@ ORC
 .. versionadded:: 1.0.0
 
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
-for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
-ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
+for data frames. It is designed to make reading data frames efficient. pandas provides both the reader and the writer for the
+ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
 .. warning::
 
    * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
-   * :func:`~pandas.read_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
+   * :func:`~pandas.DataFrame.to_orc` requires pyarrow>=7.0.0.
+   * :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc` are not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
+   * For supported dtypes please refer to `supported ORC features in Arrow <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
+   * Currently timezones in datetime columns are not preserved when a dataframe is converted into ORC files.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "a": list("abc"),
+           "b": list(range(1, 4)),
+           "c": np.arange(4.0, 7.0, dtype="float64"),
+           "d": [True, False, True],
+           "e": pd.date_range("20130101", periods=3),
+       }
+   )
+
+   df
+   df.dtypes
+
+Write to an orc file.
+
+.. ipython:: python
+   :okwarning:
+
+   df.to_orc("example_pa.orc", engine="pyarrow")
+
+Read from an orc file.
+
+.. ipython:: python
+   :okwarning:
+
+   result = pd.read_orc("example_pa.orc")
+
+   result.dtypes
+
+Read only certain columns of an orc file.
+
+.. ipython:: python
+
+   result = pd.read_orc(
+       "example_pa.orc",
+       columns=["a", "b"],
+   )
+   result.dtypes
+
+
+.. ipython:: python
+   :suppress:
+
+   os.remove("example_pa.orc")
+
 
 .. _io.sql:
 

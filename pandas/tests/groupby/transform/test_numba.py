@@ -44,7 +44,7 @@ def test_check_nopython_kwargs():
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
@@ -73,7 +73,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\n")
+@pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
@@ -202,6 +202,7 @@ def test_engine_kwargs_not_cached():
 
 
 @td.skip_if_no("numba")
+@pytest.mark.filterwarnings("ignore")
 def test_multiindex_one_key(nogil, parallel, nopython):
     def numba_func(values, index):
         return 1

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import codecs
 from functools import wraps
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -18,7 +19,10 @@ from pandas._typing import (
     DtypeObj,
     F,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -239,7 +243,7 @@ class StringMethods(NoNewAttributesMixin):
         warnings.warn(
             "Columnar iteration over characters will be deprecated in future releases.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         i = 0
         g = self.get(i)
@@ -843,6 +847,7 @@ class StringMethods(NoNewAttributesMixin):
     """,
         }
     )
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
@@ -874,6 +879,7 @@ class StringMethods(NoNewAttributesMixin):
             "regex_examples": "",
         }
     )
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, n=-1, expand=False):
         result = self._data.array._str_rsplit(pat, n=n)
@@ -991,15 +997,15 @@ class StringMethods(NoNewAttributesMixin):
 
     def get(self, i):
         """
-        Extract element from each component at specified position.
+        Extract element from each component at specified position or with specified key.
 
-        Extract element from lists, tuples, or strings in each element in the
+        Extract element from lists, tuples, dict, or strings in each element in the
         Series/Index.
 
         Parameters
         ----------
-        i : int
-            Position of element to extract.
+        i : int or hashable dict label
+            Position or key of element to extract.
 
         Returns
         -------
@@ -1038,6 +1044,15 @@ class StringMethods(NoNewAttributesMixin):
         3    NaN
         4    NaN
         5    None
+        dtype: object
+
+        Return element with given key
+
+        >>> s = pd.Series([{"name": "Hello", "value": "World"},
+        ...               {"name": "Goodbye", "value": "Planet"}])
+        >>> s.str.get('name')
+        0      Hello
+        1    Goodbye
         dtype: object
         """
         result = self._data.array._str_get(i)
@@ -1239,7 +1254,7 @@ class StringMethods(NoNewAttributesMixin):
                 "This pattern is interpreted as a regular expression, and has "
                 "match groups. To actually get the groups, use str.extract.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
@@ -1451,7 +1466,11 @@ class StringMethods(NoNewAttributesMixin):
                         " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    msg,
+                    FutureWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):
@@ -1683,19 +1702,23 @@ class StringMethods(NoNewAttributesMixin):
 
         Note that ``10`` and ``NaN`` are not strings, therefore they are
         converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
-        regular character and the zero is added to the left of it
+        special character and the zero is added to the right of it
         (:meth:`str.zfill` would have moved it to the left). ``1000``
         remains unchanged as it is longer than `width`.
 
         >>> s.str.zfill(3)
-        0     0-1
+        0     -01
         1     001
         2    1000
         3     NaN
         4     NaN
         dtype: object
         """
-        result = self.pad(width, side="left", fillchar="0")
+        if not is_integer(width):
+            msg = f"width must be of integer type, not {type(width).__name__}"
+            raise TypeError(msg)
+        f = lambda x: x.zfill(width)
+        result = self._data.array._str_map(f)
         return self._wrap_result(result)
 
     def slice(self, start=None, stop=None, step=None):
@@ -2006,8 +2029,9 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "str_removefix"
     ] = r"""
-    Remove a %(side)s from an object series. If the %(side)s is not present,
-    the original string will be returned.
+    Remove a %(side)s from an object series.
+
+    If the %(side)s is not present, the original string will be returned.
 
     Parameters
     ----------

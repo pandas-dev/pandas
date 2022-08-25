@@ -564,6 +564,22 @@ def test_order_aggregate_multiple_funcs():
     tm.assert_index_equal(result, expected)
 
 
+def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
+    # GH#37493
+    df = DataFrame(
+        {"a": [1, 1, 2, 3, 4, 4], "b": [22, 11, pd.NA, 10, 20, pd.NA]},
+        dtype=any_numeric_ea_dtype,
+    )
+    result = df.groupby("a").ohlc()
+    expected = DataFrame(
+        [[22, 22, 11, 11], [pd.NA] * 4, [10] * 4, [20] * 4],
+        columns=MultiIndex.from_product([["b"], ["open", "high", "low", "close"]]),
+        index=Index([1, 2, 3, 4], dtype=any_numeric_ea_dtype, name="a"),
+        dtype=any_numeric_ea_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
 @pytest.mark.parametrize("how", ["first", "last", "min", "max", "mean", "median"])
 def test_uint64_type_handling(dtype, how):
@@ -1413,3 +1429,28 @@ def test_multi_axis_1_raises(func):
     gb = df.groupby("a", axis=1)
     with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
         gb.agg(func)
+
+
+@pytest.mark.parametrize(
+    "test, constant",
+    [
+        ([[20, "A"], [20, "B"], [10, "C"]], {0: [10, 20], 1: ["C", ["A", "B"]]}),
+        ([[20, "A"], [20, "B"], [30, "C"]], {0: [20, 30], 1: [["A", "B"], "C"]}),
+        ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], {0: ["a", "b"], 1: [1, [2, 3]]}),
+        pytest.param(
+            [["a", 1], ["a", 2], ["b", 3], ["b", 3]],
+            {0: ["a", "b"], 1: [[1, 2], 3]},
+            marks=pytest.mark.xfail,
+        ),
+    ],
+)
+def test_agg_of_mode_list(test, constant):
+    # GH#25581
+    df1 = DataFrame(test)
+    result = df1.groupby(0).agg(Series.mode)
+    # Mode usually only returns 1 value, but can return a list in the case of a tie.
+
+    expected = DataFrame(constant)
+    expected = expected.set_index(0)
+
+    tm.assert_frame_equal(result, expected)
