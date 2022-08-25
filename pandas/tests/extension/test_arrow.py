@@ -1989,9 +1989,8 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("box", ["Series", "DataFrame"])
-def test_repr_from_arrow_array(data, box):
+def test_repr_from_arrow_array(data, frame_or_series):
     # GH 34986 & 48238
     pa_array = pa.array([data[0], None])
-    result = getattr(pd, box)(pa_array, dtype=ArrowDtype(pa_array.type))
+    result = frame_or_series(pa_array, dtype=ArrowDtype(pa_array.type))
     repr(result)
