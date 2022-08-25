@@ -31,7 +31,7 @@
     </div>
 
 How to create new columns derived from existing columns
---------------------------------------------------------
+-------------------------------------------------------
 
 .. image:: ../../_static/schemas/05_newcolumn_1.svg
    :align: center

@@ -89,7 +89,7 @@ Westminster* in respectively Paris, Antwerp and London.
 
 
 How to combine data from multiple tables
------------------------------------------
+----------------------------------------
 
 Concatenating objects
 ~~~~~~~~~~~~~~~~~~~~~

@@ -31,7 +31,7 @@
     </div>
 
 How to calculate summary statistics
-------------------------------------
+-----------------------------------
 
 Aggregating statistics
 ~~~~~~~~~~~~~~~~~~~~~~

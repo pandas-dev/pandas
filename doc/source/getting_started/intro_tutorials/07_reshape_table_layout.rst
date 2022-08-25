@@ -85,7 +85,7 @@ measurement.
     </div>
 
 How to reshape the layout of tables
-------------------------------------
+-----------------------------------
 
 Sort table rows
 ~~~~~~~~~~~~~~~
