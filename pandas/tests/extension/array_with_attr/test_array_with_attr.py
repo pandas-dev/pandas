@@ -27,7 +27,7 @@ def test_concat_with_all_na():
 
     result = pd.concat([df1.set_index("key"), df2.set_index("key")], axis=1)
     expected = pd.DataFrame(
-        {"col": arr.take([0, 0, 1]), "col2": [1, np.nan, 2], "key": [0, 1, 2]}
+        {"col": arr.take([0, 1, -1]), "col2": [1, np.nan, 2], "key": [0, 1, 2]}
     ).set_index("key")
     tm.assert_frame_equal(result, expected)
     assert result["col"].array.attr == "test"
