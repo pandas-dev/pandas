@@ -19,6 +19,26 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
+    def test_fillna_dict_inplace_nonunique_columns(self):
+        df = DataFrame(
+            {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
+        )
+        df.columns = ["A", "A", "A"]
+        orig = df[:]
+
+        df.fillna({"A": 2}, inplace=True)
+        # The first and third columns can be set inplace, while the second cannot.
+
+        expected = DataFrame(
+            {"A": [2.0] * 3, "B": [2, Timestamp(1), 2], "C": [2, "foo", 2]}
+        )
+        expected.columns = ["A", "A", "A"]
+        tm.assert_frame_equal(df, expected)
+
+        assert tm.shares_memory(df.iloc[:, 0], orig.iloc[:, 0])
+        assert not tm.shares_memory(df.iloc[:, 1], orig.iloc[:, 1])
+        assert tm.shares_memory(df.iloc[:, 2], orig.iloc[:, 2])
+
     @td.skip_array_manager_not_yet_implemented
     def test_fillna_on_column_view(self, using_copy_on_write):
         # GH#46149 avoid unnecessary copies
