@@ -1236,6 +1236,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         df[indexer] = set_value
         tm.assert_frame_equal(view, expected)
 
+    @td.skip_array_manager_invalid_test
     def test_setitem_column_update_inplace(self, using_copy_on_write):
         # https://github.com/pandas-dev/pandas/issues/47172
 
