@@ -14,16 +14,19 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.fillna` not working :class:`DataFrame` with :class:`MultiIndex` (:issue:`47649`)
 - Fixed regression in taking NULL :class:`objects` from a :class:`DataFrame` causing a segmentation violation. These NULL values are created by :meth:`numpy.empty_like` (:issue:`46848`)
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
 - Fixed regression in calling bitwise numpy ufuncs (for example, ``np.bitwise_and``) on Index objects (:issue:`46769`)
 - Fixed regression in :func:`cut` using a ``datetime64`` IntervalIndex as bins (:issue:`46218`)
 - Fixed regression in :meth:`DataFrame.select_dtypes` where ``include="number"`` included :class:`BooleanDtype` (:issue:`46870`)
+- Fixed regression in :meth:`DataFrame.loc` raising error when indexing with a ``NamedTuple`` (:issue:`48124`)
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
 - Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in :meth:`DataFrame.loc` setting a length-1 array like value to a single value in the DataFrame (:issue:`46268`)
 - Fixed regression when slicing with :meth:`DataFrame.loc` with :class:`DateOffset`-index (:issue:`46671`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
+- Fixed regression in :meth:`DataFrame.select_dtypes` returning a view on the original DataFrame (:issue:`48090`)
 - Fixed regression using custom Index subclasses (for example, used in xarray) with :meth:`~DataFrame.reset_index` or :meth:`Index.insert` (:issue:`47071`)
 - Fixed regression in :meth:`DatetimeIndex.intersection` when the :class:`DatetimeIndex` has dates crossing daylight savings time (:issue:`46702`)
 - Fixed regression in :func:`merge` throwing an error when passing a :class:`Series` with a multi-level name (:issue:`47946`)
