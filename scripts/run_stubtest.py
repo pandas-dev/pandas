@@ -9,9 +9,7 @@ from mypy import stubtest
 import pandas as pd
 
 # fail early if pandas is not installed
-if "dev" not in getattr(pd, "__version__", "") and "1.5." not in getattr(
-    pd, "__version__", ""
-):
+if not getattr(pd, "__version__", ""):
     # fail on the CI, soft fail during local development
     warnings.warn("You need to install the development version of pandas")
     if pd.compat.is_ci_environment():
