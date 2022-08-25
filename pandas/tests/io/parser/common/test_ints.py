@@ -15,6 +15,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import (
     is_extension_array_dtype,
+    is_unsigned_integer_dtype,
     pandas_dtype,
 )
 
@@ -141,6 +142,22 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, ex
     parser = all_parsers
     val = getval(dtype)
     data = f"A\n{val}"
+
+    # Positive value overflow with uint8, uint16, uint32 and any overflow with
+    # int8, int16, int32 only throw a FutureWarning until deprecation from #41734
+    # becomes enforced. After enforcement, the following block must be deleted.
+    if (
+        (expected is _raises_int_overflow)
+        and (parser.engine == "python")
+        and (not is_extension_array_dtype(dtype))
+        and (dtype < np.dtype("int64"))
+        and not (is_unsigned_integer_dtype(dtype) and (val < 0))
+    ):
+        expected = tm.assert_produces_warning(
+            FutureWarning,
+            match=f"Values are too large to be losslessly cast to {dtype}.",
+            check_stacklevel=False,
+        )
 
     with expected:
         result = parser.read_csv(StringIO(data), dtype=dtype)

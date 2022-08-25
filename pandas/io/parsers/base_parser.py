@@ -43,6 +43,7 @@ from pandas.errors import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -789,16 +790,14 @@ class ParserBase:
 
         else:
             try:
-                casted = astype_nansafe(values, cast_type, copy=True, skipna=True)
-            except ValueError as err:
+                if is_integer_dtype(cast_type):
+                    values = maybe_cast_to_integer_array(values, cast_type, copy=True)
+                else:
+                    values = astype_nansafe(values, cast_type, copy=True, skipna=True)
+            except (ValueError, OverflowError) as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
                 ) from err
-            if is_integer_dtype(cast_type) and not (casted == values).all():
-                raise TypeError(
-                    f"cannot safely cast non-equivalent {values.dtype} to {cast_type}"
-                )
-            values = casted
         return values
 
     @overload
