@@ -1093,7 +1093,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             cls = dtype.construct_array_type()
             result = cls._empty((n,), dtype=dtype)
         else:
-            result = np.empty(n, dtype=object if immutable_ea else dtype)
+            # error: Argument "dtype" to "empty" has incompatible type
+            # "Union[Type[object], dtype[Any], ExtensionDtype, None]"; expected
+            # "None"
+            result = np.empty(
+                n, dtype=object if immutable_ea else dtype  # type: ignore[arg-type]
+            )
             result = ensure_wrapped_if_datetimelike(result)
 
         for blk in self.blocks:
@@ -1103,6 +1108,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 result[rl] = blk.iget((i, loc))
 
         if immutable_ea:
+            dtype = cast(ExtensionDtype, dtype)
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
         block = new_block(result, placement=slice(0, len(result)), ndim=1)
