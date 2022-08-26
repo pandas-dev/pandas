@@ -1109,12 +1109,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             else:
                 td_nano = Timedelta(0)
 
-            if self.n > 0:
-                for i in range(self.n):
-                    other = other + self._offset + td_nano
-            else:
-                for i in range(-self.n):
-                    other = other - self._offset - td_nano
+            other = other + ((self._offset + td_nano) * self.n)
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation

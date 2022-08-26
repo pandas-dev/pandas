@@ -32,7 +32,9 @@ from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import PerformanceWarning
 
 from pandas import (
+    DataFrame,
     DatetimeIndex,
+    Series,
     date_range,
 )
 import pandas._testing as tm
@@ -1032,3 +1034,35 @@ def test_construct_int_arg_no_kwargs_assumed_days(n):
     result = Timestamp(2022, 1, 2) + offset
     expected = Timestamp(2022, 1, 2 + n)
     assert result == expected
+
+
+def test_offset_multiplication():
+    # GH#47953
+    mo1 = DateOffset(months=1)
+    mo2 = DateOffset(months=2)
+
+    startscalar = Timestamp("2020-01-30")
+    startarray = Series([Timestamp("2020-01-30")])
+
+    resultscalar1 = startscalar + (mo1 * 2)
+    resultscalar2 = startscalar + mo2
+    resultarray1 = startarray + (mo1 * 2)
+    resultarray2 = startarray + mo2
+
+    expectedscalar = Timestamp("2020-03-30")
+    expectedarray = Series([Timestamp("2020-03-30")])
+    assert resultscalar1 == expectedscalar
+    assert resultscalar2 == expectedscalar
+    tm.assert_series_equal(resultarray1, expectedarray)
+    tm.assert_series_equal(resultarray2, expectedarray)
+
+    df = DataFrame({"T": [Timestamp("2019-04-30")], "D": [DateOffset(months=1)]})
+    frameresult1 = df["T"] + 26 * df["D"]
+    df2 = DataFrame(
+        {
+            "T": [Timestamp("2019-04-30"), Timestamp("2019-04-30")],
+            "D": [DateOffset(months=1), DateOffset(months=1)],
+        }
+    )
+    frameresult2 = df2["T"] + 26 * df2["D"]
+    assert frameresult1[0] == frameresult2[0]
