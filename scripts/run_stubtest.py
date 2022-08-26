@@ -22,10 +22,10 @@ if not pd_version:
 # GH 48260
 if "dev" not in pd_version:
     warnings.warn(
-        f"stubtest may fail as {pd_version} is not a dev version."
+        f"stubtest may fail as {pd_version} is not a dev version. "
         f"Please install a pandas dev version or see <https://github.com/pandas-dev"
-        f"/pandas/blob/main/doc/source/development/contributing_codebase.rst> "
-        f"on how to skip the stubtest"
+        f"/pandas/blob/main/doc/source/development/contributing_codebase.rst"
+        f"#validating-type-hints> on how to skip the stubtest"
     )
 
 
