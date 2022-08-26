@@ -22,7 +22,6 @@ from pandas import (
     Interval,
     NaT,
     Series,
-    SparseDtype,
     Timestamp,
     array,
     concat,
