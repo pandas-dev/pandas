@@ -1,6 +1,7 @@
+import pytest
+
 from pandas import Index
 import pandas._testing as tm
-import pytest
 
 
 def test_add_prefix_suffix(string_series):
