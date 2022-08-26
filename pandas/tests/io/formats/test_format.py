@@ -3385,6 +3385,12 @@ def test_filepath_or_buffer_arg(
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
         expected_warning = FutureWarning if method == "to_latex" else None
+        if (
+            method == "to_string"
+            and data == "abc"
+            and filepath_or_buffer_id == "string"
+        ):
+            expected_warning = ImportWarning
         with tm.assert_produces_warning(expected_warning):
             with pytest.raises(LookupError, match="unknown encoding"):
                 getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
