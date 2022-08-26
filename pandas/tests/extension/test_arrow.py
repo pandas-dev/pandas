@@ -35,6 +35,8 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
+
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
@@ -221,6 +223,52 @@ class TestConstructors(base.BaseConstructorsTests):
                     )
                 )
         super().test_from_dtype(data)
+
+    def test_from_sequence_pa_array(self, data):
+        # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
+        # data._data = pa.ChunkedArray
+        result = type(data)._from_sequence(data._data)
+        tm.assert_extension_array_equal(result, data)
+        assert isinstance(result._data, pa.ChunkedArray)
+
+        result = type(data)._from_sequence(data._data.combine_chunks())
+        tm.assert_extension_array_equal(result, data)
+        assert isinstance(result._data, pa.ChunkedArray)
+
+    def test_from_sequence_pa_array_notimplemented(self):
+        with pytest.raises(NotImplementedError, match="Converting strings to"):
+            ArrowExtensionArray._from_sequence_of_strings(
+                ["12-1"], dtype=pa.month_day_nano_interval()
+            )
+
+    def test_from_sequence_of_strings_pa_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Nanosecond time parsing not supported.",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
+                )
+            )
+        elif pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Iterating over ChunkedArray<bool> returns PyArrow scalars.",
+                )
+            )
+        pa_array = data._data.cast(pa.string())
+        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        tm.assert_extension_array_equal(result, data)
+
+        pa_array = pa_array.combine_chunks()
+        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        tm.assert_extension_array_equal(result, data)
 
 
 @pytest.mark.xfail(
