@@ -30,8 +30,8 @@
         </ul>
     </div>
 
-How to calculate summary statistics?
-------------------------------------
+How to calculate summary statistics
+-----------------------------------
 
 Aggregating statistics
 ~~~~~~~~~~~~~~~~~~~~~~
