@@ -479,7 +479,6 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwds) -> Axes
 
 def unpack_single_str_list(keys):
     # GH 42795
-    if isinstance(keys, list):
-        if len(keys) == 1 and isinstance(keys[0], str):
-            keys = keys[0]
+    if isinstance(keys, list) and len(keys) == 1:
+        keys = keys[0]
     return keys

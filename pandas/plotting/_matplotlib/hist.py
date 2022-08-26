@@ -63,7 +63,6 @@ class HistPlot(LinePlot):
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
-
         # calculate bin number separately in different subplots
         # where subplots are created based on by argument
         if is_integer(self.bins):

@@ -1040,7 +1040,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self._obj_with_exclusions
 
             result = self._python_apply_general(
-                curried, self._obj_with_exclusions, is_transform=is_transform
+                curried,
+                self._obj_with_exclusions,
+                is_transform=is_transform,
+                not_indexed_same=not is_transform,
             )
 
             if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:

@@ -56,6 +56,7 @@ from pandas.core.frame import DataFrame
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
+from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
     decorate_axes,
@@ -177,7 +178,7 @@ class MPLPlot(ABC):
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later
         if self.by is not None and self._kind == "hist":
-            self._grouped = data.groupby(self.by)
+            self._grouped = data.groupby(unpack_single_str_list(self.by))
 
         self.kind = kind
 

@@ -1590,11 +1590,11 @@ def test_corrwith_with_1_axis():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:The 'mad' method.*:FutureWarning")
+@pytest.mark.filterwarnings("ignore:.* is deprecated:FutureWarning")
 def test_multiindex_group_all_columns_when_empty(groupby_func):
     # GH 32464
     df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
-    gb = df.groupby(["a", "b", "c"])
+    gb = df.groupby(["a", "b", "c"], group_keys=False)
     method = getattr(gb, groupby_func)
     args = get_groupby_method_args(groupby_func, df)
 
