@@ -44,7 +44,7 @@ dependencies:
   - pytables
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.05.0
   - scipy
   - sqlalchemy
   - tabulate
