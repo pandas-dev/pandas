@@ -1140,7 +1140,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 self._set_with(key, value)
 
         if cacher_needs_updating:
-            self._maybe_update_cacher()
+            self._maybe_update_cacher(inplace=True)
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
