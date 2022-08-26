@@ -1290,6 +1290,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         other = ensure_wrapped_if_datetimelike(other)
         other = cast("TimedeltaArray", other)
+        self = cast("DatetimeArray | TimedeltaArray", self)
 
         if self._reso != other._reso:
             raise NotImplementedError(
