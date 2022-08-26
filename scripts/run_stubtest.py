@@ -8,7 +8,7 @@ from mypy import stubtest
 
 import pandas as pd
 
-pd_version = getattr(pd, "__version_", "")
+pd_version = getattr(pd, "__version__", "")
 
 # fail early if pandas is not installed
 if not pd_version:
