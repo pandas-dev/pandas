@@ -265,7 +265,11 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   pre-commit run --hook-stage manual --all-files
+    # the following might fail if the installed pandas version does not correspond to your local git version
+    pre-commit run --hook-stage manual --all-files
+
+    # if the above fails due to stubtest
+    SKIP=stubtest pre-commit run --hook-stage manual --all-files
 
 in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
 
