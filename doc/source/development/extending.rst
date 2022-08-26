@@ -161,6 +161,8 @@ Implement the following:
 
 ``_validate_searchsorted_value``
   Convert a value for use in searching for a value in the backing NumPy array.
+  Note: in most cases, the implementation can be identical to that of
+  ``_validate_setitem_value``.
 
 .. code-block:: python
 
@@ -196,7 +198,7 @@ Implement the following:
 
 
 To support 2D arrays, use the ``_from_backing_data`` helper function when a
-method is called on multi-dimensional data.
+method is called on multi-dimensional data of the same dtype as ``_ndarray``.
 
 .. code-block:: python
 
