@@ -258,7 +258,11 @@ class TestClipboard:
     # Two character separator is not supported in to_clipboard
     # Test that multi-character separators are not silently passed
     def test_excel_sep_warning(self, df):
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(
+            UserWarning,
+            match="to_clipboard in excel mode requires a single character separator.",
+            check_stacklevel=False,
+        ):
             df.to_clipboard(excel=True, sep=r"\t")
 
     # Separator is ignored when excel=False and should produce a warning

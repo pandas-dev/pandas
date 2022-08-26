@@ -281,10 +281,7 @@ class TestRoundTrip:
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"),
-                    periods=4,
-                    freq="6M",
-                    inclusive="right",
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
                 ),
             ]
         )
@@ -878,7 +875,7 @@ class TestExcelWriter:
         )
 
         with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
-            df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
+            df.to_excel(filename, sheet_name="TestSheet")
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
@@ -976,9 +973,12 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
         # Explicitly, we pass in the parameter.
-        result = pd.read_excel(
-            path, sheet_name="test1", index_col=0, mangle_dupe_cols=True
-        )
+        with tm.assert_produces_warning(
+            FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
+        ):
+            result = pd.read_excel(
+                path, sheet_name="test1", index_col=0, mangle_dupe_cols=True
+            )
         tm.assert_frame_equal(result, expected)
 
         # see gh-11007, gh-10970
@@ -999,8 +999,13 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
         msg = "Setting mangle_dupe_cols=False is not supported yet"
-        with pytest.raises(ValueError, match=msg):
-            pd.read_excel(path, sheet_name="test1", header=None, mangle_dupe_cols=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
+        ):
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel(
+                    path, sheet_name="test1", header=None, mangle_dupe_cols=False
+                )
 
     def test_swapped_columns(self, path):
         # Test for issue #5427.
@@ -1282,6 +1287,7 @@ class TestExcelWriter:
                 # Some engines raise if nothing is written
                 DataFrame().to_excel(writer)
 
+    @pytest.mark.filterwarnings("ignore:Calling close():UserWarning:xlsxwriter")
     @pytest.mark.parametrize(
         "attr, args", [("save", ()), ("write_cells", ([], "test"))]
     )

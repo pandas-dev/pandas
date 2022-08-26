@@ -334,7 +334,7 @@ class TestDataFrameBlockInternals:
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
-    def test_stale_cached_series_bug_473(self):
+    def test_stale_cached_series_bug_473(self, using_copy_on_write):
 
         # this is chained, but ok
         with option_context("chained_assignment", None):
@@ -349,9 +349,12 @@ class TestDataFrameBlockInternals:
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y["g"].sum()  # noqa
-            assert pd.isna(Y["g"]["c"])
+            if using_copy_on_write:
+                assert not pd.isna(Y["g"]["c"])
+            else:
+                assert pd.isna(Y["g"]["c"])
 
-    def test_strange_column_corruption_issue(self):
+    def test_strange_column_corruption_issue(self, using_copy_on_write):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
@@ -363,7 +366,10 @@ class TestDataFrameBlockInternals:
                     if col not in wasCol:
                         wasCol[col] = 1
                         df[col] = np.nan
-                    df[col][dt] = i
+                    if using_copy_on_write:
+                        df.loc[dt, col] = i
+                    else:
+                        df[col][dt] = i
 
         myid = 100
 
@@ -396,7 +402,7 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(df, df2)
 
 
-def test_update_inplace_sets_valid_block_values():
+def test_update_inplace_sets_valid_block_values(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/33457
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
@@ -406,8 +412,9 @@ def test_update_inplace_sets_valid_block_values():
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
-    # smoketest for OP bug from GH#35731
-    assert df.isnull().sum().sum() == 0
+    if not using_copy_on_write:
+        # smoketest for OP bug from GH#35731
+        assert df.isnull().sum().sum() == 0
 
 
 def test_nonconsolidated_item_cache_take():
