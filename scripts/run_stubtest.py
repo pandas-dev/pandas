@@ -8,14 +8,23 @@ from mypy import stubtest
 
 import pandas as pd
 
+pd_version = getattr(pd, "__version_", "")
+
 # fail early if pandas is not installed
-if not getattr(pd, "__version__", ""):
+if not pd_version:
     # fail on the CI, soft fail during local development
     warnings.warn("You need to install the development version of pandas")
     if pd.compat.is_ci_environment():
         sys.exit(1)
     else:
         sys.exit(0)
+
+# GH 48260
+if "dev" not in pd_version:
+    warnings.warn(
+        f"stubtest may fail as {pd_version} is not a dev version."
+        f"Please install a pandas dev version or see [] on how to skip the stubtest"
+    )
 
 
 _ALLOWLIST = [  # should be empty
