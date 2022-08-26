@@ -242,7 +242,7 @@ def merge_ordered(
     Returns
     -------
     DataFrame
-        The merged DataFrame output type will the be same as
+        The merged DataFrame output type will be the same as
         'left', if it is a subclass of DataFrame.
 
     See Also
