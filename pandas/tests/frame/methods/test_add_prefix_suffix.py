@@ -1,5 +1,6 @@
 from pandas import Index
 import pandas._testing as tm
+import pytest
 
 
 def test_add_prefix_suffix(float_frame):
@@ -37,3 +38,11 @@ def test_add_prefix_suffix_axis(float_frame):
     with_pct_suffix = float_frame.add_suffix("#foo", axis=1)
     expected = Index([f"{c}#foo" for c in float_frame.columns])
     tm.assert_index_equal(with_pct_suffix.columns, expected)
+
+
+def test_add_prefix_suffix_invalid_axis(float_frame):
+    with pytest.raises(ValueError, match="No axis named 2 for object type DataFrame"):
+        float_frame.add_prefix("foo#", axis=2)
+
+    with pytest.raises(ValueError, match="No axis named 2 for object type DataFrame"):
+        float_frame.add_suffix("foo#", axis=2)
