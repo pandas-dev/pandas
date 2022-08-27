@@ -139,8 +139,10 @@ class TestCategoricalDtypes:
 
     def test_interval_index_category(self):
         # GH 38316
-        index = IntervalIndex.from_breaks(np.arange(5, dtype="uint64"))
+        index = IntervalIndex.from_breaks(np.arange(3, dtype="uint64"))
 
-        result_subtype = CategoricalIndex(index).dtype.categories.dtype.subtype
-        expected_subtype = "uint64"
-        assert result_subtype == expected_subtype
+        result = CategoricalIndex(index).dtype.categories
+        expected = IntervalIndex.from_arrays(
+            [0, 1], [1, 2], dtype="interval[int64, right]"
+        )
+        tm.assert_index_equal(result, expected)
