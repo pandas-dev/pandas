@@ -453,18 +453,3 @@ def test_np_matmul():
         expected_result,
         result,
     )
-
-
-def test_array_ufuncs_for_many_arguments():
-    # GH39853
-
-    def add3(x, y, z):
-        return x + y + z
-
-    ufunc = np.frompyfunc(add3, 3, 1)
-    s = pd.Series(np.array([1, 2]))
-
-    result = ufunc(s, s, 1)
-    expected = pd.Series([3, 5], dtype=object)
-
-    tm.assert_series_equal(result, expected)
