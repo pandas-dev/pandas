@@ -143,6 +143,6 @@ class TestCategoricalDtypes:
 
         result = CategoricalIndex(index).dtype.categories
         expected = IntervalIndex.from_arrays(
-            [0, 1], [1, 2], dtype="interval[int64, right]"
+            [0, 1], [1, 2], dtype="interval[uint64, right]"
         )
         tm.assert_index_equal(result, expected)
