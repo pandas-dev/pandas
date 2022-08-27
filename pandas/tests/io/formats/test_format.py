@@ -3396,7 +3396,7 @@ def test_filepath_or_buffer_arg(
             and not is_numpy_dev
         ):
             # raises importwarning _SixMetaPathImporter.find_spec
-            with tm.assert_produces_warning(ImportWarning, check_stacklevel=False):
+            with tm.maybe_produces_warning(ImportWarning, check_stacklevel=False):
                 with pytest.raises(LookupError, match="unknown encoding"):
                     getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
         else:
