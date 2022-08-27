@@ -250,7 +250,6 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     --------
     numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
     """
-    from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
     from pandas.core.internals import BlockManager
 
@@ -297,8 +296,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # so this ends up just being x1.index | x2.index, but we write
         # it to handle *args.
 
-        set_types = set(types)
-        if len(set_types) > 1 and type(DataFrame) in set_types:
+        if len(set(types)) > 1:
             # We currently don't handle ufunc(DataFrame, Series)
             # well. Previously this raised an internal ValueError. We might
             # support it someday, so raise a NotImplementedError.
