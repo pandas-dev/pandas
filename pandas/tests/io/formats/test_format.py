@@ -3391,6 +3391,7 @@ def test_filepath_or_buffer_arg(
             and filepath_or_buffer_id == "string"
             and PY310
         ):
+            # raises importwarning _SixMetaPathImporter.find_spec
             with tm.assert_produces_warning(ImportWarning, check_stacklevel=False):
                 with pytest.raises(LookupError, match="unknown encoding"):
                     getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
