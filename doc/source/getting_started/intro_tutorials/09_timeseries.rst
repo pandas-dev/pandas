@@ -55,8 +55,8 @@ Westminster* in respectively Paris, Antwerp and London.
     </ul>
     </div>
 
-How to handle time series data with ease?
------------------------------------------
+How to handle time series data with ease
+----------------------------------------
 
 .. _10min_tut_09_timeseries.properties:
 
