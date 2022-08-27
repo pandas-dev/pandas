@@ -285,7 +285,7 @@ class Base:
         if index.inferred_type == "object":
             assert result3 > result2
 
-    def test_argsort(self, request, index):
+    def test_argsort(self, index):
         # separately tested
         if isinstance(index, CategoricalIndex):
             return
