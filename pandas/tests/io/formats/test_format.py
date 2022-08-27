@@ -19,6 +19,7 @@ import pytz
 
 from pandas.compat import (
     IS64,
+    PY310,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
@@ -3384,10 +3385,20 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        expected_warning = FutureWarning if method == "to_latex" else None
-        with tm.assert_produces_warning(expected_warning):
-            with pytest.raises(LookupError, match="unknown encoding"):
-                getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        if (
+            method == "to_string"
+            and data == "abc"
+            and filepath_or_buffer_id == "string"
+            and PY310
+        ):
+            with tm.assert_produces_warning(ImportWarning, check_stacklevel=False):
+                with pytest.raises(LookupError, match="unknown encoding"):
+                    getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        else:
+            expected_warning = FutureWarning if method == "to_latex" else None
+            with tm.assert_produces_warning(expected_warning):
+                with pytest.raises(LookupError, match="unknown encoding"):
+                    getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
