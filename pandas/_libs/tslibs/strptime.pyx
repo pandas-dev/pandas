@@ -365,10 +365,10 @@ FUNCTIONS:
 """
 
 from _strptime import (
-    LocaleTime,
     TimeRE as _TimeRE,
     _getlang,
 )
+from _strptime import LocaleTime  # no-cython-lint
 
 
 class TimeRE(_TimeRE):
@@ -507,7 +507,7 @@ cdef tzinfo parse_timezone_directive(str z):
     """
 
     cdef:
-        int gmtoff_fraction, hours, minutes, seconds, pad_number, microseconds
+        int hours, minutes, seconds, pad_number, microseconds
         int total_minutes
         object gmtoff_remainder, gmtoff_remainder_padding
 

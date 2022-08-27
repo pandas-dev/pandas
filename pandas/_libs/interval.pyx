@@ -13,15 +13,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 cimport cython
-from cpython.object cimport (
-    Py_EQ,
-    Py_GE,
-    Py_GT,
-    Py_LE,
-    Py_LT,
-    Py_NE,
-    PyObject_RichCompare,
-)
+from cpython.object cimport PyObject_RichCompare
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -31,9 +23,7 @@ from numpy cimport (
     NPY_QUICKSORT,
     PyArray_ArgSort,
     PyArray_Take,
-    float32_t,
     float64_t,
-    int32_t,
     int64_t,
     ndarray,
     uint64_t,
