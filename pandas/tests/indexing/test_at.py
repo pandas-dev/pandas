@@ -13,6 +13,8 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    to_datetime,
+    DatetimeIndex,
 )
 import pandas._testing as tm
 
@@ -96,6 +98,18 @@ class TestAtSetItem:
         )
 
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("row", (to_datetime('2019-01-01'), '2019-01-01'))
+    def test_at_datetime_index(self, row):
+        df = DataFrame(
+            data=[[1] * 2] * 2,
+            columns=['one', 'two'],
+            index=DatetimeIndex(data=["2019-01-01", "2019-01-02"]),
+        )
+
+        df.at[row, 'one'] = 0.5
+        assert df.at[row, 'one'] == 0.5
+        assert df['one'].dtype == 'float64'
 
     def test_at_setitem_multiindex(self):
         df = DataFrame(
