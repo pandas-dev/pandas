@@ -20,6 +20,8 @@ import pytz
 from pandas.compat import (
     IS64,
     PY310,
+    PY311,
+    is_numpy_dev,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
@@ -3390,6 +3392,8 @@ def test_filepath_or_buffer_arg(
             and data == "abc"
             and filepath_or_buffer_id == "string"
             and PY310
+            and not PY311
+            and not is_numpy_dev
         ):
             # raises importwarning _SixMetaPathImporter.find_spec
             with tm.assert_produces_warning(ImportWarning, check_stacklevel=False):
