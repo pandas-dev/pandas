@@ -462,9 +462,9 @@ def test_array_ufuncs_for_many_arguments():
         return x + y + z
 
     ufunc = np.frompyfunc(add3, 3, 1)
-    s = pd.Series(np.array([1, 2]))
+    df = pd.DataFrame([[1, 2], [3, 4]])
 
-    result = ufunc(s, s, 1)
-    expected = pd.Series([3, 5], dtype=object)
+    result = ufunc(df, df, 1)
+    expected = pd.DataFrame([[3, 5], [7, 9]], dtype=object)
 
-    tm.assert_series_equal(result, expected)
+    tm.assert_frame_equal(result, expected)

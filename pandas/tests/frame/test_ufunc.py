@@ -301,3 +301,18 @@ def test_alignment_deprecation_many_inputs(request):
         result = my_ufunc(df1.values, df2, df3)
     expected = expected.set_axis(["b", "c"], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+def test_array_ufuncs_for_many_arguments():
+    # GH39853
+
+    def add3(x, y, z):
+        return x + y + z
+
+    ufunc = np.frompyfunc(add3, 3, 1)
+    ser = pd.Series([1, 2])
+
+    result = ufunc(ser, ser, 1)
+    expected = pd.Series([3, 5], dtype=object)
+
+    tm.assert_series_equal(result, expected)
