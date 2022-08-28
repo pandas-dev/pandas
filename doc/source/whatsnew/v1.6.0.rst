@@ -161,7 +161,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:´MultiIndex.append` not checking names for equality (:issue:`40000`)
 -
 
 I/O
