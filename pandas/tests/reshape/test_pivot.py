@@ -2365,13 +2365,13 @@ class TestPivot:
         assert columns == ["lev3"]
 
     def test_pivot_columns_not_given(self):
-        # GH#
+        # GH#48293
         df = DataFrame({"a": [1], "b": 1})
         with pytest.raises(TypeError, match="missing 1 required argument"):
             df.pivot()
 
     def test_pivot_columns_is_none(self):
-        # GH#
+        # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
         result = df.pivot(columns=None)
         expected = DataFrame({("b", 1): [2], ("c", 1): 3})
@@ -2386,7 +2386,7 @@ class TestPivot:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_index_is_none(self):
-        # GH#
+        # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
 
         result = df.pivot(columns="b", index=None)
@@ -2399,7 +2399,7 @@ class TestPivot:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_values_is_none(self):
-        # GH#
+        # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
 
         result = df.pivot(columns="b", index="c", values=None)
