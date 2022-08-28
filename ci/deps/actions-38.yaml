@@ -19,7 +19,6 @@ dependencies:
   - pytz
 
   # optional dependencies
-  - aiobotocore
   - beautifulsoup4
   - blosc
   - bottleneck
