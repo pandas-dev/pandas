@@ -19,6 +19,7 @@ dependencies:
   - pytz
 
   # optional dependencies
+  - aiobotocore<2.0.0
   - beautifulsoup4
   - blosc
   - bottleneck
@@ -43,7 +44,7 @@ dependencies:
   - pyreadstat
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.05.0
   - scipy
   - sqlalchemy
   - tabulate
