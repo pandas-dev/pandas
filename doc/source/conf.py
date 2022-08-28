@@ -245,7 +245,6 @@ html_theme_options = {
     "navbar_end": ["version-switcher", "navbar-icon-links"],
     "switcher": {
         "json_url": "https://pandas.pydata.org/versions.json",
-        "url_template": "https://pandas.pydata.org/{version}/",
         "version_match": switcher_version,
     },
 }
