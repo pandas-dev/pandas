@@ -1149,6 +1149,7 @@ def assert_frame_equal(
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
+    check_series_type: bool = True,
 ) -> None:
     """
     Check that left and right DataFrame are equal.
@@ -1222,6 +1223,11 @@ def assert_frame_equal(
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    check_series_type : bool, default True
+        Whether to check that the Series classes for all columns are identical.
+
+        .. versionadded:: 1.5.0
 
     See Also
     --------
@@ -1343,6 +1349,7 @@ def assert_frame_equal(
                 rcol,
                 check_dtype=check_dtype,
                 check_index_type=check_index_type,
+                check_series_type=check_series_type,
                 check_exact=check_exact,
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
