@@ -186,7 +186,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`40000`)
 -
 
 Sparse
