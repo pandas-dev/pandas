@@ -2208,8 +2208,8 @@ class MultiIndex(Index):
                 label = self._get_level_values(i)
                 appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
-                level_names = {label.name}.union({x.name for x in appended})
-                names.append(None if len(level_names) > 1 else label.name)
+                single_label_name = all(label.name == x.name for x in appended)
+                names.append(label.name if single_label_name else None)
             return MultiIndex.from_arrays(arrays, names=names)
 
         to_concat = (self._values,) + tuple(k._values for k in other)
