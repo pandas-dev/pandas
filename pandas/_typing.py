@@ -328,3 +328,6 @@ QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "neares
 
 # plotting
 PlottingOrientation = Literal["horizontal", "vertical"]
+
+# dropna
+AnyAll = Literal["any", "all"]
