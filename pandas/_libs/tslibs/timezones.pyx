@@ -3,6 +3,8 @@ from datetime import (
     timezone,
 )
 
+from pandas.compat._optional import import_optional_dependency
+
 try:
     # py39+
     import zoneinfo
@@ -67,6 +69,9 @@ cdef inline bint is_utc_zoneinfo(tzinfo tz):
             utc_zoneinfo = ZoneInfo("UTC")
         except zoneinfo.ZoneInfoNotFoundError:
             return False
+        # Warn if tzdata is too old, even if there is a system tzdata to alert
+        # users about the mismatch between local/system tzdata
+        import_optional_dependency("tzdata", errors="warn", min_version="2022.1")
 
     return tz is utc_zoneinfo
 
@@ -231,7 +236,7 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
         return tz.utcoffset(obj)
 
 
-cdef inline bint is_fixed_offset(tzinfo tz):
+cpdef inline bint is_fixed_offset(tzinfo tz):
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1

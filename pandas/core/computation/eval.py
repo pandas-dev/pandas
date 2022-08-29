@@ -3,7 +3,9 @@ Top level ``eval`` module.
 """
 from __future__ import annotations
 
+import inspect
 import tokenize
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs.lib import no_default
@@ -15,11 +17,14 @@ from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
-from pandas.core.computation.ops import BinOp
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
+from pandas.core.generic import NDFrame
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas.core.computation.ops import BinOp
 
 
 def _check_engine(engine: str | None) -> str:
@@ -206,12 +211,11 @@ def eval(
 
         The engine used to evaluate the expression. Supported engines are
 
-        - None         : tries to use ``numexpr``, falls back to ``python``
-        - ``'numexpr'``: This default engine evaluates pandas objects using
-                         numexpr for large speed ups in complex expressions
-                         with large frames.
-        - ``'python'``: Performs operations as if you had ``eval``'d in top
-                        level python. This engine is generally not that useful.
+        - None : tries to use ``numexpr``, falls back to ``python``
+        - ``'numexpr'`` : This default engine evaluates pandas objects using
+          numexpr for large speed ups in complex expressions with large frames.
+        - ``'python'`` : Performs operations as if you had ``eval``'d in top
+          level python. This engine is generally not that useful.
 
         More backends may be available in the future.
 
@@ -309,7 +313,7 @@ def eval(
                 "will be removed in a future version."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     exprs: list[str | BinOp]
@@ -384,7 +388,10 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    target[assigner] = ret
+                    if inplace and isinstance(target, NDFrame):
+                        target.loc[:, assigner] = ret
+                    else:
+                        target[assigner] = ret
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

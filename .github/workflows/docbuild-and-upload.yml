@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - main
+      - 1.5.x
       - 1.4.x
+    tags:
+      - '*'
   pull_request:
     branches:
       - main
+      - 1.5.x
       - 1.4.x
 
 env:
@@ -49,6 +53,9 @@ jobs:
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
 
+    - name: Build documentation zip
+      run: doc/make.py zip_html
+
     - name: Build the interactive terminal
       run: |
         cd web/interactive_terminal
@@ -72,6 +79,10 @@ jobs:
     - name: Upload dev docs
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    - name: Upload prod docs
+      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/version/${GITHUB_REF_NAME}
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs

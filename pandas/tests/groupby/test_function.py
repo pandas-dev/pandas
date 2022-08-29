@@ -18,6 +18,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.nanops as nanops
+from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
 
@@ -97,7 +98,7 @@ def test_builtins_apply(keys, f):
 
     if f != sum:
         expected = gb.agg(fname).reset_index()
-        expected.set_index(keys, inplace=True, drop=False)
+        expected = expected.set_index(keys, copy=False, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
@@ -453,7 +454,7 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
     df_out = DataFrame(exp)
 
     df_out["b"] = df_out.b.astype(out_type)
-    df_out.set_index("a", inplace=True)
+    df_out = df_out.set_index("a", copy=False)
 
     grpd = df.groupby("a")
     t = getattr(grpd, method)(*data["args"])
@@ -570,7 +571,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
     groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
     gb = df.groupby(groups)
     method = getattr(gb, groupby_func)
-    args = (0,) if groupby_func == "fillna" else ()
+    args = get_groupby_method_args(groupby_func, df)
     kwargs = {"axis": 1}
     if numeric_only is not None:
         # when numeric_only is None we don't pass any argument
@@ -647,6 +648,20 @@ def test_groupby_cumprod():
     expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
+
+
+def test_groupby_cumprod_nan_influences_other_columns():
+    # GH#48064
+    df = DataFrame(
+        {
+            "a": 1,
+            "b": [1, np.nan, 2],
+            "c": [1, 2, 3.0],
+        }
+    )
+    result = df.groupby("a").cumprod(numeric_only=True, skipna=False)
+    expected = DataFrame({"b": [1, np.nan, np.nan], "c": [1, 2, 6.0]})
+    tm.assert_frame_equal(result, expected)
 
 
 def scipy_sem(*args, **kwargs):
@@ -1366,12 +1381,7 @@ def test_deprecate_numeric_only(
     # has_arg: Whether the op has a numeric_only arg
     df = DataFrame({"a1": [1, 1], "a2": [2, 2], "a3": [5, 6], "b": 2 * [object]})
 
-    if kernel == "corrwith":
-        args = (df,)
-    elif kernel == "nth" or kernel == "fillna":
-        args = (0,)
-    else:
-        args = ()
+    args = get_groupby_method_args(kernel, df)
     kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
 
     gb = df.groupby(keys)
@@ -1451,22 +1461,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     expected_gb = expected_ser.groupby(grouper)
     expected_method = getattr(expected_gb, groupby_func)
 
-    if groupby_func == "corrwith":
-        args = (ser,)
-    elif groupby_func == "corr":
-        args = (ser,)
-    elif groupby_func == "cov":
-        args = (ser,)
-    elif groupby_func == "nth":
-        args = (0,)
-    elif groupby_func == "fillna":
-        args = (True,)
-    elif groupby_func == "take":
-        args = ([0],)
-    elif groupby_func == "quantile":
-        args = (0.5,)
-    else:
-        args = ()
+    args = get_groupby_method_args(groupby_func, ser)
 
     fails_on_numeric_object = (
         "corr",
@@ -1593,3 +1588,16 @@ def test_corrwith_with_1_axis():
     )
     expected = Series([np.nan] * 6, index=index)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:The 'mad' method.*:FutureWarning")
+def test_multiindex_group_all_columns_when_empty(groupby_func):
+    # GH 32464
+    df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
+    gb = df.groupby(["a", "b", "c"])
+    method = getattr(gb, groupby_func)
+    args = get_groupby_method_args(groupby_func, df)
+
+    result = method(*args).index
+    expected = df.index
+    tm.assert_index_equal(result, expected)

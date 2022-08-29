@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY311
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -34,26 +36,38 @@ class TestCategoricalAPI:
         assert cat4.ordered
 
     def test_set_ordered(self):
-
+        msg = (
+            "The `inplace` parameter in pandas.Categorical.set_ordered is "
+            "deprecated and will be removed in a future version. setting "
+            "ordered-ness on categories will always return a new Categorical object"
+        )
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         cat2 = cat.as_unordered()
         assert not cat2.ordered
         cat2 = cat.as_ordered()
         assert cat2.ordered
-        cat2.as_unordered(inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.as_unordered(inplace=True)
         assert not cat2.ordered
-        cat2.as_ordered(inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.as_ordered(inplace=True)
         assert cat2.ordered
 
         assert cat2.set_ordered(True).ordered
         assert not cat2.set_ordered(False).ordered
-        cat2.set_ordered(True, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.set_ordered(True, inplace=True)
         assert cat2.ordered
-        cat2.set_ordered(False, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat2.set_ordered(False, inplace=True)
         assert not cat2.ordered
 
         # removed in 0.19.0
-        msg = "can't set attribute"
+        msg = (
+            "property 'ordered' of 'Categorical' object has no setter"
+            if PY311
+            else "can't set attribute"
+        )
         with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
         with pytest.raises(AttributeError, match=msg):
@@ -507,7 +521,12 @@ class TestPrivateCategoricalAPI:
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        with pytest.raises(AttributeError, match="can't set attribute"):
+        msg = (
+            "property 'codes' of 'Categorical' object has no setter"
+            if PY311
+            else "can't set attribute"
+        )
+        with pytest.raises(AttributeError, match=msg):
             c.codes = np.array([0, 1, 2, 0, 1], dtype="int8")
 
         # changes in the codes array should raise

@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
@@ -134,3 +135,23 @@ class TestRename:
         series_expected = Series(np.ones(5), index=index_expected)
 
         tm.assert_series_equal(result, series_expected)
+
+    def test_rename_error_arg(self):
+        # GH 46889
+        ser = Series(["foo", "bar"])
+        match = re.escape("[2] not found in axis")
+        with pytest.raises(KeyError, match=match):
+            ser.rename({2: 9}, errors="raise")
+
+    def test_rename_copy_false(self, using_copy_on_write):
+        # GH 46889
+        ser = Series(["foo", "bar"])
+        ser_orig = ser.copy()
+        shallow_copy = ser.rename({1: 9}, copy=False)
+        ser[0] = "foobar"
+        if using_copy_on_write:
+            assert ser_orig[0] == shallow_copy[0]
+            assert ser_orig[1] == shallow_copy[9]
+        else:
+            assert ser[0] == shallow_copy[0]
+            assert ser[1] == shallow_copy[9]
