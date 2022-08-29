@@ -468,6 +468,7 @@ class TestSelectDtypes:
 
     @pytest.mark.parametrize("type", ["Int32", "Int64", "Float32", "Float64"])
     def test_select_dtypes_nullable_integer(self, type):
+        # GH 40234
 
         df = DataFrame([{"A": 1, "B": 2}, {"A": 3}]).astype({"B": type})
 
