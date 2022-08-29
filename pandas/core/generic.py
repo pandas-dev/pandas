@@ -4619,7 +4619,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
-    def add_prefix(self: NDFrameT, prefix: str, copy: bool_t = True) -> NDFrameT:
+    def add_prefix(self: NDFrameT, prefix: str) -> NDFrameT:
         """
         Prefix labels with string `prefix`.
 
@@ -4630,10 +4630,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
-        copy : bool, default True
-            Whether to copy the underlying data.
-
-             .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -4684,10 +4680,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self._rename(**mapper, copy=copy)  # type: ignore[return-value, arg-type]
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     @final
-    def add_suffix(self: NDFrameT, suffix: str, copy: bool_t = True) -> NDFrameT:
+    def add_suffix(self: NDFrameT, suffix: str) -> NDFrameT:
         """
         Suffix labels with string `suffix`.
 
@@ -4698,10 +4694,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
-        copy : bool, default True
-            Whether to copy the underlying data.
-
-             .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -4752,7 +4744,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self._rename(**mapper, copy=copy)  # type: ignore[return-value, arg-type]
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     @overload
     def sort_values(
@@ -6869,6 +6861,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in value.items():
                     if k not in result:
                         continue
+
                     # error: Item "None" of "Optional[Dict[Any, Any]]" has no
                     # attribute "get"
                     downcast_k = (
@@ -6876,9 +6869,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if not is_dict
                         else downcast.get(k)  # type: ignore[union-attr]
                     )
-                    result.loc[:, k] = result[k].fillna(
-                        v, limit=limit, downcast=downcast_k
+                    # GH47649
+                    result.loc[:, k] = (
+                        result[k].fillna(v, limit=limit, downcast=downcast_k).values
                     )
+                    # TODO: result.loc[:, k] = result.loc[:, k].fillna(
+                    #     v, limit=limit, downcast=downcast_k
+                    # )
+                    # Revert when GH45751 is fixed
                 return result if not inplace else None
 
             elif not is_list_like(value):
