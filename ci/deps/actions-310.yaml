@@ -19,7 +19,7 @@ dependencies:
   - pytz
 
   # optional dependencies
-  - aiobotocore<2.0.0
+  - botocore>=1.23.0
   - beautifulsoup4
   - blosc
   - bottleneck

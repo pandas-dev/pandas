@@ -57,8 +57,8 @@ dependencies:
   - zstandard
 
   # downstream packages
-  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
-  - botocore
+  # - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
+  - botocore>=1.23.0
   - cftime
   - dask
   - ipython
