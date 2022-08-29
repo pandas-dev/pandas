@@ -14,7 +14,6 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
-    to_datetime,
 )
 import pandas._testing as tm
 
@@ -99,11 +98,7 @@ class TestAtSetItem:
 
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("row",
-                             (Timestamp("2019-01-01"),
-                              to_datetime("2019-01-01"),
-                              "2019-01-01")
-                             )
+    @pytest.mark.parametrize("row", (Timestamp("2019-01-01"), "2019-01-01"))
     def test_at_datetime_index(self, row):
         df = DataFrame(
             data=[[1] * 2],
