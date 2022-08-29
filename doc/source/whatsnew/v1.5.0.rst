@@ -1165,7 +1165,7 @@ Groupby/resample/rolling
 - Bug when using ``engine="numba"`` would return the same jitted function when modifying ``engine_kwargs`` (:issue:`46086`)
 - Bug in :meth:`.DataFrameGroupBy.transform` fails when ``axis=1`` and ``func`` is ``"first"`` or ``"last"`` (:issue:`45986`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` with ``skipna=False`` giving incorrect results (:issue:`46216`)
-- Bug in :meth:`.GroupBy.sum` and :meth:`.GroupBy.cumsum` with integer dtypes losing precision (:issue:`37493`)
+- Bug in :meth:`.GroupBy.sum`, :meth:`.GroupBy.prod` and :meth:`.GroupBy.cumsum` with integer dtypes losing precision (:issue:`37493`)
 - Bug in :meth:`.GroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`46216`)
 - Bug in :meth:`.GroupBy.cumsum` with integer dtypes causing overflows when sum was bigger than maximum of dtype (:issue:`37493`)
 - Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)

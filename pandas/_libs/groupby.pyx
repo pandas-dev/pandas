@@ -682,10 +682,12 @@ def group_sum(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod(
-    floating[:, ::1] out,
+    int64float_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[floating, ndim=2] values,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
+    const uint8_t[:, ::1] mask,
+    uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
 ) -> None:
     """
@@ -693,10 +695,11 @@ def group_prod(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        floating val, count
-        floating[:, ::1] prodx
+        int64float_t val, count
+        int64float_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = mask is not None
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -716,15 +719,32 @@ def group_prod(
             for j in range(K):
                 val = values[i, j]
 
-                # not nan
-                if val == val:
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                elif int64float_t is float32_t or int64float_t is float64_t:
+                    isna_entry = not val == val
+                else:
+                    isna_entry = False
+
+                if not isna_entry:
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
 
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] < min_count:
-                    out[i, j] = NAN
+
+                    # else case is not possible
+                    if uses_mask:
+                        result_mask[i, j] = True
+                        # Be deterministic, out was initialized as empty
+                        out[i, j] = 0
+                    elif int64float_t is float32_t or int64float_t is float64_t:
+                        out[i, j] = NAN
+                    else:
+                        # we only get here when < mincount which gets handled later
+                        pass
+
                 else:
                     out[i, j] = prodx[i, j]
 
