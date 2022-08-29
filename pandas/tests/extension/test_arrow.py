@@ -274,7 +274,7 @@ class TestConstructors(base.BaseConstructorsTests):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
-                    reason=f"pyarrow doesn't support factorizing {pa_dtype}",
+                    reason=f"pyarrow doesn't support parsing {pa_dtype}",
                 )
             )
         elif pa.types.is_boolean(pa_dtype):
@@ -283,6 +283,8 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason="Iterating over ChunkedArray[bool] returns PyArrow scalars.",
                 )
             )
+        # TODO: Path to the tzdata needs to be provided once supported
+        # https://arrow.apache.org/docs/developers/cpp/windows.html?#downloading-the-timezone-database
         elif (
             pa_version_under7p0
             and pa.types.is_timestamp(pa_dtype)
@@ -290,14 +292,12 @@ class TestConstructors(base.BaseConstructorsTests):
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support string cast from {pa_dtype}",
                 )
             )
         elif pa_version_under6p0 and pa.types.is_temporal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support string cast from {pa_dtype}",
                 )
             )
