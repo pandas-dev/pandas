@@ -174,6 +174,24 @@ class TestNonNano:
         expected = tda._ndarray / other
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_add_timedeltaarraylike(self, tda):
+        # TODO(2.0): just do `tda_nano = tda.astype("m8[ns]")`
+        tda_nano = TimedeltaArray(tda._ndarray.astype("m8[ns]"))
+
+        msg = "mis-matched resolutions is not yet supported"
+        with pytest.raises(NotImplementedError, match=msg):
+            tda_nano + tda
+        with pytest.raises(NotImplementedError, match=msg):
+            tda + tda_nano
+        with pytest.raises(NotImplementedError, match=msg):
+            tda - tda_nano
+        with pytest.raises(NotImplementedError, match=msg):
+            tda_nano - tda
+
+        result = tda_nano + tda_nano
+        expected = tda_nano * 2
+        tm.assert_extension_array_equal(result, expected)
+
 
 class TestTimedeltaArray:
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
