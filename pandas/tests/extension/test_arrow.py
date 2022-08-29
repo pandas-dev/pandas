@@ -1331,7 +1331,13 @@ class TestBaseMethods(base.BaseMethodsTests):
                 )
             )
         with tm.maybe_produces_warning(
-            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+            PerformanceWarning,
+            pa_version_under7p0
+            and not (
+                pa.types.is_date(pa_dtype)
+                or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+            ),
+            check_stacklevel=False,
         ):
             super().test_value_counts_with_normalize(data)
 
