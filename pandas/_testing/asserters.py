@@ -580,7 +580,7 @@ def assert_categorical_equal(
 
 
 def assert_interval_array_equal(
-    left, right, exact="equiv", obj="IntervalArray"
+    left, right, exact="equiv", obj="IntervalArray", **kwargs
 ) -> None:
     """
     Test that two IntervalArrays are equivalent.
@@ -599,7 +599,7 @@ def assert_interval_array_equal(
     """
     _check_isinstance(left, right, IntervalArray)
 
-    kwargs = {}
+    kwargs = dict(kwargs)
     if left._left.dtype.kind in ["m", "M"]:
         # We have a DatetimeArray or TimedeltaArray
         kwargs["check_freq"] = False
@@ -686,6 +686,7 @@ def assert_numpy_array_equal(
     check_same=None,
     obj="numpy array",
     index_values=None,
+    **kwargs,
 ) -> None:
     """
     Check that 'np.ndarray' is equivalent.
@@ -749,7 +750,7 @@ def assert_numpy_array_equal(
         raise AssertionError(err_msg)
 
     # compare shape and values
-    if not array_equivalent(left, right, strict_nan=strict_nan):
+    if not array_equivalent(left, right, strict_nan=strict_nan, **kwargs):
         _raise(left, right, err_msg)
 
     if check_dtype:
@@ -1063,7 +1064,7 @@ def assert_series_equal(
             )
             raise AssertionError(msg)
     elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
-        assert_interval_array_equal(left.array, right.array)
+        assert_interval_array_equal(left.array, right.array, rtol=rtol, atol=atol)
     elif isinstance(left.dtype, CategoricalDtype) or isinstance(
         right.dtype, CategoricalDtype
     ):

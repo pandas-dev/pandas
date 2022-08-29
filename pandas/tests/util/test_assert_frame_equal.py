@@ -71,6 +71,17 @@ def _assert_not_frame_equal_both(a, b, **kwargs):
     _assert_not_frame_equal(b, a, **kwargs)
 
 
+def test_assert_frame_equal_interval_array_tolerance():
+    # see gh-43913
+    df1 = DataFrame()
+    df1[0] = pd.arrays.IntervalArray.from_tuples([(1.0, 2.0)])
+
+    df2 = DataFrame()
+    df2[0] = pd.arrays.IntervalArray.from_tuples([(1.0000000000001, 2.0)])
+
+    _assert_frame_equal_both(df1, df2, check_exact=False, rtol=10.0, atol=10.0)
+
+
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])

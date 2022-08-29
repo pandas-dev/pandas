@@ -460,6 +460,8 @@ def isna_compat(arr, fill_value=np.nan) -> bool:
 def array_equivalent(
     left,
     right,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
     strict_nan: bool = False,
     dtype_equal: bool = False,
 ) -> bool:
@@ -530,7 +532,10 @@ def array_equivalent(
     if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
         if not (left.size and right.size):
             return True
-        return ((left == right) | (isna(left) & isna(right))).all()
+        return (
+            (abs(left - right) <= (atol + rtol * abs(right)))
+            | (isna(left) & isna(right))
+        ).all()
 
     elif is_datetimelike_v_numeric(left, right):
         # GH#29553 avoid numpy deprecation warning
