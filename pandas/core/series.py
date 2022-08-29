@@ -35,6 +35,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
@@ -5735,7 +5736,7 @@ Keep all original rows and also all original values
         *,
         axis: Axis = ...,
         inplace: Literal[False] = ...,
-        how: Literal["any", "all"] | None = ...,
+        how: AnyAll | None = ...,
     ) -> Series:
         ...
 
@@ -5745,7 +5746,7 @@ Keep all original rows and also all original values
         *,
         axis: Axis = ...,
         inplace: Literal[True],
-        how: Literal["any", "all"] | None = ...,
+        how: AnyAll | None = ...,
     ) -> None:
         ...
 
@@ -5754,7 +5755,7 @@ Keep all original rows and also all original values
         self,
         axis: Axis = 0,
         inplace: bool = False,
-        how: Literal["any", "all"] | None = None,
+        how: AnyAll | None = None,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
