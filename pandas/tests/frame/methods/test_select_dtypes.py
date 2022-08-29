@@ -465,3 +465,13 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=["number"])
         result.iloc[0, 0] = 0
         tm.assert_frame_equal(df, df_orig)
+
+    @pytest.mark.parametrize("type", ["Int32", "Int64", "Float32", "Float64"])
+    def test_select_dtypes_nullable_integer(self, type):
+
+        df = DataFrame([{"A": 1, "B": 2}, {"A": 3}]).astype({"B": type})
+
+        result = df.select_dtypes(type)
+        expected = DataFrame([{"B": 2}, {}]).astype({"B": type})
+
+        tm.assert_frame_equal(result, expected)

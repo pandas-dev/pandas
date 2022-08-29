@@ -1668,7 +1668,7 @@ def infer_dtype_from_object(dtype) -> type:
         pass
 
     if is_extension_array_dtype(dtype):
-        return dtype.type
+        return type(dtype)
     elif isinstance(dtype, str):
 
         # TODO(jreback)
