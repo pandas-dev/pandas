@@ -7,6 +7,7 @@ from datetime import (
     timedelta,
     tzinfo,
 )
+import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -36,7 +37,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    IntervalInclusiveType,
+    IntervalClosedType,
     IntervalLeftRight,
     npt,
 )
@@ -115,7 +116,7 @@ def _new_DatetimeIndex(cls, d):
     + [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize", "tz_convert")
+        if method not in ("tz_localize", "tz_convert", "strftime")
     ],
     DatetimeArray,
     wrap=True,
@@ -145,8 +146,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), optional
-        Optional datetime-like data to construct index with.
+    data : array-like (1-dimensional)
+        Datetime-like data to construct index with.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
@@ -269,7 +270,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.strftime)
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name)
+        return Index(arr, name=self.name, dtype=object)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> DatetimeIndex:
@@ -415,6 +416,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
+    def _can_range_setop(self, other) -> bool:
+        # GH 46702: If self or other have non-UTC tzs, DST transitions prevent
+        # range representation due to no singular step
+        if (
+            self.tz is not None
+            and not timezones.is_utc(self.tz)
+            and not timezones.is_fixed_offset(self.tz)
+        ):
+            return False
+        if (
+            other.tz is not None
+            and not timezones.is_utc(other.tz)
+            and not timezones.is_fixed_offset(other.tz)
+        ):
+            return False
+        return super()._can_range_setop(other)
+
     def union_many(self, others):
         """
         A bit of a hack to accelerate unioning a collection of indexes.
@@ -423,7 +441,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.union_many is deprecated and will be removed in "
             "a future version. Use obj.union instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         this = self
@@ -547,7 +565,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             else:
                 warnings.warn(
@@ -557,7 +575,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "can do 'idx.tz_convert(None)' before calling "
                     "'to_series'.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
         else:
             keep_tz = True
@@ -660,7 +678,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -809,7 +829,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -923,7 +943,7 @@ def date_range(
     normalize: bool = False,
     name: Hashable = None,
     closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
-    inclusive: IntervalInclusiveType | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1089,7 +1109,7 @@ def date_range(
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if closed is None:
             inclusive = "both"
@@ -1129,7 +1149,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
-    inclusive: IntervalInclusiveType | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """

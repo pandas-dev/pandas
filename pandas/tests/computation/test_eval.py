@@ -49,6 +49,7 @@ from pandas.core.computation.ops import (
     _binary_ops_dict,
     _unary_math_ops,
 )
+from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 
 @pytest.fixture(
@@ -1888,6 +1889,47 @@ def test_negate_lt_eq_le(engine, parser):
     else:
         result = df.query("not (cat > 0)", engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "column",
+    DEFAULT_GLOBALS.keys(),
+)
+def test_eval_no_support_column_name(request, column):
+    # GH 44603
+    if column in ["True", "False", "inf", "Inf"]:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=KeyError,
+                reason=f"GH 47859 DataFrame eval not supported with {column}",
+            )
+        )
+
+    df = DataFrame(np.random.randint(0, 100, size=(10, 2)), columns=[column, "col1"])
+    expected = df[df[column] > 6]
+    result = df.query(f"{column}>6")
+
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_array_manager_not_yet_implemented
+def test_set_inplace(using_copy_on_write):
+    # https://github.com/pandas-dev/pandas/issues/47449
+    # Ensure we don't only update the DataFrame inplace, but also the actual
+    # column values, such that references to this column also get updated
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+    result_view = df[:]
+    ser = df["A"]
+    df.eval("A = B + C", inplace=True)
+    expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
+    tm.assert_frame_equal(df, expected)
+    if not using_copy_on_write:
+        tm.assert_series_equal(ser, expected["A"])
+        tm.assert_series_equal(result_view["A"], expected["A"])
+    else:
+        expected = Series([1, 2, 3], name="A")
+        tm.assert_series_equal(ser, expected)
+        tm.assert_series_equal(result_view["A"], expected)
 
 
 class TestValidate:

@@ -5,7 +5,7 @@ dependencies:
   - python=3.10
 
   # test dependencies
-  - cython>=0.29.30
+  - cython>=0.29.32
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -19,6 +19,7 @@ dependencies:
   - pytz
 
   # optional dependencies
+  - aiobotocore<2.0.0
   - beautifulsoup4
   - blosc
   - bottleneck
@@ -43,10 +44,11 @@ dependencies:
   - pyreadstat
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.05.0
   - scipy
   - sqlalchemy
   - tabulate
+  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter
