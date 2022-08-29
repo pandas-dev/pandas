@@ -104,7 +104,7 @@ Option 1a: using mamba (recommended)
 
 Now create an isolated pandas development environment:
 
-* Install `mamba <https://mamba.readthedocs.io/en/latest/index.html>`_
+* Install `mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_
 * Make sure your mamba is up to date (``mamba update mamba``)
 * Make sure that you have :any:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
@@ -118,7 +118,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   mamba env create -f environment.yml
+   mamba env create
    mamba activate pandas-dev
 
    # Build and install pandas
