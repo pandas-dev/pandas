@@ -27,7 +27,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.1.2
+    rev: v0.1.3
     hooks:
     -   id: cython-lint
 -   repo: https://github.com/pre-commit/pre-commit-hooks
