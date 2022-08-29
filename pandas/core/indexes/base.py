@@ -2971,7 +2971,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         return self._view()
 
-    def dropna(self: _IndexT, how: str_t = "any") -> _IndexT:
+    def dropna(self: _IndexT, how: Literal["any", "all"] = "any") -> _IndexT:
         """
         Return Index without NA/NaN values.
 
