@@ -36,7 +36,7 @@ VERSIONS = {
     "pyreadstat": "1.1.2",
     "pytest": "6.0",
     "pyxlsb": "1.0.8",
-    "s3fs": "2021.05.0",
+    "s3fs": "2021.08.0",
     "scipy": "1.7.1",
     "snappy": "0.6.0",
     "sqlalchemy": "1.4.16",

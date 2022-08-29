@@ -416,7 +416,7 @@ Dependency                Minimum Version    Notes
 fsspec                    2021.5.0           Handling files aside from simple local and HTTP
 gcsfs                     2021.5.0           Google Cloud Storage access
 pandas-gbq                0.15.0             Google Big Query access
-s3fs                      2021.05.0          Amazon S3 access
+s3fs                      2021.08.0          Amazon S3 access
 ========================= ================== =============================================================
 
 Clipboard
