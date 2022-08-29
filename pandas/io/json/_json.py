@@ -514,7 +514,7 @@ def read_json(
         - ``'index'`` : dict like ``{{index -> {{column -> value}}}}``
         - ``'columns'`` : dict like ``{{column -> {{index -> value}}}}``
         - ``'values'`` : just the values array
-        - None : the orient will then be assigned based on `typ` parameter
+        - None : orient will then be assigned based on `typ` parameter
 
         The allowed and default values depend on the value
         of the `typ` parameter.
