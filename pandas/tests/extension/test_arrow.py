@@ -21,6 +21,8 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
@@ -283,21 +285,28 @@ class TestConstructors(base.BaseConstructorsTests):
                     reason="Iterating over ChunkedArray[bool] returns PyArrow scalars.",
                 )
             )
-        # TODO: Path to the tzdata needs to be provided once supported
-        # https://arrow.apache.org/docs/developers/cpp/windows.html?#downloading-the-timezone-database
-        elif (
-            pa_version_under7p0
-            and pa.types.is_timestamp(pa_dtype)
-            and pa_dtype.tz is not None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"pyarrow doesn't support string cast from {pa_dtype}",
+        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            if pa_version_under7p0:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=pa.ArrowNotImplementedError,
+                        reason=f"pyarrow doesn't support string cast from {pa_dtype}",
+                    )
                 )
-            )
+            elif is_platform_windows() and is_ci_environment():
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=pa.ArrowInvalid,
+                        reason=(
+                            "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                            "on CI to path to the tzdata for pyarrow."
+                        ),
+                    )
+                )
         elif pa_version_under6p0 and pa.types.is_temporal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support string cast from {pa_dtype}",
                 )
             )
