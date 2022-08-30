@@ -136,7 +136,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :class:`Series` constructor casting integers to floats in some cases during Series creation (:issue:`25880`)
 -
 
 Strings
