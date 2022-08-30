@@ -17,6 +17,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.fillna` not working :class:`DataFrame` with :class:`MultiIndex` (:issue:`47649`)
 - Fixed regression in taking NULL :class:`objects` from a :class:`DataFrame` causing a segmentation violation. These NULL values are created by :meth:`numpy.empty_like` (:issue:`46848`)
 - Fixed regression in :func:`concat` materializing :class:`Index` during sorting even if :class:`Index` was already sorted (:issue:`47501`)
+- Fixed regression in :func:`concat` or :func:`merge` handling of all-NaN ExtensionArrays with custom attributes (:issue:`47762`)
 - Fixed regression in calling bitwise numpy ufuncs (for example, ``np.bitwise_and``) on Index objects (:issue:`46769`)
 - Fixed regression in :func:`cut` using a ``datetime64`` IntervalIndex as bins (:issue:`46218`)
 - Fixed regression in :meth:`DataFrame.select_dtypes` where ``include="number"`` included :class:`BooleanDtype` (:issue:`46870`)
