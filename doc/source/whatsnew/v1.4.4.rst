@@ -32,7 +32,7 @@ Fixed regressions
 - Fixed regression in :meth:`DatetimeIndex.intersection` when the :class:`DatetimeIndex` has dates crossing daylight savings time (:issue:`46702`)
 - Fixed regression in :func:`merge` throwing an error when passing a :class:`Series` with a multi-level name (:issue:`47946`)
 - Fixed regression in :meth:`DataFrame.eval` creating a copy when updating inplace (:issue:`47449`)
--
+- Fixed regression where getting a row using :meth:`DataFrame.iloc` with :class:`SparseDtype` would raise (:issue:`46406`)
 
 .. ---------------------------------------------------------------------------
 
