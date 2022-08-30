@@ -19,6 +19,7 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
+    @td.skip_array_manager_not_yet_implemented
     def test_fillna_dict_inplace_nonunique_columns(self):
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
@@ -307,7 +308,6 @@ class TestFillNA:
         res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
         tm.assert_equal(res3, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476
