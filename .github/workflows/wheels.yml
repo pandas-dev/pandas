@@ -52,7 +52,7 @@ jobs:
         - [windows-2019, win_amd64]
         - [windows-2019, win32]
         # TODO: support PyPy?
-        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"]]# "pp38", "pp39"]
+        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
     env:
       IS_32_BIT: ${{ matrix.buildplat[1] == 'win32' }}
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
@@ -72,8 +72,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.9.0
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_ENVIRONMENT: RUNNER_OS='${{ runner.os }}'
-                            IS_32_BIT='${{ env.IS_32_BIT }}'
+          CIBW_ENVIRONMENT: IS_32_BIT='${{ env.IS_32_BIT }}'
           # We can't test directly with cibuildwheel, since we need to have to wheel location
           # to mount into the docker image
           CIBW_TEST_COMMAND_LINUX: "python {project}/ci/test_wheels.py"
@@ -148,7 +147,9 @@ jobs:
       - name: Test the sdist
         run: |
           # TODO: Don't run test suite, and instead build wheels from sdist
-          # Depends on pypa/cibuildwheel#1020
+          # by splitting the wheel builders into a two stage job
+          # (1. Generate sdist 2. Build wheels from sdist)
+          # This tests the sdists, and saves some build time
           python -m pip install dist/*.gz
           pip install hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17
           cd .. # Not a good idea to test within the src tree

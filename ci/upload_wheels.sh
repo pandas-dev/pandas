@@ -6,12 +6,12 @@ set_upload_vars() {
     if [[ "$IS_PUSH" == "true" ]]; then
         echo push and tag event
         export ANACONDA_ORG="multibuild-wheels-staging"
-        export TOKEN="$NUMPY_STAGING_UPLOAD_TOKEN"
+        export TOKEN="$PANDAS_STAGING_UPLOAD_TOKEN"
         export ANACONDA_UPLOAD="true"
     elif [[ "$IS_SCHEDULE_DISPATCH" == "true" ]]; then
         echo scheduled or dispatched event
         export ANACONDA_ORG="scipy-wheels-nightly"
-        export TOKEN="$NUMPY_NIGHTLY_UPLOAD_TOKEN"
+        export TOKEN="$PANDAS_NIGHTLY_UPLOAD_TOKEN"
         export ANACONDA_UPLOAD="true"
     else
         echo non-dispatch event
