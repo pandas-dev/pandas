@@ -52,7 +52,7 @@ jobs:
         - [windows-2019, win_amd64]
         - [windows-2019, win32]
         # TODO: support PyPy?
-        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
+        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11-dev"]]# "pp38", "pp39"]
     env:
       IS_32_BIT: ${{ matrix.buildplat[1] == 'win32' }}
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
@@ -80,6 +80,7 @@ jobs:
           CIBW_TEST_REQUIRES: hypothesis==6.52.1 pytest>=6.2.5 pytest-xdist pytest-asyncio>=0.17
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "python ci/fix_wheels.py {wheel} {dest_dir}"
           CIBW_ARCHS_MACOS: x86_64 universal2
+          CIBW_BUILD_VERBOSITY: 3
 
       # Used to push the built wheels
       - uses: actions/setup-python@v3
