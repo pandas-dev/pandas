@@ -12,6 +12,7 @@ from typing import (
     Any,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -92,8 +93,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
             # GH#29553 prevent numpy deprecation warnings
             pass
         else:
-            new_mask = arr == x
-            if not isinstance(new_mask, np.ndarray):
+            # GH#47101 we may get a scalar new_mask if elementwise comparison fails
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", FutureWarning)
+                new_mask = arr == x
+            if not isinstance(new_mask, (np.ndarray, bool)):
                 # usually BooleanArray
                 new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
             mask |= new_mask

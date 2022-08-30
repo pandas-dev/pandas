@@ -1496,6 +1496,13 @@ class TestDataFrameReplace:
         result = obj.replace(box(to_replace), value)
         tm.assert_equal(result, expected)
 
+    def test_replace_object_dtype_with_pandas_na(self):
+        # GH#47101
+        df = DataFrame({"d": [pd.NA]})
+        with tm.assert_produces_warning(None):
+            result = df.replace("", pd.NA)
+        tm.assert_frame_equal(result, df)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
