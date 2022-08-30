@@ -50,6 +50,7 @@ from pandas._libs.lib import (
 )
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axes,
@@ -1324,7 +1325,35 @@ class DataFrame(NDFrame, OpsMixin):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(_shared_docs["items"])
+    _shared_docs[
+        "iteritems"
+    ] = r"""
+        Iterate over (column name, Series) pairs.
+
+        .. deprecated:: 1.5.0
+            iteritems is deprecated and will be removed in a future version.
+            Use .items instead.
+
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
+
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iter : Recommended alternative.
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+        """
+
+    @Appender(_shared_docs["iteritems"])
     def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "
@@ -3708,6 +3737,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
+
+        Warning! The returned array is a view but doesn't handle Copy-on-Write,
+        so this should be used with caution (for read-only purposes).
         """
         return self._mgr.iget_values(i)
 
@@ -3715,6 +3747,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over the arrays of all columns in order.
         This returns the values as stored in the Block (ndarray or ExtensionArray).
+
+        Warning! The returned array is a view but doesn't handle Copy-on-Write,
+        so this should be used with caution (for read-only purposes).
         """
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
@@ -4706,7 +4741,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate)
+        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
         return type(self)(mgr).__finalize__(self)
 
     def insert(
@@ -5147,7 +5182,7 @@ class DataFrame(NDFrame, OpsMixin):
         "labels",
         [
             ("method", None),
-            ("copy", True),
+            ("copy", None),
             ("level", None),
             ("fill_value", np.nan),
             ("limit", None),
@@ -5372,7 +5407,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: Literal[True],
         level: Level = ...,
         errors: IgnoreRaise = ...,
@@ -5387,7 +5422,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: Literal[False] = ...,
         level: Level = ...,
         errors: IgnoreRaise = ...,
@@ -5402,7 +5437,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: bool = ...,
         level: Level = ...,
         errors: IgnoreRaise = ...,
@@ -5416,7 +5451,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool = True,
+        copy: bool | None = None,
         inplace: bool = False,
         level: Level = None,
         errors: IgnoreRaise = "ignore",
@@ -6290,7 +6325,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             new_obj = self
         else:
-            new_obj = self.copy()
+            new_obj = self.copy(deep=None)
         if allow_duplicates is not lib.no_default:
             allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
@@ -6389,7 +6424,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
@@ -6401,7 +6436,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
@@ -6412,7 +6447,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str | NoDefault = no_default,
+        how: AnyAll | NoDefault = no_default,
         thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,

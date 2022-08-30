@@ -35,6 +35,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
@@ -1169,7 +1170,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 self._set_with(key, value)
 
         if cacher_needs_updating:
-            self._maybe_update_cacher()
+            self._maybe_update_cacher(inplace=True)
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
@@ -1301,7 +1302,16 @@ class Series(base.IndexOpsMixin, NDFrame):
             # a copy
             if ref is None:
                 del self._cacher
-            elif len(self) == len(ref) and self.name in ref.columns:
+            # for CoW, we never want to update the parent DataFrame cache
+            # if the Series changed, and always pop the cached item
+            elif (
+                not (
+                    get_option("mode.copy_on_write")
+                    and get_option("mode.data_manager") == "block"
+                )
+                and len(self) == len(ref)
+                and self.name in ref.columns
+            ):
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
@@ -1807,8 +1817,29 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return zip(iter(self.index), iter(self))
 
-    @Appender(items.__doc__)
     def iteritems(self) -> Iterable[tuple[Hashable, Any]]:
+        """
+        Lazily iterate over (index, value) tuples.
+
+        .. deprecated:: 1.5.0
+            iteritems is deprecated and will be removed in a future version.
+            Use .items instead.
+
+        This method returns an iterable tuple (index, value). This is
+        convenient if you want to create a lazy iterator.
+
+        Returns
+        -------
+        iterable
+            Iterable of tuples containing the (index, value) pairs from a
+            Series.
+
+        See Also
+        --------
+        Series.items : Recommended alternative.
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
+        """
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
@@ -5701,19 +5732,30 @@ Keep all original rows and also all original values
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[False] = ..., how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        how: AnyAll | None = ...,
     ) -> Series:
         ...
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[True], how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        how: AnyAll | None = ...,
     ) -> None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
-        self, axis: Axis = 0, inplace: bool = False, how: str | None = None
+        self,
+        axis: Axis = 0,
+        inplace: bool = False,
+        how: AnyAll | None = None,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
