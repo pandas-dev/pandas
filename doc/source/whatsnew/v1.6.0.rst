@@ -151,7 +151,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when indexing columns and index (:issue:`48190`)
 -
 
 Missing
