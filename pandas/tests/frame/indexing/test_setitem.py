@@ -798,7 +798,7 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    def test_setitem_listlike_views(self):
+    def test_setitem_listlike_views(self, using_copy_on_write):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
 
@@ -811,7 +811,10 @@ class TestDataFrameSetItemWithExpansion:
         # edit in place the first column to check view semantics
         df.iloc[0, 0] = 100
 
-        expected = Series([100, 2, 3], name="a")
+        if using_copy_on_write:
+            expected = Series([1, 2, 3], name="a")
+        else:
+            expected = Series([100, 2, 3], name="a")
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_string_column_numpy_dtype_raising(self):
@@ -821,7 +824,7 @@ class TestDataFrameSetItemWithExpansion:
         expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_empty_df_duplicate_columns(self):
+    def test_setitem_empty_df_duplicate_columns(self, using_copy_on_write):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
         df.loc[:, "a"] = list(range(2))
@@ -1131,7 +1134,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])
-    def test_setitem_partial_column_inplace(self, consolidate, using_array_manager):
+    def test_setitem_partial_column_inplace(
+        self, consolidate, using_array_manager, using_copy_on_write
+    ):
         # This setting should be in-place, regardless of whether frame is
         #  single-block or multi-block
         # GH#304 this used to be incorrectly not-inplace, in which case
@@ -1156,8 +1161,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_series_equal(df["z"], expected)
 
         # check setting occurred in-place
-        tm.assert_numpy_array_equal(zvals, expected.values)
-        assert np.shares_memory(zvals, df["z"]._values)
+        if not using_copy_on_write:
+            tm.assert_numpy_array_equal(zvals, expected.values)
+            assert np.shares_memory(zvals, df["z"]._values)
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510
@@ -1229,3 +1235,21 @@ class TestDataFrameSetitemCopyViewSemantics:
         view = df[:]
         df[indexer] = set_value
         tm.assert_frame_equal(view, expected)
+
+    @td.skip_array_manager_invalid_test
+    def test_setitem_column_update_inplace(self, using_copy_on_write):
+        # https://github.com/pandas-dev/pandas/issues/47172
+
+        labels = [f"c{i}" for i in range(10)]
+        df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
+        values = df._mgr.blocks[0].values
+
+        for label in df.columns:
+            df[label][label] = 1
+
+        if not using_copy_on_write:
+            # diagonal values all updated
+            assert np.all(values[np.arange(10), np.arange(10)] == 1)
+        else:
+            # original dataframe not updated
+            assert np.all(values[np.arange(10), np.arange(10)] == 0)
