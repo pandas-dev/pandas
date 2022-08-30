@@ -1141,6 +1141,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
+
         dtype = tz_to_dtype(tz=other.tz, unit=self._unit)
         res_values = result.view(f"M8[{self._unit}]")
         return DatetimeArray._simple_new(res_values, dtype=dtype, freq=self.freq)
@@ -1289,13 +1290,21 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         other = ensure_wrapped_if_datetimelike(other)
         other = cast("TimedeltaArray", other)
+        self = cast("DatetimeArray | TimedeltaArray", self)
+
+        if self._reso != other._reso:
+            raise NotImplementedError(
+                f"Addition of {type(self).__name__} with TimedeltaArray with "
+                "mis-matched resolutions is not yet supported."
+            )
 
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = checked_add_with_arr(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
-        return type(self)(new_values, dtype=self.dtype)
+        res_values = new_values.view(self._ndarray.dtype)
+        return type(self)._simple_new(res_values, dtype=self.dtype)
 
     @final
     def _add_nat(self):
