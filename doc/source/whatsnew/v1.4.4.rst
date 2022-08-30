@@ -1,7 +1,7 @@
 .. _whatsnew_144:
 
-What's new in 1.4.4 (July ??, 2022)
------------------------------------
+What's new in 1.4.4 (August 31, 2022)
+-------------------------------------
 
 These are the changes in pandas 1.4.4. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -25,7 +25,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
 - Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
 - Fixed regression in :meth:`DataFrame.loc` setting a length-1 array like value to a single value in the DataFrame (:issue:`46268`)
-- Fixed regression when slicing with :meth:`DataFrame.loc` with :class:`DateOffset`-index (:issue:`46671`)
+- Fixed regression when slicing with :meth:`DataFrame.loc` with :class:`DatetimeIndex`` with a :class:`.DateOffset` object for its ``freq`` (:issue:`46671`)
 - Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
 - Fixed regression in updating a DataFrame column through Series ``__setitem__`` (using chained assignment) not updating column values inplace and using too much memory (:issue:`47172`)
 - Fixed regression in :meth:`DataFrame.select_dtypes` returning a view on the original DataFrame (:issue:`48090`)
@@ -54,7 +54,6 @@ Bug fixes
 Other
 ~~~~~
 - The minimum version of Cython needed to compile pandas is now ``0.29.32`` (:issue:`47978`)
--
 
 .. ---------------------------------------------------------------------------
 
