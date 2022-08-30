@@ -1925,10 +1925,10 @@ class SQLDatabase(PandasSQL):
             - append: If table exists, insert data. Create if does not exist.
         on_row_conflict : {'fail', 'ignore', 'replace'}, default 'fail'
             Determine insertion behavior in case of a primary key clash.
-            - 'fail': Do nothing to handle primary key clashes, will raise an Error.
-            - 'ignore': Ignore incoming rows with primary key clashes, and
+            - fail: Do nothing to handle primary key clashes, will raise an Error.
+            - ignore: Ignore incoming rows with primary key clashes, and
             insert only the incoming rows with non-conflicting primary keys
-            - 'replace': Update existing rows in database with primary key clashes,
+            - replace: Update existing rows in database with primary key clashes,
             and append the remaining rows with non-conflicting primary keys
         index : boolean, default True
             Write DataFrame index as a column.
