@@ -477,16 +477,21 @@ class JoinUnit:
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
                 elif is_1d_only_ea_dtype(empty_dtype):
-                    empty_dtype = cast(ExtensionDtype, empty_dtype)
-                    cls = empty_dtype.construct_array_type()
+                    if is_dtype_equal(blk_dtype, empty_dtype) and self.indexers:
+                        # avoid creating new empty array if we already have an array
+                        # with correct dtype that can be reindexed
+                        pass
+                    else:
+                        empty_dtype = cast(ExtensionDtype, empty_dtype)
+                        cls = empty_dtype.construct_array_type()
 
-                    missing_arr = cls._from_sequence([], dtype=empty_dtype)
-                    ncols, nrows = self.shape
-                    assert ncols == 1, ncols
-                    empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
-                    return missing_arr.take(
-                        empty_arr, allow_fill=True, fill_value=fill_value
-                    )
+                        missing_arr = cls._from_sequence([], dtype=empty_dtype)
+                        ncols, nrows = self.shape
+                        assert ncols == 1, ncols
+                        empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
+                        return missing_arr.take(
+                            empty_arr, allow_fill=True, fill_value=fill_value
+                        )
                 elif isinstance(empty_dtype, ExtensionDtype):
                     # TODO: no tests get here, a handful would if we disabled
                     #  the dt64tz special-case above (which is faster)
