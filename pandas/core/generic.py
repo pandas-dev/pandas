@@ -6224,12 +6224,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             results = []
             for i, (col_name, col) in enumerate(self.items()):
-                cdt = dtype_ser.iat[i]
-                if isna(cdt):
-                    res_col = col.copy() if copy else col
-                else:
-                    res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
-                results.append(res_col)
+                try:
+                    cdt = dtype_ser.iat[i]
+                    if isna(cdt):
+                        res_col = col.copy() if copy else col
+                    else:
+                        res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
+                    results.append(res_col)
+                except Exception as ex:
+                    ex.args = (
+                        f"Error during type conversion for column {col_name}: {ex} ",
+                    )
+                    raise
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
