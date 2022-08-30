@@ -45,6 +45,7 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._typing import (
+    AnyAll,
     ArrayLike,
     Axes,
     Dtype,
@@ -2971,7 +2972,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         return self._view()
 
-    def dropna(self: _IndexT, how: str_t = "any") -> _IndexT:
+    def dropna(self: _IndexT, how: AnyAll = "any") -> _IndexT:
         """
         Return Index without NA/NaN values.
 
