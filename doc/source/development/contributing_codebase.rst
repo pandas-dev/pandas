@@ -77,6 +77,11 @@ without needing to have done ``pre-commit install`` beforehand.
 
 .. note::
 
+    You may want to periodically run ``pre-commit gc``, to clean up repos
+    which are no longer used.
+
+.. note::
+
     If you have conflicting installations of ``virtualenv``, then you may get an
     error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
 
