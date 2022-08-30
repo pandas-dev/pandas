@@ -29,6 +29,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._typing import (
+    AnyAll,
     AnyArrayLike,
     DtypeObj,
     F,
@@ -1634,7 +1635,7 @@ class MultiIndex(Index):
         raise NotImplementedError("isna is not defined for MultiIndex")
 
     @doc(Index.dropna)
-    def dropna(self, how: str = "any") -> MultiIndex:
+    def dropna(self, how: AnyAll = "any") -> MultiIndex:
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":
             indexer = np.any(nans, axis=0)
