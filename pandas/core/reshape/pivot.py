@@ -392,7 +392,13 @@ def _generate_marginal_results(
                 # GH31016 this is to calculate margin for each group, and assign
                 # corresponded key as index
                 transformed_piece = DataFrame(piece.apply(aggfunc)).T
-                transformed_piece.index = Index([all_key], name=piece.index.name)
+                if isinstance(piece.index, MultiIndex):
+                    # We are adding an empty level
+                    transformed_piece.index = MultiIndex.from_tuples(
+                        [all_key], names=piece.index.names + [None]
+                    )
+                else:
+                    transformed_piece.index = Index([all_key], name=piece.index.name)
 
                 # append piece for margin into table_piece
                 table_pieces.append(transformed_piece)
