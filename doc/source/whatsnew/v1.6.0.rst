@@ -100,7 +100,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`.GroupBy.cumprod` for extension array dtypes (:issue:`37493`)
 -
 
 .. ---------------------------------------------------------------------------
