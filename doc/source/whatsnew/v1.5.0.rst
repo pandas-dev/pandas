@@ -1080,7 +1080,7 @@ Indexing
 - Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
 - Bug in :class:`IntervalTree` that lead to an infinite recursion. (:issue:`46658`)
 - Bug in :class:`PeriodIndex` raising ``AttributeError`` when indexing on ``NA``, rather than putting ``NaT`` in its place. (:issue:`46673`)
--
+- Bug in :meth:`DataFrame.at` would allow the modification of multiple columns (:issue:`48296`)
 
 Missing
 ^^^^^^^
