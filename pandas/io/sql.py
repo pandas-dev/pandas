@@ -1106,7 +1106,7 @@ class SQLTable(PandasObject):
                 raise ValueError(f"duplicate name in index/columns: {err}") from err
 
         return temp
-        
+
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
         if self.index is not None:
             temp = self.frame.copy()
