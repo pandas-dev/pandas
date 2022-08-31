@@ -4619,7 +4619,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
-    def add_prefix(self: NDFrameT, prefix: str) -> NDFrameT:
+    def add_prefix(self: NDFrameT, prefix: str, axis: Axis | None = None) -> NDFrameT:
         """
         Prefix labels with string `prefix`.
 
@@ -4630,6 +4630,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+            Axis to add prefix on
+
+             .. versionadded:: 1.6.0
 
         Returns
         -------
@@ -4675,7 +4679,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         f = functools.partial("{prefix}{}".format, prefix=prefix)
 
-        mapper = {self._info_axis_name: f}
+        axis_name = self._info_axis_name
+        if axis is not None:
+            axis_name = self._get_axis_name(axis)
+
+        mapper = {axis_name: f}
         # error: Incompatible return value type (got "Optional[NDFrameT]",
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
@@ -4683,7 +4691,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     @final
-    def add_suffix(self: NDFrameT, suffix: str) -> NDFrameT:
+    def add_suffix(self: NDFrameT, suffix: str, axis: Axis | None = None) -> NDFrameT:
         """
         Suffix labels with string `suffix`.
 
@@ -4694,6 +4702,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+            Axis to add suffix on
+
+             .. versionadded:: 1.6.0
 
         Returns
         -------
@@ -4739,7 +4751,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         f = functools.partial("{}{suffix}".format, suffix=suffix)
 
-        mapper = {self._info_axis_name: f}
+        axis_name = self._info_axis_name
+        if axis is not None:
+            axis_name = self._get_axis_name(axis)
+
+        mapper = {axis_name: f}
         # error: Incompatible return value type (got "Optional[NDFrameT]",
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
