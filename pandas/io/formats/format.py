@@ -1720,11 +1720,12 @@ def format_percentiles(
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
+    percentiles_round_type = percentiles.round().astype(int)
 
-    int_idx = np.isclose(percentiles.round().astype(int), percentiles)
+    int_idx = np.isclose(percentiles_round_type, percentiles)
 
     if np.all(int_idx):
-        out = percentiles.round().astype(int).astype(str)
+        out = percentiles_round_type.astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
