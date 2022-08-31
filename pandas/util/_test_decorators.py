@@ -26,6 +26,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import gc
 import locale
 from typing import (
     Callable,
@@ -272,12 +273,13 @@ def file_leak_context() -> Iterator[None]:
         try:
             yield
         finally:
+            gc.collect()
             flist2 = proc.open_files()
             # on some builds open_files includes file position, which we _dont_
             #  expect to remain unchanged, so we need to compare excluding that
             flist_ex = [(x.path, x.fd) for x in flist]
             flist2_ex = [(x.path, x.fd) for x in flist2]
-            assert flist2_ex == flist_ex, (flist2, flist)
+            assert set(flist2_ex) <= set(flist_ex), (flist2, flist)
 
             conns2 = proc.connections()
             assert conns2 == conns, (conns2, conns)
