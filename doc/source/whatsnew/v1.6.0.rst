@@ -151,7 +151,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :func:`format_percentiles` when formatting percentiles, more decimals than needed shown(:issue:`46362`)
+- Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 -
 
 Missing
