@@ -1604,3 +1604,20 @@ def test_unique_agg_type_is_series(test, constant):
     result = df1.agg(aggregation)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pd_func, np_func",
+    [
+        ("mean", np.mean),
+        ("std", np.std),
+        ("size", np.size),
+    ],
+)
+def test_agg_alt_construction(pd_func, np_func):
+    df = pd.DataFrame(columns=["a", "b"])
+    result = df.agg({"a": [pd_func]})
+
+    expected = df.agg({"a": [np_func]})
+
+    tm.assert_frame_equal(result, expected)
