@@ -796,10 +796,10 @@ class SQLTable(PandasObject):
         name: str,
         pandas_sql_engine,
         frame=None,
-        index=True,
-        if_exists="fail",
-        on_row_conflict="fail",
-        prefix="pandas",
+        index: bool | str | list[str] | None = True,
+        if_exists: str = "fail",
+        on_row_conflict: str = "fail",
+        prefix: str = "pandas",
         index_label=None,
         schema=None,
         keys=None,
@@ -1096,12 +1096,24 @@ class SQLTable(PandasObject):
 
         return temp
 
-    @staticmethod
-    def insert_data(data):
-        column_names = list(map(str, data.columns))
+    def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
+        if self.index is not None:
+            temp = self.frame.copy()
+            temp.index.names = self.index
+            try:
+                temp.reset_index(inplace=True)
+            except ValueError as err:
+                raise ValueError(f"duplicate name in index/columns: {err}") from err
+        else:
+            temp = self.frame
+
+        column_names = list(map(str, temp.columns))
         ncols = len(column_names)
-        data_list = [None] * ncols
-        for i, (_, ser) in enumerate(data.items()):
+        # this just pre-allocates the list: None's will be replaced with ndarrays
+        # error: List item 0 has incompatible type "None"; expected "ndarray"
+        data_list: list[np.ndarray] = [None] * ncols  # type: ignore[list-item]
+
+        for i, (_, ser) in enumerate(temp.items()):
             vals = ser._values
             if vals.dtype.kind == "M":
                 d = vals.to_pydatetime()
@@ -1118,9 +1130,7 @@ class SQLTable(PandasObject):
                 mask = isna(d)
                 d[mask] = None
 
-            # error: No overload variant of "__setitem__" of "list" matches
-            # argument types "int", "ndarray"
-            data_list[i] = d  # type: ignore[call-overload]
+            data_list[i] = d
 
         return column_names, data_list
 
@@ -1504,9 +1514,9 @@ class PandasSQL(PandasObject):
         self,
         frame,
         name,
-        if_exists="fail",
-        on_row_conflict="fail",
-        index=True,
+        if_exists: str = "fail",
+        on_row_conflict: str = "fail",
+        index: bool = True,
         index_label=None,
         schema=None,
         chunksize=None,
@@ -1900,9 +1910,9 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name,
-        if_exists="fail",
-        on_row_conflict="fail",
-        index=True,
+        if_exists: str = "fail",
+        on_row_conflict: str = "fail",
+        index: bool = True,
         index_label=None,
         schema=None,
         chunksize=None,
@@ -2352,9 +2362,9 @@ class SQLiteDatabase(PandasSQL):
         self,
         frame,
         name,
-        if_exists="fail",
-        on_row_conflict="fail",
-        index=True,
+        if_exists: str = "fail",
+        on_row_conflict: str = "fail",
+        index: bool = True,
         index_label=None,
         schema=None,
         chunksize=None,
