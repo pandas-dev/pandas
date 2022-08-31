@@ -100,7 +100,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement for :meth:`MultiIndex.unique` (:issue:`40000`)
+- Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-- Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`40000`)
+- Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 -
 

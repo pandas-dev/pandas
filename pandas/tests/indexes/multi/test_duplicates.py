@@ -341,7 +341,7 @@ def test_multi_drop_duplicates_pos_args_deprecation():
 
 
 def test_midx_unique_ea_dtype():
-    # GH#
+    # GH#48335
     a = Series([1, 2, NA, NA], dtype="Int64")
     b = np.array([1, 2, 3, 3])
     midx = MultiIndex.from_arrays([a, b], names=["a", "b"])
