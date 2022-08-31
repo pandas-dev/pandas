@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import (
+    NA,
     Index,
     NaT,
     Series,
@@ -29,6 +30,14 @@ class SeriesConstructor:
 
     def time_constructor_fastpath(self):
         Series(self.array, index=self.idx2, name="name", fastpath=True)
+
+
+class SeriesConstructorEa:
+    def setup(self):
+        self.data = np.array(list(range(1_000_000)))
+
+    def time_constructor(self):
+        Series(data=self.data, dtype="Int64")
 
 
 class ToFrame:
@@ -164,6 +173,19 @@ class ValueCounts:
 
     def time_value_counts(self, N, dtype):
         self.s.value_counts()
+
+
+class ValueCountsEa:
+
+    params = [[10**3, 10**4, 10**5], [True, False]]
+    param_names = ["N", "dropna"]
+
+    def setup(self, N, dropna):
+        self.s = Series(np.random.randint(0, N, size=10 * N), dtype="Int64")
+        self.s.loc[1] = NA
+
+    def time_value_counts(self, N, dropna):
+        self.s.value_counts(dropna=dropna)
 
 
 class ValueCountsObjectDropNAFalse:
