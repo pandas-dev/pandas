@@ -4706,6 +4706,8 @@ class DataFrame(NDFrame, OpsMixin):
                 elif dtype == "float" or dtype is float:
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
                     converted_dtypes.extend([np.float64, np.float32])
+                elif is_extension_array_dtype(dtype):
+                    converted_dtypes.append(type(pandas_dtype(dtype)))
                 else:
                     converted_dtypes.append(infer_dtype_from_object(dtype))
             return frozenset(converted_dtypes)
