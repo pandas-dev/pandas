@@ -725,6 +725,9 @@ class BaseBlockManager(DataManager):
             result.axes[axis] = new_axis
             return result
 
+        assert isinstance(indexer, np.ndarray)
+        assert indexer.dtype == np.intp
+
         # some axes don't allow reindexing with dups
         if not allow_dups:
             self.axes[axis]._validate_can_reindex(indexer)

@@ -19,7 +19,9 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Manager,
+    Manager2D,
     Shape,
+    npt,
 )
 from pandas.util._decorators import cache_readonly
 
@@ -182,7 +184,10 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
+    mgrs_indexers: list[tuple[Manager2D, dict[int, npt.NDArray[np.intp] | None]]],
+    axes: list[Index],
+    concat_axis: int,
+    copy: bool,
 ) -> Manager:
     """
     Concatenate block managers into one.
