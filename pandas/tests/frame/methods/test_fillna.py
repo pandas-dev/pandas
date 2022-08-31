@@ -20,7 +20,7 @@ from pandas.tests.frame.common import _check_mixed_float
 
 class TestFillNA:
     @td.skip_array_manager_not_yet_implemented
-    def test_fillna_dict_inplace_nonunique_columns(self):
+    def test_fillna_dict_inplace_nonunique_columns(self, using_copy_on_write):
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
         )
@@ -36,9 +36,12 @@ class TestFillNA:
         expected.columns = ["A", "A", "A"]
         tm.assert_frame_equal(df, expected)
 
-        assert tm.shares_memory(df.iloc[:, 0], orig.iloc[:, 0])
+        # TODO: what's the expected/desired behavior with CoW?
+        if not using_copy_on_write:
+            assert tm.shares_memory(df.iloc[:, 0], orig.iloc[:, 0])
         assert not tm.shares_memory(df.iloc[:, 1], orig.iloc[:, 1])
-        assert tm.shares_memory(df.iloc[:, 2], orig.iloc[:, 2])
+        if not using_copy_on_write:
+            assert tm.shares_memory(df.iloc[:, 2], orig.iloc[:, 2])
 
     @td.skip_array_manager_not_yet_implemented
     def test_fillna_on_column_view(self, using_copy_on_write):
