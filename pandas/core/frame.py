@@ -8586,6 +8586,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def pivot(self, index=None, columns=None, values=None) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
