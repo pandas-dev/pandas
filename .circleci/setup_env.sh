@@ -6,7 +6,7 @@ echo "Downloading $MAMBA_URL"
 wget -q $MAMBA_URL -O minimamba.sh
 chmod +x minimamba.sh
 
-MAMBA_DIR="$HOME/mambaforge3"
+MAMBA_DIR="$HOME/miniconda3"
 rm -rf $MAMBA_DIR
 ./minimamba.sh -b -p $MAMBA_DIR
 
