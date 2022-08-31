@@ -3178,6 +3178,7 @@ class TestAllowNonNano:
         df = DataFrame({0: arr})
         assert df.dtypes[0] == arr.dtype
 
+
 def test_empty_constructs():
     result = pd.DataFrame({"a": pd.Series([]), "b": pd.Series([])})
     expected = pd.DataFrame(columns=["a", "b"])
