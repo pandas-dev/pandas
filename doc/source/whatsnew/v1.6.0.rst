@@ -151,7 +151,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
 -
 
 Missing

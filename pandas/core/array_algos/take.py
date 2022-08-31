@@ -546,9 +546,13 @@ def _take_2d_multi_object(
             out[:, col_mask] = fill_value
     for i in range(len(row_idx)):
         u_ = row_idx[i]
-        for j in range(len(col_idx)):
-            v = col_idx[j]
-            out[i, j] = arr[u_, v]
+
+        if u_ != -1:
+            for j in range(len(col_idx)):
+                v = col_idx[j]
+
+                if v != -1:
+                    out[i, j] = arr[u_, v]
 
 
 def _take_preprocess_indexer_and_fill_value(
