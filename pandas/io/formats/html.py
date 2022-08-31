@@ -6,6 +6,8 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import (
     Any,
+    Final,
+    Hashable,
     Iterable,
     Mapping,
     cast,
@@ -38,13 +40,13 @@ class HTMLFormatter:
     and this class responsible for only producing html markup.
     """
 
-    indent_delta = 2
+    indent_delta: Final = 2
 
     def __init__(
         self,
         formatter: DataFrameFormatter,
         classes: str | list[str] | tuple[str, ...] | None = None,
-        border: int | None = None,
+        border: int | bool | None = None,
         table_id: str | None = None,
         render_links: bool = False,
     ) -> None:
@@ -57,8 +59,11 @@ class HTMLFormatter:
         self.bold_rows = self.fmt.bold_rows
         self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
-        if border is None:
+        if border is None or border is True:
             border = cast(int, get_option("display.html.border"))
+        elif not border:
+            border = None
+
         self.border = border
         self.table_id = table_id
         self.render_links = render_links
@@ -86,7 +91,7 @@ class HTMLFormatter:
         return self.elements
 
     @property
-    def should_show_dimensions(self):
+    def should_show_dimensions(self) -> bool:
         return self.fmt.should_show_dimensions
 
     @property
@@ -237,8 +242,13 @@ class HTMLFormatter:
         else:
             id_section = f' id="{self.table_id}"'
 
+        if self.border is None:
+            border_attr = ""
+        else:
+            border_attr = f' border="{self.border}"'
+
         self.write(
-            f'<table border="{self.border}" class="{" ".join(_classes)}"{id_section}>',
+            f'<table{border_attr} class="{" ".join(_classes)}"{id_section}>',
             indent,
         )
 
@@ -250,6 +260,7 @@ class HTMLFormatter:
         self.write("</table>", indent)
 
     def _write_col_header(self, indent: int) -> None:
+        row: list[Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'

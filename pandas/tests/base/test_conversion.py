@@ -415,6 +415,49 @@ def test_to_numpy_na_value_numpy_dtype(
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data, multiindex, dtype, na_value, expected",
+    [
+        (
+            [1, 2, None, 4],
+            [(0, "a"), (0, "b"), (1, "b"), (1, "c")],
+            float,
+            None,
+            [1.0, 2.0, np.nan, 4.0],
+        ),
+        (
+            [1, 2, None, 4],
+            [(0, "a"), (0, "b"), (1, "b"), (1, "c")],
+            float,
+            np.nan,
+            [1.0, 2.0, np.nan, 4.0],
+        ),
+        (
+            [1.0, 2.0, np.nan, 4.0],
+            [("a", 0), ("a", 1), ("a", 2), ("b", 0)],
+            int,
+            0,
+            [1, 2, 0, 4],
+        ),
+        (
+            [Timestamp("2000"), Timestamp("2000"), pd.NaT],
+            [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
+            None,
+            Timestamp("2000"),
+            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+        ),
+    ],
+)
+def test_to_numpy_multiindex_series_na_value(
+    data, multiindex, dtype, na_value, expected
+):
+    index = pd.MultiIndex.from_tuples(multiindex)
+    series = Series(data, index=index)
+    result = series.to_numpy(dtype=dtype, na_value=na_value)
+    expected = np.array(expected)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_to_numpy_kwargs_raises():
     # numpy
     s = Series([1, 2, 3])

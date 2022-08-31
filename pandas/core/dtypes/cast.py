@@ -10,6 +10,7 @@ from datetime import (
     timedelta,
 )
 import functools
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -30,7 +31,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
-    conversion,
+    astype_overflowsafe,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
@@ -246,6 +247,16 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
         raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
+@overload
+def maybe_downcast_to_dtype(result: np.ndarray, dtype: str | np.dtype) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_to_dtype(result: ExtensionArray, dtype: str | np.dtype) -> ArrayLike:
+    ...
+
+
 def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
@@ -295,10 +306,24 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
         result = cast(np.ndarray, result)
         result = array_to_timedelta64(result)
 
-    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+    elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
         return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
+
+
+@overload
+def maybe_downcast_numeric(
+    result: np.ndarray, dtype: np.dtype, do_round: bool = False
+) -> np.ndarray:
+    ...
+
+
+@overload
+def maybe_downcast_numeric(
+    result: ExtensionArray, dtype: DtypeObj, do_round: bool = False
+) -> ArrayLike:
+    ...
 
 
 def maybe_downcast_numeric(
@@ -377,6 +402,13 @@ def maybe_downcast_numeric(
         # Check downcast float values are still equal within 7 digits when
         # converting from float64 to float32
         if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
+            return new_result
+
+    elif dtype.kind == result.dtype.kind == "c":
+        new_result = result.astype(dtype)
+
+        if array_equivalent(new_result, result):
+            # TODO: use tolerance like we do for float?
             return new_result
 
     return result
@@ -559,6 +591,12 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         fv = na_value_for_dtype(dtype)
         return dtype, fv
 
+    elif isinstance(dtype, CategoricalDtype):
+        if fill_value in dtype.categories or isna(fill_value):
+            return dtype, fill_value
+        else:
+            return object, ensure_object(fill_value)
+
     elif isna(fill_value):
         dtype = _dtype_obj
         if fill_value is None:
@@ -593,7 +631,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                     "dtype is deprecated. In a future version, this will be cast "
                     "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 return dtype, fv
         elif isinstance(fill_value, str):
@@ -947,7 +985,7 @@ def maybe_upcast(
     return upcast_values, fill_value  # type: ignore[return-value]
 
 
-def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
+def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
     """
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
@@ -964,7 +1002,7 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
 
-def coerce_indexer_dtype(indexer, categories):
+def coerce_indexer_dtype(indexer, categories) -> np.ndarray:
     """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
     if length < _int8_max:
@@ -1246,7 +1284,7 @@ def maybe_infer_to_datetimelike(
             "and will be removed in a future version. To retain the old behavior "
             f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     return value
 
@@ -1268,9 +1306,9 @@ def maybe_cast_to_datetime(
 
     if is_timedelta64_dtype(dtype):
         # TODO: _from_sequence would raise ValueError in cases where
-        #  ensure_nanosecond_dtype raises TypeError
+        #  _ensure_nanosecond_dtype raises TypeError
         dtype = cast(np.dtype, dtype)
-        dtype = ensure_nanosecond_dtype(dtype)
+        dtype = _ensure_nanosecond_dtype(dtype)
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
@@ -1281,7 +1319,7 @@ def maybe_cast_to_datetime(
         vdtype = getattr(value, "dtype", None)
 
         if is_datetime64 or is_datetime64tz:
-            dtype = ensure_nanosecond_dtype(dtype)
+            dtype = _ensure_nanosecond_dtype(dtype)
 
             value = np.array(value, copy=False)
 
@@ -1305,7 +1343,7 @@ def maybe_cast_to_datetime(
                                 "`pd.Series(values).dt.tz_localize(None)` "
                                 "instead.",
                                 FutureWarning,
-                                stacklevel=find_stack_level(),
+                                stacklevel=find_stack_level(inspect.currentframe()),
                             )
                             # equiv: dta.view(dtype)
                             # Note: NOT equivalent to dta.astype(dtype)
@@ -1345,7 +1383,7 @@ def maybe_cast_to_datetime(
                                     ".tz_localize('UTC').tz_convert(dtype.tz) "
                                     "or pd.Series(data.view('int64'), dtype=dtype)",
                                     FutureWarning,
-                                    stacklevel=find_stack_level(),
+                                    stacklevel=find_stack_level(inspect.currentframe()),
                                 )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
@@ -1388,10 +1426,10 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     """
     dtype = values.dtype
     if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-        values = conversion.ensure_datetime64ns(values)
+        values = astype_overflowsafe(values, dtype=DT64NS_DTYPE)
 
     elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        values = conversion.ensure_timedelta64ns(values)
+        values = astype_overflowsafe(values, dtype=TD64NS_DTYPE)
 
     elif copy:
         values = values.copy()
@@ -1399,14 +1437,14 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     return values
 
 
-def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
+def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
-    >>> ensure_nanosecond_dtype(np.dtype("M8[s]"))
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[s]"))
     dtype('<M8[ns]')
 
-    >>> ensure_nanosecond_dtype(np.dtype("m8[ps]"))
+    >>> _ensure_nanosecond_dtype(np.dtype("m8[ps]"))
     Traceback (most recent call last):
         ...
     TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
@@ -1678,7 +1716,9 @@ def construct_1d_arraylike_from_scalar(
             value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
-        subarr.fill(value)
+        if length:
+            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+            subarr.fill(value)
 
     return subarr
 
@@ -1712,7 +1752,7 @@ def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
                 "`pd.Series(values).dt.tz_localize(None)` "
                 "instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             new_value = value.tz_localize(None)
             return _maybe_unbox_datetimelike(new_value, dtype)
@@ -1830,7 +1870,7 @@ def maybe_cast_to_integer_array(
             "In a future version this will raise OverflowError. To retain the "
             f"old behavior, use pd.Series(values).astype({dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return casted
 
@@ -1841,7 +1881,7 @@ def maybe_cast_to_integer_array(
             f"dtype={dtype} is deprecated and will raise in a future version. "
             "Use values.view(dtype) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return casted
 

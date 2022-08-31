@@ -13,7 +13,7 @@ pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
 def test_arrow_extension_type():
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
     p1 = ArrowPeriodType("D")
     p2 = ArrowPeriodType("D")
@@ -34,7 +34,7 @@ def test_arrow_extension_type():
     ],
 )
 def test_arrow_array(data, freq):
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
     result = pa.array(periods)
@@ -57,7 +57,7 @@ def test_arrow_array(data, freq):
 
 
 def test_arrow_array_missing():
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
     arr[1] = pd.NaT
@@ -70,7 +70,7 @@ def test_arrow_array_missing():
 
 
 def test_arrow_table_roundtrip():
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
     arr[1] = pd.NaT
@@ -91,7 +91,7 @@ def test_arrow_table_roundtrip():
 def test_arrow_load_from_zero_chunks():
     # GH-41040
 
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
     arr = PeriodArray([], freq="D")
     df = pd.DataFrame({"a": arr})

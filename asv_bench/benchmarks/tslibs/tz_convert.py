@@ -11,10 +11,14 @@ from .tslib import (
 
 try:
     old_sig = False
-    from pandas._libs.tslibs.tzconversion import tz_convert_from_utc
+    from pandas._libs.tslibs import tz_convert_from_utc
 except ImportError:
-    old_sig = True
-    from pandas._libs.tslibs.tzconversion import tz_convert as tz_convert_from_utc
+    try:
+        old_sig = False
+        from pandas._libs.tslibs.tzconversion import tz_convert_from_utc
+    except ImportError:
+        old_sig = True
+        from pandas._libs.tslibs.tzconversion import tz_convert as tz_convert_from_utc
 
 
 class TimeTZConvert:

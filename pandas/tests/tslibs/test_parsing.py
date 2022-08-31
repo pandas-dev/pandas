@@ -23,6 +23,12 @@ def test_parse_time_string():
     assert parsed == parsed_lower
 
 
+def test_parse_time_string_nanosecond_reso():
+    # GH#46811
+    parsed, reso = parse_time_string("2022-04-20 09:19:19.123456789")
+    assert reso == "nanosecond"
+
+
 def test_parse_time_string_invalid_type():
     # Raise on invalid input, don't just return it
     msg = "Argument 'arg' has incorrect type (expected str, got tuple)"
@@ -183,7 +189,7 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_has_locale
+@td.skip_if_not_us_locale
 @pytest.mark.parametrize(
     "string,fmt",
     [

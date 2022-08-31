@@ -8,6 +8,9 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under7p0
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
@@ -36,8 +39,18 @@ from pandas.core.api import (
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    idx1 = index.sort_values()
-    idx2 = index.sort_values()
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+        check_stacklevel=False,
+    ):
+        idx1 = index.sort_values()
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+        check_stacklevel=False,
+    ):
+        idx2 = index.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
@@ -96,8 +109,18 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    idx1 = idx1.sort_values()
-    idx2 = idx2.sort_values()
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under7p0 and getattr(idx1.dtype, "storage", "") == "pyarrow",
+        check_stacklevel=False,
+    ):
+        idx1 = idx1.sort_values()
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under7p0 and getattr(idx2.dtype, "storage", "") == "pyarrow",
+        check_stacklevel=False,
+    ):
+        idx2 = idx2.sort_values()
 
     with tm.assert_produces_warning(warn, match="'<' not supported between"):
         res1 = idx1.union(idx2)
@@ -177,7 +200,8 @@ def test_dunder_inplace_setops_deprecated(index):
     with tm.assert_produces_warning(FutureWarning):
         index &= index
 
-    with tm.assert_produces_warning(FutureWarning):
+    is_pyarrow = str(index.dtype) == "string[pyarrow]" and pa_version_under7p0
+    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=is_pyarrow):
         index ^= index
 
 
@@ -228,6 +252,9 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.intersection([1, 2, 3])
 
+    @pytest.mark.filterwarnings(
+        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
+    )
     def test_union_base(self, index):
         first = index[3:]
         second = index[:5]
@@ -252,6 +279,9 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.union([1, 2, 3])
 
+    @pytest.mark.filterwarnings(
+        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
+    )
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -277,6 +307,9 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.difference([1, 2, 3], sort)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
+    )
     def test_symmetric_difference(self, index):
         if isinstance(index, CategoricalIndex):
             return
@@ -314,11 +347,13 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_union(self, index_flat_unique, fname, sname, expected_name):
+    def test_corner_union(self, index_flat, fname, sname, expected_name):
         # GH#9943, GH#9862
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
-        index = index_flat_unique
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -358,14 +393,26 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index_flat_unique, fname, sname, expected_name):
-        index = index_flat_unique
+    def test_union_unequal(self, index_flat, fname, sname, expected_name):
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        union = first.union(second).sort_values()
-        expected = index.set_names(expected_name).sort_values()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            union = first.union(second).sort_values()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            expected = index.set_names(expected_name).sort_values()
         tm.assert_index_equal(union, expected)
 
     @pytest.mark.parametrize(
@@ -378,10 +425,12 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_intersect(self, index_flat_unique, fname, sname, expected_name):
+    def test_corner_intersect(self, index_flat, fname, sname, expected_name):
         # GH#35847
         # Test intersections with various name combinations
-        index = index_flat_unique
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -421,14 +470,26 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index_flat_unique, fname, sname, expected_name):
-        index = index_flat_unique
+    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
+        if not index_flat.is_unique:
+            pytest.skip("Randomly generated index_flat was not unique.")
+        index = index_flat
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        intersect = first.intersection(second).sort_values()
-        expected = index[1:].set_names(expected_name).sort_values()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            intersect = first.intersection(second).sort_values()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
     def test_intersection_name_retention_with_nameless(self, index):
@@ -484,6 +545,9 @@ class TestSetOps:
         tm.assert_index_equal(inter, diff, exact=True)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
+)
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )

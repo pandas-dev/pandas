@@ -835,6 +835,19 @@ class TestExcelWriter:
         # Test that it is the same as the initial frame.
         tm.assert_frame_equal(frame1, frame3)
 
+    def test_to_excel_empty_multiindex(self, path):
+        # GH 19543.
+        expected = DataFrame([], columns=[0, 1, 2])
+
+        df = DataFrame([], index=MultiIndex.from_tuples([], names=[0, 1]), columns=[2])
+        df.to_excel(path, "test1")
+
+        with ExcelFile(path) as reader:
+            result = pd.read_excel(reader, sheet_name="test1")
+        tm.assert_frame_equal(
+            result, expected, check_index_type=False, check_dtype=False
+        )
+
     def test_to_excel_float_format(self, path):
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -862,7 +875,7 @@ class TestExcelWriter:
         )
 
         with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
-            df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
+            df.to_excel(filename, sheet_name="TestSheet")
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
@@ -960,9 +973,12 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
         # Explicitly, we pass in the parameter.
-        result = pd.read_excel(
-            path, sheet_name="test1", index_col=0, mangle_dupe_cols=True
-        )
+        with tm.assert_produces_warning(
+            FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
+        ):
+            result = pd.read_excel(
+                path, sheet_name="test1", index_col=0, mangle_dupe_cols=True
+            )
         tm.assert_frame_equal(result, expected)
 
         # see gh-11007, gh-10970
@@ -983,8 +999,13 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
         msg = "Setting mangle_dupe_cols=False is not supported yet"
-        with pytest.raises(ValueError, match=msg):
-            pd.read_excel(path, sheet_name="test1", header=None, mangle_dupe_cols=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
+        ):
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel(
+                    path, sheet_name="test1", header=None, mangle_dupe_cols=False
+                )
 
     def test_swapped_columns(self, path):
         # Test for issue #5427.
@@ -1088,7 +1109,6 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_datetimes(self, path):
-
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
@@ -1106,11 +1126,6 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if path.endswith("xlsx") or path.endswith("xlsm"):
-            pytest.skip(
-                "Defaults to openpyxl and fails with floating point error on "
-                "datetimes; may be fixed on newer versions of openpyxl - GH #38644"
-            )
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
@@ -1272,6 +1287,7 @@ class TestExcelWriter:
                 # Some engines raise if nothing is written
                 DataFrame().to_excel(writer)
 
+    @pytest.mark.filterwarnings("ignore:Calling close():UserWarning:xlsxwriter")
     @pytest.mark.parametrize(
         "attr, args", [("save", ()), ("write_cells", ([], "test"))]
     )
@@ -1313,8 +1329,8 @@ class TestExcelWriterEngineTests:
             called_save = False
             called_write_cells = False
             called_sheets = False
-            supported_extensions = ["xlsx", "xls"]
-            engine = "dummy"
+            _supported_extensions = ("xlsx", "xls")
+            _engine = "dummy"
 
             def book(self):
                 pass

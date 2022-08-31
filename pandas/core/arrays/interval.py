@@ -7,6 +7,8 @@ from operator import (
 )
 import textwrap
 from typing import (
+    TYPE_CHECKING,
+    Literal,
     Sequence,
     TypeVar,
     Union,
@@ -92,6 +94,13 @@ from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
 )
+
+if TYPE_CHECKING:
+    from pandas import (
+        Index,
+        Series,
+    )
+
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 IntervalOrNA = Union[Interval, float]
@@ -197,9 +206,12 @@ for more.
     }
 )
 class IntervalArray(IntervalMixin, ExtensionArray):
-    ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
+
+    @property
+    def ndim(self) -> Literal[1]:
+        return 1
 
     # To make mypy recognize the fields
     _left: np.ndarray
@@ -258,7 +270,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        closed=None,
+        closed: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
@@ -411,7 +423,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        closed="right",
+        closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -487,7 +499,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        closed="right",
+        closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -671,7 +683,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
 
@@ -800,7 +812,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
 
-    def min(self, *, axis: int | None = None, skipna: bool = True):
+    def min(self, *, axis: int | None = None, skipna: bool = True) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -817,7 +829,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[0]
         return obj[indexer]
 
-    def max(self, *, axis: int | None = None, skipna: bool = True):
+    def max(self, *, axis: int | None = None, skipna: bool = True) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -951,10 +963,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed = {interval.closed for interval in to_concat}
-        if len(closed) != 1:
+        closed_set = {interval.closed for interval in to_concat}
+        if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
-        closed = closed.pop()
+        closed = closed_set.pop()
 
         left = np.concatenate([interval.left for interval in to_concat])
         right = np.concatenate([interval.right for interval in to_concat])
@@ -1135,7 +1147,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return value_left, value_right
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Returns a Series containing counts of each interval.
 
@@ -1212,8 +1224,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def left(self):
         """
-        Return the left endpoints of each Interval in the IntervalArray as
-        an Index.
+        Return the left endpoints of each Interval in the IntervalArray as an Index.
         """
         from pandas import Index
 
@@ -1222,23 +1233,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def right(self):
         """
-        Return the right endpoints of each Interval in the IntervalArray as
-        an Index.
+        Return the right endpoints of each Interval in the IntervalArray as an Index.
         """
         from pandas import Index
 
         return Index(self._right, copy=False)
 
     @property
-    def length(self):
+    def length(self) -> Index:
         """
-        Return an Index with entries denoting the length of each Interval in
-        the IntervalArray.
+        Return an Index with entries denoting the length of each Interval.
         """
         return self.right - self.left
 
     @property
-    def mid(self):
+    def mid(self) -> Index:
         """
         Return the midpoint of each Interval in the IntervalArray as an Index.
         """
@@ -1323,17 +1332,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalClosedType:
         """
-        Whether the intervals are closed on the left-side, right-side, both or
-        neither.
+        String describing the inclusive side the intervals.
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
         """
         return self.dtype.closed
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
-        Return an %(klass)s identical to the current one, but closed on the
-        specified side.
+        Return an identical %(klass)s closed on the specified side.
 
         Parameters
         ----------
@@ -1382,9 +1391,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _interval_shared_docs[
         "is_non_overlapping_monotonic"
     ] = """
-        Return True if the %(klass)s is non-overlapping (no Intervals share
-        points) and is either monotonic increasing or monotonic decreasing,
-        else False.
+        Return a boolean whether the %(klass)s is non-overlapping and monotonic.
+
+        Non-overlapping means (no Intervals share points), and monotonic means
+        either monotonic increasing or monotonic decreasing.
         """
 
     # https://github.com/python/mypy/issues/1362
@@ -1440,7 +1450,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import ArrowIntervalType
+        from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
         try:
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
@@ -1622,7 +1632,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other < self._right if self.open_right else other <= self._right
         )
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if not hasattr(values, "dtype"):
             values = np.array(values)
         values = extract_array(values, extract_numpy=True)
@@ -1637,12 +1647,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                # Argument 1 to "in1d" has incompatible type "Union[ExtensionArray,
-                # ndarray[Any, Any], ndarray[Any, dtype[Any]]]"; expected
-                # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[
-                # dtype[Any]]], bool, int, float, complex, str, bytes,
-                # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-                # [arg-type]
+                # error: Argument 1 to "in1d" has incompatible type
+                # "Union[ExtensionArray, ndarray[Any, Any],
+                # ndarray[Any, dtype[Any]]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
+                # int, float, complex, str, bytes, _NestedSequence[
+                # Union[bool, int, float, complex, str, bytes]]]"
                 return np.in1d(left, right)  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(

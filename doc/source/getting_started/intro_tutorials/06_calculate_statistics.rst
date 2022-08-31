@@ -30,8 +30,8 @@
         </ul>
     </div>
 
-How to calculate summary statistics?
-------------------------------------
+How to calculate summary statistics
+-----------------------------------
 
 Aggregating statistics
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -74,7 +74,7 @@ What is the median age and ticket fare price of the Titanic passengers?
     titanic[["Age", "Fare"]].median()
 
 The statistic applied to multiple columns of a ``DataFrame`` (the selection of two columns
-return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column.
+returns a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column.
 
 .. raw:: html
 
@@ -82,7 +82,7 @@ return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>
     </ul>
 
 The aggregating statistic can be calculated for multiple columns at the
-same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>`?
+same time. Remember the ``describe`` function from the :ref:`first tutorial <10min_tut_01_tableoriented>`?
 
 .. ipython:: python
 
@@ -143,8 +143,8 @@ returned.
 
 Calculating a given statistic (e.g. ``mean`` age) *for each category in
 a column* (e.g. male/female in the ``Sex`` column) is a common pattern.
-The ``groupby`` method is used to support this type of operations. More
-general, this fits in the more general ``split-apply-combine`` pattern:
+The ``groupby`` method is used to support this type of operations. This
+fits in the more general ``split-apply-combine`` pattern:
 
 -  **Split** the data into groups
 -  **Apply** a function to each group independently
@@ -154,14 +154,14 @@ The apply and combine steps are typically done together in pandas.
 
 In the previous example, we explicitly selected the 2 columns first. If
 not, the ``mean`` method is applied to each column containing numerical
-columns:
+columns by passing ``numeric_only=True``:
 
 .. ipython:: python
 
-    titanic.groupby("Sex").mean()
+    titanic.groupby("Sex").mean(numeric_only=True)
 
 It does not make much sense to get the average value of the ``Pclass``.
-if we are only interested in the average age for each gender, the
+If we are only interested in the average age for each gender, the
 selection of columns (rectangular brackets ``[]`` as usual) is supported
 on the grouped data as well:
 
@@ -254,7 +254,7 @@ within each group:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-The user guide has a dedicated section on ``value_counts`` , see page on :ref:`discretization <basics.discretization>`.
+The user guide has a dedicated section on ``value_counts`` , see the page on :ref:`discretization <basics.discretization>`.
 
 .. raw:: html
 
@@ -265,10 +265,10 @@ The user guide has a dedicated section on ``value_counts`` , see page on :ref:`d
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Aggregation statistics can be calculated on entire columns or rows
--  ``groupby`` provides the power of the *split-apply-combine* pattern
+-  Aggregation statistics can be calculated on entire columns or rows.
+-  ``groupby`` provides the power of the *split-apply-combine* pattern.
 -  ``value_counts`` is a convenient shortcut to count the number of
-   entries in each category of a variable
+   entries in each category of a variable.
 
 .. raw:: html
 

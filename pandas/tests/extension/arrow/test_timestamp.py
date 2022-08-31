@@ -40,13 +40,13 @@ class ArrowTimestampUSDtype(ExtensionDtype):
 
 
 class ArrowTimestampUSArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
         assert values.type == pa.timestamp("us")
         self._data = values
-        self._dtype = ArrowTimestampUSDtype()
+        self._dtype = ArrowTimestampUSDtype()  # type: ignore[assignment]
 
 
 def test_constructor_extensionblock():

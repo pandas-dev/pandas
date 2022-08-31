@@ -16,7 +16,9 @@ class Base:
         # ignored ones
         # compare vs the expected
 
-        result = sorted(f for f in dir(namespace) if not f.startswith("__"))
+        result = sorted(
+            f for f in dir(namespace) if not f.startswith("__") and f != "annotations"
+        )
         if ignored is not None:
             result = sorted(set(result) - set(ignored))
 
@@ -51,6 +53,7 @@ class TestPDApi(Base):
 
     # top-level classes
     classes = [
+        "ArrowDtype",
         "Categorical",
         "CategoricalIndex",
         "DataFrame",
@@ -116,6 +119,7 @@ class TestPDApi(Base):
         "eval",
         "factorize",
         "get_dummies",
+        "from_dummies",
         "infer_freq",
         "isna",
         "isnull",
@@ -274,7 +278,7 @@ def test_np():
 
 
 class TestApi(Base):
-    allowed = ["types", "extensions", "indexers"]
+    allowed = ["types", "extensions", "indexers", "interchange"]
 
     def test_api(self):
         self.check(api, self.allowed)

@@ -30,22 +30,16 @@ from pandas.io.json._table_schema import (
 
 
 class TestBuildSchema:
-    def setup_method(self):
-        self.da = DateArray([dt.date(2021, 10, 10)])
-        self.dc = DecimalArray([decimal.Decimal(10)])
-        self.sa = array(["pandas"], dtype="string")
-        self.ia = array([10], dtype="Int64")
-        self.df = DataFrame(
+    def test_build_table_schema(self):
+        df = DataFrame(
             {
-                "A": self.da,
-                "B": self.dc,
-                "C": self.sa,
-                "D": self.ia,
+                "A": DateArray([dt.date(2021, 10, 10)]),
+                "B": DecimalArray([decimal.Decimal(10)]),
+                "C": array(["pandas"], dtype="string"),
+                "D": array([10], dtype="Int64"),
             }
         )
-
-    def test_build_table_schema(self):
-        result = build_table_schema(self.df, version=False)
+        result = build_table_schema(df, version=False)
         expected = {
             "fields": [
                 {"name": "index", "type": "integer"},
@@ -57,7 +51,7 @@ class TestBuildSchema:
             "primaryKey": ["index"],
         }
         assert result == expected
-        result = build_table_schema(self.df)
+        result = build_table_schema(df)
         assert "pandas_version" in result
 
 
@@ -151,7 +145,7 @@ class TestTableOrient:
         expected = OrderedDict(
             [
                 ("schema", schema),
-                ("data", [OrderedDict([("id", 0), ("a", "2021-10-10T00:00:00.000Z")])]),
+                ("data", [OrderedDict([("id", 0), ("a", "2021-10-10T00:00:00.000")])]),
             ]
         )
 
@@ -256,7 +250,7 @@ class TestTableOrient:
             OrderedDict(
                 [
                     ("idx", 0),
-                    ("A", "2021-10-10T00:00:00.000Z"),
+                    ("A", "2021-10-10T00:00:00.000"),
                     ("B", 10.0),
                     ("C", "pandas"),
                     ("D", 10),

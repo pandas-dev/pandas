@@ -324,6 +324,13 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode(IntervalNode):
             # calculate a pivot so we can create child nodes
             self.is_leaf_node = False
             self.pivot = np.median(left / 2 + right / 2)
+            if np.isinf(self.pivot):
+                self.pivot = cython.cast({{dtype}}_t, 0)
+                if self.pivot > np.max(right):
+                    self.pivot = np.max(left)
+                if self.pivot < np.min(left):
+                    self.pivot = np.min(right)
+
             left_set, right_set, center_set = self.classify_intervals(
                 left, right)
 

@@ -15,10 +15,12 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import is_unitless
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    IgnoreRaise,
 )
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
@@ -235,7 +237,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
 
 
 def astype_array_safe(
-    values: ArrayLike, dtype, copy: bool = False, errors: str = "raise"
+    values: ArrayLike, dtype, copy: bool = False, errors: IgnoreRaise = "raise"
 ) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.
@@ -278,6 +280,20 @@ def astype_array_safe(
     if isinstance(dtype, PandasDtype):
         # Ensure we don't end up with a PandasArray
         dtype = dtype.numpy_dtype
+
+    if (
+        is_datetime64_dtype(values.dtype)
+        # need to do np.dtype check instead of is_datetime64_dtype
+        #  otherwise pyright complains
+        and isinstance(dtype, np.dtype)
+        and dtype.kind == "M"
+        and not is_unitless(dtype)
+        and not is_dtype_equal(dtype, values.dtype)
+    ):
+        # unit conversion, we would re-cast to nanosecond, so this is
+        #  effectively just a copy (regardless of copy kwd)
+        # TODO(2.0): remove special-case
+        return values.copy()
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
@@ -355,7 +371,7 @@ def astype_dt64_to_dt64tz(
             "timezone-aware dtype is deprecated and will raise in a "
             "future version.  Use ser.dt.tz_localize instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         # GH#33401 this doesn't match DatetimeArray.astype, which
@@ -371,7 +387,7 @@ def astype_dt64_to_dt64tz(
                 "timezone-aware dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
             return values.tz_localize(dtype.tz)
@@ -391,7 +407,7 @@ def astype_dt64_to_dt64tz(
                 "future version.  Use obj.tz_localize(None) or "
                 "obj.tz_convert('UTC').tz_localize(None) instead",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
             result = values.tz_convert("UTC").tz_localize(None)

@@ -157,25 +157,39 @@ class DataFrameStringIndexing:
 
 
 class DataFrameNumericIndexing:
-    def setup(self):
-        self.idx_dupe = np.array(range(30)) * 99
-        self.df = DataFrame(np.random.randn(100000, 5))
-        self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
-        self.bool_indexer = [True] * 50000 + [False] * 50000
 
-    def time_iloc_dups(self):
+    params = [
+        (Int64Index, UInt64Index, Float64Index),
+        ("unique_monotonic_inc", "nonunique_monotonic_inc"),
+    ]
+    param_names = ["index_dtype", "index_structure"]
+
+    def setup(self, index, index_structure):
+        N = 10**5
+        indices = {
+            "unique_monotonic_inc": index(range(N)),
+            "nonunique_monotonic_inc": index(
+                list(range(55)) + [54] + list(range(55, N - 1))
+            ),
+        }
+        self.idx_dupe = np.array(range(30)) * 99
+        self.df = DataFrame(np.random.randn(N, 5), index=indices[index_structure])
+        self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
+        self.bool_indexer = [True] * (N // 2) + [False] * (N - N // 2)
+
+    def time_iloc_dups(self, index, index_structure):
         self.df_dup.iloc[self.idx_dupe]
 
-    def time_loc_dups(self):
+    def time_loc_dups(self, index, index_structure):
         self.df_dup.loc[self.idx_dupe]
 
-    def time_iloc(self):
+    def time_iloc(self, index, index_structure):
         self.df.iloc[:100, 0]
 
-    def time_loc(self):
+    def time_loc(self, index, index_structure):
         self.df.loc[:100, 0]
 
-    def time_bool_indexer(self):
+    def time_bool_indexer(self, index, index_structure):
         self.df[self.bool_indexer]
 
 
@@ -204,11 +218,11 @@ class MultiIndexing:
     param_names = ["unique_levels"]
 
     def setup(self, unique_levels):
-        self.ndim = 2
+        self.nlevels = 2
         if unique_levels:
-            mi = MultiIndex.from_arrays([range(1000000)] * self.ndim)
+            mi = MultiIndex.from_arrays([range(1000000)] * self.nlevels)
         else:
-            mi = MultiIndex.from_product([range(1000)] * self.ndim)
+            mi = MultiIndex.from_product([range(1000)] * self.nlevels)
         self.df = DataFrame(np.random.randn(len(mi)), index=mi)
 
         self.tgt_slice = slice(200, 800)
@@ -232,27 +246,27 @@ class MultiIndexing:
     def time_loc_partial_key_scalar(self, unique_levels):
         self.df.loc[self.tgt_scalar, :]
 
-    def time_loc_partial_bool_indexer(self, unique_levels):
+    def time_loc_partial_key_bool_indexer(self, unique_levels):
         self.df.loc[self.tgt_bool_indexer, :]
 
     def time_loc_all_slices(self, unique_levels):
-        target = tuple([self.tgt_slice] * self.ndim)
+        target = tuple([self.tgt_slice] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_null_slices(self, unique_levels):
-        target = tuple([self.tgt_null_slice] * self.ndim)
+        target = tuple([self.tgt_null_slice] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_lists(self, unique_levels):
-        target = tuple([self.tgt_list] * self.ndim)
+        target = tuple([self.tgt_list] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_scalars(self, unique_levels):
-        target = tuple([self.tgt_scalar] * self.ndim)
+        target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_bool_indexers(self, unique_levels):
-        target = tuple([self.tgt_bool_indexer] * self.ndim)
+        target = tuple([self.tgt_bool_indexer] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_slice_plus_null_slice(self, unique_levels):
@@ -262,6 +276,18 @@ class MultiIndexing:
     def time_loc_null_slice_plus_slice(self, unique_levels):
         target = (self.tgt_null_slice, self.tgt_slice)
         self.df.loc[target, :]
+
+    def time_xs_level_0(self, unique_levels):
+        target = self.tgt_scalar
+        self.df.xs(target, level=0)
+
+    def time_xs_level_1(self, unique_levels):
+        target = self.tgt_scalar
+        self.df.xs(target, level=1)
+
+    def time_xs_full_key(self, unique_levels):
+        target = tuple([self.tgt_scalar] * self.nlevels)
+        self.df.xs(target)
 
 
 class IntervalIndexing:

@@ -69,12 +69,16 @@ def test_numpy_compat(method):
     # see gh-12811
     e = ExponentialMovingWindow(Series([2, 4, 6]), alpha=0.5)
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to ExponentialMovingWindow.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to ExponentialMovingWindow.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(dtype=np.float64)
 
 
 def test_ewma_times_not_datetime_type():
@@ -90,7 +94,7 @@ def test_ewma_times_not_same_length():
 
 
 def test_ewma_halflife_not_correct_type():
-    msg = "halflife must be a string or datetime.timedelta object"
+    msg = "halflife must be a timedelta convertible object"
     with pytest.raises(ValueError, match=msg):
         Series(range(5)).ewm(halflife=1, times=np.arange(5).astype("datetime64[ns]"))
 
@@ -666,3 +670,86 @@ def test_ewm_pairwise_cov_corr(func, frame):
     result.index = result.index.droplevel(1)
     expected = getattr(frame[1].ewm(span=10, min_periods=5), func)(frame[5])
     tm.assert_series_equal(result, expected, check_names=False)
+
+
+def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    df = DataFrame({"a": [1], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    ewm = df.ewm(span=2, min_periods=1)
+    op = getattr(ewm, kernel, None)
+    if op is not None:
+        result = op(numeric_only=numeric_only)
+
+        columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+        expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
+        assert list(expected.columns) == columns
+
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
+    # GH#46560
+    df = DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    arg = (df,) if use_arg else ()
+    ewm = df.ewm(span=2, min_periods=1)
+    op = getattr(ewm, kernel)
+    result = op(*arg, numeric_only=numeric_only)
+
+    # Compare result to op using float dtypes, dropping c when numeric_only is True
+    columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+    df2 = df[columns].astype(float)
+    arg2 = (df2,) if use_arg else ()
+    ewm2 = df2.ewm(span=2, min_periods=1)
+    op2 = getattr(ewm2, kernel)
+    expected = op2(*arg2, numeric_only=numeric_only)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    ser = Series([1], dtype=dtype)
+    ewm = ser.ewm(span=2, min_periods=1)
+    op = getattr(ewm, kernel, None)
+    if op is None:
+        # Nothing to test
+        return
+    if numeric_only and dtype is object:
+        msg = f"ExponentialMovingWindow.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(numeric_only=numeric_only)
+    else:
+        result = op(numeric_only=numeric_only)
+        expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
+    # GH#46560
+    ser = Series([1, 2, 3], dtype=dtype)
+    arg = (ser,) if use_arg else ()
+    ewm = ser.ewm(span=2, min_periods=1)
+    op = getattr(ewm, kernel)
+    if numeric_only and dtype is object:
+        msg = f"ExponentialMovingWindow.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(*arg, numeric_only=numeric_only)
+    else:
+        result = op(*arg, numeric_only=numeric_only)
+
+        ser2 = ser.astype(float)
+        arg2 = (ser2,) if use_arg else ()
+        ewm2 = ser2.ewm(span=2, min_periods=1)
+        op2 = getattr(ewm2, kernel)
+        expected = op2(*arg2, numeric_only=numeric_only)
+        tm.assert_series_equal(result, expected)

@@ -14,6 +14,7 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
@@ -103,7 +104,9 @@ def test_basic():  # TODO: split this test
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
-    result = gb.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
     # GH 8623
@@ -314,6 +317,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
@@ -807,8 +811,12 @@ def test_preserve_categorical_dtype():
         }
     )
     for col in ["C1", "C2"]:
-        result1 = df.groupby(by=col, as_index=False, observed=False).mean()
-        result2 = df.groupby(by=col, as_index=True, observed=False).mean().reset_index()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result1 = df.groupby(by=col, as_index=False, observed=False).mean()
+            result2 = (
+                df.groupby(by=col, as_index=True, observed=False).mean().reset_index()
+            )
         expected = exp_full.reindex(columns=result1.columns)
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
@@ -1357,6 +1365,7 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
             reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
         )
         request.node.add_marker(mark)
+    warn = FutureWarning if reduction_func == "mad" else None
 
     df = DataFrame(
         {
@@ -1365,13 +1374,14 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
             "value": [0.1] * 4,
         }
     )
-    args = {"nth": [0]}.get(reduction_func, [])
+    args = get_groupby_method_args(reduction_func, df)
 
     expected_length = 4 if observed else 16
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
     agg = getattr(series_groupby, reduction_func)
-    result = agg(*args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = agg(*args)
 
     assert len(result) == expected_length
 
@@ -1390,6 +1400,7 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
             reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
         )
         request.node.add_marker(mark)
+    warn = FutureWarning if reduction_func == "mad" else None
 
     df = DataFrame(
         {
@@ -1399,11 +1410,12 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         }
     )
     unobserved = [tuple("AC"), tuple("BC"), tuple("CA"), tuple("CB"), tuple("CC")]
-    args = {"nth": [0]}.get(reduction_func, [])
+    args = get_groupby_method_args(reduction_func, df)
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
     agg = getattr(series_groupby, reduction_func)
-    result = agg(*args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = agg(*args)
 
     zero_or_nan = _results_for_groupbys_with_missing_categories[reduction_func]
 
@@ -1426,6 +1438,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
     # does not return the categories that are not in df when observed=True
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
+    warn = FutureWarning if reduction_func == "mad" else None
 
     df = DataFrame(
         {
@@ -1438,8 +1451,9 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
     df_grp = df.groupby(["cat_1", "cat_2"], observed=True)
 
-    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
-    res = getattr(df_grp, reduction_func)(*args)
+    args = get_groupby_method_args(reduction_func, df)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        res = getattr(df_grp, reduction_func)(*args)
 
     for cat in unobserved_cats:
         assert cat not in res.index
@@ -1456,6 +1470,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
+    warn = FutureWarning if reduction_func == "mad" else None
 
     df = DataFrame(
         {
@@ -1468,8 +1483,9 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
     df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
 
-    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
-    res = getattr(df_grp, reduction_func)(*args)
+    args = get_groupby_method_args(reduction_func, df)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        res = getattr(df_grp, reduction_func)(*args)
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
 
@@ -1524,7 +1540,7 @@ def test_groupby_agg_non_numeric():
 
 
 @pytest.mark.parametrize("func", ["first", "last"])
-def test_groupy_first_returned_categorical_instead_of_dataframe(func):
+def test_groupby_first_returned_categorical_instead_of_dataframe(func):
     # GH 28641: groupby drops index, when grouping over categorical column with
     # first/last. Renamed Categorical instead of DataFrame previously.
     df = DataFrame({"A": [1997], "B": Series(["b"], dtype="category").cat.as_ordered()})

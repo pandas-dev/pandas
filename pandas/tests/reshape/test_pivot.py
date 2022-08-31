@@ -146,8 +146,10 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        rs = df.pivot_table(columns="cols", aggfunc=np.sum)
-        xp = df.pivot_table(index="cols", aggfunc=np.sum).T
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = df.pivot_table(columns="cols", aggfunc=np.sum)
+            xp = df.pivot_table(index="cols", aggfunc=np.sum).T
         tm.assert_frame_equal(rs, xp)
 
         rs = df.pivot_table(columns="cols", aggfunc={"values": "mean"})
@@ -478,9 +480,11 @@ class TestPivotTable:
             }
         )
         if method:
-            result = df.pivot("a", "b", "c")
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.pivot("a", columns="b", values="c")
         else:
-            result = pd.pivot(df, "a", "b", "c")
+            with tm.assert_produces_warning(FutureWarning):
+                result = pd.pivot(df, "a", columns="b", values="c")
         expected = DataFrame(
             [
                 [nan, nan, 17, nan],
@@ -492,7 +496,7 @@ class TestPivotTable:
             columns=Index(["C1", "C2", "C3", "C4"], name="b"),
         )
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(df.pivot("b", "a", "c"), expected.T)
+        tm.assert_frame_equal(df.pivot(index="b", columns="a", values="c"), expected.T)
 
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_index_with_nan_dates(self, method):
@@ -508,18 +512,18 @@ class TestPivotTable:
         df.loc[1, "b"] = df.loc[4, "b"] = np.nan
 
         if method:
-            pv = df.pivot("a", "b", "c")
+            pv = df.pivot(index="a", columns="b", values="c")
         else:
-            pv = pd.pivot(df, "a", "b", "c")
+            pv = pd.pivot(df, index="a", columns="b", values="c")
         assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row["a"], row["b"]] == row["c"]
 
         if method:
-            result = df.pivot("b", "a", "c")
+            result = df.pivot(index="b", columns="a", values="c")
         else:
-            result = pd.pivot(df, "b", "a", "c")
+            result = pd.pivot(df, index="b", columns="a", values="c")
         tm.assert_frame_equal(result, pv.T)
 
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
@@ -903,12 +907,19 @@ class TestPivotTable:
 
         # to help with a buglet
         self.data.columns = [k * 2 for k in self.data.columns]
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc=np.mean
+            )
         for value_col in table.columns:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc="mean"
+            )
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
             assert totals == self.data[item].mean()
@@ -964,7 +975,9 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 
         tm.assert_frame_equal(result, expected)
@@ -1990,8 +2003,11 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
         # for consistency purposes
-        result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
-        expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
+
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
+            expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
@@ -1999,7 +2015,7 @@ class TestPivotTable:
         # GH 20601
         # GH 26314: Change ValueError to PerformanceWarning
         class MockUnstacker(reshape_lib._Unstacker):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
@@ -2167,6 +2183,28 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_sort_false_with_multiple_values(self):
+        df = DataFrame(
+            {
+                "firstname": ["John", "Michael"],
+                "lastname": ["Foo", "Bar"],
+                "height": [173, 182],
+                "age": [47, 33],
+            }
+        )
+        result = df.pivot_table(
+            index=["lastname", "firstname"], values=["height", "age"], sort=False
+        )
+        expected = DataFrame(
+            [[173, 47], [182, 33]],
+            columns=["height", "age"],
+            index=MultiIndex.from_tuples(
+                [("Foo", "John"), ("Bar", "Michael")],
+                names=["lastname", "firstname"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_with_margins_and_numeric_columns(self):
         # GH 26568
         df = DataFrame([["a", "x", 1], ["a", "y", 2], ["b", "y", 3], ["b", "z", 4]])
@@ -2182,6 +2220,21 @@ class TestPivotTable:
         expected.columns.name = 20
         expected.index.name = 10
 
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_pivot_ea_dtype_dropna(self, dropna):
+        # GH#47477
+        df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype="Int64")})
+        result = df.pivot_table(
+            index="x", columns="y", values="age", aggfunc="mean", dropna=dropna
+        )
+        expected = DataFrame(
+            [[30]],
+            index=Index(["a"], name="x"),
+            columns=Index(["b"], name="y"),
+            dtype="Float64",
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -2224,11 +2277,11 @@ class TestPivot:
             }
         )
         with pytest.raises(ValueError, match="duplicate entries"):
-            data.pivot("a", "b", "c")
+            data.pivot(index="a", columns="b", values="c")
 
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
-        result = df.pivot("a", "b", "c")
+        result = df.pivot(index="a", columns="b", values="c")
         expected = DataFrame()
         tm.assert_frame_equal(result, expected, check_names=False)
 

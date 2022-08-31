@@ -6,7 +6,7 @@ import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
-from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+from pandas.core.arrays.arrow._arrow_utils import pyarrow_array_to_numpy_and_mask
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
@@ -15,6 +15,10 @@ arrays += [pd.array([True, False, True, None], dtype="boolean")]
 
 @pytest.fixture(params=arrays, ids=[a.dtype.name for a in arrays])
 def data(request):
+    """
+    Fixture returning parametrized array from given dtype, including integer,
+    float and boolean
+    """
     return request.param
 
 
@@ -101,6 +105,10 @@ def test_arrow_sliced(data):
 
 @pytest.fixture
 def np_dtype_to_arrays(any_real_numpy_dtype):
+    """
+    Fixture returning actual and expected dtype, pandas and numpy arrays and
+    mask from a given numpy dtype
+    """
     np_dtype = np.dtype(any_real_numpy_dtype)
     pa_type = pa.from_numpy_dtype(np_dtype)
 

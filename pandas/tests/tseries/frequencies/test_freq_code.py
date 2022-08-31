@@ -18,7 +18,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     per = Period._from_ordinal(1, off)
     exp_code = to_offset(exp_freqstr)._period_dtype_code
 
-    result_code = per._get_to_timestamp_base()
+    result_code = per._dtype._get_to_timestamp_base()
     assert result_code == exp_code
 
 
@@ -38,12 +38,12 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     ],
 )
 def test_get_attrname_from_abbrev(freqstr, expected):
-    assert Resolution.get_reso_from_freq(freqstr).attrname == expected
+    assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
 
 
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip2(freq):
-    obj = Resolution.get_reso_from_freq(freq)
+    obj = Resolution.get_reso_from_freqstr(freq)
     result = _attrname_to_abbrevs[obj.attrname]
     assert freq == result
 

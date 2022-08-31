@@ -2,13 +2,20 @@ from collections import defaultdict
 from datetime import datetime
 from io import StringIO
 import math
+import operator
 import re
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
+from pandas.compat import (
+    IS64,
+    pa_version_under7p0,
+)
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -60,6 +67,22 @@ class TestIndex(Base):
             new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
+
+    def test_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_argsort(index)
+
+    def test_numpy_argsort(self, index):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_numpy_argsort(index)
 
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)
@@ -318,7 +341,6 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "index",
         [
-            "unicode",
             "string",
             pytest.param("categorical", marks=pytest.mark.xfail(reason="gh-25464")),
             "bool-object",
@@ -540,11 +562,6 @@ class TestIndex(Base):
         elif not index.is_unique:
             # Cannot map duplicated index
             return
-        if index.dtype == np.complex64 and not isinstance(mapper(index, index), Series):
-            mark = pytest.mark.xfail(
-                reason="maybe_downcast_to_dtype doesn't handle complex"
-            )
-            request.node.add_marker(mark)
 
         rng = np.arange(len(index), 0, -1)
 
@@ -932,7 +949,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize(
         "index",
-        ["unicode", "string", "datetime", "int", "uint", "float"],
+        ["string", "datetime", "int", "uint", "float"],
         indirect=True,
     )
     def test_join_self(self, index, join_type):
@@ -1109,6 +1126,14 @@ class TestIndex(Base):
         )[0]
         assert result.levels[0].dtype.type == np.int64
         assert result.levels[1].dtype.type == np.float64
+
+    def test_reindex_ignoring_level(self):
+        # GH#35132
+        idx = Index([1, 2, 3], name="x")
+        idx2 = Index([1, 2, 3, 4], name="x")
+        expected = Index([1, 2, 3, 4], name="x")
+        result, _ = idx.reindex(idx2, level="x")
+        tm.assert_index_equal(result, expected)
 
     def test_groupby(self):
         index = Index(range(5))
@@ -1602,3 +1627,16 @@ def test_get_attributes_dict_deprecated():
     with tm.assert_produces_warning(DeprecationWarning):
         attrs = idx._get_attributes_dict()
     assert attrs == {"name": None}
+
+
+@pytest.mark.parametrize("op", [operator.lt, operator.gt])
+def test_nan_comparison_same_object(op):
+    # GH#47105
+    idx = Index([np.nan])
+    expected = np.array([False])
+
+    result = op(idx, idx)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = op(idx, idx.copy())
+    tm.assert_numpy_array_equal(result, expected)

@@ -165,12 +165,16 @@ class _XlsxStyler:
                 "doubleAccounting": 34,
             }[props["underline"]]
 
+        # GH 30107 - xlsxwriter uses different name
+        if props.get("valign") == "center":
+            props["valign"] = "vcenter"
+
         return props
 
 
 class XlsxWriter(ExcelWriter):
-    engine = "xlsxwriter"
-    supported_extensions = (".xlsx",)
+    _engine = "xlsxwriter"
+    _supported_extensions = (".xlsx",)
 
     def __init__(
         self,
@@ -183,7 +187,7 @@ class XlsxWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
 

@@ -1,11 +1,14 @@
 """ test fancy indexing & misc """
 
+import array
 from datetime import datetime
 import re
 import weakref
 
 import numpy as np
 import pytest
+
+from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -24,7 +27,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import Float64Index
-from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -547,14 +549,17 @@ class TestFancy:
         )
 
         df = df_orig.copy()
-        df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
-        df.iloc[:, 0:2] = df.iloc[:, 0:2]._convert(datetime=True, numeric=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0:2] = df.iloc[:, 0:2]._convert(datetime=True, numeric=True)
         expected = DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
@@ -562,14 +567,16 @@ class TestFancy:
 
         # GH5702 (loc)
         df = df_orig.copy()
-        df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
         tm.assert_frame_equal(df, expected)
 
         df = df_orig.copy()
-        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
@@ -578,12 +585,15 @@ class TestFancy:
     def test_astype_assignment_full_replacements(self):
         # full replacements / no nans
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        df.iloc[:, 0] = df["A"].astype(np.int64)
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[:, 0] = df["A"].astype(np.int64)
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        df.loc[:, "A"] = df["A"].astype(np.int64)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "A"] = df["A"].astype(np.int64)
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
@@ -1010,3 +1020,95 @@ def test_ser_list_indexer_exceeds_dimensions(indexer_li):
     res = indexer_li(ser)[[0, 0]]
     exp = Series([10, 10], index=Index([0, 0]))
     tm.assert_series_equal(res, exp)
+
+
+@pytest.mark.parametrize(
+    "value", [(0, 1), [0, 1], np.array([0, 1]), array.array("b", [0, 1])]
+)
+def test_scalar_setitem_with_nested_value(value):
+    # For numeric data, we try to unpack and thus raise for mismatching length
+    df = DataFrame({"A": [1, 2, 3]})
+    msg = "|".join(
+        [
+            "Must have equal len keys and value",
+            "setting an array element with a sequence",
+        ]
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.loc[0, "B"] = value
+
+    # TODO For object dtype this happens as well, but should we rather preserve
+    # the nested data and set as such?
+    df = DataFrame({"A": [1, 2, 3], "B": np.array([1, "a", "b"], dtype=object)})
+    with pytest.raises(ValueError, match="Must have equal len keys and value"):
+        df.loc[0, "B"] = value
+    # if isinstance(value, np.ndarray):
+    #     assert (df.loc[0, "B"] == value).all()
+    # else:
+    #     assert df.loc[0, "B"] == value
+
+
+@pytest.mark.parametrize(
+    "value", [(0, 1), [0, 1], np.array([0, 1]), array.array("b", [0, 1])]
+)
+def test_scalar_setitem_series_with_nested_value(value, indexer_sli):
+    # For numeric data, we try to unpack and thus raise for mismatching length
+    ser = Series([1, 2, 3])
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        indexer_sli(ser)[0] = value
+
+    # but for object dtype we preserve the nested data and set as such
+    ser = Series([1, "a", "b"], dtype=object)
+    indexer_sli(ser)[0] = value
+    if isinstance(value, np.ndarray):
+        assert (ser.loc[0] == value).all()
+    else:
+        assert ser.loc[0] == value
+
+
+@pytest.mark.parametrize(
+    "value", [(0.0,), [0.0], np.array([0.0]), array.array("d", [0.0])]
+)
+def test_scalar_setitem_with_nested_value_length1(value):
+    # https://github.com/pandas-dev/pandas/issues/46268
+
+    # For numeric data, assigning length-1 array to scalar position gets unpacked
+    df = DataFrame({"A": [1, 2, 3]})
+    df.loc[0, "B"] = value
+    expected = DataFrame({"A": [1, 2, 3], "B": [0.0, np.nan, np.nan]})
+    tm.assert_frame_equal(df, expected)
+
+    # but for object dtype we preserve the nested data
+    df = DataFrame({"A": [1, 2, 3], "B": np.array([1, "a", "b"], dtype=object)})
+    df.loc[0, "B"] = value
+    if isinstance(value, np.ndarray):
+        assert (df.loc[0, "B"] == value).all()
+    else:
+        assert df.loc[0, "B"] == value
+
+
+@pytest.mark.parametrize(
+    "value", [(0.0,), [0.0], np.array([0.0]), array.array("d", [0.0])]
+)
+def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
+    # For numeric data, assigning length-1 array to scalar position gets unpacked
+    # TODO this only happens in case of ndarray, should we make this consistent
+    # for all list-likes? (as happens for DataFrame.(i)loc, see test above)
+    ser = Series([1.0, 2.0, 3.0])
+    if isinstance(value, np.ndarray):
+        indexer_sli(ser)[0] = value
+        expected = Series([0.0, 2.0, 3.0])
+        tm.assert_series_equal(ser, expected)
+    else:
+        with pytest.raises(
+            ValueError, match="setting an array element with a sequence"
+        ):
+            indexer_sli(ser)[0] = value
+
+    # but for object dtype we preserve the nested data
+    ser = Series([1, "a", "b"], dtype=object)
+    indexer_sli(ser)[0] = value
+    if isinstance(value, np.ndarray):
+        assert (ser.loc[0] == value).all()
+    else:
+        assert ser.loc[0] == value

@@ -18,6 +18,7 @@ from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
     pa_version_under6p0,
+    pa_version_under8p0,
 )
 import pandas.util._test_decorators as td
 
@@ -625,6 +626,9 @@ class TestBasic(Base):
                 "d": pyarrow.array([True, False, True, None]),
                 # Test that nullable dtypes used even in absence of nulls
                 "e": pyarrow.array([1, 2, 3, 4], "int64"),
+                # GH 45694
+                "f": pyarrow.array([1.0, 2.0, 3.0, None], "float32"),
+                "g": pyarrow.array([1.0, 2.0, 3.0, None], "float64"),
             }
         )
         with tm.ensure_clean() as path:
@@ -641,6 +645,8 @@ class TestBasic(Base):
                 "c": pd.array(["a", "b", "c", None], dtype="string"),
                 "d": pd.array([True, False, True, None], dtype="boolean"),
                 "e": pd.array([1, 2, 3, 4], dtype="Int64"),
+                "f": pd.array([1.0, 2.0, 3.0, None], dtype="Float32"),
+                "g": pd.array([1.0, 2.0, 3.0, None], dtype="Float64"),
             }
         )
         if engine == "fastparquet":
@@ -671,7 +677,17 @@ class TestBasic(Base):
                 "value": pd.array([], dtype=dtype),
             }
         )
-        check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
+        # GH 45694
+        expected = None
+        if dtype == "float":
+            expected = pd.DataFrame(
+                {
+                    "value": pd.array([], dtype="Float64"),
+                }
+            )
+        check_round_trip(
+            df, pa, read_kwargs={"use_nullable_dtypes": True}, expected=expected
+        )
 
 
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
@@ -718,11 +734,14 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         self.check_error_on_write(df, pa, ValueError, "Duplicate column names found")
 
-    def test_unsupported(self, pa):
-        # timedelta
+    def test_timedelta(self, pa):
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
-        self.check_external_error_on_write(df, pa, NotImplementedError)
+        if pa_version_under8p0:
+            self.check_external_error_on_write(df, pa, NotImplementedError)
+        else:
+            check_round_trip(df, pa)
 
+    def test_unsupported(self, pa):
         # mixed python objects
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
         # pyarrow 0.11 raises ArrowTypeError
@@ -1155,3 +1174,11 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):
                 read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
+
+    def test_close_file_handle_on_read_error(self):
+        with tm.ensure_clean("test.parquet") as path:
+            pathlib.Path(path).write_bytes(b"breakit")
+            with pytest.raises(Exception, match=""):  # Not important which exception
+                read_parquet(path, engine="fastparquet")
+            # The next line raises an error on Windows if the file is still open
+            pathlib.Path(path).unlink(missing_ok=False)

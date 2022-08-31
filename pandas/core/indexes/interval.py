@@ -250,7 +250,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        closed: str = "right",
+        closed: IntervalClosedType | None = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -281,7 +281,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        closed: str = "right",
+        closed: IntervalClosedType = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -820,7 +820,9 @@ class IntervalIndex(ExtensionIndex):
         # matches base class except for whitespace padding
         return header + list(self._format_native_types(na_rep=na_rep))
 
-    def _format_native_types(self, *, na_rep="NaN", quoting=None, **kwargs):
+    def _format_native_types(
+        self, *, na_rep="NaN", quoting=None, **kwargs
+    ) -> npt.NDArray[np.object_]:
         # GH 28210: use base method but with different default na_rep
         return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
@@ -1106,11 +1108,7 @@ def interval_range(
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
 
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
-            breaks = maybe_downcast_numeric(  # type: ignore[assignment]
-                breaks, np.dtype("int64")
-            )
+            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):

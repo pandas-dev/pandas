@@ -23,9 +23,9 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script validates the doctests, formatting in docstrings, static typing, and
+The script validates the doctests, formatting in docstrings, and
 imported modules. It is possible to run the checks independently by using the
-parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+parameters ``docstring``, ``code``, and ``doctests``
 (e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
@@ -33,11 +33,9 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-In addition to ``./ci/code_checks.sh``, some extra checks are run by
-``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
-run them.
-
-Additional standards are outlined on the :ref:`pandas code style guide <code_style>`.
+In addition to ``./ci/code_checks.sh``, some extra checks (including static type
+checking) are run by ``pre-commit`` - see :ref:`here <contributing.pre-commit>`
+for how to run them.
 
 .. _contributing.pre-commit:
 
@@ -45,7 +43,8 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``flake8``, ``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
+like ``black``, ``flake8`` (including a `pandas-dev-flaker <https://github.com/pandas-dev/pandas-dev-flaker>`_ plugin),
+``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
 can be done by installing ``pre-commit``::
@@ -75,6 +74,11 @@ If you want to run checks on all recently committed files on upstream/main you c
     pre-commit run --from-ref=upstream/main --to-ref=HEAD --all-files
 
 without needing to have done ``pre-commit install`` beforehand.
+
+.. note::
+
+    You may want to periodically run ``pre-commit gc``, to clean up repos
+    which are no longer used.
 
 .. note::
 
@@ -123,6 +127,7 @@ Otherwise, you need to do it manually:
 .. code-block:: python
 
     import warnings
+    from pandas.util._exceptions import find_stack_level
 
 
     def old_func():
@@ -131,7 +136,11 @@ Otherwise, you need to do it manually:
         .. deprecated:: 1.1.0
            Use new_func instead.
         """
-        warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
+        warnings.warn(
+            'Use new_func instead.',
+            FutureWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
         new_func()
 
 
@@ -223,7 +232,7 @@ In some cases you may be tempted to use ``cast`` from the typing module when you
            ...
        else:  # Reasonably only str objects would reach this but...
            obj = cast(str, obj)  # Mypy complains without this!
-	   return obj.upper()
+           return obj.upper()
 
 The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
 
@@ -261,9 +270,13 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   ./ci/code_checks.sh typing
+    # the following might fail if the installed pandas version does not correspond to your local git version
+    pre-commit run --hook-stage manual --all-files
 
-A recent version of ``numpy`` (>=1.21.0) is required for type validation.
+    # if the above fails due to stubtest
+    SKIP=stubtest pre-commit run --hook-stage manual --all-files
+
+in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
 
 .. _contributing.ci:
 
@@ -290,13 +303,11 @@ library. This makes type checkers aware of the type annotations shipped with pan
 Testing with continuous integration
 -----------------------------------
 
-The pandas test suite will run automatically on `GitHub Actions <https://github.com/features/actions/>`__ and
-`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__
+The pandas test suite will run automatically on `GitHub Actions <https://github.com/features/actions/>`__
 continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
-for `GitHub Actions <https://docs.github.com/en/actions/>`__ and
-`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/?view=azure-devops>`__.
+for `GitHub Actions <https://docs.github.com/en/actions/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -307,8 +318,8 @@ This is an example of a green build.
 .. _contributing.tdd:
 
 
-Test-driven development/code writing
-------------------------------------
+Test-driven development
+-----------------------
 
 pandas is serious about testing and strongly encourages contributors to embrace
 `test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
@@ -327,8 +338,169 @@ Writing tests
 
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
-inspiration. Please reference our :ref:`testing location guide <test_organization>` if you are unsure
-where to place a new unit test.
+inspiration. Ideally, there should be one, and only one, obvious place for a test to reside.
+Until we reach that ideal, these are some rules of thumb for where a test should
+be located.
+
+1. Does your test depend only on code in ``pd._libs.tslibs``?
+   This test likely belongs in one of:
+
+   - tests.tslibs
+
+     .. note::
+
+          No file in ``tests.tslibs`` should import from any pandas modules
+          outside of ``pd._libs.tslibs``
+
+   - tests.scalar
+   - tests.tseries.offsets
+
+2. Does your test depend only on code in pd._libs?
+   This test likely belongs in one of:
+
+   - tests.libs
+   - tests.groupby.test_libgroupby
+
+3. Is your test for an arithmetic or comparison method?
+   This test likely belongs in one of:
+
+   - tests.arithmetic
+
+     .. note::
+
+         These are intended for tests that can be shared to test the behavior
+         of DataFrame/Series/Index/ExtensionArray using the ``box_with_array``
+         fixture.
+
+   - tests.frame.test_arithmetic
+   - tests.series.test_arithmetic
+
+4. Is your test for a reduction method (min, max, sum, prod, ...)?
+   This test likely belongs in one of:
+
+   - tests.reductions
+
+     .. note::
+
+         These are intended for tests that can be shared to test the behavior
+         of DataFrame/Series/Index/ExtensionArray.
+
+   - tests.frame.test_reductions
+   - tests.series.test_reductions
+   - tests.test_nanops
+
+5. Is your test for an indexing method?
+   This is the most difficult case for deciding where a test belongs, because
+   there are many of these tests, and many of them test more than one method
+   (e.g. both ``Series.__getitem__`` and ``Series.loc.__getitem__``)
+
+   A) Is the test specifically testing an Index method (e.g. ``Index.get_loc``,
+      ``Index.get_indexer``)?
+      This test likely belongs in one of:
+
+      - tests.indexes.test_indexing
+      - tests.indexes.fooindex.test_indexing
+
+      Within that files there should be a method-specific test class e.g.
+      ``TestGetLoc``.
+
+      In most cases, neither ``Series`` nor ``DataFrame`` objects should be
+      needed in these tests.
+
+   B) Is the test for a Series or DataFrame indexing method *other* than
+      ``__getitem__`` or ``__setitem__``, e.g. ``xs``, ``where``, ``take``,
+      ``mask``, ``lookup``, or ``insert``?
+      This test likely belongs in one of:
+
+      - tests.frame.indexing.test_methodname
+      - tests.series.indexing.test_methodname
+
+   C) Is the test for any of ``loc``, ``iloc``, ``at``, or ``iat``?
+      This test likely belongs in one of:
+
+      - tests.indexing.test_loc
+      - tests.indexing.test_iloc
+      - tests.indexing.test_at
+      - tests.indexing.test_iat
+
+      Within the appropriate file, test classes correspond to either types of
+      indexers (e.g. ``TestLocBooleanMask``) or major use cases
+      (e.g. ``TestLocSetitemWithExpansion``).
+
+      See the note in section D) about tests that test multiple indexing methods.
+
+   D) Is the test for ``Series.__getitem__``, ``Series.__setitem__``,
+      ``DataFrame.__getitem__``, or ``DataFrame.__setitem__``?
+      This test likely belongs in one of:
+
+      - tests.series.test_getitem
+      - tests.series.test_setitem
+      - tests.frame.test_getitem
+      - tests.frame.test_setitem
+
+      If many cases such a test may test multiple similar methods, e.g.
+
+      .. code-block:: python
+
+           import pandas as pd
+           import pandas._testing as tm
+
+           def test_getitem_listlike_of_ints():
+               ser = pd.Series(range(5))
+
+               result = ser[[3, 4]]
+               expected = pd.Series([2, 3])
+               tm.assert_series_equal(result, expected)
+
+               result = ser.loc[[3, 4]]
+               tm.assert_series_equal(result, expected)
+
+    In cases like this, the test location should be based on the *underlying*
+    method being tested.  Or in the case of a test for a bugfix, the location
+    of the actual bug.  So in this example, we know that ``Series.__getitem__``
+    calls ``Series.loc.__getitem__``, so this is *really* a test for
+    ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``.
+
+6. Is your test for a DataFrame or Series method?
+
+   A) Is the method a plotting method?
+      This test likely belongs in one of:
+
+      - tests.plotting
+
+   B) Is the method an IO method?
+      This test likely belongs in one of:
+
+      - tests.io
+
+   C) Otherwise
+      This test likely belongs in one of:
+
+      - tests.series.methods.test_mymethod
+      - tests.frame.methods.test_mymethod
+
+        .. note::
+
+            If a test can be shared between DataFrame/Series using the
+            ``frame_or_series`` fixture, by convention it goes in the
+            ``tests.frame`` file.
+
+7. Is your test for an Index method, not depending on Series/DataFrame?
+   This test likely belongs in one of:
+
+   - tests.indexes
+
+8) Is your test for one of the pandas-provided ExtensionArrays (``Categorical``,
+   ``DatetimeArray``, ``TimedeltaArray``, ``PeriodArray``, ``IntervalArray``,
+   ``PandasArray``, ``FloatArray``, ``BoolArray``, ``StringArray``)?
+   This test likely belongs in one of:
+
+   - tests.arrays
+
+9) Is your test for *all* ExtensionArray subclasses (the "EA Interface")?
+   This test likely belongs in one of:
+
+   - tests.extension
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
@@ -340,10 +512,11 @@ pandas existing test structure is *mostly* class-based, meaning that you will ty
 
 .. code-block:: python
 
-    class TestReallyCoolFeature:
-        pass
+   class TestReallyCoolFeature:
+       def test_cool_feature_aspect(self):
+           pass
 
-Going forward, we are moving to a more *functional* style using the `pytest <https://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
+We prefer a more *functional* style using the `pytest <https://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
@@ -351,8 +524,8 @@ framework that will facilitate testing and developing. Thus, instead of writing 
     def test_really_cool_feature():
         pass
 
-Preferred idioms
-^^^^^^^^^^^^^^^^
+Preferred ``pytest`` idioms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * Functional tests named ``def test_*`` and *only* take arguments that are either fixtures or parameters.
 * Use a bare ``assert`` for testing scalars and truth-testing
@@ -390,9 +563,89 @@ xfail is not to be used for tests involving failure due to invalid user argument
 For these tests, we need to verify the correct exception type and error message
 is being raised, using ``pytest.raises`` instead.
 
-If your test requires working with files or
-network connectivity, there is more information on the :wiki:`Testing` of the wiki.
+.. _contributing.warnings:
 
+Testing a warning
+^^^^^^^^^^^^^^^^^
+
+Use ``tm.assert_produces_warning`` as a context manager to check that a block of code raises a warning.
+
+.. code-block:: python
+
+    with tm.assert_produces_warning(DeprecationWarning):
+        pd.deprecated_function()
+
+If a warning should specifically not happen in a block of code, pass ``False`` into the context manager.
+
+.. code-block:: python
+
+    with tm.assert_produces_warning(False):
+        pd.no_warning_function()
+
+If you have a test that would emit a warning, but you aren't actually testing the
+warning itself (say because it's going to be removed in the future, or because we're
+matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
+ignore the error.
+
+.. code-block:: python
+
+    @pytest.mark.filterwarnings("ignore:msg:category")
+    def test_thing(self):
+        pass
+
+If you need finer-grained control, you can use Python's
+`warnings module <https://docs.python.org/3/library/warnings.html>`__
+to control whether a warning is ignored or raised at different places within
+a single test.
+
+.. code-block:: python
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+
+Testing an exception
+^^^^^^^^^^^^^^^^^^^^
+
+Use `pytest.raises <https://docs.pytest.org/en/latest/reference/reference.html#pytest-raises>`_ as a context manager
+with the specific exception subclass (i.e. never use :py:class:`Exception`) and the exception message in ``match``.
+
+.. code-block:: python
+
+    with pytest.raises(ValueError, match="an error"):
+        raise ValueError("an error")
+
+Testing involving files
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``tm.ensure_clean`` context manager creates a temporary file for testing,
+with a generated filename (or your filename if provided), that is automatically
+deleted when the context block is exited.
+
+.. code-block:: python
+
+    with tm.ensure_clean('my_file_path') as path:
+        # do something with the path
+
+Testing involving network connectivity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is highly discouraged to add a test that connects to the internet due to flakiness of network connections and
+lack of ownership of the server that is being connected to. If network connectivity is absolutely required, use the
+``tm.network`` decorator.
+
+.. code-block:: python
+
+    @tm.network   # noqa
+    def test_network():
+        result = package.call_to_internet()
+
+If the test requires data from a specific website, specify ``check_before_test=True`` and the site in the decorator.
+
+.. code-block:: python
+
+    @tm.network("https://www.somespecificsite.com", check_before_test=True)
+    def test_network():
+        result = pd.read_html("https://www.somespecificsite.com")
 
 Example
 ^^^^^^^
@@ -514,59 +767,6 @@ To keep the pandas test suite running quickly, parametrized tests are
 preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
-
-.. _contributing.warnings:
-
-Testing warnings
-~~~~~~~~~~~~~~~~
-
-By default, the :ref:`Continuous Integration <contributing.ci>` will fail if any unhandled warnings are emitted.
-
-If your change involves checking that a warning is actually emitted, use
-``tm.assert_produces_warning(ExpectedWarning)``.
-
-
-.. code-block:: python
-
-   import pandas._testing as tm
-
-
-   df = pd.DataFrame()
-   with tm.assert_produces_warning(FutureWarning):
-       df.some_operation()
-
-We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
-stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
-is printed in the warning, rather than something internal to pandas. It represents the number of
-function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
-the warning. Our linter will fail the build if you use ``pytest.warns`` in a test.
-
-If you have a test that would emit a warning, but you aren't actually testing the
-warning itself (say because it's going to be removed in the future, or because we're
-matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
-ignore the error.
-
-.. code-block:: python
-
-   @pytest.mark.filterwarnings("ignore:msg:category")
-   def test_thing(self):
-       ...
-
-If the test generates a warning of class ``category`` whose message starts
-with ``msg``, the warning will be ignored and the test will pass.
-
-If you need finer-grained control, you can use Python's usual
-`warnings module <https://docs.python.org/3/library/warnings.html>`__
-to control whether a warning is ignored / raised at different places within
-a single test.
-
-.. code-block:: python
-
-   with warnings.catch_warnings():
-       warnings.simplefilter("ignore", FutureWarning)
-       # Or use warnings.filterwarnings(...)
-
-Alternatively, consider breaking up the unit test.
 
 
 Running the test suite

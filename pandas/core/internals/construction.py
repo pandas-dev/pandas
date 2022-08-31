@@ -5,6 +5,7 @@ constructors before passing them to a BlockManager.
 from __future__ import annotations
 
 from collections import abc
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -167,7 +168,7 @@ def rec_array_to_mgr(
     dtype: DtypeObj | None,
     copy: bool,
     typ: str,
-):
+) -> Manager:
     """
     Extract from a masked rec array and create the manager.
     """
@@ -326,7 +327,7 @@ def ndarray_to_mgr(
     else:
         # by definition an array here
         # the dtypes will be coerced to a single dtype
-        values = _prep_ndarray(values, copy=copy_on_sanitize)
+        values = _prep_ndarraylike(values, copy=copy_on_sanitize)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         # GH#40110 see similar check inside sanitize_array
@@ -341,7 +342,7 @@ def ndarray_to_mgr(
             allow_2d=True,
         )
 
-    # _prep_ndarray ensures that values.ndim == 2 at this point
+    # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
         values.shape[0], values.shape[1], index=index, columns=columns
     )
@@ -537,15 +538,16 @@ def treat_as_nested(data) -> bool:
 # ---------------------------------------------------------------------
 
 
-def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
+def _prep_ndarraylike(
+    values, copy: bool = True
+) -> np.ndarray | DatetimeArray | TimedeltaArray:
     if isinstance(values, TimedeltaArray) or (
         isinstance(values, DatetimeArray) and values.tz is None
     ):
-        # On older numpy, np.asarray below apparently does not call __array__,
-        #  so nanoseconds get dropped.
-        values = values._ndarray
+        # By retaining DTA/TDA instead of unpacking, we end up retaining non-nano
+        pass
 
-    if not isinstance(values, (np.ndarray, ABCSeries, Index)):
+    elif not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
         elif isinstance(values, range):
@@ -843,7 +845,7 @@ def to_arrays(
             "To retain the old behavior, pass as a dictionary "
             "DataFrame({col: categorical, ..})",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if columns is None:
             columns = default_index(len(data))
@@ -913,12 +915,7 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_nd(values, indexer))
 
-    # error: Argument 1 to "vstack" has incompatible type "List[ExtensionArray]";
-    # expected "Sequence[Union[Union[int, float, complex, str, bytes, generic],
-    # Sequence[Union[int, float, complex, str, bytes, generic]],
-    # Sequence[Sequence[Any]], _SupportsArray]]"
-    content = np.vstack(aligned_values)  # type: ignore[arg-type]
-
+    content = np.vstack(aligned_values)
     return content, columns
 
 

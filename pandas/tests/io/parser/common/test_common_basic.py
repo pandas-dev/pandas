@@ -12,7 +12,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -41,7 +40,7 @@ def test_override_set_noconvert_columns():
     # Usecols needs to be sorted in _set_noconvert_columns based
     # on the test_usecols_with_parse_dates test from test_usecols.py
     class MyTextFileReader(TextFileReader):
-        def __init__(self):
+        def __init__(self) -> None:
             self._currow = 0
             self.squeeze = False
 
@@ -676,11 +675,6 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    PY310,
-    reason="GH41935 This test is leaking only on Python 3.10,"
-    "causing other tests to fail with a cryptic error.",
-)
 @pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
 def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     # GH#41069
@@ -699,7 +693,7 @@ def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
 def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
-    data = '''\ufeff"Head1"	"Head2"	"Head3"'''
+    data = '''\ufeff"Head1"\t"Head2"\t"Head3"'''
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
@@ -710,7 +704,7 @@ def test_first_row_bom(all_parsers):
 def test_first_row_bom_unquoted(all_parsers):
     # see gh-36343
     parser = all_parsers
-    data = """\ufeffHead1	Head2	Head3"""
+    data = """\ufeffHead1\tHead2\tHead3"""
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
@@ -738,8 +732,15 @@ def test_no_header_two_extra_columns(all_parsers):
     ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
     stream = StringIO("foo,bar,baz,bam,blah")
     parser = all_parsers
-    with tm.assert_produces_warning(ParserWarning):
-        df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    df = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header or names does not match length of data. "
+        "This leads to a loss of data with index_col=False.",
+        stream,
+        header=None,
+        names=column_names,
+        index_col=False,
+    )
     tm.assert_frame_equal(df, ref)
 
 
@@ -812,8 +813,7 @@ def test_read_csv_posargs_deprecation(all_parsers):
         "In a future version of pandas all arguments of read_csv "
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        parser.read_csv(f, " ")
+    parser.read_csv_check_warnings(FutureWarning, msg, f, " ")
 
 
 @pytest.mark.parametrize("delimiter", [",", "\t"])
@@ -927,5 +927,4 @@ def test_read_table_posargs_deprecation(all_parsers):
         "In a future version of pandas all arguments of read_table "
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        parser.read_table(data, " ")
+    parser.read_table_check_warnings(FutureWarning, msg, data, " ")

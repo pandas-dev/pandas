@@ -1,6 +1,5 @@
-import cython
-from cython import Py_ssize_t
-
+cimport cython
+from cython cimport Py_ssize_t
 from libc.math cimport (
     fabs,
     sqrt,
@@ -181,6 +180,8 @@ def is_lexsorted(list_of_arrays: list) -> bint:
                 else:
                     result = False
                     break
+            if not result:
+                break
     free(vecs)
     return result
 
@@ -323,6 +324,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
@@ -355,8 +357,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                         nobs += 1
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1 / nobs * dx
-                        meany += 1 / nobs * dy
+                        meanx += 1. / nobs * dx
+                        meany += 1. / nobs * dy
                         ssqdmx += (vx - meanx) * dx
                         ssqdmy += (vy - meany) * dy
                         covxy += (vx - meanx) * dy
@@ -750,7 +752,7 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == NPY_NAT):
+        if arr[0] != arr[0] or (numeric_object_t is int64_t and timelike and arr[0] == NPY_NAT):
             # single value is NaN
             return False, False, True
         else:
@@ -822,13 +824,17 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
 
 cdef numeric_object_t get_rank_nan_fill_val(
     bint rank_nans_highest,
-    numeric_object_t[:] _=None
+    numeric_object_t val,
+    bint is_datetimelike=False,
 ):
     """
     Return the value we'll use to represent missing values when sorting depending
     on if we'd like missing values to end up at the top/bottom. (The second parameter
     is unused, but needed for fused type specialization)
     """
+    if numeric_object_t is int64_t and is_datetimelike and not rank_nans_highest:
+        return NPY_NAT + 1
+
     if rank_nans_highest:
         if numeric_object_t is object:
             return Infinity()
@@ -854,6 +860,9 @@ cdef numeric_object_t get_rank_nan_fill_val(
         if numeric_object_t is object:
             return NegInfinity()
         elif numeric_object_t is int64_t:
+            # Note(jbrockmendel) 2022-03-15 for reasons unknown, using util.INT64_MIN
+            #  instead of NPY_NAT here causes build warnings and failure in
+            #  test_cummax_i8_at_implementation_bound
             return NPY_NAT
         elif numeric_object_t is int32_t:
             return util.INT32_MIN
@@ -883,6 +892,7 @@ def rank_1d(
     bint ascending=True,
     bint pct=False,
     na_option="keep",
+    const uint8_t[:] mask=None,
 ):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
@@ -912,6 +922,8 @@ def rank_1d(
         * keep: leave NA values where they are
         * top: smallest rank if ascending
         * bottom: smallest rank if descending
+    mask : np.ndarray[bool], optional, default None
+        Specify locations to be treated as NA, for e.g. Categorical.
     """
     cdef:
         TiebreakEnumType tiebreak
@@ -921,7 +933,6 @@ def rank_1d(
         float64_t[::1] out
         ndarray[numeric_object_t, ndim=1] masked_vals
         numeric_object_t[:] masked_vals_memview
-        uint8_t[:] mask
         bint keep_na, nans_rank_highest, check_labels, check_mask
         numeric_object_t nan_fill_val
 
@@ -950,6 +961,7 @@ def rank_1d(
         or numeric_object_t is object
         or (numeric_object_t is int64_t and is_datetimelike)
     )
+    check_mask = check_mask or mask is not None
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -959,7 +971,9 @@ def rank_1d(
     else:
         masked_vals = values.copy()
 
-    if numeric_object_t is object:
+    if mask is not None:
+        pass
+    elif numeric_object_t is object:
         mask = missing.isnaobj(masked_vals)
     elif numeric_object_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
@@ -975,7 +989,7 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == 'top')
-    nan_fill_val = get_rank_nan_fill_val[numeric_object_t](nans_rank_highest)
+    nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
     else:
@@ -1335,7 +1349,7 @@ def rank_2d(
 
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
-        nan_fill_val = get_rank_nan_fill_val[numeric_object_t](nans_rank_highest)
+        nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
         if numeric_object_t is object:
             mask = missing.isnaobj2d(values).view(np.uint8)

@@ -4,6 +4,7 @@ Base and utility classes for tseries type pandas objects.
 from __future__ import annotations
 
 from datetime import datetime
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -92,15 +93,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freqstr: str | None
     _resolution_obj: Resolution
 
-    # error: "Callable[[Any], Any]" has no attribute "fget"
-    hasnans = cast(
-        bool,
-        cache_readonly(
-            DatetimeLikeArrayMixin._hasna.fget  # type: ignore[attr-defined]
-        ),
-    )
-
     # ------------------------------------------------------------------------
+
+    @cache_readonly
+    def hasnans(self) -> bool:
+        return self._data._hasna
 
     def equals(self, other: Any) -> bool:
         """
@@ -214,15 +211,24 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
+    @final
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
-        raise NotImplementedError
+        # e.g. test_getitem_setitem_periodindex
+        # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
+        return reso > self._resolution_obj
+        # NB: for DTI/PI, not TDI
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
 
     def _parse_with_reso(self, label: str):
         # overridden by TimedeltaIndex
-        parsed, reso_str = parsing.parse_time_string(label, self.freq)
+        try:
+            if self.freq is None or hasattr(self.freq, "rule_code"):
+                freq = self.freq
+        except NotImplementedError:
+            freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
+        parsed, reso_str = parsing.parse_time_string(label, freq)
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
@@ -393,7 +399,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
             "removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return kind in self._data._infer_matches
 
@@ -672,7 +678,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return freq
 
     @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self, loc):
+    def delete(self, loc) -> DatetimeTimedeltaMixin:
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result

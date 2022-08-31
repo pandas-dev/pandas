@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import pickle
 import shutil
+import tarfile
 import uuid
 from warnings import (
     catch_warnings,
@@ -254,9 +255,7 @@ def get_random_path():
 
 class TestCompression:
 
-    _extension_to_compression = {
-        ext: compression for compression, ext in icom._compression_to_extension.items()
-    }
+    _extension_to_compression = icom._extension_to_compression
 
     def compress_file(self, src_path, dest_path, compression):
         if compression is None:
@@ -270,6 +269,11 @@ class TestCompression:
         elif compression == "zip":
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
+        elif compression == "tar":
+            with open(src_path, "rb") as fh:
+                with tarfile.open(dest_path, mode="w") as tar:
+                    tarinfo = tar.gettarinfo(src_path, os.path.basename(src_path))
+                    tar.addfile(tarinfo, fh)
         elif compression == "xz":
             f = get_lzma_file()(dest_path, "w")
         elif compression == "zstd":
@@ -278,7 +282,7 @@ class TestCompression:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
 
-        if compression != "zip":
+        if compression not in ["zip", "tar"]:
             with open(src_path, "rb") as fh, f:
                 f.write(fh.read())
 
@@ -436,12 +440,12 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
             pickle.dump(obj, fh, protocol=-1)
 
     class MockReadResponse:
-        def __init__(self, path):
+        def __init__(self, path) -> None:
             self.file = open(path, "rb")
             if "gzip" in path:
                 self.headers = {"Content-Encoding": "gzip"}
             else:
-                self.headers = {"Content-Encoding": None}
+                self.headers = {"Content-Encoding": ""}
 
         def __enter__(self):
             return self
@@ -478,7 +482,7 @@ def test_pickle_fsspec_roundtrip():
 
 
 class MyTz(datetime.tzinfo):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
 
@@ -510,7 +514,7 @@ def test_pickle_binary_object_compression(compression):
     buffer.seek(0)
 
     # gzip  and zip safe the filename: cannot compare the compressed content
-    assert buffer.getvalue() == reference or compression in ("gzip", "zip")
+    assert buffer.getvalue() == reference or compression in ("gzip", "zip", "tar")
 
     # read
     read_df = pd.read_pickle(buffer, compression=compression)

@@ -1,26 +1,21 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
 from base64 import decode
+from collections import defaultdict
 from csv import (
     QUOTE_MINIMAL,
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
 from errno import ENOENT
+import inspect
 import sys
 import time
 import warnings
 
-from libc.stdlib cimport free
-from libc.string cimport (
-    strcasecmp,
-    strlen,
-    strncpy,
-)
+from pandas.util._exceptions import find_stack_level
 
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.bytes cimport (
     PyBytes_AsString,
     PyBytes_FromString,
@@ -38,6 +33,13 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+)
+from cython cimport Py_ssize_t
+from libc.stdlib cimport free
+from libc.string cimport (
+    strcasecmp,
+    strlen,
+    strncpy,
 )
 
 
@@ -959,11 +961,13 @@ cdef class TextReader:
                     "Defining usecols with out of bounds indices is deprecated "
                     "and will raise a ParserError in a future version.",
                     FutureWarning,
-                    stacklevel=6,
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
 
         results = {}
         nused = 0
+        is_default_dict_dtype = isinstance(self.dtype, defaultdict)
+
         for i in range(self.table_width):
             if i < self.leading_cols:
                 # Pass through leading columns always
@@ -994,6 +998,8 @@ cdef class TextReader:
                         col_dtype = self.dtype[name]
                     elif i in self.dtype:
                         col_dtype = self.dtype[i]
+                    elif is_default_dict_dtype:
+                        col_dtype = self.dtype[name]
                 else:
                     if self.dtype.names:
                         # structured array
@@ -1006,7 +1012,7 @@ cdef class TextReader:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
                                    f"be used."), ParserWarning,
-                                  stacklevel=5)
+                                  stacklevel=find_stack_level(inspect.currentframe()))
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
@@ -1301,8 +1307,10 @@ cdef class TextReader:
             if self.header is not None:
                 j = i - self.leading_cols
                 # generate extra (bogus) headers if there are more columns than headers
+                # These should be strings, not integers, because otherwise we might get
+                # issues with callables as usecols GH#46997
                 if j >= len(self.header[0]):
-                    return j
+                    return str(j)
                 elif self.has_mi_columns:
                     return tuple(header_row[j] for header_row in self.header)
                 else:
@@ -1457,7 +1465,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         const char *word = NULL
 
         int64_t NA = -1
-        int64_t[:] codes
+        int64_t[::1] codes
         int64_t current_category = 0
 
         char *errors = "strict"

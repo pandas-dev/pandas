@@ -4,9 +4,13 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
+    Any,
     Iterable,
     Sequence,
+    TypeVar,
+    overload,
 )
 import warnings
 
@@ -18,6 +22,9 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
 )
+
+BoolishT = TypeVar("BoolishT", bool, int)
+BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
@@ -78,7 +85,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
             )
 
 
-def validate_args(fname, args, max_fname_arg_count, compat_args):
+def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     """
     Checks whether the length of the `*args` argument passed into a function
     has at most `len(compat_args)` arguments and whether or not all of these
@@ -132,7 +139,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
-def validate_kwargs(fname, kwargs, compat_args):
+def validate_kwargs(fname, kwargs, compat_args) -> None:
     """
     Checks whether parameters passed to the **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
@@ -159,7 +166,9 @@ def validate_kwargs(fname, kwargs, compat_args):
     _check_for_default_values(fname, kwds, compat_args)
 
 
-def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_args):
+def validate_args_and_kwargs(
+    fname, args, kwargs, max_fname_arg_count, compat_args
+) -> None:
     """
     Checks whether parameters passed to the *args and **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
@@ -215,7 +224,9 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     validate_kwargs(fname, kwargs, compat_args)
 
 
-def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
+def validate_bool_kwarg(
+    value: BoolishNoneT, arg_name, none_allowed=True, int_allowed=False
+) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
 
@@ -255,7 +266,9 @@ def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
     return value
 
 
-def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
+def validate_axis_style_args(
+    data, args, kwargs, arg_name, method_name
+) -> dict[str, Any]:
     """
     Argument handler for mixed index, columns / axis functions
 
@@ -342,7 +355,9 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warnings.warn(
+            msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+        )
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:
@@ -351,7 +366,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     return out
 
 
-def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
+def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
     """
     Validate the keyword arguments to 'fillna'.
 
@@ -424,12 +439,22 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     return q_arr
 
 
+@overload
+def validate_ascending(ascending: BoolishT) -> BoolishT:
+    ...
+
+
+@overload
+def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
+    ...
+
+
 def validate_ascending(
-    ascending: bool | int | Sequence[bool | int] = True,
-):
+    ascending: bool | int | Sequence[BoolishT],
+) -> bool | int | list[BoolishT]:
     """Validate ``ascending`` kwargs for ``sort_index`` method."""
     kwargs = {"none_allowed": False, "int_allowed": True}
-    if not isinstance(ascending, (list, tuple)):
+    if not isinstance(ascending, Sequence):
         return validate_bool_kwarg(ascending, "ascending", **kwargs)
 
     return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]

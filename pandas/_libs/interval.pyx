@@ -1,3 +1,4 @@
+import inspect
 import numbers
 from operator import (
     le,
@@ -5,12 +6,13 @@ from operator import (
 )
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT,
     PyDelta_Check,
+    import_datetime,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
+cimport cython
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -20,9 +22,8 @@ from cpython.object cimport (
     Py_NE,
     PyObject_RichCompare,
 )
+from cython cimport Py_ssize_t
 
-import cython
-from cython import Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
@@ -95,7 +96,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            True if the Interval is closed on the left-side.
+            True if the Interval is not closed on the left-side.
         """
         return not self.closed_left
 
@@ -109,7 +110,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            True if the Interval is closed on the left-side.
+            True if the Interval is not closed on the left-side.
         """
         return not self.closed_right
 
@@ -259,9 +260,11 @@ cdef class Interval(IntervalMixin):
     >>> iv
     Interval(0, 5, closed='right')
 
-    You can check if an element belongs to it
+    You can check if an element belongs to it, or if it contains another interval:
 
     >>> 2.5 in iv
+    True
+    >>> pd.Interval(left=2, right=5, closed='both') in iv
     True
 
     You can test the bounds (``closed='right'``, so ``0 < x <= 5``):
@@ -314,8 +317,9 @@ cdef class Interval(IntervalMixin):
 
     cdef readonly str closed
     """
-    Whether the interval is closed on the left-side, right-side, both or
-    neither.
+    String describing the inclusive side the intervals.
+
+    Either ``left``, ``right``, ``both`` or ``neither``.
     """
 
     def __init__(self, left, right, str closed='right'):
@@ -350,7 +354,17 @@ cdef class Interval(IntervalMixin):
 
     def __contains__(self, key) -> bool:
         if _interval_like(key):
-            raise TypeError("__contains__ not defined for two intervals")
+            key_closed_left = key.closed in ('left', 'both')
+            key_closed_right = key.closed in ('right', 'both')
+            if self.open_left and key_closed_left:
+                left_contained = self.left < key.left
+            else:
+                left_contained = self.left <= key.left
+            if self.open_right and key_closed_right:
+                right_contained = key.right < self.right
+            else:
+                right_contained = key.right <= self.right
+            return left_contained and right_contained
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
@@ -404,6 +418,8 @@ cdef class Interval(IntervalMixin):
         ):
             return Interval(self.left + y, self.right + y, closed=self.closed)
         elif (
+            # __radd__ pattern
+            # TODO(cython3): remove this
             isinstance(y, Interval)
             and (
                 isinstance(self, numbers.Number)
@@ -412,6 +428,15 @@ cdef class Interval(IntervalMixin):
             )
         ):
             return Interval(y.left + self, y.right + self, closed=y.closed)
+        return NotImplemented
+
+    def __radd__(self, other):
+        if (
+                isinstance(other, numbers.Number)
+                or PyDelta_Check(other)
+                or is_timedelta64_object(other)
+        ):
+            return Interval(self.left + other, self.right + other, closed=self.closed)
         return NotImplemented
 
     def __sub__(self, y):
@@ -427,7 +452,14 @@ cdef class Interval(IntervalMixin):
         if isinstance(y, numbers.Number):
             return Interval(self.left * y, self.right * y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            # __radd__ semantics
+            # TODO(cython3): remove this
             return Interval(y.left * self, y.right * self, closed=y.closed)
+        return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return Interval(self.left * other, self.right * other, closed=self.closed)
         return NotImplemented
 
     def __truediv__(self, y):

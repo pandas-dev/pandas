@@ -328,6 +328,7 @@ Setting values by position:
 Setting by assigning with a NumPy array:
 
 .. ipython:: python
+   :okwarning:
 
    df.loc[:, "D"] = np.array([5] * len(df))
 
@@ -532,7 +533,7 @@ groups:
 
 .. ipython:: python
 
-   df.groupby("A").sum()
+   df.groupby("A")[["C", "D"]].sum()
 
 Grouping by multiple columns forms a hierarchical index, and again we can
 apply the :meth:`~pandas.core.groupby.GroupBy.sum` function:
@@ -679,12 +680,12 @@ Converting the raw grades to a categorical data type:
     df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
 
-Rename the categories to more meaningful names (assigning to
-:meth:`Series.cat.categories` is in place!):
+Rename the categories to more meaningful names:
 
 .. ipython:: python
 
-    df["grade"].cat.categories = ["very good", "good", "very bad"]
+    new_categories = ["very good", "good", "very bad"]
+    df["grade"] = df["grade"].cat.rename_categories(new_categories)
 
 Reorder the categories and simultaneously add the missing categories (methods under :meth:`Series.cat` return a new :class:`Series` by default):
 

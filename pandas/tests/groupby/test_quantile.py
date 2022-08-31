@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -34,10 +36,13 @@ import pandas._testing as tm
     ],
 )
 @pytest.mark.parametrize("q", [0, 0.25, 0.5, 0.75, 1])
-def test_quantile(interpolation, a_vals, b_vals, q):
+def test_quantile(interpolation, a_vals, b_vals, q, request):
     if interpolation == "nearest" and q == 0.5 and b_vals == [4, 3, 2, 1]:
-        pytest.skip(
-            "Unclear numpy expectation for nearest result with equidistant data"
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Unclear numpy expectation for nearest "
+                "result with equidistant data"
+            )
         )
 
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
@@ -237,14 +242,23 @@ def test_groupby_quantile_nullable_array(values, q):
 
 
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
-def test_groupby_quantile_skips_invalid_dtype(q):
+@pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
+def test_groupby_quantile_skips_invalid_dtype(q, numeric_only):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("a").quantile(q)
+    if numeric_only is lib.no_default or numeric_only:
+        warn = FutureWarning if numeric_only is lib.no_default else None
+        msg = "The default value of numeric_only in DataFrameGroupBy.quantile"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.groupby("a").quantile(q, numeric_only=numeric_only)
 
-    expected = df.groupby("a")[["b"]].quantile(q)
-    tm.assert_frame_equal(result, expected)
+        expected = df.groupby("a")[["b"]].quantile(q)
+        tm.assert_frame_equal(result, expected)
+    else:
+        with pytest.raises(
+            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
+        ):
+            df.groupby("a").quantile(q, numeric_only=numeric_only)
 
 
 def test_groupby_quantile_NA_float(any_float_dtype):
@@ -325,6 +339,41 @@ def test_columns_groupby_quantile():
         index=list("XYZ"),
         columns=pd.MultiIndex.from_tuples(
             [("A", 0.8), ("A", 0.2), ("B", 0.8), ("B", 0.2)], names=["col", None]
+        ),
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_timestamp_groupby_quantile():
+    # GH 33168
+    df = DataFrame(
+        {
+            "timestamp": pd.date_range(
+                start="2020-04-19 00:00:00", freq="1T", periods=100, tz="UTC"
+            ).floor("1H"),
+            "category": list(range(1, 101)),
+            "value": list(range(101, 201)),
+        }
+    )
+
+    result = df.groupby("timestamp").quantile([0.2, 0.8])
+
+    expected = DataFrame(
+        [
+            {"category": 12.8, "value": 112.8},
+            {"category": 48.2, "value": 148.2},
+            {"category": 68.8, "value": 168.8},
+            {"category": 92.2, "value": 192.2},
+        ],
+        index=pd.MultiIndex.from_tuples(
+            [
+                (pd.Timestamp("2020-04-19 00:00:00+00:00"), 0.2),
+                (pd.Timestamp("2020-04-19 00:00:00+00:00"), 0.8),
+                (pd.Timestamp("2020-04-19 01:00:00+00:00"), 0.2),
+                (pd.Timestamp("2020-04-19 01:00:00+00:00"), 0.8),
+            ],
+            names=("timestamp", None),
         ),
     )
 

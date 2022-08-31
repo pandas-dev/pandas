@@ -161,10 +161,10 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 `IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
 <https://github.com/vega/vega>`__ to create plots within Jupyter Notebook.
 
-`Plotly <https://poltly.com/python>`__
+`Plotly <https://plotly.com/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`Plotly’s <https://poltly.com/>`__ `Python API <https://poltly.com/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://poltly.com/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plotly.com/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `offline <https://poltly.com/python/offline/>`__, or `on-premise <https://poltly.com/product/enterprise/>`__ accounts for private use.
+`Plotly’s <https://plotly.com/>`__ `Python API <https://plotly.com/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plotly.com/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plotly.com/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `offline <https://plotly.com/python/offline/>`__, or `on-premise <https://plotly.com/product/enterprise/>`__ accounts for private use.
 
 `Lux <https://github.com/lux-org/lux>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -540,7 +540,7 @@ Pandas-Genomics provides extension types, extension arrays, and extension access
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
 
-``Pint-Pandas <https://github.com/hgrecco/pint-pandas>`` provides an extension type for
+`Pint-Pandas <https://github.com/hgrecco/pint-pandas>`_ provides an extension type for
 storing numeric arrays with units. These arrays can be stored inside pandas'
 Series and DataFrame. Operations between Series and DataFrame columns which
 use pint's extension array are then units aware.
@@ -548,7 +548,7 @@ use pint's extension array are then units aware.
 `Text Extensions for Pandas`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``Text Extensions for Pandas <https://ibm.biz/text-extensions-for-pandas>``
+`Text Extensions for Pandas <https://ibm.biz/text-extensions-for-pandas>`_
 provides extension types to cover common data structures for representing natural language
 data, plus library integrations that convert the outputs of popular natural language
 processing libraries into Pandas DataFrames.
@@ -591,12 +591,12 @@ Library            Accessor     Classes                              Description
 Development tools
 -----------------
 
-`pandas-stubs <https://github.com/VirtusLab/pandas-stubs>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While pandas repository is partially typed, the package itself doesn't expose this information for external use.
 Install pandas-stubs to enable basic type coverage of pandas API.
 
 Learn more by reading through :issue:`14468`, :issue:`26766`, :issue:`28142`.
 
-See installation and usage instructions on the `github page <https://github.com/VirtusLab/pandas-stubs>`__.
+See installation and usage instructions on the `github page <https://github.com/pandas-dev/pandas-stubs>`__.

@@ -243,13 +243,12 @@ def create_mgr(descr, item_shape=None):
     )
 
 
-class TestBlock:
-    def setup_method(self):
-        self.fblock = create_block("float", [0, 2, 4])
-        self.cblock = create_block("complex", [7])
-        self.oblock = create_block("object", [1, 3])
-        self.bool_block = create_block("bool", [5])
+@pytest.fixture
+def fblock():
+    return create_block("float", [0, 2, 4])
 
+
+class TestBlock:
     def test_constructor(self):
         int32block = create_block("i4", [0])
         assert int32block.dtype == np.int32
@@ -267,24 +266,24 @@ class TestBlock:
         blk = create_block(typ, data)
         assert_block_equal(tm.round_trip_pickle(blk), blk)
 
-    def test_mgr_locs(self):
-        assert isinstance(self.fblock.mgr_locs, BlockPlacement)
+    def test_mgr_locs(self, fblock):
+        assert isinstance(fblock.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
-            self.fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.intp)
+            fblock.mgr_locs.as_array, np.array([0, 2, 4], dtype=np.intp)
         )
 
-    def test_attrs(self):
-        assert self.fblock.shape == self.fblock.values.shape
-        assert self.fblock.dtype == self.fblock.values.dtype
-        assert len(self.fblock) == len(self.fblock.values)
+    def test_attrs(self, fblock):
+        assert fblock.shape == fblock.values.shape
+        assert fblock.dtype == fblock.values.dtype
+        assert len(fblock) == len(fblock.values)
 
-    def test_copy(self):
-        cop = self.fblock.copy()
-        assert cop is not self.fblock
-        assert_block_equal(self.fblock, cop)
+    def test_copy(self, fblock):
+        cop = fblock.copy()
+        assert cop is not fblock
+        assert_block_equal(fblock, cop)
 
-    def test_delete(self):
-        newb = self.fblock.copy()
+    def test_delete(self, fblock):
+        newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(0)
         assert newb.mgr_locs is locs
@@ -297,7 +296,7 @@ class TestBlock:
         assert not (newb.values[0] == 1).all()
         assert (nb.values[0] == 1).all()
 
-        newb = self.fblock.copy()
+        newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(1)
         assert newb.mgr_locs is locs
@@ -308,7 +307,7 @@ class TestBlock:
         assert not (newb.values[1] == 2).all()
         assert (nb.values[1] == 2).all()
 
-        newb = self.fblock.copy()
+        newb = fblock.copy()
         locs = newb.mgr_locs
         nb = newb.delete(2)
         tm.assert_numpy_array_equal(
@@ -316,7 +315,7 @@ class TestBlock:
         )
         assert (nb.values[1] == 1).all()
 
-        newb = self.fblock.copy()
+        newb = fblock.copy()
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
@@ -357,9 +356,9 @@ class TestBlock:
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
 
-    def test_is_categorical_deprecated(self):
+    def test_is_categorical_deprecated(self, fblock):
         # GH#40571
-        blk = self.fblock
+        blk = fblock
         with tm.assert_produces_warning(DeprecationWarning):
             blk.is_categorical
 
@@ -745,7 +744,7 @@ class TestBlockManager:
             mgr.iget(3).internal_values(), reindexed.iget(3).internal_values()
         )
 
-    def test_get_numeric_data(self):
+    def test_get_numeric_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -766,10 +765,16 @@ class TestBlockManager:
             np.array([100.0, 200.0, 300.0]),
             inplace=True,
         )
-        tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
-        )
+        if using_copy_on_write:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([1.0, 1.0, 1.0]),
+            )
+        else:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([100.0, 200.0, 300.0]),
+            )
 
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
@@ -778,12 +783,18 @@ class TestBlockManager:
             np.array([1000.0, 2000.0, 3000.0]),
             inplace=True,
         )
-        tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
-        )
+        if using_copy_on_write:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([1.0, 1.0, 1.0]),
+            )
+        else:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([100.0, 200.0, 300.0]),
+            )
 
-    def test_get_bool_data(self):
+    def test_get_bool_data(self, using_copy_on_write):
         msg = "object-dtype columns with all-bool values"
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
@@ -801,19 +812,31 @@ class TestBlockManager:
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        tm.assert_numpy_array_equal(
-            mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
-        )
+        if using_copy_on_write:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, True, True]),
+            )
+        else:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, False, True]),
+            )
 
         # Check sharing
         with tm.assert_produces_warning(FutureWarning, match=msg):
             bools2 = mgr.get_bool_data(copy=True)
         bools2.iset(0, np.array([False, True, False]))
-        tm.assert_numpy_array_equal(
-            mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
-        )
+        if using_copy_on_write:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, True, True]),
+            )
+        else:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, False, True]),
+            )
 
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))

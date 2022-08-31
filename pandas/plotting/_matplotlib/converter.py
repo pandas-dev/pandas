@@ -9,7 +9,10 @@ from datetime import (
 )
 import functools
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Final,
+    Iterator,
     cast,
 )
 
@@ -30,7 +33,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
-from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import F
 
 from pandas.core.dtypes.common import (
@@ -55,15 +57,18 @@ from pandas.core.indexes.period import (
 )
 import pandas.core.tools.datetimes as tools
 
+if TYPE_CHECKING:
+    from pandas._libs.tslibs.offsets import BaseOffset
+
 # constants
-HOURS_PER_DAY = 24.0
-MIN_PER_HOUR = 60.0
-SEC_PER_MIN = 60.0
+HOURS_PER_DAY: Final = 24.0
+MIN_PER_HOUR: Final = 60.0
+SEC_PER_MIN: Final = 60.0
 
-SEC_PER_HOUR = SEC_PER_MIN * MIN_PER_HOUR
-SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
+SEC_PER_HOUR: Final = SEC_PER_MIN * MIN_PER_HOUR
+SEC_PER_DAY: Final = SEC_PER_HOUR * HOURS_PER_DAY
 
-MUSEC_PER_DAY = 10**6 * SEC_PER_DAY
+MUSEC_PER_DAY: Final = 10**6 * SEC_PER_DAY
 
 _mpl_units = {}  # Cache for units overwritten by us
 
@@ -94,7 +99,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters():
+def pandas_converters() -> Iterator[None]:
     """
     Context manager registering pandas' converters for a plot.
 
@@ -115,7 +120,7 @@ def pandas_converters():
             deregister()
 
 
-def register():
+def register() -> None:
     pairs = get_pairs()
     for type_, cls in pairs:
         # Cache previous converter if present
@@ -126,7 +131,7 @@ def register():
         units.registry[type_] = cls()
 
 
-def deregister():
+def deregister() -> None:
     # Renamed in pandas.plotting.__init__
     for type_, cls in get_pairs():
         # We use type to catch our classes directly, no inheritance
@@ -184,10 +189,10 @@ class TimeConverter(units.ConversionInterface):
 
 # time formatter
 class TimeFormatter(Formatter):
-    def __init__(self, locs):
+    def __init__(self, locs) -> None:
         self.locs = locs
 
-    def __call__(self, x, pos=0) -> str:
+    def __call__(self, x, pos: int = 0) -> str:
         """
         Return the time of day as a formatted string.
 
@@ -339,7 +344,7 @@ class DatetimeConverter(dates.DateConverter):
 
 
 class PandasAutoDateFormatter(dates.AutoDateFormatter):
-    def __init__(self, locator, tz=None, defaultfmt="%Y-%m-%d"):
+    def __init__(self, locator, tz=None, defaultfmt: str = "%Y-%m-%d") -> None:
         dates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
 
 
@@ -371,7 +376,7 @@ class MilliSecondLocator(dates.DateLocator):
 
     UNIT = 1.0 / (24 * 3600 * 1000)
 
-    def __init__(self, tz):
+    def __init__(self, tz) -> None:
         dates.DateLocator.__init__(self, tz)
         self._interval = 1.0
 
@@ -533,34 +538,35 @@ def has_level_label(label_flags: np.ndarray, vmin: float) -> bool:
 def _daily_finder(vmin, vmax, freq: BaseOffset):
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
+    freq_group = FreqGroup.from_period_dtype_code(dtype_code)
 
     periodsperday = -1
 
     if dtype_code >= FreqGroup.FR_HR.value:
-        if dtype_code == FreqGroup.FR_NS.value:
+        if freq_group == FreqGroup.FR_NS:
             periodsperday = 24 * 60 * 60 * 1000000000
-        elif dtype_code == FreqGroup.FR_US.value:
+        elif freq_group == FreqGroup.FR_US:
             periodsperday = 24 * 60 * 60 * 1000000
-        elif dtype_code == FreqGroup.FR_MS.value:
+        elif freq_group == FreqGroup.FR_MS:
             periodsperday = 24 * 60 * 60 * 1000
-        elif dtype_code == FreqGroup.FR_SEC.value:
+        elif freq_group == FreqGroup.FR_SEC:
             periodsperday = 24 * 60 * 60
-        elif dtype_code == FreqGroup.FR_MIN.value:
+        elif freq_group == FreqGroup.FR_MIN:
             periodsperday = 24 * 60
-        elif dtype_code == FreqGroup.FR_HR.value:
+        elif freq_group == FreqGroup.FR_HR:
             periodsperday = 24
         else:  # pragma: no cover
             raise ValueError(f"unexpected frequency: {dtype_code}")
         periodsperyear = 365 * periodsperday
         periodspermonth = 28 * periodsperday
 
-    elif dtype_code == FreqGroup.FR_BUS.value:
+    elif freq_group == FreqGroup.FR_BUS:
         periodsperyear = 261
         periodspermonth = 19
-    elif dtype_code == FreqGroup.FR_DAY.value:
+    elif freq_group == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif FreqGroup.get_freq_group(dtype_code) == FreqGroup.FR_WK:
+    elif freq_group == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
@@ -573,6 +579,8 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         Period(ordinal=int(vmin), freq=freq),
         Period(ordinal=int(vmax), freq=freq),
     )
+    assert isinstance(vmin, Period)
+    assert isinstance(vmax, Period)
     span = vmax.ordinal - vmin.ordinal + 1
     dates_ = period_range(start=vmin, end=vmax, freq=freq)
     # Initialize the output
@@ -864,7 +872,8 @@ def _quarterly_finder(vmin, vmax, freq):
         info_fmt[year_start] = "%F"
 
     else:
-        years = dates_[year_start] // 4 + 1
+        # https://github.com/pandas-dev/pandas/pull/47602
+        years = dates_[year_start] // 4 + 1970
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
         major_idx = year_start[(years % maj_anndef == 0)]
@@ -898,14 +907,13 @@ def _annual_finder(vmin, vmax, freq):
 def get_finder(freq: BaseOffset):
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
-    fgroup = (dtype_code // 1000) * 1000
-    fgroup = FreqGroup(fgroup)
+    fgroup = FreqGroup.from_period_dtype_code(dtype_code)
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
     elif fgroup == FreqGroup.FR_QTR:
         return _quarterly_finder
-    elif dtype_code == FreqGroup.FR_MTH.value:
+    elif fgroup == FreqGroup.FR_MTH:
         return _monthly_finder
     elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:
         return _daily_finder
@@ -919,7 +927,7 @@ class TimeSeries_DateLocator(Locator):
 
     Parameters
     ----------
-    freq : {var}
+    freq : BaseOffset
         Valid frequency specifier.
     minor_locator : {False, True}, optional
         Whether the locator is for minor ticks (True) or not.
@@ -933,15 +941,15 @@ class TimeSeries_DateLocator(Locator):
 
     def __init__(
         self,
-        freq,
-        minor_locator=False,
-        dynamic_mode=True,
-        base=1,
-        quarter=1,
-        month=1,
-        day=1,
+        freq: BaseOffset,
+        minor_locator: bool = False,
+        dynamic_mode: bool = True,
+        base: int = 1,
+        quarter: int = 1,
+        month: int = 1,
+        day: int = 1,
         plot_obj=None,
-    ):
+    ) -> None:
         freq = to_offset(freq)
         self.freq = freq
         self.base = base
@@ -1010,7 +1018,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     Parameters
     ----------
-    freq : {int, string}
+    freq : BaseOffset
         Valid frequency specifier.
     minor_locator : bool, default False
         Whether the current formatter should apply to minor ticks (True) or
@@ -1021,11 +1029,11 @@ class TimeSeries_DateFormatter(Formatter):
 
     def __init__(
         self,
-        freq,
+        freq: BaseOffset,
         minor_locator: bool = False,
         dynamic_mode: bool = True,
         plot_obj=None,
-    ):
+    ) -> None:
         freq = to_offset(freq)
         self.format = None
         self.freq = freq
@@ -1050,7 +1058,7 @@ class TimeSeries_DateFormatter(Formatter):
         self.formatdict = {x: f for (x, _, _, f) in format}
         return self.formatdict
 
-    def set_locs(self, locs):
+    def set_locs(self, locs) -> None:
         """Sets the locations of the ticks"""
         # don't actually use the locs. This is just needed to work with
         # matplotlib. Force to use vmin, vmax
@@ -1065,7 +1073,7 @@ class TimeSeries_DateFormatter(Formatter):
             (vmin, vmax) = (vmax, vmin)
         self._set_default_format(vmin, vmax)
 
-    def __call__(self, x, pos=0) -> str:
+    def __call__(self, x, pos: int = 0) -> str:
 
         if self.formatdict is None:
             return ""
@@ -1073,7 +1081,9 @@ class TimeSeries_DateFormatter(Formatter):
             fmt = self.formatdict.pop(x, "")
             if isinstance(fmt, np.bytes_):
                 fmt = fmt.decode("utf-8")
-            return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
+            period = Period(ordinal=int(x), freq=self.freq)
+            assert isinstance(period, Period)
+            return period.strftime(fmt)
 
 
 class TimeSeries_TimedeltaFormatter(Formatter):
@@ -1098,7 +1108,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
             s = f"{int(d):d} days {s}"
         return s
 
-    def __call__(self, x, pos=0) -> str:
+    def __call__(self, x, pos: int = 0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         n_decimals = int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin))))
         if n_decimals > 9:

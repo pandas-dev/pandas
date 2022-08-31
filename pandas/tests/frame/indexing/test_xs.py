@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyError
+
 from pandas import (
     DataFrame,
     Index,
@@ -12,7 +14,6 @@ from pandas import (
     concat,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 
 from pandas.tseries.offsets import BDay
 
@@ -110,17 +111,21 @@ class TestXS:
             result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self, using_array_manager):
+    def test_xs_view(self, using_array_manager, using_copy_on_write):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
         dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
+        df_orig = dm.copy()
 
-        if using_array_manager:
+        if using_copy_on_write:
+            dm.xs(2)[:] = 20
+            tm.assert_frame_equal(dm, df_orig)
+        elif using_array_manager:
             # INFO(ArrayManager) with ArrayManager getting a row as a view is
             # not possible
             msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            with pytest.raises(SettingWithCopyError, match=msg):
                 dm.xs(2)[:] = 20
             assert not (dm.xs(2) == 20).any()
         else:
@@ -175,27 +180,41 @@ class TestXSWithMultiIndex:
         result = df.xs("c", level=2)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_setting_with_copy_error(self, multiindex_dataframe_random_data):
+    def test_xs_setting_with_copy_error(
+        self, multiindex_dataframe_random_data, using_copy_on_write
+    ):
         # this is a copy in 0.14
         df = multiindex_dataframe_random_data
+        df_orig = df.copy()
         result = df.xs("two", level="second")
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        if using_copy_on_write:
             result[:] = 10
+        else:
+            # setting this will give a SettingWithCopyError
+            # as we are trying to write a view
+            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+            with pytest.raises(SettingWithCopyError, match=msg):
+                result[:] = 10
+        tm.assert_frame_equal(df, df_orig)
 
-    def test_xs_setting_with_copy_error_multiple(self, four_level_index_dataframe):
+    def test_xs_setting_with_copy_error_multiple(
+        self, four_level_index_dataframe, using_copy_on_write
+    ):
         # this is a copy in 0.14
         df = four_level_index_dataframe
+        df_orig = df.copy()
         result = df.xs(("a", 4), level=["one", "four"])
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        if using_copy_on_write:
             result[:] = 10
+        else:
+            # setting this will give a SettingWithCopyError
+            # as we are trying to write a view
+            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+            with pytest.raises(SettingWithCopyError, match=msg):
+                result[:] = 10
+        tm.assert_frame_equal(df, df_orig)
 
     @pytest.mark.parametrize("key, level", [("one", "second"), (["one"], ["second"])])
     def test_xs_with_duplicates(self, key, level, multiindex_dataframe_random_data):
@@ -358,15 +377,20 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self, using_array_manager):
+    def test_xs_droplevel_false_view(self, using_array_manager, using_copy_on_write):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         # check that result still views the same data as df
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
-        # modifying original df also modifies result when having a single block
+
         df.iloc[0, 0] = 2
-        expected = DataFrame({"a": [2]})
+        if using_copy_on_write:
+            # with copy on write the subset is never modified
+            expected = DataFrame({"a": [1]})
+        else:
+            # modifying original df also modifies result when having a single block
+            expected = DataFrame({"a": [2]})
         tm.assert_frame_equal(result, expected)
 
         # with mixed dataframe, modifying the parent doesn't modify result
@@ -374,7 +398,10 @@ class TestXSWithMultiIndex:
         df = DataFrame([[1, 2.5, "a"]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         df.iloc[0, 0] = 2
-        if using_array_manager:
+        if using_copy_on_write:
+            # with copy on write the subset is never modified
+            expected = DataFrame({"a": [1]})
+        elif using_array_manager:
             # Here the behavior is consistent
             expected = DataFrame({"a": [2]})
         else:

@@ -13,10 +13,6 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat.numpy import (
-    np_version_under1p19,
-    np_version_under1p20,
-)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -480,7 +476,8 @@ class TestSeriesConstructors:
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat, copy=True)
         assert s.cat is not cat
-        s.cat.categories = [1, 2, 3]
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            s.cat.categories = [1, 2, 3]
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
@@ -497,7 +494,8 @@ class TestSeriesConstructors:
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat)
         assert s.values is cat
-        s.cat.categories = [1, 2, 3]
+        with tm.assert_produces_warning(FutureWarning, match="Use rename_categories"):
+            s.cat.categories = [1, 2, 3]
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
         tm.assert_numpy_array_equal(cat.__array__(), exp_s)
@@ -748,6 +746,25 @@ class TestSeriesConstructors:
         expected = Series([1, 200, 50], dtype="uint8")
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            np.array([1], dtype=np.uint16),
+            np.array([1], dtype=np.uint32),
+            np.array([1], dtype=np.uint64),
+            [np.uint16(1)],
+            [np.uint32(1)],
+            [np.uint64(1)],
+        ],
+    )
+    def test_constructor_numpy_uints(self, values):
+        # GH#47294
+        value = values[0]
+        result = Series(values)
+
+        assert result[0].dtype == value.dtype
+        assert result[0] == value
+
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
@@ -801,31 +818,6 @@ class TestSeriesConstructors:
         obj = frame_or_series(list(arr), dtype="i8")
         tm.assert_equal(obj, expected)
 
-    @td.skip_if_no("dask")
-    def test_construct_dask_float_array_int_dtype_match_ndarray(self):
-        # GH#40110 make sure we treat a float-dtype dask array with the same
-        #  rules we would for an ndarray
-        import dask.dataframe as dd
-
-        arr = np.array([1, 2.5, 3])
-        darr = dd.from_array(arr)
-
-        res = Series(darr)
-        expected = Series(arr)
-        tm.assert_series_equal(res, expected)
-
-        res = Series(darr, dtype="i8")
-        expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
-        msg = "In a future version, passing float-dtype values containing NaN"
-        arr[2] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = Series(darr, dtype="i8")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
     def test_constructor_coerce_float_fail(self, any_int_numpy_dtype):
         # see gh-15832
         # Updated: make sure we treat this list the same as we would treat
@@ -843,18 +835,11 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    def test_constructor_invalid_coerce_ints_with_float_nan(
-        self, any_int_numpy_dtype, request
-    ):
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
         # GH 22585
         # Updated: make sure we treat this list the same as we would treat the
-        #  equivalent ndarray
-        if np_version_under1p19 and np.dtype(any_int_numpy_dtype).kind == "u":
-            mark = pytest.mark.xfail(reason="Produces an extra RuntimeWarning")
-            request.node.add_marker(mark)
-
+        # equivalent ndarray
         vals = [1, 2, np.nan]
-
         msg = "In a future version, passing float-dtype values containing NaN"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = Series(vals, dtype=any_int_numpy_dtype)
@@ -1895,11 +1880,30 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dtype_timedelta_alternative_construct(self):
+        # GH#35465
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
+        expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="ns"))
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_timedelta_ns_s(self):
+        # GH#35465
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
+        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
+        # GH#35465
+        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
+            "int64"
+        )
+        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype(
+            "int64"
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.filterwarnings(
         "ignore:elementwise comparison failed:DeprecationWarning"
-    )
-    @pytest.mark.xfail(
-        np_version_under1p20, reason="np.array([td64nat, float, float]) raises"
     )
     @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
     def test_constructor_mismatched_null_nullable_dtype(
@@ -1983,15 +1987,6 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
         ({1: 1}, np.array([[1]], dtype=np.int64)),
     ],
 )
-@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
-
-
-@pytest.mark.skipif(
-    not np_version_under1p19, reason="check failure on numpy below 1.19"
-)
-def test_numpy_array_np_v1p19():
-    with pytest.raises(KeyError, match="0"):
-        np.array([Series({1: 1})])

@@ -37,8 +37,11 @@ class TestUnsupportedFeatures:
         msg = "is not supported"
 
         for engine in ("c", "python"):
-            with pytest.raises(ValueError, match=msg):
-                read_csv(StringIO(data), engine=engine, mangle_dupe_cols=False)
+            with tm.assert_produces_warning(
+                FutureWarning, match="the 'mangle_dupe_cols' keyword is deprecated"
+            ):
+                with pytest.raises(ValueError, match=msg):
+                    read_csv(StringIO(data), engine=engine, mangle_dupe_cols=False)
 
     def test_c_engine(self):
         # see gh-6607
@@ -114,7 +117,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_python_engine_file_no_iter(self, python_engine):
         # see gh-16530
         class NoNextBuffer:
-            def __init__(self, csv_data):
+            def __init__(self, csv_data) -> None:
                 self.data = csv_data
 
             def __next__(self):
@@ -189,3 +192,15 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
                 parser.read_csv(fname, usecols=["col1", "col2", "col3"])
         # unlink fails on windows if file handles still point to it
         os.unlink(fname)
+
+
+def test_invalid_file_inputs(request, all_parsers):
+    # GH#45957
+    parser = all_parsers
+    if parser.engine == "python":
+        request.node.add_marker(
+            pytest.mark.xfail(reason=f"{parser.engine} engine supports lists.")
+        )
+
+    with pytest.raises(ValueError, match="Invalid"):
+        parser.read_csv([])

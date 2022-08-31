@@ -1,5 +1,5 @@
 """
-EA-compatible analogue to to np.putmask
+EA-compatible analogue to np.putmask
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pandas._typing import (
     ArrayLike,
     npt,
 )
-from pandas.compat import np_version_under1p20
+from pandas.compat import np_version_under1p21
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import is_list_like
@@ -66,7 +66,7 @@ def putmask_without_repeat(
     mask : np.ndarray[bool]
     new : Any
     """
-    if np_version_under1p20:
+    if np_version_under1p21:
         new = setitem_datetimelike_compat(values, mask.sum(), new)
 
     if getattr(new, "ndim", 0) >= 1:
@@ -78,7 +78,6 @@ def putmask_without_repeat(
         shape = np.shape(new)
         # np.shape compat for if setitem_datetimelike_compat
         #  changed arraylike to list e.g. test_where_dt64_2d
-
         if nlocs == shape[-1]:
             # GH#30567
             # If length of ``new`` is less than the length of ``values``,

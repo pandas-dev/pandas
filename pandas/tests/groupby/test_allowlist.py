@@ -178,6 +178,7 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
+    warn = FutureWarning if op == "mad" else None
 
     if axis == 0:
         frame = raw_frame
@@ -186,7 +187,10 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        result = getattr(grouped, op)(skipna=skipna)
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
+            result = getattr(grouped, op)(skipna=skipna)
         with tm.assert_produces_warning(FutureWarning):
             expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
         if sort:
@@ -194,8 +198,8 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
         tm.assert_frame_equal(result, expected)
     else:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        result = getattr(grouped, op)()
         with tm.assert_produces_warning(FutureWarning):
+            result = getattr(grouped, op)()
             expected = getattr(frame, op)(level=level, axis=axis)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
@@ -419,7 +423,7 @@ def test_all_methods_categorized(mframe):
     # new public method?
     if new_names:
         msg = f"""
-There are uncatgeorized methods defined on the Grouper class:
+There are uncategorized methods defined on the Grouper class:
 {new_names}.
 
 Was a new method recently added?

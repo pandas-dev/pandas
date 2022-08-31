@@ -137,7 +137,7 @@ def test_append_series(setup_path):
         mi["B"] = np.arange(len(mi))
         mi["C"] = "foo"
         mi.loc[3:5, "C"] = "bar"
-        mi.set_index(["C", "B"], inplace=True)
+        mi = mi.set_index(["C", "B"], copy=False)
         s = mi.stack()
         s.index = s.index.droplevel(2)
         store.append("mi", s)
@@ -168,7 +168,7 @@ def test_append_some_nans(setup_path):
 
         # first column
         df1 = df.copy()
-        df1.loc[:, "A1"] = np.nan
+        df1["A1"] = np.nan
         _maybe_remove(store, "df1")
         store.append("df1", df1[:10])
         store.append("df1", df1[10:])
@@ -176,7 +176,7 @@ def test_append_some_nans(setup_path):
 
         # 2nd column
         df2 = df.copy()
-        df2.loc[:, "A2"] = np.nan
+        df2["A2"] = np.nan
         _maybe_remove(store, "df2")
         store.append("df2", df2[:10])
         store.append("df2", df2[10:])
@@ -184,7 +184,7 @@ def test_append_some_nans(setup_path):
 
         # datetimes
         df3 = df.copy()
-        df3.loc[:, "E"] = np.nan
+        df3["E"] = np.nan
         _maybe_remove(store, "df3")
         store.append("df3", df3[:10])
         store.append("df3", df3[10:])
@@ -326,7 +326,7 @@ def test_append_with_different_block_ordering(setup_path):
                 a = df.pop("A")
                 df["A"] = a
 
-            df.set_index("index", inplace=True)
+            df = df.set_index("index", copy=False)
 
             store.append("df", df)
 
@@ -622,7 +622,7 @@ def test_append_with_data_columns(setup_path):
         df_dc["string"] = "foo"
         df_dc.loc[df_dc.index[4:6], "string"] = np.nan
         df_dc.loc[df_dc.index[7:9], "string"] = "bar"
-        df_dc.loc[:, ["B", "C"]] = df_dc.loc[:, ["B", "C"]].abs()
+        df_dc[["B", "C"]] = df_dc[["B", "C"]].abs()
         df_dc["string2"] = "cool"
 
         # on-disk operations

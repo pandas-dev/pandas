@@ -598,6 +598,34 @@ def test_map_dict_na_key():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("arg_func", [dict, Series])
+def test_map_dict_ignore_na(arg_func):
+    # GH#47527
+    mapping = arg_func({1: 10, np.nan: 42})
+    ser = Series([1, np.nan, 2])
+    result = ser.map(mapping, na_action="ignore")
+    expected = Series([10, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_defaultdict_ignore_na():
+    # GH#47527
+    mapping = defaultdict(int, {1: 10, np.nan: 42})
+    ser = Series([1, np.nan, 2])
+    result = ser.map(mapping)
+    expected = Series([10, 0, 0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_categorical_na_ignore():
+    # GH#47527
+    values = pd.Categorical([1, np.nan, 2], categories=[10, 1])
+    ser = Series(values)
+    result = ser.map({1: 10, np.nan: 42})
+    expected = Series([10, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_dict_subclass_with_missing():
     """
     Test Series.map with a dictionary subclass that defines __missing__,
@@ -640,7 +668,7 @@ def test_map_abc_mapping_with_missing(non_dict_mapping_subclass):
     # https://github.com/pandas-dev/pandas/issues/29733
     # Check collections.abc.Mapping support as mapper for Series.map
     class NonDictMappingWithMissing(non_dict_mapping_subclass):
-        def __missing__(key):
+        def __missing__(self, key):
             return "missing"
 
     s = Series([1, 2, 3])
@@ -889,3 +917,11 @@ def test_apply_retains_column_name():
         index=Index(range(3), name="x"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_type():
+    # GH 46719
+    s = Series([3, "string", float], index=["a", "b", "c"])
+    result = s.apply(type)
+    expected = Series([int, str, type], index=["a", "b", "c"])
+    tm.assert_series_equal(result, expected)

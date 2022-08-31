@@ -5,6 +5,10 @@ from __future__ import annotations
 
 from decimal import Decimal
 from functools import partial
+from typing import (
+    TYPE_CHECKING,
+    overload,
+)
 
 import numpy as np
 
@@ -14,12 +18,8 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
     NaT,
+    Period,
     iNaT,
-)
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    npt,
 )
 
 from pandas.core.dtypes.common import (
@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
@@ -54,6 +55,19 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+        NDFrame,
+        NDFrameT,
+        Scalar,
+        npt,
+    )
+
+    from pandas.core.indexes.base import Index
+
+
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
 
@@ -63,7 +77,35 @@ _dtype_object = np.dtype("object")
 _dtype_str = np.dtype(str)
 
 
-def isna(obj):
+@overload
+def isna(obj: Scalar) -> bool:
+    ...
+
+
+@overload
+def isna(
+    obj: ArrayLike | Index | list,
+) -> npt.NDArray[np.bool_]:
+    ...
+
+
+@overload
+def isna(obj: NDFrameT) -> NDFrameT:
+    ...
+
+
+# handle unions
+@overload
+def isna(obj: NDFrameT | ArrayLike | Index | list) -> NDFrameT | npt.NDArray[np.bool_]:
+    ...
+
+
+@overload
+def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
+    ...
+
+
+def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect missing values for an array-like object.
 
@@ -284,7 +326,35 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
     return result
 
 
-def notna(obj):
+@overload
+def notna(obj: Scalar) -> bool:
+    ...
+
+
+@overload
+def notna(
+    obj: ArrayLike | Index | list,
+) -> npt.NDArray[np.bool_]:
+    ...
+
+
+@overload
+def notna(obj: NDFrameT) -> NDFrameT:
+    ...
+
+
+# handle unions
+@overload
+def notna(obj: NDFrameT | ArrayLike | Index | list) -> NDFrameT | npt.NDArray[np.bool_]:
+    ...
+
+
+@overload
+def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
+    ...
+
+
+def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect non-missing values for an array-like object.
 
@@ -362,7 +432,7 @@ def notna(obj):
     Name: 1, dtype: bool
     """
     res = isna(obj)
-    if is_scalar(res):
+    if isinstance(res, bool):
         return not res
     return ~res
 
@@ -671,3 +741,44 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
+
+
+def isna_all(arr: ArrayLike) -> bool:
+    """
+    Optimized equivalent to isna(arr).all()
+    """
+    total_len = len(arr)
+
+    # Usually it's enough to check but a small fraction of values to see if
+    #  a block is NOT null, chunks should help in such cases.
+    #  parameters 1000 and 40 were chosen arbitrarily
+    chunk_len = max(total_len // 40, 1000)
+
+    dtype = arr.dtype
+    if dtype.kind == "f" and isinstance(dtype, np.dtype):
+        checker = nan_checker
+
+    elif (
+        (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"])
+        or isinstance(dtype, DatetimeTZDtype)
+        or dtype.type is Period
+    ):
+        # error: Incompatible types in assignment (expression has type
+        # "Callable[[Any], Any]", variable has type "ufunc")
+        checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
+
+    else:
+        # error: Incompatible types in assignment (expression has type "Callable[[Any],
+        # Any]", variable has type "ufunc")
+        checker = lambda x: _isna_array(  # type: ignore[assignment]
+            x, inf_as_na=INF_AS_NA
+        )
+
+    return all(
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex, str,
+        # bytes, generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"
+        checker(arr[i : i + chunk_len]).all()  # type: ignore[arg-type]
+        for i in range(0, total_len, chunk_len)
+    )

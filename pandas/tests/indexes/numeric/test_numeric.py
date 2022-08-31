@@ -205,7 +205,7 @@ class TestFloatNumericIndex(NumericBase):
     def test_lookups_datetimelike_values(self, vals, dtype):
 
         # If we have datetime64 or timedelta64 values, make sure they are
-        #  wrappped correctly  GH#31163
+        #  wrapped correctly  GH#31163
         ser = Series(vals, index=range(3, 6))
         ser.index = ser.index.astype(dtype)
 
@@ -508,6 +508,20 @@ class TestIntNumericIndex(NumericInt):
 
         with pytest.raises(OverflowError, match=msg):
             Index([-1], dtype=any_unsigned_int_numpy_dtype)
+
+    def test_constructor_np_signed(self, any_signed_int_numpy_dtype):
+        # GH#47475
+        scalar = np.dtype(any_signed_int_numpy_dtype).type(1)
+        result = Index([scalar])
+        expected = Int64Index([1])
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_np_unsigned(self, any_unsigned_int_numpy_dtype):
+        # GH#47475
+        scalar = np.dtype(any_unsigned_int_numpy_dtype).type(1)
+        result = Index([scalar])
+        expected = UInt64Index([1])
+        tm.assert_index_equal(result, expected)
 
     def test_coerce_list(self):
         # coerce things

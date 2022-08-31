@@ -59,12 +59,16 @@ def test_numpy_compat(method):
     # see gh-12811
     e = Expanding(Series([2, 4, 6]))
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(e, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to Expanding.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to Expanding.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(e, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize(
@@ -651,3 +655,83 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 
     result = df.expanding().apply(mean_w_arg, raw=raw, kwargs={"const": 20})
     tm.assert_frame_equal(result, expected)
+
+
+def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    df = DataFrame({"a": [1], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    expanding = df.expanding()
+    op = getattr(expanding, kernel, None)
+    if op is not None:
+        result = op(numeric_only=numeric_only)
+
+        columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+        expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
+        assert list(expected.columns) == columns
+
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
+    # GH#46560
+    df = DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
+    df["c"] = df["c"].astype(object)
+    arg = (df,) if use_arg else ()
+    expanding = df.expanding()
+    op = getattr(expanding, kernel)
+    result = op(*arg, numeric_only=numeric_only)
+
+    # Compare result to op using float dtypes, dropping c when numeric_only is True
+    columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+    df2 = df[columns].astype(float)
+    arg2 = (df2,) if use_arg else ()
+    expanding2 = df2.expanding()
+    op2 = getattr(expanding2, kernel)
+    expected = op2(*arg2, numeric_only=numeric_only)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
+    # GH#46560
+    kernel = arithmetic_win_operators
+    ser = Series([1], dtype=dtype)
+    expanding = ser.expanding()
+    op = getattr(expanding, kernel)
+    if numeric_only and dtype is object:
+        msg = f"Expanding.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(numeric_only=numeric_only)
+    else:
+        result = op(numeric_only=numeric_only)
+        expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("kernel", ["corr", "cov"])
+@pytest.mark.parametrize("use_arg", [True, False])
+@pytest.mark.parametrize("dtype", [int, object])
+def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
+    # GH#46560
+    ser = Series([1, 2, 3], dtype=dtype)
+    arg = (ser,) if use_arg else ()
+    expanding = ser.expanding()
+    op = getattr(expanding, kernel)
+    if numeric_only and dtype is object:
+        msg = f"Expanding.{kernel} does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(*arg, numeric_only=numeric_only)
+    else:
+        result = op(*arg, numeric_only=numeric_only)
+
+        ser2 = ser.astype(float)
+        arg2 = (ser2,) if use_arg else ()
+        expanding2 = ser2.expanding()
+        op2 = getattr(expanding2, kernel)
+        expected = op2(*arg2, numeric_only=numeric_only)
+        tm.assert_series_equal(result, expected)

@@ -21,8 +21,8 @@ from pandas import (
     DatetimeIndex,
 )
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 
-import pandas.io.common as icom
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -656,7 +656,7 @@ def test_fwf_compression(compression_only, infer):
     3333333333""".strip()
 
     compression = compression_only
-    extension = icom._compression_to_extension[compression]
+    extension = _compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
@@ -929,4 +929,27 @@ def test_names_and_infer_colspecs():
     """
     result = read_fwf(StringIO(data), skiprows=1, usecols=[0, 2], names=["a", "b"])
     expected = DataFrame({"a": [959.0], "b": 22.2})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_widths_and_usecols():
+    # GH#46580
+    data = """0  1    n -0.4100.1
+0  2    p  0.2 90.1
+0  3    n -0.3140.4"""
+    result = read_fwf(
+        StringIO(data),
+        header=None,
+        usecols=(0, 1, 3),
+        widths=(3, 5, 1, 5, 5),
+        index_col=False,
+        names=("c0", "c1", "c3"),
+    )
+    expected = DataFrame(
+        {
+            "c0": 0,
+            "c1": [1, 2, 3],
+            "c3": [-0.4, 0.2, -0.3],
+        }
+    )
     tm.assert_frame_equal(result, expected)

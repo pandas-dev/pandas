@@ -79,12 +79,16 @@ def test_numpy_compat(method):
     # see gh-12811
     w = Series([2, 4, 6]).rolling(window=2)
 
-    msg = "numpy operations are not valid with window objects"
+    error_msg = "numpy operations are not valid with window objects"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(w, method)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(w, method)(dtype=np.float64)
+    warn_msg = f"Passing additional args to Rolling.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(w, method)(1, 2, 3)
+    warn_msg = f"Passing additional kwargs to Rolling.{method}"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
+            getattr(w, method)(dtype=np.float64)
 
 
 @td.skip_if_no_scipy
@@ -676,3 +680,28 @@ def test_cmov_window_special_linear_range(win_types_special, step):
         .mean(**kwds[win_types_special])
     )
     tm.assert_series_equal(xp, rs)
+
+
+@td.skip_if_no_scipy
+def test_weighted_var_big_window_no_segfault(win_types, center):
+    # Github Issue #46772
+    x = Series(0)
+    result = x.rolling(window=16, center=center, win_type=win_types).var()
+    expected = Series(np.NaN)
+
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no_scipy
+def test_rolling_center_axis_1():
+    df = DataFrame(
+        {"a": [1, 1, 0, 0, 0, 1], "b": [1, 0, 0, 1, 0, 0], "c": [1, 0, 0, 1, 0, 1]}
+    )
+
+    result = df.rolling(window=3, axis=1, win_type="boxcar", center=True).sum()
+
+    expected = DataFrame(
+        {"a": [np.nan] * 6, "b": [3.0, 1.0, 0.0, 2.0, 0.0, 2.0], "c": [np.nan] * 6}
+    )
+
+    tm.assert_frame_equal(result, expected, check_dtype=True)

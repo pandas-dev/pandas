@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+import pytz
 
 import pandas.util._test_decorators as td
 
@@ -417,27 +418,25 @@ class TestDatetimeIndexSetOps:
 
 
 class TestBusinessDatetimeIndex:
-    def setup_method(self):
-        self.rng = bdate_range(START, END)
-
     def test_union(self, sort):
+        rng = bdate_range(START, END)
         # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
+        left = rng[:10]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
         # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
+        left = rng[:5]
+        right = rng[10:]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, Index)
 
         # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
+        left = rng[:5]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
@@ -452,7 +451,7 @@ class TestBusinessDatetimeIndex:
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
 
-        the_union = self.rng.union(rng, sort=sort)
+        the_union = rng.union(rng, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
     def test_union_not_cacheable(self, sort):
@@ -555,27 +554,25 @@ class TestBusinessDatetimeIndex:
 
 
 class TestCustomDatetimeIndex:
-    def setup_method(self):
-        self.rng = bdate_range(START, END, freq="C")
-
     def test_union(self, sort):
         # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
+        rng = bdate_range(START, END, freq="C")
+        left = rng[:10]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
         # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
+        left = rng[:5]
+        right = rng[10:]
 
         the_union = left.union(right, sort)
         assert isinstance(the_union, Index)
 
         # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
+        left = rng[:5]
+        right = rng[5:10]
 
         the_union = left.union(right, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
@@ -587,7 +584,7 @@ class TestCustomDatetimeIndex:
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
 
-        the_union = self.rng.union(rng, sort=sort)
+        the_union = rng.union(rng, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
     def test_intersection_bug(self):
@@ -597,3 +594,14 @@ class TestCustomDatetimeIndex:
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
         assert result.freq == b.freq
+
+    @pytest.mark.parametrize(
+        "tz", [None, "UTC", "Europe/Berlin", pytz.FixedOffset(-60)]
+    )
+    def test_intersection_dst_transition(self, tz):
+        # GH 46702: Europe/Berlin has DST transition
+        idx1 = date_range("2020-03-27", periods=5, freq="D", tz=tz)
+        idx2 = date_range("2020-03-30", periods=5, freq="D", tz=tz)
+        result = idx1.intersection(idx2)
+        expected = date_range("2020-03-30", periods=2, freq="D", tz=tz)
+        tm.assert_index_equal(result, expected)

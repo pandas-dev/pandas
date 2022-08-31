@@ -8,12 +8,14 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     MultiIndex,
     Series,
     Timestamp,
     concat,
+    date_range,
     get_dummies,
     period_range,
 )
@@ -70,6 +72,13 @@ class TestGetitem:
         tm.assert_series_equal(result, expected)
 
         result = df.loc[:, "A"]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_string_columns(self):
+        # GH#46185
+        df = DataFrame([[1, 2]], columns=Index(["A", "B"], dtype="string"))
+        result = df.A
+        expected = df["A"]
         tm.assert_series_equal(result, expected)
 
 
@@ -164,6 +173,47 @@ class TestGetitemListLike:
         result = df.iloc[indexer, 1]
         expected = Series([5, 6], name="b", index=[1, 2])
         tm.assert_series_equal(result, expected)
+
+    def test_getitem_iloc_dateoffset_days(self):
+        # GH 46671
+        df = DataFrame(
+            list(range(10)),
+            index=date_range("01-01-2022", periods=10, freq=DateOffset(days=1)),
+        )
+        result = df.loc["2022-01-01":"2022-01-03"]
+        expected = DataFrame(
+            [0, 1, 2],
+            index=DatetimeIndex(
+                ["2022-01-01", "2022-01-02", "2022-01-03"],
+                dtype="datetime64[ns]",
+                freq=DateOffset(days=1),
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame(
+            list(range(10)),
+            index=date_range(
+                "01-01-2022", periods=10, freq=DateOffset(days=1, hours=2)
+            ),
+        )
+        result = df.loc["2022-01-01":"2022-01-03"]
+        expected = DataFrame(
+            [0, 1, 2],
+            index=DatetimeIndex(
+                ["2022-01-01 00:00:00", "2022-01-02 02:00:00", "2022-01-03 04:00:00"],
+                dtype="datetime64[ns]",
+                freq=DateOffset(days=1, hours=2),
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame(
+            list(range(10)),
+            index=date_range("01-01-2022", periods=10, freq=DateOffset(minutes=3)),
+        )
+        result = df.loc["2022-01-01":"2022-01-03"]
+        tm.assert_frame_equal(result, df)
 
 
 class TestGetitemCallable:
@@ -349,6 +399,27 @@ class TestGetitemBooleanMask:
         df = DataFrame()
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
+
+    def test_getitem_returns_view_when_column_is_unique_in_df(
+        self, using_copy_on_write
+    ):
+        # GH#45316
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
+        df_orig = df.copy()
+        view = df["b"]
+        view.loc[:] = 100
+        if using_copy_on_write:
+            expected = df_orig
+        else:
+            expected = DataFrame([[1, 2, 100], [4, 5, 100]], columns=["a", "a", "b"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_getitem_frozenset_unique_in_column(self):
+        # GH#41062
+        df = DataFrame([[1, 2, 3, 4]], columns=[frozenset(["KEY"]), "B", "C", "C"])
+        result = df[frozenset(["KEY"])]
+        expected = Series([1], name=frozenset(["KEY"]))
+        tm.assert_series_equal(result, expected)
 
 
 class TestGetitemSlice:

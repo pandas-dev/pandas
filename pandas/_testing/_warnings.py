@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+    nullcontext,
+)
 import re
 import sys
 from typing import (
+    Literal,
     Sequence,
     Type,
     cast,
@@ -13,23 +17,26 @@ import warnings
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning: type[Warning] | bool | None = Warning,
-    filter_level="always",
+    expected_warning: type[Warning] | bool | tuple[type[Warning], ...] | None = Warning,
+    filter_level: Literal[
+        "error", "ignore", "always", "default", "module", "once"
+    ] = "always",
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
     match: str | None = None,
 ):
     """
-    Context manager for running code expected to either raise a specific
-    warning, or not raise any warnings. Verifies that the code raises the
-    expected warning, and that it does not raise any other unexpected
+    Context manager for running code expected to either raise a specific warning,
+    multiple specific warnings, or not raise any warnings. Verifies that the code
+    raises the expected warning(s), and that it does not raise any other unexpected
     warnings. It is basically a wrapper around ``warnings.catch_warnings``.
 
     Parameters
     ----------
-    expected_warning : {Warning, False, None}, default Warning
+    expected_warning : {Warning, False, tuple[Warning, ...], None}, default Warning
         The type of Exception raised. ``exception.Warning`` is the base
-        class for all warnings. To check that no warning is returned,
+        class for all warnings. To raise multiple types of exceptions,
+        pass them as a tuple. To check that no warning is returned,
         specify ``False`` or ``None``.
     filter_level : str or None, default "always"
         Specifies whether warnings are ignored, displayed, or turned
@@ -97,6 +104,16 @@ def assert_produces_warning(
             )
 
 
+def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
+    """
+    Return a context manager that possibly checks a warning based on the condition
+    """
+    if condition:
+        return assert_produces_warning(warning, **kwargs)
+    else:
+        return nullcontext()
+
+
 def _assert_caught_expected_warning(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
@@ -113,9 +130,7 @@ def _assert_caught_expected_warning(
         if issubclass(actual_warning.category, expected_warning):
             saw_warning = True
 
-            if check_stacklevel and issubclass(
-                actual_warning.category, (FutureWarning, DeprecationWarning)
-            ):
+            if check_stacklevel:
                 _assert_raised_with_correct_stacklevel(actual_warning)
 
             if match is not None:
@@ -141,7 +156,7 @@ def _assert_caught_expected_warning(
 def _assert_caught_no_extra_warnings(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: type[Warning] | bool | None,
+    expected_warning: type[Warning] | bool | tuple[type[Warning], ...] | None,
 ) -> None:
     """Assert that no extra warnings apart from the expected ones are caught."""
     extra_warnings = []
@@ -179,7 +194,7 @@ def _assert_caught_no_extra_warnings(
 
 def _is_unexpected_warning(
     actual_warning: warnings.WarningMessage,
-    expected_warning: type[Warning] | bool | None,
+    expected_warning: type[Warning] | bool | tuple[type[Warning], ...] | None,
 ) -> bool:
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:

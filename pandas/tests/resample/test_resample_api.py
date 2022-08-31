@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -88,9 +90,35 @@ def test_groupby_resample_on_api():
         }
     )
 
-    expected = df.set_index("dates").groupby("key").resample("D").mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.set_index("dates").groupby("key").resample("D").mean()
+        result = df.groupby("key").resample("D", on="dates").mean()
+    tm.assert_frame_equal(result, expected)
 
-    result = df.groupby("key").resample("D", on="dates").mean()
+
+def test_resample_group_keys():
+    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10))
+    g = df.resample("5D")
+    expected = df.copy()
+    with tm.assert_produces_warning(FutureWarning, match="Not prepending group keys"):
+        result = g.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+
+    # no warning
+    g = df.resample("5D", group_keys=False)
+    with tm.assert_produces_warning(None):
+        result = g.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+
+    # no warning, group keys
+    expected.index = pd.MultiIndex.from_arrays(
+        [pd.to_datetime(["2000-01-01", "2000-01-06"]).repeat(5), expected.index]
+    )
+
+    g = df.resample("5D", group_keys=True)
+    with tm.assert_produces_warning(None):
+        result = g.apply(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
 
@@ -169,7 +197,9 @@ def tests_skip_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
-    result = r.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -242,12 +272,28 @@ def test_combined_up_downsampling_of_irregular():
     tm.assert_series_equal(result, expected)
 
 
-def test_transform():
-
+def test_transform_series():
     r = test_series.resample("20min")
     expected = test_series.groupby(pd.Grouper(freq="20min")).transform("mean")
     result = r.transform("mean")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("on", [None, "date"])
+def test_transform_frame(on):
+    # GH#47079
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+    index.name = "date"
+    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    expected = df.groupby(pd.Grouper(freq="20min")).transform("mean")
+    if on == "date":
+        # Move date to being a column; result will then have a RangeIndex
+        expected = expected.reset_index(drop=True)
+        df = df.reset_index()
+
+    r = df.resample("20min", on=on)
+    result = r.transform("mean")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_fillna():
@@ -275,7 +321,10 @@ def test_fillna():
 
 @pytest.mark.parametrize(
     "func",
-    [lambda x: x.resample("20min"), lambda x: x.groupby(pd.Grouper(freq="20min"))],
+    [
+        lambda x: x.resample("20min", group_keys=False),
+        lambda x: x.groupby(pd.Grouper(freq="20min"), group_keys=False),
+    ],
     ids=["resample", "groupby"],
 )
 def test_apply_without_aggregation(func):
@@ -283,6 +332,12 @@ def test_apply_without_aggregation(func):
     t = func(test_series)
     result = t.apply(lambda x: x)
     tm.assert_series_equal(result, test_series)
+
+
+def test_apply_without_aggregation2():
+    grouped = test_series.to_frame(name="foo").resample("20min", group_keys=False)
+    result = grouped["foo"].apply(lambda x: x)
+    tm.assert_series_equal(result, test_series.rename("foo"))
 
 
 def test_agg_consistency():
@@ -351,7 +406,8 @@ def test_agg():
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        warn = FutureWarning if t in cases[1:3] else None
+        # In case 2, "date" is an index and a column, so agg still tries to agg
+        warn = FutureWarning if t == cases[2] else None
         with tm.assert_produces_warning(
             warn,
             match=r"\['date'\] did not aggregate successfully",
@@ -388,7 +444,7 @@ def test_agg():
 
     msg = "nested renamer is not supported"
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.aggregate({"A": {"mean": "mean", "sum": "sum"}})
 
     expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
@@ -396,7 +452,7 @@ def test_agg():
         [("A", "mean"), ("A", "sum"), ("B", "mean2"), ("B", "sum2")]
     )
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.aggregate(
                 {
                     "A": {"mean": "mean", "sum": "sum"},
@@ -500,10 +556,10 @@ def test_agg_misc():
 
     # series like aggs
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t["A"].agg({"A": ["sum", "std"]})
 
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
     # errors
@@ -512,6 +568,20 @@ def test_agg_misc():
     for t in cases:
         with pytest.raises(KeyError, match=msg):
             t[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
+
+
+@pytest.mark.parametrize(
+    "func", [["min"], ["mean", "max"], {"A": "sum"}, {"A": "prod", "B": "median"}]
+)
+def test_multi_agg_axis_1_raises(func):
+    # GH#46904
+    np.random.seed(1234)
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+    index.name = "date"
+    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    res = df.resample("M", axis=1)
+    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
+        res.agg(func)
 
 
 def test_agg_nested_dicts():
@@ -535,17 +605,17 @@ def test_agg_nested_dicts():
 
     msg = "nested renamer is not supported"
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.aggregate({"r1": {"A": ["mean", "sum"]}, "r2": {"B": ["mean", "sum"]}})
 
     for t in cases:
 
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t[["A", "B"]].agg(
                 {"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}}
             )
 
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(pd.errors.SpecificationError, match=msg):
             t.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
 
 
@@ -607,10 +677,14 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
+    result = df.resample("2D", on="date").sum()
+    tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("2D", level="d").sum()
+    tm.assert_frame_equal(exp, result)
 
 
 @pytest.mark.parametrize(
@@ -737,3 +811,130 @@ def test_end_and_end_day_origin(
     )
 
     tm.assert_series_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    # expected_data is a string when op raises a ValueError
+    "method, numeric_only, expected_data",
+    [
+        ("sum", True, {"num": [25]}),
+        ("sum", False, {"cat": ["cat_1cat_2"], "num": [25]}),
+        ("sum", lib.no_default, {"num": [25]}),
+        ("prod", True, {"num": [100]}),
+        ("prod", False, {"num": [100]}),
+        ("prod", lib.no_default, {"num": [100]}),
+        ("min", True, {"num": [5]}),
+        ("min", False, {"cat": ["cat_1"], "num": [5]}),
+        ("min", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
+        ("max", True, {"num": [20]}),
+        ("max", False, {"cat": ["cat_2"], "num": [20]}),
+        ("max", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
+        ("first", True, {"num": [5]}),
+        ("first", False, {"cat": ["cat_1"], "num": [5]}),
+        ("first", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
+        ("last", True, {"num": [20]}),
+        ("last", False, {"cat": ["cat_2"], "num": [20]}),
+        ("last", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
+        ("mean", True, {"num": [12.5]}),
+        ("mean", False, {"num": [12.5]}),
+        ("mean", lib.no_default, {"num": [12.5]}),
+        ("median", True, {"num": [12.5]}),
+        ("median", False, {"num": [12.5]}),
+        ("median", lib.no_default, {"num": [12.5]}),
+        ("std", True, {"num": [10.606601717798213]}),
+        ("std", False, "could not convert string to float"),
+        ("std", lib.no_default, {"num": [10.606601717798213]}),
+        ("var", True, {"num": [112.5]}),
+        ("var", False, "could not convert string to float"),
+        ("var", lib.no_default, {"num": [112.5]}),
+        ("sem", True, {"num": [7.5]}),
+        ("sem", False, "could not convert string to float"),
+        ("sem", lib.no_default, {"num": [7.5]}),
+    ],
+)
+def test_frame_downsample_method(method, numeric_only, expected_data):
+    # GH#46442 test if `numeric_only` behave as expected for DataFrameGroupBy
+
+    index = date_range("2018-01-01", periods=2, freq="D")
+    expected_index = date_range("2018-12-31", periods=1, freq="Y")
+    df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
+    resampled = df.resample("Y")
+    if numeric_only is lib.no_default:
+        kwargs = {}
+    else:
+        kwargs = {"numeric_only": numeric_only}
+
+    func = getattr(resampled, method)
+    if numeric_only is lib.no_default and method not in (
+        "min",
+        "max",
+        "first",
+        "last",
+        "prod",
+    ):
+        warn = FutureWarning
+        msg = (
+            f"default value of numeric_only in DataFrameGroupBy.{method} is deprecated"
+        )
+    elif method in ("prod", "mean", "median") and numeric_only is not True:
+        warn = FutureWarning
+        msg = f"Dropping invalid columns in DataFrameGroupBy.{method} is deprecated"
+    else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
+        if isinstance(expected_data, str):
+            klass = TypeError if method == "var" else ValueError
+            with pytest.raises(klass, match=expected_data):
+                _ = func(**kwargs)
+        else:
+            result = func(**kwargs)
+            expected = DataFrame(expected_data, index=expected_index)
+            tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, numeric_only, expected_data",
+    [
+        ("sum", True, ()),
+        ("sum", False, ["cat_1cat_2"]),
+        ("sum", lib.no_default, ["cat_1cat_2"]),
+        ("prod", True, ()),
+        ("prod", False, ()),
+        ("prod", lib.no_default, ()),
+        ("min", True, ()),
+        ("min", False, ["cat_1"]),
+        ("min", lib.no_default, ["cat_1"]),
+        ("max", True, ()),
+        ("max", False, ["cat_2"]),
+        ("max", lib.no_default, ["cat_2"]),
+        ("first", True, ()),
+        ("first", False, ["cat_1"]),
+        ("first", lib.no_default, ["cat_1"]),
+        ("last", True, ()),
+        ("last", False, ["cat_2"]),
+        ("last", lib.no_default, ["cat_2"]),
+    ],
+)
+def test_series_downsample_method(method, numeric_only, expected_data):
+    # GH#46442 test if `numeric_only` behave as expected for SeriesGroupBy
+
+    index = date_range("2018-01-01", periods=2, freq="D")
+    expected_index = date_range("2018-12-31", periods=1, freq="Y")
+    df = Series(["cat_1", "cat_2"], index=index)
+    resampled = df.resample("Y")
+
+    func = getattr(resampled, method)
+    if numeric_only and numeric_only is not lib.no_default:
+        with tm.assert_produces_warning(
+            FutureWarning, match="This will raise a TypeError"
+        ):
+            with pytest.raises(NotImplementedError, match="not implement numeric_only"):
+                func(numeric_only=numeric_only)
+    elif method == "prod":
+        with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
+            func(numeric_only=numeric_only)
+    else:
+        result = func(numeric_only=numeric_only)
+        expected = Series(expected_data, index=expected_index)
+        tm.assert_series_equal(result, expected)

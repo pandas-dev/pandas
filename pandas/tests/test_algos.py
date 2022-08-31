@@ -9,6 +9,8 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
+from pandas.compat import pa_version_under7p0
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -50,7 +52,13 @@ class TestFactorize:
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
-        result_codes, result_uniques = obj.factorize(sort=sort)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            sort
+            and pa_version_under7p0
+            and getattr(obj.dtype, "storage", "") == "pyarrow",
+        ):
+            result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
         if isinstance(obj, MultiIndex):
@@ -64,7 +72,11 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            expected_uniques = expected_uniques.sort_values()
+            with tm.maybe_produces_warning(
+                PerformanceWarning,
+                pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
+            ):
+                expected_uniques = expected_uniques.sort_values()
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`
@@ -75,17 +87,31 @@ class TestFactorize:
         tm.assert_numpy_array_equal(result_codes, expected_codes)
         tm.assert_index_equal(result_uniques, expected_uniques, exact=True)
 
-    def test_series_factorize_na_sentinel_none(self):
+    def test_series_factorize_use_na_sentinel_false(self):
         # GH#35667
         values = np.array([1, 2, 1, np.nan])
         ser = Series(values)
-        codes, uniques = ser.factorize(na_sentinel=None)
+        codes, uniques = ser.factorize(use_na_sentinel=False)
 
         expected_codes = np.array([0, 1, 0, 2], dtype=np.intp)
         expected_uniques = Index([1.0, 2.0, np.nan])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_index_equal(uniques, expected_uniques)
+
+    @pytest.mark.parametrize("na_sentinel", [None, -1, -10])
+    def test_depr_na_sentinel(self, na_sentinel, index_or_series_obj):
+        # GH#46910
+        if na_sentinel is None:
+            msg = "Specifying `na_sentinel=None` is deprecated"
+        elif na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            pd.factorize(index_or_series_obj, na_sentinel=na_sentinel)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index_or_series_obj.factorize(na_sentinel=na_sentinel)
 
     def test_basic(self):
 
@@ -418,7 +444,12 @@ class TestFactorize:
         ids=["numpy_array", "extension_array"],
     )
     def test_factorize_na_sentinel(self, sort, na_sentinel, data, uniques):
-        codes, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
+        if na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            codes, uniques = algos.factorize(data, sort=sort, na_sentinel=na_sentinel)
         if sort:
             expected_codes = np.array([1, 0, na_sentinel, 1], dtype=np.intp)
             expected_uniques = algos.safe_sort(uniques)
@@ -436,20 +467,20 @@ class TestFactorize:
         [
             (
                 ["a", None, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", None, "b"], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", np.nan, "b"], dtype=object),
             ),
         ],
     )
-    def test_object_factorize_na_sentinel_none(
+    def test_object_factorize_use_na_sentinel_false(
         self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, na_sentinel=None)
+        codes, uniques = algos.factorize(data, use_na_sentinel=False)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -459,20 +490,20 @@ class TestFactorize:
         [
             (
                 [1, None, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype="O"),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, None, 2], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype=np.float64),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, np.nan, 2], dtype=np.float64),
             ),
         ],
     )
-    def test_int_factorize_na_sentinel_none(
+    def test_int_factorize_use_na_sentinel_false(
         self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, na_sentinel=None)
+        codes, uniques = algos.factorize(data, use_na_sentinel=False)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -815,6 +846,13 @@ class TestUnique:
         assert a[0] is unique_nulls_fixture
         assert a[1] is unique_nulls_fixture2
 
+    def test_unique_masked(self, any_numeric_ea_dtype):
+        # GH#48019
+        ser = Series([1, pd.NA, 2] * 3, dtype=any_numeric_ea_dtype)
+        result = pd.unique(ser)
+        expected = pd.array([1, pd.NA, 2], dtype=any_numeric_ea_dtype)
+        tm.assert_extension_array_equal(result, expected)
+
 
 class TestIsin:
     def test_invalid(self):
@@ -1088,6 +1126,13 @@ class TestIsin:
         result = df.isin(["1.4245"])
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
+
+    def test_isin_unsigned_dtype(self):
+        # GH#46485
+        ser = Series([1378774140726870442], dtype=np.uint64)
+        result = ser.isin([1378774140726870528])
+        expected = Series(False)
+        tm.assert_series_equal(result, expected)
 
 
 class TestValueCounts:
@@ -1659,7 +1704,6 @@ class TestRank:
             algos.rank(arr)
 
     @pytest.mark.single_cpu
-    @pytest.mark.high_memory
     def test_pct_max_many_rows(self):
         # GH 18271
         values = np.arange(2**24 + 1)
@@ -2282,6 +2326,13 @@ class TestMode:
         with pytest.raises(AttributeError, match="TimedeltaIndex"):
             # algos.mode expects Arraylike, does *not* unwrap TimedeltaIndex
             algos.mode(idx)
+
+    def test_ser_mode_with_name(self):
+        # GH 46737
+        ser = Series([1, 1, 3], name="foo")
+        result = ser.mode()
+        expected = Series([1], name="foo")
+        tm.assert_series_equal(result, expected)
 
 
 class TestDiff:

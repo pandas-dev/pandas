@@ -16,6 +16,7 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas._libs.lib import infer_dtype
+from pandas._typing import IntervalLeftRight
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -560,7 +561,7 @@ def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """based on the dtype, return our labels"""
-    closed = "right" if right else "left"
+    closed: IntervalLeftRight = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 

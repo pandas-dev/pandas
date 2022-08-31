@@ -238,7 +238,7 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
 
 def test_object_series_ok():
     class Dummy:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):
@@ -284,7 +284,7 @@ class TestNumpyReductions:
             obj = box(values)
 
         if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
-            mark = pytest.mark.xfail(reason="SparseArray has no 'mul'")
+            mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
             request.node.add_marker(mark)
 
         if values.dtype.kind in "iuf":
@@ -413,7 +413,7 @@ def test_binary_ufunc_other_types(type_):
 
 def test_object_dtype_ok():
     class Thing:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):
@@ -434,8 +434,22 @@ def test_object_dtype_ok():
 
 def test_outer():
     # https://github.com/pandas-dev/pandas/issues/27186
-    s = pd.Series([1, 2, 3])
-    o = np.array([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
+    obj = np.array([1, 2, 3])
 
     with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        np.subtract.outer(s, o)
+        np.subtract.outer(ser, obj)
+
+
+def test_np_matmul():
+    # GH26650
+    df1 = pd.DataFrame(data=[[-1, 1, 10]])
+    df2 = pd.DataFrame(data=[-1, 1, 10])
+    expected_result = pd.DataFrame(data=[102])
+
+    with tm.assert_produces_warning(FutureWarning, match="on non-aligned"):
+        result = np.matmul(df1, df2)
+    tm.assert_frame_equal(
+        expected_result,
+        result,
+    )

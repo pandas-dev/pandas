@@ -41,7 +41,7 @@ class DecimalDtype(ExtensionDtype):
     na_value = decimal.Decimal("NaN")
     _metadata = ("context",)
 
-    def __init__(self, context=None):
+    def __init__(self, context=None) -> None:
         self.context = context or decimal.getcontext()
 
     def __repr__(self) -> str:
@@ -66,7 +66,7 @@ class DecimalDtype(ExtensionDtype):
 class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     __array_priority__ = 1000
 
-    def __init__(self, values, dtype=None, copy=False, context=None):
+    def __init__(self, values, dtype=None, copy=False, context=None) -> None:
         for i, val in enumerate(values):
             if is_float(val):
                 if np.isnan(val):
@@ -105,7 +105,11 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
+        self,
+        dtype=None,
+        copy: bool = False,
+        na_value: object = no_default,
+        decimals=None,
     ) -> np.ndarray:
         result = np.asarray(self, dtype=dtype)
         if decimals is not None:

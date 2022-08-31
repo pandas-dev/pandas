@@ -248,7 +248,7 @@ pyarrow_skip = td.skip_if_no("pyarrow")
 def test_arrow_extension_type():
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
     p1 = ArrowIntervalType(pa.int64(), "left")
     p2 = ArrowIntervalType(pa.int64(), "left")
@@ -265,7 +265,7 @@ def test_arrow_extension_type():
 def test_arrow_array():
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
     intervals = pd.interval_range(1, 5, freq=1).array
 
@@ -295,7 +295,7 @@ def test_arrow_array():
 def test_arrow_array_missing():
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
     arr = IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0])
     arr[1] = None
@@ -330,7 +330,7 @@ def test_arrow_array_missing():
 def test_arrow_table_roundtrip(breaks):
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
     arr = IntervalArray.from_breaks(breaks)
     arr[1] = None
@@ -396,3 +396,20 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific", "GMT"])
+def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
+    # GH 46999
+    dates = date_range("2022", periods=3, tz=timezone)
+    dtype = f"interval[datetime64[ns, {timezone}], {inclusive_endpoints_fixture}]"
+    result = IntervalIndex.from_arrays(
+        ["2022-01-01", "2022-01-02"],
+        ["2022-01-02", "2022-01-03"],
+        closed=inclusive_endpoints_fixture,
+        dtype=dtype,
+    )
+    expected = IntervalIndex.from_arrays(
+        dates[:-1], dates[1:], closed=inclusive_endpoints_fixture
+    )
+    tm.assert_index_equal(result, expected)

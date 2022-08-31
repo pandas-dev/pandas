@@ -144,14 +144,14 @@ class BaseImpl:
 
 
 class PyArrowImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays._arrow_utils  # noqa:F401
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore # noqa:F401
 
         self.api = pyarrow
 
@@ -231,6 +231,8 @@ class PyArrowImpl(BaseImpl):
                 self.api.uint64(): pd.UInt64Dtype(),
                 self.api.bool_(): pd.BooleanDtype(),
                 self.api.string(): pd.StringDtype(),
+                self.api.float32(): pd.Float32Dtype(),
+                self.api.float64(): pd.Float64Dtype(),
             }
             to_pandas_kwargs["types_mapper"] = mapping.get
         manager = get_option("mode.data_manager")
@@ -256,7 +258,7 @@ class PyArrowImpl(BaseImpl):
 
 
 class FastParquetImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         # since pandas is a dependency of fastparquet
         # we need to import on first use
         fastparquet = import_optional_dependency(
@@ -349,13 +351,12 @@ class FastParquetImpl(BaseImpl):
             )
             path = handles.handle
 
-        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-
-        result = parquet_file.to_pandas(columns=columns, **kwargs)
-
-        if handles is not None:
-            handles.close()
-        return result
+        try:
+            parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
+            return parquet_file.to_pandas(columns=columns, **kwargs)
+        finally:
+            if handles is not None:
+                handles.close()
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -443,9 +444,9 @@ def to_parquet(
 
 @doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
-    path,
+    path: FilePath | ReadBuffer[bytes],
     engine: str = "auto",
-    columns=None,
+    columns: list[str] | None = None,
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
     **kwargs,

@@ -301,7 +301,7 @@ class TestTableOrient:
                     ("idx", 0),
                     ("A", 1),
                     ("B", "a"),
-                    ("C", "2016-01-01T00:00:00.000Z"),
+                    ("C", "2016-01-01T00:00:00.000"),
                     ("D", "P0DT1H0M0S"),
                     ("E", "a"),
                     ("F", "a"),
@@ -314,7 +314,7 @@ class TestTableOrient:
                     ("idx", 1),
                     ("A", 2),
                     ("B", "b"),
-                    ("C", "2016-01-02T00:00:00.000Z"),
+                    ("C", "2016-01-02T00:00:00.000"),
                     ("D", "P0DT1H1M0S"),
                     ("E", "b"),
                     ("F", "b"),
@@ -327,7 +327,7 @@ class TestTableOrient:
                     ("idx", 2),
                     ("A", 3),
                     ("B", "c"),
-                    ("C", "2016-01-03T00:00:00.000Z"),
+                    ("C", "2016-01-03T00:00:00.000"),
                     ("D", "P0DT1H2M0S"),
                     ("E", "c"),
                     ("F", "c"),
@@ -340,7 +340,7 @@ class TestTableOrient:
                     ("idx", 3),
                     ("A", 4),
                     ("B", "c"),
-                    ("C", "2016-01-04T00:00:00.000Z"),
+                    ("C", "2016-01-04T00:00:00.000"),
                     ("D", "P0DT1H3M0S"),
                     ("E", "c"),
                     ("F", "c"),
@@ -397,8 +397,8 @@ class TestTableOrient:
 
         schema = {"fields": fields, "primaryKey": ["index"]}
         data = [
-            OrderedDict([("index", "2015-11-01T00:00:00.000Z"), ("values", 1)]),
-            OrderedDict([("index", "2016-02-01T00:00:00.000Z"), ("values", 1)]),
+            OrderedDict([("index", "2015-11-01T00:00:00.000"), ("values", 1)]),
+            OrderedDict([("index", "2016-02-01T00:00:00.000"), ("values", 1)]),
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
 
@@ -635,7 +635,7 @@ class TestTableOrient:
         )
         result = df.to_json(orient="table")
         js = json.loads(result)
-        assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000Z"
+        assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000"
         assert js["schema"]["fields"][2]["name"] == "P0DT0H0M10S"
 
     @pytest.mark.parametrize(
@@ -707,6 +707,44 @@ class TestTableOrientReader:
         out = df.to_json(orient="table")
         with pytest.raises(NotImplementedError, match="can not yet read "):
             pd.read_json(out, orient="table")
+
+    @pytest.mark.parametrize(
+        "index_nm",
+        [None, "idx", pytest.param("index", marks=pytest.mark.xfail), "level_0"],
+    )
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            {"ints": [1, 2, 3, 4]},
+            {"objects": ["a", "b", "c", "d"]},
+            {"objects": ["1", "2", "3", "4"]},
+            {"date_ranges": pd.date_range("2016-01-01", freq="d", periods=4)},
+            {"categoricals": pd.Series(pd.Categorical(["a", "b", "c", "c"]))},
+            {
+                "ordered_cats": pd.Series(
+                    pd.Categorical(["a", "b", "c", "c"], ordered=True)
+                )
+            },
+            {"floats": [1.0, 2.0, 3.0, 4.0]},
+            {"floats": [1.1, 2.2, 3.3, 4.4]},
+            {"bools": [True, False, False, True]},
+            {
+                "timezones": pd.date_range(
+                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                )  # added in # GH 35973
+            },
+        ],
+    )
+    def test_read_json_table_period_orient(self, index_nm, vals, recwarn):
+        df = DataFrame(
+            vals,
+            index=pd.Index(
+                (pd.Period(f"2022Q{q}") for q in range(1, 5)), name=index_nm
+            ),
+        )
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize(
         "idx",

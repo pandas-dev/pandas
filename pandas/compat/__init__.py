@@ -7,25 +7,36 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+from __future__ import annotations
+
 import os
 import platform
 import sys
+from typing import TYPE_CHECKING
 
 from pandas._typing import F
 from pandas.compat.numpy import (
     is_numpy_dev,
-    np_version_under1p19,
-    np_version_under1p20,
+    np_version_under1p21,
 )
 from pandas.compat.pyarrow import (
     pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
+    pa_version_under5p0,
+    pa_version_under6p0,
+    pa_version_under7p0,
+    pa_version_under8p0,
+    pa_version_under9p0,
 )
+
+if TYPE_CHECKING:
+    import lzma
 
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
+PY311 = sys.version_info >= (3, 11)
 PYPY = platform.python_implementation() == "PyPy"
 IS64 = sys.maxsize > 2**32
 
@@ -115,7 +126,7 @@ def is_ci_environment() -> bool:
     return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file():
+def get_lzma_file() -> type[lzma.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -142,10 +153,14 @@ def get_lzma_file():
 
 __all__ = [
     "is_numpy_dev",
-    "np_version_under1p19",
-    "np_version_under1p20",
+    "np_version_under1p21",
     "pa_version_under1p01",
     "pa_version_under2p0",
     "pa_version_under3p0",
     "pa_version_under4p0",
+    "pa_version_under5p0",
+    "pa_version_under6p0",
+    "pa_version_under7p0",
+    "pa_version_under8p0",
+    "pa_version_under9p0",
 ]

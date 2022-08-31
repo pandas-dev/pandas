@@ -627,17 +627,17 @@ class TestReadHtml:
         )
         assert df.shape == ground_truth.shape
         old = [
-            "First Vietnamese American BankIn Vietnamese",
-            "Westernbank Puerto RicoEn Espanol",
-            "R-G Premier Bank of Puerto RicoEn Espanol",
-            "EurobankEn Espanol",
-            "Sanderson State BankEn Espanol",
-            "Washington Mutual Bank(Including its subsidiary Washington "
+            "First Vietnamese American Bank In Vietnamese",
+            "Westernbank Puerto Rico En Espanol",
+            "R-G Premier Bank of Puerto Rico En Espanol",
+            "Eurobank En Espanol",
+            "Sanderson State Bank En Espanol",
+            "Washington Mutual Bank (Including its subsidiary Washington "
             "Mutual Bank FSB)",
-            "Silver State BankEn Espanol",
-            "AmTrade International BankEn Espanol",
-            "Hamilton Bank, NAEn Espanol",
-            "The Citizens Savings BankPioneer Community Bank, Inc.",
+            "Silver State Bank En Espanol",
+            "AmTrade International Bank En Espanol",
+            "Hamilton Bank, NA En Espanol",
+            "The Citizens Savings Bank Pioneer Community Bank, Inc.",
         ]
         new = [
             "First Vietnamese American Bank",
@@ -1148,6 +1148,25 @@ class TestReadHtml:
         result = df.to_html()
         assert "2000-01-01" in result
 
+    def test_to_html_borderless(self):
+        df = DataFrame([{"A": 1, "B": 2}])
+        out_border_default = df.to_html()
+        out_border_true = df.to_html(border=True)
+        out_border_explicit_default = df.to_html(border=1)
+        out_border_nondefault = df.to_html(border=2)
+        out_border_zero = df.to_html(border=0)
+
+        out_border_false = df.to_html(border=False)
+
+        assert ' border="1"' in out_border_default
+        assert out_border_true == out_border_default
+        assert out_border_default == out_border_explicit_default
+        assert out_border_default != out_border_nondefault
+        assert ' border="2"' in out_border_nondefault
+        assert ' border="0"' not in out_border_zero
+        assert " border" not in out_border_false
+        assert out_border_zero == out_border_false
+
     @pytest.mark.parametrize(
         "displayed_only,exp0,exp1",
         [
@@ -1243,7 +1262,7 @@ class TestReadHtml:
         # Issue #17975
 
         class MockFile:
-            def __init__(self, data):
+            def __init__(self, data) -> None:
                 self.data = data
                 self.at_end = False
 
@@ -1302,3 +1321,98 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_parse_br_as_space(self):
+        # GH 29528: pd.read_html() convert <br> to space
+        result = self.read_html(
+            """
+            <table>
+                <tr>
+                    <th>A</th>
+                </tr>
+                <tr>
+                    <td>word1<br>word2</td>
+                </tr>
+            </table>
+        """
+        )[0]
+
+        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("arg", ["all", "body", "header", "footer"])
+    def test_extract_links(self, arg):
+        gh_13141_data = """
+          <table>
+            <tr>
+              <th>HTTP</th>
+              <th>FTP</th>
+              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
+            </tr>
+            <tr>
+              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
+              <td>SURROUNDING <a href="ftp://ftp.us.debian.org/">Debian</a> TEXT</td>
+              <td>Linkless</td>
+            </tr>
+            <tfoot>
+              <tr>
+                <td><a href="https://en.wikipedia.org/wiki/Page_footer">Footer</a></td>
+                <td>
+                  Multiple <a href="1">links:</a> <a href="2">Only first captured.</a>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          """
+
+        gh_13141_expected = {
+            "head_ignore": ["HTTP", "FTP", "Linkless"],
+            "head_extract": [
+                ("HTTP", None),
+                ("FTP", None),
+                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
+            ],
+            "body_ignore": ["Wikipedia", "SURROUNDING Debian TEXT", "Linkless"],
+            "body_extract": [
+                ("Wikipedia", "https://en.wikipedia.org/"),
+                ("SURROUNDING Debian TEXT", "ftp://ftp.us.debian.org/"),
+                ("Linkless", None),
+            ],
+            "footer_ignore": [
+                "Footer",
+                "Multiple links: Only first captured.",
+                None,
+            ],
+            "footer_extract": [
+                ("Footer", "https://en.wikipedia.org/wiki/Page_footer"),
+                ("Multiple links: Only first captured.", "1"),
+                None,
+            ],
+        }
+
+        data_exp = gh_13141_expected["body_ignore"]
+        foot_exp = gh_13141_expected["footer_ignore"]
+        head_exp = gh_13141_expected["head_ignore"]
+        if arg == "all":
+            data_exp = gh_13141_expected["body_extract"]
+            foot_exp = gh_13141_expected["footer_extract"]
+            head_exp = gh_13141_expected["head_extract"]
+        elif arg == "body":
+            data_exp = gh_13141_expected["body_extract"]
+        elif arg == "footer":
+            foot_exp = gh_13141_expected["footer_extract"]
+        elif arg == "header":
+            head_exp = gh_13141_expected["head_extract"]
+
+        result = self.read_html(gh_13141_data, extract_links=arg)[0]
+        expected = DataFrame([data_exp, foot_exp], columns=head_exp)
+        tm.assert_frame_equal(result, expected)
+
+    def test_extract_links_bad(self, spam_data):
+        msg = (
+            "`extract_links` must be one of "
+            '{None, "header", "footer", "body", "all"}, got "incorrect"'
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html(spam_data, extract_links="incorrect")

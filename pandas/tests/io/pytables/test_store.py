@@ -589,7 +589,6 @@ def test_store_series_name(setup_path):
         tm.assert_series_equal(recons, series)
 
 
-@pytest.mark.filterwarnings("ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning")
 def test_overwrite_node(setup_path):
 
     with ensure_clean_store(setup_path) as store:
@@ -993,7 +992,6 @@ def test_to_hdf_with_object_column_names(setup_path):
     types_should_run = [
         tm.makeStringIndex,
         tm.makeCategoricalIndex,
-        tm.makeUnicodeIndex,
     ]
 
     for index in types_should_fail:
@@ -1020,3 +1018,11 @@ def test_hdfstore_iteritems_deprecated(setup_path):
             hdf.put("table", df)
             with tm.assert_produces_warning(FutureWarning):
                 next(hdf.iteritems())
+
+
+def test_hdfstore_strides(setup_path):
+    # GH22073
+    df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+    with ensure_clean_store(setup_path) as store:
+        store.put("df", df)
+        assert df["a"].values.strides == store["df"]["a"].values.strides

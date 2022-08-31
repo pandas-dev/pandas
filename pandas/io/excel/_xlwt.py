@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 
 
 class XlwtWriter(ExcelWriter):
-    engine = "xlwt"
-    supported_extensions = (".xls",)
+    _engine = "xlwt"
+    _supported_extensions = (".xls",)
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class XlwtWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the xlwt module as the Excel writer.
         import xlwt
 

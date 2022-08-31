@@ -99,10 +99,11 @@ class TestTimedeltaAdditionSubtraction:
         assert result is NaT
 
     def test_td_add_timestamp_overflow(self):
-        msg = "int too (large|big) to convert"
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Cannot cast 259987 from D to 'ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
+        msg = "Cannot cast 259987 days, 0:00:00 to unit=ns without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
@@ -317,6 +318,26 @@ class TestTimedeltaAdditionSubtraction:
         tm.assert_numpy_array_equal(-td + other, expected)
         tm.assert_numpy_array_equal(other - td, expected)
 
+    def test_td_add_sub_ndarray_0d(self):
+        td = Timedelta("1 day")
+        other = np.array(td.asm8)
+
+        result = td + other
+        assert isinstance(result, Timedelta)
+        assert result == 2 * td
+
+        result = other + td
+        assert isinstance(result, Timedelta)
+        assert result == 2 * td
+
+        result = other - td
+        assert isinstance(result, Timedelta)
+        assert result == 0 * td
+
+        result = td - other
+        assert isinstance(result, Timedelta)
+        assert result == 0 * td
+
 
 class TestTimedeltaMultiplicationDivision:
     """
@@ -393,6 +414,20 @@ class TestTimedeltaMultiplicationDivision:
 
         result = other * td
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_td_mul_numeric_ndarray_0d(self):
+        td = Timedelta("1 day")
+        other = np.array(2)
+        assert other.ndim == 0
+        expected = Timedelta("2 days")
+
+        res = td * other
+        assert type(res) is Timedelta
+        assert res == expected
+
+        res = other * td
+        assert type(res) is Timedelta
+        assert res == expected
 
     def test_td_mul_td64_ndarray_invalid(self):
         td = Timedelta("1 day")
@@ -483,6 +518,14 @@ class TestTimedeltaMultiplicationDivision:
         result = other / td
         tm.assert_numpy_array_equal(result, expected * 4)
 
+    def test_td_div_ndarray_0d(self):
+        td = Timedelta("1 day")
+
+        other = np.array(1)
+        res = td / other
+        assert isinstance(res, Timedelta)
+        assert res == td
+
     # ---------------------------------------------------------------
     # Timedelta.__rdiv__
 
@@ -537,6 +580,13 @@ class TestTimedeltaMultiplicationDivision:
         msg = "cannot use operands with types dtype"
         with pytest.raises(TypeError, match=msg):
             arr / td
+
+    def test_td_rdiv_ndarray_0d(self):
+        td = Timedelta(10, unit="d")
+
+        arr = np.array(td.asm8)
+
+        assert arr / td == 1
 
     # ---------------------------------------------------------------
     # Timedelta.__floordiv__
@@ -988,7 +1038,7 @@ class TestTimedeltaComparison:
         """
 
         class CustomClass:
-            def __init__(self, cmp_result=None):
+            def __init__(self, cmp_result=None) -> None:
                 self.cmp_result = cmp_result
 
             def generic_result(self):

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -18,7 +19,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
         if not hasattr(data, "value_counts"):
-            pytest.skip("value_counts is not implemented")
+            pytest.skip(f"value_counts is not implemented for {type(data)}")
         sig = inspect.signature(data.value_counts)
         kwarg = sig.parameters["dropna"]
         assert kwarg.default is True
@@ -27,7 +28,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
-            other = np.array(all_data[~all_data.isna()])
+            other = all_data[~all_data.isna()]
         else:
             other = all_data
 
@@ -49,6 +50,9 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             expected = pd.Series(0.0, index=result.index)
             expected[result > 0] = 1 / len(values)
+        if na_value_for_dtype(data.dtype) is pd.NA:
+            # TODO(GH#44692): avoid special-casing
+            expected = expected.astype("Float64")
 
         self.assert_series_equal(result, expected)
 
@@ -209,7 +213,12 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel):
-        codes, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        if na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            codes, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
         expected_codes = np.array(
             [0, 0, na_sentinel, na_sentinel, 1, 1, 0, 2], dtype=np.intp
         )
@@ -220,8 +229,15 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
-        codes_1, uniques_1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
+        if na_sentinel == -1:
+            msg = "Specifying `na_sentinel=-1` is deprecated"
+        else:
+            msg = "Specifying the specific value to use for `na_sentinel` is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            codes_1, uniques_1 = pd.factorize(
+                data_for_grouping, na_sentinel=na_sentinel
+            )
+            codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
         self.assert_extension_array_equal(uniques_1, uniques_2)

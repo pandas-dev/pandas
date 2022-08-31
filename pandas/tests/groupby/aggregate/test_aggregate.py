@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import SpecificationError
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -21,7 +23,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 
 
@@ -133,7 +134,7 @@ def test_groupby_aggregation_multi_level_column():
 
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
-    grouped = ts.groupby(ts * np.nan)
+    grouped = ts.groupby(ts * np.nan, group_keys=False)
     assert ts.dtype == np.float64
 
     # groupby float64 values results in Float64Index
@@ -143,7 +144,7 @@ def test_agg_apply_corner(ts, tsframe):
     tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
 
     # DataFrame
-    grouped = tsframe.groupby(tsframe["A"] * np.nan)
+    grouped = tsframe.groupby(tsframe["A"] * np.nan, group_keys=False)
     exp_df = DataFrame(
         columns=tsframe.columns,
         dtype=float,
@@ -238,7 +239,10 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
         [[1, 2, 3, 4, 5, 6]] * 3,
         columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
     ).astype({("a", "j"): dtype, ("b", "j"): dtype})
-    result = df.groupby(level=1, axis=1).agg(func)
+    warn = FutureWarning if func == "std" else None
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.groupby(level=1, axis=1).agg(func)
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
@@ -262,7 +266,10 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
         columns=Index([10, 20, 10, 20], name="x"),
         dtype="int64",
     ).astype({10: "Int64"})
-    result = df.groupby("x", axis=1).agg(func)
+    warn = FutureWarning if func == "std" else None
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.groupby("x", axis=1).agg(func)
     expected = DataFrame(
         data=expected_data,
         index=Index([0, 1, 0], name="y"),
@@ -555,6 +562,22 @@ def test_order_aggregate_multiple_funcs():
     expected = Index(["sum", "max", "mean", "ohlc", "min"])
 
     tm.assert_index_equal(result, expected)
+
+
+def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
+    # GH#37493
+    df = DataFrame(
+        {"a": [1, 1, 2, 3, 4, 4], "b": [22, 11, pd.NA, 10, 20, pd.NA]},
+        dtype=any_numeric_ea_dtype,
+    )
+    result = df.groupby("a").ohlc()
+    expected = DataFrame(
+        [[22, 22, 11, 11], [pd.NA] * 4, [10] * 4, [20] * 4],
+        columns=MultiIndex.from_product([["b"], ["open", "high", "low", "close"]]),
+        index=Index([1, 2, 3, 4], dtype=any_numeric_ea_dtype, name="a"),
+        dtype=any_numeric_ea_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
@@ -914,7 +937,7 @@ def test_groupby_aggregate_empty_key_empty_return():
 def test_groupby_aggregate_empty_with_multiindex_frame():
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
-    result = df.groupby(["a", "b"]).agg(d=("c", list))
+    result = df.groupby(["a", "b"], group_keys=False).agg(d=("c", list))
     expected = DataFrame(
         columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
     )
@@ -1325,11 +1348,13 @@ def test_groupby_aggregate_directory(reduction_func):
     # GH#32793
     if reduction_func in ["corrwith", "nth"]:
         return None
+    warn = FutureWarning if reduction_func == "mad" else None
 
     obj = DataFrame([[0, 1], [0, np.nan]])
 
-    result_reduced_series = obj.groupby(0).agg(reduction_func)
-    result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result_reduced_series = obj.groupby(0).agg(reduction_func)
+        result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
 
     if reduction_func in ["size", "ngroup"]:
         # names are different: None / 1
@@ -1393,3 +1418,39 @@ def test_groupby_complex_raises(func):
     msg = "No matching signature found"
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
+
+
+@pytest.mark.parametrize(
+    "func", [["min"], ["mean", "max"], {"b": "sum"}, {"b": "prod", "c": "median"}]
+)
+def test_multi_axis_1_raises(func):
+    # GH#46995
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
+    gb = df.groupby("a", axis=1)
+    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
+        gb.agg(func)
+
+
+@pytest.mark.parametrize(
+    "test, constant",
+    [
+        ([[20, "A"], [20, "B"], [10, "C"]], {0: [10, 20], 1: ["C", ["A", "B"]]}),
+        ([[20, "A"], [20, "B"], [30, "C"]], {0: [20, 30], 1: [["A", "B"], "C"]}),
+        ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], {0: ["a", "b"], 1: [1, [2, 3]]}),
+        pytest.param(
+            [["a", 1], ["a", 2], ["b", 3], ["b", 3]],
+            {0: ["a", "b"], 1: [[1, 2], 3]},
+            marks=pytest.mark.xfail,
+        ),
+    ],
+)
+def test_agg_of_mode_list(test, constant):
+    # GH#25581
+    df1 = DataFrame(test)
+    result = df1.groupby(0).agg(Series.mode)
+    # Mode usually only returns 1 value, but can return a list in the case of a tie.
+
+    expected = DataFrame(constant)
+    expected = expected.set_index(0)
+
+    tm.assert_frame_equal(result, expected)

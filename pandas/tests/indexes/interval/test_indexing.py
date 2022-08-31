@@ -8,6 +8,7 @@ from pandas.errors import InvalidIndexError
 from pandas import (
     NA,
     CategoricalIndex,
+    DatetimeIndex,
     Index,
     Interval,
     IntervalIndex,
@@ -15,7 +16,11 @@ from pandas import (
     NaT,
     Series,
     Timedelta,
+    Timestamp,
+    array,
     date_range,
+    interval_range,
+    period_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -298,6 +303,20 @@ class TestGetIndexer:
         expected = np.array([0, 1, 2, 3, 4, 0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_datetime(self):
+        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4))
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]))
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).astype(str))
+        tm.assert_numpy_array_equal(result, expected)
+
+        # TODO this should probably be deprecated?
+        # https://github.com/pandas-dev/pandas/issues/47772
+        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).asi8)
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "tuples, closed",
         [
@@ -400,6 +419,16 @@ class TestGetIndexer:
         )
         expected = np.array([1, 4, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("box", [IntervalIndex, array, list])
+    def test_get_indexer_interval_index(self, box):
+        # GH#30178
+        rng = period_range("2022-07-01", freq="D", periods=3)
+        idx = box(interval_range(Timestamp("2022-07-01"), freq="3D", periods=3))
+
+        actual = rng.get_indexer(idx)
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(actual, expected)
 
 
 class TestSliceLocs:

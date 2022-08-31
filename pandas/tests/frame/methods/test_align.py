@@ -243,6 +243,105 @@ class TestDataFrameAlign:
         tm.assert_series_equal(res1, exp2)
         tm.assert_frame_equal(res2, exp1)
 
+    def test_multiindex_align_to_series_with_common_index_level(self):
+        #  GH-46001
+        foo_index = Index([1, 2, 3], name="foo")
+        bar_index = Index([1, 2], name="bar")
+
+        series = Series([1, 2], index=bar_index, name="foo_series")
+        df = DataFrame(
+            {"col": np.arange(6)},
+            index=pd.MultiIndex.from_product([foo_index, bar_index]),
+        )
+
+        expected_r = Series([1, 2] * 3, index=df.index, name="foo_series")
+        result_l, result_r = df.align(series, axis=0)
+
+        tm.assert_frame_equal(result_l, df)
+        tm.assert_series_equal(result_r, expected_r)
+
+    def test_multiindex_align_to_series_with_common_index_level_missing_in_left(self):
+        #  GH-46001
+        foo_index = Index([1, 2, 3], name="foo")
+        bar_index = Index([1, 2], name="bar")
+
+        series = Series(
+            [1, 2, 3, 4], index=Index([1, 2, 3, 4], name="bar"), name="foo_series"
+        )
+        df = DataFrame(
+            {"col": np.arange(6)},
+            index=pd.MultiIndex.from_product([foo_index, bar_index]),
+        )
+
+        expected_r = Series([1, 2] * 3, index=df.index, name="foo_series")
+        result_l, result_r = df.align(series, axis=0)
+
+        tm.assert_frame_equal(result_l, df)
+        tm.assert_series_equal(result_r, expected_r)
+
+    def test_multiindex_align_to_series_with_common_index_level_missing_in_right(self):
+        #  GH-46001
+        foo_index = Index([1, 2, 3], name="foo")
+        bar_index = Index([1, 2, 3, 4], name="bar")
+
+        series = Series([1, 2], index=Index([1, 2], name="bar"), name="foo_series")
+        df = DataFrame(
+            {"col": np.arange(12)},
+            index=pd.MultiIndex.from_product([foo_index, bar_index]),
+        )
+
+        expected_r = Series(
+            [1, 2, np.nan, np.nan] * 3, index=df.index, name="foo_series"
+        )
+        result_l, result_r = df.align(series, axis=0)
+
+        tm.assert_frame_equal(result_l, df)
+        tm.assert_series_equal(result_r, expected_r)
+
+    def test_multiindex_align_to_series_with_common_index_level_missing_in_both(self):
+        #  GH-46001
+        foo_index = Index([1, 2, 3], name="foo")
+        bar_index = Index([1, 3, 4], name="bar")
+
+        series = Series(
+            [1, 2, 3], index=Index([1, 2, 4], name="bar"), name="foo_series"
+        )
+        df = DataFrame(
+            {"col": np.arange(9)},
+            index=pd.MultiIndex.from_product([foo_index, bar_index]),
+        )
+
+        expected_r = Series([1, np.nan, 3] * 3, index=df.index, name="foo_series")
+        result_l, result_r = df.align(series, axis=0)
+
+        tm.assert_frame_equal(result_l, df)
+        tm.assert_series_equal(result_r, expected_r)
+
+    def test_multiindex_align_to_series_with_common_index_level_non_unique_cols(self):
+        #  GH-46001
+        foo_index = Index([1, 2, 3], name="foo")
+        bar_index = Index([1, 2], name="bar")
+
+        series = Series([1, 2], index=bar_index, name="foo_series")
+        df = DataFrame(
+            np.arange(18).reshape(6, 3),
+            index=pd.MultiIndex.from_product([foo_index, bar_index]),
+        )
+        df.columns = ["cfoo", "cbar", "cfoo"]
+
+        expected = Series([1, 2] * 3, index=df.index, name="foo_series")
+        result_left, result_right = df.align(series, axis=0)
+
+        tm.assert_series_equal(result_right, expected)
+        tm.assert_index_equal(result_left.columns, df.columns)
+
+    def test_missing_axis_specification_exception(self):
+        df = DataFrame(np.arange(50).reshape((10, 5)))
+        series = Series(np.arange(5))
+
+        with pytest.raises(ValueError, match=r"axis=0 or 1"):
+            df.align(series)
+
     def _check_align(self, a, b, axis, fill_axis, how, method, limit=None):
         aa, ab = a.align(
             b, axis=axis, join=how, method=method, limit=limit, fill_axis=fill_axis

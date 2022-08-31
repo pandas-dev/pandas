@@ -13,8 +13,9 @@ import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
-    conversion,
+    astype_overflowsafe,
 )
+from pandas.compat import PY39
 
 import pandas as pd
 from pandas import (
@@ -30,6 +31,9 @@ from pandas.core.arrays import (
     DatetimeArray,
     period_array,
 )
+
+if PY39:
+    import zoneinfo
 
 
 class TestDatetimeIndex:
@@ -517,7 +521,7 @@ class TestDatetimeIndex:
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds .* present at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
@@ -921,6 +925,9 @@ class TestTimeSeries:
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
 
+        dta = DatetimeArray(rng, freq=None)
+        assert dta.freq is None
+
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
@@ -971,7 +978,7 @@ class TestTimeSeries:
         arr = np.arange(0, 100, 10, dtype=np.int64).view("M8[D]")
         idx = Index(arr)
 
-        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
+        assert (idx.values == astype_overflowsafe(arr, dtype=np.dtype("M8[ns]"))).all()
 
     def test_constructor_int64_nocopy(self):
         # GH#1624
@@ -1128,7 +1135,15 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+_tzs = ["dateutil/Europe/London"]
+if PY39:
+    try:
+        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    except zoneinfo.ZoneInfoNotFoundError:
+        pass
+
+
+@pytest.mark.parametrize("tz", _tzs)
 @pytest.mark.parametrize(
     "ts_input,fold_out",
     [
@@ -1148,6 +1163,7 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
     result = ts.fold
     expected = fold_out
     assert result == expected
+    # TODO: belongs in Timestamp tests?
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])

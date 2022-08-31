@@ -6,7 +6,7 @@ from datetime import (
 )
 import warnings
 
-from dateutil.relativedelta import (  # noqa:F401
+from dateutil.relativedelta import (
     FR,
     MO,
     SA,
@@ -160,7 +160,7 @@ class Holiday:
         start_date=None,
         end_date=None,
         days_of_week=None,
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -393,7 +393,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
 
-    def __init__(self, name=None, rules=None):
+    def __init__(self, name=None, rules=None) -> None:
         """
         Initializes holiday object with a given set a rules.  Normally
         classes just have the rules defined within them.
@@ -582,3 +582,27 @@ def HolidayCalendarFactory(name, base, other, base_class=AbstractHolidayCalendar
     rules = AbstractHolidayCalendar.merge_class(base, other)
     calendar_class = type(name, (base_class,), {"rules": rules, "name": name})
     return calendar_class
+
+
+__all__ = [
+    "after_nearest_workday",
+    "before_nearest_workday",
+    "FR",
+    "get_calendar",
+    "HolidayCalendarFactory",
+    "MO",
+    "nearest_workday",
+    "next_monday",
+    "next_monday_or_tuesday",
+    "next_workday",
+    "previous_friday",
+    "previous_workday",
+    "register",
+    "SA",
+    "SU",
+    "sunday_to_monday",
+    "TH",
+    "TU",
+    "WE",
+    "weekend_to_monday",
+]

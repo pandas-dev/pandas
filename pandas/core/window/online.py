@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -86,7 +88,7 @@ def generate_online_numba_ewma_func(
 
 
 class EWMMeanState:
-    def __init__(self, com, adjust, ignore_na, axis, shape):
+    def __init__(self, com, adjust, ignore_na, axis, shape) -> None:
         alpha = 1.0 / (1.0 + com)
         self.axis = axis
         self.shape = shape
@@ -112,6 +114,6 @@ class EWMMeanState:
         self.last_ewm = result[-1]
         return result
 
-    def reset(self):
+    def reset(self) -> None:
         self.old_wt = np.ones(self.shape[self.axis - 1])
         self.last_ewm = None

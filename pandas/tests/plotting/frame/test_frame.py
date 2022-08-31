@@ -1,4 +1,3 @@
-""" Test cases for DataFrame.plot """
 from datetime import (
     date,
     datetime,
@@ -146,12 +145,11 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "B": [1.0, 2.0, 3.0, 4.0, 5.0],
-                "C": [7, 5, np.nan, 3, 2],
+                "B": [1, 2, 3, 4, 5],
+                "C": np.array([7, 5, np.nan, 3, 2], dtype=object),
                 "D": pd.to_datetime(dates, format="%Y").view("i8"),
                 "E": pd.to_datetime(dates, format="%Y", utc=True).view("i8"),
-            },
-            dtype=np.int64,
+            }
         )
 
         _check_plot_works(df.plot, x="A", y="B")
@@ -654,6 +652,11 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
+        with pytest.raises(TypeError, match="Specify exactly one of `s` and `size`"):
+            df.plot.scatter(x="x", y="y", s=2, size=2)
+        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
+            df.plot.scatter(x="a", y="b", c="red", color="green")
+
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -786,6 +789,27 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
+
+    def test_plot_scatter_with_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        norm = mpl.colors.LogNorm()
+        ax = df.plot.scatter(x="a", y="b", c="c", norm=norm)
+        assert ax.collections[0].norm is norm
+
+    def test_plot_scatter_without_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        ax = df.plot.scatter(x="a", y="b", c="c")
+        plot_norm = ax.collections[0].norm
+        color_min_max = (df.c.min(), df.c.max())
+        default_norm = mpl.colors.Normalize(*color_min_max)
+        for value in df.c:
+            assert plot_norm(value) == default_norm(value)
 
     @pytest.mark.slow
     def test_plot_bar(self):
@@ -1168,7 +1192,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_legend() is None
 
         ax = s.plot(legend=True)
-        assert ax.get_legend().get_texts()[0].get_text() == "None"
+        assert ax.get_legend().get_texts()[0].get_text() == ""
 
     @pytest.mark.parametrize(
         "props, expected",
@@ -1526,8 +1550,8 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
         ix = date_range("1/1/2000", periods=10, freq="M")
-        df.set_index(ix, inplace=True)
-        df_err.set_index(ix, inplace=True)
+        df = df.set_index(ix, copy=False)
+        df_err = df_err.set_index(ix, copy=False)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 
@@ -2047,6 +2071,90 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
 
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize(
+        "kind", ("line", "bar", "barh", "hist", "kde", "density", "area", "pie")
+    )
+    def test_group_subplot(self, kind):
+        d = {
+            "a": np.arange(10),
+            "b": np.arange(10) + 1,
+            "c": np.arange(10) + 1,
+            "d": np.arange(10),
+            "e": np.arange(10),
+        }
+        df = DataFrame(d)
+
+        axes = df.plot(subplots=[("b", "e"), ("c", "d")], kind=kind)
+        assert len(axes) == 3  # 2 groups + single column a
+
+        expected_labels = (["b", "e"], ["c", "d"], ["a"])
+        for ax, labels in zip(axes, expected_labels):
+            if kind != "pie":
+                self._check_legend_labels(ax, labels=labels)
+            if kind == "line":
+                assert len(ax.lines) == len(labels)
+
+    def test_group_subplot_series_notimplemented(self):
+        ser = Series(range(1))
+        msg = "An iterable subplots for a Series"
+        with pytest.raises(NotImplementedError, match=msg):
+            ser.plot(subplots=[("a",)])
+
+    def test_group_subplot_multiindex_notimplemented(self):
+        df = DataFrame(np.eye(2), columns=MultiIndex.from_tuples([(0, 1), (1, 2)]))
+        msg = "An iterable subplots for a DataFrame with a MultiIndex"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.plot(subplots=[(0, 1)])
+
+    def test_group_subplot_nonunique_cols_notimplemented(self):
+        df = DataFrame(np.eye(2), columns=["a", "a"])
+        msg = "An iterable subplots for a DataFrame with non-unique"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.plot(subplots=[("a",)])
+
+    @pytest.mark.parametrize(
+        "subplots, expected_msg",
+        [
+            (123, "subplots should be a bool or an iterable"),
+            ("a", "each entry should be a list/tuple"),  # iterable of non-iterable
+            ((1,), "each entry should be a list/tuple"),  # iterable of non-iterable
+            (("a",), "each entry should be a list/tuple"),  # iterable of strings
+        ],
+    )
+    def test_group_subplot_bad_input(self, subplots, expected_msg):
+        # Make sure error is raised when subplots is not a properly
+        # formatted iterable. Only iterables of iterables are permitted, and
+        # entries should not be strings.
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = DataFrame(d)
+
+        with pytest.raises(ValueError, match=expected_msg):
+            df.plot(subplots=subplots)
+
+    def test_group_subplot_invalid_column_name(self):
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = DataFrame(d)
+
+        with pytest.raises(ValueError, match=r"Column label\(s\) \['bad_name'\]"):
+            df.plot(subplots=[("a", "bad_name")])
+
+    def test_group_subplot_duplicated_column(self):
+        d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}
+        df = DataFrame(d)
+
+        with pytest.raises(ValueError, match="should be in only one subplot"):
+            df.plot(subplots=[("a", "b"), ("a", "c")])
+
+    @pytest.mark.parametrize("kind", ("box", "scatter", "hexbin"))
+    def test_group_subplot_invalid_kind(self, kind):
+        d = {"a": np.arange(10), "b": np.arange(10)}
+        df = DataFrame(d)
+        with pytest.raises(
+            ValueError, match="When subplots is an iterable, kind must be one of"
+        ):
+            df.plot(subplots=[("a", "b")], kind=kind)
+
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
         [
@@ -2095,6 +2203,30 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind=kind, x=xcol, y=ycol, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == (xcol if xlabel is None else xlabel)
         assert ax.get_ylabel() == (ycol if ylabel is None else ylabel)
+
+    @pytest.mark.parametrize("secondary_y", (False, True))
+    def test_secondary_y(self, secondary_y):
+        ax_df = DataFrame([0]).plot(
+            secondary_y=secondary_y, ylabel="Y", ylim=(0, 100), yticks=[99]
+        )
+        for ax in ax_df.figure.axes:
+            if ax.yaxis.get_visible():
+                assert ax.get_ylabel() == "Y"
+                assert ax.get_ylim() == (0, 100)
+                assert ax.get_yticks()[0] == 99
+
+    def test_sort_columns_deprecated(self):
+        # GH 47563
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.plot.box("a", sort_columns=True)
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.plot.box(sort_columns=False)
+
+        with tm.assert_produces_warning(False):
+            df.plot.box("a")
 
 
 def _generate_4_axes_via_gridspec():

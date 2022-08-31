@@ -40,7 +40,10 @@ A malicious user could rename or add programs with these names, tricking
 Pyperclip into running them with whatever permissions the Python process has.
 
 """
+import inspect
+
 __version__ = "1.7.0"
+
 
 import contextlib
 import ctypes
@@ -57,6 +60,12 @@ from shutil import which
 import subprocess
 import time
 import warnings
+
+from pandas.errors import (
+    PyperclipException,
+    PyperclipWindowsException,
+)
+from pandas.util._exceptions import find_stack_level
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
@@ -85,17 +94,6 @@ def _executable_exists(name):
         )
         == 0
     )
-
-
-# Exceptions
-class PyperclipException(RuntimeError):
-    pass
-
-
-class PyperclipWindowsException(PyperclipException):
-    def __init__(self, message):
-        message += f" ({ctypes.WinError()})"
-        super().__init__(message)
 
 
 def _stringifyText(text) -> str:
@@ -276,10 +274,14 @@ def init_dev_clipboard_clipboard():
         if text == "":
             warnings.warn(
                 "Pyperclip cannot copy a blank string to the clipboard on Cygwin. "
-                "This is effectively a no-op."
+                "This is effectively a no-op.",
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         if "\r" in text:
-            warnings.warn("Pyperclip cannot handle \\r characters on Cygwin.")
+            warnings.warn(
+                "Pyperclip cannot handle \\r characters on Cygwin.",
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
 
         with open("/dev/clipboard", "wt") as fd:
             fd.write(text)
@@ -305,7 +307,7 @@ def init_no_clipboard():
 
 # Windows-related clipboard functions:
 class CheckedCall:
-    def __init__(self, f):
+    def __init__(self, f) -> None:
         super().__setattr__("f", f)
 
     def __call__(self, *args):
@@ -523,7 +525,8 @@ def determine_clipboard():
         if os.path.exists("/dev/clipboard"):
             warnings.warn(
                 "Pyperclip's support for Cygwin is not perfect, "
-                "see https://github.com/asweigart/pyperclip/issues/55"
+                "see https://github.com/asweigart/pyperclip/issues/55",
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return init_dev_clipboard_clipboard()
 

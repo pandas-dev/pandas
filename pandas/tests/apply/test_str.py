@@ -80,7 +80,9 @@ def test_apply_np_transformer(float_frame, op, how):
     if op in ["log", "sqrt"]:
         warn = RuntimeWarning
 
-    with tm.assert_produces_warning(warn):
+    with tm.assert_produces_warning(warn, check_stacklevel=False):
+        # float_frame fixture is defined in conftest.py, so we don't check the
+        # stacklevel as otherwise the test would fail.
         result = getattr(float_frame, how)(op)
         expected = getattr(np, op)(float_frame)
     tm.assert_frame_equal(result, expected)
@@ -243,8 +245,12 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 
 
 @pytest.mark.parametrize("op", series_transform_kernels)
-def test_transform_groupby_kernel_series(string_series, op):
+def test_transform_groupby_kernel_series(request, string_series, op):
     # GH 35964
+    if op == "ngroup":
+        request.node.add_marker(
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
+        )
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     op = maybe_normalize_deprecated_kernels(op)
     args = [0.0] if op == "fillna" else []
@@ -255,9 +261,15 @@ def test_transform_groupby_kernel_series(string_series, op):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel_frame(axis, float_frame, op):
+def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     op = maybe_normalize_deprecated_kernels(op)
+
+    if op == "ngroup":
+        request.node.add_marker(
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
+        )
+
     # GH 35964
 
     args = [0.0] if op == "fillna" else []

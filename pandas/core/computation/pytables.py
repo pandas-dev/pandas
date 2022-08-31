@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -12,7 +15,7 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 from pandas._typing import npt
-from pandas.compat.chainmap import DeepChainMap
+from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -24,10 +27,7 @@ from pandas.core.computation import (
 )
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import (
-    UndefinedVariableError,
-    is_term,
-)
+from pandas.core.computation.ops import is_term
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 
@@ -35,6 +35,9 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
+
+if TYPE_CHECKING:
+    from pandas.compat.chainmap import DeepChainMap
 
 
 class PyTablesScope(_scope.Scope):
@@ -48,7 +51,7 @@ class PyTablesScope(_scope.Scope):
         global_dict=None,
         local_dict=None,
         queryables: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or {}
 
@@ -63,7 +66,7 @@ class Term(ops.Term):
             klass = Constant
         return object.__new__(klass)
 
-    def __init__(self, name, env: PyTablesScope, side=None, encoding=None):
+    def __init__(self, name, env: PyTablesScope, side=None, encoding=None) -> None:
         super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
@@ -87,7 +90,7 @@ class Term(ops.Term):
 
 
 class Constant(Term):
-    def __init__(self, value, env: PyTablesScope, side=None, encoding=None):
+    def __init__(self, value, env: PyTablesScope, side=None, encoding=None) -> None:
         assert isinstance(env, PyTablesScope), type(env)
         super().__init__(value, env, side=side, encoding=encoding)
 
@@ -103,7 +106,7 @@ class BinOp(ops.BinOp):
     queryables: dict[str, Any]
     condition: str | None
 
-    def __init__(self, op: str, lhs, rhs, queryables: dict[str, Any], encoding):
+    def __init__(self, op: str, lhs, rhs, queryables: dict[str, Any], encoding) -> None:
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
@@ -407,7 +410,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
     const_type = Constant
     term_type = Term
 
-    def __init__(self, env, engine, parser, **kwargs):
+    def __init__(self, env, engine, parser, **kwargs) -> None:
         super().__init__(env, engine, parser)
         for bin_op in self.binary_ops:
             bin_node = self.binary_op_nodes_map[bin_op]
@@ -552,7 +555,7 @@ class PyTablesExpr(expr.Expr):
         queryables: dict[str, Any] | None = None,
         encoding=None,
         scope_level: int = 0,
-    ):
+    ) -> None:
 
         where = _validate_where(where)
 
@@ -563,7 +566,7 @@ class PyTablesExpr(expr.Expr):
         self._visitor = None
 
         # capture the environment if needed
-        local_dict: DeepChainMap[Any, Any] = DeepChainMap()
+        local_dict: DeepChainMap[Any, Any] | None = None
 
         if isinstance(where, PyTablesExpr):
             local_dict = where.env.scope
@@ -624,7 +627,7 @@ class PyTablesExpr(expr.Expr):
 class TermValue:
     """hold a term value the we use to construct a condition/filter"""
 
-    def __init__(self, value, converted, kind: str):
+    def __init__(self, value, converted, kind: str) -> None:
         assert isinstance(kind, str), kind
         self.value = value
         self.converted = converted

@@ -9,6 +9,7 @@ from typing import (
     Hashable,
     Iterable,
     Sequence,
+    cast,
 )
 import warnings
 
@@ -22,7 +23,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
     IndexKeyFunc,
+    Level,
+    NaPosition,
     Shape,
+    SortKind,
     npt,
 )
 
@@ -47,10 +51,10 @@ if TYPE_CHECKING:
 
 def get_indexer_indexer(
     target: Index,
-    level: str | int | list[str] | list[int],
-    ascending: Sequence[bool | int] | bool | int,
-    kind: str,
-    na_position: str,
+    level: Level | list[Level] | None,
+    ascending: Sequence[bool] | bool,
+    kind: SortKind,
+    na_position: NaPosition,
     sort_remaining: bool,
     key: IndexKeyFunc,
 ) -> npt.NDArray[np.intp] | None:
@@ -92,8 +96,12 @@ def get_indexer_indexer(
         ):
             return None
 
+        # ascending can only be a Sequence for MultiIndex
         indexer = nargsort(
-            target, kind=kind, ascending=ascending, na_position=na_position
+            target,
+            kind=kind,
+            ascending=cast(bool, ascending),
+            na_position=na_position,
         )
     return indexer
 

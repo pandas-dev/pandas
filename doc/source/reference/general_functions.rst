@@ -23,6 +23,7 @@ Data manipulations
    merge_asof
    concat
    get_dummies
+   from_dummies
    factorize
    unique
    wide_to_long
@@ -78,3 +79,10 @@ Hashing
 
    util.hash_array
    util.hash_pandas_object
+
+Importing from other DataFrame libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   api.interchange.from_dataframe

@@ -763,7 +763,8 @@ def test_read_procedure(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", postgresql_connectable)
-def test_copy_from_callable_insertion_method(conn, request):
+@pytest.mark.parametrize("expected_count", [2, "Success!"])
+def test_copy_from_callable_insertion_method(conn, expected_count, request):
     # GH 8953
     # Example in io.rst found under _io.sql.method
     # not available in sqlite, mysql
@@ -784,16 +785,24 @@ def test_copy_from_callable_insertion_method(conn, request):
 
             sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
             cur.copy_expert(sql=sql_query, file=s_buf)
+        return expected_count
 
     conn = request.getfixturevalue(conn)
     expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
-    expected.to_sql("test_frame", conn, index=False, method=psql_insert_copy)
+    result_count = expected.to_sql(
+        "test_frame", conn, index=False, method=psql_insert_copy
+    )
+    # GH 46891
+    if not isinstance(expected_count, int):
+        assert result_count is None
+    else:
+        assert result_count == expected_count
     result = sql.read_sql_table("test_frame", conn)
     tm.assert_frame_equal(result, expected)
 
 
 class MixInBase:
-    def teardown_method(self, method):
+    def teardown_method(self):
         # if setup fails, there may not be a connection to close.
         if hasattr(self, "conn"):
             for tbl in self._get_all_tables():
@@ -1063,7 +1072,7 @@ class PandasSQLTest:
         assert self.pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
         result = self.pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
-        result.set_index("level_0", inplace=True)
+        result = result.set_index("level_0", copy=False)
         # result.index.astype(int)
 
         result.index.name = None
@@ -1242,7 +1251,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # HACK!
         result.index = test_frame1.index
-        result.set_index("level_0", inplace=True)
+        result = result.set_index("level_0", copy=False)
         result.index.astype(int)
         result.index.name = None
         tm.assert_frame_equal(result, test_frame1)
@@ -1861,7 +1870,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         self,
     ):
         class MockSqliteConnection:
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 self.conn = sqlite3.Connection(*args, **kwargs)
 
             def __getattr__(self, name):
@@ -2066,7 +2075,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # MySQL SHOULD be converted.
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
-    def test_datetime_with_timezone(self):
+    def test_datetime_with_timezone(self, request):
         # edge case that converts postgresql datetime with time zone types
         # to datetime64[ns,psycopg2.tz.FixedOffsetTimezone..], which is ok
         # but should be more natural, so coerce to datetime64[ns] for now
@@ -2107,7 +2116,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # GH11216
         df = read_sql_query("select * from types", self.conn)
         if not hasattr(df, "DateColWithTz"):
-            pytest.skip("no column with datetime with time zone")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="no column with datetime with time zone")
+            )
 
         # this is parsed on Travis (linux), but not on macosx for some reason
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
@@ -2119,7 +2130,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             "select * from types", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
-            pytest.skip("no column with datetime with time zone")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="no column with datetime with time zone")
+            )
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
         assert str(col.dt.tz) == "UTC"
@@ -2622,8 +2635,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
 
 class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
+    @pytest.mark.xfail(reason="Nested transactions rollbacks don't work with Pandas")
     def test_transactions(self):
-        pytest.skip("Nested transactions rollbacks don't work with Pandas")
+        super().test_transactions()
 
 
 class _TestSQLiteAlchemy:
@@ -2937,9 +2951,17 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         elif self.flavor == "mysql":
             tm.assert_frame_equal(res, df)
 
-    def test_datetime_time(self):
+    @pytest.mark.parametrize("tz_aware", [False, True])
+    def test_datetime_time(self, tz_aware):
         # test support for datetime.time, GH #8341
-        df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
+        if not tz_aware:
+            tz_times = [time(9, 0, 0), time(9, 1, 30)]
+        else:
+            tz_dt = date_range("2013-01-01 09:00:00", periods=2, tz="US/Pacific")
+            tz_times = Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
+
+        df = DataFrame(tz_times, columns=["a"])
+
         assert df.to_sql("test_time", self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":

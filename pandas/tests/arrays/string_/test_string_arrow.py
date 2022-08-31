@@ -59,7 +59,7 @@ def test_constructor_not_string_type_raises(array, chunked):
             pytest.skip("chunked not applicable to numpy array")
         arr = pa.chunked_array(arr)
     if array is np:
-        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
+        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
             "ArrowStringArray requires a PyArrow (chunked) array of string type"
@@ -122,7 +122,7 @@ def test_from_sequence_wrong_dtype_raises():
     reason="pyarrow is installed",
 )
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed StringArray")
+    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")
@@ -132,3 +132,68 @@ def test_pyarrow_not_installed_raises():
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])
+
+
+@skip_if_no_pyarrow
+@pytest.mark.parametrize("multiple_chunks", [False, True])
+@pytest.mark.parametrize(
+    "key, value, expected",
+    [
+        (-1, "XX", ["a", "b", "c", "d", "XX"]),
+        (1, "XX", ["a", "XX", "c", "d", "e"]),
+        (1, None, ["a", None, "c", "d", "e"]),
+        (1, pd.NA, ["a", None, "c", "d", "e"]),
+        ([1, 3], "XX", ["a", "XX", "c", "XX", "e"]),
+        ([1, 3], ["XX", "YY"], ["a", "XX", "c", "YY", "e"]),
+        ([1, 3], ["XX", None], ["a", "XX", "c", None, "e"]),
+        ([1, 3], ["XX", pd.NA], ["a", "XX", "c", None, "e"]),
+        ([0, -1], ["XX", "YY"], ["XX", "b", "c", "d", "YY"]),
+        ([-1, 0], ["XX", "YY"], ["YY", "b", "c", "d", "XX"]),
+        (slice(3, None), "XX", ["a", "b", "c", "XX", "XX"]),
+        (slice(2, 4), ["XX", "YY"], ["a", "b", "XX", "YY", "e"]),
+        (slice(3, 1, -1), ["XX", "YY"], ["a", "b", "YY", "XX", "e"]),
+        (slice(None), "XX", ["XX", "XX", "XX", "XX", "XX"]),
+        ([False, True, False, True, False], ["XX", "YY"], ["a", "XX", "c", "YY", "e"]),
+    ],
+)
+def test_setitem(multiple_chunks, key, value, expected):
+    import pyarrow as pa
+
+    result = pa.array(list("abcde"))
+    expected = pa.array(expected)
+
+    if multiple_chunks:
+        result = pa.chunked_array([result[:3], result[3:]])
+        expected = pa.chunked_array([expected[:3], expected[3:]])
+
+    result = ArrowStringArray(result)
+    expected = ArrowStringArray(expected)
+
+    result[key] = value
+    tm.assert_equal(result, expected)
+    assert result._data.num_chunks == expected._data.num_chunks
+
+
+@skip_if_no_pyarrow
+def test_setitem_invalid_indexer_raises():
+    import pyarrow as pa
+
+    arr = ArrowStringArray(pa.array(list("abcde")))
+
+    with pytest.raises(IndexError, match=None):
+        arr[5] = "foo"
+
+    with pytest.raises(IndexError, match=None):
+        arr[-6] = "foo"
+
+    with pytest.raises(IndexError, match=None):
+        arr[[0, 5]] = "foo"
+
+    with pytest.raises(IndexError, match=None):
+        arr[[0, -6]] = "foo"
+
+    with pytest.raises(IndexError, match=None):
+        arr[[True, True, False]] = "foo"
+
+    with pytest.raises(ValueError, match=None):
+        arr[[0, 1]] = ["foo", "bar", "baz"]

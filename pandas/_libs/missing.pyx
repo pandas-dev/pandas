@@ -2,8 +2,8 @@ from decimal import Decimal
 import numbers
 from sys import maxsize
 
-import cython
-from cython import Py_ssize_t
+cimport cython
+from cython cimport Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
