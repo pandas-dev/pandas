@@ -490,6 +490,18 @@ class TestAstype:
 
         df.astype(np.int8, errors="ignore")
 
+    def test_astype_invalid_conversion(self):
+        # GH#47571
+        df = DataFrame({"a": [1, 2, "text"], "b": [1, 2, 3]})
+
+        msg = (
+            "Error during type conversion for column a: "
+            "invalid literal for int() with base 10: 'text' "
+        )
+
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            df.astype({"a": int})
+
     def test_astype_arg_for_errors_dictlist(self):
         # GH#25905
         df = DataFrame(
