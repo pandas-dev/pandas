@@ -3,9 +3,11 @@ import string
 import numpy as np
 
 from pandas import (
+    NA,
     DataFrame,
     MultiIndex,
     RangeIndex,
+    Series,
     date_range,
 )
 
@@ -253,6 +255,33 @@ class SetOperations:
 
     def time_operation(self, index_structure, dtype, method):
         getattr(self.left, method)(self.right)
+
+
+class Unique:
+    params = [
+        (("Int64", NA), ("int64", 0)),
+    ]
+    param_names = ["dtype_val"]
+
+    def setup(self, dtype_val):
+        level = Series(
+            [1, 2, dtype_val[1], dtype_val[1]] + list(range(1_000_000)),
+            dtype=dtype_val[0],
+        )
+        self.midx = MultiIndex.from_arrays([level, level])
+
+        level_dups = Series(
+            [1, 2, dtype_val[1], dtype_val[1]] + list(range(500_000)) * 2,
+            dtype=dtype_val[0],
+        )
+
+        self.midx_dups = MultiIndex.from_arrays([level_dups, level_dups])
+
+    def time_unique(self, dtype_val):
+        self.midx.unique()
+
+    def time_unique_dups(self, dtype_val):
+        self.midx_dups.unique()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
