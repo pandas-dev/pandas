@@ -1060,6 +1060,7 @@ Indexing
 - Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
 - Bug in :meth:`DataFrame.__setitem__` casting extension array dtypes to object when setting with a scalar key and :class:`DataFrame` as value (:issue:`46896`)
+- Bug in :meth:`Series.__setitem__` when setting a scalar to a nullable pandas dtype would not raise a ``TypeError`` if the scalar could not be cast (losslessly) to the nullable type (:issue:`45404`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.loc` raising with boolean indexer containing ``NA`` when :class:`Index` did not match (:issue:`46551`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
