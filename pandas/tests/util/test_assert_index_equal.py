@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalIndex,
     Index,
     MultiIndex,
-    NA,
     NaT,
     RangeIndex,
 )
