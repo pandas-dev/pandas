@@ -194,30 +194,10 @@ Doing 'git status' again should give something like::
     #       modified:   /relative/path/to/file-you-added.py
     #
 
-Finally, commit your changes to your local repository with an explanatory message. pandas
-uses a convention for commit message prefixes and layout.  Here are
-some common prefixes along with general guidelines for when to use them:
+Finally, commit your changes to your local repository with an explanatory commit
+message::
 
-* ENH: Enhancement, new functionality
-* BUG: Bug fix
-* DOC: Additions/updates to documentation
-* TST: Additions/updates to tests
-* BLD: Updates to the build process/scripts
-* PERF: Performance improvement
-* TYP: Type annotations
-* CLN: Code cleanup
-
-The following defines how a commit message should be structured.  Please reference the
-relevant GitHub issues in your commit message using GH1234 or #1234.  Either style
-is fine, but the former is generally preferred:
-
-* a subject line with ``< 80`` chars.
-* One blank line.
-* Optionally, a commit message body.
-
-Now you can commit your changes in your local repository::
-
-    git commit -m
+    git commit -m "your commit message goes here"
 
 .. _contributing.push-code:
 
@@ -262,16 +242,28 @@ double check your branch changes against the branch it was based on:
 Finally, make the pull request
 ------------------------------
 
-If everything looks good, you are ready to make a pull request.  A pull request is how
+If everything looks good, you are ready to make a pull request. A pull request is how
 code from a local repository becomes available to the GitHub community and can be looked
-at and eventually merged into the main version.  This pull request and its associated
+at and eventually merged into the main version. This pull request and its associated
 changes will eventually be committed to the main branch and available in the next
-release.  To submit a pull request:
+release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
-#. Click on the ``Pull Request`` button
+#. Click on the ``Compare & pull request`` button
 #. You can then click on ``Commits`` and ``Files Changed`` to make sure everything looks
    okay one last time
+#. Write a descriptive title that includes prefixes. pandas uses a convention for title
+   prefixes. Here are some common ones along with general guidelines for when to use them:
+
+    * ENH: Enhancement, new functionality
+    * BUG: Bug fix
+    * DOC: Additions/updates to documentation
+    * TST: Additions/updates to tests
+    * BLD: Updates to the build process/scripts
+    * PERF: Performance improvement
+    * TYP: Type annotations
+    * CLN: Code cleanup
+
 #. Write a description of your changes in the ``Preview Discussion`` tab
 #. Click ``Send Pull Request``.
 
