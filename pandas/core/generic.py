@@ -5346,7 +5346,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and level is None
             and not self._is_mixed_type
             and not (
-                len(self.dtypes) == 1 and is_extension_array_dtype(self.dtypes.iloc[0])
+                self.ndim == 2
+                and len(self.dtypes) == 1
+                and is_extension_array_dtype(self.dtypes.iloc[0])
             )
         )
 
