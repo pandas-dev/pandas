@@ -363,11 +363,8 @@ class BaseArrayManager(DataManager):
         )
 
     def diff(self: T, n: int, axis: int) -> T:
-        if axis == 1:
-            # DataFrame only calls this for n=0, in which case performing it
-            # with axis=0 is equivalent
-            assert n == 0
-            axis = 0
+        axis = self._normalize_axis(axis)
+        # Only reached with self.ndim == 2 and (normalized) axis == 0
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self: T, **kwargs) -> T:

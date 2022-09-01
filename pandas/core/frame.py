@@ -9241,8 +9241,14 @@ Parrot 2  Parrot       24.0
             periods = int(periods)
 
         axis = self._get_axis_number(axis)
-        if axis == 1 and periods != 0:
-            return self - self.shift(periods, axis=axis)
+        if axis == 1:
+            if periods != 0:
+                # in the periods == 0 case, this is equivalent diff of 0 periods
+                #  along axis=0, and the Manager method may be somewhat more
+                #  performant, so we dispatch in that case.
+                return self - self.shift(periods, axis=axis)
+            # With periods=0 this is equivalent to a diff with axis=0
+            axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
