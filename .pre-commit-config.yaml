@@ -18,11 +18,11 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 22.6.0
+    rev: 22.8.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.1.0
+    rev: v2.2.1
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
@@ -36,7 +36,7 @@ repos:
     -   id: trailing-whitespace
         stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg, post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
-    rev: 1.6.0
+    rev: 1.6.1
     hooks:
     -   id: cpplint
         # We don't lint all C files because we don't want to lint any that are built
@@ -77,7 +77,7 @@ repos:
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
-    rev: v1.3.0
+    rev: v1.4.0
     hooks:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies
