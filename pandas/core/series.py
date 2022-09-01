@@ -326,6 +326,10 @@ class Series(base.IndexOpsMixin, NDFrame):
         | frozenset(["compress", "ptp"])
     )
 
+    # similar to __array_priority__, positions Series after DataFrame
+    #  but before Index and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 3000
+
     # Override cache_readonly bc Series is mutable
     # error: Incompatible types in assignment (expression has type "property",
     # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")

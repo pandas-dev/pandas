@@ -242,6 +242,12 @@ class ExtensionArray:
     # Don't override this.
     _typ = "extension"
 
+    # similar to __array_priority__, positions ExtensionArray after Index,
+    #  Series, and DataFrame.  EA subclasses may override to choose which EA
+    #  subclass takes priority. If overriding, the value should always be
+    #  strictly less than 2000 to be below Index.__pandas_priority__.
+    __pandas_priority__ = 1000
+
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------

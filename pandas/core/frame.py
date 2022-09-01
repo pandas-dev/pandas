@@ -597,6 +597,10 @@ class DataFrame(NDFrame, OpsMixin):
     _hidden_attrs: frozenset[str] = NDFrame._hidden_attrs | frozenset([])
     _mgr: BlockManager | ArrayManager
 
+    # similar to __array_priority__, positions DataFrame before Series, Index,
+    #  and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 4000
+
     @property
     def _constructor(self) -> Callable[..., DataFrame]:
         return DataFrame

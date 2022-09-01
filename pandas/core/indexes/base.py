@@ -333,6 +333,10 @@ class Index(IndexOpsMixin, PandasObject):
     # To hand over control to subclasses
     _join_precedence = 1
 
+    # similar to __array_priority__, positions Index after Series and DataFrame
+    #  but before ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 2000
+
     # Cython methods; see github.com/cython/cython/issues/2647
     #  for why we need to wrap these instead of making them class attributes
     # Moreover, cython will choose the appropriate-dtyped sub-function
