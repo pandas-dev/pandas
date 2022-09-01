@@ -131,7 +131,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-- Bug in :meth:`DataFrame.add` array ufuncs with more than 2 inputs fails or more  (:issue:`39853`)
+- Bug in :meth:`DataFrame.add` cannot apply ufunc add inputs are mixed with type DataFrame and type Series (:issue:`39853`)
 -
 
 Conversion
