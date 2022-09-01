@@ -131,7 +131,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-- Bug in :meth:`DataFrame.add` cannot apply ufunc add when inputs are mixed with type DataFrame and type Series (:issue:`39853`)
+- Bug in cannot apply array ufunc operation when inputs are mixed with type DataFrame and type Series (:issue:`39853`)
 -
 
 Conversion
