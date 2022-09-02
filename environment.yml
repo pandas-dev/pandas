@@ -45,7 +45,7 @@ dependencies:
   - pytables
   - python-snappy
   - pyxlsb
-  - s3fs>=2021.05.0
+  - s3fs>=2021.08.0
   - scipy
   - sqlalchemy
   - tabulate
@@ -129,5 +129,5 @@ dependencies:
   # build the interactive terminal
   - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b10
+      - jupyterlite==0.1.0b12
       - sphinx-toggleprompt

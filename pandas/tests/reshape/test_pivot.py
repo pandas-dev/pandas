@@ -480,9 +480,11 @@ class TestPivotTable:
             }
         )
         if method:
-            result = df.pivot("a", "b", "c")
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.pivot("a", columns="b", values="c")
         else:
-            result = pd.pivot(df, "a", "b", "c")
+            with tm.assert_produces_warning(FutureWarning):
+                result = pd.pivot(df, "a", columns="b", values="c")
         expected = DataFrame(
             [
                 [nan, nan, 17, nan],
@@ -494,7 +496,7 @@ class TestPivotTable:
             columns=Index(["C1", "C2", "C3", "C4"], name="b"),
         )
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(df.pivot("b", "a", "c"), expected.T)
+        tm.assert_frame_equal(df.pivot(index="b", columns="a", values="c"), expected.T)
 
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_index_with_nan_dates(self, method):
@@ -510,18 +512,18 @@ class TestPivotTable:
         df.loc[1, "b"] = df.loc[4, "b"] = np.nan
 
         if method:
-            pv = df.pivot("a", "b", "c")
+            pv = df.pivot(index="a", columns="b", values="c")
         else:
-            pv = pd.pivot(df, "a", "b", "c")
+            pv = pd.pivot(df, index="a", columns="b", values="c")
         assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row["a"], row["b"]] == row["c"]
 
         if method:
-            result = df.pivot("b", "a", "c")
+            result = df.pivot(index="b", columns="a", values="c")
         else:
-            result = pd.pivot(df, "b", "a", "c")
+            result = pd.pivot(df, index="b", columns="a", values="c")
         tm.assert_frame_equal(result, pv.T)
 
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
@@ -2275,11 +2277,11 @@ class TestPivot:
             }
         )
         with pytest.raises(ValueError, match="duplicate entries"):
-            data.pivot("a", "b", "c")
+            data.pivot(index="a", columns="b", values="c")
 
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
-        result = df.pivot("a", "b", "c")
+        result = df.pivot(index="a", columns="b", values="c")
         expected = DataFrame()
         tm.assert_frame_equal(result, expected, check_names=False)
 
