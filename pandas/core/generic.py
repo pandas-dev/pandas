@@ -5345,6 +5345,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and method is None
             and level is None
             and not self._is_mixed_type
+            and not (
+                self.ndim == 2
+                and len(self.dtypes) == 1
+                and is_extension_array_dtype(self.dtypes.iloc[0])
+            )
         )
 
     def _reindex_multi(self, axes, copy, fill_value):
