@@ -5345,6 +5345,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and method is None
             and level is None
             and not self._is_mixed_type
+            and not (
+                self.ndim == 2
+                and len(self.dtypes) == 1
+                and is_extension_array_dtype(self.dtypes.iloc[0])
+            )
         )
 
     def _reindex_multi(self, axes, copy, fill_value):
@@ -6885,14 +6890,48 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if not is_dict
                         else downcast.get(k)  # type: ignore[union-attr]
                     )
-                    # GH47649
-                    result.loc[:, k] = (
-                        result[k].fillna(v, limit=limit, downcast=downcast_k).values
-                    )
-                    # TODO: result.loc[:, k] = result.loc[:, k].fillna(
-                    #     v, limit=limit, downcast=downcast_k
-                    # )
-                    # Revert when GH45751 is fixed
+
+                    res_k = result[k].fillna(v, limit=limit, downcast=downcast_k)
+
+                    if not inplace:
+                        result[k] = res_k
+                    else:
+                        # We can write into our existing column(s) iff dtype
+                        #  was preserved.
+                        if isinstance(res_k, ABCSeries):
+                            # i.e. 'k' only shows up once in self.columns
+                            if res_k.dtype == result[k].dtype:
+                                result.loc[:, k] = res_k
+                            else:
+                                # Different dtype -> no way to do inplace.
+                                result[k] = res_k
+                        else:
+                            # see test_fillna_dict_inplace_nonunique_columns
+                            locs = result.columns.get_loc(k)
+                            if isinstance(locs, slice):
+                                locs = np.arange(self.shape[1])[locs]
+                            elif (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "b"
+                            ):
+                                locs = locs.nonzero()[0]
+                            elif not (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
+                            ):
+                                # Should never be reached, but let's cover our bases
+                                raise NotImplementedError(
+                                    "Unexpected get_loc result, please report a bug at "
+                                    "https://github.com/pandas-dev/pandas"
+                                )
+
+                            for i, loc in enumerate(locs):
+                                res_loc = res_k.iloc[:, i]
+                                target = self.iloc[:, loc]
+
+                                if res_loc.dtype == target.dtype:
+                                    result.iloc[:, loc] = res_loc
+                                else:
+                                    result.isetitem(loc, res_loc)
+
                 return result if not inplace else None
 
             elif not is_list_like(value):
