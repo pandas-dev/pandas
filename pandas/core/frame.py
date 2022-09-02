@@ -4816,30 +4816,36 @@ class DataFrame(NDFrame, OpsMixin):
         r"""
         Assign new columns to a DataFrame.
 
-        Returns a new object with all original columns in addition to new ones.
-        Existing columns that are re-assigned will be overwritten.
+        Returns a new DataFrame with new columns in addition to all original
+        ones. Existing columns that are re-assigned will be overwritten.
 
         Parameters
         ----------
         **kwargs : dict of {str: callable or Series}
-            The column names are keywords. If the values are
-            callable, they are computed on the DataFrame and
-            assigned to the new columns. The callable must not
-            change input DataFrame (though pandas doesn't check it).
+            The keywords are used as column names. If the values are callable,
+            they are computed on the DataFrame and assigned to the new columns.
+            The callable must not change the input DataFrame (though pandas
+            doesn't check it).
+
+            ``df.assign(A=func)`` is similar to ``df['A'] = func(df)``, but it
+            returns a copy and does not modify the original DataFrame ``df``.
+
             If the values are not callable, (e.g. a Series, scalar, or array),
             they are simply assigned.
+
+            ``df.assign(A=val)`` is similar to ``df['A'] = val``, but it
+            returns a copy and does not modify the original DataFrame ``df``.
+
+            Multiple keywords can be used to assign multiple columns within one
+            ``assign()`` call. The columns are computed and assigned to the new
+            DataFrame in the given order. Later callables in ``**kwargs`` may
+            refer to newly created or modified columns.
 
         Returns
         -------
         DataFrame
             A new DataFrame with the new columns in addition to
             all the existing columns.
-
-        Notes
-        -----
-        Assigning multiple columns within the same ``assign`` is possible.
-        Later items in '\*\*kwargs' may refer to newly created or modified
-        columns in 'df'; items are computed and assigned into 'df' in order.
 
         Examples
         --------
