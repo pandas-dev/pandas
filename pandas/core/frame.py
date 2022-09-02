@@ -4206,8 +4206,20 @@ class DataFrame(NDFrame, OpsMixin):
                 icol = col
                 iindex = cast(int, index)
             else:
-                icol = self.columns.get_loc(col)
-                iindex = self.index.get_loc(index)
+                exception = None
+                try:
+                    icol = self.columns.get_loc(col)
+                except (KeyError, TypeError, ValueError) as e:
+                    exception = e
+
+                try:
+                    iindex = self.index.get_loc(index)
+                except (KeyError, TypeError, ValueError) as e:
+                    exception = e
+
+                if exception is not None:
+                    raise exception
+
             self._mgr.column_setitem(icol, iindex, value)
             self._clear_item_cache()
 

@@ -214,6 +214,13 @@ class TestAtErrors:
         with pytest.raises(InvalidIndexError, match=r"slice\(None, None, None\)"):
             df.at[5] = [6, 7]
 
+    def test_at_frame_new_column_when_index_is_slice(self):
+        # GH-48224
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+        with pytest.raises(InvalidIndexError, match=r"slice\(0, 1, None\)"):
+            df.at[slice(0, 1, None), "c"] = 7
+
     def test_at_getitem_mixed_index_no_fallback(self):
         # GH#19860
         ser = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])

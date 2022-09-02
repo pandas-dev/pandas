@@ -39,10 +39,45 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_160.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_160.notable_bug_fixes.notable_bug_frame_at_new_column_with_slice:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Using :meth:`DataFrame.at` raises when trying to add a new column with multiple values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Old behavior*
+
+.. code-block:: ipython
+
+    In [1]: import pandas as pd
+
+    In [2]: df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    In [3]: # should raise InvalidIndexError
+            df.at[slice(0, 1, None), 'c'] = 7
+
+    In [4]: df
+    Out[4]:
+       a  b    c
+    0  1  4  7.0
+    1  2  5  7.0
+    2  3  6  NaN
+
+
+*New behavior*
+
+.. code-block:: ipython
+
+    In [1]: import pandas as pd
+
+    In [2]: df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    In [3]: df.at[slice(0, 1, None), 'c'] = 7
+
+    ---------------------------------------------------------------------------
+    InvalidIndexError                         Traceback (most recent call last)
+    <ipython-input-3-a89a95224c2b> in <module>
+    ----> 1 df.at[slice(0, 1, None), 'c'] = 7
+
 
 .. _whatsnew_160.notable_bug_fixes.notable_bug_fix2:
 
