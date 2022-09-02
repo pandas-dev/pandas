@@ -911,6 +911,7 @@ Other Deprecations
 - Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
 - Deprecated :attr:`Timedelta.delta` (:issue:`46476`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.any` and :meth:`Series.any` (:issue:`44802`)
+- Deprecated passing positional arguments to :meth:`DataFrame.pivot` and :func:`pivot` except ``data`` (:issue:`30228`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
 - Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
 - Deprecated positional arguments to :meth:`StringMethods.rsplit` and :meth:`StringMethods.split` except for ``pat``, use keyword-only arguments instead of positional arguments (:issue:`47423`)
@@ -1059,6 +1060,7 @@ Indexing
 - Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
 - Bug in :meth:`DataFrame.__setitem__` casting extension array dtypes to object when setting with a scalar key and :class:`DataFrame` as value (:issue:`46896`)
+- Bug in :meth:`Series.__setitem__` when setting a scalar to a nullable pandas dtype would not raise a ``TypeError`` if the scalar could not be cast (losslessly) to the nullable type (:issue:`45404`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.loc` raising with boolean indexer containing ``NA`` when :class:`Index` did not match (:issue:`46551`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
@@ -1080,7 +1082,7 @@ Indexing
 - Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
 - Bug in :class:`IntervalTree` that lead to an infinite recursion. (:issue:`46658`)
 - Bug in :class:`PeriodIndex` raising ``AttributeError`` when indexing on ``NA``, rather than putting ``NaT`` in its place. (:issue:`46673`)
--
+- Bug in :meth:`DataFrame.at` would allow the modification of multiple columns (:issue:`48296`)
 
 Missing
 ^^^^^^^
