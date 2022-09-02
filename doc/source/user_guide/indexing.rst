@@ -1240,6 +1240,17 @@ If instead you don't want to or cannot name your index, you can use the name
    renaming your columns to something less ambiguous.
 
 
+The :class:`DataFrame.query` method has a ``inplace`` keyword which determines
+whether the query modifies the original frame.
+
+.. ipython:: python
+
+   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
+   df.query("a > 2")
+   df.query("a > 2", inplace=True)
+   df
+
+
 :class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1440,13 +1451,13 @@ large frames.
 
 .. image:: ../_static/query-perf.png
 
-.. note::
 
-   You will only see the performance benefits of using the ``numexpr`` engine
-   with ``DataFrame.query()`` if your frame has more than approximately 200,000
-   rows.
 
-      .. image:: ../_static/query-perf-small.png
+You will only see the performance benefits of using the ``numexpr`` engine
+with ``DataFrame.query()`` if your frame has more than approximately 200,000
+rows.
+
+
 
 This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
