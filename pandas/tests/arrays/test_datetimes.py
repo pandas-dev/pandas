@@ -646,7 +646,7 @@ class TestDatetimeArray:
         "error",
         ["coerce", "raise"],
     )
-    def test_coerce_fallback(self, error):
+    def test_fallback_different_formats(self, error):
         # GH#46071
         # 2 valid dates with different formats
         # Should parse with no errors
@@ -657,25 +657,31 @@ class TestDatetimeArray:
         result = pd.to_datetime(s, errors=error, infer_datetime_format=True)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.parametrize(
+        "dateseries",
+        [
+            pd.Series(["1/1/2000", "7/12/1200"]),
+            pd.Series(["1/1/2000", "Invalid input"]),
+        ],
+    )
+    def test_fallback_with_errors_coerce(self, dateseries):
+        # GH#46071
         # Invalid inputs
-        # Errors should be raised for the second element
-        expected2 = pd.Series([pd.Timestamp("2000-01-01 00:00:00"), pd.NaT])
-        # Out of bounds date
-        es1 = pd.Series(["1/1/2000", "7/12/1200"])
-        # Invalid input string
-        es2 = pd.Series(["1/1/2000", "Invalid input"])
-        if error == "coerce":
-            eres1 = pd.to_datetime(es1, errors=error, infer_datetime_format=True)
-            tm.assert_series_equal(expected2, eres1)
-            eres2 = pd.to_datetime(es2, errors=error, infer_datetime_format=True)
-            tm.assert_series_equal(expected2, eres2)
-        else:
-            with pytest.raises(
-                OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"
-            ):
-                pd.to_datetime(es1, errors=error, infer_datetime_format=True)
+        # Parsing should fail for the second element
+        expected = pd.Series([pd.Timestamp("2000-01-01 00:00:00"), pd.NaT])
+        result = pd.to_datetime(dateseries, errors="coerce", infer_datetime_format=True)
+        tm.assert_series_equal(expected, result)
 
-            with pytest.raises(
-                ParserError, match="Unknown string format: Invalid input"
-            ):
-                pd.to_datetime(es2, errors=error, infer_datetime_format=True)
+    def test_fallback_with_errors_raise(self):
+        # GH#46071
+        # Invalid inputs
+        # Parsing should fail for the second element
+        dates1 = pd.Series(["1/1/2000", "7/12/1200"])
+        with pytest.raises(
+            OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"
+        ):
+            pd.to_datetime(dates1, errors="raise", infer_datetime_format=True)
+
+        dates2 = pd.Series(["1/1/2000", "Invalid input"])
+        with pytest.raises(ParserError, match="Unknown string format: Invalid input"):
+            pd.to_datetime(dates2, errors="raise", infer_datetime_format=True)
