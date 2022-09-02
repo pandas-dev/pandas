@@ -53,9 +53,9 @@ Additionally, the aggregation overflows consistent with numpy when the limit of
 
 .. code-block:: ipython
 
-    In [3]: df = pd.DataFrame({"key": ["b"] * 7, "value": 625})
-    In [4]: df.groupby("key")["value"].cumprod()[5]
-    Out[5]: 5.960464477539062e+16
+    In [1]: df = pd.DataFrame({"key": ["b"] * 7, "value": 625})
+    In [2]: df.groupby("key")["value"].cumprod()[5]
+    Out[2]: 5.960464477539062e+16
 
 We return incorrect results with the 6th value.
 
@@ -63,10 +63,10 @@ We return incorrect results with the 6th value.
 
 .. ipython:: python
 
-    df = pd.DataFrame({"key": ["b"] * 6, "value": 625})
+    df = pd.DataFrame({"key": ["b"] * 7, "value": 625})
     df.groupby("key")["value"].cumprod()
 
-We overflow with the 7th value but the 6th value is still correct.
+We overflow with the 7th value, but the 6th value is still correct.
 
 .. _whatsnew_160.notable_bug_fixes.notable_bug_fix2:
 
