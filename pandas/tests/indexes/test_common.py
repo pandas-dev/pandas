@@ -468,8 +468,7 @@ class TestCommon:
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     with tm.maybe_produces_warning(
         PerformanceWarning,
-        pa_version_under7p0
-        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
+        getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
         check_stacklevel=False,
     ):
         with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
