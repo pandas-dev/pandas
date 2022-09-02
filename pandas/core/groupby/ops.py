@@ -160,6 +160,8 @@ class WrappedCythonOp:
         "ohlc",
         "cumsum",
         "prod",
+        "mean",
+        "var",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -598,7 +600,7 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["ohlc", "prod"]:
+            elif self.how in ["var", "ohlc", "prod"]:
                 func(
                     result,
                     counts,
@@ -607,9 +609,10 @@ class WrappedCythonOp:
                     min_count=min_count,
                     mask=mask,
                     result_mask=result_mask,
+                    **kwargs,
                 )
             else:
-                func(result, counts, values, comp_ids, min_count, **kwargs)
+                func(result, counts, values, comp_ids, min_count)
         else:
             # TODO: min_count
             if self.uses_mask():
