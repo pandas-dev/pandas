@@ -319,7 +319,6 @@ Other enhancements
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
 - :class:`.DataError`, :class:`.SpecificationError`, :class:`.SettingWithCopyError`, :class:`.SettingWithCopyWarning`, :class:`.NumExprClobberingError`, :class:`.UndefinedVariableError`, :class:`.IndexingError`, :class:`.PyperclipException`, :class:`.PyperclipWindowsException`, :class:`.CSSWarning`, :class:`.PossibleDataLossError`, :class:`.ClosedFileError`, :class:`.IncompatibilityWarning`, :class:`.AttributeConflictWarning`, :class:`.DatabaseError`, :class:`.PossiblePrecisionLoss`, :class:`.ValueLabelTypeMismatch`, :class:`.InvalidColumnName`, and :class:`.CategoricalConversionWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
-- Added unit test to test that the :func:`testing.assert_index_equal` raises an exception if two different types (:issue:`31884`)
 - Add support for :meth:`.GroupBy.ohlc` for extension array dtypes (:issue:`37493`)
 - Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
 - :func:`pandas.read_html` now supports extracting links from table cells (:issue:`13141`)
