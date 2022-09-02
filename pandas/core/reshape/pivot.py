@@ -19,6 +19,7 @@ from pandas._typing import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
 )
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -391,7 +392,13 @@ def _generate_marginal_results(
                 # GH31016 this is to calculate margin for each group, and assign
                 # corresponded key as index
                 transformed_piece = DataFrame(piece.apply(aggfunc)).T
-                transformed_piece.index = Index([all_key], name=piece.index.name)
+                if isinstance(piece.index, MultiIndex):
+                    # We are adding an empty level
+                    transformed_piece.index = MultiIndex.from_tuples(
+                        [all_key], names=piece.index.names + [None]
+                    )
+                else:
+                    transformed_piece.index = Index([all_key], name=piece.index.name)
 
                 # append piece for margin into table_piece
                 table_pieces.append(transformed_piece)
@@ -472,6 +479,7 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["data"])
 def pivot(
     data: DataFrame,
     index: IndexLabel | None = None,
