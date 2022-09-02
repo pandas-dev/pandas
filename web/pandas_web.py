@@ -157,7 +157,8 @@ class Preprocessors:
         for kind in ("active", "inactive"):
             context["maintainers"][f"{kind}_with_github_info"] = []
             for user in context["maintainers"][kind]:
-                resp = requests.get(f"https://api.github.com/users/{user}")
+                # OpenRefactory Warning: The 'requests.get' method does not use any 'timeout' threshold which may cause program to hang indefinitely.
+                resp = requests.get(f"https://api.github.com/users/{user}", timeout=100)
                 if context["ignore_io_errors"] and resp.status_code == 403:
                     return context
                 resp.raise_for_status()
@@ -169,7 +170,8 @@ class Preprocessors:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
-        resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases")
+        # OpenRefactory Warning: The 'requests.get' method does not use any 'timeout' threshold which may cause program to hang indefinitely.
+        resp = requests.get(f"https://api.github.com/repos/{github_repo_url}/releases", timeout=100)
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
         resp.raise_for_status()
@@ -234,9 +236,10 @@ class Preprocessors:
 
         # under discussion
         github_repo_url = context["main"]["github_repo_url"]
+        # OpenRefactory Warning: The 'requests.get' method does not use any 'timeout' threshold which may cause program to hang indefinitely.
         resp = requests.get(
             "https://api.github.com/search/issues?"
-            f"q=is:pr is:open label:PDEP repo:{github_repo_url}"
+            f"q=is:pr is:open label:PDEP repo:{github_repo_url}", timeout=100
         )
         if context["ignore_io_errors"] and resp.status_code == 403:
             return context
