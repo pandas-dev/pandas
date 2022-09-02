@@ -469,12 +469,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             return self._data.is_null().to_numpy()
 
-    def _values_for_argsort(self) -> np.ndarray:
-        if pa_version_under2p0:
-            return self._data.to_pandas().values
-        else:
-            return self._data.to_numpy()
-
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
