@@ -32,14 +32,6 @@ class SeriesConstructor:
         Series(self.array, index=self.idx2, name="name", fastpath=True)
 
 
-class SeriesConstructorEa:
-    def setup(self):
-        self.data = np.array(list(range(1_000_000)))
-
-    def time_constructor(self):
-        Series(data=self.data, dtype="Int64")
-
-
 class ToFrame:
     params = [["int64", "datetime64[ns]", "category", "Int64"], [None, "foo"]]
     param_names = ["dtype", "name"]
@@ -175,7 +167,7 @@ class ValueCounts:
         self.s.value_counts()
 
 
-class ValueCountsEa:
+class ValueCountsEA:
 
     params = [[10**3, 10**4, 10**5], [True, False]]
     param_names = ["N", "dropna"]
