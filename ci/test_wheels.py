@@ -5,17 +5,18 @@ import shutil
 import subprocess
 import sys
 
-py_ver = platform.python_version()
-is_32_bit = os.getenv("IS_32_BIT") == "true"
-try:
-    wheel_dir = sys.argv[1]
-    wheel_path = glob.glob(f"{wheel_dir}/*.whl")[0]
-except IndexError:
-    # Not passed
-    wheel_path = None
-print(f"IS_32_BIT is {is_32_bit}")
-print(f"Path to built wheel is {wheel_path}")
+
 if os.name == "nt":
+    py_ver = platform.python_version()
+    is_32_bit = os.getenv("IS_32_BIT") == "true"
+    try:
+        wheel_dir = sys.argv[1]
+        wheel_path = glob.glob(f"{wheel_dir}/*.whl")[0]
+    except IndexError:
+        # Not passed
+        wheel_path = None
+    print(f"IS_32_BIT is {is_32_bit}")
+    print(f"Path to built wheel is {wheel_path}")
     if is_32_bit:
         sys.exit(0)  # No way to test Windows 32-bit(no docker image)
     if wheel_path is None:
