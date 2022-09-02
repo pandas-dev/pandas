@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -101,6 +101,8 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.cumprod` for extension array dtypes (:issue:`37493`)
+- Performance improvement in :meth:`.GroupBy.mean` and :meth:`.GroupBy.var` for extension array dtypes (:issue:`37493`)
+- Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -151,7 +153,8 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
+- Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
 -
 
 Missing
@@ -161,7 +164,8 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
+- Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 -
 
 I/O

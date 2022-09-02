@@ -80,6 +80,8 @@ def group_var(
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,  # Py_ssize_t
     ddof: int = ...,  # int64_t
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]
