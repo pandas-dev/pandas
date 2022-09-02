@@ -1454,7 +1454,7 @@ large frames.
 
 
 You will only see the performance benefits of using the ``numexpr`` engine
-with ``DataFrame.query()`` if your frame has more than approximately 200,000
+with ``DataFrame.query()`` if your frame has more than approximately 100,000
 rows.
 
 

@@ -813,7 +813,7 @@ computation. The two lines are two different engines.
 
 .. image:: ../_static/eval-perf.png
 
-You will only see the performance benefits of using the ``numexpr`` engine with :func:`pandas.eval` if your frame has more than approximately 200,000 rows.
+You will only see the performance benefits of using the ``numexpr`` engine with :func:`pandas.eval` if your frame has more than approximately 100,000 rows.
 
 This plot was created using a :class:`DataFrame` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.

@@ -17,12 +17,12 @@ def bench_with(n, times=10, repeat=3, engine='numexpr'):
 
 setup_subset = "s = 'a <= b <= c ** 2 + b ** 2 - a and b > c'"
 
-def bench_subset(n, times=10, repeat=3, engine='numexpr'):
+def bench_subset(n, times=20, repeat=3, engine='numexpr'):
     return np.array(timeit('df.query(s, engine=%r)' % engine,
                            setup=setup_common % (n, setup_subset),
                            repeat=repeat, number=times)) / times
 
-def bench(mn=1, mx=7, num=100, engines=('python', 'numexpr'), verbose=False):
+def bench(mn=3, mx=7, num=100, engines=('python', 'numexpr'), verbose=False):
     r = np.logspace(mn, mx, num=num).round().astype(int)
 
     ev = DataFrame(np.empty((num, len(engines))), columns=engines)
@@ -34,9 +34,9 @@ def bench(mn=1, mx=7, num=100, engines=('python', 'numexpr'), verbose=False):
         for i, n in enumerate(r):
             if verbose & (i%10 == 0):
                 print('engine: %r, i == %d' % (engine, i))
-            ev_times = bench_with(n, times=10, repeat=3, engine=engine)
+            ev_times = bench_with(n, times=1, repeat=1, engine=engine)
             ev.loc[i, engine] = np.mean(ev_times)
-            qu_times = bench_subset(n, times=10, repeat=3, engine=engine)
+            qu_times = bench_subset(n, times=1, repeat=1, engine=engine)
             qu.loc[i, engine] = np.mean(qu_times)
 
     return ev, qu
@@ -46,13 +46,6 @@ def plot_perf(df, engines, title, filename=None):
     
     sns.set()
     sns.set_palette('Set2')
-       
-    try:
-        from mpltools import style
-    except ImportError:
-        pass
-    else:
-        style.use('ggplot')
 
     fig = figure(figsize=(4, 3), dpi=120)
     ax = fig.add_subplot(111)
@@ -75,7 +68,7 @@ if __name__ == '__main__':
     import os
     import pandas as pd
 
-    pandas_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+    pandas_dir = os.path.dirname(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
     static_path = os.path.join(pandas_dir, 'doc', 'source', '_static')
 
     join = lambda p: os.path.join(static_path, p)
@@ -84,13 +77,7 @@ if __name__ == '__main__':
 
     engines = 'python', 'numexpr'
     
-    if not os.path.exists(fn):
-        ev, qu = bench(verbose=True)
-        ev.to_hdf(fn, 'eval')
-        qu.to_hdf(fn, 'query')
-    else:
-        ev = pd.read_hdf(fn, 'eval')
-        qu = pd.read_hdf(fn, 'query')
+    ev, qu = bench(verbose=True) # only this one
     
     plot_perf(ev, engines, 'DataFrame.eval()', filename=join('eval-perf.png'))
     plot_perf(qu, engines, 'DataFrame.query()',
