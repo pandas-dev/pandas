@@ -16,7 +16,7 @@ class TestConfig:
         cls.cf = cf
         cls.gc = deepcopy(getattr(cls.cf, "_global_config"))
         cls.do = deepcopy(getattr(cls.cf, "_deprecated_options"))
-        cls.ro = deepcopy(getattr(cls.cf, "_registered_options"))
+        cls.to, row, rob, rod, roe, rot = deepcopy(getattr(cls.cf, "_registered_options"))
 
     def setup_method(self):
         setattr(self.cf, "_global_config", {})
@@ -33,7 +33,7 @@ class TestConfig:
     def teardown_method(self):
         setattr(self.cf, "_global_config", self.gc)
         setattr(self.cf, "_deprecated_options", self.do)
-        setattr(self.cf, "_registered_options", self.ro)
+        setattr(self.cf, "_registered_options", self.to, row, rob, rod, roe, rot)
 
     def test_api(self):
 
