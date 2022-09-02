@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import warnings
 
 import pytest
 
@@ -27,11 +26,7 @@ class BaseParser:
 
     def read_csv(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", "Use pd.to_datetime instead.", FutureWarning
-            )
-            return read_csv(*args, **kwargs)
+        return read_csv(*args, **kwargs)
 
     def read_csv_check_warnings(
         self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
