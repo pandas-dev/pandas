@@ -1578,6 +1578,14 @@ class TestSeriesConstructors:
         expected = Series(date_range("20130101 00:00:01", periods=3, freq="s"))
         tm.assert_series_equal(ser, expected)
 
+        # try to construct from a sequence asking for non-ns timedelta64
+        with pytest.raises(TypeError, match=r"Only \[ns\] granularity"):
+            Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
+
+        # try to construct from a sequence asking for non-ns datetime64
+        with pytest.raises(TypeError, match=r"Only \[ns\] granularity"):
+            Series([1000000, 200000, 3000000], dtype="datetime64[s]")
+
     @pytest.mark.parametrize(
         "index",
         [

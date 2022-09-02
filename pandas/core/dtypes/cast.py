@@ -1308,7 +1308,7 @@ def maybe_cast_to_datetime(
         # TODO: _from_sequence would raise ValueError in cases where
         #  _ensure_nanosecond_dtype raises TypeError
         dtype = cast(np.dtype, dtype)
-        dtype = _ensure_nanosecond_dtype(dtype)
+        _ensure_nanosecond_dtype(dtype)
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
@@ -1319,7 +1319,7 @@ def maybe_cast_to_datetime(
         vdtype = getattr(value, "dtype", None)
 
         if is_datetime64 or is_datetime64tz:
-            dtype = _ensure_nanosecond_dtype(dtype)
+            _ensure_nanosecond_dtype(dtype)
 
             value = np.array(value, copy=False)
 
@@ -1437,17 +1437,9 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     return values
 
 
-def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
+def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
     """
-    Convert dtypes with granularity less than nanosecond to nanosecond
-
-    >>> _ensure_nanosecond_dtype(np.dtype("M8[s]"))
-    dtype('<M8[ns]')
-
-    >>> _ensure_nanosecond_dtype(np.dtype("m8[ps]"))
-    Traceback (most recent call last):
-        ...
-    TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
+    Reject datetime/timedelta dtypes with granularity different from ns
     """
     msg = (
         f"The '{dtype.name}' dtype has no unit. "
@@ -1459,28 +1451,13 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
 
     if not isinstance(dtype, np.dtype):
         # i.e. datetime64tz
-        pass
+        return
 
-    elif dtype.kind == "M" and dtype != DT64NS_DTYPE:
-        # pandas supports dtype whose granularity is less than [ns]
-        # e.g., [ps], [fs], [as]
-        if dtype <= np.dtype("M8[ns]"):
-            if dtype.name == "datetime64":
-                raise ValueError(msg)
-            dtype = DT64NS_DTYPE
-        else:
-            raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
+    if dtype.name in ("datetime64", "timedelta64"):
+        raise ValueError(msg)
 
-    elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        # pandas supports dtype whose granularity is less than [ns]
-        # e.g., [ps], [fs], [as]
-        if dtype <= np.dtype("m8[ns]"):
-            if dtype.name == "timedelta64":
-                raise ValueError(msg)
-            dtype = TD64NS_DTYPE
-        else:
-            raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
-    return dtype
+    if dtype not in (TD64NS_DTYPE, DT64NS_DTYPE):
+        raise TypeError("Only [ns] granularity is supported for timedelta and datetime")
 
 
 # TODO: other value-dependent functions to standardize here include
