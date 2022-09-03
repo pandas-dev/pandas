@@ -9897,6 +9897,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For further details and examples see the ``{name}`` documentation in
         :ref:`indexing <indexing.where_mask>`.
 
+        The dtype of the object takes precedence. The fill value is casted to
+        the objects dtype, if this can be done losslessly.
+
         Examples
         --------
         >>> s = pd.Series(range(5))
