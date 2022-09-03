@@ -39,15 +39,7 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
 @pytest.mark.parametrize(
     "quoting,msg",
     [
-        (
-            "foo",
-            # This error message changed across versions
-            '"quoting" must be an integer|'
-            + re.escape(
-                "Argument 'quoting' has incorrect type (expected int, got str)"
-            ),
-        ),
-        (5, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
+        ("foo", '"quoting" must be an integer|Argument'),
     ],
 )
 def test_bad_quoting(all_parsers, quoting, msg):
