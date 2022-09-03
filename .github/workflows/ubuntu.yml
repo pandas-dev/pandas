@@ -88,7 +88,6 @@ jobs:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
-      EXTRA_LOC: ${{ matrix.extra_loc || '' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
@@ -153,8 +152,8 @@ jobs:
     - name: Generate extra locales
       # These extra locales will be available for locale.setlocale() calls in tests
       run: |
-        sudo locale-gen ${{ env.EXTRA_LOC }}
-      if: ${{ env.EXTRA_LOC != '' }}
+        sudo locale-gen ${{ matrix.extra_loc }}
+      if: ${{ matrix.extra_loc }}
 
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
