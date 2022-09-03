@@ -22,6 +22,7 @@ def _sumprod(
     skipna: bool = True,
     min_count: int = 0,
     axis: int | None = None,
+    **kwargs,
 ):
     """
     Sum or product for 1D masked array.
@@ -45,14 +46,14 @@ def _sumprod(
         if mask.any(axis=axis) or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
-            return func(values, axis=axis)
+            return func(values, axis=axis, **kwargs)
     else:
         if check_below_min_count(values.shape, mask, min_count) and (
             axis is None or values.ndim == 1
         ):
             return libmissing.NA
 
-        return func(values, where=~mask, axis=axis)
+        return func(values, where=~mask, axis=axis, **kwargs)
 
 
 def sum(
@@ -147,3 +148,16 @@ def mean(values: np.ndarray, mask: npt.NDArray[np.bool_], skipna: bool = True):
     count = np.count_nonzero(~mask)
     mean_value = _sum / count
     return mean_value
+
+
+def var(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: int | None = None,
+    ddof: int = 1,
+):
+    return _sumprod(
+        np.var, values=values, mask=mask, skipna=skipna, axis=axis, **{"ddof": ddof}
+    )
