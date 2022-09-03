@@ -144,7 +144,7 @@ def test_validate_stat_keepdims():
 
 
 def test_mean_masked_overflow():
-    # GH#
+    # GH#48378
     val = 100_000_000_000_000_000
     n_elements = 100
     na = np.array([val] * n_elements)
