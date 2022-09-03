@@ -1,4 +1,3 @@
-import inspect
 import numbers
 from operator import (
     le,

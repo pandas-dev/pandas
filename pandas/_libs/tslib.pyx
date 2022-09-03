@@ -478,7 +478,6 @@ cpdef array_to_datetime(
         NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
         bint seen_integer = False
-        bint seen_string = False
         bint seen_datetime = False
         bint seen_datetime_offset = False
         bint is_raise = errors=='raise'
@@ -571,7 +570,6 @@ cpdef array_to_datetime(
 
                 elif isinstance(val, str):
                     # string
-                    seen_string = True
                     if type(val) is not str:
                         # GH#32264 np.str_ object
                         val = str(val)

@@ -1,10 +1,5 @@
 """Strptime-related classes and functions.
 """
-import calendar
-import locale
-import re
-import time
-
 from cpython.datetime cimport (
     date,
     tzinfo,
