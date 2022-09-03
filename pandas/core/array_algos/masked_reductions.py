@@ -146,4 +146,6 @@ def mean(
     skipna: bool = True,
     axis: int | None = None,
 ):
+    if not values.size or mask.all():
+        return libmissing.NA
     return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
