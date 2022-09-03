@@ -139,6 +139,11 @@ def max(
     return _minmax(np.max, values=values, mask=mask, skipna=skipna, axis=axis)
 
 
-# TODO: axis kwarg
-def mean(values: np.ndarray, mask: npt.NDArray[np.bool_], skipna: bool = True):
-    return _sumprodmean(np.mean, values=values, mask=mask, skipna=skipna)
+def mean(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: int | None = None,
+):
+    return _sumprodmean(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
