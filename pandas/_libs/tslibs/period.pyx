@@ -1159,7 +1159,6 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
 
     if isinstance(fmt, str):
         # Encode using current locale, in case fmt contains non-utf8 chars
-        # fmt = fmt.encode("utf-8")
         fmt = <bytes>util.string_encode_locale(fmt)
 
     if fmt is None:
