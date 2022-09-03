@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import sys
 import types
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
@@ -15,10 +18,10 @@ VERSIONS = {
     "bottleneck": "1.3.2",
     "brotli": "0.7.0",
     "fastparquet": "0.4.0",
-    "fsspec": "2021.05.0",
+    "fsspec": "2021.07.0",
     "html5lib": "1.1",
     "hypothesis": "6.13.0",
-    "gcsfs": "2021.05.0",
+    "gcsfs": "2021.07.0",
     "jinja2": "3.0.0",
     "lxml.etree": "4.6.3",
     "matplotlib": "3.3.2",
@@ -33,7 +36,7 @@ VERSIONS = {
     "pyreadstat": "1.1.2",
     "pytest": "6.0",
     "pyxlsb": "1.0.8",
-    "s3fs": "2021.05.0",
+    "s3fs": "2021.08.0",
     "scipy": "1.7.1",
     "snappy": "0.6.0",
     "sqlalchemy": "1.4.16",
@@ -44,6 +47,7 @@ VERSIONS = {
     "xlwt": "1.3.0",
     "xlsxwriter": "1.4.3",
     "zstandard": "0.15.2",
+    "tzdata": "2022.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -158,7 +162,11 @@ def import_optional_dependency(
                 f"(version '{version}' currently installed)."
             )
             if errors == "warn":
-                warnings.warn(msg, UserWarning)
+                warnings.warn(
+                    msg,
+                    UserWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
                 return None
             elif errors == "raise":
                 raise ImportError(msg)

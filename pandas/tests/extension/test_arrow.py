@@ -10,7 +10,6 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
-
 from datetime import (
     date,
     datetime,
@@ -24,8 +23,13 @@ import pytest
 from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
+    pa_version_under4p0,
+    pa_version_under6p0,
+    pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under9p0,
 )
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
@@ -303,6 +307,95 @@ class TestGetitemTests(base.BaseGetitemTests):
         super().test_loc_iloc_frame_single_dtype(data)
 
 
+class TestBaseNumericReduce(base.BaseNumericReduceTests):
+    def check_reduce(self, ser, op_name, skipna):
+        pa_dtype = ser.dtype.pyarrow_dtype
+        result = getattr(ser, op_name)(skipna=skipna)
+        if pa.types.is_boolean(pa_dtype):
+            # Can't convert if ser contains NA
+            pytest.skip(
+                "pandas boolean data with NA does not fully support all reductions"
+            )
+        elif pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+            ser = ser.astype("Float64")
+        expected = getattr(ser, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_numeric_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
+        if all_numeric_reductions in {"skew", "kurt"}:
+            request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"median", "var", "std", "prod", "max", "min"}
+            and pa_version_under6p0
+        ):
+            request.node.add_marker(xfail_mark)
+        elif all_numeric_reductions in {"sum", "mean"} and pa_version_under2p0:
+            request.node.add_marker(xfail_mark)
+        elif (
+            all_numeric_reductions in {"sum", "mean"}
+            and skipna is False
+            and pa_version_under6p0
+            and (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype))
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AssertionError,
+                    reason=(
+                        f"{all_numeric_reductions} with skip_nulls={skipna} did not "
+                        f"return NA for {pa_dtype} with pyarrow={pa.__version__}"
+                    ),
+                )
+            )
+        elif not (
+            pa.types.is_integer(pa_dtype)
+            or pa.types.is_floating(pa_dtype)
+            or pa.types.is_boolean(pa_dtype)
+        ) and not (
+            all_numeric_reductions in {"min", "max"}
+            and (pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype))
+        ):
+            request.node.add_marker(xfail_mark)
+        elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
+            "std",
+            "var",
+            "median",
+        }:
+            request.node.add_marker(xfail_mark)
+        super().test_reduce_series(data, all_numeric_reductions, skipna)
+
+
+class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series(
+        self, data, all_boolean_reductions, skipna, na_value, request
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_boolean_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(xfail_mark)
+        elif pa_version_under3p0:
+            request.node.add_marker(xfail_mark)
+        op_name = all_boolean_reductions
+        s = pd.Series(data)
+        result = getattr(s, op_name)(skipna=skipna)
+        assert result is (op_name == "any")
+
+
 class TestBaseGroupby(base.BaseGroupbyTests):
     def test_groupby_agg_extension(self, data_for_grouping, request):
         tz = getattr(data_for_grouping.dtype.pyarrow_dtype, "tz", None)
@@ -355,7 +448,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        super().test_groupby_extension_transform(data_for_grouping)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_transform(data_for_grouping)
 
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request
@@ -388,7 +484,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                         reason="GH 34986",
                     )
                 )
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
     def test_in_numeric_groupby(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -427,7 +526,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason="GH 34986",
                 )
             )
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class TestBaseDtype(base.BaseDtypeTests):
@@ -516,6 +618,10 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 
 class TestBaseMissing(base.BaseMissingTests):
+    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
+    def test_dropna_array(self, data_missing):
+        super().test_dropna_array(data_missing)
+
     def test_fillna_limit_pad(self, data_missing, using_array_manager, request):
         if using_array_manager and pa.types.is_duration(
             data_missing.dtype.pyarrow_dtype
@@ -1221,7 +1327,31 @@ class TestBaseParsing(base.BaseParsingTests):
         super().test_EA_types(engine, data)
 
 
+class TestBaseUnaryOps(base.BaseUnaryOpsTests):
+    @pytest.mark.xfail(
+        pa_version_under2p0,
+        raises=NotImplementedError,
+        reason="pyarrow.compute.invert not supported in pyarrow<2.0",
+    )
+    def test_invert(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if not pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow.compute.invert does support {pa_dtype}",
+                )
+            )
+        super().test_invert(data)
+
+
 class TestBaseMethods(base.BaseMethodsTests):
+    def test_argsort_missing_array(self, data_missing_for_sorting):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_argsort_missing_array(data_missing_for_sorting)
+
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1236,6 +1366,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_diff(data, periods)
 
+    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
@@ -1275,8 +1406,16 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"value_count has no pyarrow kernel for {pa_dtype}",
                 )
             )
-        super().test_value_counts_with_normalize(data)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_value_counts_with_normalize(data)
 
+    @pytest.mark.xfail(
+        pa_version_under6p0,
+        raises=NotImplementedError,
+        reason="argmin/max only implemented for pyarrow version >= 6.0",
+    )
     def test_argmin_argmax(
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
@@ -1287,7 +1426,62 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"{pa_dtype} only has 2 unique possible values",
                 )
             )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"min_max not supported in pyarrow for {pa_dtype}",
+                )
+            )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected, request
+    ):
+        pa_dtype = data_missing_for_sorting.dtype.pyarrow_dtype
+        if pa_version_under6p0 and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="min_max not supported in pyarrow",
+                )
+            )
+        elif not pa_version_under6p0 and pa.types.is_duration(pa_dtype) and skipna:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"min_max not supported in pyarrow for {pa_dtype}",
+                )
+            )
+        super().test_argreduce_series(
+            data_missing_for_sorting, op_name, skipna, expected
+        )
+
+    @pytest.mark.parametrize(
+        "na_position, expected",
+        [
+            ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
+            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
+        ],
+    )
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_nargsort(data_missing_for_sorting, na_position, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
@@ -1302,7 +1496,21 @@ class TestBaseMethods(base.BaseMethodsTests):
                     ),
                 )
             )
-        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values_missing(
+                data_missing_for_sorting, ascending, sort_by_key
+            )
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending, request):
@@ -1317,7 +1525,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     ),
                 )
             )
-        super().test_sort_values_frame(data_for_sorting, ascending)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
 
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
@@ -1838,3 +2049,72 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
+
+
+@pytest.mark.xfail(
+    pa_version_under4p0,
+    raises=NotImplementedError,
+    reason="quantile only supported for pyarrow version >= 4.0",
+)
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
+)
+@pytest.mark.parametrize("quantile", [0.5, [0.5, 0.5]])
+def test_quantile(data, interpolation, quantile, request):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if not (pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype)):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"quantile not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    data = data.take([0, 0, 0])
+    ser = pd.Series(data)
+    result = ser.quantile(q=quantile, interpolation=interpolation)
+    if quantile == 0.5:
+        assert result == data[0]
+    else:
+        # Just check the values
+        result = result.astype("float64[pyarrow]")
+        expected = pd.Series(
+            data.take([0, 0]).astype("float64[pyarrow]"), index=[0.5, 0.5]
+        )
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(
+    pa_version_under6p0,
+    raises=NotImplementedError,
+    reason="mode only supported for pyarrow version >= 6.0",
+)
+@pytest.mark.parametrize("dropna", [True, False])
+@pytest.mark.parametrize(
+    "take_idx, exp_idx",
+    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
+    ids=["multi_mode", "single_mode"],
+)
+def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
+    pa_dtype = data_for_grouping.dtype.pyarrow_dtype
+    if pa.types.is_temporal(pa_dtype):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowNotImplementedError,
+                reason=f"mode not supported by pyarrow for {pa_dtype}",
+            )
+        )
+    elif (
+        pa.types.is_boolean(pa_dtype)
+        and "multi_mode" in request.node.nodeid
+        and pa_version_under9p0
+    ):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="https://issues.apache.org/jira/browse/ARROW-17096",
+            )
+        )
+    data = data_for_grouping.take(take_idx)
+    ser = pd.Series(data)
+    result = ser.mode(dropna=dropna)
+    expected = pd.Series(data_for_grouping.take(exp_idx))
+    tm.assert_series_equal(result, expected)

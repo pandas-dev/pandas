@@ -1678,10 +1678,14 @@ def test_parse_delimited_date_swap_with_warning(
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
     warning_msg = "Specify a format to ensure consistent parsing"
-    with tm.assert_produces_warning(UserWarning, match=warning_msg):
-        result = parser.read_csv(
-            StringIO(date_string), header=None, dayfirst=dayfirst, parse_dates=[0]
-        )
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        warning_msg,
+        StringIO(date_string),
+        header=None,
+        dayfirst=dayfirst,
+        parse_dates=[0],
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -1946,6 +1950,39 @@ def test_dayfirst_warnings():
             index_col="date",
         ).index
     tm.assert_index_equal(expected, res8)
+
+
+@pytest.mark.parametrize(
+    "date_string, dayfirst",
+    [
+        pytest.param(
+            "31/1/2014",
+            False,
+            id="second date is single-digit",
+        ),
+        pytest.param(
+            "1/31/2014",
+            True,
+            id="first date is single-digit",
+        ),
+    ],
+)
+def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
+    # GH47880
+    initial_value = f"date\n{date_string}"
+    expected = DatetimeIndex(
+        ["2014-01-31"], dtype="datetime64[ns]", freq=None, name="date"
+    )
+    with tm.assert_produces_warning(
+        UserWarning, match=r"may lead to inconsistently parsed dates"
+    ):
+        res = read_csv(
+            StringIO(initial_value),
+            parse_dates=["date"],
+            index_col="date",
+            dayfirst=dayfirst,
+        ).index
+    tm.assert_index_equal(expected, res)
 
 
 @skip_pyarrow

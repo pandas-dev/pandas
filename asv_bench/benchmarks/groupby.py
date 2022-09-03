@@ -560,6 +560,45 @@ class GroupByCythonAgg:
         self.df.groupby("key").agg(method)
 
 
+class GroupByCythonAggEaDtypes:
+    """
+    Benchmarks specifically targeting our cython aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    param_names = ["dtype", "method"]
+    params = [
+        ["Float64", "Int64", "Int32"],
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        N = 1_000_000
+        df = DataFrame(
+            np.random.randint(0, high=100, size=(N, 10)),
+            columns=list("abcdefghij"),
+            dtype=dtype,
+        )
+        df["key"] = np.random.randint(0, 100, size=N)
+        self.df = df
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method)
+
+
 class Cumulative:
     param_names = ["dtype", "method"]
     params = [

@@ -75,6 +75,11 @@ keep_shape : bool, default False
 keep_equal : bool, default False
     If true, the result keeps values that are equal.
     Otherwise, equal values are shown as NaNs.
+
+result_names : tuple, default ('self', 'other')
+    Set the dataframes names in the comparison.
+
+    .. versionadded:: 1.5.0
 """
 
 _shared_docs[
@@ -89,7 +94,7 @@ groups.
 
 Parameters
 ----------
-by : mapping, function, label, or list of labels
+by : mapping, function, label, pd.Grouper or list of labels
     Used to determine the groups for the groupby.
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
@@ -105,7 +110,7 @@ axis : {0 or 'index', 1 or 'columns'}, default 0
     is unused and defaults to 0.
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
-    level or levels.
+    level or levels. Do not specify both ``by`` and ``level``.
 as_index : bool, default True
     For aggregated output, return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is

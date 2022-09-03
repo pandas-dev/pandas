@@ -14,6 +14,7 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     Dtype,
     Scalar,
+    npt,
     type_t,
 )
 from pandas.compat import pa_version_under1p01
@@ -379,8 +380,8 @@ class StringArray(BaseStringArray, PandasArray):
     def _values_for_factorize(self):
         arr = self._ndarray.copy()
         mask = self.isna()
-        arr[mask] = -1
-        return arr, -1
+        arr[mask] = None
+        return arr, None
 
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
@@ -408,7 +409,15 @@ class StringArray(BaseStringArray, PandasArray):
             if len(value) and not lib.is_string_array(value, skipna=True):
                 raise ValueError("Must provide strings.")
 
+            value[isna(value)] = libmissing.NA
+
         super().__setitem__(key, value)
+
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        # the super() method NDArrayBackedExtensionArray._putmask uses
+        # np.putmask which doesn't properly handle None/pd.NA, so using the
+        # base class implementation that uses __setitem__
+        ExtensionArray._putmask(self, mask, value)
 
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
