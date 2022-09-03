@@ -501,7 +501,7 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    orient : str, default None
+    orient : str, optional
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
         corresponding orient value.
@@ -514,7 +514,6 @@ def read_json(
         - ``'index'`` : dict like ``{{index -> {{column -> value}}}}``
         - ``'columns'`` : dict like ``{{column -> {{index -> value}}}}``
         - ``'values'`` : just the values array
-        - None : orient will then be assigned based on `typ` parameter
 
         The allowed and default values depend on the value
         of the `typ` parameter.
