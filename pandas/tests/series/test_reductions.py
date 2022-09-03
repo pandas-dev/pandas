@@ -132,16 +132,6 @@ def test_validate_median_initial():
         ser.median(overwrite_input=True)
 
 
-def test_var_masked_array():
-    # GH#
-    ser = Series([1, 2, 3, 4, 5], dtype="Int64")
-    ser_numpy_dtype = Series([1, 2, 3, 4, 5], dtype="int64")
-    result = ser.var()
-    result_numpy_dtype = ser_numpy_dtype.var()
-    assert result == result_numpy_dtype
-    assert result == 2.5
-
-
 def test_validate_stat_keepdims():
     ser = Series([1, 2])
     msg = (

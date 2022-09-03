@@ -14,7 +14,7 @@ from pandas._typing import npt
 from pandas.core.nanops import check_below_min_count
 
 
-def _sumprod(
+def _reductions(
     func: Callable,
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
@@ -64,7 +64,7 @@ def sum(
     min_count: int = 0,
     axis: int | None = None,
 ):
-    return _sumprod(
+    return _reductions(
         np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -77,7 +77,7 @@ def prod(
     min_count: int = 0,
     axis: int | None = None,
 ):
-    return _sumprod(
+    return _reductions(
         np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -144,7 +144,7 @@ def max(
 def mean(values: np.ndarray, mask: npt.NDArray[np.bool_], skipna: bool = True):
     if not values.size or mask.all():
         return libmissing.NA
-    _sum = _sumprod(np.sum, values=values, mask=mask, skipna=skipna)
+    _sum = _reductions(np.sum, values=values, mask=mask, skipna=skipna)
     count = np.count_nonzero(~mask)
     mean_value = _sum / count
     return mean_value
@@ -158,6 +158,9 @@ def var(
     axis: int | None = None,
     ddof: int = 1,
 ):
-    return _sumprod(
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    return _reductions(
         np.var, values=values, mask=mask, skipna=skipna, axis=axis, **{"ddof": ddof}
     )

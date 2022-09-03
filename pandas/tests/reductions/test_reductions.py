@@ -696,7 +696,7 @@ class TestSeriesReductions:
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("method", ["mean"])
+    @pytest.mark.parametrize("method", ["mean", "var"])
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
     def test_ops_consistency_on_empty_nullable(self, method, dtype):
 
@@ -774,6 +774,15 @@ class TestSeriesReductions:
             assert np.allclose(float(result), 0.0)
             result = s.max(skipna=False)
             assert np.allclose(float(result), v[-1])
+
+    def test_var_masked_array(self):
+        # GH#
+        ser = Series([1, 2, 3, 4, 5], dtype="Int64")
+        ser_numpy_dtype = Series([1, 2, 3, 4, 5], dtype="int64")
+        result = ser.var()
+        result_numpy_dtype = ser_numpy_dtype.var()
+        assert result == result_numpy_dtype
+        assert result == 2.5
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     @pytest.mark.parametrize("skipna", [True, False])
