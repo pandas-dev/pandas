@@ -958,7 +958,7 @@ def to_datetime(
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
 
-    **Exceptions to strptime behavior**
+    **Differences with strptime behavior**
 
     :const:`"%f"` will parse all the way up to nanoseconds.
 
