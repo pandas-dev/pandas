@@ -960,7 +960,7 @@ def to_datetime(
     **Exceptions to strptime behavior**
 
     :const:`"%f"` will parse all the way up to nanoseconds.
-    
+
     >>> pd.to_datetime('2018-10-26 12:00:00.0000000011',
     ...                format='%Y-%m-%d %H:%M:%S.%f')
     Timestamp('2018-10-26 12:00:00.000000001')
