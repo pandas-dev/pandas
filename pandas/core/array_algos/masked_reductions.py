@@ -14,7 +14,7 @@ from pandas._typing import npt
 from pandas.core.nanops import check_below_min_count
 
 
-def _sumprodmean(
+def _reductions(
     func: Callable,
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
@@ -63,7 +63,7 @@ def sum(
     min_count: int = 0,
     axis: int | None = None,
 ):
-    return _sumprodmean(
+    return _reductions(
         np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -76,7 +76,7 @@ def prod(
     min_count: int = 0,
     axis: int | None = None,
 ):
-    return _sumprodmean(
+    return _reductions(
         np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -146,4 +146,4 @@ def mean(
     skipna: bool = True,
     axis: int | None = None,
 ):
-    return _sumprodmean(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
+    return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
