@@ -776,7 +776,7 @@ class TestSeriesReductions:
             assert np.allclose(float(result), v[-1])
 
     def test_var_masked_array(self):
-        # GH#
+        # GH#48379
         ser = Series([1, 2, 3, 4, 5], dtype="Int64")
         ser_numpy_dtype = Series([1, 2, 3, 4, 5], dtype="int64")
         result = ser.var()
