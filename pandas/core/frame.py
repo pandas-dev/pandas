@@ -50,6 +50,7 @@ from pandas._libs.lib import (
 )
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axes,
@@ -1324,7 +1325,35 @@ class DataFrame(NDFrame, OpsMixin):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(_shared_docs["items"])
+    _shared_docs[
+        "iteritems"
+    ] = r"""
+        Iterate over (column name, Series) pairs.
+
+        .. deprecated:: 1.5.0
+            iteritems is deprecated and will be removed in a future version.
+            Use .items instead.
+
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
+
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iter : Recommended alternative.
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+        """
+
+    @Appender(_shared_docs["iteritems"])
     def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "
@@ -4712,7 +4741,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate)
+        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
         return type(self)(mgr).__finalize__(self)
 
     def insert(
@@ -6395,7 +6424,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
@@ -6407,7 +6436,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
@@ -6418,7 +6447,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str | NoDefault = no_default,
+        how: AnyAll | NoDefault = no_default,
         thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
@@ -8551,6 +8580,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def pivot(self, index=None, columns=None, values=None) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 

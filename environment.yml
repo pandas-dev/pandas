@@ -4,6 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
 
   # test dependencies
   - cython=0.29.32
@@ -44,7 +45,7 @@ dependencies:
   - pytables
   - python-snappy
   - pyxlsb
-  - s3fs
+  - s3fs>=2021.08.0
   - scipy
   - sqlalchemy
   - tabulate
@@ -128,5 +129,5 @@ dependencies:
   # build the interactive terminal
   - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b10
+      - jupyterlite==0.1.0b12
       - sphinx-toggleprompt

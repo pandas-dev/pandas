@@ -1417,3 +1417,18 @@ class TestReadHtml:
         )
         with pytest.raises(ValueError, match=msg):
             read_html(spam_data, extract_links="incorrect")
+
+    def test_extract_links_all_no_header(self):
+        # GH 48316
+        data = """
+        <table>
+          <tr>
+            <td>
+              <a href='https://google.com'>Google.com</a>
+            </td>
+          </tr>
+        </table>
+        """
+        result = self.read_html(data, extract_links="all")[0]
+        expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)

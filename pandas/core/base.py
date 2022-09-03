@@ -1058,6 +1058,10 @@ class IndexOpsMixin(OpsMixin):
         """
         Return boolean if values in the object are monotonically increasing.
 
+        .. deprecated:: 1.5.0
+            is_monotonic is deprecated and will be removed in a future version.
+            Use is_monotonic_increasing instead.
+
         Returns
         -------
         bool
