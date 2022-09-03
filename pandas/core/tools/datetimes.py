@@ -777,11 +777,19 @@ def to_datetime(
         #time-zone-handling>`_.
 
     format : str, default None
-        The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. Note that
-        :const:`"%f"` will parse all the way up to nanoseconds. See
+        The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
-        #strftime-and-strptime-behavior>`_ for more information on choices.
+        #strftime-and-strptime-behavior>`_ for more information on choices, though
+        note the following differences:
+
+        - :const:`"%f"` will parse all the way
+          up to nanoseconds;
+
+        - :const:`"%S"` without :const:`"%f"` will capture all the way
+          up to nanoseconds if present as decimal places, and will also handle
+          the case where the number of seconds is an integer.
+
     exact : bool, default True
         Control how `format` is used:
 
@@ -949,6 +957,21 @@ def to_datetime(
     ...                origin=pd.Timestamp('1960-01-01'))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
+
+    **Differences with strptime behavior**
+
+    :const:`"%f"` will parse all the way up to nanoseconds.
+
+    >>> pd.to_datetime('2018-10-26 12:00:00.0000000011',
+    ...                format='%Y-%m-%d %H:%M:%S.%f')
+    Timestamp('2018-10-26 12:00:00.000000001')
+
+    :const:`"%S"` without :const:`"%f"` will capture all the way
+    up to nanoseconds if present as decimal places.
+
+    >>> pd.to_datetime('2017-03-22 15:16:45.433502912',
+    ...                format='%Y-%m-%d %H:%M:%S')
+    Timestamp('2017-03-22 15:16:45.433502912')
 
     **Non-convertible date/times**
 
