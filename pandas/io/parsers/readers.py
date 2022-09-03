@@ -427,7 +427,7 @@ float_precision : str, optional
 
 Returns
 -------
-DataFrame or TextParser
+DataFrame or TextFileReader
     A comma-separated values (csv) file is returned as two-dimensional
     data structure with labeled axes.
 
