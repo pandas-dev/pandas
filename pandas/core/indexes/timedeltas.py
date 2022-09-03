@@ -112,6 +112,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
 
+    # error: Return type "None" of "_resolution_obj" incompatible with return type
+    # "Resolution" in supertype "DatetimeIndexOpsMixin"
+    @property
+    def _resolution_obj(self) -> None:  # type: ignore[override]
+        # not used but need to implement it because it is an abstract method
+        return None
+
     # -------------------------------------------------------------------
     # Constructors
 

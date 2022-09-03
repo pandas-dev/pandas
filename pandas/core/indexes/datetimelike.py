@@ -3,6 +3,10 @@ Base and utility classes for tseries type pandas objects.
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from datetime import datetime
 import inspect
 from typing import (
@@ -73,7 +77,7 @@ _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
 _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
-class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
+class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
@@ -106,9 +110,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def freqstr(self) -> str | None:
         return self._data.freqstr
 
+    @abstractmethod
     @cache_readonly
-    def _resolution_obj(self) -> Resolution | None:
-        return self._data._resolution_obj
+    def _resolution_obj(self) -> Resolution:
+        ...
 
     # error: Decorated property not supported
     @cache_readonly  # type: ignore[misc]
@@ -238,8 +243,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
         # e.g. test_getitem_setitem_periodindex
         # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
-        # error: Unsupported left operand type for > ("Resolution")
-        return reso > self._resolution_obj  # type: ignore[operator]
+        return reso > self._resolution_obj
         # NB: for DTI/PI, not TDI
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
@@ -397,7 +401,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return Index(res, dtype=res.dtype)
 
 
-class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
+class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     """
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
