@@ -111,7 +111,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         return self._data.freqstr
 
     @abstractmethod
-    @cache_readonly
+    @property
     def _resolution_obj(self) -> Resolution:
         ...
 
