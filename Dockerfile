@@ -1,4 +1,4 @@
-FROM quay.io/condaforge/mambaforge:4.12.0-2
+FROM quay.io/condaforge/mambaforge:4.13.0-1
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
