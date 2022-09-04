@@ -15,6 +15,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 dtypes = [
     ('uint8_t', 'uint8_t'),
     ('uint8_t', 'object'),
+    ('uint64_t', 'float64_t'),
     ('int8_t', 'int8_t'),
     ('int8_t', 'int32_t'),
     ('int8_t', 'int64_t'),
