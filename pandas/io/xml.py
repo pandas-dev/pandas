@@ -476,7 +476,7 @@ class _EtreeFrameParser(_XMLFrameParser):
         )
         try:
             elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
-            children = [el.findall("*") for el in elems]
+            children = [ch for el in elems for ch in el.findall("*")]
             attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
             if elems is None:
@@ -589,7 +589,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         )
 
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
-        children = [el.xpath("*") for el in elems]
+        children = [ch for el in elems for ch in el.xpath("*")]
         attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
         if elems == []:

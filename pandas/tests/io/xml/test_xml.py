@@ -784,6 +784,21 @@ def test_empty_attrs_only(parser):
         read_xml(xml, xpath="./row", attrs_only=True, parser=parser)
 
 
+def test_empty_elems_only(parser):
+    xml = """
+      <data>
+        <row sides="4" shape="square" degrees="360"/>
+        <row sides="0" shape="circle" degrees="360"/>
+        <row sides="3" shape="triangle" degrees="180"/>
+      </data>"""
+
+    with pytest.raises(
+        ValueError,
+        match=("xpath does not return any nodes or attributes"),
+    ):
+        read_xml(xml, xpath="./row", elems_only=True, parser=parser)
+
+
 @td.skip_if_no("lxml")
 def test_attribute_centric_xml():
     xml = """\
