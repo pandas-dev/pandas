@@ -5,6 +5,7 @@ from string import ascii_letters
 import numpy as np
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     Index,
@@ -536,17 +537,17 @@ class GroupByCythonAgg:
     params = [
         ["float64"],
         [
-            # "sum",
-            # "prod",
-            # "min",
-            # "max",
-            # "mean",
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
             "median",
-            # "var",
-            # "first",
-            # "last",
-            # "any",
-            # "all",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
         ],
     ]
 
@@ -571,17 +572,17 @@ class GroupByCythonAggEaDtypes:
     params = [
         ["Float64", "Int64", "Int32"],
         [
-            # "sum",
-            # "prod",
-            # "min",
-            # "max",
-            # "mean",
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
             "median",
-            # "var",
-            # "first",
-            # "last",
-            # "any",
-            # "all",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
         ],
     ]
 
@@ -592,6 +593,7 @@ class GroupByCythonAggEaDtypes:
             columns=list("abcdefghij"),
             dtype=dtype,
         )
+        df.loc[list(range(1, N, 5)), list("abcdefghij")] = NA
         df["key"] = np.random.randint(0, 100, size=N)
         self.df = df
 
