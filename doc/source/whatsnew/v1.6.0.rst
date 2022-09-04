@@ -101,6 +101,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.mean` and :meth:`.GroupBy.var` for extension array dtypes (:issue:`37493`)
+- Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 -
 
