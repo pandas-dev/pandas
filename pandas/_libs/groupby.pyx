@@ -162,7 +162,7 @@ ctypedef fused int64float_t:
 def group_median_float64(
     ndarray[float64_t, ndim=2] out,
     ndarray[int64_t] counts,
-    ndarray[int64float_t, ndim=2] values,
+    ndarray[float64_t, ndim=2] values,
     ndarray[intp_t] labels,
     Py_ssize_t min_count=-1,
     const uint8_t[:, :] mask=None,
@@ -193,17 +193,10 @@ def group_median_float64(
     data = np.empty((K, N), dtype=np.float64)
     ptr = <float64_t*>cnp.PyArray_DATA(data)
 
-    if int64float_t is int64_t:
-        take_2d_axis1_int64_float64(values.T, indexer, out=data)
-    elif int64float_t is uint64_t:
-        take_2d_axis1_uint64_float64(values.T, indexer, out=data)
-    elif int64float_t is float32_t:
-        take_2d_axis1_float32_float64(values.T, indexer, out=data)
-    else:
-        take_2d_axis1_float64_float64(values.T, indexer, out=data)
+    take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
     if uses_mask:
-        data_mask = np.zeros((K, N), dtype=np.uint8)
+        data_mask = np.empty((K, N), dtype=np.uint8)
         ptr_mask = <uint8_t *>cnp.PyArray_DATA(data_mask)
 
         take_2d_axis1_bool_bool(mask.T, indexer, out=data_mask, fill_value=1)
