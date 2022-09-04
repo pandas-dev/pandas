@@ -305,7 +305,7 @@ class WrappedCythonOp:
     def _get_out_dtype(self, dtype: np.dtype) -> np.dtype:
         how = self.how
 
-        if how == "rank":
+        if how in ["rank", "median"]:
             out_dtype = "float64"
         else:
             if is_numeric_dtype(dtype):
