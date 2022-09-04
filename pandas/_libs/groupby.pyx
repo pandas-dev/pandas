@@ -42,10 +42,7 @@ from pandas._libs.algos import (
     groupsort_indexer,
     rank_1d,
     take_2d_axis1_bool_bool,
-    take_2d_axis1_float32_float64,
     take_2d_axis1_float64_float64,
-    take_2d_axis1_int64_float64,
-    take_2d_axis1_uint64_float64,
 )
 
 from pandas._libs.dtypes cimport (
@@ -71,7 +68,6 @@ cdef enum InterpolationEnumType:
 cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     cdef:
         int i, j, na_count = 0
-        float64_t result
         float64_t* tmp
 
     if n == 0:
@@ -97,22 +93,12 @@ cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nog
         a = tmp
         n -= na_count
 
-    if n % 2:
-        result = kth_smallest_c(a, n // 2, n)
-    else:
-        result = (kth_smallest_c(a, n // 2, n) +
-                  kth_smallest_c(a, n // 2 - 1, n)) / 2
-
-    if na_count:
-        free(a)
-
-    return result
+    return calc_median_linear(a, n, na_count)
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
         int i, j, na_count = 0
-        float64_t result
         float64_t* tmp
 
     if n == 0:
@@ -137,6 +123,13 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
 
         a = tmp
         n -= na_count
+
+    return calc_median_linear(a, n, na_count)
+
+
+cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+    cdef:
+        float64_t result
 
     if n % 2:
         result = kth_smallest_c(a, n // 2, n)
