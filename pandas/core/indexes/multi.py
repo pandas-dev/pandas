@@ -3469,7 +3469,7 @@ class MultiIndex(Index):
             if com.is_null_slice(k) or com.is_bool_indexer(k) or is_scalar(k):
                 pass
             elif is_list_like(k):
-                if len(k) <= 1:
+                if len(k) <= 1:  # type: ignore[arg-type]
                     pass
                 elif self._is_lexsorted():
                     # If the index is lexsorted and the list_like label
