@@ -218,7 +218,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["median", "cumprod"]:
+        if how in ["cumprod"]:
             # these two only have float64 implementations
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
@@ -231,7 +231,7 @@ class WrappedCythonOp:
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how in ["sum", "ohlc", "prod", "cumsum"]:
+            elif how in ["sum", "ohlc", "prod", "cumsum", "median"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
