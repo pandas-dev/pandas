@@ -1,0 +1,57 @@
+import numpy as np
+import pytest
+
+from pandas._libs.parsers import (
+    _maybe_upcast,
+    na_values,
+)
+
+import pandas._testing as tm
+from pandas.core.arrays import (
+    BooleanArray,
+    FloatingArray,
+    IntegerArray,
+)
+
+
+def test_maybe_upcast(any_real_numpy_dtype):
+    # GH#36712
+    if any_real_numpy_dtype == "float32":
+        pytest.skip()
+
+    dtype = np.dtype(any_real_numpy_dtype)
+    na_value = na_values[dtype]
+    arr = np.array([1, 2, na_value], dtype=dtype)
+    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+
+    expected_mask = np.array([False, False, True])
+    if issubclass(dtype.type, np.integer):
+        expected = IntegerArray(arr, mask=expected_mask)
+    else:
+        expected = FloatingArray(arr, mask=expected_mask)
+
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_maybe_upcaste_bool():
+    # GH#36712
+    dtype = np.bool_
+    na_value = na_values[dtype]
+    arr = np.array([True, False, na_value], dtype="uint8").view(np.bool_)
+    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+
+    expected_mask = np.array([False, False, True])
+    expected = BooleanArray(arr, mask=expected_mask)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_maybe_upcaste_all_nan():
+    # GH#36712
+    dtype = np.int64
+    na_value = na_values[dtype]
+    arr = np.array([na_value, na_value], dtype=dtype)
+    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+
+    expected_mask = np.array([True, True])
+    expected = IntegerArray(arr, mask=expected_mask)
+    tm.assert_extension_array_equal(result, expected)
