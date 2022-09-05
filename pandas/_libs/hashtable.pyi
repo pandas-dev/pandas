@@ -110,7 +110,7 @@ class ObjectVector:
 
 class HashTable:
     # NB: The base HashTable class does _not_ actually have these methods;
-    #  we are putting the here for the sake of mypy to avoid
+    #  we are putting them here for the sake of mypy to avoid
     #  reproducing them in each subclass below.
     def __init__(self, size_hint: int = ...): ...
     def __len__(self) -> int: ...
@@ -118,8 +118,8 @@ class HashTable:
     def sizeof(self, deep: bool = ...) -> int: ...
     def get_state(self) -> dict[str, int]: ...
     # TODO: `item` type is subclass-specific
-    def get_item(self, item, na_value): ...  # TODO: return type?
-    def set_item(self, item, val, na_value) -> None: ...
+    def get_item(self, item, na_value: bool = ...): ...  # TODO: return type?
+    def set_item(self, item, val, na_value: bool = ...) -> None: ...
     def map_locations(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
