@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._libs.parsers import (
+from pandas._libs.parsers import (  # type: ignore[attr-defined]
     _maybe_upcast,
     na_values,
 )
