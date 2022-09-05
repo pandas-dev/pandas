@@ -3204,11 +3204,11 @@ However, if XPath does not reference node names such as default, ``/*``, then
       df = pd.read_xml(xml, xpath="./row")
       df
 
-   shows the attribute sides on shape element was not parsed as expected
-   since this attribute resides on the child of row element and not row
-   element itself. In other words, sides attribute is a grandchild level
-   descendant of row element. The ``xpath`` targets only row element
-   content which includes its children and its attributes.
+   shows the attribute ``sides`` on ``shape`` element was not parsed as
+   expected since this attribute resides on the child of ``row`` element
+   and not ``row`` element itself. In other words, ``sides`` attribute is a
+   grandchild level descendant of ``row`` element. However, the ``xpath``
+   targets ``row`` element which covers only its children and attributes.
 
 With `lxml`_ as parser, you can flatten nested XML documents with an XSLT
 script which also can be string/file/URL types. As background, `XSLT`_ is
