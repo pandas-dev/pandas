@@ -1,7 +1,5 @@
 """
-Provide basic components for groupby. These definitions
-hold the allowlist of methods that are exposed on the
-SeriesGroupBy and the DataFrameGroupBy objects.
+Provide basic components for groupby.
 """
 from __future__ import annotations
 
@@ -21,36 +19,6 @@ class OutputKey:
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
 plotting_methods = frozenset(["plot", "hist"])
-
-common_apply_allowlist = (
-    frozenset(
-        [
-            "quantile",
-            "fillna",
-            "mad",
-            "take",
-            "idxmax",
-            "idxmin",
-            "tshift",
-            "skew",
-            "corr",
-            "cov",
-            "diff",
-        ]
-    )
-    | plotting_methods
-)
-
-series_apply_allowlist: frozenset[str] = (
-    common_apply_allowlist
-    | frozenset(
-        {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
-    )
-) | frozenset(["dtype", "unique"])
-
-dataframe_apply_allowlist: frozenset[str] = common_apply_allowlist | frozenset(
-    ["dtypes", "corrwith"]
-)
 
 # cythonized transformations or canned "agg+broadcast", which do not
 # require postprocessing of the result by transform.
