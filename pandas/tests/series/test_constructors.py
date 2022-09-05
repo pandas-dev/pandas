@@ -1650,8 +1650,8 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "dtype,msg",
         [
-            ("m8[ps]", "Only \[ns\] granularity is supported"),
-            ("M8[ps]", "Only \[ns\] granularity is supported"),
+            (r"m8[ps]", r"Only \[ns\] granularity is supported"),
+            (r"M8[ps]", r"Only \[ns\] granularity is supported"),
         ],
     )
     def test_constructor_generic_timestamp_bad_frequency(self, dtype, msg):
