@@ -69,6 +69,7 @@ cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nog
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
+        float64_t result
 
     if n == 0:
         return NaN
@@ -93,13 +94,19 @@ cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nog
         a = tmp
         n -= na_count
 
-    return calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n, na_count)
+
+    if na_count:
+        free(a)
+
+    return result
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
+        float64_t result
 
     if n == 0:
         return NaN
@@ -124,7 +131,12 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         a = tmp
         n -= na_count
 
-    return calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n, na_count)
+
+    if na_count:
+        free(a)
+
+    return result
 
 
 cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
@@ -136,9 +148,6 @@ cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogi
     else:
         result = (kth_smallest_c(a, n // 2, n) +
                   kth_smallest_c(a, n // 2 - 1, n)) / 2
-
-    if na_count:
-        free(a)
 
     return result
 
