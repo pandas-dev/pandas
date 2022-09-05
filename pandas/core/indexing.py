@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_extension_array_dtype,
+    is_float_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -2016,6 +2017,8 @@ class _iLocIndexer(_LocationIndexer):
                 and (
                     np.shares_memory(new_values, orig_values)
                     or new_values.shape != orig_values.shape
+                    or not is_float_dtype(orig_values)
+                    and isna(new_values).any()
                 )
             ):
                 # TODO: get something like tm.shares_memory working?
