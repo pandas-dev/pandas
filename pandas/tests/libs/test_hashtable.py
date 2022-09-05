@@ -103,6 +103,7 @@ class TestHashTable:
 
         table.set_item(index + 1, 41)
         table.set_item(0, 41, na_value=True)
+        assert pd.NA in table
         assert index in table
         assert index + 1 in table
         assert len(table) == 3

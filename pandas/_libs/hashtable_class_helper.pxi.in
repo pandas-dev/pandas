@@ -443,6 +443,7 @@ cdef class {{name}}HashTable(HashTable):
 
     cpdef get_item(self, {{dtype}}_t val, bint na_value = False):
         # Used in core.sorting, IndexEngine.get_loc
+        # Caller is responsible for checking for pd.NA
         cdef:
             khiter_t k
             {{c_type}} cval
@@ -464,6 +465,7 @@ cdef class {{name}}HashTable(HashTable):
 
     cpdef set_item(self, {{dtype}}_t key, Py_ssize_t val, bint na_value = False):
         # Used in libjoin
+        # Caller is responsible for checking for pd.NA
         cdef:
             khiter_t k
             int ret = 0
