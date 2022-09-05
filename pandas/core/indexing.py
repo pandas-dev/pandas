@@ -2018,6 +2018,7 @@ class _iLocIndexer(_LocationIndexer):
                     np.shares_memory(new_values, orig_values)
                     or new_values.shape != orig_values.shape
                     or not is_float_dtype(orig_values)
+                    and not is_object_dtype(orig_values)
                     and isna(new_values).any()
                 )
             ):
