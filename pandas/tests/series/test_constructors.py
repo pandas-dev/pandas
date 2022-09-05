@@ -1579,11 +1579,11 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
         # try to construct from a sequence asking for non-ns timedelta64
-        with pytest.raises(TypeError, match=r"Only \[ns\] granularity"):
+        with pytest.raises(TypeError, match=r"Only \[ns\] granularity is supported"):
             Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
 
         # try to construct from a sequence asking for non-ns datetime64
-        with pytest.raises(TypeError, match=r"Only \[ns\] granularity"):
+        with pytest.raises(TypeError, match=r"Only \[ns\] granularity is supported"):
             Series([1000000, 200000, 3000000], dtype="datetime64[s]")
 
     @pytest.mark.parametrize(
@@ -1650,8 +1650,8 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "dtype,msg",
         [
-            ("m8[ps]", "cannot convert timedeltalike"),
-            ("M8[ps]", "cannot convert datetimelike"),
+            ("m8[ps]", "Only \[ns\] granularity is supported"),
+            ("M8[ps]", "Only \[ns\] granularity is supported"),
         ],
     )
     def test_constructor_generic_timestamp_bad_frequency(self, dtype, msg):
@@ -1892,22 +1892,6 @@ class TestSeriesConstructors:
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
         expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="ns"))
-        tm.assert_series_equal(result, expected)
-
-    def test_constructor_dtype_timedelta_ns_s(self):
-        # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]")
-        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
-        tm.assert_series_equal(result, expected)
-
-    def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
-        # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
-            "int64"
-        )
-        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype(
-            "int64"
-        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings(
