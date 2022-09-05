@@ -125,12 +125,13 @@ RandomState = Union[
 ]
 
 # dtypes
-NpDtype = Union[str, "np.dtype[Any]", type_t[Union[str, complex, bool, object]]]
+# using type: ignore due to incompatible types in assignment
+NpDtype = Union[str, "np.dtype[np.generic]", type_t[Union[str, complex, bool, object]]]  # type: ignore[assignment]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
-DtypeObj = Union["np.dtype[Any]", "ExtensionDtype"]
+DtypeObj = Union["np.dtype[np.generic]", "ExtensionDtype"]  # type: ignore[assignment]
 
 # converters
 ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
