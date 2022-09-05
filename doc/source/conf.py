@@ -51,8 +51,8 @@ sys.path.extend(
 
 extensions = [
     "contributors",  # custom pandas extension
-    "IPython.sphinxext.ipython_directive",
-    "IPython.sphinxext.ipython_console_highlighting",
+    "ipython_sphinxext.ipython_directive",
+    "ipython_sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",

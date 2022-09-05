@@ -356,20 +356,16 @@ Renaming categories is done by using the
 Categories must be unique or a ``ValueError`` is raised:
 
 .. ipython:: python
+   :okexcept: no_traceback
 
-    try:
-        s = s.cat.rename_categories([1, 1, 1])
-    except ValueError as e:
-        print("ValueError:", str(e))
+    s = s.cat.rename_categories([1, 1, 1])
 
 Categories must also not be ``NaN`` or a ``ValueError`` is raised:
 
 .. ipython:: python
+   :okexcept: no_traceback
 
-    try:
-        s = s.cat.rename_categories([1, 2, np.nan])
-    except ValueError as e:
-        print("ValueError:", str(e))
+    s = s.cat.rename_categories([1, 2, np.nan])
 
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -572,11 +568,9 @@ Equality comparisons work with any list-like object of same length and scalars:
 This doesn't work because the categories are not the same:
 
 .. ipython:: python
+   :okexcept: no_traceback
 
-    try:
-        cat > cat_base2
-    except TypeError as e:
-        print("TypeError:", str(e))
+    cat > cat_base2
 
 If you want to do a "non-equality" comparison of a categorical series with a list-like object
 which is not categorical data, you need to be explicit and convert the categorical data back to
@@ -586,10 +580,8 @@ the original values:
 
     base = np.array([1, 2, 3])
 
-    try:
-        cat > base
-    except TypeError as e:
-        print("TypeError:", str(e))
+    @okexcept no_traceback  # noqa: E999
+    cat > base
 
     np.asarray(cat) > base
 
@@ -768,10 +760,8 @@ value is included in the ``categories``:
 
     df.iloc[2:4, :] = [["b", 2], ["b", 2]]
     df
-    try:
-        df.iloc[2:4, :] = [["c", 3], ["c", 3]]
-    except TypeError as e:
-        print("TypeError:", str(e))
+    @okexcept no_traceback   # noqa: E999
+    df.iloc[2:4, :] = [["c", 3], ["c", 3]]
 
 Setting values by assigning categorical data will also check that the ``categories`` match:
 
@@ -779,10 +769,8 @@ Setting values by assigning categorical data will also check that the ``categori
 
     df.loc["j":"k", "cats"] = pd.Categorical(["a", "a"], categories=["a", "b"])
     df
-    try:
-        df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"], categories=["a", "b", "c"])
-    except TypeError as e:
-        print("TypeError:", str(e))
+    @okexcept no_traceback  # noqa: E999
+    df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"], categories=["a", "b", "c"])
 
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
@@ -1067,16 +1055,12 @@ NumPy itself doesn't know about the new ``dtype``:
 
 .. ipython:: python
 
-    try:
-        np.dtype("category")
-    except TypeError as e:
-        print("TypeError:", str(e))
+    @okexcept no_traceback  # noqa: E999
+    np.dtype("category")
 
     dtype = pd.Categorical(["a"]).dtype
-    try:
-        np.dtype(dtype)
-    except TypeError as e:
-        print("TypeError:", str(e))
+    @okexcept no_traceback  # noqa: E999
+    np.dtype(dtype)
 
 Dtype comparisons work:
 
@@ -1098,11 +1082,9 @@ are not numeric data (even in the case that ``.categories`` is numeric).
 .. ipython:: python
 
     s = pd.Series(pd.Categorical([1, 2, 3, 4]))
-    try:
-        np.sum(s)
-        # same with np.log(s),...
-    except TypeError as e:
-        print("TypeError:", str(e))
+    @okexcept no_traceback  # noqa: E999
+    np.sum(s)
+    # same with np.log(s),...
 
 .. note::
     If such a function works, please file a bug at https://github.com/pandas-dev/pandas!
