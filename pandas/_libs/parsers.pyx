@@ -1424,14 +1424,14 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
             arr = arr.astype(object)
             np.putmask(arr, mask, np.nan)
 
-    elif issubclass(arr.dtype.type, np.float):
+    elif issubclass(arr.dtype.type, float):
         if use_nullable_dtypes:
             mask = np.isnan(arr)
             arr = FloatingArray(arr, mask)
 
-    elif arr.dtype == np.object:
+    elif arr.dtype == np.object_:
         if use_nullable_dtypes:
-            arr = StringDtype.construct_array_type()._from_sequence(arr)
+            arr = StringDtype().construct_array_type()._from_sequence(arr)
 
     return arr
 
