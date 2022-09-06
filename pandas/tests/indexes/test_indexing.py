@@ -265,7 +265,7 @@ class TestGetIndexer:
         # GH#48411
         idx = Index([1, 2, NA, NA], dtype="Int64")
         result = idx.get_indexer_for(Index([1, NA], dtype="Int64"))
-        expected = np.array([0, 2, 3])
+        expected = np.array([0, 2, 3], dtype="int64")
         tm.assert_numpy_array_equal(result, expected)
 
 
