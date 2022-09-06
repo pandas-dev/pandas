@@ -64,6 +64,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
+    InvalidComparison,
     NullFrequencyError,
     PerformanceWarning,
 )
@@ -150,15 +151,6 @@ if TYPE_CHECKING:
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
-
-
-class InvalidComparison(Exception):
-    """
-    Raised by _validate_comparison_value to indicate to caller it should
-    return invalid_comparison.
-    """
-
-    pass
 
 
 class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
