@@ -2016,8 +2016,10 @@ class _iLocIndexer(_LocationIndexer):
                 and (
                     np.shares_memory(new_values, orig_values)
                     or new_values.shape != orig_values.shape
-                    or not can_hold_element(orig_values, np.nan)
-                    and isna(new_values).any()
+                    or (
+                        not can_hold_element(orig_values, np.nan)
+                        and isna(new_values).any()
+                    )
                 )
             ):
                 # TODO: get something like tm.shares_memory working?
