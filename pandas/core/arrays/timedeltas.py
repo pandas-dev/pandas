@@ -147,9 +147,9 @@ class TimedeltaArray(dtl.TimelikeOps):
     # error: Decorated property not supported
     @property  # type: ignore[misc]
     @doc(dtl.DatetimeLikeArrayMixin.freq)
-    def freq(self) -> Tick:
-        # error: Incompatible return value type (got "Optional[BaseOffset]",
-        # expected "Tick")
+    def freq(self) -> Tick | None:
+        # error: Incompatible return value type (got "Optional[BaseOffset]", expected
+        # "Optional[Tick]")
         return self._freq  # type: ignore[return-value]
 
     @freq.setter

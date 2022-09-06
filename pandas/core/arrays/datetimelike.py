@@ -552,12 +552,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
                 pairs = zip(to_concat[:-1], to_concat[1:])
-                # error: No overload variant of "__radd__" of "BaseOffset" matches
-                # argument type "NaTType"
-                if all(
-                    pair[0][-1] + obj.freq == pair[1][0]  # type: ignore[operator]
-                    for pair in pairs
-                ):
+                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
                     new_freq = obj.freq
 
         new_obj._freq = new_freq
@@ -1435,10 +1430,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if self.freq is None:
             raise NullFrequencyError("Cannot shift with no freq")
 
-        # error: No overload variant of "__radd__" of "BaseOffset" matches
-        # argument type "NaTType"
-        start = self[0] + periods * self.freq  # type: ignore[operator]
-        end = self[-1] + periods * self.freq  # type: ignore[operator]
+        start = self[0] + periods * self.freq
+        end = self[-1] + periods * self.freq
 
         # Note: in the DatetimeTZ case, _generate_range will infer the
         #  appropriate timezone from `start` and `end`, so tz does not need
