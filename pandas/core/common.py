@@ -18,9 +18,9 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Generator,
     Hashable,
     Iterable,
-    Iterator,
     Sequence,
     cast,
     overload,
@@ -534,7 +534,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value) -> Iterator[None]:
+def temp_setattr(obj, attr: str, value) -> Generator[None, None, None]:
     """Temporarily set attribute on an object.
 
     Args:

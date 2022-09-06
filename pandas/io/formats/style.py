@@ -11,6 +11,7 @@ import operator
 from typing import (
     Any,
     Callable,
+    Generator,
     Hashable,
     Sequence,
     overload,
@@ -80,7 +81,7 @@ except ImportError:
 
 
 @contextmanager
-def _mpl(func: Callable):
+def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
     if has_mpl:
         yield plt, mpl
     else:
@@ -828,7 +829,7 @@ class Styler(StylerRenderer):
         ``display_value`` with the default structure:
         ``\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
-        the above example highlighed cell is rendered as
+        the above example highlighted cell is rendered as
         ``\cellcolor{red} \bfseries 4``.
 
         Occasionally this format does not suit the applied command, or
