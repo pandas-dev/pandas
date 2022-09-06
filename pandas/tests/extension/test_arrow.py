@@ -21,19 +21,25 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under6p0,
+    pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
 )
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
+
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
@@ -221,6 +227,96 @@ class TestConstructors(base.BaseConstructorsTests):
                     )
                 )
         super().test_from_dtype(data)
+
+    def test_from_sequence_pa_array(self, data, request):
+        # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
+        # data._data = pa.ChunkedArray
+        if pa_version_under3p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="ChunkedArray has no attribute combine_chunks",
+                )
+            )
+        result = type(data)._from_sequence(data._data)
+        tm.assert_extension_array_equal(result, data)
+        assert isinstance(result._data, pa.ChunkedArray)
+
+        result = type(data)._from_sequence(data._data.combine_chunks())
+        tm.assert_extension_array_equal(result, data)
+        assert isinstance(result._data, pa.ChunkedArray)
+
+    def test_from_sequence_pa_array_notimplemented(self, request):
+        if pa_version_under6p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="month_day_nano_interval not implemented by pyarrow.",
+                )
+            )
+        with pytest.raises(NotImplementedError, match="Converting strings to"):
+            ArrowExtensionArray._from_sequence_of_strings(
+                ["12-1"], dtype=pa.month_day_nano_interval()
+            )
+
+    def test_from_sequence_of_strings_pa_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa_version_under3p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="ChunkedArray has no attribute combine_chunks",
+                )
+            )
+        elif pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Nanosecond time parsing not supported.",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support parsing {pa_dtype}",
+                )
+            )
+        elif pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Iterating over ChunkedArray[bool] returns PyArrow scalars.",
+                )
+            )
+        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            if pa_version_under7p0:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=pa.ArrowNotImplementedError,
+                        reason=f"pyarrow doesn't support string cast from {pa_dtype}",
+                    )
+                )
+            elif is_platform_windows() and is_ci_environment():
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=pa.ArrowInvalid,
+                        reason=(
+                            "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                            "on CI to path to the tzdata for pyarrow."
+                        ),
+                    )
+                )
+        elif pa_version_under6p0 and pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support string cast from {pa_dtype}",
+                )
+            )
+        pa_array = data._data.cast(pa.string())
+        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        tm.assert_extension_array_equal(result, data)
+
+        pa_array = pa_array.combine_chunks()
+        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        tm.assert_extension_array_equal(result, data)
 
 
 @pytest.mark.xfail(
@@ -446,7 +542,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        super().test_groupby_extension_transform(data_for_grouping)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_transform(data_for_grouping)
 
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request
@@ -479,7 +578,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                         reason="GH 34986",
                     )
                 )
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
     def test_in_numeric_groupby(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -518,7 +620,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason="GH 34986",
                 )
             )
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class TestBaseDtype(base.BaseDtypeTests):
@@ -607,6 +712,10 @@ class TestBaseInterface(base.BaseInterfaceTests):
 
 
 class TestBaseMissing(base.BaseMissingTests):
+    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
+    def test_dropna_array(self, data_missing):
+        super().test_dropna_array(data_missing)
+
     def test_fillna_limit_pad(self, data_missing, using_array_manager, request):
         if using_array_manager and pa.types.is_duration(
             data_missing.dtype.pyarrow_dtype
@@ -1331,6 +1440,12 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestBaseMethods(base.BaseMethodsTests):
+    def test_argsort_missing_array(self, data_missing_for_sorting):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_argsort_missing_array(data_missing_for_sorting)
+
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1345,6 +1460,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_diff(data, periods)
 
+    @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
@@ -1384,7 +1500,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"value_count has no pyarrow kernel for {pa_dtype}",
                 )
             )
-        super().test_value_counts_with_normalize(data)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_value_counts_with_normalize(data)
 
     @pytest.mark.xfail(
         pa_version_under6p0,
@@ -1445,6 +1564,19 @@ class TestBaseMethods(base.BaseMethodsTests):
             data_missing_for_sorting, op_name, skipna, expected
         )
 
+    @pytest.mark.parametrize(
+        "na_position, expected",
+        [
+            ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
+            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
+        ],
+    )
+    def test_nargsort(self, data_missing_for_sorting, na_position, expected):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_nargsort(data_missing_for_sorting, na_position, expected)
+
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key, request):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
@@ -1458,7 +1590,21 @@ class TestBaseMethods(base.BaseMethodsTests):
                     ),
                 )
             )
-        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values(data_for_sorting, ascending, sort_by_key)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values_missing(
+                data_missing_for_sorting, ascending, sort_by_key
+            )
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending, request):
@@ -1473,7 +1619,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     ),
                 )
             )
-        super().test_sort_values_frame(data_for_sorting, ascending)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
 
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
