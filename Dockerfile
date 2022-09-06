@@ -18,7 +18,7 @@ RUN apt-get update \
     && dpkg-reconfigure -f noninteractive tzdata \
     #
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
-    && apt-get -y install git iproute2 procps iproute2 lsb-release \
+    && apt-get -y install git iproute2 procps lsb-release \
     #
     # cleanup
     && apt-get autoremove -y \
@@ -35,18 +35,12 @@ RUN mkdir "$pandas_home" \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
     && git pull upstream main
 
-# Because it is surprisingly difficult to activate a conda environment inside a DockerFile
-# (from personal experience and per https://github.com/ContinuumIO/docker-images/issues/89),
-# we just update the base/root one from the 'environment.yml' file instead of creating a new one.
-#
 # Set up environment
-RUN mamba env update -n base -f "$pandas_home/environment.yml"
+RUN mamba env create -f "$pandas_home/environment.yml"
 
 # Build C extensions and pandas
-SHELL ["/bin/bash", "-c"]
-RUN . /opt/conda/etc/profile.d/conda.sh \
-    && conda activate base \
-    && cd "$pandas_home" \
+SHELL ["mamba", "run", "-n", "pandas-dev", "/bin/bash", "-c"]
+RUN cd "$pandas_home" \
     && export \
     && python setup.py build_ext -j 4 \
     && python -m pip install --no-build-isolation -e .
