@@ -989,6 +989,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _op_via_apply(self, name: str, *args, **kwargs):
+        """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
         with self._group_selection_context():
             # need to setup the selection
