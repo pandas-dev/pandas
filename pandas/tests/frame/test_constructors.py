@@ -9,7 +9,6 @@ from datetime import (
 )
 import functools
 import itertools
-from nis import match
 import re
 import warnings
 
@@ -3179,6 +3178,7 @@ class TestAllowNonNano:
         df = DataFrame({0: arr})
         assert df.dtypes[0] == arr.dtype
 
+
 def test_dtype_warning_on_empty_list_df():
     # pd.Series([]) without a specified dtype warns the user
     expected = pd.DataFrame({"a": pd.Series([]), "b": pd.Series([])})
@@ -3186,7 +3186,8 @@ def test_dtype_warning_on_empty_list_df():
     with tm.assert_produces_warning(FutureWarning):
         # Lists does not warn the user
         result = pd.DataFrame({"a": [], "b": []})
-    tm.assert_frame_equal(result, expected) # This is true
+    tm.assert_frame_equal(result, expected)  # This is true
+
 
 def test_empty_constructs():
     # There should be a consistency for the default dtype when it's not supplied by the user.

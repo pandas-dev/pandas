@@ -1345,5 +1345,3 @@ def test_apply_on_empty_groupby_dataframe():
     expected = df3.iloc[:0]  # An empty dataframe
 
     tm.assert_frame_equal(result, expected)
-
-
