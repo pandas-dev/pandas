@@ -1144,7 +1144,6 @@ Period
 - Bug in adding ``np.timedelta64("NaT", "ns")`` to a :class:`Period` with a timedelta-like freq incorrectly raising ``IncompatibleFrequency`` instead of returning ``NaT`` (:issue:`47196`)
 - Bug in adding an array of integers to an array with :class:`PeriodDtype` giving incorrect results when ``dtype.freq.n > 1`` (:issue:`47209`)
 - Bug in subtracting a :class:`Period` from an array with :class:`PeriodDtype` returning incorrect results instead of raising ``OverflowError`` when the operation overflows (:issue:`47538`)
-- Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, raising ``UnicodeDecodeError`` when a locale-specific directive was passed (:issue:`46319`)
 -
 
 Plotting

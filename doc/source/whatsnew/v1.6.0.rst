@@ -174,7 +174,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, raising ``UnicodeDecodeError`` when a locale-specific directive was passed (:issue:`46319`)
 -
 
 Plotting
