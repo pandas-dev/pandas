@@ -3190,8 +3190,22 @@ def test_dtype_warning_on_empty_list_df():
 
 
 def test_empty_constructs():
-    # There should be a consistency for the default dtype when it's not supplied by the user.
+    # There should be a consistency for dtype when it's not supplied by the user
     result = pd.DataFrame({"a": [], "b": []})
     expected = pd.DataFrame(columns=["a", "b"])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_empty_df_without_column_names():
+    # Given
+    result_with_data = pd.DataFrame([1, 2, 3])
+    expected_with_data = pd.DataFrame(pd.Series([1, 2, 3]))
+    # Then
+    tm.assert_frame_equal(result_with_data, expected_with_data)  # True
+
+    # But when it's empty
+    result_empty = pd.DataFrame([])
+    expected_empty = pd.DataFrame(pd.Series([]))
+
+    tm.assert_frame_equal(result_empty, expected_empty)
