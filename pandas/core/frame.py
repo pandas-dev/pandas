@@ -5858,7 +5858,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[False] = ...,
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -5871,7 +5870,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[True],
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5883,7 +5881,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = False,
         inplace: bool = False,
         verify_integrity: bool = False,
-        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -5910,11 +5907,6 @@ class DataFrame(NDFrame, OpsMixin):
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
-        copy : bool, default True
-            Whether to make a copy of the underlying data when returning a new
-            DataFrame.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5980,13 +5972,6 @@ class DataFrame(NDFrame, OpsMixin):
         4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        if inplace:
-            if copy is not lib.no_default:
-                raise ValueError("Cannot specify copy when inplace=True")
-            copy = False
-        elif copy is lib.no_default:
-            copy = True
-
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
             keys = [keys]
@@ -6022,7 +6007,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy(deep=copy)
+            frame = self.copy()
 
         arrays = []
         names: list[Hashable] = []
