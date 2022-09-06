@@ -176,6 +176,16 @@ class Sortlevel:
         self.mi.sortlevel(1)
 
 
+class SortValues:
+    def setup(self):
+        a = np.tile(np.arange(100), 1000)
+        b = np.tile(np.arange(1000), 100)
+        self.mi = MultiIndex.from_arrays([a, b])
+
+    def time_sort_values(self):
+        self.mi.sort_values()
+
+
 class Values:
     def setup_cache(self):
 
