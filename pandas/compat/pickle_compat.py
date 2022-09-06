@@ -9,7 +9,7 @@ import io
 import pickle as pkl
 from typing import (
     TYPE_CHECKING,
-    Iterator,
+    Generator,
 )
 import warnings
 
@@ -294,7 +294,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle() -> Iterator[None]:
+def patch_pickle() -> Generator[None, None, None]:
     """
     Temporarily patch pickle to use our unpickler.
     """
