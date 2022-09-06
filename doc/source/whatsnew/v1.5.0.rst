@@ -1011,6 +1011,8 @@ Time Zones
 Numeric
 ^^^^^^^
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
+- Bug in arithmetic operations with nullable types without :attr:`NA` values not matching the same operation with non-nullable types (:issue:`48223`)
+- Bug in ``floordiv`` when dividing by ``IntegerDtype`` ``0`` would return ``0`` instead of ``inf`` (:issue:`48223`)
 - Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
 - Bug in :meth:`mean` where the optional dependency ``bottleneck`` causes precision loss linear in the length of the array. ``bottleneck`` has been disabled for :meth:`mean` improving the loss to log-linear but may result in a performance decrease. (:issue:`42878`)
@@ -1060,6 +1062,7 @@ Indexing
 - Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
 - Bug in :meth:`DataFrame.__setitem__` casting extension array dtypes to object when setting with a scalar key and :class:`DataFrame` as value (:issue:`46896`)
+- Bug in :meth:`Series.__setitem__` when setting a scalar to a nullable pandas dtype would not raise a ``TypeError`` if the scalar could not be cast (losslessly) to the nullable type (:issue:`45404`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.loc` raising with boolean indexer containing ``NA`` when :class:`Index` did not match (:issue:`46551`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtype :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
@@ -1081,7 +1084,7 @@ Indexing
 - Bug in :meth:`DataFrame.sum` min_count changes dtype if input contains NaNs (:issue:`46947`)
 - Bug in :class:`IntervalTree` that lead to an infinite recursion. (:issue:`46658`)
 - Bug in :class:`PeriodIndex` raising ``AttributeError`` when indexing on ``NA``, rather than putting ``NaT`` in its place. (:issue:`46673`)
--
+- Bug in :meth:`DataFrame.at` would allow the modification of multiple columns (:issue:`48296`)
 
 Missing
 ^^^^^^^
