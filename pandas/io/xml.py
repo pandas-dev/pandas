@@ -387,7 +387,7 @@ class _XMLFrameParser:
 
         return dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
         """
         Validate xpath.
 
@@ -446,8 +446,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         if self.iterparse is None:
             self.xml_doc = self._parse_doc(self.path_or_buffer)
-            self._validate_path()
-            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+            elems = self._validate_path()
 
         self._validate_names()
 
@@ -459,7 +458,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
         """
         Notes
         -----
@@ -468,18 +467,28 @@ class _EtreeFrameParser(_XMLFrameParser):
         """
 
         msg = (
-            "xpath does not return any nodes. "
+            "xpath does not return any nodes or attributes. "
+            "Be sure to specify in `xpath` the parent nodes of "
+            "children and attributes to parse. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
         try:
-            elems = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
+            elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
+            children = [ch for el in elems for ch in el.findall("*")]
+            attrs = {k: v for el in elems for k, v in el.attrib.items()}
+
             if elems is None:
                 raise ValueError(msg)
 
-            if elems is not None and elems.find("*") is None and elems.attrib is None:
-                raise ValueError(msg)
+            if elems is not None:
+                if self.elems_only and children == []:
+                    raise ValueError(msg)
+                elif self.attrs_only and attrs == {}:
+                    raise ValueError(msg)
+                elif children == [] and attrs == {}:
+                    raise ValueError(msg)
 
         except (KeyError, SyntaxError):
             raise SyntaxError(
@@ -487,6 +496,8 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "expression for etree library or you used an "
                 "undeclared namespace prefix."
             )
+
+        return elems
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -554,8 +565,7 @@ class _LxmlFrameParser(_XMLFrameParser):
                 self.xsl_doc = self._parse_doc(self.stylesheet)
                 self.xml_doc = self._transform_doc()
 
-            self._validate_path()
-            elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
+            elems = self._validate_path()
 
         self._validate_names()
 
@@ -567,25 +577,33 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return xml_dicts
 
-    def _validate_path(self) -> None:
+    def _validate_path(self) -> list[Any]:
 
         msg = (
-            "xpath does not return any nodes. "
-            "Be sure row level nodes are in xpath. "
+            "xpath does not return any nodes or attributes. "
+            "Be sure to specify in `xpath` the parent nodes of "
+            "children and attributes to parse. "
             "If document uses namespaces denoted with "
             "xmlns, be sure to define namespaces and "
             "use them in xpath."
         )
 
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
-        children = self.xml_doc.xpath(self.xpath + "/*", namespaces=self.namespaces)
-        attrs = self.xml_doc.xpath(self.xpath + "/@*", namespaces=self.namespaces)
+        children = [ch for el in elems for ch in el.xpath("*")]
+        attrs = {k: v for el in elems for k, v in el.attrib.items()}
 
         if elems == []:
             raise ValueError(msg)
 
-        if elems != [] and attrs == [] and children == []:
-            raise ValueError(msg)
+        if elems != []:
+            if self.elems_only and children == []:
+                raise ValueError(msg)
+            elif self.attrs_only and attrs == {}:
+                raise ValueError(msg)
+            elif children == [] and attrs == {}:
+                raise ValueError(msg)
+
+        return elems
 
     def _validate_names(self) -> None:
         children: list[Any]
