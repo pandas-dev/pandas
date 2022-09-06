@@ -27,6 +27,7 @@ from pandas.compat import (
     pa_version_under3p0,
     pa_version_under4p0,
     pa_version_under6p0,
+    pa_version_under7p0,
     pa_version_under8p0,
     pa_version_under9p0,
 )
