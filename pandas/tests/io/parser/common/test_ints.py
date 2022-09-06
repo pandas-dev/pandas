@@ -2,7 +2,6 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-from contextlib import nullcontext
 from io import StringIO
 
 import numpy as np
@@ -122,42 +121,57 @@ def _iinfo(dtype):
     return iinfo
 
 
-_raises_any_integer_cast_exception = pytest.raises(  # noqa: PDF010
-    (OverflowError, TypeError, ValueError),
-    match="|".join(
-        [
-            "Overflow",
-            "cannot safely cast non-equivalent",
-            "Integer out of range",
-            "Unable to convert column",
-            "The elements provided in the data cannot all be casted to the dtype",
-        ]
-    ),
+@skip_pyarrow
+@pytest.mark.parametrize(
+    "getval",
+    [
+        (lambda dtype: _iinfo(dtype).max),
+        (lambda dtype: _iinfo(dtype).min),
+    ],
 )
+def test_integer_limits_with_user_dtype(all_parsers, any_int_dtype, getval):
+    dtype = any_int_dtype
+    parser = all_parsers
+    val = getval(dtype)
+    data = f"A\n{val}"
+
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected_result = DataFrame({"A": [val]}, dtype=dtype)
+    tm.assert_frame_equal(result, expected_result)
 
 
 @skip_pyarrow
 @pytest.mark.parametrize(
-    "getval,expected",
+    "getval",
     [
-        (lambda dtype: _iinfo(dtype).max, nullcontext()),  # in range does not raise
-        (lambda dtype: _iinfo(dtype).min, nullcontext()),  # in range does not raise
-        (lambda dtype: _iinfo(dtype).max + 1, _raises_any_integer_cast_exception),
-        (lambda dtype: _iinfo(dtype).min - 1, _raises_any_integer_cast_exception),
+        (lambda dtype: _iinfo(dtype).max + 1),
+        (lambda dtype: _iinfo(dtype).min - 1),
     ],
 )
-def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, expected):
+def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval):
     # see GH-47167
     dtype = any_int_dtype
     parser = all_parsers
     val = getval(dtype)
     data = f"A\n{val}"
 
+    expected = pytest.raises(  # noqa: PDF010
+        (OverflowError, TypeError, ValueError),
+        match="|".join(
+            [
+                "Overflow",
+                "cannot safely cast non-equivalent",
+                "Integer out of range",
+                "Unable to convert column",
+                "The elements provided in the data cannot all be casted to the dtype",
+            ]
+        ),
+    )
+
     # Specific case has intended behavior only after deprecation from #41734 becomes
     # enforced. Until then, only expect a FutureWarning.
     if (
-        (expected == _raises_any_integer_cast_exception)
-        and (parser.engine == "python")
+        (parser.engine == "python")
         and (not is_extension_array_dtype(dtype))
         and (dtype < np.dtype("int64"))
         and not (is_unsigned_integer_dtype(dtype) and (val < 0))
@@ -169,10 +183,7 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, ex
         )
 
     with expected:
-        result = parser.read_csv(StringIO(data), dtype=dtype)
-    if isinstance(expected, nullcontext):
-        expected_result = DataFrame({"A": [val]}, dtype=dtype)
-        tm.assert_frame_equal(result, expected_result)
+        parser.read_csv(StringIO(data), dtype=dtype)
 
 
 @skip_pyarrow
