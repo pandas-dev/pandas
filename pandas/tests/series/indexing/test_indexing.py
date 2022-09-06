@@ -209,7 +209,8 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, slice(None, None)]] = 2
 
 
-def test_slice(string_series, object_series):
+def test_slice(string_series, object_series, using_copy_on_write):
+    original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
     objSlice = object_series[10:20]
@@ -227,7 +228,11 @@ def test_slice(string_series, object_series):
     sl = string_series[10:20]
     sl[:] = 0
 
-    assert (string_series[10:20] == 0).all()
+    if using_copy_on_write:
+        # Doesn't modify parent (CoW)
+        tm.assert_series_equal(string_series, original)
+    else:
+        assert (string_series[10:20] == 0).all()
 
 
 def test_timedelta_assignment():
@@ -244,21 +249,28 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
-def test_underlying_data_conversion():
+def test_underlying_data_conversion(using_copy_on_write):
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
-    return_value = df.set_index(["a", "b", "c"], inplace=True)
+    msg = "The 'inplace' keyword"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        return_value = df.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     s = Series([1], index=[(2, 2, 2)])
     df["val"] = 0
+    df_original = df.copy()
     df
     df["val"].update(s)
 
-    expected = DataFrame(
-        {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
-    )
-    return_value = expected.set_index(["a", "b", "c"], inplace=True)
-    assert return_value is None
+    if using_copy_on_write:
+        expected = df_original
+    else:
+        expected = DataFrame(
+            {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = expected.set_index(["a", "b", "c"], inplace=True)
+        assert return_value is None
     tm.assert_frame_equal(df, expected)
 
 

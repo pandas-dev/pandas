@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under1p01
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -387,3 +389,68 @@ def test_groupby_drop_nan_with_multi_index():
     result = df.groupby(["a", "b"], dropna=False).first()
     expected = df
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([2, np.nan, 1, 2], None),
+        ([2, np.nan, 1, 2], "UInt8"),
+        ([2, np.nan, 1, 2], "Int8"),
+        ([2, np.nan, 1, 2], "UInt16"),
+        ([2, np.nan, 1, 2], "Int16"),
+        ([2, np.nan, 1, 2], "UInt32"),
+        ([2, np.nan, 1, 2], "Int32"),
+        ([2, np.nan, 1, 2], "UInt64"),
+        ([2, np.nan, 1, 2], "Int64"),
+        ([2, np.nan, 1, 2], "Float32"),
+        ([2, np.nan, 1, 2], "Int64"),
+        ([2, np.nan, 1, 2], "Float64"),
+        (["y", None, "x", "y"], "category"),
+        (["y", pd.NA, "x", "y"], "string"),
+        pytest.param(
+            ["y", pd.NA, "x", "y"],
+            "string[pyarrow]",
+            marks=pytest.mark.skipif(
+                pa_version_under1p01, reason="pyarrow is not installed"
+            ),
+        ),
+        (
+            ["2016-01-01", np.datetime64("NaT"), "2017-01-01", "2016-01-01"],
+            "datetime64[ns]",
+        ),
+        (
+            [
+                pd.Period("2012-02-01", freq="D"),
+                pd.NA,
+                pd.Period("2012-01-01", freq="D"),
+                pd.Period("2012-02-01", freq="D"),
+            ],
+            None,
+        ),
+        (pd.arrays.SparseArray([2, np.nan, 1, 2]), None),
+    ],
+)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_no_sort_keep_na(values, dtype, test_series):
+    # GH#46584
+    key = pd.Series(values, dtype=dtype)
+    df = pd.DataFrame({"key": key, "a": [1, 2, 3, 4]})
+    gb = df.groupby("key", dropna=False, sort=False)
+    if test_series:
+        gb = gb["a"]
+
+    warn = None
+    if isinstance(values, pd.arrays.SparseArray):
+        warn = FutureWarning
+    msg = "passing a SparseArray to pd.Index will store that array directly"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.sum()
+        expected = pd.DataFrame({"a": [5, 2, 3]}, index=key[:-1].rename("key"))
+
+    if test_series:
+        expected = expected["a"]
+    if expected.index.is_categorical():
+        # TODO: Slicing reorders categories?
+        expected.index = expected.index.reorder_categories(["y", "x"])
+    tm.assert_equal(result, expected)

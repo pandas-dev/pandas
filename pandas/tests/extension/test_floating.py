@@ -211,5 +211,6 @@ class TestParsing(base.BaseParsingTests):
     pass
 
 
+@pytest.mark.filterwarnings("ignore:overflow encountered in reduce:RuntimeWarning")
 class Test2DCompat(base.Dim2CompatTests):
     pass
