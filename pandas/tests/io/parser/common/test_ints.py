@@ -176,23 +176,24 @@ def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, ex
 
 
 @skip_pyarrow
-@pytest.mark.parametrize(
-    "val,expected",
-    [
-        (0.0, nullcontext()),  # lossless conversion does not raise
-        (0.1, pytest.raises((TypeError, ValueError), match=None)),  # noqa: PDF010
-    ],
-)
-def test_integer_from_float_raises(all_parsers, any_int_dtype, val, expected):
+def test_integer_from_float_lossless(all_parsers, any_int_dtype):
     dtype = any_int_dtype
     parser = all_parsers
-    data = f"A\n0\n{val}"
+    data = "A\n0\n0.0"
 
-    with expected:
-        result = parser.read_csv(StringIO(data), dtype=dtype)
-    if "result" in locals():
-        expected_result = DataFrame({"A": [0, val]}, dtype=dtype)
-        tm.assert_frame_equal(result, expected_result)
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected_result = DataFrame({"A": [0, 0]}, dtype=dtype)
+    tm.assert_frame_equal(result, expected_result)
+
+
+@skip_pyarrow
+def test_integer_from_float_lossy(all_parsers, any_int_dtype):
+    dtype = any_int_dtype
+    parser = all_parsers
+    data = "A\n0\n0.1"
+
+    with pytest.raises((TypeError, ValueError), match=None):
+        parser.read_csv(StringIO(data), dtype=dtype)
 
 
 def test_int64_min_issues(all_parsers):
