@@ -1,4 +1,3 @@
-import datetime as dt
 from datetime import (
     date,
     datetime,
@@ -1334,15 +1333,17 @@ def test_result_name_when_one_group(name):
     tm.assert_series_equal(result, expected)
 
 
-def test_empty_inputs_with_apply_inconsistency():
-    df = pd.DataFrame([(dt.date.today(), 2, 3)], columns=["date", "a", "b"])
+def test_apply_on_empty_groupby_dataframe():
+    df = pd.DataFrame([(date.today(), 2, 3)], columns=["date", "a", "b"])
     df["date"] = pd.to_datetime(df["date"])
     df = df[df["b"] == 1]  # An empty dataframe
     result = df.set_index("date").groupby("a", group_keys=True).apply(lambda x: x)
 
-    df2 = pd.DataFrame([(dt.date.today(), 2, 3)], columns=["date", "a", "b"])
+    df2 = pd.DataFrame([(date.today(), 2, 3)], columns=["date", "a", "b"])
     df2["date"] = pd.to_datetime(df2["date"])
     df3 = df2.set_index("date").groupby("a", group_keys=True).apply(lambda x: x)
     expected = df3.iloc[:0]  # An empty dataframe
 
-    tm.assert_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
+
+
