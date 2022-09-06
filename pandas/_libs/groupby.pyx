@@ -759,6 +759,8 @@ def group_var(
     const intp_t[::1] labels,
     Py_ssize_t min_count=-1,
     int64_t ddof=1,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -766,6 +768,7 @@ def group_var(
         floating[:, ::1] mean
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = not mask is None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -790,8 +793,12 @@ def group_var(
             for j in range(K):
                 val = values[i, j]
 
-                # not nan
-                if val == val:
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = not val == val
+
+                if not isna_entry:
                     nobs[lab, j] += 1
                     oldmean = mean[lab, j]
                     mean[lab, j] += (val - oldmean) / nobs[lab, j]
@@ -801,7 +808,10 @@ def group_var(
             for j in range(K):
                 ct = nobs[i, j]
                 if ct <= ddof:
-                    out[i, j] = NAN
+                    if uses_mask:
+                        result_mask[i, j] = True
+                    else:
+                        out[i, j] = NAN
                 else:
                     out[i, j] /= (ct - ddof)
 
@@ -839,9 +849,9 @@ def group_mean(
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
     mask : ndarray[bool, ndim=2], optional
-        Not used.
+        Mask of the input values.
     result_mask : ndarray[bool, ndim=2], optional
-        Not used.
+        Mask of the out array
 
     Notes
     -----
@@ -855,6 +865,7 @@ def group_mean(
         mean_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = not mask is None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -867,7 +878,12 @@ def group_mean(
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
-    nan_val = NPY_NAT if is_datetimelike else NAN
+    if uses_mask:
+        nan_val = 0
+    elif is_datetimelike:
+        nan_val = NPY_NAT
+    else:
+        nan_val = NAN
 
     with nogil:
         for i in range(N):
@@ -878,8 +894,15 @@ def group_mean(
             counts[lab] += 1
             for j in range(K):
                 val = values[i, j]
-                # not nan
-                if val == val and not (is_datetimelike and val == NPY_NAT):
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                elif is_datetimelike:
+                    isna_entry = val == NPY_NAT
+                else:
+                    isna_entry = not val == val
+
+                if not isna_entry:
                     nobs[lab, j] += 1
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
@@ -890,7 +913,12 @@ def group_mean(
             for j in range(K):
                 count = nobs[i, j]
                 if nobs[i, j] == 0:
-                    out[i, j] = nan_val
+
+                    if uses_mask:
+                        result_mask[i, j] = True
+                    else:
+                        out[i, j] = nan_val
+
                 else:
                     out[i, j] = sumx[i, j] / count
 
