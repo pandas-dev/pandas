@@ -21,9 +21,9 @@ from typing import (
     Any,
     Callable,
     Final,
+    Generator,
     Hashable,
     Iterable,
-    Iterator,
     List,
     Mapping,
     Sequence,
@@ -1216,7 +1216,7 @@ def save_to_buffer(
 @contextmanager
 def get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Iterator[WriteBuffer[str]] | Iterator[StringIO]:
+) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.

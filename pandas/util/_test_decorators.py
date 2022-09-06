@@ -30,7 +30,7 @@ import gc
 import locale
 from typing import (
     Callable,
-    Iterator,
+    Generator,
 )
 import warnings
 
@@ -257,7 +257,7 @@ def check_file_leaks(func) -> Callable:
 
 
 @contextmanager
-def file_leak_context() -> Iterator[None]:
+def file_leak_context() -> Generator[None, None, None]:
     """
     ContextManager analogue to check_file_leaks.
     """
