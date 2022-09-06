@@ -280,6 +280,9 @@ def is_categorical(arr) -> bool:
     """
     Check whether an array-like is a Categorical instance.
 
+    .. deprecated:: 1.1.0
+        Use ``is_categorical_dtype`` instead.
+
     Parameters
     ----------
     arr : array-like

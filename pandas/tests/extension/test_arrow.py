@@ -21,6 +21,8 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
@@ -36,6 +38,8 @@ import pandas._testing as tm
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
+
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
@@ -223,6 +227,96 @@ class TestConstructors(base.BaseConstructorsTests):
                     )
                 )
         super().test_from_dtype(data)
+
+    def test_from_sequence_pa_array(self, data, request):
+        # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
+        # data._data = pa.ChunkedArray
+        if pa_version_under3p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="ChunkedArray has no attribute combine_chunks",
+                )
+            )
+        result = type(data)._from_sequence(data._data)
+        tm.assert_extension_array_equal(result, data)
+        assert isinstance(result._data, pa.ChunkedArray)
+
+        result = type(data)._from_sequence(data._data.combine_chunks())
+        tm.assert_extension_array_equal(result, data)
+        assert isinstance(result._data, pa.ChunkedArray)
+
+    def test_from_sequence_pa_array_notimplemented(self, request):
+        if pa_version_under6p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=AttributeError,
+                    reason="month_day_nano_interval not implemented by pyarrow.",
+                )
+            )
+        with pytest.raises(NotImplementedError, match="Converting strings to"):
+            ArrowExtensionArray._from_sequence_of_strings(
+                ["12-1"], dtype=pa.month_day_nano_interval()
+            )
+
+    def test_from_sequence_of_strings_pa_array(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa_version_under3p0:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="ChunkedArray has no attribute combine_chunks",
+                )
+            )
+        elif pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Nanosecond time parsing not supported.",
+                )
+            )
+        elif pa.types.is_duration(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support parsing {pa_dtype}",
+                )
+            )
+        elif pa.types.is_boolean(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Iterating over ChunkedArray[bool] returns PyArrow scalars.",
+                )
+            )
+        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+            if pa_version_under7p0:
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=pa.ArrowNotImplementedError,
+                        reason=f"pyarrow doesn't support string cast from {pa_dtype}",
+                    )
+                )
+            elif is_platform_windows() and is_ci_environment():
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        raises=pa.ArrowInvalid,
+                        reason=(
+                            "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                            "on CI to path to the tzdata for pyarrow."
+                        ),
+                    )
+                )
+        elif pa_version_under6p0 and pa.types.is_temporal(pa_dtype):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowNotImplementedError,
+                    reason=f"pyarrow doesn't support string cast from {pa_dtype}",
+                )
+            )
+        pa_array = data._data.cast(pa.string())
+        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        tm.assert_extension_array_equal(result, data)
+
+        pa_array = pa_array.combine_chunks()
+        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        tm.assert_extension_array_equal(result, data)
 
 
 @pytest.mark.xfail(
