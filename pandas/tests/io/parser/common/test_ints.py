@@ -147,14 +147,14 @@ _raises_any_integer_cast_exception = pytest.raises(  # noqa: PDF010
     ],
 )
 def test_integer_overflow_with_user_dtype(all_parsers, any_int_dtype, getval, expected):
+    # see GH-47167
     dtype = any_int_dtype
     parser = all_parsers
     val = getval(dtype)
     data = f"A\n{val}"
 
-    # Positive value overflow with uint8, uint16, uint32 and any overflow with
-    # int8, int16, int32 only throw a FutureWarning until deprecation from #41734
-    # becomes enforced. After enforcement, the following block must be deleted.
+    # Specific case has intended behavior only after deprecation from #41734 becomes
+    # enforced. Until then, only expect a FutureWarning.
     if (
         (expected == _raises_any_integer_cast_exception)
         and (parser.engine == "python")
