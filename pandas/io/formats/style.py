@@ -11,6 +11,7 @@ import operator
 from typing import (
     Any,
     Callable,
+    Generator,
     Hashable,
     Sequence,
     overload,
@@ -80,7 +81,7 @@ except ImportError:
 
 
 @contextmanager
-def _mpl(func: Callable):
+def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
     if has_mpl:
         yield plt, mpl
     else:

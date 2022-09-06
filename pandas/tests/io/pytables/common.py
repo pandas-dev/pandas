@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import os
 import tempfile
+from typing import Generator
 
 import pytest
 
@@ -36,7 +37,9 @@ def create_tempfile(path):
 
 # contextmanager to ensure the file cleanup
 @contextmanager
-def ensure_clean_store(path, mode="a", complevel=None, complib=None, fletcher32=False):
+def ensure_clean_store(
+    path, mode="a", complevel=None, complib=None, fletcher32=False
+) -> Generator[HDFStore, None, None]:
 
     try:
 

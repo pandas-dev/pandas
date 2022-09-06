@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
-    Iterator,
+    Generator,
 )
 
 from pandas.plotting._core import _get_plot_backend
@@ -594,7 +594,7 @@ class _Options(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value) -> Iterator[_Options]:
+    def use(self, key, value) -> Generator[_Options, None, None]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.
