@@ -5856,7 +5856,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         drop: bool = ...,
         append: bool = ...,
-        inplace: Literal[False] | lib.NoDefault = ...,
+        inplace: Literal[False] = ...,
         verify_integrity: bool = ...,
         copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
@@ -5881,7 +5881,7 @@ class DataFrame(NDFrame, OpsMixin):
         keys,
         drop: bool = True,
         append: bool = False,
-        inplace: bool | lib.NoDefault = lib.no_default,
+        inplace: bool = False,
         verify_integrity: bool = False,
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
@@ -5906,9 +5906,6 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to append columns to existing index.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
-
-            .. deprecated:: 1.5.0
-
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
@@ -5982,18 +5979,7 @@ class DataFrame(NDFrame, OpsMixin):
         3 9       7  2013    84
         4 16     10  2014    31
         """
-        if inplace is not lib.no_default:
-            inplace = validate_bool_kwarg(inplace, "inplace")
-            warnings.warn(
-                "The 'inplace' keyword in DataFrame.set_index is deprecated "
-                "and will be removed in a future version. Use "
-                "`df = df.set_index(..., copy=False)` instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        else:
-            inplace = False
-
+        inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if copy is not lib.no_default:
                 raise ValueError("Cannot specify copy when inplace=True")

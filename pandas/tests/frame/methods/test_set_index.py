@@ -40,11 +40,9 @@ class TestSetIndex:
 
         msg = "Cannot specify copy when inplace=True"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="The 'inplace'"):
-                df.set_index("A", inplace=True, copy=True)
+            df.set_index("A", inplace=True, copy=True)
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="The 'inplace'"):
-                df.set_index("A", inplace=True, copy=False)
+            df.set_index("A", inplace=True, copy=False)
 
     def test_set_index_multiindex(self):
         # segfault in GH#3308
@@ -199,10 +197,7 @@ class TestSetIndex:
 
         if inplace:
             result = df.copy()
-            with tm.assert_produces_warning(
-                FutureWarning, match="The 'inplace' keyword"
-            ):
-                return_value = result.set_index(keys, drop=drop, inplace=True)
+            return_value = result.set_index(keys, drop=drop, inplace=True)
             assert return_value is None
         else:
             result = df.set_index(keys, drop=drop)
