@@ -12,7 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Final,
-    Iterator,
+    Generator,
     cast,
 )
 
@@ -99,7 +99,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Iterator[None]:
+def pandas_converters() -> Generator[None, None, None]:
     """
     Context manager registering pandas' converters for a plot.
 
