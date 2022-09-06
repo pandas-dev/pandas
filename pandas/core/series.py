@@ -35,6 +35,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
@@ -1169,7 +1170,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 self._set_with(key, value)
 
         if cacher_needs_updating:
-            self._maybe_update_cacher()
+            self._maybe_update_cacher(inplace=True)
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
@@ -5731,19 +5732,30 @@ Keep all original rows and also all original values
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[False] = ..., how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        how: AnyAll | None = ...,
     ) -> Series:
         ...
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[True], how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        how: AnyAll | None = ...,
     ) -> None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
-        self, axis: Axis = 0, inplace: bool = False, how: str | None = None
+        self,
+        axis: Axis = 0,
+        inplace: bool = False,
+        how: AnyAll | None = None,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.

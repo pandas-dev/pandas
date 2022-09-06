@@ -4619,7 +4619,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
-    def add_prefix(self: NDFrameT, prefix: str, copy: bool_t = True) -> NDFrameT:
+    def add_prefix(self: NDFrameT, prefix: str, axis: Axis | None = None) -> NDFrameT:
         """
         Prefix labels with string `prefix`.
 
@@ -4630,10 +4630,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
-        copy : bool, default True
-            Whether to copy the underlying data.
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+            Axis to add prefix on
 
-             .. versionadded:: 1.5.0
+             .. versionadded:: 1.6.0
 
         Returns
         -------
@@ -4679,15 +4679,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         f = functools.partial("{prefix}{}".format, prefix=prefix)
 
-        mapper = {self._info_axis_name: f}
+        axis_name = self._info_axis_name
+        if axis is not None:
+            axis_name = self._get_axis_name(axis)
+
+        mapper = {axis_name: f}
         # error: Incompatible return value type (got "Optional[NDFrameT]",
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self._rename(**mapper, copy=copy)  # type: ignore[return-value, arg-type]
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     @final
-    def add_suffix(self: NDFrameT, suffix: str, copy: bool_t = True) -> NDFrameT:
+    def add_suffix(self: NDFrameT, suffix: str, axis: Axis | None = None) -> NDFrameT:
         """
         Suffix labels with string `suffix`.
 
@@ -4698,10 +4702,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
-        copy : bool, default True
-            Whether to copy the underlying data.
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+            Axis to add suffix on
 
-             .. versionadded:: 1.5.0
+             .. versionadded:: 1.6.0
 
         Returns
         -------
@@ -4747,12 +4751,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         f = functools.partial("{}{suffix}".format, suffix=suffix)
 
-        mapper = {self._info_axis_name: f}
+        axis_name = self._info_axis_name
+        if axis is not None:
+            axis_name = self._get_axis_name(axis)
+
+        mapper = {axis_name: f}
         # error: Incompatible return value type (got "Optional[NDFrameT]",
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self._rename(**mapper, copy=copy)  # type: ignore[return-value, arg-type]
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     @overload
     def sort_values(
@@ -5337,6 +5345,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and method is None
             and level is None
             and not self._is_mixed_type
+            and not (
+                self.ndim == 2
+                and len(self.dtypes) == 1
+                and is_extension_array_dtype(self.dtypes.iloc[0])
+            )
         )
 
     def _reindex_multi(self, axes, copy, fill_value):
@@ -6869,6 +6882,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in value.items():
                     if k not in result:
                         continue
+
                     # error: Item "None" of "Optional[Dict[Any, Any]]" has no
                     # attribute "get"
                     downcast_k = (
@@ -6876,9 +6890,48 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if not is_dict
                         else downcast.get(k)  # type: ignore[union-attr]
                     )
-                    result.loc[:, k] = result[k].fillna(
-                        v, limit=limit, downcast=downcast_k
-                    )
+
+                    res_k = result[k].fillna(v, limit=limit, downcast=downcast_k)
+
+                    if not inplace:
+                        result[k] = res_k
+                    else:
+                        # We can write into our existing column(s) iff dtype
+                        #  was preserved.
+                        if isinstance(res_k, ABCSeries):
+                            # i.e. 'k' only shows up once in self.columns
+                            if res_k.dtype == result[k].dtype:
+                                result.loc[:, k] = res_k
+                            else:
+                                # Different dtype -> no way to do inplace.
+                                result[k] = res_k
+                        else:
+                            # see test_fillna_dict_inplace_nonunique_columns
+                            locs = result.columns.get_loc(k)
+                            if isinstance(locs, slice):
+                                locs = np.arange(self.shape[1])[locs]
+                            elif (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "b"
+                            ):
+                                locs = locs.nonzero()[0]
+                            elif not (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
+                            ):
+                                # Should never be reached, but let's cover our bases
+                                raise NotImplementedError(
+                                    "Unexpected get_loc result, please report a bug at "
+                                    "https://github.com/pandas-dev/pandas"
+                                )
+
+                            for i, loc in enumerate(locs):
+                                res_loc = res_k.iloc[:, i]
+                                target = self.iloc[:, loc]
+
+                                if res_loc.dtype == target.dtype:
+                                    result.iloc[:, loc] = res_loc
+                                else:
+                                    result.isetitem(loc, res_loc)
+
                 return result if not inplace else None
 
             elif not is_list_like(value):

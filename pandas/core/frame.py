@@ -50,6 +50,7 @@ from pandas._libs.lib import (
 )
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axes,
@@ -4740,7 +4741,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate)
+        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
         return type(self)(mgr).__finalize__(self)
 
     def insert(
@@ -6423,7 +6424,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
@@ -6435,7 +6436,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
@@ -6446,7 +6447,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str | NoDefault = no_default,
+        how: AnyAll | NoDefault = no_default,
         thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
@@ -8579,6 +8580,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def pivot(self, index=None, columns=None, values=None) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
@@ -9860,7 +9862,7 @@ Parrot 2  Parrot       24.0
             values given, the `other` DataFrame must have a MultiIndex. Can
             pass an array as the join key if it is not already contained in
             the calling DataFrame. Like an Excel VLOOKUP operation.
-        how : {'left', 'right', 'outer', 'inner'}, default 'left'
+        how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'left'
             How to handle the operation of the two objects.
 
             * left: use calling frame's index (or column if on is specified)

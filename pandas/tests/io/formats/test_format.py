@@ -3306,24 +3306,34 @@ class TestStringRepTimestamp:
             assert f(NaT) == "NaT"
 
 
-def test_format_percentiles():
-    result = fmt.format_percentiles([0.01999, 0.02001, 0.5, 0.666666, 0.9999])
-    expected = ["1.999%", "2.001%", "50%", "66.667%", "99.99%"]
+@pytest.mark.parametrize(
+    "percentiles, expected",
+    [
+        (
+            [0.01999, 0.02001, 0.5, 0.666666, 0.9999],
+            ["1.999%", "2.001%", "50%", "66.667%", "99.99%"],
+        ),
+        (
+            [0, 0.5, 0.02001, 0.5, 0.666666, 0.9999],
+            ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"],
+        ),
+        ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
+        ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
+    ],
+)
+def test_format_percentiles(percentiles, expected):
+    result = fmt.format_percentiles(percentiles)
     assert result == expected
 
-    result = fmt.format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
-    expected = ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"]
-    assert result == expected
 
+@pytest.mark.parametrize(
+    "percentiles",
+    [([0.1, np.nan, 0.5]), ([-0.001, 0.1, 0.5]), ([2, 0.1, 0.5]), ([0.1, 0.5, "a"])],
+)
+def test_error_format_percentiles(percentiles):
     msg = r"percentiles should all be in the interval \[0,1\]"
     with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([0.1, np.nan, 0.5])
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([-0.001, 0.1, 0.5])
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([2, 0.1, 0.5])
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles([0.1, 0.5, "a"])
+        fmt.format_percentiles(percentiles)
 
 
 def test_format_percentiles_integer_idx():
