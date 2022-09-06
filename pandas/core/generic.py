@@ -6020,7 +6020,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cons_data = self._protect_consolidate(f)
         return self._constructor(cons_data).__finalize__(self)
 
-    @final
     @property
     def _is_mixed_type(self) -> bool_t:
         if self._mgr.is_single_block:

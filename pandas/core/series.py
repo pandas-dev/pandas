@@ -1328,9 +1328,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     # ----------------------------------------------------------------------
     # Unsorted
 
-    # error: Cannot override final attribute "_is_mixed_type" (previously declared
-    # in base class "NDFrame")
-    @property  # type: ignore[misc]
+    @property
     def _is_mixed_type(self) -> bool:
         return False
 
