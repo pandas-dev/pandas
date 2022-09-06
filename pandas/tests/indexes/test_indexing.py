@@ -223,7 +223,7 @@ class TestGetLoc:
             index.get_loc(x for x in range(5))
 
     def test_get_loc_masked_duplicated_na(self):
-        # GH#
+        # GH#48411
         idx = Index([1, 2, NA, NA], dtype="Int64")
         result = idx.get_loc(NA)
         expected = np.array([False, False, True, True])
@@ -262,7 +262,7 @@ class TestGetIndexer:
         assert indexer.dtype == np.intp
 
     def test_get_indexer_masked_duplicated_na(self):
-        # GH#
+        # GH#48411
         idx = Index([1, 2, NA, NA], dtype="Int64")
         result = idx.get_indexer_for(Index([1, NA], dtype="Int64"))
         expected = np.array([0, 2, 3])
