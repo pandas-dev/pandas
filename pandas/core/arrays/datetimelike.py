@@ -1220,9 +1220,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_i8_data = checked_add_with_arr(
             self.asi8, -other.ordinal, arr_mask=self._isnan
         )
-        # error: Item "None" of "Optional[BaseOffset]" has no attribute "base"
         new_data = np.array(
-            [self.freq.base * x for x in new_i8_data]  # type: ignore[union-attr]
+            [cast("PeriodArray", self).freq.base * x for x in new_i8_data]
         )
 
         if self._hasna:
@@ -1459,9 +1458,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # as is_integer returns True for these
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            # error: Item "None" of "Optional[BaseOffset]" has no attribute "n"
-            result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
-                other * self.freq.n, operator.add  # type: ignore[union-attr]
+            self_periodarray = cast("PeriodArray", self)
+            result = self_periodarray._addsub_int_array_or_scalar(
+                other * self_periodarray.freq.n, operator.add
             )
 
         # array-like others
