@@ -20,6 +20,7 @@ import types
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Generator,
     Hashable,
     Iterable,
     Iterator,
@@ -1106,7 +1107,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             self._reset_cache("_selected_obj")
 
     @contextmanager
-    def _group_selection_context(self) -> Iterator[GroupBy]:
+    def _group_selection_context(self) -> Generator[GroupBy, None, None]:
         """
         Set / reset the _group_selection_context.
         """

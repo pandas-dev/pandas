@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalIndex,
     Index,
@@ -236,6 +237,21 @@ Index classes are different
         tm.assert_index_equal(
             rcat, icat, check_categorical=check_categorical, exact=exact
         )
+
+
+def test_assert_index_equal_different_inferred_types():
+    # GH#31884
+    msg = """\
+Index are different
+
+Attribute "inferred_type" are different
+\\[left\\]:  mixed
+\\[right\\]: datetime"""
+
+    idx1 = Index([NA, np.datetime64("nat")])
+    idx2 = Index([NA, NaT])
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_index_equal(idx1, idx2)
 
 
 def test_assert_index_equal_different_names_check_order_false():
