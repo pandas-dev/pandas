@@ -162,6 +162,7 @@ class WrappedCythonOp:
         "prod",
         "mean",
         "var",
+        "median",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -600,7 +601,7 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["var", "ohlc", "prod"]:
+            elif self.how in ["var", "ohlc", "prod", "median"]:
                 func(
                     result,
                     counts,
