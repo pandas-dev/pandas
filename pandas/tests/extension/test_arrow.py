@@ -1472,7 +1472,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_insert(data)
 
-    def test_combine_first(self, data, request, using_array_manager):
+    def test_combine_first(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         tz = getattr(pa_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC"):
@@ -1510,7 +1510,7 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_searchsorted(data_for_sorting, as_series)
 
-    def test_where_series(self, data, na_value, as_frame, request, using_array_manager):
+    def test_where_series(self, data, na_value, as_frame, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_temporal(pa_dtype):
             request.node.add_marker(
