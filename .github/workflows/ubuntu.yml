@@ -26,7 +26,7 @@ jobs:
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
