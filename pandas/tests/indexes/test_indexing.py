@@ -20,6 +20,7 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 from pandas import (
+    NA,
     DatetimeIndex,
     Index,
     IntervalIndex,
@@ -221,6 +222,13 @@ class TestGetLoc:
             # MultiIndex specifically checks for generator; others for scalar
             index.get_loc(x for x in range(5))
 
+    def test_get_loc_masked_duplicated_na(self):
+        # GH#48411
+        idx = Index([1, 2, NA, NA], dtype="Int64")
+        result = idx.get_loc(NA)
+        expected = np.array([False, False, True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestGetIndexer:
     def test_get_indexer_base(self, index):
@@ -252,6 +260,13 @@ class TestGetIndexer:
         indexer, _ = index.get_indexer_non_unique(index[0:2])
         assert isinstance(indexer, np.ndarray)
         assert indexer.dtype == np.intp
+
+    def test_get_indexer_masked_duplicated_na(self):
+        # GH#48411
+        idx = Index([1, 2, NA, NA], dtype="Int64")
+        result = idx.get_indexer_for(Index([1, NA], dtype="Int64"))
+        expected = np.array([0, 2, 3], dtype=result.dtype)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestConvertSliceIndexer:
