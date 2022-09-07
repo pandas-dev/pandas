@@ -662,6 +662,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 return False
             elif check_na_tuples_nonequal(x, y):
                 # We have tuples where one Side has a NA and the other side does not
+                # Only condition we may end up with a TypeError
                 return False
             raise
 

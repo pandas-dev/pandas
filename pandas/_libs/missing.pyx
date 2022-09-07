@@ -62,9 +62,9 @@ cpdef bint check_na_tuples_nonequal(object left, object right):
         return False
 
     for left_element, right_element in zip(left, right):
-        if left_element is C_NA and not right_element is C_NA:
+        if left_element is C_NA and right_element is not C_NA:
             return True
-        elif right_element is C_NA and not left_element is C_NA:
+        elif right_element is C_NA and left_element is not C_NA:
             return True
 
     return False

@@ -159,7 +159,7 @@ Indexing
 
 Missing
 ^^^^^^^
-- Bug in :meth:`Index.equals` raising ``TypeError` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`40000`)
+- Bug in :meth:`Index.equals` raising ``TypeError` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
 -
 
 MultiIndex
