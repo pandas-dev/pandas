@@ -331,6 +331,7 @@ Other enhancements
 - Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
 - :meth:`DataFrame.set_index` now supports a ``copy`` keyword. If ``False``, the underlying data is not copied when a new :class:`DataFrame` is returned (:issue:`48043`)
 - The method :meth:`.ExtensionArray.factorize` accepts ``use_na_sentinel=False`` for determining how null values are to be treated (:issue:`46601`)
+- Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
