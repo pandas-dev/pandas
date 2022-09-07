@@ -266,6 +266,7 @@ Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
 
 Parameters
 ----------
+%(data)s\
 column : str or list of str, optional
     Column name or list of names, or vector.
     Can be any valid input to :meth:`pandas.DataFrame.groupby`.
@@ -466,7 +467,7 @@ _bar_or_line_doc = """
 """
 
 
-@Substitution(backend="")
+@Substitution(data="data : DataFrame\n    The data to visualize.\n", backend="")
 @Appender(_boxplot_doc)
 def boxplot(
     data: DataFrame,
@@ -497,7 +498,7 @@ def boxplot(
     )
 
 
-@Substitution(backend=_backend_doc)
+@Substitution(data="", backend=_backend_doc)
 @Appender(_boxplot_doc)
 def boxplot_frame(
     self,
