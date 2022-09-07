@@ -6,6 +6,11 @@ import pytest
 
 from pandas._libs.missing import is_matching_na
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_integer_dtype,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.integer import INT_STR_TO_DTYPE
@@ -192,7 +197,8 @@ class Dim2CompatTests(BaseExtensionTests):
             kwargs["ddof"] = 0
 
         try:
-            if method == "mean":
+            if method == "mean" and hasattr(data, "_mask"):
+                # Empty slices produced by the mask cause RuntimeWarnings by numpy
                 with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
                     result = getattr(arr2d, method)(axis=0, **kwargs)
             else:
@@ -235,8 +241,9 @@ class Dim2CompatTests(BaseExtensionTests):
         elif method == "std":
             self.assert_extension_array_equal(result, data - data)
         elif method == "mean":
-            expected = data.astype("Float64")
-            self.assert_extension_array_equal(result, expected)
+            if is_integer_dtype(data) or is_bool_dtype(data):
+                data = data.astype("Float64")
+            self.assert_extension_array_equal(result, data)
         # punt on method == "var"
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
