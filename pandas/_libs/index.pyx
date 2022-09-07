@@ -1061,7 +1061,7 @@ cdef class ExtensionEngine(SharedEngine):
 
     cdef ndarray _get_bool_indexer(self, val):
         if checknull(val):
-            return self.values.isna().view("uint8")
+            return self.values.isna()
 
         try:
             return self.values == val
