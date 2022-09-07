@@ -247,7 +247,9 @@ def test_custom_ea_kind_M_not_datetime64tz():
         def kind(self) -> str:
             return "M"
 
-    assert not com.is_datetime64tz_dtype(NotTZDtype())
+    not_tz_dtype = NotTZDtype()
+    assert not com.is_datetime64tz_dtype(not_tz_dtype)
+    assert com.needs_i8_conversion(not_tz_dtype)
 
 
 def test_is_timedelta64_dtype():
