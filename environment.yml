@@ -61,7 +61,7 @@ dependencies:
   - botocore
   - cftime
   - dask
-  - ipython
+  - ipython<8.5.0
   - geopandas-base
   - seaborn
   - scikit-learn
