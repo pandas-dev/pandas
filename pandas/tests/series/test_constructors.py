@@ -1887,6 +1887,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
+        # GH#44923
         with pytest.raises(
             ValueError, match="values cannot be losslessly cast to int8"
         ):
