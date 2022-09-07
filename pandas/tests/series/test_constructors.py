@@ -1889,7 +1889,7 @@ class TestSeriesConstructors:
     def test_constructor_raise_on_lossy_conversion_of_strings(self):
         # GH#44923
         with pytest.raises(
-            ValueError, match="values cannot be losslessly cast to int8"
+            ValueError, match="string values cannot be losslessly cast to int8"
         ):
             Series(["128"], dtype="int8")
 
