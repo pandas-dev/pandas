@@ -100,6 +100,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`.GroupBy.median` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`.GroupBy.mean` and :meth:`.GroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 -
@@ -154,7 +155,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.reindex` filling with wrong values when indexing columns and index for ``uint`` dtypes (:issue:`48184`)
 - Bug in :meth:`DataFrame.reindex` casting dtype to ``object`` when :class:`DataFrame` has single extension array column when re-indexing ``columns`` and ``index`` (:issue:`48190`)
--
+- Bug in :func:`~DataFrame.describe` when formatting percentiles in the resulting index showed more decimals than needed (:issue:`46362`)
 
 Missing
 ^^^^^^^
@@ -199,7 +200,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`Series.mean` overflowing unnecessarily with nullable integers (:issue:`48378`)
 -
 
 Styler

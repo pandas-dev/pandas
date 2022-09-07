@@ -1036,16 +1036,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if name in {"any", "all", "min", "max", "sum", "prod"}:
+        if name in {"any", "all", "min", "max", "sum", "prod", "mean"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
         data = self._data
         mask = self._mask
-
-        if name in {"mean"}:
-            op = getattr(masked_reductions, name)
-            result = op(data, mask, skipna=skipna, **kwargs)
-            return result
 
         # coerce to a nan-aware float if needed
         # (we explicitly use NaN within reductions)
@@ -1105,6 +1100,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result(
             "prod", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def mean(self, *, skipna=True, axis: int | None = 0, **kwargs):
+        nv.validate_mean((), kwargs)
+        result = masked_reductions.mean(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
+        )
+        return self._wrap_reduction_result(
+            "mean", result, skipna=skipna, axis=axis, **kwargs
         )
 
     def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
