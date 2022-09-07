@@ -14,7 +14,7 @@ from pandas._typing import npt
 from pandas.core.nanops import check_below_min_count
 
 
-def _sumprod(
+def _reductions(
     func: Callable,
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
@@ -24,7 +24,7 @@ def _sumprod(
     axis: int | None = None,
 ):
     """
-    Sum or product for 1D masked array.
+    Sum, mean or product for 1D masked array.
 
     Parameters
     ----------
@@ -63,7 +63,7 @@ def sum(
     min_count: int = 0,
     axis: int | None = None,
 ):
-    return _sumprod(
+    return _reductions(
         np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -76,7 +76,7 @@ def prod(
     min_count: int = 0,
     axis: int | None = None,
 ):
-    return _sumprod(
+    return _reductions(
         np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
     )
 
@@ -139,11 +139,13 @@ def max(
     return _minmax(np.max, values=values, mask=mask, skipna=skipna, axis=axis)
 
 
-# TODO: axis kwarg
-def mean(values: np.ndarray, mask: npt.NDArray[np.bool_], skipna: bool = True):
+def mean(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: int | None = None,
+):
     if not values.size or mask.all():
         return libmissing.NA
-    _sum = _sumprod(np.sum, values=values, mask=mask, skipna=skipna)
-    count = np.count_nonzero(~mask)
-    mean_value = _sum / count
-    return mean_value
+    return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)

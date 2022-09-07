@@ -200,7 +200,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`Series.mean` overflowing unnecessarily with nullable integers (:issue:`48378`)
 -
 
 Styler
