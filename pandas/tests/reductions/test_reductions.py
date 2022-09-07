@@ -775,6 +775,18 @@ class TestSeriesReductions:
             result = s.max(skipna=False)
             assert np.allclose(float(result), v[-1])
 
+    def test_mean_masked_overflow(self):
+        # GH#48378
+        val = 100_000_000_000_000_000
+        n_elements = 100
+        na = np.array([val] * n_elements)
+        ser = Series([val] * n_elements, dtype="Int64")
+
+        result_numpy = np.mean(na)
+        result_masked = ser.mean()
+        assert result_masked - result_numpy == 0
+        assert result_masked == 1e17
+
     def test_var_masked_array(self):
         # GH#48379
         ser = Series([1, 2, 3, 4, 5], dtype="Int64")

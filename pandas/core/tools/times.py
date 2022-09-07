@@ -80,17 +80,20 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
             format_found = False
             for element in arg:
                 time_object = None
-                for time_format in formats:
-                    try:
-                        time_object = datetime.strptime(element, time_format).time()
-                        if not format_found:
-                            # Put the found format in front
-                            fmt = formats.pop(formats.index(time_format))
-                            formats.insert(0, fmt)
-                            format_found = True
-                        break
-                    except (ValueError, TypeError):
-                        continue
+                try:
+                    time_object = time.fromisoformat(element)
+                except (ValueError, TypeError):
+                    for time_format in formats:
+                        try:
+                            time_object = datetime.strptime(element, time_format).time()
+                            if not format_found:
+                                # Put the found format in front
+                                fmt = formats.pop(formats.index(time_format))
+                                formats.insert(0, fmt)
+                                format_found = True
+                            break
+                        except (ValueError, TypeError):
+                            continue
 
                 if time_object is not None:
                     times.append(time_object)
