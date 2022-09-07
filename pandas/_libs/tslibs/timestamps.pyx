@@ -15,7 +15,6 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    int8_t,
     int64_t,
     ndarray,
     uint8_t,
@@ -65,7 +64,6 @@ from pandas._libs.tslibs.dtypes cimport (
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_datetime64_object,
-    is_float_object,
     is_integer_object,
     is_timedelta64_object,
 )
@@ -87,7 +85,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
-    get_conversion_factor,
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
@@ -121,7 +118,6 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     maybe_get_tz,
     treat_tz_as_pytz,
-    tz_compare,
     utc_pytz as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
@@ -1109,7 +1105,7 @@ cdef class _Timestamp(ABCTimestamp):
     @cython.cdivision(False)
     cdef _Timestamp _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
-            int64_t value, mult, div, mod
+            int64_t value
 
         if reso == self._reso:
             return self

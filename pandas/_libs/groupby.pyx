@@ -17,14 +17,10 @@ from numpy cimport (
     float32_t,
     float64_t,
     int8_t,
-    int16_t,
-    int32_t,
     int64_t,
     intp_t,
     ndarray,
     uint8_t,
-    uint16_t,
-    uint32_t,
     uint64_t,
 )
 from numpy.math cimport NAN
@@ -38,7 +34,6 @@ from pandas._libs.algos cimport (
 )
 
 from pandas._libs.algos import (
-    ensure_platform_int,
     groupsort_indexer,
     rank_1d,
     take_2d_axis1_bool_bool,

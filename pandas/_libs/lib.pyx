@@ -47,7 +47,6 @@ from numpy cimport (
     PyArray_IterNew,
     complex128_t,
     flatiter,
-    float32_t,
     float64_t,
     int64_t,
     intp_t,

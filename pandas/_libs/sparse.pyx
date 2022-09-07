@@ -3,10 +3,8 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    float32_t,
     float64_t,
     int8_t,
-    int16_t,
     int32_t,
     int64_t,
     ndarray,
@@ -127,7 +125,7 @@ cdef class IntIndex(SparseIndex):
 
     cpdef IntIndex intersect(self, SparseIndex y_):
         cdef:
-            Py_ssize_t out_length, xi, yi = 0, result_indexer = 0
+            Py_ssize_t xi, yi = 0, result_indexer = 0
             int32_t xind
             ndarray[int32_t, ndim=1] xindices, yindices, new_indices
             IntIndex y
@@ -205,7 +203,7 @@ cdef class IntIndex(SparseIndex):
         Vectorized lookup, returns ndarray[int32_t]
         """
         cdef:
-            Py_ssize_t n, i, ind_val
+            Py_ssize_t n
             ndarray[int32_t, ndim=1] inds
             ndarray[uint8_t, ndim=1, cast=True] mask
             ndarray[int32_t, ndim=1] masked
@@ -232,7 +230,7 @@ cdef class IntIndex(SparseIndex):
 
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
-        Py_ssize_t init_len, i, npoints, result_indexer = 0
+        Py_ssize_t i, npoints, result_indexer = 0
         int32_t block, length = 1, cur, prev
         ndarray[int32_t, ndim=1] locs, lens
 
@@ -606,7 +604,7 @@ cdef class BlockUnion(BlockMerge):
         cdef:
             ndarray[int32_t, ndim=1] xstart, xend, ystart
             ndarray[int32_t, ndim=1] yend, out_bloc, out_blen
-            int32_t nstart, nend, diff
+            int32_t nstart, nend
             Py_ssize_t max_len, result_indexer = 0
 
         xstart = self.xstart
@@ -659,7 +657,7 @@ cdef class BlockUnion(BlockMerge):
         """
         cdef:
             ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
-            int32_t xi, yi, xnblocks, ynblocks, nend
+            int32_t xi, yi, ynblocks, nend
 
         if mode != 0 and mode != 1:
             raise Exception('Mode must be 0 or 1')
