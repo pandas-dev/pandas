@@ -1864,6 +1864,7 @@ class DataFrame(NDFrame, OpsMixin):
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
         into: type[dict] = dict,
+        index: bool = True,
     ) -> dict | list[dict]:
         """
         Convert the DataFrame to a dictionary.
@@ -1899,6 +1900,13 @@ class DataFrame(NDFrame, OpsMixin):
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
+
+        index : bool, default True
+            Whether to include the index item (and index_names item if `orient`
+            is 'tight') in the returned dictionary. Can only be ``False``
+            when `orient` is 'split' or 'tight'.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -2005,6 +2013,11 @@ class DataFrame(NDFrame, OpsMixin):
             elif orient.startswith("i"):
                 orient = "index"
 
+        if not index and orient not in ["split", "tight"]:
+            raise ValueError(
+                "'index=False' is only valid when 'orient' is 'split' or 'tight'"
+            )
+
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
@@ -2014,36 +2027,65 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "split":
-            return into_c(
-                (
-                    ("index", self.index.tolist()),
-                    ("columns", self.columns.tolist()),
+            if index:
+                return into_c(
                     (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
+                        ("index", self.index.tolist()),
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                    )
                 )
-            )
+            else:
+                return into_c(
+                    (
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                    )
+                )
 
         elif orient == "tight":
-            return into_c(
-                (
-                    ("index", self.index.tolist()),
-                    ("columns", self.columns.tolist()),
+            if index:
+                return into_c(
                     (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
-                    ("index_names", list(self.index.names)),
-                    ("column_names", list(self.columns.names)),
+                        ("index", self.index.tolist()),
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                        ("index_names", list(self.index.names)),
+                        ("column_names", list(self.columns.names)),
+                    )
                 )
-            )
+            else:
+                return into_c(
+                    (
+                        ("columns", self.columns.tolist()),
+                        (
+                            "data",
+                            [
+                                list(map(maybe_box_native, t))
+                                for t in self.itertuples(index=False, name=None)
+                            ],
+                        ),
+                        ("column_names", list(self.columns.names)),
+                    )
+                )
 
         elif orient == "series":
             return into_c((k, v) for k, v in self.items())
