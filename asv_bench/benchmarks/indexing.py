@@ -228,7 +228,6 @@ class MultiIndexing:
         self.tgt_slice = slice(200, 800)
         self.tgt_null_slice = slice(None)
         self.tgt_list = list(range(0, 1000, 10))
-        self.tgt_list_len_one = [500]
         self.tgt_scalar = 500
 
         bool_indexer = np.zeros(len(mi), dtype=np.bool_)
@@ -243,9 +242,6 @@ class MultiIndexing:
 
     def time_loc_partial_key_list(self, unique_levels):
         self.df.loc[self.tgt_list, :]
-
-    def time_loc_partial_key_list_len_one(self, unique_levels):
-        self.df.loc[self.tgt_list_len_one, :]
 
     def time_loc_partial_key_scalar(self, unique_levels):
         self.df.loc[self.tgt_scalar, :]
@@ -263,10 +259,6 @@ class MultiIndexing:
 
     def time_loc_all_lists(self, unique_levels):
         target = tuple([self.tgt_list] * self.nlevels)
-        self.df.loc[target, :]
-
-    def time_loc_all_lists_len_one(self, unique_levels):
-        target = tuple([self.tgt_list_len_one] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_scalars(self, unique_levels):
