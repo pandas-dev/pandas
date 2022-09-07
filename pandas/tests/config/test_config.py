@@ -14,9 +14,9 @@ class TestConfig:
         from copy import deepcopy
 
         cls.cf = cf
-        cls.gc = deepcopy(getattr(cls.cf, "_global_config"))
-        cls.do = deepcopy(getattr(cls.cf, "_deprecated_options"))
-        cls.ro = deepcopy(getattr(cls.cf, "_registered_options"))
+        cls._global_config = deepcopy(getattr(cls.cf, "_global_config"))
+        cls._deprecated_options = deepcopy(getattr(cls.cf, "_deprecated_options"))
+        cls._registered_options = deepcopy(getattr(cls.cf, "_registered_options"))
 
     def setup_method(self):
         setattr(self.cf, "_global_config", {})
@@ -31,9 +31,9 @@ class TestConfig:
         self.cf.register_option("chained_assignment", "raise")
 
     def teardown_method(self):
-        setattr(self.cf, "_global_config", self.gc)
-        setattr(self.cf, "_deprecated_options", self.do)
-        setattr(self.cf, "_registered_options", self.ro)
+        setattr(self.cf, "_global_config", self._global_config)
+        setattr(self.cf, "_deprecated_options", self._deprecated_options)
+        setattr(self.cf, "_registered_options", self._registered_options)
 
     def test_api(self):
 
