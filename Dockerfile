@@ -1,4 +1,4 @@
-FROM quay.io/condaforge/mambaforge:4.13.0-1
+FROM quay.io/condaforge/mambaforge
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
@@ -10,15 +10,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Configure apt and install packages
 RUN apt-get update \
-    && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
+    && apt-get -y install --no-install-recommends apt-utils git tzdata dialog 2>&1 \
     #
-    # Install tzdata and configure timezone (fix for tests which try to read from "/etc/localtime")
-    && apt-get -y install tzdata \
+    # Configure timezone (fix for tests which try to read from "/etc/localtime")
     && ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime \
     && dpkg-reconfigure -f noninteractive tzdata \
-    #
-    # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
-    && apt-get -y install git iproute2 procps lsb-release \
     #
     # cleanup
     && apt-get autoremove -y \
@@ -39,7 +35,7 @@ RUN mkdir "$pandas_home" \
 RUN mamba env create -f "$pandas_home/environment.yml"
 
 # Build C extensions and pandas
-SHELL ["mamba", "run", "-n", "pandas-dev", "/bin/bash", "-c"]
+SHELL ["mamba", "run", "--no-capture-output", "-n", "pandas-dev", "/bin/bash", "-c"]
 RUN cd "$pandas_home" \
     && export \
     && python setup.py build_ext -j 4 \
