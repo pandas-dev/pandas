@@ -442,7 +442,7 @@ class Styler(StylerRenderer):
     @doc(
         NDFrame.to_excel,
         klass="Styler",
-        storage_options=_shared_docs["storage_options"],
+        storage_options="",
     )
     def to_excel(
         self,
