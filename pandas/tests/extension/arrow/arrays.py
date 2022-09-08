@@ -91,7 +91,7 @@ class ArrowExtensionArray(_ArrowExtensionArray):
         arr = pa.chunked_array([pa.array(np.asarray(values))])
         return cls(arr)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self._data)})"
 
     def __contains__(self, obj) -> bool:
