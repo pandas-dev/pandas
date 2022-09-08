@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Iterator,
     Literal,
     Sequence,
     TypeVar,
@@ -239,7 +240,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._data[key] = value
         self._mask[key] = mask
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         if self.ndim == 1:
             for i in range(len(self)):
                 if self._mask[i]:

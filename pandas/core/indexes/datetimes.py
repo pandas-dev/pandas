@@ -798,7 +798,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError("Cannot mix time and non-time slice keys")
 
-        def check_str_or_none(point):
+        def check_str_or_none(point) -> bool:
             return point is not None and not isinstance(point, str)
 
         # GH#33146 if start and end are combinations of str and None and Index is not
