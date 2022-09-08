@@ -240,7 +240,12 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         + series.quantile(percentiles).tolist()
         + [series.max()]
     )
-    return Series(d, index=stat_index, name=series.name)
+
+    result = Series(d, index=stat_index, name=series.name)
+    if isinstance(d[1], float):
+        # GH#48340 - don't rely on inference, always return float on numeric data
+        result = result.astype(float)
+    return result
 
 
 def describe_categorical_1d(

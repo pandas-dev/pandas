@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     Period,
@@ -147,5 +148,27 @@ class TestSeriesDescribe:
                 Timestamp("2012-01-03"),
             ],
             index=["count", "mean", "min", "25%", "50%", "75%", "max"],
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
+    )
+    def test_numeric_result_is_float(self, dtype):
+        # GH#48340 - describe should always return dtype float on numeric input
+        ser = Series([0, 1], dtype=dtype)
+        result = ser.describe()
+        expected = Series(
+            [
+                2.0,
+                0.5,
+                ser.std(),
+                0,
+                0.25,
+                0.5,
+                0.75,
+                1.0,
+            ],
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)
