@@ -18,6 +18,7 @@ from io import BytesIO
 import os
 import struct
 import sys
+from types import TracebackType
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -1178,7 +1179,12 @@ class StataReader(StataParser, abc.Iterator):
         """enter context manager"""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         """exit context manager"""
         self.close()
 

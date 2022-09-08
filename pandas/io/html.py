@@ -856,7 +856,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return table.xpath(".//tfoot//tr")
 
 
-def _expand_elements(body):
+def _expand_elements(body) -> None:
     data = [len(elem) for elem in body]
     lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     lens_max = lens.max()

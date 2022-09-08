@@ -359,7 +359,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
 
 class JoinUnit:
-    def __init__(self, block: Block, shape: Shape, indexers=None):
+    def __init__(self, block: Block, shape: Shape, indexers=None) -> None:
         # Passing shape explicitly is required for cases when block is None.
         # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:

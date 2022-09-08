@@ -12,7 +12,7 @@ _SparseIndexT = TypeVar("_SparseIndexT", bound=SparseIndex)
 class SparseIndex:
     length: int
     npoints: int
-    def __init__(self): ...
+    def __init__(self) -> None: ...
     @property
     def ngaps(self) -> int: ...
     @property
@@ -31,13 +31,15 @@ class IntIndex(SparseIndex):
     indices: npt.NDArray[np.int32]
     def __init__(
         self, length: int, indices: Sequence[int], check_integrity: bool = ...
-    ): ...
+    ) -> None: ...
 
 class BlockIndex(SparseIndex):
     nblocks: int
     blocs: np.ndarray
     blengths: np.ndarray
-    def __init__(self, length: int, blocs: np.ndarray, blengths: np.ndarray): ...
+    def __init__(
+        self, length: int, blocs: np.ndarray, blengths: np.ndarray
+    ) -> None: ...
 
 def make_mask_object_ndarray(
     arr: npt.NDArray[np.object_], fill_value

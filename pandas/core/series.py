@@ -1178,7 +1178,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
-    def _set_with(self, key, value):
+    def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1216,7 +1216,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def _set_value(self, label, value, takeable: bool = False):
+    def _set_value(self, label, value, takeable: bool = False) -> None:
         """
         Quickly set single value at passed label.
 
@@ -1329,7 +1329,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     # Unsorted
 
     @property
-    def _is_mixed_type(self):
+    def _is_mixed_type(self) -> bool:
         return False
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:

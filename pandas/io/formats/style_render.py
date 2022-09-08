@@ -627,7 +627,7 @@ class StylerRenderer:
         element,
         css=None,
         value="...",
-    ):
+    ) -> bool:
         """
         Indicates whether to break render loops and append a trimming indicator
 

@@ -376,7 +376,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     **kwargs,
-):
+) -> None:
     """
     Logic for the 1-d interpolation.  The input
     indices and yvalues will each be 1-d arrays of the same length.

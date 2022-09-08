@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import threading
+from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np
@@ -1277,7 +1278,7 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 # to fool `is_file_like`, should never end up here
                 assert False
 

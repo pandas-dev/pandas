@@ -256,3 +256,14 @@ repos:
             /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
             |/tests/
             |/_testing/
+    -   id: autotyping
+        name: autotyping
+        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics
+        types_or: [python, pyi]
+        files: ^pandas
+        exclude: ^(pandas/tests|pandas/io/clipboard)
+        language: python
+        additional_dependencies:
+        - autotyping==22.9.0
+        - black==22.6.0
+        - libcst==0.4.7

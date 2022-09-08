@@ -1323,7 +1323,7 @@ class DataSplitter(Generic[NDFrameT]):
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         sdata = self.sorted_data
 
         if self.ngroups == 0:

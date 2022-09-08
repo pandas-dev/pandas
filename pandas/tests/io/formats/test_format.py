@@ -2828,7 +2828,7 @@ class TestGenericArrayFormatter:
                 return "DtypeStub"
 
         class ExtTypeStub(pd.api.extensions.ExtensionArray):
-            def __len__(self):
+            def __len__(self) -> int:
                 return 2
 
             def __getitem__(self, ix):

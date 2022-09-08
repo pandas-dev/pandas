@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Hashable,
+    Iterator,
     cast,
 )
 import warnings
@@ -239,7 +240,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         warnings.warn(
             "Columnar iteration over characters will be deprecated in future releases.",
             FutureWarning,

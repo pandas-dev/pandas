@@ -405,7 +405,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             or self._current_page_data_subheader_pointers != []
         )
 
-    def _read_page_header(self):
+    def _read_page_header(self) -> None:
         bit_offset = self._page_bit_offset
         tx = const.page_type_offset + bit_offset
         self._current_page_type = (

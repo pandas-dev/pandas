@@ -215,7 +215,7 @@ def deprecate_kwarg(
     return _deprecate_kwarg
 
 
-def _format_argument_list(allow_args: list[str]):
+def _format_argument_list(allow_args: list[str]) -> str:
     """
     Convert the allow_args argument (either string or integer) of
     `deprecate_nonkeyword_arguments` function to a string describing

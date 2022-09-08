@@ -59,7 +59,7 @@ class PandasDelegate:
     @classmethod
     def _add_delegate_accessors(
         cls, delegate, accessors, typ: str, overwrite: bool = False
-    ):
+    ) -> None:
         """
         Add accessors to cls from the delegate class.
 

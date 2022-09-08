@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
+    Iterator,
     cast,
 )
 
@@ -304,7 +305,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         if self.ndim > 1:
             for i in range(len(self)):
                 yield self[i]

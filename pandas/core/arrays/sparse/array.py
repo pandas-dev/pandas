@@ -661,7 +661,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.dtype.fill_value
 
     @fill_value.setter
-    def fill_value(self, value):
+    def fill_value(self, value) -> None:
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property

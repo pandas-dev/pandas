@@ -8,6 +8,7 @@ import csv
 import inspect
 import sys
 from textwrap import fill
+from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -1806,7 +1807,12 @@ class TextFileReader(abc.Iterator):
     def __enter__(self) -> TextFileReader:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 

@@ -234,7 +234,7 @@ def _isna(obj, inf_as_na: bool = False):
         return False
 
 
-def _use_inf_as_na(key):
+def _use_inf_as_na(key) -> None:
     """
     Option change callback for na/inf behaviour.
 

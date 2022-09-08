@@ -18,6 +18,7 @@ import itertools
 from numbers import Number
 import re
 import sys
+from typing import Iterator
 
 import numpy as np
 import pytest
@@ -95,7 +96,7 @@ class MockNumpyLikeArray:
     def __init__(self, values) -> None:
         self._values = values
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         iter_values = iter(self._values)
 
         def it_outer():
@@ -103,7 +104,7 @@ class MockNumpyLikeArray:
 
         return it_outer()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._values)
 
     def __array__(self, t=None):
@@ -1954,7 +1955,7 @@ class TestIsScalar:
             def __init__(self, value) -> None:
                 self.value = value
 
-            def __int__(self):
+            def __int__(self) -> int:
                 return self.value
 
         num = Numeric(1)
