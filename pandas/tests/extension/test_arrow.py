@@ -2216,7 +2216,7 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
 
 def test_global_int_lists():
     for pa_dtype in tm.SIGNED_INT_PYARROW_DTYPES:
-        assert pa.types.is_signed_integer(ArrowDtype(pyarrow_dtype=pa_dtype))
+        assert pa.types.is_signed_integer(pa_dtype)
 
     for pa_dtype in tm.UNSIGNED_INT_PYARROW_DTYPES:
-        assert pa.types.is_unsigned_integer(ArrowDtype(pyarrow_dtype=pa_dtype))
+        assert pa.types.is_unsigned_integer(pa_dtype)
