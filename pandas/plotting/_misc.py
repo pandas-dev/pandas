@@ -286,11 +286,11 @@ def andrews_curves(
     frame : DataFrame
         Data to be plotted, preferably normalized to (0.0, 1.0).
     class_column : label
-        Name of the column containing class names
+        Name of the column containing class names.
     ax : axes object, default None
-        Axes to use
+        Axes to use.
     samples : int
-        Number of points to plot in each curve
+        Number of points to plot in each curve.
     color : {str, list, tuple}, optional
         Colors to use for the different classes. Colors can be strings
         or 3-element floating point RBG values.
@@ -477,7 +477,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     series : Series
         The time series to visualize.
     lag : int, optional
-        lag of the scatter plot, default 1.
+        Lag length of the scatter plot, default 1.
     ax : Matplotlib axis object, optional
         The matplotlib axis object to use.
     **kwds
