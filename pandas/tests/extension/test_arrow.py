@@ -2213,7 +2213,7 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     expected = pd.Series(data_for_grouping.take(exp_idx))
     tm.assert_series_equal(result, expected)
 
-    
+
 @pytest.mark.parametrize(
     "int_list, signed",
     [[tm.SIGNED_INT_PYARROW_DTYPES, True], [tm.UNSIGNED_INT_PYARROW_DTYPES, False]]
