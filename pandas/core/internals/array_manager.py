@@ -363,8 +363,7 @@ class BaseArrayManager(DataManager):
         )
 
     def diff(self: T, n: int, axis: int) -> T:
-        axis = self._normalize_axis(axis)
-        # Only reached with self.ndim == 2 and (normalized) axis == 0
+        assert self.ndim == 2 and axis == 0  # caller ensures
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self: T, **kwargs) -> T:
