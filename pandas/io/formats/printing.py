@@ -491,13 +491,13 @@ def _justify(
         max_length = [max(x, y) for x, y in zip(max_length, length)]
 
     # justify each item in each list-like in head and tail using max_length
-    head = [
+    head_tuples = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in head
     ]
-    tail = [
+    tail_tuples = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
     ]
-    return head, tail
+    return head_tuples, tail_tuples
 
 
 class PrettyDict(Dict[_KT, _VT]):
