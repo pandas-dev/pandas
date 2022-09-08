@@ -1994,27 +1994,16 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._clear_item_cache()
             return
 
+        self.obj._iset_item(loc, value)
+
         # We will not operate in-place, but will attempt to in the future.
         #  To determine whether we need to issue a FutureWarning, see if the
         #  setting in-place would work, i.e. behavior will change.
-        if isinstance(value, ABCSeries):
-            warn = can_hold_element(orig_values, value._values)
-        else:
-            warn = can_hold_element(orig_values, value)
 
-        # Don't issue the warning yet, as we can still trim a few cases where
-        #  behavior will not change.
-
-        self.obj._iset_item(loc, value)
+        new_values = self.obj._get_column_array(loc)
+        warn = can_hold_element(orig_values, new_values)
 
         if warn:
-            new_values = self.obj._get_column_array(loc)
-
-            # Check again, iset_item might have introduced nans through reindexing
-            warn = can_hold_element(orig_values, new_values)
-
-            if not warn:
-                return
 
             if (
                 isinstance(new_values, np.ndarray)
