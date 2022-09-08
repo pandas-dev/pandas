@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
@@ -2691,3 +2693,22 @@ def test_merge_different_index_names():
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("dask")
+def test_merge_on_arraylike_deprecation():
+    # deprecate allowing non-standard array-likes for "on"
+
+    left = DataFrame({"A": range(3), "B": range(1, 4)})
+    right = DataFrame({"C": range(2, 5)})
+
+    import dask.array
+
+    arr = dask.array.array([0, 1, 2])  # matches left["A"]
+
+    msg = "will only allow array-like objects that are one of the following types"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = merge(left, right, left_on="A", right_on=arr)
+
+    expected = merge(left, right, left_on="A", right_on=np.array(arr))
+    tm.assert_frame_equal(res, expected)

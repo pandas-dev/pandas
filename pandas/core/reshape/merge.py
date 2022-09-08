@@ -1126,6 +1126,22 @@ class _MergeOperation:
         is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
         is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
 
+        def deprecate_unknown_arraylike(obj):
+            # The existing code (but not docs) allow for any iterable object
+            #  with a 'dtype' attribute.  In the future, we want to restrict
+            #  to specific array-like types.
+            if is_array_like(obj) and not isinstance(
+                obj, (np.ndarray, ExtensionArray, Index, ABCSeries)
+            ):
+                warnings.warn(
+                    "In a future version, the 'on', 'left_on', and 'right_on' "
+                    "keywords will only allow array-like objects that are one "
+                    "of the following types: "
+                    "numpy.ndarray, ExtensionArray, Index, Series.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
+
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
         # regular pd.merge(), users cannot specify both 'left_index' and
@@ -1139,6 +1155,8 @@ class _MergeOperation:
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
             for lk, rk in zip(self.left_on, self.right_on):
+                deprecate_unknown_arraylike(lk)
+                deprecate_unknown_arraylike(rk)
                 if is_lkey(lk):
                     lk = cast(AnyArrayLike, lk)
                     left_keys.append(lk)
@@ -1188,6 +1206,7 @@ class _MergeOperation:
                         join_names.append(left.index.name)
         elif _any(self.left_on):
             for k in self.left_on:
+                deprecate_unknown_arraylike(k)
                 if is_lkey(k):
                     k = cast(AnyArrayLike, k)
                     left_keys.append(k)
@@ -1209,6 +1228,7 @@ class _MergeOperation:
                 right_keys = [self.right.index._values]
         elif _any(self.right_on):
             for k in self.right_on:
+                deprecate_unknown_arraylike(k)
                 if is_rkey(k):
                     k = cast(AnyArrayLike, k)
                     right_keys.append(k)
