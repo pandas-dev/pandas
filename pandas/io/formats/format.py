@@ -2149,7 +2149,6 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     3  1.0E+03
     4  1.0E+06
 
-
     >>> pd.set_eng_float_format(use_eng_prefix=True)
     >>> df
             0
