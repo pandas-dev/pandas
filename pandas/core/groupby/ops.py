@@ -163,6 +163,7 @@ class WrappedCythonOp:
         "prod",
         "mean",
         "var",
+        "median",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -601,7 +602,7 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["var", "ohlc", "prod"]:
+            elif self.how in ["var", "ohlc", "prod", "median"]:
                 func(
                     result,
                     counts,
@@ -1323,7 +1324,7 @@ class DataSplitter(Generic[NDFrameT]):
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         sdata = self.sorted_data
 
         if self.ngroups == 0:

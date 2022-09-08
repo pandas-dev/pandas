@@ -775,6 +775,18 @@ class TestSeriesReductions:
             result = s.max(skipna=False)
             assert np.allclose(float(result), v[-1])
 
+    def test_mean_masked_overflow(self):
+        # GH#48378
+        val = 100_000_000_000_000_000
+        n_elements = 100
+        na = np.array([val] * n_elements)
+        ser = Series([val] * n_elements, dtype="Int64")
+
+        result_numpy = np.mean(na)
+        result_masked = ser.mean()
+        assert result_masked - result_numpy == 0
+        assert result_masked == 1e17
+
     @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     @pytest.mark.parametrize("skipna", [True, False])
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
