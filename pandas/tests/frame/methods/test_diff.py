@@ -96,7 +96,8 @@ class TestDataFrameDiff:
             with tm.assert_produces_warning(FutureWarning, match=msg):
                 df.iloc[:, 0] = pd.NaT
         else:
-            df.iloc[:, 0] = pd.NaT
+            with tm.assert_produces_warning(None):
+                df.iloc[:, 0] = pd.NaT
 
         expected = df - df
         assert expected[0].isna().all()
