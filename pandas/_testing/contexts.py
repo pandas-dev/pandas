@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from shutil import rmtree
 import tempfile
+from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -65,7 +66,7 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     import os
     import time
 
-    def setTZ(tz):
+    def setTZ(tz) -> None:
         if tz is None:
             try:
                 del os.environ["TZ"]
@@ -239,6 +240,11 @@ class RNGContext:
         self.start_state = np.random.get_state()
         np.random.seed(self.seed)
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
 
         np.random.set_state(self.start_state)

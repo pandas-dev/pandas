@@ -9,6 +9,7 @@ from datetime import (
 import inspect
 from typing import (
     TYPE_CHECKING,
+    Iterator,
     Literal,
     cast,
 )
@@ -567,7 +568,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         return super().__array__(dtype=dtype)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Return an iterator over the boxed values
 
