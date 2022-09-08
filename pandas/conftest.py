@@ -29,7 +29,10 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-from typing import Callable
+from typing import (
+    Callable,
+    Iterator,
+)
 
 from dateutil.tz import (
     tzlocal,
@@ -132,7 +135,7 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
         item.add_marker(pytest.mark.filterwarnings(f"ignore:{message}"))
 
 
-def pytest_collection_modifyitems(items, config):
+def pytest_collection_modifyitems(items, config) -> None:
     skip_slow = config.getoption("--skip-slow")
     only_slow = config.getoption("--only-slow")
     skip_network = config.getoption("--skip-network")
@@ -512,10 +515,10 @@ def non_dict_mapping_subclass():
         def __getitem__(self, key):
             return self._data.__getitem__(key)
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator:
             return self._data.__iter__()
 
-        def __len__(self):
+        def __len__(self) -> int:
             return self._data.__len__()
 
     return TestNonDictMapping
