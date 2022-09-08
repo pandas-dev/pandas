@@ -16,6 +16,7 @@ from typing import (
     Callable,
     ClassVar,
     Hashable,
+    Iterator,
     Literal,
     Mapping,
     NoReturn,
@@ -1951,7 +1952,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # "object" defined the type as "Callable[[object], int]")
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Iterate over info axis.
 
@@ -6000,7 +6001,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _consolidate_inplace(self) -> None:
         """Consolidate data in place and return None"""
 
-        def f():
+        def f() -> None:
             self._mgr = self._mgr.consolidate()
 
         self._protect_consolidate(f)
@@ -6019,7 +6020,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cons_data = self._protect_consolidate(f)
         return self._constructor(cons_data).__finalize__(self)
 
-    @final
     @property
     def _is_mixed_type(self) -> bool_t:
         if self._mgr.is_single_block:
@@ -9897,6 +9897,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For further details and examples see the ``{name}`` documentation in
         :ref:`indexing <indexing.where_mask>`.
 
+        The dtype of the object takes precedence. The fill value is casted to
+        the object's dtype, if this can be done losslessly.
+
         Examples
         --------
         >>> s = pd.Series(range(5))
@@ -11616,7 +11619,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
 
     @classmethod
-    def _add_numeric_operations(cls):
+    def _add_numeric_operations(cls) -> None:
         """
         Add the operations to the cls; evaluate the doc strings again
         """
