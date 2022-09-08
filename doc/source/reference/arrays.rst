@@ -103,6 +103,7 @@ is the missing value for datetime data.
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
+
    NaT
 
 Properties
@@ -226,6 +227,7 @@ is the missing value for timedelta data.
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
+
    NaT
 
 Properties

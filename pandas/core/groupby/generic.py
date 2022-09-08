@@ -116,14 +116,10 @@ class NamedAgg(NamedTuple):
     Parameters
     ----------
     column : Hashable
-        Column label in the DataFrame to apply aggfunc
+        Column label in the DataFrame to apply aggfunc.
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
-
-    Returns
-    -------
-    NamedTuple
 
     Examples
     --------
