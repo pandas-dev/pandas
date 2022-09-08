@@ -2003,6 +2003,9 @@ class _iLocIndexer(_LocationIndexer):
         new_values = self.obj._get_column_array(loc)
         warn = can_hold_element(orig_values, new_values)
 
+        # Don't issue the warning yet, as we can still trim a few cases where
+        #  behavior will not change.
+
         if warn:
 
             if (
