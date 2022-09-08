@@ -497,11 +497,7 @@ def _justify(
     tail = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
     ]
-    # https://github.com/python/mypy/issues/4975
-    # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
-    #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
-    #  List[Tuple[str, ...]]]")
-    return head, tail  # type: ignore[return-value]
+    return head, tail
 
 
 class PrettyDict(Dict[_KT, _VT]):
