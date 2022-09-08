@@ -2215,11 +2215,11 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
 
     
 @pytest.mark.parametrize(
-    "int_lists, signed",
+    "int_list, signed",
     [[tm.SIGNED_INT_PYARROW_DTYPES, True], [tm.UNSIGNED_INT_PYARROW_DTYPES, False]]
 )
-def test_global_int_lists(int_lists, signed):
-    for pa_dtype in int_lists:
+def test_global_int_lists(int_list, signed):
+    for pa_dtype in int_list:
         if signed:
             assert pa.types.is_signed_integer(pa_dtype)
         else:
