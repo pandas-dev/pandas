@@ -190,7 +190,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
-- Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`?`)
+- Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -
 
 Sparse

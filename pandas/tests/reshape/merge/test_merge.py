@@ -2656,7 +2656,7 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
 
 
 def test_merge_on_left_categoricalindex():
-    # don't raise when left_on is a CategoricalIndex
+    # GH#48464 don't raise when left_on is a CategoricalIndex
     ci = CategoricalIndex(range(3))
 
     right = DataFrame({"A": ci, "B": range(3)})
