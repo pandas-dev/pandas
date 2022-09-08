@@ -91,8 +91,11 @@ class TestDataFrameDiff:
 
         df[1] = ser.copy()
 
-        msg = "will attempt to set the values inplace instead"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        if tz is None:
+            msg = "will attempt to set the values inplace instead"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                df.iloc[:, 0] = pd.NaT
+        else:
             df.iloc[:, 0] = pd.NaT
 
         expected = df - df

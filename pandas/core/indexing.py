@@ -2010,16 +2010,18 @@ class _iLocIndexer(_LocationIndexer):
         if warn:
             new_values = self.obj._get_column_array(loc)
 
+            # Check again, iset_item might have introduced nans through reindexing
+            warn = can_hold_element(orig_values, new_values)
+
+            if not warn:
+                return
+
             if (
                 isinstance(new_values, np.ndarray)
                 and isinstance(orig_values, np.ndarray)
                 and (
                     np.shares_memory(new_values, orig_values)
                     or new_values.shape != orig_values.shape
-                    or (
-                        not can_hold_element(orig_values, np.nan)
-                        and isna(new_values).any()
-                    )
                 )
             ):
                 # TODO: get something like tm.shares_memory working?
