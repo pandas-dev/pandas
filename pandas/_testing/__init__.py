@@ -229,6 +229,7 @@ if not pa_version_under1p01:
         + DATETIME_PYARROW_DTYPES
         + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
+        + STRING_PYARROW_DTYPES
     )
 
 
