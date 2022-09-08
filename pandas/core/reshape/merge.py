@@ -1250,6 +1250,9 @@ class _MergeOperation:
             if (len(lk) and not len(rk)) or (not len(lk) and len(rk)):
                 continue
 
+            lk = extract_array(lk, extract_numpy=True)
+            rk = extract_array(rk, extract_numpy=True)
+
             lk_is_cat = is_categorical_dtype(lk.dtype)
             rk_is_cat = is_categorical_dtype(rk.dtype)
             lk_is_object = is_object_dtype(lk.dtype)
