@@ -25,7 +25,6 @@ cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDelta_Check,
     datetime,
     import_datetime,
 )
@@ -50,7 +49,6 @@ from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
-    NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
@@ -780,7 +778,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     """
     cdef:
         int64_t unix_date
-        int freq_group, fmonth, mdiff
+        int freq_group, fmonth
         NPY_DATETIMEUNIT unit
 
     freq_group = get_freq_group(freq)

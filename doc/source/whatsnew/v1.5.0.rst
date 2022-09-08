@@ -308,6 +308,7 @@ Other enhancements
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
 - :class:`Series` and :class:`DataFrame` with :class:`IntegerDtype` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`.DateOffset` (:issue:`43371`)
+- :meth:`DataFrame.where` tries to maintain dtype of :class:`DataFrame` if fill value can be cast without loss of precision (:issue:`45582`)
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :func:`concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
 - :func:`concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
@@ -331,6 +332,7 @@ Other enhancements
 - Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
 - :meth:`DataFrame.set_index` now supports a ``copy`` keyword. If ``False``, the underlying data is not copied when a new :class:`DataFrame` is returned (:issue:`48043`)
 - The method :meth:`.ExtensionArray.factorize` accepts ``use_na_sentinel=False`` for determining how null values are to be treated (:issue:`46601`)
+- The ``Dockerfile`` now installs a dedicated ``pandas-dev`` virtual environment for pandas development instead of using the ``base`` environment (:issue:`48427`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -1011,6 +1013,8 @@ Time Zones
 Numeric
 ^^^^^^^
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
+- Bug in arithmetic operations with nullable types without :attr:`NA` values not matching the same operation with non-nullable types (:issue:`48223`)
+- Bug in ``floordiv`` when dividing by ``IntegerDtype`` ``0`` would return ``0`` instead of ``inf`` (:issue:`48223`)
 - Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
 - Bug in :meth:`mean` where the optional dependency ``bottleneck`` causes precision loss linear in the length of the array. ``bottleneck`` has been disabled for :meth:`mean` improving the loss to log-linear but may result in a performance decrease. (:issue:`42878`)
