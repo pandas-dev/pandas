@@ -9898,7 +9898,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         :ref:`indexing <indexing.where_mask>`.
 
         The dtype of the object takes precedence. The fill value is casted to
-        the objects dtype, if this can be done losslessly.
+        the object's dtype, if this can be done losslessly.
 
         Examples
         --------
