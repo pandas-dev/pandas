@@ -764,8 +764,9 @@ class _MergeOperation:
 
         from pandas import concat
 
+        left.columns = llabels
+        right.columns = rlabels
         result = concat([left, right], axis=1, copy=copy)
-        result.columns = llabels.append(rlabels)
         return result
 
     def get_result(self, copy: bool = True) -> DataFrame:
