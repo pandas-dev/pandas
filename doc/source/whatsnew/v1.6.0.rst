@@ -101,6 +101,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.median` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`.GroupBy.mean` and :meth:`.GroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 -

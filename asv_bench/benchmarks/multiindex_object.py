@@ -8,6 +8,7 @@ from pandas import (
     MultiIndex,
     RangeIndex,
     Series,
+    array,
     date_range,
 )
 
@@ -174,6 +175,20 @@ class Sortlevel:
 
     def time_sortlevel_one(self):
         self.mi.sortlevel(1)
+
+
+class SortValues:
+
+    params = ["int64", "Int64"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        a = array(np.tile(np.arange(100), 1000), dtype=dtype)
+        b = array(np.tile(np.arange(1000), 100), dtype=dtype)
+        self.mi = MultiIndex.from_arrays([a, b])
+
+    def time_sort_values(self, dtype):
+        self.mi.sort_values()
 
 
 class Values:
