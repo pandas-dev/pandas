@@ -985,7 +985,11 @@ class MPLPlot(ABC):
                 kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
-    def _get_colors(self, num_colors=None, color_kwds="color"):
+    def _get_colors(
+        self,
+        num_colors: int | None = None,
+        color_kwds: str = "color",
+    ):
         if num_colors is None:
             num_colors = self.nseries
 

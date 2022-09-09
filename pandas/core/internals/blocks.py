@@ -28,7 +28,9 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     F,
+    FillnaOptions,
     IgnoreRaise,
+    QuantileInterpolation,
     Shape,
     npt,
 )
@@ -537,7 +539,7 @@ class Block(PandasObject):
         return newb
 
     @final
-    def to_native_types(self, na_rep="nan", quoting=None, **kwargs) -> Block:
+    def to_native_types(self, na_rep: object = "nan", quoting=None, **kwargs) -> Block:
         """convert to our native types format"""
         result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
         return self.make_block(result)
@@ -1048,7 +1050,7 @@ class Block(PandasObject):
                     res_blocks.extend(rbs)
                 return res_blocks
 
-    def where(self, other, cond, _downcast="infer") -> list[Block]:
+    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1207,7 +1209,7 @@ class Block(PandasObject):
 
     def interpolate(
         self,
-        method: str = "pad",
+        method: FillnaOptions = "pad",
         axis: int = 0,
         index: Index | None = None,
         inplace: bool = False,
@@ -1309,7 +1311,10 @@ class Block(PandasObject):
 
     @final
     def quantile(
-        self, qs: Float64Index, interpolation="linear", axis: int = 0
+        self,
+        qs: Float64Index,
+        interpolation: QuantileInterpolation = "linear",
+        axis: int = 0,
     ) -> Block:
         """
         compute the quantiles of the
@@ -1433,7 +1438,7 @@ class EABackedBlock(Block):
         else:
             return self
 
-    def where(self, other, cond, _downcast="infer") -> list[Block]:
+    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
         # _downcast private bc we only specify it when calling from fillna
         arr = self.values.T
 
@@ -1606,8 +1611,15 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    def interpolate(
-        self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
+    # error: Signature of "interpolate" incompatible with supertype "Block"
+    def interpolate(  # type: ignore[override]
+        self,
+        method: FillnaOptions = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        fill_value=None,
+        **kwargs,
     ):
         values = self.values
         if values.ndim == 2 and axis == 0:
@@ -2274,10 +2286,10 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
 def to_native_types(
     values: ArrayLike,
     *,
-    na_rep="nan",
+    na_rep: object = "nan",
     quoting=None,
     float_format=None,
-    decimal=".",
+    decimal: str = ".",
     **kwargs,
 ) -> np.ndarray:
     """convert to our native types format"""

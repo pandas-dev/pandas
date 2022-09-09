@@ -621,12 +621,12 @@ class StylerRenderer:
 
     def _check_trim(
         self,
-        count,
-        max,
-        obj,
-        element,
-        css=None,
-        value="...",
+        count: int,
+        max: int,
+        obj: list,
+        element: str,
+        css: str | None = None,
+        value: str = "...",
     ) -> bool:
         """
         Indicates whether to break render loops and append a trimming indicator
@@ -1503,7 +1503,7 @@ class StylerRenderer:
 
 def _element(
     html_element: str,
-    html_class: str,
+    html_class: str | None,
     value: Any,
     is_visible: bool,
     **kwargs,

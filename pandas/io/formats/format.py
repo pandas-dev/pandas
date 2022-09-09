@@ -1857,7 +1857,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
 
 def get_format_timedelta64(
     values: np.ndarray | TimedeltaIndex | TimedeltaArray,
-    nat_rep: str = "NaT",
+    nat_rep: object = "NaT",
     box: bool = False,
 ) -> Callable:
     """
@@ -1888,7 +1888,7 @@ def get_format_timedelta64(
 
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
-            return nat_rep
+            return str(nat_rep)
 
         if not isinstance(x, Timedelta):
             x = Timedelta(x)

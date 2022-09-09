@@ -331,3 +331,12 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll = Literal["any", "all"]
+
+MatplotlibColor = Union[str, Sequence[float]]
+TimeGrouperOrigin = Union[
+    "Timestamp", Literal["epoch", "start", "start_day", "end", "end_day"]
+]
+TimeAmbiguous = Union[Literal["infer", "NaT", "raise"], "npt.NDArray[np.bool_]"]
+TimeNonexistent = Union[
+    Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
+]

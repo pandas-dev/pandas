@@ -33,6 +33,7 @@ from pandas._typing import (
     AnyArrayLike,
     DtypeObj,
     F,
+    IgnoreRaise,
     Scalar,
     Shape,
     npt,
@@ -1320,7 +1321,7 @@ class MultiIndex(Index):
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
     def _format_native_types(
-        self, *, na_rep="nan", **kwargs
+        self, *, na_rep: object = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
         new_codes = []
@@ -1334,7 +1335,9 @@ class MultiIndex(Index):
                 nan_index = len(level_strs)
                 # numpy 1.21 deprecated implicit string casting
                 level_strs = level_strs.astype(str)
-                level_strs = np.append(level_strs, na_rep)
+                # error: Argument 2 to "append" has incompatible type "object";
+                # expected "Union[...]"
+                level_strs = np.append(level_strs, na_rep)  # type: ignore[arg-type]
                 assert not level_codes.flags.writeable  # i.e. copy is needed
                 level_codes = level_codes.copy()  # make writeable
                 level_codes[mask] = nan_index
@@ -1359,7 +1362,7 @@ class MultiIndex(Index):
         self,
         name: bool | None = None,
         formatter: Callable | None = None,
-        na_rep: str | None = None,
+        na_rep: object = None,
         names: bool = False,
         space: int = 2,
         sparsify=None,
@@ -1618,7 +1621,9 @@ class MultiIndex(Index):
         return [i.inferred_type for i in self.levels]
 
     @doc(Index.duplicated)
-    def duplicated(self, keep="first") -> npt.NDArray[np.bool_]:
+    def duplicated(
+        self, keep: Literal["last", "first", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
         shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
@@ -2248,7 +2253,13 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    def drop(self, codes, level=None, errors="raise"):
+    # error: Signature of "drop" incompatible with supertype "Index"
+    def drop(  # type: ignore[override]
+        self,
+        codes,
+        level: Index | np.ndarray | Iterable[Hashable] | None = None,
+        errors: IgnoreRaise = "raise",
+    ) -> MultiIndex:
         """
         Make new MultiIndex with passed list of codes deleted
 
@@ -2302,7 +2313,9 @@ class MultiIndex(Index):
 
         return self.delete(inds)
 
-    def _drop_from_level(self, codes, level, errors="raise") -> MultiIndex:
+    def _drop_from_level(
+        self, codes, level, errors: IgnoreRaise = "raise"
+    ) -> MultiIndex:
         codes = com.index_labels_to_array(codes)
         i = self._get_level_number(level)
         index = self.levels[i]
@@ -3835,7 +3848,9 @@ class MultiIndex(Index):
     rename = set_names
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self, keep: str | bool = "first") -> MultiIndex:
+    def drop_duplicates(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> MultiIndex:
         return super().drop_duplicates(keep=keep)
 
     # ---------------------------------------------------------------
@@ -3875,7 +3890,7 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
     return 0
 
 
-def sparsify_labels(label_list, start: int = 0, sentinel=""):
+def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
     pivoted = list(zip(*label_list))
     k = len(label_list)
 

@@ -228,7 +228,7 @@ class RangeIndex(NumericIndex):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: object) -> list[str]:
         # Equivalent to Index implementation, but faster
         if not len(self._range):
             return header

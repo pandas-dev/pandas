@@ -12,6 +12,7 @@ from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     PositionalIndexer,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -472,7 +473,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,

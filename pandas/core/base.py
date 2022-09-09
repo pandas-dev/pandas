@@ -1303,7 +1303,7 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, keep="first"):
+    def drop_duplicates(self, keep: Literal["first", "last", False] = "first"):
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]

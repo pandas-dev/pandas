@@ -6,8 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Collection,
     Iterator,
-    Sequence,
-    Union,
     cast,
 )
 import warnings
@@ -16,6 +14,7 @@ import matplotlib.cm as cm
 import matplotlib.colors
 import numpy as np
 
+from pandas._typing import MatplotlibColor as Color
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
@@ -24,9 +23,6 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
-
-
-Color = Union[str, Sequence[float]]
 
 
 def get_standard_colors(

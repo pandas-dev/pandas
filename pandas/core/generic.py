@@ -69,7 +69,9 @@ from pandas._typing import (
     StorageOptions,
     Suffixes,
     T,
+    TimeAmbiguous,
     TimedeltaConvertibleTypes,
+    TimeNonexistent,
     TimestampConvertibleTypes,
     ValueKeyFunc,
     WriteBuffer,
@@ -2820,7 +2822,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name: str,
         con,
         schema: str | None = None,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool_t = True,
         index_label: IndexLabel = None,
         chunksize: int | None = None,
@@ -4137,7 +4139,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return False
 
     @final
-    def _check_setitem_copy(self, t="setting", force=False):
+    def _check_setitem_copy(self, t: str = "setting", force=False):
         """
 
         Parameters
@@ -4328,7 +4330,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def reindex_like(
         self: NDFrameT,
         other,
-        method: str | None = None,
+        method: Literal["backfill", "bfill", "pad", "ffill", "nearest"] | None = None,
         copy: bool_t = True,
         limit=None,
         tolerance=None,
@@ -9493,7 +9495,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _align_frame(
         self,
         other,
-        join="outer",
+        join: Literal["outer", "inner", "left", "right"] = "outer",
         axis=None,
         level=None,
         copy: bool_t = True,
@@ -9557,7 +9559,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _align_series(
         self,
         other,
-        join="outer",
+        join: Literal["outer", "inner", "left", "right"] = "outer",
         axis=None,
         level=None,
         copy: bool_t = True,
@@ -10551,8 +10553,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis=0,
         level=None,
         copy: bool_t = True,
-        ambiguous="raise",
-        nonexistent: str = "raise",
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
     ) -> NDFrameT:
         """
         Localize tz-naive index of a Series or DataFrame to target time zone.
@@ -10977,7 +10979,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def pct_change(
         self: NDFrameT,
         periods=1,
-        fill_method="pad",
+        fill_method: Literal["backfill", "bfill", "pad", "ffill"] = "pad",
         limit=None,
         freq=None,
         **kwargs,

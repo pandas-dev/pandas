@@ -27,6 +27,7 @@ from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    QuantileInterpolation,
     Shape,
     npt,
     type_t,
@@ -1578,7 +1579,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         *,
         qs: Float64Index,
         axis: int = 0,
-        interpolation="linear",
+        interpolation: QuantileInterpolation = "linear",
     ) -> T:
         """
         Iterate over blocks applying quantile reduction.

@@ -311,7 +311,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        closed: str = "right",
+        closed: IntervalClosedType = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -816,12 +816,12 @@ class IntervalIndex(ExtensionIndex):
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: object) -> list[str]:
         # matches base class except for whitespace padding
         return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(
-        self, *, na_rep="NaN", quoting=None, **kwargs
+        self, *, na_rep: object = "NaN", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         # GH 28210: use base method but with different default na_rep
         return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)

@@ -1530,7 +1530,7 @@ class HDFStore:
     def copy(
         self,
         file,
-        mode="w",
+        mode: str = "w",
         propindexes: bool = True,
         keys=None,
         complib=None,

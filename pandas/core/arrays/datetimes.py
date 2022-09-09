@@ -41,7 +41,13 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._typing import npt
+from pandas._typing import (
+    DateTimeErrorChoices,
+    IntervalClosedType,
+    TimeAmbiguous,
+    TimeNonexistent,
+    npt,
+)
 from pandas.errors import (
     OutOfBoundsDatetime,
     PerformanceWarning,
@@ -298,7 +304,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
-        ambiguous="raise",
+        ambiguous: TimeAmbiguous = "raise",
     ):
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
@@ -333,8 +339,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         return result
 
+    # error: Signature of "_generate_range" incompatible with supertype
+    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(
+    def _generate_range(  # type: ignore[override]
         cls,
         start,
         end,
@@ -342,10 +350,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         freq,
         tz=None,
         normalize=False,
-        ambiguous="raise",
-        nonexistent="raise",
-        inclusive="both",
-    ):
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+        inclusive: IntervalClosedType = "both",
+    ) -> DatetimeArray:
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -640,7 +648,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep: object = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values
 
@@ -812,7 +820,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
 
     @dtl.ravel_compat
-    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeArray:
+    def tz_localize(
+        self,
+        tz,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ) -> DatetimeArray:
         """
         Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index.
 
@@ -1971,7 +1984,7 @@ def _sequence_to_dt64ns(
     tz=None,
     dayfirst: bool = False,
     yearfirst: bool = False,
-    ambiguous="raise",
+    ambiguous: TimeAmbiguous = "raise",
     *,
     allow_mixed: bool = False,
     require_iso8601: bool = False,
@@ -2118,7 +2131,7 @@ def objects_to_datetime64ns(
     dayfirst,
     yearfirst,
     utc=False,
-    errors="raise",
+    errors: DateTimeErrorChoices = "raise",
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,

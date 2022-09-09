@@ -36,6 +36,7 @@ from pandas._typing import (
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -670,7 +671,7 @@ class ExtensionArray:
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,

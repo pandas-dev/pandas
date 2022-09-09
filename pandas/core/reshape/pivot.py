@@ -64,7 +64,7 @@ def pivot_table(
     fill_value=None,
     margins: bool = False,
     dropna: bool = True,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     observed: bool = False,
     sort: bool = True,
 ) -> DataFrame:
@@ -119,7 +119,7 @@ def __internal_pivot_table(
     fill_value,
     margins: bool,
     dropna: bool,
-    margins_name: str,
+    margins_name: Hashable,
     observed: bool,
     sort: bool,
 ) -> DataFrame:
@@ -262,7 +262,7 @@ def _add_margins(
     cols,
     aggfunc,
     observed=None,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     fill_value=None,
 ):
     if not isinstance(margins_name, str):
@@ -334,7 +334,9 @@ def _add_margins(
     return result
 
 
-def _compute_grand_margin(data: DataFrame, values, aggfunc, margins_name: str = "All"):
+def _compute_grand_margin(
+    data: DataFrame, values, aggfunc, margins_name: Hashable = "All"
+):
 
     if values:
         grand_margin = {}
@@ -357,7 +359,7 @@ def _compute_grand_margin(data: DataFrame, values, aggfunc, margins_name: str = 
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table, data, values, rows, cols, aggfunc, observed, margins_name: Hashable = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -427,7 +429,13 @@ def _generate_marginal_results(
 
 
 def _generate_marginal_results_without_values(
-    table: DataFrame, data, rows, cols, aggfunc, observed, margins_name: str = "All"
+    table: DataFrame,
+    data,
+    rows,
+    cols,
+    aggfunc,
+    observed,
+    margins_name: Hashable = "All",
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -555,7 +563,7 @@ def crosstab(
     colnames=None,
     aggfunc=None,
     margins: bool = False,
-    margins_name: str = "All",
+    margins_name: Hashable = "All",
     dropna: bool = True,
     normalize=False,
 ) -> DataFrame:
@@ -695,6 +703,8 @@ def crosstab(
         df["__dummy__"] = values
         kwargs = {"aggfunc": aggfunc}
 
+    # error: Argument 7 to "pivot_table" of "DataFrame" has incompatible type
+    # "**Dict[str, object]"; expected "Union[...]"
     table = df.pivot_table(
         "__dummy__",
         index=unique_rownames,
@@ -702,7 +712,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
     # Post-process
@@ -718,7 +728,7 @@ def crosstab(
 
 
 def _normalize(
-    table: DataFrame, normalize, margins: bool, margins_name="All"
+    table: DataFrame, normalize, margins: bool, margins_name: Hashable = "All"
 ) -> DataFrame:
 
     if not isinstance(normalize, (bool, str)):

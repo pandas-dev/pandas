@@ -358,9 +358,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         extra = super()._format_attrs()
         return attrs + extra
 
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: object) -> list[str]:
         result = [
-            pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
+            pprint_thing(x, escape_chars=("\t", "\r", "\n"))
+            if notna(x)
+            else str(na_rep)
             for x in self._values
         ]
         return header + result

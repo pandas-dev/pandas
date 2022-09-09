@@ -155,7 +155,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         self,
         name: bool = False,
         formatter: Callable | None = None,
-        na_rep: str = "NaT",
+        na_rep: object = "NaT",
         date_format: str | None = None,
     ) -> list[str]:
         """
@@ -175,7 +175,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
 
     def _format_with_header(
-        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
+        self, header: list[str], na_rep: object = "NaT", date_format: str | None = None
     ) -> list[str]:
         # matches base class except for whitespace padding and date_format
         return header + list(

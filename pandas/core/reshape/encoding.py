@@ -25,7 +25,7 @@ from pandas.core.series import Series
 def get_dummies(
     data,
     prefix=None,
-    prefix_sep="_",
+    prefix_sep: str | list[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     columns=None,
     sparse: bool = False,
@@ -175,7 +175,9 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = itertools.cycle([prefix_sep])
+            # error: Incompatible types in assignment (expression has type
+            # "cycle[str]", variable has type "str")
+            prefix_sep = itertools.cycle([prefix_sep])  # type: ignore[assignment]
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
@@ -221,7 +223,7 @@ def get_dummies(
 def _get_dummies_1d(
     data,
     prefix,
-    prefix_sep="_",
+    prefix_sep: str | list[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,

@@ -8742,11 +8742,11 @@ Parrot 2  Parrot       24.0
         values=None,
         index=None,
         columns=None,
-        aggfunc="mean",
+        aggfunc: AggFuncType = "mean",
         fill_value=None,
         margins=False,
         dropna=True,
-        margins_name="All",
+        margins_name: Level = "All",
         observed=False,
         sort=True,
     ) -> DataFrame:
@@ -9143,7 +9143,7 @@ Parrot 2  Parrot       24.0
         id_vars=None,
         value_vars=None,
         var_name=None,
-        value_name="value",
+        value_name: Hashable = "value",
         col_level: Level = None,
         ignore_index: bool = True,
     ) -> DataFrame:
@@ -10257,7 +10257,8 @@ Parrot 2  Parrot       24.0
 
     def corr(
         self,
-        method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: Literal["pearson", "kendall", "spearman"]
+        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:

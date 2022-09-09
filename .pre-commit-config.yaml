@@ -258,7 +258,7 @@ repos:
             |/_testing/
     -   id: autotyping
         name: autotyping
-        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics
+        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics --bytes-param --str-param
         types_or: [python, pyi]
         files: ^pandas
         exclude: ^(pandas/tests|pandas/io/clipboard)

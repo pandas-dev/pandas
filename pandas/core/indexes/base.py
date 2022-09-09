@@ -993,7 +993,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.dtype
 
     @final
-    def ravel(self, order="C"):
+    def ravel(self, order: str_t = "C"):
         """
         Return an ndarray of the flattened values of the underlying data.
 
@@ -1441,7 +1441,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         name: bool = False,
         formatter: Callable | None = None,
-        na_rep: str_t = "NaN",
+        na_rep: object = "NaN",
     ) -> list[str_t]:
         """
         Render a string representation of the Index.
@@ -1459,7 +1459,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(self, header: list[str_t], na_rep: str_t) -> list[str_t]:
+    def _format_with_header(self, header: list[str_t], na_rep: object) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -1520,7 +1520,7 @@ class Index(IndexOpsMixin, PandasObject):
         return values._format_native_types(**kwargs)
 
     def _format_native_types(
-        self, *, na_rep="", quoting=None, **kwargs
+        self, *, na_rep: object = "", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         Actually format specific types of the index.
@@ -3028,7 +3028,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(result)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self: _IndexT, keep: str_t | bool = "first") -> _IndexT:
+    def drop_duplicates(
+        self: _IndexT, keep: Literal["first", "last", False] = "first"
+    ) -> _IndexT:
         """
         Return Index with duplicate values removed.
 
