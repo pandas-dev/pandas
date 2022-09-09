@@ -4256,6 +4256,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   blue  2
         0    red  0
         """  # noqa:E501
+        if self._selected_obj.empty:
+            # GH48459 prevent ValueError
+            return self._selected_obj
         size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
             weights_arr = sample.preprocess_weights(

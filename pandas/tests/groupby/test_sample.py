@@ -142,3 +142,12 @@ def test_groupby_sample_with_selections():
     result = df.groupby("a")[["b", "c"]].sample(n=None, frac=None)
     expected = DataFrame({"b": [1, 2], "c": [1, 2]}, index=result.index)
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_sample_with_empty_inputs():
+    df = DataFrame({"a": [], "b": []})
+    gb_df = df.groupby("a").sample()
+
+    result = gb_df
+    expected = df
+    tm.assert_frame_equal(result, expected)
