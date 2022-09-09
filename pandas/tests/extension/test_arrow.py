@@ -2212,11 +2212,3 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
     result = ser.mode(dropna=dropna)
     expected = pd.Series(data_for_grouping.take(exp_idx))
     tm.assert_series_equal(result, expected)
-
-
-def test_global_int_lists():
-    for pa_dtype in tm.SIGNED_INT_PYARROW_DTYPES:
-        assert pa.types.is_signed_integer(pa_dtype)
-
-    for pa_dtype in tm.UNSIGNED_INT_PYARROW_DTYPES:
-        assert pa.types.is_unsigned_integer(pa_dtype)
