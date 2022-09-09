@@ -235,7 +235,7 @@ class TestPDApi(Base):
 
 
 class TestApi(Base):
-    allowed = ["types", "extensions", "indexers", "interchange"]
+    allowed = ["types", "extensions", "indexers", "interchange", "typing"]
 
     def test_api(self):
         self.check(api, self.allowed)
