@@ -42,7 +42,7 @@ class ArrowParserWrapper(ParserBase):
             )
         self.na_values = list(self.kwds["na_values"])
 
-    def _get_pyarrow_options(self):
+    def _get_pyarrow_options(self) -> None:
         """
         Rename some arguments to pass to pyarrow
         """

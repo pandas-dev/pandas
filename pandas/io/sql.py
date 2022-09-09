@@ -819,7 +819,7 @@ class SQLTable(PandasObject):
 
         return str(CreateTable(self.table).compile(self.pd_sql.connectable))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
         self.table = self.table.to_metadata(self.pd_sql.meta)
         self.table.create(bind=self.pd_sql.connectable)
@@ -1102,7 +1102,7 @@ class SQLTable(PandasObject):
         meta = MetaData()
         return Table(self.name, meta, *columns, schema=schema)
 
-    def _harmonize_columns(self, parse_dates=None):
+    def _harmonize_columns(self, parse_dates=None) -> None:
         """
         Make the DataFrame's column types align with the SQL table
         column types.
@@ -1856,7 +1856,7 @@ class SQLiteTable(SQLTable):
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
-        def _adapt_time(t):
+        def _adapt_time(t) -> str:
             # This is faster than strftime
             return f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}.{t.microsecond:06d}"
 
@@ -1866,7 +1866,7 @@ class SQLiteTable(SQLTable):
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         with self.pd_sql.run_transaction() as conn:
             for stmt in self.table:
                 conn.execute(stmt)

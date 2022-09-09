@@ -3212,7 +3212,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     @final
-    def _deprecate_dti_setop(self, other: Index, setop: str_t):
+    def _deprecate_dti_setop(self, other: Index, setop: str_t) -> None:
         """
         Deprecate setop behavior between timezone-aware DatetimeIndexes with
         mismatched timezones.
@@ -5155,6 +5155,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(vals, StringArray):
             # GH#45652 much more performant than ExtensionEngine
             return vals._ndarray
+        if type(self) is Index and isinstance(self._values, ExtensionArray):
+            # TODO(ExtensionIndex): remove special-case, just use self._values
+            return self._values.astype(object)
         return vals
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:

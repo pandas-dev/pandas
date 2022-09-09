@@ -764,8 +764,9 @@ class _MergeOperation:
 
         from pandas import concat
 
+        left.columns = llabels
+        right.columns = rlabels
         result = concat([left, right], axis=1, copy=copy)
-        result.columns = llabels.append(rlabels)
         return result
 
     def get_result(self, copy: bool = True) -> DataFrame:
@@ -1249,6 +1250,9 @@ class _MergeOperation:
         ):
             if (len(lk) and not len(rk)) or (not len(lk) and len(rk)):
                 continue
+
+            lk = extract_array(lk, extract_numpy=True)
+            rk = extract_array(rk, extract_numpy=True)
 
             lk_is_cat = is_categorical_dtype(lk.dtype)
             rk_is_cat = is_categorical_dtype(rk.dtype)

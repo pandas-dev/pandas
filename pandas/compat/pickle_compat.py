@@ -9,7 +9,7 @@ import io
 import pickle as pkl
 from typing import (
     TYPE_CHECKING,
-    Iterator,
+    Generator,
 )
 import warnings
 
@@ -210,7 +210,7 @@ Unpickler.dispatch = copy.copy(Unpickler.dispatch)
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
 
-def load_newobj(self):
+def load_newobj(self) -> None:
     args = self.stack.pop()
     cls = self.stack[-1]
 
@@ -234,7 +234,7 @@ def load_newobj(self):
 Unpickler.dispatch[pkl.NEWOBJ[0]] = load_newobj
 
 
-def load_newobj_ex(self):
+def load_newobj_ex(self) -> None:
     kwargs = self.stack.pop()
     args = self.stack.pop()
     cls = self.stack.pop()
@@ -294,7 +294,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle() -> Iterator[None]:
+def patch_pickle() -> Generator[None, None, None]:
     """
     Temporarily patch pickle to use our unpickler.
     """
