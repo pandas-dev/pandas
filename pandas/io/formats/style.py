@@ -52,9 +52,6 @@ from pandas.core.generic import NDFrame
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
-
-jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-
 from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
@@ -71,20 +68,15 @@ from pandas.io.formats.style_render import (
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
 
-try:
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-
-    has_mpl = True
-except ImportError:
-    has_mpl = False
-
 
 @contextmanager
 def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
-    if has_mpl:
+    try:
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+
         yield plt, mpl
-    else:
+    except ImportError:
         raise ImportError(f"{func.__name__} requires matplotlib.")
 
 
@@ -3420,6 +3412,9 @@ class Styler(StylerRenderer):
             Has the correct ``env``,``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
         """
+        jinja2 = import_optional_dependency(
+            "jinja2", extra="DataFrame.style requires jinja2."
+        )
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
         # mypy doesn't like dynamically-defined classes
