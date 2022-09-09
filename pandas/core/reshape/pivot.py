@@ -492,6 +492,9 @@ def pivot(
 
     columns_listlike = com.convert_to_list_like(columns)
 
+    # If columns is None we will create a MultiIndex level with None as name
+    # which might cause duplicated names because None is the default for
+    # level names
     data.index.names = [
         name if name is not None else lib.NoDefault for name in data.index.names
     ]
