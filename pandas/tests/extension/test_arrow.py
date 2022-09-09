@@ -31,6 +31,7 @@ from pandas.compat import (
     pa_version_under8p0,
     pa_version_under9p0,
 )
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 import pandas._testing as tm
@@ -515,15 +516,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        elif pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
         super().test_groupby_extension_no_sort(data_for_grouping)
 
     def test_groupby_extension_transform(self, data_for_grouping, request):
@@ -547,8 +539,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         self, data_for_grouping, groupby_apply_op, request
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        # Is there a better way to get the "series" ID for groupby_apply_op?
-        is_series = "series" in request.node.nodeid
+        # TODO: Is there a better way to get the "object" ID for groupby_apply_op?
         is_object = "object" in request.node.nodeid
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -567,14 +558,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                         reason="GH 47514: _concat_datetime expects axis arg.",
                     )
                 )
-            elif not is_series:
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        raises=AttributeError,
-                        reason="GH 34986",
-                    )
-                )
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
+        ):
+            super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
     def test_in_numeric_groupby(self, data_for_grouping, request):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
@@ -603,17 +590,10 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        elif as_index is True and (
-            pa.types.is_date(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
+            super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class TestBaseDtype(base.BaseDtypeTests):
@@ -1443,12 +1423,13 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
+        if (
+            pa.types.is_date(pa_dtype)
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
+        ) and dropna:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=AttributeError,
+                    raises=NotImplementedError,  # tries casting to i8
                     reason="GH 34986",
                 )
             )
@@ -1468,7 +1449,7 @@ class TestBaseMethods(base.BaseMethodsTests):
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
-                    raises=AttributeError,
+                    raises=NotImplementedError,  # tries casting to i8
                     reason="GH 34986",
                 )
             )
