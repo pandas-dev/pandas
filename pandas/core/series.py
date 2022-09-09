@@ -573,7 +573,10 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         labels = ensure_index(labels)
 
-        if labels._is_all_dates:
+        if labels._is_all_dates and not (
+            type(labels) is Index and not isinstance(labels.dtype, np.dtype)
+        ):
+            # exclude e.g. timestamp[ns][pyarrow] dtype from this casting
             deep_labels = labels
             if isinstance(labels, CategoricalIndex):
                 deep_labels = labels.categories
