@@ -1,5 +1,4 @@
 import inspect
-import operator
 import re
 import time
 import warnings
