@@ -413,6 +413,8 @@ cdef class {{name}}HashTable(HashTable):
             self.table = NULL
 
     def __contains__(self, object key) -> bool:
+        # The caller is responsible to check for compatible NA values in case
+        # of masked arrays.
         cdef:
             khiter_t k
             {{c_type}} ckey
