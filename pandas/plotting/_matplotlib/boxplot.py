@@ -59,7 +59,7 @@ class BoxPlot(LinePlot):
         self.return_type = return_type
         MPLPlot.__init__(self, data, **kwargs)
 
-    def _args_adjust(self):
+    def _args_adjust(self) -> None:
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
             # column label
@@ -118,7 +118,7 @@ class BoxPlot(LinePlot):
         self._medians_c = colors[2]
         self._caps_c = colors[0]
 
-    def _get_colors(self, num_colors=None, color_kwds="color"):
+    def _get_colors(self, num_colors=None, color_kwds="color") -> None:
         pass
 
     def maybe_color_bp(self, bp) -> None:
@@ -146,7 +146,7 @@ class BoxPlot(LinePlot):
         if not self.kwds.get("capprops"):
             setp(bp["caps"], color=caps, alpha=1)
 
-    def _make_plot(self):
+    def _make_plot(self) -> None:
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 
@@ -198,16 +198,16 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax: Axes, labels):
+    def _set_ticklabels(self, ax: Axes, labels) -> None:
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
             ax.set_yticklabels(labels)
 
-    def _make_legend(self):
+    def _make_legend(self) -> None:
         pass
 
-    def _post_plot_logic(self, ax, data):
+    def _post_plot_logic(self, ax, data) -> None:
         # GH 45465: make sure that the boxplot doesn't ignore xlabel/ylabel
         if self.xlabel:
             ax.set_xlabel(pprint_thing(self.xlabel))
@@ -215,7 +215,7 @@ class BoxPlot(LinePlot):
             ax.set_ylabel(pprint_thing(self.ylabel))
 
     @property
-    def orientation(self):
+    def orientation(self) -> Literal["horizontal", "vertical"]:
         if self.kwds.get("vert", True):
             return "vertical"
         else:
@@ -343,7 +343,7 @@ def boxplot(
 
         return result
 
-    def maybe_color_bp(bp, **kwds):
+    def maybe_color_bp(bp, **kwds) -> None:
         # GH 30346, when users specifying those arguments explicitly, our defaults
         # for these four kwargs should be overridden; if not, use Pandas settings
         if not kwds.get("boxprops"):

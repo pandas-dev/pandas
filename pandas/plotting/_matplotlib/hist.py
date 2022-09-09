@@ -62,7 +62,7 @@ class HistPlot(LinePlot):
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)
 
-    def _args_adjust(self):
+    def _args_adjust(self) -> None:
         # calculate bin number separately in different subplots
         # where subplots are created based on by argument
         if is_integer(self.bins):
@@ -109,7 +109,7 @@ class HistPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
-    def _make_plot(self):
+    def _make_plot(self) -> None:
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
 
@@ -166,7 +166,7 @@ class HistPlot(LinePlot):
         kwds["bins"] = self.bins
         return kwds
 
-    def _post_plot_logic(self, ax: Axes, data):
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
             ax.set_xlabel("Frequency")
         else:
@@ -194,7 +194,7 @@ class KdePlot(HistPlot):
         self.bw_method = bw_method
         self.ind = ind
 
-    def _args_adjust(self):
+    def _args_adjust(self) -> None:
         pass
 
     def _get_ind(self, y):
@@ -243,7 +243,7 @@ class KdePlot(HistPlot):
         kwds["ind"] = self._get_ind(y)
         return kwds
 
-    def _post_plot_logic(self, ax, data):
+    def _post_plot_logic(self, ax, data) -> None:
         ax.set_ylabel("Density")
 
 
@@ -323,7 +323,7 @@ def _grouped_hist(
     layout : optional
     sharex : bool, default False
     sharey : bool, default False
-    rot : int, default 90
+    rot : float, default 90
     grid : bool, default True
     legend: : bool, default False
     kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
@@ -341,7 +341,7 @@ def _grouped_hist(
         else:
             kwargs["label"] = column
 
-    def plot_group(group, ax):
+    def plot_group(group, ax) -> None:
         ax.hist(group.dropna().values, bins=bins, **kwargs)
         if legend:
             ax.legend()

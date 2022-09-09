@@ -101,6 +101,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.median` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`.GroupBy.mean` and :meth:`.GroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 -
@@ -175,7 +176,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, raising ``UnicodeDecodeError`` when a locale-specific directive was passed (:issue:`46319`)
 -
 
 Plotting
@@ -190,7 +191,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -
 
 Sparse

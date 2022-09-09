@@ -71,7 +71,7 @@ def _evaluate_standard(op, op_str, a, b):
     return op(a, b)
 
 
-def _can_use_numexpr(op, op_str, a, b, dtype_check):
+def _can_use_numexpr(op, op_str, a, b, dtype_check) -> bool:
     """return a boolean if we WILL be using numexpr"""
     if op_str is not None:
 
@@ -205,7 +205,7 @@ def _has_bool_dtype(x):
 _BOOL_OP_UNSUPPORTED = {"+": "|", "*": "&", "-": "^"}
 
 
-def _bool_arith_fallback(op_str, a, b):
+def _bool_arith_fallback(op_str, a, b) -> bool:
     """
     Check if we should fallback to the python `_evaluate_standard` in case
     of an unsupported operation by numexpr, which is the case for some
