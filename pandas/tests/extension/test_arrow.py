@@ -542,7 +542,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         self, data_for_grouping, groupby_apply_op, request
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        # Is there a better way to get the "series" ID for groupby_apply_op?
+        # TODO: Is there a better way to get the "object" ID for groupby_apply_op?
         is_object = "object" in request.node.nodeid
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
