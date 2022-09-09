@@ -323,7 +323,7 @@ def _grouped_hist(
     layout : optional
     sharex : bool, default False
     sharey : bool, default False
-    rot : int, default 90
+    rot : float, default 90
     grid : bool, default True
     legend: : bool, default False
     kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
