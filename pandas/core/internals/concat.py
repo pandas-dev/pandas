@@ -29,7 +29,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_scalar,
     needs_i8_conversion,
@@ -38,7 +37,10 @@ from pandas.core.dtypes.concat import (
     cast_to_common_type,
     concat_compat,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -471,7 +473,8 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if is_datetime64tz_dtype(empty_dtype):
+                if isinstance(empty_dtype, DatetimeTZDtype):
+                    # NB: exclude e.g. pyarrow[dt64tz] dtypes
                     i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
