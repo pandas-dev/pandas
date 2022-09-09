@@ -14,18 +14,12 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    NPY_COMPLEX64,
-    NPY_COMPLEX128,
-    NPY_FLOAT32,
     NPY_FLOAT64,
     NPY_INT8,
     NPY_INT16,
     NPY_INT32,
     NPY_INT64,
     NPY_OBJECT,
-    NPY_UINT8,
-    NPY_UINT16,
-    NPY_UINT32,
     NPY_UINT64,
     float32_t,
     float64_t,
