@@ -242,7 +242,7 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     )
 
     result = Series(d, index=stat_index, name=series.name)
-    if isinstance(d[1], float):
+    if is_numeric_dtype(series):
         # GH#48340 - don't rely on inference, always return float on numeric data
         result = result.astype(float)
     return result
