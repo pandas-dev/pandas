@@ -51,11 +51,11 @@ and more about JupyterLab in the
 
 ## Books
 
-The book we recommend to learn pandas is [Python for Data Analysis](https://amzn.to/2KI5JJw),
+The book we recommend to learn pandas is [Python for Data Analysis](https://amzn.to/3DyLaJc),
 by [Wes McKinney](https://wesmckinney.com/), creator of pandas.
 
-<a href="https://amzn.to/2KI5JJw">
-    <img alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.gif"/>
+<a href="https://amzn.to/3DyLaJc">
+    <img alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.jpg"/>
 </a>
 
 ## Videos
