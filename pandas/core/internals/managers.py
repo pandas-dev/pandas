@@ -413,6 +413,7 @@ class BaseBlockManager(DataManager):
         )
 
     def diff(self: T, n: int, axis: int) -> T:
+        # only reached with self.ndim == 2 and axis == 1
         axis = self._normalize_axis(axis)
         return self.apply("diff", n=n, axis=axis)
 
@@ -1085,11 +1086,20 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         n = len(self)
-        if isinstance(dtype, ExtensionDtype):
+
+        # GH#46406
+        immutable_ea = isinstance(dtype, SparseDtype)
+
+        if isinstance(dtype, ExtensionDtype) and not immutable_ea:
             cls = dtype.construct_array_type()
             result = cls._empty((n,), dtype=dtype)
         else:
-            result = np.empty(n, dtype=dtype)
+            # error: Argument "dtype" to "empty" has incompatible type
+            # "Union[Type[object], dtype[Any], ExtensionDtype, None]"; expected
+            # "None"
+            result = np.empty(
+                n, dtype=object if immutable_ea else dtype  # type: ignore[arg-type]
+            )
             result = ensure_wrapped_if_datetimelike(result)
 
         for blk in self.blocks:
@@ -1097,6 +1107,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
+
+        if immutable_ea:
+            dtype = cast(ExtensionDtype, dtype)
+            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
         block = new_block(result, placement=slice(0, len(result)), ndim=1)
         return SingleBlockManager(block, self.axes[0])
@@ -1961,7 +1975,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         self._post_setstate()
 
-    def _post_setstate(self):
+    def _post_setstate(self) -> None:
         pass
 
     @cache_readonly
@@ -2077,7 +2091,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def set_values(self, values: ArrayLike):
+    def set_values(self, values: ArrayLike) -> None:
         """
         Set the values of the single block in place.
 

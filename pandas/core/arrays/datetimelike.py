@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Iterator,
     Literal,
     Sequence,
     TypeVar,
@@ -287,7 +288,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         return lib.map_infer(values, self._box_func, convert=False)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         if self.ndim > 1:
             return (self[n] for n in range(len(self)))
         else:
@@ -418,7 +419,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         self._maybe_clear_freq()
 
-    def _maybe_clear_freq(self):
+    def _maybe_clear_freq(self) -> None:
         # inplace operations like __setitem__ may invalidate the freq of
         # DatetimeArray and TimedeltaArray
         pass
@@ -1141,6 +1142,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
+
         dtype = tz_to_dtype(tz=other.tz, unit=self._unit)
         res_values = result.view(f"M8[{self._unit}]")
         return DatetimeArray._simple_new(res_values, dtype=dtype, freq=self.freq)
@@ -1289,13 +1291,21 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         other = ensure_wrapped_if_datetimelike(other)
         other = cast("TimedeltaArray", other)
+        self = cast("DatetimeArray | TimedeltaArray", self)
+
+        if self._reso != other._reso:
+            raise NotImplementedError(
+                f"Addition of {type(self).__name__} with TimedeltaArray with "
+                "mis-matched resolutions is not yet supported."
+            )
 
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = checked_add_with_arr(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
-        return type(self)(new_values, dtype=self.dtype)
+        res_values = new_values.view(self._ndarray.dtype)
+        return type(self)._simple_new(res_values, dtype=self.dtype)
 
     @final
     def _add_nat(self):
@@ -1937,7 +1947,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     _default_dtype: np.dtype
 
-    def __init__(self, values, dtype=None, freq=lib.no_default, copy: bool = False):
+    def __init__(
+        self, values, dtype=None, freq=lib.no_default, copy: bool = False
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=iNaT)

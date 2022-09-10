@@ -11,6 +11,7 @@ from typing import (
     Any,
     Generic,
     Hashable,
+    Iterator,
     Literal,
     TypeVar,
     cast,
@@ -158,7 +159,7 @@ class NoNewAttributesMixin:
     `object.__setattr__(self, key, value)`.
     """
 
-    def _freeze(self):
+    def _freeze(self) -> None:
         """
         Prevents setting additional attributes.
         """
@@ -739,7 +740,7 @@ class IndexOpsMixin(OpsMixin):
 
     to_list = tolist
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Return an iterator of the values.
 
@@ -1056,6 +1057,10 @@ class IndexOpsMixin(OpsMixin):
     def is_monotonic(self) -> bool:
         """
         Return boolean if values in the object are monotonically increasing.
+
+        .. deprecated:: 1.5.0
+            is_monotonic is deprecated and will be removed in a future version.
+            Use is_monotonic_increasing instead.
 
         Returns
         -------

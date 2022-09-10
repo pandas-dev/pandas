@@ -298,7 +298,7 @@ def left_join_indexer_unique(
             indexer[i] = j
             i += 1
 
-        if left[i] == right[j]:
+        if left[i] == rval:
             indexer[i] = j
             i += 1
             while i < nleft - 1 and left[i] == rval:

@@ -337,7 +337,7 @@ def _get_take_nd_function(
 
     if func is None:
 
-        def func(arr, indexer, out, fill_value=np.nan):
+        def func(arr, indexer, out, fill_value=np.nan) -> None:
             indexer = ensure_platform_int(indexer)
             _take_nd_object(
                 arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
@@ -349,7 +349,7 @@ def _get_take_nd_function(
 def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
     def wrapper(
         arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value=np.nan
-    ):
+    ) -> None:
         if arr_dtype is not None:
             arr = arr.view(arr_dtype)
         if out_dtype is not None:
@@ -364,7 +364,7 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
 def _convert_wrapper(f, conv_dtype):
     def wrapper(
         arr: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value=np.nan
-    ):
+    ) -> None:
         if conv_dtype == object:
             # GH#39755 avoid casting dt64/td64 to integers
             arr = ensure_wrapped_if_datetimelike(arr)
@@ -506,7 +506,7 @@ def _take_nd_object(
     axis: int,
     fill_value,
     mask_info,
-):
+) -> None:
     if mask_info is not None:
         mask, needs_masking = mask_info
     else:
@@ -546,9 +546,13 @@ def _take_2d_multi_object(
             out[:, col_mask] = fill_value
     for i in range(len(row_idx)):
         u_ = row_idx[i]
-        for j in range(len(col_idx)):
-            v = col_idx[j]
-            out[i, j] = arr[u_, v]
+
+        if u_ != -1:
+            for j in range(len(col_idx)):
+                v = col_idx[j]
+
+                if v != -1:
+                    out[i, j] = arr[u_, v]
 
 
 def _take_preprocess_indexer_and_fill_value(

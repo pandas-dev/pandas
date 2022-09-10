@@ -37,15 +37,12 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_iso_calendar,
     get_lastbday,
     get_week_of_year,
-    is_leapyear,
     iso_calendar_t,
-    month_offset,
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    get_unit_from_dtype,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,

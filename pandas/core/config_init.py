@@ -365,7 +365,7 @@ with cf.config_prefix("display"):
         validator=is_one_of_factory([None, is_callable]),
     )
 
-    def _deprecate_column_space(key):
+    def _deprecate_column_space(key) -> None:
         warnings.warn(
             "column_space is deprecated and will be removed "
             "in a future version. Use df.to_string(col_space=...) "
@@ -390,7 +390,7 @@ with cf.config_prefix("display"):
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
-    def _deprecate_negative_int_max_colwidth(key):
+    def _deprecate_negative_int_max_colwidth(key) -> None:
         value = cf.get_option(key)
         if value is not None and value < 0:
             warnings.warn(

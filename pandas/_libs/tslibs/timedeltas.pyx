@@ -51,7 +51,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
-    get_conversion_factor,
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
@@ -235,7 +234,7 @@ cpdef int64_t delta_to_nanoseconds(
 
     cdef:
         NPY_DATETIMEUNIT in_reso
-        int64_t n, value, factor
+        int64_t n
 
     if is_tick_object(delta):
         n = delta.n
@@ -277,8 +276,6 @@ cpdef int64_t delta_to_nanoseconds(
         raise OutOfBoundsTimedelta(
             f"Cannot cast {str(delta)} to unit={unit_str} without overflow."
         ) from err
-
-    return value
 
 
 @cython.overflowcheck(True)
@@ -1054,6 +1051,12 @@ cdef class _Timedelta(timedelta):
 
     @property
     def freq(self) -> None:
+        """
+        Freq property.
+
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
+        """
         # GH#46430
         warnings.warn(
             "Timedelta.freq is deprecated and will be removed in a future version",
@@ -1064,6 +1067,12 @@ cdef class _Timedelta(timedelta):
 
     @property
     def is_populated(self) -> bool:
+        """
+        Is_populated property.
+
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
+        """
         # GH#46430
         warnings.warn(
             "Timedelta.is_populated is deprecated and will be removed in a future version",
@@ -1244,6 +1253,9 @@ cdef class _Timedelta(timedelta):
     def delta(self):
         """
         Return the timedelta in nanoseconds (ns), for internal compatibility.
+
+        .. deprecated:: 1.5.0
+            This argument is deprecated.
 
         Returns
         -------
@@ -1535,7 +1547,7 @@ cdef class _Timedelta(timedelta):
     @cython.cdivision(False)
     cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
-            int64_t value, mult, div, mod
+            int64_t value
 
         if reso == self._reso:
             return self
