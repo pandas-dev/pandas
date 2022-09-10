@@ -167,6 +167,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`MultiIndex.argsort` raising ``TypeError`` when index contains :attr:`NA` (:issue:`48495`)
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 -
