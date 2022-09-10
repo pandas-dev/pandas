@@ -1851,7 +1851,8 @@ def safe_sort(
     else:
         try:
             sorter = values.argsort()
-            ordered = values.take(sorter)
+            # Preserve MultiIndex instead of Index of tuples
+            ordered = original_values.take(sorter)
         except TypeError:
             # Previous sorters failed or were not applicable, try `_sort_mixed`
             # which would work, but which fails for special case of 1d arrays
