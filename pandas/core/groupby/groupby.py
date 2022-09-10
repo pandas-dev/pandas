@@ -3249,7 +3249,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, Dtype | None]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
@@ -3285,25 +3285,34 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             vals: np.ndarray,
             inference: Dtype | None,
             result_mask: np.ndarray | None,
-            orig_vals,
-        ) -> np.ndarray:
+            orig_vals: ArrayLike,
+        ) -> ArrayLike:
             if inference:
                 # Check for edge case
-                if result_mask is not None:
+                if isinstance(orig_vals, BaseMaskedArray):
+                    assert result_mask is not None  # for mypy
+
                     if interpolation in {"linear", "midpoint"} and not is_float_dtype(
                         orig_vals
                     ):
-                        vals = FloatingArray(vals, result_mask)
+                        return FloatingArray(vals, result_mask)
                     else:
-                        vals = type(orig_vals)(
-                            vals.astype(inference.numpy_dtype), result_mask
+                        # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
+                        # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
+                        # [union-attr]
+                        return type(orig_vals)(
+                            vals.astype(
+                                inference.numpy_dtype  # type: ignore[union-attr]
+                            ),
+                            result_mask,
                         )
 
                 elif not (
                     is_integer_dtype(inference)
                     and interpolation in {"linear", "midpoint"}
                 ):
-                    vals = vals.astype(inference)
+                    assert isinstance(interpolation, np.dtype)  # for mypy
+                    return vals.astype(inference)
 
             return vals
 
