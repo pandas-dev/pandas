@@ -20,6 +20,30 @@ from pandas.tests.frame.common import _check_mixed_float
 
 class TestFillNA:
     @td.skip_array_manager_not_yet_implemented
+    def test_fillna_dict_inplace_nonunique_columns(self, using_copy_on_write):
+        df = DataFrame(
+            {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
+        )
+        df.columns = ["A", "A", "A"]
+        orig = df[:]
+
+        df.fillna({"A": 2}, inplace=True)
+        # The first and third columns can be set inplace, while the second cannot.
+
+        expected = DataFrame(
+            {"A": [2.0] * 3, "B": [2, Timestamp(1), 2], "C": [2, "foo", 2]}
+        )
+        expected.columns = ["A", "A", "A"]
+        tm.assert_frame_equal(df, expected)
+
+        # TODO: what's the expected/desired behavior with CoW?
+        if not using_copy_on_write:
+            assert tm.shares_memory(df.iloc[:, 0], orig.iloc[:, 0])
+        assert not tm.shares_memory(df.iloc[:, 1], orig.iloc[:, 1])
+        if not using_copy_on_write:
+            assert tm.shares_memory(df.iloc[:, 2], orig.iloc[:, 2])
+
+    @td.skip_array_manager_not_yet_implemented
     def test_fillna_on_column_view(self, using_copy_on_write):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
@@ -287,7 +311,6 @@ class TestFillNA:
         res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
         tm.assert_equal(res3, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476
@@ -754,6 +777,6 @@ def test_fillna_nonconsolidated_frame():
         ],
         columns=["i1", "i2", "i3", "f1"],
     )
-    df_nonconsol = df.pivot("i1", "i2")
+    df_nonconsol = df.pivot(index="i1", columns="i2")
     result = df_nonconsol.fillna(0)
     assert result.isna().sum().sum() == 0

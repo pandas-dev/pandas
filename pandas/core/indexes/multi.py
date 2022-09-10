@@ -1270,7 +1270,7 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level):
+        def f(level) -> bool:
             return "mixed" in level or "string" in level or "unicode" in level
 
         return any(f(level) for level in self._inferred_type_levels)
@@ -1728,7 +1728,7 @@ class MultiIndex(Index):
     def unique(self, level=None):
 
         if level is None:
-            return super().unique()
+            return self.drop_duplicates()
         else:
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
@@ -2225,6 +2225,10 @@ class MultiIndex(Index):
             return Index._with_infer(new_tuples)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
+        if len(args) == 0 and len(kwargs) == 0:
+            # np.lexsort is significantly faster than self._values.argsort()
+            values = [self._get_level_values(i) for i in reversed(range(self.nlevels))]
+            return np.lexsort(values)
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
