@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np
@@ -252,7 +253,7 @@ class TestSeriesConstructors:
     def test_constructor_iterable(self):
         # GH 21987
         class Iter:
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 yield from range(10)
 
         expected = Series(list(range(10)), dtype="int64")
