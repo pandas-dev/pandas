@@ -45,6 +45,7 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._typing import (
+    AnyAll,
     ArrayLike,
     Axes,
     Dtype,
@@ -939,11 +940,19 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
-        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
+        # TODO(2.0) the 'and', 'or' and 'xor' dunder methods are currently set
+        # operations and not logical operations, so don't dispatch
+        # This is deprecated, so this full 'if' clause can be removed once
+        # deprecation is enforced in 2.0
+        if not (
+            method == "__call__"
+            and ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor)
+        ):
+            result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         if "out" in kwargs:
             # e.g. test_dti_isub_tdi
@@ -2963,7 +2972,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         return self._view()
 
-    def dropna(self: _IndexT, how: str_t = "any") -> _IndexT:
+    def dropna(self: _IndexT, how: AnyAll = "any") -> _IndexT:
         """
         Return Index without NA/NaN values.
 
@@ -3203,7 +3212,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     @final
-    def _deprecate_dti_setop(self, other: Index, setop: str_t):
+    def _deprecate_dti_setop(self, other: Index, setop: str_t) -> None:
         """
         Deprecate setop behavior between timezone-aware DatetimeIndexes with
         mismatched timezones.
@@ -5146,6 +5155,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(vals, StringArray):
             # GH#45652 much more performant than ExtensionEngine
             return vals._ndarray
+        if type(self) is Index and isinstance(self._values, ExtensionArray):
+            # TODO(ExtensionIndex): remove special-case, just use self._values
+            return self._values.astype(object)
         return vals
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
@@ -6912,10 +6924,12 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        # Use self._constructor instead of Index to retain NumericIndex GH#43921
-        # TODO(2.0) can use Index instead of self._constructor
-        #  Check if doing so fixes GH#47071
-        return self._constructor._with_infer(new_values, name=self.name)
+        if self._typ == "numericindex":
+            # Use self._constructor instead of Index to retain NumericIndex GH#43921
+            # TODO(2.0) can use Index instead of self._constructor
+            return self._constructor._with_infer(new_values, name=self.name)
+        else:
+            return Index._with_infer(new_values, name=self.name)
 
     def drop(
         self,

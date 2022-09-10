@@ -20,6 +20,7 @@ import types
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Generator,
     Hashable,
     Iterable,
     Iterator,
@@ -1040,7 +1041,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self._obj_with_exclusions
 
             result = self._python_apply_general(
-                curried, self._obj_with_exclusions, is_transform=is_transform
+                curried,
+                self._obj_with_exclusions,
+                is_transform=is_transform,
+                not_indexed_same=not is_transform,
             )
 
             if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:
@@ -1103,7 +1107,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             self._reset_cache("_selected_obj")
 
     @contextmanager
-    def _group_selection_context(self) -> Iterator[GroupBy]:
+    def _group_selection_context(self) -> Generator[GroupBy, None, None]:
         """
         Set / reset the _group_selection_context.
         """

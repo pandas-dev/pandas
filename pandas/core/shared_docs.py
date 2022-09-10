@@ -94,7 +94,7 @@ groups.
 
 Parameters
 ----------
-by : mapping, function, label, or list of labels
+by : mapping, function, label, pd.Grouper or list of such
     Used to determine the groups for the groupby.
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES

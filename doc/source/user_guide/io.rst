@@ -179,6 +179,10 @@ mangle_dupe_cols : boolean, default ``True``
   Passing in ``False`` will cause data to be overwritten if there are duplicate
   names in the columns.
 
+  .. deprecated:: 1.5.0
+     The argument was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 General parsing configuration
 +++++++++++++++++++++++++++++
 
@@ -611,6 +615,10 @@ If the header is in a row other than the first, pass the row number to
 Duplicate names parsing
 '''''''''''''''''''''''
 
+  .. deprecated:: 1.5.0
+     ``mangle_dupe_cols`` was never implemented, and a new argument where the
+     renaming pattern can be specified will be added instead.
+
 If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
@@ -621,27 +629,7 @@ distinguish between them so as to prevent overwriting data:
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
 which modifies a series of duplicate columns 'X', ..., 'X' to become
-'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can
-arise:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   Out[3]:
-      a  b  a
-   0  2  1  2
-   1  5  4  5
-
-To prevent users from encountering this problem with duplicate data, a ``ValueError``
-exception is raised if ``mangle_dupe_cols != True``:
-
-.. code-block:: ipython
-
-   In [2]: data = 'a,b,a\n0,1,2\n3,4,5'
-   In [3]: pd.read_csv(StringIO(data), mangle_dupe_cols=False)
-   ...
-   ValueError: Setting mangle_dupe_cols=False is not supported yet
+'X', 'X.1', ..., 'X.N'.
 
 .. _io.usecols:
 
@@ -3185,6 +3173,42 @@ But assigning *any* temporary name to correct URI allows parsing by nodes.
 
 However, if XPath does not reference node names such as default, ``/*``, then
 ``namespaces`` is not required.
+
+.. note::
+
+   Since ``xpath`` identifies the parent of content to be parsed, only immediate
+   desendants which include child nodes or current attributes are parsed.
+   Therefore, ``read_xml`` will not parse the text of grandchildren or other
+   descendants and will not parse attributes of any descendant. To retrieve
+   lower level content, adjust xpath to lower level. For example,
+
+   .. ipython:: python
+        :okwarning:
+
+      xml = """
+      <data>
+        <row>
+          <shape sides="4">square</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="0">circle</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="3">triangle</shape>
+          <degrees>180</degrees>
+        </row>
+      </data>"""
+
+      df = pd.read_xml(xml, xpath="./row")
+      df
+
+   shows the attribute ``sides`` on ``shape`` element was not parsed as
+   expected since this attribute resides on the child of ``row`` element
+   and not ``row`` element itself. In other words, ``sides`` attribute is a
+   grandchild level descendant of ``row`` element. However, the ``xpath``
+   targets ``row`` element which covers only its children and attributes.
 
 With `lxml`_ as parser, you can flatten nested XML documents with an XSLT
 script which also can be string/file/URL types. As background, `XSLT`_ is

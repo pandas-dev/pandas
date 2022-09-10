@@ -8,6 +8,7 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Iterator,
     Literal,
     Sequence,
     TypeVar,
@@ -2059,7 +2060,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._ndarray
 
     @_codes.setter
-    def _codes(self, value: np.ndarray):
+    def _codes(self, value: np.ndarray) -> None:
         warn(
             "Setting the codes on a Categorical is deprecated and will raise in "
             "a future version. Create a new Categorical object instead",
@@ -2093,7 +2094,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         return self.take(indexer, allow_fill=allow_fill, fill_value=fill_value)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Returns an Iterator over the values of this Categorical.
         """

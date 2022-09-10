@@ -35,6 +35,7 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
@@ -572,7 +573,10 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         labels = ensure_index(labels)
 
-        if labels._is_all_dates:
+        if labels._is_all_dates and not (
+            type(labels) is Index and not isinstance(labels.dtype, np.dtype)
+        ):
+            # exclude e.g. timestamp[ns][pyarrow] dtype from this casting
             deep_labels = labels
             if isinstance(labels, CategoricalIndex):
                 deep_labels = labels.categories
@@ -1169,7 +1173,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 self._set_with(key, value)
 
         if cacher_needs_updating:
-            self._maybe_update_cacher()
+            self._maybe_update_cacher(inplace=True)
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
@@ -1177,7 +1181,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
-    def _set_with(self, key, value):
+    def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1215,7 +1219,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def _set_value(self, label, value, takeable: bool = False):
+    def _set_value(self, label, value, takeable: bool = False) -> None:
         """
         Quickly set single value at passed label.
 
@@ -1328,7 +1332,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     # Unsorted
 
     @property
-    def _is_mixed_type(self):
+    def _is_mixed_type(self) -> bool:
         return False
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
@@ -5731,19 +5735,30 @@ Keep all original rows and also all original values
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[False] = ..., how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        how: AnyAll | None = ...,
     ) -> Series:
         ...
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[True], how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        how: AnyAll | None = ...,
     ) -> None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
-        self, axis: Axis = 0, inplace: bool = False, how: str | None = None
+        self,
+        axis: Axis = 0,
+        inplace: bool = False,
+        how: AnyAll | None = None,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
