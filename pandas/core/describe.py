@@ -241,11 +241,9 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         + [series.max()]
     )
 
-    result = Series(d, index=stat_index, name=series.name)
-    if is_numeric_dtype(series):
-        # GH#48340 - don't rely on inference, always return float on numeric data
-        result = result.astype(float)
-    return result
+    # GH#48340 - don't rely on inference, always return float on numeric data
+    dtype = float if is_numeric_dtype(series) else None
+    return Series(d, index=stat_index, name=series.name, dtype=dtype)
 
 
 def describe_categorical_1d(
