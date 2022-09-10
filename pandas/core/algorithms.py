@@ -1830,6 +1830,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
     original_values = values
+    is_mi = isinstance(original_values, ABCMultiIndex)
 
     if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
@@ -1851,8 +1852,11 @@ def safe_sort(
     else:
         try:
             sorter = values.argsort()
-            # Preserve MultiIndex instead of Index of tuples
-            ordered = original_values.take(sorter)
+            if is_mi:
+                # Operate on original object instead of casted array (MultiIndex)
+                ordered = original_values.take(sorter)
+            else:
+                ordered = values.take(sorter)
         except TypeError:
             # Previous sorters failed or were not applicable, try `_sort_mixed`
             # which would work, but which fails for special case of 1d arrays
