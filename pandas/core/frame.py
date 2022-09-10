@@ -1906,7 +1906,7 @@ class DataFrame(NDFrame, OpsMixin):
             is 'tight') in the returned dictionary. Can only be ``False``
             when `orient` is 'split' or 'tight'.
 
-            .. versionadded:: 1.5.0
+            .. versionadded:: 1.6.0
 
         Returns
         -------
