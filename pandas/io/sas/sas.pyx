@@ -8,7 +8,6 @@ from libc.stdint cimport (
     uint32_t,
     uint64_t,
 )
-from libc.string cimport memcpy
 
 import numpy as np
 
