@@ -4257,7 +4257,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         0    red  0
         """  # noqa:E501
         if self._selected_obj.empty:
-            # GH48459 prevent ValueError
+            # GH48459 prevent ValueError when object is empty
             return self._selected_obj
         size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:

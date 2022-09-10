@@ -185,7 +185,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
 -
 
 Reshaping

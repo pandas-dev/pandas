@@ -145,9 +145,7 @@ def test_groupby_sample_with_selections():
 
 
 def test_groupby_sample_with_empty_inputs():
-    df = DataFrame({"a": [], "b": []})
-    gb_df = df.groupby("a").sample()
+    result = DataFrame({"a": [], "b": []})
+    expected = result.groupby("a").sample()
 
-    result = gb_df
-    expected = df
     tm.assert_frame_equal(result, expected)
