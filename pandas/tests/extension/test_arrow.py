@@ -1437,17 +1437,7 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
-        if (
-            pa.types.is_date(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-        ) and dropna:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,  # tries casting to i8
-                    reason="GH 34986",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
+        if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -1458,16 +1448,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_value_counts_with_normalize(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,  # tries casting to i8
-                    reason="GH 34986",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
+        if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
