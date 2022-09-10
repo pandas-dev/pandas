@@ -42,14 +42,14 @@ from pandas import (
 )
 
 from pandas.io.common import get_handle
-from pandas.io.sas._sas import (
-    Parser,
+from pandas.io.sas._byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
     read_uint16_with_byteswap,
     read_uint32_with_byteswap,
     read_uint64_with_byteswap,
 )
+from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
 
