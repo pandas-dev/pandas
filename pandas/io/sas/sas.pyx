@@ -1,15 +1,13 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
 from cython cimport Py_ssize_t
-from libc.stdint cimport (
-    int64_t,
-    uint8_t,
-    uint16_t,
-)
-
 import numpy as np
 
 import pandas.io.sas.sas_constants as const
+
+ctypedef signed long long   int64_t
+ctypedef unsigned char      uint8_t
+ctypedef unsigned short     uint16_t
 
 
 # rle_decompress decompresses data using a Run Length Encoding
