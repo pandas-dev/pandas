@@ -550,7 +550,7 @@ def test_union_duplicates(index, request):
 
 
 def test_union_keep_dtype_precision(any_real_numeric_dtype):
-    # GH#
+    # GH#48498
     arr1 = Series([4, 1, 1], dtype=any_real_numeric_dtype)
     arr2 = Series([1, 4], dtype=any_real_numeric_dtype)
     midx = MultiIndex.from_arrays([arr1, [2, 1, 1]], names=["a", None])
@@ -565,7 +565,7 @@ def test_union_keep_dtype_precision(any_real_numeric_dtype):
 
 
 def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
-    # GH#
+    # GH#48498
 
     arr1 = Series([4, pd.NA], dtype=any_numeric_ea_dtype)
     arr2 = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
