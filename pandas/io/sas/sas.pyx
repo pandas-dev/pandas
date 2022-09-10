@@ -9,7 +9,6 @@ ctypedef signed long long   int64_t
 ctypedef unsigned char      uint8_t
 ctypedef unsigned short     uint16_t
 
-
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
