@@ -152,5 +152,3 @@ def test_groupby_sample_with_empty_inputs():
     result = groupby_df.sample()
     expected = df
     tm.assert_frame_equal(result, expected)
-
-    tm.assert_frame_equal(result, expected)
