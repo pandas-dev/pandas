@@ -3311,7 +3311,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     is_integer_dtype(inference)
                     and interpolation in {"linear", "midpoint"}
                 ):
-                    assert isinstance(interpolation, np.dtype)  # for mypy
+                    assert isinstance(inference, np.dtype)  # for mypy
                     return vals.astype(inference)
 
             return vals
