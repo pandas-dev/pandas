@@ -91,7 +91,7 @@
                 </li>
             </ul>
             <p>
-                © 2022 pandas via <a href="https://numfocus.org">NumFOCUS, Inc.</a>
+                © <span id="footer_text"></span> pandas via <a href="https://numfocus.org">NumFOCUS, Inc.</a>
             </p>
         </footer>
         
@@ -111,5 +111,10 @@
             
             matcher.addEventListener('change', onUpdate);
         </script>
+        <script>
+            date = new Date();
+            year = date.getFullYear();
+            document.getElementById("footer_text").innerHTML = year;
+            </script>
     </body>
 </html>
