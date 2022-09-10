@@ -16,6 +16,7 @@ from pandas.compat import is_platform_windows
 from pandas import (
     DatetimeIndex,
     Index,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -358,7 +359,13 @@ def test_non_datetime_index2():
 
 
 @pytest.mark.parametrize(
-    "idx", [tm.makeIntIndex(10), tm.makeFloatIndex(10), tm.makePeriodIndex(10)]
+    "idx",
+    [
+        tm.makeIntIndex(10),
+        tm.makeFloatIndex(10),
+        tm.makePeriodIndex(10),
+        RangeIndex(10),  # see gh-48439
+    ],
 )
 def test_invalid_index_types(idx):
     msg = "|".join(
