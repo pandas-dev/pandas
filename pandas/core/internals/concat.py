@@ -157,7 +157,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
             arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
             for arr in to_concat
         ]
-        return type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=0)
+        return type(to_concat_no_proxy[0])._concat_same_type(to_concat)
 
     to_concat = [
         arr.to_array(target_dtype)
