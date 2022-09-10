@@ -149,16 +149,6 @@ def concat_arrays(to_concat: list) -> ArrayLike:
     else:
         target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 
-    if target_dtype.kind in ["m", "M"]:
-        # for datetimelike use DatetimeArray/TimedeltaArray concatenation
-        # don't use arr.astype(target_dtype, copy=False), because that doesn't
-        # work for DatetimeArray/TimedeltaArray (returns ndarray)
-        to_concat = [
-            arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
-            for arr in to_concat
-        ]
-        return type(to_concat_no_proxy[0])._concat_same_type(to_concat)
-
     to_concat = [
         arr.to_array(target_dtype)
         if isinstance(arr, NullArrayProxy)
