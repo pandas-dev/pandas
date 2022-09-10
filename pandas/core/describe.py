@@ -240,7 +240,6 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         + series.quantile(percentiles).tolist()
         + [series.max()]
     )
-
     # GH#48340 - don't rely on inference, always return float on numeric data
     dtype = float if is_numeric_dtype(series) else None
     return Series(d, index=stat_index, name=series.name, dtype=dtype)
