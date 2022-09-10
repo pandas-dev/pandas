@@ -1,5 +1,6 @@
 import numpy as np
-import pytest
+
+from pandas.core.dtypes.common import is_complex_dtype
 
 from pandas import (
     Period,
@@ -151,12 +152,9 @@ class TestSeriesDescribe:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
-    )
-    def test_numeric_result_is_float(self, dtype):
-        # GH#48340 - describe should always return dtype float on numeric input
-        ser = Series([0, 1], dtype=dtype)
+    def test_numeric_result_dtype(self, any_numeric_dtype):
+        # GH#48340 - describe should always return float on non-complex numeric input
+        ser = Series([0, 1], dtype=any_numeric_dtype)
         result = ser.describe()
         expected = Series(
             [
@@ -170,5 +168,6 @@ class TestSeriesDescribe:
                 1.0,
             ],
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+            dtype="complex128" if is_complex_dtype(ser) else None,
         )
         tm.assert_series_equal(result, expected)
