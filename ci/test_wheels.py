@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import sys
 
-
 if os.name == "nt":
     py_ver = platform.python_version()
     is_32_bit = os.getenv("IS_32_BIT") == "true"
