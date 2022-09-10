@@ -3,6 +3,7 @@ Top level ``eval`` module.
 """
 from __future__ import annotations
 
+import inspect
 import tokenize
 from typing import TYPE_CHECKING
 import warnings
@@ -18,6 +19,7 @@ from pandas.core.computation.expr import (
 )
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
+from pandas.core.generic import NDFrame
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -311,7 +313,7 @@ def eval(
                 "will be removed in a future version."
             ),
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     exprs: list[str | BinOp]
@@ -386,7 +388,10 @@ def eval(
             try:
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
-                    target[assigner] = ret
+                    if inplace and isinstance(target, NDFrame):
+                        target.loc[:, assigner] = ret
+                    else:
+                        target[assigner] = ret
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

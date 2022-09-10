@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterator,
     Sized,
 )
 import warnings
@@ -171,7 +172,7 @@ class BaseWindow(SelectionMixin):
                 "win_type will no longer return 'freq' in a future version. "
                 "Check the type of self.window instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return "freq"
         return self._win_type
@@ -181,7 +182,7 @@ class BaseWindow(SelectionMixin):
         warnings.warn(
             "is_datetimelike is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._win_freq_i8 is not None
 
@@ -189,7 +190,7 @@ class BaseWindow(SelectionMixin):
         warnings.warn(
             "validate is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._validate()
 
@@ -369,7 +370,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()
@@ -549,7 +550,7 @@ class BaseWindow(SelectionMixin):
                 "Select only valid columns before calling the operation. "
                 f"Dropped columns were {dropped}",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         return self._resolve_output(df, obj)
@@ -1861,7 +1862,7 @@ class Rolling(RollingAndExpandingMixin):
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate self._on is monotonic (increasing or decreasing) and has
         no NaT values for frequency windows.
@@ -1967,7 +1968,7 @@ class Rolling(RollingAndExpandingMixin):
                     "Specify min_periods=0 instead."
                 ),
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             self.min_periods = 0
             result = super().count()

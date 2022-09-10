@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import importlib
+import inspect
+import itertools
 import types
 from typing import (
     TYPE_CHECKING,
     Sequence,
 )
+import warnings
 
 from pandas._config import get_option
 
@@ -14,6 +17,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -262,6 +266,7 @@ Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
 
 Parameters
 ----------
+%(data)s\
 column : str or list of str, optional
     Column name or list of names, or vector.
     Can be any valid input to :meth:`pandas.DataFrame.groupby`.
@@ -272,7 +277,7 @@ ax : object of class matplotlib.axes.Axes, optional
     The matplotlib axes to be used by boxplot.
 fontsize : float or str
     Tick label font size in points or as a string (e.g., `large`).
-rot : int or float, default 0
+rot : float, default 0
     The rotation angle of labels (in degrees)
     with respect to the screen coordinate system.
 grid : bool, default True
@@ -462,7 +467,7 @@ _bar_or_line_doc = """
 """
 
 
-@Substitution(backend="")
+@Substitution(data="data : DataFrame\n    The data to visualize.\n", backend="")
 @Appender(_boxplot_doc)
 def boxplot(
     data: DataFrame,
@@ -493,7 +498,7 @@ def boxplot(
     )
 
 
-@Substitution(backend=_backend_doc)
+@Substitution(data="", backend=_backend_doc)
 @Appender(_boxplot_doc)
 def boxplot_frame(
     self,
@@ -552,7 +557,7 @@ def boxplot_frame_groupby(
 
     column : column name or list of names, or vector
         Can be any valid input to groupby.
-    fontsize : int or str
+    fontsize : float or str
     rot : label rotation angle
     grid : Setting this to True will show the grid
     ax : Matplotlib axis object, default None
@@ -726,10 +731,10 @@ class PlotAccessor(PandasObject):
 
            Now applicable to planar plots (`scatter`, `hexbin`).
 
-    rot : int, default None
+    rot : float, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots).
-    fontsize : int, default None
+    fontsize : float, default None
         Font size for xticks and yticks.
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that
@@ -755,6 +760,11 @@ class PlotAccessor(PandasObject):
         If True, create stacked plot.
     sort_columns : bool, default False
         Sort column names to determine plot ordering.
+
+        .. deprecated:: 1.5.0
+            The `sort_columns` arguments is deprecated and will be removed in a
+            future version.
+
     secondary_y : bool or sequence, default False
         Whether to plot on the secondary y-axis if a list/tuple, which
         columns to plot on secondary y-axis.
@@ -873,6 +883,14 @@ class PlotAccessor(PandasObject):
             raise TypeError(
                 f"Called plot accessor for type {type(data).__name__}, "
                 "expected Series or DataFrame"
+            )
+
+        if "sort_columns" in itertools.chain(args, kwargs.keys()):
+            warnings.warn(
+                "`sort_columns` is deprecated and will be removed in a future "
+                "version.",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         if args and isinstance(data, ABCSeries):
@@ -1467,7 +1485,7 @@ class PlotAccessor(PandasObject):
 
     density = kde
 
-    def area(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def area(self, x=None, y=None, stacked=True, **kwargs) -> PlotAccessor:
         """
         Draw a stacked area plot.
 
@@ -1538,7 +1556,7 @@ class PlotAccessor(PandasObject):
             ... })
             >>> ax = df.plot.area(x='day')
         """
-        return self(kind="area", x=x, y=y, **kwargs)
+        return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
 
     def pie(self, **kwargs) -> PlotAccessor:
         """

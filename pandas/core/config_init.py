@@ -11,6 +11,7 @@ module is imported, register them here rather than in the module.
 """
 from __future__ import annotations
 
+import inspect
 import os
 from typing import Callable
 import warnings
@@ -261,7 +262,7 @@ pc_width_doc = """
 
 pc_chop_threshold_doc = """
 : float or None
-    if set to a float value, all float values smaller then the given threshold
+    if set to a float value, all float values smaller than the given threshold
     will be displayed as exactly 0 by repr and friends.
 """
 
@@ -364,13 +365,13 @@ with cf.config_prefix("display"):
         validator=is_one_of_factory([None, is_callable]),
     )
 
-    def _deprecate_column_space(key):
+    def _deprecate_column_space(key) -> None:
         warnings.warn(
             "column_space is deprecated and will be removed "
             "in a future version. Use df.to_string(col_space=...) "
             "instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     cf.register_option("column_space", 12, validator=is_int, cb=_deprecate_column_space)
@@ -389,7 +390,7 @@ with cf.config_prefix("display"):
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
-    def _deprecate_negative_int_max_colwidth(key):
+    def _deprecate_negative_int_max_colwidth(key) -> None:
         value = cf.get_option(key)
         if value is not None and value < 0:
             warnings.warn(
@@ -397,7 +398,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
     cf.register_option(
@@ -536,6 +537,26 @@ with cf.config_prefix("mode"):
         os.environ.get("PANDAS_DATA_MANAGER", "block"),
         data_manager_doc,
         validator=is_one_of_factory(["block", "array"]),
+    )
+
+
+# TODO better name?
+copy_on_write_doc = """
+: bool
+    Use new copy-view behaviour using Copy-on-Write. Defaults to False,
+    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable
+    (if set to "1" for True, needs to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "copy_on_write",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to False. This environment variable can be set for testing.
+        os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        copy_on_write_doc,
+        validator=is_bool,
     )
 
 

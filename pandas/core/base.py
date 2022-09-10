@@ -4,12 +4,14 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
+import inspect
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
     Hashable,
+    Iterator,
     Literal,
     TypeVar,
     cast,
@@ -157,7 +159,7 @@ class NoNewAttributesMixin:
     `object.__setattr__(self, key, value)`.
     """
 
-    def _freeze(self):
+    def _freeze(self) -> None:
         """
         Prevents setting additional attributes.
         """
@@ -738,7 +740,7 @@ class IndexOpsMixin(OpsMixin):
 
     to_list = tolist
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         """
         Return an iterator of the values.
 
@@ -1056,6 +1058,10 @@ class IndexOpsMixin(OpsMixin):
         """
         Return boolean if values in the object are monotonically increasing.
 
+        .. deprecated:: 1.5.0
+            is_monotonic is deprecated and will be removed in a future version.
+            Use is_monotonic_increasing instead.
+
         Returns
         -------
         bool
@@ -1064,7 +1070,7 @@ class IndexOpsMixin(OpsMixin):
             "is_monotonic is deprecated and will be removed in a future version. "
             "Use is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.is_monotonic_increasing
 

@@ -11,6 +11,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+from typing import Iterator
 
 import pytest
 
@@ -322,7 +323,7 @@ def test_python_engine_file_no_next(python_parser_only):
         def __init__(self, csv_data) -> None:
             self.data = csv_data
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator:
             return self.data.__iter__()
 
         def read(self):
@@ -424,8 +425,9 @@ def test_on_bad_lines_callable_not_expected_length(python_parser_only):
 """
     bad_sio = StringIO(data)
 
-    with tm.assert_produces_warning(ParserWarning, match="Length of header or names"):
-        result = parser.read_csv(bad_sio, on_bad_lines=lambda x: x)
+    result = parser.read_csv_check_warnings(
+        ParserWarning, "Length of header or names", bad_sio, on_bad_lines=lambda x: x
+    )
     expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
 
@@ -466,8 +468,14 @@ def test_index_col_false_and_header_none(python_parser_only):
 0.5,0.03
 0.1,0.2,0.3,2
 """
-    with tm.assert_produces_warning(ParserWarning, match="Length of header"):
-        result = parser.read_csv(StringIO(data), sep=",", header=None, index_col=False)
+    result = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header",
+        StringIO(data),
+        sep=",",
+        header=None,
+        index_col=False,
+    )
     expected = DataFrame({0: [0.5, 0.1], 1: [0.03, 0.2]})
     tm.assert_frame_equal(result, expected)
 
@@ -476,7 +484,8 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
     # GH#46569
     parser = python_parser_only
     data = StringIO("a\na,b\nc,d,e\nf,g,h")
-    with tm.assert_produces_warning(ParserWarning, match="Length of header"):
-        result = parser.read_csv(data, engine="python", index_col=False)
+    result = parser.read_csv_check_warnings(
+        ParserWarning, "Length of header", data, engine="python", index_col=False
+    )
     expected = DataFrame({"a": ["a", "c", "f"]})
     tm.assert_frame_equal(result, expected)

@@ -1,16 +1,14 @@
-cimport cython
-
+import inspect
 import warnings
 
 import numpy as np
 
+from pandas.util._exceptions import find_stack_level
+
 cimport numpy as cnp
-from cpython.object cimport PyObject
 from numpy cimport (
     int32_t,
     int64_t,
-    intp_t,
-    ndarray,
 )
 
 cnp.import_array()
@@ -38,33 +36,25 @@ from pandas._libs.tslibs.dtypes cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    astype_overflowsafe,
     check_dts_bounds,
     dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
-    get_unit_from_dtype,
     npy_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
-    pydatetime_to_dt64,
     pydatetime_to_dtstruct,
     string_to_dts,
 )
 
-from pandas._libs.tslibs.np_datetime import (
-    OutOfBoundsDatetime,
-    OutOfBoundsTimedelta,
-)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
     maybe_get_tz,
-    tz_compare,
-    utc_pytz as UTC,
 )
 from pandas._libs.tslibs.util cimport (
     is_datetime64_object,
@@ -78,7 +68,6 @@ from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
-    checknull_with_nat,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     Localizer,
@@ -287,7 +276,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                         "Conversion of non-round float with unit={unit} is ambiguous "
                         "and will raise in a future version.",
                         FutureWarning,
-                        stacklevel=1,
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
             ts = cast_from_unit(ts, unit)

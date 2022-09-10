@@ -409,7 +409,7 @@ class TestJoin:
         df = DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
         new_df = df.groupby(["a"]).agg({"b": [np.mean, np.sum]})
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
-        other_df.set_index("a", inplace=True)
+        other_df = other_df.set_index("a", copy=False)
         # GH 9455, 12219
         msg = "merging between different levels is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -737,7 +737,9 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
     left_grouped = left.groupby(join_col)
     right_grouped = right.groupby(join_col)
 
-    for group_key, group in result.groupby(join_col):
+    for group_key, group in result.groupby(
+        join_col if len(join_col) > 1 else join_col[0]
+    ):
         l_joined = _restrict_to_columns(group, left.columns, lsuffix)
         r_joined = _restrict_to_columns(group, right.columns, rsuffix)
 

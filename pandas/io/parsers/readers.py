@@ -5,8 +5,10 @@ from __future__ import annotations
 
 from collections import abc
 import csv
+import inspect
 import sys
 from textwrap import fill
+from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -38,6 +40,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
@@ -162,6 +165,10 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+
+    .. deprecated:: 1.5.0
+        Not implemented, and a new argument to specify the pattern for the
+        names of duplicated columns will be added instead
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -421,7 +428,7 @@ float_precision : str, optional
 
 Returns
 -------
-DataFrame or TextParser
+DataFrame or TextFileReader
     A comma-separated values (csv) file is returned as two-dimensional
     data structure with labeled axes.
 
@@ -845,6 +852,7 @@ def read_csv(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -1183,6 +1191,7 @@ def read_table(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -1609,7 +1618,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         index_col = options["index_col"]
@@ -1628,7 +1637,11 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    msg,
+                    FutureWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
             else:
                 result[arg] = parser_default
 
@@ -1794,7 +1807,12 @@ class TextFileReader(abc.Iterator):
     def __enter__(self) -> TextFileReader:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 
@@ -2203,7 +2221,9 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
+                "\n\n".join(conflict_msgs),
+                ParserWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         kwds[param] = dialect_val
     return kwds

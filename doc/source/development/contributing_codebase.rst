@@ -77,6 +77,11 @@ without needing to have done ``pre-commit install`` beforehand.
 
 .. note::
 
+    You may want to periodically run ``pre-commit gc``, to clean up repos
+    which are no longer used.
+
+.. note::
+
     If you have conflicting installations of ``virtualenv``, then you may get an
     error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
 
@@ -122,6 +127,7 @@ Otherwise, you need to do it manually:
 .. code-block:: python
 
     import warnings
+    from pandas.util._exceptions import find_stack_level
 
 
     def old_func():
@@ -130,7 +136,11 @@ Otherwise, you need to do it manually:
         .. deprecated:: 1.1.0
            Use new_func instead.
         """
-        warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
+        warnings.warn(
+            'Use new_func instead.',
+            FutureWarning,
+            stacklevel=find_stack_level(inspect.currentframe()),
+        )
         new_func()
 
 
@@ -260,7 +270,11 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   pre-commit run --hook-stage manual --all-files
+    # the following might fail if the installed pandas version does not correspond to your local git version
+    pre-commit run --hook-stage manual --all-files
+
+    # if the above fails due to stubtest
+    SKIP=stubtest pre-commit run --hook-stage manual --all-files
 
 in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
 

@@ -12,6 +12,7 @@ from datetime import (
     time,
 )
 from functools import partial
+import inspect
 import re
 from typing import (
     TYPE_CHECKING,
@@ -151,7 +152,7 @@ def _wrap_result(
     frame = _parse_date_columns(frame, parse_dates)
 
     if index_col is not None:
-        frame.set_index(index_col, inplace=True)
+        frame = frame.set_index(index_col, copy=False)
 
     return frame
 
@@ -761,6 +762,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
         "database string URI or sqlite3 DBAPI2 connection. "
         "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
         UserWarning,
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return SQLiteDatabase(con)
 
@@ -817,7 +819,7 @@ class SQLTable(PandasObject):
 
         return str(CreateTable(self.table).compile(self.pd_sql.connectable))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
         self.table = self.table.to_metadata(self.pd_sql.meta)
         self.table.create(bind=self.pd_sql.connectable)
@@ -978,7 +980,7 @@ class SQLTable(PandasObject):
                 self._harmonize_columns(parse_dates=parse_dates)
 
                 if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+                    self.frame = self.frame.set_index(self.index, copy=False)
 
                 yield self.frame
 
@@ -1019,7 +1021,7 @@ class SQLTable(PandasObject):
             self._harmonize_columns(parse_dates=parse_dates)
 
             if self.index is not None:
-                self.frame.set_index(self.index, inplace=True)
+                self.frame = self.frame.set_index(self.index, copy=False)
 
             return self.frame
 
@@ -1100,7 +1102,7 @@ class SQLTable(PandasObject):
         meta = MetaData()
         return Table(self.name, meta, *columns, schema=schema)
 
-    def _harmonize_columns(self, parse_dates=None):
+    def _harmonize_columns(self, parse_dates=None) -> None:
         """
         Make the DataFrame's column types align with the SQL table
         column types.
@@ -1193,7 +1195,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1654,7 +1656,11 @@ class SQLDatabase(PandasSQL):
                     "due to case sensitivity issues. Consider using lower "
                     "case table names."
                 )
-                warnings.warn(msg, UserWarning)
+                warnings.warn(
+                    msg,
+                    UserWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
     def to_sql(
         self,
@@ -1850,7 +1856,7 @@ class SQLiteTable(SQLTable):
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
-        def _adapt_time(t):
+        def _adapt_time(t) -> str:
             # This is faster than strftime
             return f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}.{t.microsecond:06d}"
 
@@ -1860,7 +1866,7 @@ class SQLiteTable(SQLTable):
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         with self.pd_sql.run_transaction() as conn:
             for stmt in self.table:
                 conn.execute(stmt)
@@ -1962,7 +1968,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             col_type = "integer"
 

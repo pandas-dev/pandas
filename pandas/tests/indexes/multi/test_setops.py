@@ -530,11 +530,6 @@ def test_union_duplicates(index, request):
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         # No duplicates in empty indexes
         return
-    if index.dtype.kind == "c":
-        mark = pytest.mark.xfail(
-            reason="sort_values() call raises bc complex objects are not comparable"
-        )
-        request.node.add_marker(mark)
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
@@ -572,4 +567,5 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
     mi_int = mi1.intersection(mi2)
 
-    assert mi_int.lexsort_depth == 0
+    with tm.assert_produces_warning(FutureWarning, match="MultiIndex.lexsort_depth"):
+        assert mi_int.lexsort_depth == 0

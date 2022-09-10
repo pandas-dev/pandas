@@ -13,16 +13,12 @@ from numpy cimport (
     import_array,
     ndarray,
     uint8_t,
-    uint32_t,
     uint64_t,
 )
 
 import_array()
 
 from pandas._libs.util cimport is_nan
-
-DEF cROUNDS = 2
-DEF dROUNDS = 4
 
 
 @cython.boundscheck(False)
@@ -161,7 +157,8 @@ cdef uint64_t low_level_siphash(uint8_t* data, size_t datalen,
     cdef int i
     cdef uint8_t* end = data + datalen - (datalen % sizeof(uint64_t))
     cdef int left = datalen & 7
-    cdef int left_byte
+    cdef int cROUNDS = 2
+    cdef int dROUNDS = 4
 
     b = (<uint64_t>datalen) << 56
     v3 ^= k1

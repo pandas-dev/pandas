@@ -3,9 +3,11 @@ from __future__ import annotations
 import abc
 import datetime
 from functools import partial
+import inspect
 from io import BytesIO
 import os
 from textwrap import fill
+from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -41,6 +43,7 @@ from pandas.compat._optional import (
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
 )
@@ -279,6 +282,11 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+
+    .. deprecated:: 1.5.0
+        Not implemented, and a new argument to specify the pattern for the
+        names of duplicated columns will be added instead
+
 {storage_options}
 
     .. versionadded:: 1.2.0
@@ -357,7 +365,7 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 def read_excel(
     io,
     # sheet name is str or int -> DataFrame
-    sheet_name: str | int,
+    sheet_name: str | int = ...,
     header: int | Sequence[int] | None = ...,
     names: list[str] | None = ...,
     index_col: int | Sequence[int] | None = ...,
@@ -432,6 +440,7 @@ def read_excel(
 
 
 @doc(storage_options=_shared_docs["storage_options"])
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
@@ -719,7 +728,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         validate_header_arg(header)
@@ -1122,7 +1131,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -1156,7 +1165,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=find_stack_level(),
+                        stacklevel=find_stack_level(inspect.currentframe()),
                     )
 
             # for mypy
@@ -1318,7 +1327,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             if_sheet_exists = "error"
         self._if_sheet_exists = if_sheet_exists
 
-    def _deprecate(self, attr: str):
+    def _deprecate(self, attr: str) -> None:
         """
         Deprecate attribute or method for ExcelWriter.
         """
@@ -1326,7 +1335,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             f"{attr} is not part of the public API, usage can give in unexpected "
             "results and will be removed in a future version",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
     @property
@@ -1441,7 +1450,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     def __enter__(self) -> ExcelWriter:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def close(self) -> None:
@@ -1738,7 +1752,12 @@ class ExcelFile:
     def __enter__(self) -> ExcelFile:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def __del__(self) -> None:

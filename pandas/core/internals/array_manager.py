@@ -363,11 +363,7 @@ class BaseArrayManager(DataManager):
         )
 
     def diff(self: T, n: int, axis: int) -> T:
-        if axis == 1:
-            # DataFrame only calls this for n=0, in which case performing it
-            # with axis=0 is equivalent
-            assert n == 0
-            axis = 0
+        assert self.ndim == 2 and axis == 0  # caller ensures
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self: T, **kwargs) -> T:
@@ -527,6 +523,11 @@ class BaseArrayManager(DataManager):
         -------
         BlockManager
         """
+        if deep is None:
+            # ArrayManager does not yet support CoW, so deep=None always means
+            # deep=True for now
+            deep = True
+
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
@@ -591,6 +592,11 @@ class BaseArrayManager(DataManager):
 
         pandas-indexer with -1's only.
         """
+        if copy is None:
+            # ArrayManager does not yet support CoW, so deep=None always means
+            # deep=True for now
+            copy = True
+
         if indexer is None:
             if new_axis is self._axes[axis] and not copy:
                 return self

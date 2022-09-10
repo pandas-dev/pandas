@@ -15,6 +15,7 @@ from typing import (
     Generic,
     Hashable,
     Iterator,
+    NoReturn,
     Sequence,
     final,
 )
@@ -45,6 +46,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
+    ensure_uint64,
     is_1d_only_ea_dtype,
     is_bool_dtype,
     is_complex_dtype,
@@ -154,6 +156,13 @@ class WrappedCythonOp:
         "last",
         "first",
         "rank",
+        "sum",
+        "ohlc",
+        "cumsum",
+        "prod",
+        "mean",
+        "var",
+        "median",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -216,11 +225,18 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["sum", "var", "prod", "mean", "ohlc"] or (
+            if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
+
+            elif how in ["sum", "ohlc", "prod", "cumsum"]:
+                # Avoid overflow during group op
+                if values.dtype.kind == "i":
+                    values = ensure_int64(values)
+                else:
+                    values = ensure_uint64(values)
 
         return values
 
@@ -470,6 +486,9 @@ class WrappedCythonOp:
             **kwargs,
         )
 
+        if self.how == "ohlc":
+            result_mask = np.tile(result_mask, (4, 1)).T
+
         # res_values should already have the correct dtype, we just need to
         #  wrap in a MaskedArray
         return orig_values._maybe_mask_result(res_values, result_mask)
@@ -577,8 +596,21 @@ class WrappedCythonOp:
                     counts=counts,
                     values=values,
                     labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
+                )
+            elif self.how in ["var", "ohlc", "prod", "median"]:
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
+                    **kwargs,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
@@ -612,7 +644,8 @@ class WrappedCythonOp:
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                cutoff = max(1, min_count)
+                # if the op keeps the int dtypes, we have to use 0
+                cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
                     if result_mask is not None and self.uses_mask():
@@ -1243,7 +1276,7 @@ class BinGrouper(BaseGrouper):
         ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable) -> np.ndarray:
+    def _aggregate_series_fast(self, obj: Series, func: Callable) -> NoReturn:
         # -> np.ndarray[object]
         raise NotImplementedError(
             "This should not be reached; use _aggregate_series_pure_python"
@@ -1290,7 +1323,7 @@ class DataSplitter(Generic[NDFrameT]):
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         sdata = self.sorted_data
 
         if self.ngroups == 0:
