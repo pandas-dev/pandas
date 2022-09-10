@@ -163,7 +163,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pandas"
-copyright = f"2008-{datetime.now().year}, the pandas development team"
+copyright = f"{datetime.now().year} pandas via NumFOCUS, Inc."
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
