@@ -2027,65 +2027,36 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "split":
-            if index:
-                return into_c(
+            return into_c(
+                ((("index", self.index.tolist()),) if index else ())
+                + (
+                    ("columns", self.columns.tolist()),
                     (
-                        ("index", self.index.tolist()),
-                        ("columns", self.columns.tolist()),
-                        (
-                            "data",
-                            [
-                                list(map(maybe_box_native, t))
-                                for t in self.itertuples(index=False, name=None)
-                            ],
-                        ),
-                    )
+                        "data",
+                        [
+                            list(map(maybe_box_native, t))
+                            for t in self.itertuples(index=False, name=None)
+                        ],
+                    ),
                 )
-            else:
-                return into_c(
-                    (
-                        ("columns", self.columns.tolist()),
-                        (
-                            "data",
-                            [
-                                list(map(maybe_box_native, t))
-                                for t in self.itertuples(index=False, name=None)
-                            ],
-                        ),
-                    )
-                )
+            )
 
         elif orient == "tight":
-            if index:
-                return into_c(
+            return into_c(
+                ((("index", self.index.tolist()),) if index else ())
+                + (
+                    ("columns", self.columns.tolist()),
                     (
-                        ("index", self.index.tolist()),
-                        ("columns", self.columns.tolist()),
-                        (
-                            "data",
-                            [
-                                list(map(maybe_box_native, t))
-                                for t in self.itertuples(index=False, name=None)
-                            ],
-                        ),
-                        ("index_names", list(self.index.names)),
-                        ("column_names", list(self.columns.names)),
-                    )
+                        "data",
+                        [
+                            list(map(maybe_box_native, t))
+                            for t in self.itertuples(index=False, name=None)
+                        ],
+                    ),
                 )
-            else:
-                return into_c(
-                    (
-                        ("columns", self.columns.tolist()),
-                        (
-                            "data",
-                            [
-                                list(map(maybe_box_native, t))
-                                for t in self.itertuples(index=False, name=None)
-                            ],
-                        ),
-                        ("column_names", list(self.columns.names)),
-                    )
-                )
+                + ((("index_names", list(self.index.names)),) if index else ())
+                + (("column_names", list(self.columns.names)),)
+            )
 
         elif orient == "series":
             return into_c((k, v) for k, v in self.items())
