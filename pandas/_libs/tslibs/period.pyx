@@ -1160,7 +1160,8 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return "NaT"
 
     if isinstance(fmt, str):
-        fmt = fmt.encode("utf-8")
+        # Encode using current locale, in case fmt contains non-utf8 chars
+        fmt = <bytes>util.string_encode_locale(fmt)
 
     if fmt is None:
         freq_group = get_freq_group(freq)
@@ -1229,7 +1230,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
-    result = util.char_to_string(formatted)
+    # Decode result according to current locale
+    result = util.char_to_string_locale(formatted)
     free(formatted)
 
     # Now we will fill the placeholders corresponding to our additional directives
