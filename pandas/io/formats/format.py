@@ -21,9 +21,9 @@ from typing import (
     Any,
     Callable,
     Final,
+    Generator,
     Hashable,
     Iterable,
-    Iterator,
     List,
     Mapping,
     Sequence,
@@ -1216,7 +1216,7 @@ def save_to_buffer(
 @contextmanager
 def get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Iterator[WriteBuffer[str]] | Iterator[StringIO]:
+) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1720,11 +1720,12 @@ def format_percentiles(
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
+    percentiles_round_type = percentiles.round().astype(int)
 
-    int_idx = np.isclose(percentiles.astype(int), percentiles)
+    int_idx = np.isclose(percentiles_round_type, percentiles)
 
     if np.all(int_idx):
-        out = percentiles.astype(int).astype(str)
+        out = percentiles_round_type.astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1737,7 +1738,7 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
+    out[int_idx] = percentiles[int_idx].round().astype(int).astype(str)
 
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
@@ -1984,7 +1985,7 @@ def _trim_zeros_float(
     trimmed = str_floats
     number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
 
-    def is_number_with_decimal(x):
+    def is_number_with_decimal(x) -> bool:
         return re.match(number_regex, x) is not None
 
     def should_trim(values: np.ndarray | list[str]) -> bool:
