@@ -4699,7 +4699,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return self._join_non_unique(other, how=how)
         elif (
-            # exclude MultiIndex to avoid the perf hit of ._values
+            # GH48504: exclude MultiIndex to avoid going through MultiIndex._values
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
@@ -4780,7 +4780,6 @@ class Index(IndexOpsMixin, PandasObject):
                 self_jnlevels = self
                 other_jnlevels = other.reorder_levels(self.names)
             else:
-                # avoid drop if empty ??
                 self_jnlevels = self.droplevel(ldrop_names)
                 other_jnlevels = other.droplevel(rdrop_names)
 
