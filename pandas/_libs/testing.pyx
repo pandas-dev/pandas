@@ -161,7 +161,7 @@ cpdef assert_almost_equal(a, b,
                 is_unequal = True
                 diff += 1
                 if not first_diff:
-                    first_diff = f"At index {i} diff: {a[i]} != {b[i]}"
+                    first_diff = f"At positional index {i}, first diff: {a[i]} != {b[i]}"
 
         if is_unequal:
             from pandas._testing import raise_assert_detail
