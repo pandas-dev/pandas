@@ -572,6 +572,7 @@ def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     midx = MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
     midx2 = MultiIndex.from_arrays([arr2, [1, 2]])
     result = midx.union(midx2)
+    # Expected is actually off and should contain (1, 1) too. See GH#37222
     expected = MultiIndex.from_arrays(
         [Series([4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [2, 1, 2]]
     )
