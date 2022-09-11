@@ -3398,8 +3398,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique:
             # other has duplicates
-            result = algos.union_with_duplicates(lvals, rvals)
-            return _maybe_try_sort(result, sort)
+            result_dups = algos.union_with_duplicates(lvals, rvals)
+            return _maybe_try_sort(result_dups, sort)
 
         # Self may have duplicates; other already checked as unique
         # find indexes of things in "other" that are not in "self"
@@ -3409,6 +3409,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
+        result: Index | MultiIndex | ArrayLike
         if self._is_multi:
             # Preserve MultiIndex to avoid losing dtypes
             result = self.append(other.take(missing))
