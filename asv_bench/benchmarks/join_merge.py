@@ -413,7 +413,7 @@ class MergeAsof:
 
 class MergeMultiIndex:
     def setup(self):
-        n = 1_000_000
+        n = 100_000
         mi1 = MultiIndex.from_arrays([np.arange(0, n)] * 2)
         mi2 = MultiIndex.from_arrays([np.arange(1, n + 1)] * 2)
         self.df1 = DataFrame({"col1": 1}, index=mi1)
