@@ -411,6 +411,21 @@ class MergeAsof:
         )
 
 
+class MergeMultiIndex:
+    def setup(self):
+        n = 1_000_000
+        mi1 = MultiIndex.from_arrays([np.arange(0, n)] * 2)
+        mi2 = MultiIndex.from_arrays([np.arange(1, n + 1)] * 2)
+        self.df1 = DataFrame({"col1": 1}, index=mi1)
+        self.df2 = DataFrame({"col2": 2}, index=mi2)
+
+    def time_merge_sorted_multiindex(self):
+        # copy to avoid MultiIndex._values caching
+        df1 = self.df1.copy()
+        df2 = self.df2.copy()
+        merge(df1, df2, how="left", left_index=True, right_index=True)
+
+
 class Align:
     def setup(self):
         size = 5 * 10**5

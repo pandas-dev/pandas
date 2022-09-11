@@ -4699,13 +4699,11 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return self._join_non_unique(other, how=how)
         elif (
+            # exclude MultiIndex to avoid the perf hit of ._values
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
-            and (
-                not isinstance(self, ABCMultiIndex)
-                or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
-            )
+            and not isinstance(self, ABCMultiIndex)
             and not is_categorical_dtype(self.dtype)
         ):
             # Categorical is monotonic if data are ordered as categories, but join can
@@ -4782,6 +4780,7 @@ class Index(IndexOpsMixin, PandasObject):
                 self_jnlevels = self
                 other_jnlevels = other.reorder_levels(self.names)
             else:
+                # avoid drop if empty ??
                 self_jnlevels = self.droplevel(ldrop_names)
                 other_jnlevels = other.droplevel(rdrop_names)
 
