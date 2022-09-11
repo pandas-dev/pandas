@@ -3518,6 +3518,7 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and not isinstance(self, ABCMultiIndex)
         ):
             try:
                 result = self._inner_indexer(other)[0]
