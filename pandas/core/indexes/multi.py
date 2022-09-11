@@ -3644,11 +3644,21 @@ class MultiIndex(Index):
             # This is only necessary if both sides have nans or one has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
+            return MultiIndex.from_arrays(
+                zip(*result), sortorder=None, names=result_names
+            )
+
         else:
             rvals = other._values.astype(object, copy=False)
-            result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
+            right_missing = lib.fast_unique_multiple(self._values, rvals)
+            if right_missing:
+                result = self.append(other.take(right_missing))
+            else:
+                result = self._get_reconciled_name_object(other)
 
-        return MultiIndex.from_arrays(zip(*result), sortorder=None, names=result_names)
+            if sort is None:
+                result = algos.safe_sort(result)
+            return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
