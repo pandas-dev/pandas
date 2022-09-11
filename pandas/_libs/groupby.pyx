@@ -17,14 +17,10 @@ from numpy cimport (
     float32_t,
     float64_t,
     int8_t,
-    int16_t,
-    int32_t,
     int64_t,
     intp_t,
     ndarray,
     uint8_t,
-    uint16_t,
-    uint32_t,
     uint64_t,
 )
 from numpy.math cimport NAN
@@ -38,9 +34,9 @@ from pandas._libs.algos cimport (
 )
 
 from pandas._libs.algos import (
-    ensure_platform_int,
     groupsort_indexer,
     rank_1d,
+    take_2d_axis1_bool_bool,
     take_2d_axis1_float64_float64,
 )
 
@@ -64,11 +60,48 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
+cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+    cdef:
+        int i, j, na_count = 0
+        float64_t* tmp
+        float64_t result
+
+    if n == 0:
+        return NaN
+
+    # count NAs
+    for i in range(n):
+        if mask[i]:
+            na_count += 1
+
+    if na_count:
+        if na_count == n:
+            return NaN
+
+        tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+
+        j = 0
+        for i in range(n):
+            if not mask[i]:
+                tmp[j] = a[i]
+                j += 1
+
+        a = tmp
+        n -= na_count
+
+    result = calc_median_linear(a, n, na_count)
+
+    if na_count:
+        free(a)
+
+    return result
+
+
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
         int i, j, na_count = 0
-        float64_t result
         float64_t* tmp
+        float64_t result
 
     if n == 0:
         return NaN
@@ -93,16 +126,32 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         a = tmp
         n -= na_count
 
+    result = calc_median_linear(a, n, na_count)
+
+    if na_count:
+        free(a)
+
+    return result
+
+
+cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+    cdef:
+        float64_t result
+
     if n % 2:
         result = kth_smallest_c(a, n // 2, n)
     else:
         result = (kth_smallest_c(a, n // 2, n) +
                   kth_smallest_c(a, n // 2 - 1, n)) / 2
 
-    if na_count:
-        free(a)
-
     return result
+
+
+ctypedef fused int64float_t:
+    int64_t
+    uint64_t
+    float32_t
+    float64_t
 
 
 @cython.boundscheck(False)
@@ -113,6 +162,8 @@ def group_median_float64(
     ndarray[float64_t, ndim=2] values,
     ndarray[intp_t] labels,
     Py_ssize_t min_count=-1,
+    const uint8_t[:, :] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -121,8 +172,12 @@ def group_median_float64(
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[intp_t] _counts
         ndarray[float64_t, ndim=2] data
+        ndarray[uint8_t, ndim=2] data_mask
         ndarray[intp_t] indexer
         float64_t* ptr
+        uint8_t* ptr_mask
+        float64_t result
+        bint uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -137,15 +192,38 @@ def group_median_float64(
 
     take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
-    with nogil:
+    if uses_mask:
+        data_mask = np.empty((K, N), dtype=np.uint8)
+        ptr_mask = <uint8_t *>cnp.PyArray_DATA(data_mask)
 
-        for i in range(K):
-            # exclude NA group
-            ptr += _counts[0]
-            for j in range(ngroups):
-                size = _counts[j + 1]
-                out[j, i] = median_linear(ptr, size)
-                ptr += size
+        take_2d_axis1_bool_bool(mask.T, indexer, out=data_mask, fill_value=1)
+
+        with nogil:
+
+            for i in range(K):
+                # exclude NA group
+                ptr += _counts[0]
+                ptr_mask += _counts[0]
+
+                for j in range(ngroups):
+                    size = _counts[j + 1]
+                    result = median_linear_mask(ptr, size, ptr_mask)
+                    out[j, i] = result
+
+                    if result != result:
+                        result_mask[j, i] = 1
+                    ptr += size
+                    ptr_mask += size
+
+    else:
+        with nogil:
+            for i in range(K):
+                # exclude NA group
+                ptr += _counts[0]
+                for j in range(ngroups):
+                    size = _counts[j + 1]
+                    out[j, i] = median_linear(ptr, size)
+                    ptr += size
 
 
 @cython.boundscheck(False)
@@ -204,13 +282,6 @@ def group_cumprod_float64(
                     out[i, j] = NaN
                     if not skipna:
                         accum[lab, j] = NaN
-
-
-ctypedef fused int64float_t:
-    int64_t
-    uint64_t
-    float32_t
-    float64_t
 
 
 @cython.boundscheck(False)

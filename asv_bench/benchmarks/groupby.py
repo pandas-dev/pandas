@@ -5,6 +5,7 @@ from string import ascii_letters
 import numpy as np
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     Index,
@@ -592,6 +593,7 @@ class GroupByCythonAggEaDtypes:
             columns=list("abcdefghij"),
             dtype=dtype,
         )
+        df.loc[list(range(1, N, 5)), list("abcdefghij")] = NA
         df["key"] = np.random.randint(0, 100, size=N)
         self.df = df
 
