@@ -237,6 +237,16 @@ Run Container::
     # Run a container and bind your local repo to the container
     docker run -it -w /home/pandas --rm -v path-to-local-pandas-repo:/home/pandas pandas-yourname-env
 
+Then a ``pandas-dev`` virtual environment will be available with all the development dependencies.
+
+.. code-block:: shell
+
+    root@... :/home/pandas# conda env list
+    # conda environments:
+    #
+    base                  *  /opt/conda
+    pandas-dev               /opt/conda/envs/pandas-dev
+
 .. note::
     If you bind your local repo for the first time, you have to build the C extensions afterwards.
     Run the following command inside the container::

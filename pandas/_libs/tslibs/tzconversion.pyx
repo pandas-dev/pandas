@@ -43,7 +43,6 @@ from pandas._libs.tslibs.timezones cimport (
     is_tzlocal,
     is_utc,
     is_zoneinfo,
-    utc_pytz,
 )
 
 

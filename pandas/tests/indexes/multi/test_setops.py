@@ -530,11 +530,6 @@ def test_union_duplicates(index, request):
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         # No duplicates in empty indexes
         return
-    if index.dtype.kind == "c":
-        mark = pytest.mark.xfail(
-            reason="sort_values() call raises bc complex objects are not comparable"
-        )
-        request.node.add_marker(mark)
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
