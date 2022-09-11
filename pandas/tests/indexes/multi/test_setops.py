@@ -261,12 +261,6 @@ def test_union(idx, sort):
         assert result.equals(idx)
 
 
-@pytest.mark.xfail(
-    # This test was commented out from Oct 2011 to Dec 2021, may no longer
-    #  be relevant.
-    reason="Length of names must match number of levels in MultiIndex",
-    raises=ValueError,
-)
 def test_union_with_regular_index(idx):
     other = Index(["A", "B", "C"])
 
