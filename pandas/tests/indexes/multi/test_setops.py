@@ -523,7 +523,7 @@ def test_union_nan_got_duplicated():
 
 @pytest.mark.parametrize("val", [4, 1])
 def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
-    # GH#48498
+    # GH#48505
 
     arr1 = Series([val, 2], dtype=any_numeric_ea_dtype)
     arr2 = Series([2, 1], dtype=any_numeric_ea_dtype)
