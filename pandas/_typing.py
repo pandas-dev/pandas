@@ -331,3 +331,6 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll = Literal["any", "all"]
+
+# merge
+MergeHow = Literal["left", "right", "inner", "outer", "cross"]

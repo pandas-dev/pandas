@@ -68,6 +68,7 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
+    MergeHow,
     NaPosition,
     PythonFuncType,
     QuantileInterpolation,
@@ -10104,7 +10105,7 @@ Parrot 2  Parrot       24.0
     def merge(
         self,
         right: DataFrame | Series,
-        how: str = "inner",
+        how: MergeHow = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
