@@ -6,6 +6,7 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
+    array,
     concat,
     date_range,
     merge,
@@ -412,18 +413,39 @@ class MergeAsof:
 
 
 class MergeMultiIndex:
-    def setup(self):
+    params = [
+        [
+            ("int64", "int64"),
+            ("datetime64[ns]", "int64"),
+            ("Int64", "Int64"),
+        ],
+        ["left", "right", "inner", "outer"],
+    ]
+    param_names = ["dtypes", "how"]
+
+    def setup(self, dtypes, how):
         n = 100_000
-        mi1 = MultiIndex.from_arrays([np.arange(0, n)] * 2)
-        mi2 = MultiIndex.from_arrays([np.arange(1, n + 1)] * 2)
+        offset = 50_000
+        mi1 = MultiIndex.from_arrays(
+            [
+                array(np.arange(n), dtype=dtypes[0]),
+                array(np.arange(n), dtype=dtypes[1]),
+            ]
+        )
+        mi2 = MultiIndex.from_arrays(
+            [
+                array(np.arange(offset, n + offset), dtype=dtypes[0]),
+                array(np.arange(offset, n + offset), dtype=dtypes[1]),
+            ]
+        )
         self.df1 = DataFrame({"col1": 1}, index=mi1)
         self.df2 = DataFrame({"col2": 2}, index=mi2)
 
-    def time_merge_sorted_multiindex(self):
+    def time_merge_sorted_multiindex(self, dtypes, how):
         # copy to avoid MultiIndex._values caching
         df1 = self.df1.copy()
         df2 = self.df2.copy()
-        merge(df1, df2, how="left", left_index=True, right_index=True)
+        merge(df1, df2, how=how, left_index=True, right_index=True)
 
 
 class Align:
