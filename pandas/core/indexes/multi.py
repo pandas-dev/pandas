@@ -3638,10 +3638,9 @@ class MultiIndex(Index):
         if (
             any(-1 in code for code in self.codes)
             and any(-1 in code for code in other.codes)
-            or self.has_duplicates
             or other.has_duplicates
         ):
-            # This is only necessary if both sides have nans or one has dups,
+            # This is only necessary if both sides have nans or other has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
             return MultiIndex.from_arrays(
@@ -3657,7 +3656,16 @@ class MultiIndex(Index):
                 result = self._get_reconciled_name_object(other)
 
             if sort is None:
-                result = algos.safe_sort(result)
+                try:
+                    result = result.sort_values()
+                except TypeError:
+                    warnings.warn(
+                        "The values in the array are unorderable. "
+                        "Pass `sort=False` to suppress this warning.",
+                        RuntimeWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
+                    )
+                    pass
             return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:

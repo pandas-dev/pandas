@@ -102,6 +102,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.median` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
+- Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`50000`)
 - Performance improvement in :meth:`.GroupBy.mean` and :meth:`.GroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
