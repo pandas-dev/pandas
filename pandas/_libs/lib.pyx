@@ -319,7 +319,6 @@ def fast_unique_multiple(ndarray left, ndarray right):
     ----------
     left : np.ndarray
         Left array that is used as base.
-
     right : np.ndarray
         right array that is checked for values that are not in left.
 
