@@ -606,11 +606,11 @@ class TestEval:
 
         result = df.eval("x.fillna(-1)")
         expected = df.x.fillna(-1)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected, check_names=False)
 
         result = df.eval("x.shift(1, fill_value=-1)")
         expected = df.x.shift(1, fill_value=-1)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected, check_names=False)
 
     @pytest.mark.parametrize(
         "ex",
