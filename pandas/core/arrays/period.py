@@ -172,7 +172,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     _typ = "periodarray"  # ABCPeriodArray
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
-    _is_recognized_dtype = is_period_dtype
+    _is_recognized_dtype = is_period_dtype  # check_compatible_with checks freq match
     _infer_matches = ("period",)
 
     @property

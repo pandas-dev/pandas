@@ -902,17 +902,17 @@ class TestNonNano:
         assert result._reso == ts._reso
         assert result == expected
 
-    @pytest.mark.xfail(reason="tz_localize not yet implemented for non-nano")
     def test_addsub_offset(self, ts_tz):
         # specifically non-Tick offset
-        off = offsets.YearBegin(1)
+        off = offsets.YearEnd(1)
         result = ts_tz + off
 
         assert isinstance(result, Timestamp)
         assert result._reso == ts_tz._reso
-        # If ts_tz is ever on the last day of the year, the year would be
-        #  incremented by one
-        assert result.year == ts_tz.year
+        if ts_tz.month == 12 and ts_tz.day == 31:
+            assert result.year == ts_tz.year + 1
+        else:
+            assert result.year == ts_tz.year
         assert result.day == 31
         assert result.month == 12
         assert tz_compare(result.tz, ts_tz.tz)
