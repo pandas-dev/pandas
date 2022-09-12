@@ -206,7 +206,7 @@ Styler
 
 Other
 ^^^^^
-
+- Bug in :func: `infer_freq` raising ``TypeError`` when called with `RangeIndex` (:issue: `48439`)
 .. ***DO NOT USE THIS SECTION***
 
 -
