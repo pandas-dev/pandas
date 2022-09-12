@@ -310,7 +310,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(ndarray left, ndarray right):
+def fast_unique_multiple(ndarray left, ndarray right) -> list:
     """
     Generate a list indices we have to add to the left to get the union
     of both arrays.
@@ -321,28 +321,28 @@ def fast_unique_multiple(ndarray left, ndarray right):
         Left array that is used as base.
     right : np.ndarray
         right array that is checked for values that are not in left.
+        right can not have duplicates.
 
     Returns
     -------
     list of indices that we have to add to the left array.
     """
     cdef:
-        Py_ssize_t i, j, n
+        Py_ssize_t j, n
         list indices = []
-        dict table = {}
+        set table = set()
         object val, stub = 0
 
     n = len(left)
     for j in range(n):
         val = left[j]
         if val not in table:
-            table[val] = stub
+            table.add(val)
 
     n = len(right)
     for j in range(n):
         val = right[j]
         if val not in table:
-            table[val] = stub
             indices.append(j)
 
     return indices

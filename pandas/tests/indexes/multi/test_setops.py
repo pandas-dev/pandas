@@ -558,7 +558,7 @@ def test_union_duplicates(index, request):
         # GH#47294 - union uses lib.fast_zip, converting data to Python integers
         # and loses type information. Result is then unsigned only when values are
         # sufficiently large to require unsigned dtype. This happens only if other
-        # has dups orone of both have missing values
+        # has dups or one of both have missing values
         expected = expected.set_levels(
             [expected.levels[0].astype(int), expected.levels[1]]
         )
