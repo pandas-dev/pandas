@@ -92,7 +92,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated allowing array-like values for ``left_on`` or ``right_on`` other than ``np.ndarray``, :class:`ExtensionArray`, :class:`Index`, and :class:`Series` (:issue:`48454`)
 -
 
 .. ---------------------------------------------------------------------------
