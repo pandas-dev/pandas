@@ -121,7 +121,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
 -
 
 Timedelta
@@ -213,7 +213,6 @@ Styler
 
 Other
 ^^^^^
-- Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
 
 .. ***DO NOT USE THIS SECTION***
 
