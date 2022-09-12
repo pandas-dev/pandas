@@ -5,10 +5,15 @@ from pandas._libs.parsers import (  # type: ignore[attr-defined]
     _maybe_upcast,
     na_values,
 )
+import pandas.util._test_decorators as td
 
-from pandas import NA
+from pandas import (
+    NA,
+    set_option,
+)
 import pandas._testing as tm
 from pandas.core.arrays import (
+    ArrowStringArray,
     BooleanArray,
     FloatingArray,
     IntegerArray,
@@ -88,12 +93,21 @@ def test_maybe_upcaste_all_nan():
     tm.assert_extension_array_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("storage", ["pyarrow", "python"])
 @pytest.mark.parametrize("val", [na_values[np.object_], "c"])
-def test_maybe_upcast_object(val):
+def test_maybe_upcast_object(val, storage):
     # GH#36712
+    import pyarrow as pa
+
+    set_option("mode.string_storage", storage)
     arr = np.array(["a", "b", val], dtype=np.object_)
     result = _maybe_upcast(arr, use_nullable_dtypes=True)
 
-    exp_val = "c" if val == "c" else NA
-    expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
+    if storage == "python":
+        exp_val = "c" if val == "c" else NA
+        expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
+    else:
+        exp_val = "c" if val == "c" else None
+        expected = ArrowStringArray(pa.array(["a", "b", exp_val]))
     tm.assert_extension_array_equal(result, expected)
