@@ -297,19 +297,10 @@ class BaseArrayManager(DataManager):
                         if obj.ndim == 2:
                             kwargs[k] = obj[[i]]
 
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "tz"
-            if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
-                # DatetimeArray needs to be converted to ndarray for DatetimeLikeBlock
-
-                # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-                # attribute "_data"
-                arr = arr._data  # type: ignore[union-attr]
-            elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
-                # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
-
-                # error: "ExtensionArray" has no attribute "_data"
-                arr = arr._data  # type: ignore[attr-defined]
+            if isinstance(arr.dtype, np.dtype) and not isinstance(arr, np.ndarray):
+                # i.e. TimedeltaArray, DatetimeArray with tz=None. Need to
+                #  convert for the Block constructors.
+                arr = np.asarray(arr)
 
             if self.ndim == 2:
                 arr = ensure_block_shape(arr, 2)
