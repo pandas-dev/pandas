@@ -351,7 +351,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
+def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -364,7 +364,7 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
 
     Parameters
     ----------
-    *docstrings : str or callable
+    *docstrings : None, str, or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under callable.
     **params
@@ -378,6 +378,8 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
             docstring_components.append(dedent(decorated.__doc__))
 
         for docstring in docstrings:
+            if docstring is None:
+                continue
             if hasattr(docstring, "_docstring_components"):
                 # error: Item "str" of "Union[str, Callable[..., Any]]" has no attribute
                 # "_docstring_components"
@@ -389,13 +391,19 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
 
-        # formatting templates and concatenating docstring
+        params_applied = [
+            component.format(**params)
+            if isinstance(component, str) and len(params) > 0
+            else component
+            for component in docstring_components
+        ]
+
         decorated.__doc__ = "".join(
             [
-                component.format(**params)
+                component
                 if isinstance(component, str)
                 else dedent(component.__doc__ or "")
-                for component in docstring_components
+                for component in params_applied
             ]
         )
 

@@ -550,10 +550,12 @@ class Apply(metaclass=abc.ABCMeta):
         func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
-            if "axis" in sig.args:
-                self.kwargs["axis"] = self.axis
-            elif self.axis != 0:
+            if self.axis != 0 and (
+                "axis" not in sig.args or f in ("corrwith", "mad", "skew")
+            ):
                 raise ValueError(f"Operation {f} does not support axis=1")
+            elif "axis" in sig.args:
+                self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
