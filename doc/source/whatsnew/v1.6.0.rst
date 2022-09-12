@@ -143,7 +143,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in constructing :class:`Series` with ``int64`` dtype from a string list raising instead of casting (:issue:`44923`)
 -
 
 Strings
