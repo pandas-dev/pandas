@@ -1,5 +1,5 @@
-from textwrap import dedent
 import os
+from textwrap import dedent
 
 import numpy as np
 import pytest
@@ -392,8 +392,8 @@ class TestClipboard:
 
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
-        os.environ.get('DISPLAY') is None, 
-        reason="Cannot be runned if a headless system is not put in place with ",
+        os.environ.get("DISPLAY") is None,
+        reason="Cannot be runed if a headless system is not put in place with Xvfb",
         strict=True,
     )
     def test_raw_roundtrip(self, data):
