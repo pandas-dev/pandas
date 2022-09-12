@@ -391,6 +391,7 @@ class TestClipboard:
         self.check_round_trip_frame(df, encoding=enc)
 
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+    @pytest.mark.single_cpu
     @pytest.mark.xfail(
         os.environ.get("DISPLAY") is None,
         reason="Cannot be runed if a headless system is not put in place with Xvfb",
