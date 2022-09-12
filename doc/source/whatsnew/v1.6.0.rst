@@ -143,7 +143,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in constructing :class:`Series` with ``int64`` dtype from a string list raising instead of casting (:issue:`44923`)
 -
 
 Strings
@@ -196,6 +196,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`48293`)
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -
 
