@@ -639,7 +639,9 @@ def assert_timedelta_array_equal(
         assert_attr_equal("freq", left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
+def raise_assert_detail(
+    obj, message, left, right, diff=None, first_diff=None, index_values=None
+):
     __tracebackhide__ = True
 
     msg = f"""{obj} are different
@@ -673,6 +675,9 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
 
     if diff is not None:
         msg += f"\n[diff]: {diff}"
+
+    if first_diff is not None:
+        msg += f"\n{first_diff}"
 
     raise AssertionError(msg)
 
