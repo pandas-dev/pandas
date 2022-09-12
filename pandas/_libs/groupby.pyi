@@ -10,6 +10,8 @@ def group_median_float64(
     values: np.ndarray,  # ndarray[float64_t, ndim=2]
     labels: npt.NDArray[np.int64],
     min_count: int = ...,  # Py_ssize_t
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_cumprod_float64(
     out: np.ndarray,  # float64_t[:, ::1]
@@ -63,10 +65,12 @@ def group_sum(
     is_datetimelike: bool = ...,
 ) -> None: ...
 def group_prod(
-    out: np.ndarray,  # floating[:, ::1]
+    out: np.ndarray,  # int64float_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[floating, ndim=2]
+    values: np.ndarray,  # ndarray[int64float_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
+    mask: np.ndarray | None,
+    result_mask: np.ndarray | None = ...,
     min_count: int = ...,
 ) -> None: ...
 def group_var(
@@ -76,6 +80,8 @@ def group_var(
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,  # Py_ssize_t
     ddof: int = ...,  # int64_t
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]

@@ -29,6 +29,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._typing import (
+    AnyAll,
     AnyArrayLike,
     DtypeObj,
     F,
@@ -1269,7 +1270,7 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """return a boolean if we need a qualified .info display"""
 
-        def f(level):
+        def f(level) -> bool:
             return "mixed" in level or "string" in level or "unicode" in level
 
         return any(f(level) for level in self._inferred_type_levels)
@@ -1634,7 +1635,7 @@ class MultiIndex(Index):
         raise NotImplementedError("isna is not defined for MultiIndex")
 
     @doc(Index.dropna)
-    def dropna(self, how: str = "any") -> MultiIndex:
+    def dropna(self, how: AnyAll = "any") -> MultiIndex:
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":
             indexer = np.any(nans, axis=0)
@@ -1727,7 +1728,7 @@ class MultiIndex(Index):
     def unique(self, level=None):
 
         if level is None:
-            return super().unique()
+            return self.drop_duplicates()
         else:
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
@@ -2203,23 +2204,31 @@ class MultiIndex(Index):
         if all(
             (isinstance(o, MultiIndex) and o.nlevels >= self.nlevels) for o in other
         ):
-            arrays = []
+            arrays, names = [], []
             for i in range(self.nlevels):
                 label = self._get_level_values(i)
                 appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
-            return MultiIndex.from_arrays(arrays, names=self.names)
+                single_label_name = all(label.name == x.name for x in appended)
+                names.append(label.name if single_label_name else None)
+            return MultiIndex.from_arrays(arrays, names=names)
 
         to_concat = (self._values,) + tuple(k._values for k in other)
         new_tuples = np.concatenate(to_concat)
 
         # if all(isinstance(x, MultiIndex) for x in other):
         try:
-            return MultiIndex.from_tuples(new_tuples, names=self.names)
+            # We only get here if other contains at least one index with tuples,
+            # setting names to None automatically
+            return MultiIndex.from_tuples(new_tuples)
         except (TypeError, IndexError):
             return Index._with_infer(new_tuples)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
+        if len(args) == 0 and len(kwargs) == 0:
+            # np.lexsort is significantly faster than self._values.argsort()
+            values = [self._get_level_values(i) for i in reversed(range(self.nlevels))]
+            return np.lexsort(values)
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)

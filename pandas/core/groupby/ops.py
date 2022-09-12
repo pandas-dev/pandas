@@ -159,6 +159,10 @@ class WrappedCythonOp:
         "sum",
         "ohlc",
         "cumsum",
+        "prod",
+        "mean",
+        "var",
+        "median",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -221,13 +225,13 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["var", "prod", "mean"] or (
+            if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how in ["sum", "ohlc", "cumsum"]:
+            elif how in ["sum", "ohlc", "prod", "cumsum"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
@@ -597,10 +601,19 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how == "ohlc":
-                func(result, counts, values, comp_ids, min_count, mask, result_mask)
+            elif self.how in ["var", "ohlc", "prod", "median"]:
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
+                    **kwargs,
+                )
             else:
-                func(result, counts, values, comp_ids, min_count, **kwargs)
+                func(result, counts, values, comp_ids, min_count)
         else:
             # TODO: min_count
             if self.uses_mask():
@@ -631,8 +644,8 @@ class WrappedCythonOp:
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                # Neutral value for sum is 0, so don't fill empty groups with nan
-                cutoff = max(0 if self.how == "sum" else 1, min_count)
+                # if the op keeps the int dtypes, we have to use 0
+                cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
                     if result_mask is not None and self.uses_mask():
@@ -1310,7 +1323,7 @@ class DataSplitter(Generic[NDFrameT]):
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         sdata = self.sorted_data
 
         if self.ngroups == 0:
