@@ -1405,8 +1405,7 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     The casted array.
     """
     na_value = na_values[arr.dtype]
-    print(arr.dtype.type)
-    print(issubclass(arr.dtype.type, float))
+
     if issubclass(arr.dtype.type, np.integer):
         mask = arr == na_value
 
