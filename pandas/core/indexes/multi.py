@@ -2225,6 +2225,10 @@ class MultiIndex(Index):
             return Index._with_infer(new_tuples)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
+        if len(args) == 0 and len(kwargs) == 0:
+            # np.lexsort is significantly faster than self._values.argsort()
+            values = [self._get_level_values(i) for i in reversed(range(self.nlevels))]
+            return np.lexsort(values)
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
@@ -3640,6 +3644,10 @@ class MultiIndex(Index):
             # This is only necessary if both sides have nans or one has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
+
+            if isinstance(result, MultiIndex):
+                return result
+
         else:
             rvals = other._values.astype(object, copy=False)
             result = lib.fast_unique_multiple([self._values, rvals], sort=sort)

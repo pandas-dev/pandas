@@ -516,15 +516,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        elif pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
         super().test_groupby_extension_no_sort(data_for_grouping)
 
     def test_groupby_extension_transform(self, data_for_grouping, request):
@@ -551,8 +542,7 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         self, data_for_grouping, groupby_apply_op, request
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        # Is there a better way to get the "series" ID for groupby_apply_op?
-        is_series = "series" in request.node.nodeid
+        # TODO: Is there a better way to get the "object" ID for groupby_apply_op?
         is_object = "object" in request.node.nodeid
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
@@ -569,13 +559,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     pytest.mark.xfail(
                         raises=TypeError,
                         reason="GH 47514: _concat_datetime expects axis arg.",
-                    )
-                )
-            elif not is_series:
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        raises=AttributeError,
-                        reason="GH 34986",
                     )
                 )
         with tm.maybe_produces_warning(
@@ -608,16 +591,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
-                )
-            )
-        elif as_index is True and (
-            pa.types.is_date(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
                 )
             )
         with tm.maybe_produces_warning(
@@ -1464,16 +1437,7 @@ class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         pa_dtype = all_data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
+        if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -1484,16 +1448,7 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     def test_value_counts_with_normalize(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        elif pa.types.is_duration(pa_dtype):
+        if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,

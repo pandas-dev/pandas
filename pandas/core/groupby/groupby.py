@@ -46,6 +46,7 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
+    Dtype,
     IndexLabel,
     NDFrameT,
     PositionalIndexer,
@@ -92,6 +93,7 @@ from pandas.core.arrays import (
     BooleanArray,
     Categorical,
     ExtensionArray,
+    FloatingArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -3247,14 +3249,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, Dtype | None]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference: np.dtype | None = None
-            if is_integer_dtype(vals.dtype):
+            inference: Dtype | None = None
+            if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
+                inference = vals.dtype
+            elif is_integer_dtype(vals.dtype):
                 if isinstance(vals, ExtensionArray):
                     out = vals.to_numpy(dtype=float, na_value=np.nan)
                 else:
@@ -3276,14 +3281,38 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return out, inference
 
-        def post_processor(vals: np.ndarray, inference: np.dtype | None) -> np.ndarray:
+        def post_processor(
+            vals: np.ndarray,
+            inference: Dtype | None,
+            result_mask: np.ndarray | None,
+            orig_vals: ArrayLike,
+        ) -> ArrayLike:
             if inference:
                 # Check for edge case
-                if not (
+                if isinstance(orig_vals, BaseMaskedArray):
+                    assert result_mask is not None  # for mypy
+
+                    if interpolation in {"linear", "midpoint"} and not is_float_dtype(
+                        orig_vals
+                    ):
+                        return FloatingArray(vals, result_mask)
+                    else:
+                        # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
+                        # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
+                        # [union-attr]
+                        return type(orig_vals)(
+                            vals.astype(
+                                inference.numpy_dtype  # type: ignore[union-attr]
+                            ),
+                            result_mask,
+                        )
+
+                elif not (
                     is_integer_dtype(inference)
                     and interpolation in {"linear", "midpoint"}
                 ):
-                    vals = vals.astype(inference)
+                    assert isinstance(inference, np.dtype)  # for mypy
+                    return vals.astype(inference)
 
             return vals
 
@@ -3306,7 +3335,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         labels_for_lexsort = np.where(ids == -1, na_label_for_sorting, ids)
 
         def blk_func(values: ArrayLike) -> ArrayLike:
-            mask = isna(values)
+            orig_vals = values
+            if isinstance(values, BaseMaskedArray):
+                mask = values._mask
+                result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
+            else:
+                mask = isna(values)
+                result_mask = None
+
             vals, inference = pre_processor(values)
 
             ncols = 1
@@ -3325,16 +3361,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sort_arr = np.lexsort(order).astype(np.intp, copy=False)
 
             if vals.ndim == 1:
-                func(out[0], values=vals, mask=mask, sort_indexer=sort_arr)
+                # Ea is always 1d
+                func(
+                    out[0],
+                    values=vals,
+                    mask=mask,
+                    sort_indexer=sort_arr,
+                    result_mask=result_mask,
+                )
             else:
                 for i in range(ncols):
                     func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
 
             if vals.ndim == 1:
                 out = out.ravel("K")
+                if result_mask is not None:
+                    result_mask = result_mask.ravel("K")
             else:
                 out = out.reshape(ncols, ngroups * nqs)
-            return post_processor(out, inference)
+            return post_processor(out, inference, result_mask, orig_vals)
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
@@ -4256,6 +4301,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   blue  2
         0    red  0
         """  # noqa:E501
+        if self._selected_obj.empty:
+            # GH48459 prevent ValueError when object is empty
+            return self._selected_obj
         size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
             weights_arr = sample.preprocess_weights(
