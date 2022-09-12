@@ -433,7 +433,7 @@ cdef class Parser:
                 while lngt > 0 and source[start+lngt-1] in b"\x00 ":
                     lngt -= 1
                 if lngt == 0 and self.blank_missing:
-                    string_chunk[js, current_row] = np.nan
+                    string_chunk[js, current_row] = np_nan
                 else:
                     string_chunk[js, current_row] = (&source[start])[:lngt]
                 js += 1
