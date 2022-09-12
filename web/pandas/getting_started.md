@@ -55,7 +55,7 @@ The book we recommend to learn pandas is [Python for Data Analysis](https://amzn
 by [Wes McKinney](https://wesmckinney.com/), creator of pandas.
 
 <a href="https://amzn.to/3DyLaJc">
-    <img alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.jpg"/>
+    <img alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.gif"/>
 </a>
 
 ## Videos
