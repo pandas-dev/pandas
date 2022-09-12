@@ -1076,6 +1076,7 @@ def group_quantile(
     const intp_t[:] sort_indexer,
     const float64_t[:] qs,
     str interpolation,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Calculate the quantile per group.
@@ -1106,6 +1107,7 @@ def group_quantile(
         InterpolationEnumType interp
         float64_t q_val, q_idx, frac, val, next_val
         int64_t[::1] counts, non_na_counts
+        bint uses_result_mask = result_mask is not None
 
     assert values.shape[0] == N
 
@@ -1148,7 +1150,10 @@ def group_quantile(
 
             if non_na_sz == 0:
                 for k in range(nqs):
-                    out[i, k] = NaN
+                    if uses_result_mask:
+                        result_mask[i, k] = 1
+                    else:
+                        out[i, k] = NaN
             else:
                 for k in range(nqs):
                     q_val = qs[k]
