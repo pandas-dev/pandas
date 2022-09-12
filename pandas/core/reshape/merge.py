@@ -1126,7 +1126,7 @@ class _MergeOperation:
         is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
         is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
 
-        def deprecate_unknown_arraylike(obj):
+        def deprecate_unknown_arraylike(obj) -> None:
             # The existing code (but not docs) allow for any iterable object
             #  with a 'dtype' attribute.  In the future, we want to restrict
             #  to specific array-like types.
