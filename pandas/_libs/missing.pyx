@@ -61,6 +61,9 @@ cpdef bint check_na_tuples_nonequal(object left, object right):
     if not isinstance(left, tuple) or not isinstance(right, tuple):
         return False
 
+    if len(left) != len(right):
+        return False
+
     for left_element, right_element in zip(left, right):
         if left_element is C_NA and right_element is not C_NA:
             return True
