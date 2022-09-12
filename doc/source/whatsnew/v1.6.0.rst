@@ -213,7 +213,8 @@ Styler
 
 Other
 ^^^^^
-- Bug in :func: `infer_freq` raising ``TypeError`` when called with `RangeIndex` (:issue: `48439`)
+- Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
+
 .. ***DO NOT USE THIS SECTION***
 
 -
