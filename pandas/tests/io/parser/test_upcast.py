@@ -19,6 +19,7 @@ from pandas.core.arrays import (
 def test_maybe_upcast(any_real_numpy_dtype):
     # GH#36712
     if any_real_numpy_dtype == "float32":
+        # na values not defined for float32
         pytest.skip()
 
     dtype = np.dtype(any_real_numpy_dtype)
