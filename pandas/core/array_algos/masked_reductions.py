@@ -164,5 +164,5 @@ def var(
         return libmissing.NA
 
     return _reductions(
-        np.var, values=values, mask=mask, skipna=skipna, axis=axis, **{"ddof": ddof}
+        np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
     )
