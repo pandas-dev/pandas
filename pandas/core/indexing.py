@@ -2001,12 +2001,10 @@ class _iLocIndexer(_LocationIndexer):
         #  setting in-place would work, i.e. behavior will change.
 
         new_values = self.obj._get_column_array(loc)
-        warn = can_hold_element(orig_values, new_values)
 
-        # Don't issue the warning yet, as we can still trim a few cases where
-        #  behavior will not change.
-
-        if warn:
+        if can_hold_element(orig_values, new_values):
+            # Don't issue the warning yet, as we can still trim a few cases where
+            #  behavior will not change.
 
             if (
                 isinstance(new_values, np.ndarray)
