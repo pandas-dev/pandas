@@ -1,4 +1,5 @@
 from textwrap import dedent
+import os
 
 import numpy as np
 import pytest
@@ -391,9 +392,9 @@ class TestClipboard:
 
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
-        reason="Flaky test in multi-process CI environment: GH 44584",
-        raises=AssertionError,
-        strict=False,
+        os.environ.get('DISPLAY') is None, 
+        reason="Cannot be runned if a headless system is not put in place with ",
+        strict=True,
     )
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
