@@ -77,7 +77,6 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
-    BDay,
     Day,
     Tick,
 )
@@ -395,7 +394,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if isinstance(freq, Tick):
                 i8values = generate_regular_range(start, end, periods, freq)
             else:
-                xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
+                xdr = _generate_range(
+                    start=start, end=end, periods=periods, offset=freq
+                )
                 i8values = np.array([x.value for x in xdr], dtype=np.int64)
 
             endpoint_tz = start.tz if start is not None else end.tz
@@ -2494,7 +2495,12 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexis
     return ts
 
 
-def generate_range(start=None, end=None, periods=None, offset=BDay()):
+def _generate_range(
+    start: Timestamp | None,
+    end: Timestamp | None,
+    periods: int | None,
+    offset: BaseOffset,
+):
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
@@ -2502,10 +2508,10 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
 
     Parameters
     ----------
-    start : datetime, (default None)
-    end : datetime, (default None)
-    periods : int, (default None)
-    offset : DateOffset, (default BDay())
+    start : Timestamp or None
+    end : Timestamp or None
+    periods : int or None
+    offset : DateOffset,
 
     Notes
     -----
@@ -2520,26 +2526,46 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
     """
     offset = to_offset(offset)
 
-    start = Timestamp(start)
-    start = start if start is not NaT else None
-    end = Timestamp(end)
-    end = end if end is not NaT else None
+    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
+    # expected "Union[integer[Any], float, str, date, datetime64]"
+    start = Timestamp(start)  # type: ignore[arg-type]
+    # Non-overlapping identity check (left operand type: "Timestamp", right
+    # operand type: "NaTType")
+    start = start if start is not NaT else None  # type: ignore[comparison-overlap]
+    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
+    # expected "Union[integer[Any], float, str, date, datetime64]"
+    end = Timestamp(end)  # type: ignore[arg-type]
+    # Non-overlapping identity check (left operand type: "Timestamp", right
+    # operand type: "NaTType")
+    end = end if end is not NaT else None  # type: ignore[comparison-overlap]
 
     if start and not offset.is_on_offset(start):
-        start = offset.rollforward(start)
+        # Incompatible types in assignment (expression has type "datetime",
+        # variable has type "Optional[Timestamp]")
+        start = offset.rollforward(start)  # type: ignore[assignment]
 
     elif end and not offset.is_on_offset(end):
-        end = offset.rollback(end)
+        # Incompatible types in assignment (expression has type "datetime",
+        # variable has type "Optional[Timestamp]")
+        end = offset.rollback(end)  # type: ignore[assignment]
 
-    if periods is None and end < start and offset.n >= 0:
+    # Unsupported operand types for < ("Timestamp" and "None")
+    if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
         end = None
         periods = 0
 
     if end is None:
-        end = start + (periods - 1) * offset
+        # error: No overload variant of "__radd__" of "BaseOffset" matches
+        # argument type "None"
+        end = start + (periods - 1) * offset  # type: ignore[operator]
 
     if start is None:
-        start = end - (periods - 1) * offset
+        # error: No overload variant of "__radd__" of "BaseOffset" matches
+        # argument type "None"
+        start = end - (periods - 1) * offset  # type: ignore[operator]
+
+    start = cast(Timestamp, start)
+    end = cast(Timestamp, end)
 
     cur = start
     if offset.n >= 0:
