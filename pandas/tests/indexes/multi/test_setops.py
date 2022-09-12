@@ -566,6 +566,36 @@ def test_union_duplicates(index, request):
     tm.assert_index_equal(result, expected)
 
 
+def test_union_keep_dtype_precision(any_real_numeric_dtype):
+    # GH#48498
+    arr1 = Series([4, 1, 1], dtype=any_real_numeric_dtype)
+    arr2 = Series([1, 4], dtype=any_real_numeric_dtype)
+    midx = MultiIndex.from_arrays([arr1, [2, 1, 1]], names=["a", None])
+    midx2 = MultiIndex.from_arrays([arr2, [1, 2]], names=["a", None])
+
+    result = midx.union(midx2)
+    expected = MultiIndex.from_arrays(
+        ([Series([1, 1, 4], dtype=any_real_numeric_dtype), [1, 1, 2]]),
+        names=["a", None],
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
+    # GH#48498
+
+    arr1 = Series([4, pd.NA], dtype=any_numeric_ea_dtype)
+    arr2 = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
+    midx = MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
+    midx2 = MultiIndex.from_arrays([arr2, [1, 2]])
+    result = midx.union(midx2)
+    # Expected is actually off and should contain (1, 1) too. See GH#37222
+    expected = MultiIndex.from_arrays(
+        [Series([4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [2, 1, 2]]
+    )
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "levels1, levels2, codes1, codes2, names",
     [

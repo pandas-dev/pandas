@@ -3643,6 +3643,9 @@ class MultiIndex(Index):
             # This is only necessary if both sides have nans or other has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
+
+            if isinstance(result, MultiIndex):
+                return result
             return MultiIndex.from_arrays(
                 zip(*result), sortorder=None, names=result_names
             )
