@@ -34,6 +34,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     IgnoreRaise,
+    NaRep,
     Scalar,
     Shape,
     npt,
@@ -1321,7 +1322,7 @@ class MultiIndex(Index):
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
     def _format_native_types(
-        self, *, na_rep: object = "nan", **kwargs
+        self, *, na_rep: NaRep = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
         new_codes = []
@@ -1335,9 +1336,7 @@ class MultiIndex(Index):
                 nan_index = len(level_strs)
                 # numpy 1.21 deprecated implicit string casting
                 level_strs = level_strs.astype(str)
-                # error: Argument 2 to "append" has incompatible type "object";
-                # expected "Union[...]"
-                level_strs = np.append(level_strs, na_rep)  # type: ignore[arg-type]
+                level_strs = np.append(level_strs, na_rep)
                 assert not level_codes.flags.writeable  # i.e. copy is needed
                 level_codes = level_codes.copy()  # make writeable
                 level_codes[mask] = nan_index
@@ -1362,7 +1361,7 @@ class MultiIndex(Index):
         self,
         name: bool | None = None,
         formatter: Callable | None = None,
-        na_rep: object = None,
+        na_rep: NaRep | None = None,
         names: bool = False,
         space: int = 2,
         sparsify=None,

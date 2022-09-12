@@ -48,6 +48,7 @@ from pandas._libs.tslibs.period import (
 from pandas._typing import (
     AnyArrayLike,
     Dtype,
+    NaRep,
     NpDtype,
     npt,
 )
@@ -642,7 +643,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, *, na_rep: object = "NaT", date_format=None, **kwargs
+        self, *, na_rep: NaRep | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types

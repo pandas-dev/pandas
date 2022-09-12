@@ -53,6 +53,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     Level,
+    NaRep,
     Shape,
     npt,
 )
@@ -1441,7 +1442,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         name: bool = False,
         formatter: Callable | None = None,
-        na_rep: object = "NaN",
+        na_rep: NaRep = "NaN",
     ) -> list[str_t]:
         """
         Render a string representation of the Index.
@@ -1459,7 +1460,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(self, header: list[str_t], na_rep: object) -> list[str_t]:
+    def _format_with_header(self, header: list[str_t], na_rep: NaRep) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -1520,7 +1521,7 @@ class Index(IndexOpsMixin, PandasObject):
         return values._format_native_types(**kwargs)
 
     def _format_native_types(
-        self, *, na_rep: object = "", quoting=None, **kwargs
+        self, *, na_rep: NaRep = "", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         Actually format specific types of the index.

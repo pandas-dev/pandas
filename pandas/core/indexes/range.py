@@ -25,6 +25,7 @@ from pandas._libs.algos import unique_deltas
 from pandas._libs.lib import no_default
 from pandas._typing import (
     Dtype,
+    NaRep,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -228,7 +229,7 @@ class RangeIndex(NumericIndex):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: list[str], na_rep: object) -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: NaRep) -> list[str]:
         # Equivalent to Index implementation, but faster
         if not len(self._range):
             return header

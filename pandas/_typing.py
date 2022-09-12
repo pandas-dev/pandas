@@ -340,3 +340,4 @@ TimeAmbiguous = Union[Literal["infer", "NaT", "raise"], "npt.NDArray[np.bool_]"]
 TimeNonexistent = Union[
     Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
 ]
+NaRep = str

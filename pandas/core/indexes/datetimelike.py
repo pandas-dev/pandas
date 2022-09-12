@@ -30,6 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._typing import NaRep
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -155,7 +156,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         self,
         name: bool = False,
         formatter: Callable | None = None,
-        na_rep: object = "NaT",
+        na_rep: NaRep = "NaT",
         date_format: str | None = None,
     ) -> list[str]:
         """
@@ -175,7 +176,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
 
     def _format_with_header(
-        self, header: list[str], na_rep: object = "NaT", date_format: str | None = None
+        self, header: list[str], na_rep: NaRep = "NaT", date_format: str | None = None
     ) -> list[str]:
         # matches base class except for whitespace padding and date_format
         return header + list(

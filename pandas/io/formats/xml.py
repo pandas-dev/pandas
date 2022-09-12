@@ -13,6 +13,7 @@ from typing import (
 from pandas._typing import (
     CompressionOptions,
     FilePath,
+    NaRep,
     ReadBuffer,
     StorageOptions,
     WriteBuffer,
@@ -106,7 +107,7 @@ class BaseXMLFormatter:
         index: bool = True,
         root_name: str | None = "data",
         row_name: str | None = "row",
-        na_rep: str | None = None,
+        na_rep: NaRep | None = None,
         attr_cols: list[str] | None = None,
         elem_cols: list[str] | None = None,
         namespaces: dict[str | None, str] | None = None,

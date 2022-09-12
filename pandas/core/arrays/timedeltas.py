@@ -34,6 +34,7 @@ from pandas._libs.tslibs.timedeltas import (
 from pandas._typing import (
     DateTimeErrorChoices,
     DtypeObj,
+    NaRep,
     NpDtype,
     npt,
 )
@@ -373,7 +374,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         return get_format_timedelta64(self, box=True)
 
     def _format_native_types(
-        self, *, na_rep: object = "NaT", date_format=None, **kwargs
+        self, *, na_rep: NaRep | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_timedelta64
 

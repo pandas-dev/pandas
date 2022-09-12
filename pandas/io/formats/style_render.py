@@ -25,6 +25,7 @@ from pandas._libs import lib
 from pandas._typing import (
     Axis,
     Level,
+    NaRep,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -928,7 +929,7 @@ class StylerRenderer:
         self,
         formatter: ExtFormatter | None = None,
         subset: Subset | None = None,
-        na_rep: str | None = None,
+        na_rep: NaRep | None = None,
         precision: int | None = None,
         decimal: str = ".",
         thousands: str | None = None,
@@ -1159,7 +1160,7 @@ class StylerRenderer:
         formatter: ExtFormatter | None = None,
         axis: int | str = 0,
         level: Level | list[Level] | None = None,
-        na_rep: str | None = None,
+        na_rep: NaRep | None = None,
         precision: int | None = None,
         decimal: str = ".",
         thousands: str | None = None,
@@ -1751,7 +1752,7 @@ def _render_href(x, format):
 
 def _maybe_wrap_formatter(
     formatter: BaseFormatter | None = None,
-    na_rep: str | None = None,
+    na_rep: NaRep | None = None,
     precision: int | None = None,
     decimal: str = ".",
     thousands: str | None = None,
