@@ -28,7 +28,9 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`.GroupBy.quantile` now preserving nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
+- :func:`assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -125,7 +127,10 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`.GroupBy.mean` and :meth:`.GroupBy.var` for extension array dtypes (:issue:`37493`)
+- Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
+- Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 -
 
@@ -189,6 +194,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
+- Bug in :meth:`MultiIndex.union` losing extension array (:issue:`48498`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 -
 
@@ -209,12 +215,12 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
 -
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -
 
 Sparse
