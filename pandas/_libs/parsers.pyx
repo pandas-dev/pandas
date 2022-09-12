@@ -1405,7 +1405,8 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     The casted array.
     """
     na_value = na_values[arr.dtype]
-
+    print(arr.dtype.type)
+    print(issubclass(arr.dtype.type, float))
     if issubclass(arr.dtype.type, np.integer):
         mask = arr == na_value
 
@@ -1424,7 +1425,7 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
             arr = arr.astype(object)
             np.putmask(arr, mask, np.nan)
 
-    elif issubclass(arr.dtype.type, float):
+    elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
         if use_nullable_dtypes:
             mask = np.isnan(arr)
             arr = FloatingArray(arr, mask)
@@ -2027,6 +2028,7 @@ def _compute_na_values():
     uint16info = np.iinfo(np.uint16)
     uint8info = np.iinfo(np.uint8)
     na_values = {
+        np.float32: np.nan,
         np.float64: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,
