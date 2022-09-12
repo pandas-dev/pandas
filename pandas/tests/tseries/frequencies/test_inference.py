@@ -16,7 +16,6 @@ from pandas.compat import is_platform_windows
 from pandas import (
     DatetimeIndex,
     Index,
-    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -364,10 +363,11 @@ def test_non_datetime_index2():
         tm.makeIntIndex(10),
         tm.makeFloatIndex(10),
         tm.makePeriodIndex(10),
-        RangeIndex(10),  # see gh-48439
+        tm.makeRangeIndex(10),
     ],
 )
 def test_invalid_index_types(idx):
+    # see gh-48439
     msg = "|".join(
         [
             "cannot infer freq from a non-convertible",
