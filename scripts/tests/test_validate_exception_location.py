@@ -1,6 +1,9 @@
 import pytest
 
-from scripts.validate_exception_location import validate_exception_and_warning_placement
+from scripts.validate_exception_location import (
+    ERROR_MESSAGE,
+    validate_exception_and_warning_placement,
+)
 
 PATH = "t.py"
 
@@ -22,34 +25,26 @@ class {custom_name}({error_type}):
 
 """
 
+
 # Test with various python-defined exceptions to ensure they are all flagged.
-testdata = [
-    "Exception",
-    "ValueError",
-    "Warning",
-    "UserWarning",
-]
+@pytest.fixture(params=["Exception", "ValueError", "Warning", "UserWarning"])
+def error_type(request):
+    return request.param
 
 
-@pytest.mark.parametrize("error_type", testdata)
 def test_class_that_inherits_an_exception_and_is_not_in_the_testing_rst_is_flagged(
     capsys, error_type
 ):
     content = TEST_CODE.format(
         custom_name=CUSTOM_EXCEPTION_NOT_IN_TESTING_RST, error_type=error_type
     )
-    result_msg = (
-        "t.py:8:0: {exception_name}: Please don't place exceptions or "
-        "warnings outside of pandas/errors/__init__.py or "
-        "pandas/_libs\n".format(exception_name=CUSTOM_EXCEPTION_NOT_IN_TESTING_RST)
-    )
+    expected_msg = ERROR_MESSAGE.format(errors=CUSTOM_EXCEPTION_NOT_IN_TESTING_RST)
     with pytest.raises(SystemExit, match=None):
         validate_exception_and_warning_placement(PATH, content, ERRORS_IN_TESTING_RST)
-    expected_msg, _ = capsys.readouterr()
+    result_msg, _ = capsys.readouterr()
     assert result_msg == expected_msg
 
 
-@pytest.mark.parametrize("error_type", testdata)
 def test_class_that_inherits_an_exception_but_is_in_the_testing_rst_is_not_flagged(
     capsys, error_type
 ):

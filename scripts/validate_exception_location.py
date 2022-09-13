@@ -1,5 +1,5 @@
 """
-Validate that the exceptions and warnings are in approrirate places.
+Validate that the exceptions and warnings are in appropriate places.
 
 Checks for classes that inherit a python exception and warning and
 flags them, unless they are exempted from checking. Exempt meaning
@@ -28,9 +28,10 @@ from typing import Sequence
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 ERROR_MESSAGE = (
-    "{path}:{lineno}:{col_offset}: {exception_name}: "
-    "Please don't place exceptions or warnings outside of pandas/errors/__init__.py or "
-    "pandas/_libs\n"
+    "The following exception(s) and/or warning(s): {errors} exist(s) outside of "
+    "pandas/errors/__init__.py. Please either define them in "
+    "pandas/errors/__init__.py. Or, if not possible then import them in "
+    "pandas/errors/__init__.py.\n"
 )
 exception_warning_list = {
     "ArithmeticError",
@@ -92,23 +93,13 @@ class Visitor(ast.NodeVisitor):
     def __init__(self, path: str, exception_set: set[str]) -> None:
         self.path = path
         self.exception_set = exception_set
+        self.possible_exceptions = set()
 
     def visit_ClassDef(self, node):
         classes = {getattr(n, "id", None) for n in node.bases}
 
-        if (
-            classes
-            and classes.issubset(exception_warning_list)
-            and node.name not in self.exception_set
-        ):
-            msg = ERROR_MESSAGE.format(
-                path=self.path,
-                lineno=node.lineno,
-                col_offset=node.col_offset,
-                exception_name=node.name,
-            )
-            sys.stdout.write(msg)
-            sys.exit(1)
+        if classes and classes.issubset(exception_warning_list):
+            self.possible_exceptions.add(node.name)
 
 
 def validate_exception_and_warning_placement(
@@ -117,6 +108,13 @@ def validate_exception_and_warning_placement(
     tree = ast.parse(file_content)
     visitor = Visitor(file_path, errors)
     visitor.visit(tree)
+
+    misplaced_exceptions = visitor.possible_exceptions.difference(errors)
+
+    if misplaced_exceptions:
+        msg = ERROR_MESSAGE.format(errors=", ".join(misplaced_exceptions))
+        sys.stdout.write(msg)
+        sys.exit(1)
 
 
 def main(argv: Sequence[str] | None = None) -> None:
