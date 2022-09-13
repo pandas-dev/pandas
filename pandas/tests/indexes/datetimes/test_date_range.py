@@ -34,7 +34,7 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core.arrays.datetimes import generate_range
+from pandas.core.arrays.datetimes import _generate_range as generate_range
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -840,27 +840,45 @@ class TestDateRangeTZ:
 
 class TestGenRangeGeneration:
     def test_generate(self):
-        rng1 = list(generate_range(START, END, offset=BDay()))
-        rng2 = list(generate_range(START, END, offset="B"))
+        rng1 = list(generate_range(START, END, periods=None, offset=BDay()))
+        rng2 = list(generate_range(START, END, periods=None, offset="B"))
         assert rng1 == rng2
 
     def test_generate_cday(self):
-        rng1 = list(generate_range(START, END, offset=CDay()))
-        rng2 = list(generate_range(START, END, offset="C"))
+        rng1 = list(generate_range(START, END, periods=None, offset=CDay()))
+        rng2 = list(generate_range(START, END, periods=None, offset="C"))
         assert rng1 == rng2
 
     def test_1(self):
-        rng = list(generate_range(start=datetime(2009, 3, 25), periods=2))
+        rng = list(
+            generate_range(
+                start=datetime(2009, 3, 25), end=None, periods=2, offset=BDay()
+            )
+        )
         expected = [datetime(2009, 3, 25), datetime(2009, 3, 26)]
         assert rng == expected
 
     def test_2(self):
-        rng = list(generate_range(start=datetime(2008, 1, 1), end=datetime(2008, 1, 3)))
+        rng = list(
+            generate_range(
+                start=datetime(2008, 1, 1),
+                end=datetime(2008, 1, 3),
+                periods=None,
+                offset=BDay(),
+            )
+        )
         expected = [datetime(2008, 1, 1), datetime(2008, 1, 2), datetime(2008, 1, 3)]
         assert rng == expected
 
     def test_3(self):
-        rng = list(generate_range(start=datetime(2008, 1, 5), end=datetime(2008, 1, 6)))
+        rng = list(
+            generate_range(
+                start=datetime(2008, 1, 5),
+                end=datetime(2008, 1, 6),
+                periods=None,
+                offset=BDay(),
+            )
+        )
         expected = []
         assert rng == expected
 

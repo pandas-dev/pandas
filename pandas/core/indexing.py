@@ -955,8 +955,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  is equivalent.
             #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
-                # error "_LocationIndexer" has no attribute
-                # "_handle_lowerdim_multi_index_axis0"
                 return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(tup)
 
         tup = self._validate_key_length(tup)
@@ -1013,8 +1011,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
-                    # error "_LocationIndexer" has no attribute
-                    # "_handle_lowerdim_multi_index_axis0"
                     return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(
                         tup
                     )
