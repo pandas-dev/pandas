@@ -1864,6 +1864,7 @@ class DataFrame(NDFrame, OpsMixin):
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
         into: type[dict] = dict,
+        index: bool = True,
     ) -> dict | list[dict]:
         """
         Convert the DataFrame to a dictionary.
@@ -1899,6 +1900,13 @@ class DataFrame(NDFrame, OpsMixin):
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
+
+        index : bool, default True
+            Whether to include the index item (and index_names item if `orient`
+            is 'tight') in the returned dictionary. Can only be ``False``
+            when `orient` is 'split' or 'tight'.
+
+            .. versionadded:: 1.6.0
 
         Returns
         -------
@@ -2005,6 +2013,11 @@ class DataFrame(NDFrame, OpsMixin):
             elif orient.startswith("i"):
                 orient = "index"
 
+        if not index and orient not in ["split", "tight"]:
+            raise ValueError(
+                "'index=False' is only valid when 'orient' is 'split' or 'tight'"
+            )
+
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
@@ -2015,8 +2028,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif orient == "split":
             return into_c(
-                (
-                    ("index", self.index.tolist()),
+                ((("index", self.index.tolist()),) if index else ())
+                + (
                     ("columns", self.columns.tolist()),
                     (
                         "data",
@@ -2030,8 +2043,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif orient == "tight":
             return into_c(
-                (
-                    ("index", self.index.tolist()),
+                ((("index", self.index.tolist()),) if index else ())
+                + (
                     ("columns", self.columns.tolist()),
                     (
                         "data",
@@ -2040,9 +2053,9 @@ class DataFrame(NDFrame, OpsMixin):
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
-                    ("index_names", list(self.index.names)),
-                    ("column_names", list(self.columns.names)),
                 )
+                + ((("index_names", list(self.index.names)),) if index else ())
+                + (("column_names", list(self.columns.names)),)
             )
 
         elif orient == "series":
@@ -6624,15 +6637,17 @@ class DataFrame(NDFrame, OpsMixin):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last', ``False``}, default 'first'
             Determines which duplicates (if any) to keep.
-            - ``first`` : Drop duplicates except for the first occurrence.
-            - ``last`` : Drop duplicates except for the last occurrence.
-            - False : Drop all duplicates.
-        inplace : bool, default False
+
+            - 'first' : Drop duplicates except for the first occurrence.
+            - 'last' : Drop duplicates except for the last occurrence.
+            - ``False`` : Drop all duplicates.
+
+        inplace : bool, default ``False``
             Whether to modify the DataFrame rather than creating a new one.
-        ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
 
             .. versionadded:: 1.0.0
 
@@ -8581,7 +8596,9 @@ Parrot 2  Parrot       24.0
     @Substitution("")
     @Appender(_shared_docs["pivot"])
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def pivot(self, index=None, columns=None, values=None) -> DataFrame:
+    def pivot(
+        self, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
+    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
@@ -9241,8 +9258,14 @@ Parrot 2  Parrot       24.0
             periods = int(periods)
 
         axis = self._get_axis_number(axis)
-        if axis == 1 and periods != 0:
-            return self - self.shift(periods, axis=axis)
+        if axis == 1:
+            if periods != 0:
+                # in the periods == 0 case, this is equivalent diff of 0 periods
+                #  along axis=0, and the Manager method may be somewhat more
+                #  performant, so we dispatch in that case.
+                return self - self.shift(periods, axis=axis)
+            # With periods=0 this is equivalent to a diff with axis=0
+            axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")

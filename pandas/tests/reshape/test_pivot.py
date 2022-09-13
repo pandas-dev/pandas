@@ -2341,7 +2341,7 @@ class TestPivot:
         )
         index = ["lev1", "lev2"]
         columns = ["lev3"]
-        result = df.pivot(index=index, columns=columns, values=None)
+        result = df.pivot(index=index, columns=columns)
 
         expected = DataFrame(
             np.array(
@@ -2365,3 +2365,51 @@ class TestPivot:
 
         assert index == ["lev1", "lev2"]
         assert columns == ["lev3"]
+
+    def test_pivot_columns_not_given(self):
+        # GH#48293
+        df = DataFrame({"a": [1], "b": 1})
+        with pytest.raises(TypeError, match="missing 1 required argument"):
+            df.pivot()
+
+    def test_pivot_columns_is_none(self):
+        # GH#48293
+        df = DataFrame({None: [1], "b": 2, "c": 3})
+        result = df.pivot(columns=None)
+        expected = DataFrame({("b", 1): [2], ("c", 1): 3})
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns=None, index="b")
+        expected = DataFrame({("c", 1): 3}, index=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns=None, index="b", values="c")
+        expected = DataFrame({1: 3}, index=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_index_is_none(self):
+        # GH#48293
+        df = DataFrame({None: [1], "b": 2, "c": 3})
+
+        result = df.pivot(columns="b", index=None)
+        expected = DataFrame({("c", 2): 3}, index=[1])
+        expected.columns.names = [None, "b"]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns="b", index=None, values="c")
+        expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_values_is_none(self):
+        # GH#48293
+        df = DataFrame({None: [1], "b": 2, "c": 3})
+
+        result = df.pivot(columns="b", index="c", values=None)
+        expected = DataFrame(
+            1, index=Index([3], name="c"), columns=Index([2], name="b")
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot(columns="b", values=None)
+        expected = DataFrame(1, index=[0], columns=Index([2], name="b"))
+        tm.assert_frame_equal(result, expected)

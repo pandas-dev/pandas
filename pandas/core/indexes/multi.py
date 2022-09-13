@@ -2225,6 +2225,10 @@ class MultiIndex(Index):
             return Index._with_infer(new_tuples)
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
+        if len(args) == 0 and len(kwargs) == 0:
+            # np.lexsort is significantly faster than self._values.argsort()
+            values = [self._get_level_values(i) for i in reversed(range(self.nlevels))]
+            return np.lexsort(values)
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
@@ -3634,17 +3638,38 @@ class MultiIndex(Index):
         if (
             any(-1 in code for code in self.codes)
             and any(-1 in code for code in other.codes)
-            or self.has_duplicates
             or other.has_duplicates
         ):
-            # This is only necessary if both sides have nans or one has dups,
+            # This is only necessary if both sides have nans or other has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
+
+            if isinstance(result, MultiIndex):
+                return result
+            return MultiIndex.from_arrays(
+                zip(*result), sortorder=None, names=result_names
+            )
+
         else:
             rvals = other._values.astype(object, copy=False)
-            result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
+            right_missing = lib.fast_unique_multiple(self._values, rvals)
+            if right_missing:
+                result = self.append(other.take(right_missing))
+            else:
+                result = self._get_reconciled_name_object(other)
 
-        return MultiIndex.from_arrays(zip(*result), sortorder=None, names=result_names)
+            if sort is None:
+                try:
+                    result = result.sort_values()
+                except TypeError:
+                    warnings.warn(
+                        "The values in the array are unorderable. "
+                        "Pass `sort=False` to suppress this warning.",
+                        RuntimeWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
+                    )
+                    pass
+            return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
