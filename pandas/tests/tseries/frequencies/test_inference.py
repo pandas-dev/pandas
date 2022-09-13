@@ -358,9 +358,16 @@ def test_non_datetime_index2():
 
 
 @pytest.mark.parametrize(
-    "idx", [tm.makeIntIndex(10), tm.makeFloatIndex(10), tm.makePeriodIndex(10)]
+    "idx",
+    [
+        tm.makeIntIndex(10),
+        tm.makeFloatIndex(10),
+        tm.makePeriodIndex(10),
+        tm.makeRangeIndex(10),
+    ],
 )
 def test_invalid_index_types(idx):
+    # see gh-48439
     msg = "|".join(
         [
             "cannot infer freq from a non-convertible",
