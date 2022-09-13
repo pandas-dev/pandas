@@ -1139,20 +1139,11 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestBaseMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="TEST")
-    def test_argsort(self, data_for_sorting):
-        super().test_argsort(data_for_sorting)
-
-    @pytest.mark.skip(reason="TEST")
     def test_argsort_missing_array(self, data_missing_for_sorting):
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
             super().test_argsort_missing_array(data_missing_for_sorting)
-
-    @pytest.mark.skip(reason="TEST")
-    def test_argsort_missing(self, data_missing_for_sorting):
-        super().test_argsort_missing(data_missing_for_sorting)
 
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
@@ -1201,7 +1192,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         ):
             super().test_value_counts_with_normalize(data)
 
-    @pytest.mark.skip(reason="TEST")
     @pytest.mark.xfail(
         pa_version_under6p0,
         raises=NotImplementedError,
@@ -1226,17 +1216,6 @@ class TestBaseMethods(base.BaseMethodsTests):
             )
         super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
 
-    @pytest.mark.skip(reason="TEST")
-    @pytest.mark.parametrize("method", ["argmax", "argmin"])
-    def test_argmin_argmax_empty_array(self, method, data):
-        super().test_argmin_argmax_empty_array(method, data)
-
-    @pytest.mark.skip(reason="TEST")
-    @pytest.mark.parametrize("method", ["argmax", "argmin"])
-    def test_argmin_argmax_all_na(self, method, data, na_value):
-        super().test_argmin_argmax_all_na(method, data, na_value)
-
-    @pytest.mark.skip(reason="TEST")
     @pytest.mark.parametrize(
         "op_name, skipna, expected",
         [
@@ -1271,10 +1250,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         super().test_argreduce_series(
             data_missing_for_sorting, op_name, skipna, expected
         )
-
-    @pytest.mark.skip
-    def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
-        super().test_argmax_argmin_no_skipna_notimplemented(data_missing_for_sorting)
 
     @pytest.mark.skip
     @pytest.mark.parametrize(
