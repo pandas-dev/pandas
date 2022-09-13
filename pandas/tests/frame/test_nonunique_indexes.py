@@ -318,16 +318,13 @@ class TestDataFrameNonuniqueIndexes:
         xp.columns = ["A", "A", "B"]
         tm.assert_frame_equal(rs, xp)
 
-    def test_set_value_by_index(self, using_array_manager):
+    def test_set_value_by_index(self):
         # See gh-12344
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
         df = DataFrame(np.arange(9).reshape(3, 3).T)
         df.columns = list("AAA")
         expected = df.iloc[:, 2]
 
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             df.iloc[:, 0] = 3
         tm.assert_series_equal(df.iloc[:, 2], expected)
 
@@ -335,6 +332,6 @@ class TestDataFrameNonuniqueIndexes:
         df.columns = [2, float(2), str(2)]
         expected = df.iloc[:, 1]
 
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(None):
             df.iloc[:, 0] = 3
         tm.assert_series_equal(df.iloc[:, 1], expected)
