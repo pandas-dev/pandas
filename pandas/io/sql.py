@@ -1232,9 +1232,14 @@ class SQLTable(PandasObject):
             DateTime,
             Float,
             Integer,
+            Numeric,
         )
 
         if isinstance(sqltype, Float):
+            return float
+        elif isinstance(sqltype, Numeric) and sqltype.scale is None:
+            return np.dtype("int64")
+        elif isinstance(sqltype, Numeric) and sqltype.scale > 0:
             return float
         elif isinstance(sqltype, Integer):
             # TODO: Refine integer size.
