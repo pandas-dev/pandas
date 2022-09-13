@@ -539,8 +539,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         self, data_for_grouping, groupby_apply_op, request
     ):
         pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        # TODO: Is there a better way to get the "object" ID for groupby_apply_op?
-        is_object = "object" in request.node.nodeid
         if pa.types.is_duration(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -548,16 +546,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
                     reason=f"pyarrow doesn't support factorizing {pa_dtype}",
                 )
             )
-        elif pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            if is_object:
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        raises=TypeError,
-                        reason="GH 47514: _concat_datetime expects axis arg.",
-                    )
-                )
         with tm.maybe_produces_warning(
             PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
@@ -688,70 +676,10 @@ class TestBaseMissing(base.BaseMissingTests):
 
 
 class TestBasePrinting(base.BasePrintingTests):
-    def test_series_repr(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if (
-            pa.types.is_date(pa_dtype)
-            or pa.types.is_duration(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason="GH 47514: _concat_datetime expects axis arg.",
-                )
-            )
-        super().test_series_repr(data)
-
-    def test_dataframe_repr(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if (
-            pa.types.is_date(pa_dtype)
-            or pa.types.is_duration(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason="GH 47514: _concat_datetime expects axis arg.",
-                )
-            )
-        super().test_dataframe_repr(data)
+    pass
 
 
 class TestBaseReshaping(base.BaseReshapingTests):
-    @pytest.mark.parametrize("in_frame", [True, False])
-    def test_concat(self, data, in_frame, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if (
-            pa.types.is_date(pa_dtype)
-            or pa.types.is_duration(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason="GH 47514: _concat_datetime expects axis arg.",
-                )
-            )
-        super().test_concat(data, in_frame)
-
-    @pytest.mark.parametrize("in_frame", [True, False])
-    def test_concat_all_na_block(self, data_missing, in_frame, request):
-        pa_dtype = data_missing.dtype.pyarrow_dtype
-        if (
-            pa.types.is_date(pa_dtype)
-            or pa.types.is_duration(pa_dtype)
-            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason="GH 47514: _concat_datetime expects axis arg.",
-                )
-            )
-        super().test_concat_all_na_block(data_missing, in_frame)
-
     def test_concat_columns(self, data, na_value, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
         if pa_version_under2p0 and tz not in (None, "UTC"):
@@ -771,26 +699,6 @@ class TestBaseReshaping(base.BaseReshapingTests):
                 )
             )
         super().test_concat_extension_arrays_copy_false(data, na_value)
-
-    def test_concat_with_reindex(self, data, request, using_array_manager):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=TypeError,
-                    reason="GH 47514: _concat_datetime expects axis arg.",
-                )
-            )
-        elif pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError if not using_array_manager else TypeError,
-                    reason="GH 34986",
-                )
-            )
-        super().test_concat_with_reindex(data)
 
     def test_align(self, data, na_value, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
@@ -831,32 +739,6 @@ class TestBaseReshaping(base.BaseReshapingTests):
                 )
             )
         super().test_merge(data, na_value)
-
-    def test_merge_on_extension_array(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        super().test_merge_on_extension_array(data)
-
-    def test_merge_on_extension_array_duplicates(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_date(pa_dtype) or (
-            pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="GH 34986",
-                )
-            )
-        super().test_merge_on_extension_array_duplicates(data)
 
     def test_ravel(self, data, request):
         tz = getattr(data.dtype.pyarrow_dtype, "tz", None)
