@@ -33,52 +33,6 @@ ERROR_MESSAGE = (
     "pandas/errors/__init__.py. Or, if not possible then import them in "
     "pandas/errors/__init__.py.\n"
 )
-exception_warning_list = {
-    "ArithmeticError",
-    "AssertionError",
-    "AttributeError",
-    "EOFError",
-    "Exception",
-    "FloatingPointError",
-    "GeneratorExit",
-    "ImportError",
-    "IndentationError",
-    "IndexError",
-    "KeyboardInterrupt",
-    "KeyError",
-    "LookupError",
-    "MemoryError",
-    "NameError",
-    "NotImplementedError",
-    "OSError",
-    "OverflowError",
-    "ReferenceError",
-    "RuntimeError",
-    "StopIteration",
-    "SyntaxError",
-    "SystemError",
-    "SystemExit",
-    "TabError",
-    "TypeError",
-    "UnboundLocalError",
-    "UnicodeDecodeError",
-    "UnicodeEncodeError",
-    "UnicodeError",
-    "UnicodeTranslateError",
-    "ValueError",
-    "ZeroDivisionError",
-    "BytesWarning",
-    "DeprecationWarning",
-    "FutureWarning",
-    "ImportWarning",
-    "PendingDeprecationWarning",
-    "ResourceWarning",
-    "RuntimeWarning",
-    "SyntaxWarning",
-    "UnicodeWarning",
-    "UserWarning",
-    "Warning",
-}
 
 
 def get_warnings_and_exceptions_from_api_path() -> set[str]:
@@ -93,13 +47,27 @@ class Visitor(ast.NodeVisitor):
     def __init__(self, path: str, exception_set: set[str]) -> None:
         self.path = path
         self.exception_set = exception_set
-        self.possible_exceptions = set()
+        self.found_exceptions = set()
 
-    def visit_ClassDef(self, node):
-        classes = {getattr(n, "id", None) for n in node.bases}
+    def visit_ClassDef(self, node) -> None:
+        def is_an_exception_subclass(base_id: str) -> bool:
+            return (
+                base_id == "Exception"
+                or base_id.endswith("Warning")
+                or base_id.endswith("Error")
+            )
 
-        if classes and classes.issubset(exception_warning_list):
-            self.possible_exceptions.add(node.name)
+        exception_classes = []
+
+        # Go through the class's bases and check if they are an Exception or Warning.
+        for base in node.bases:
+            base_id = getattr(base, "id", None)
+            if base_id and is_an_exception_subclass(base_id):
+                exception_classes.append(base_id)
+
+        # The class subclassed an Exception or Warning so add it to the list.
+        if exception_classes:
+            self.found_exceptions.add(node.name)
 
 
 def validate_exception_and_warning_placement(
@@ -109,8 +77,11 @@ def validate_exception_and_warning_placement(
     visitor = Visitor(file_path, errors)
     visitor.visit(tree)
 
-    misplaced_exceptions = visitor.possible_exceptions.difference(errors)
+    misplaced_exceptions = visitor.found_exceptions.difference(errors)
 
+    # If misplaced_exceptions isn't an empty list then there exists
+    # pandas-defined Exception or Warnings outside of pandas/errors/__init__.py, so
+    # we should flag them.
     if misplaced_exceptions:
         msg = ERROR_MESSAGE.format(errors=", ".join(misplaced_exceptions))
         sys.stdout.write(msg)

@@ -12,7 +12,6 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
 )
 
-from pandas._version import NotThisMethod
 from pandas.util.version import InvalidVersion
 
 

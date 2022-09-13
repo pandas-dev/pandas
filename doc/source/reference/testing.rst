@@ -45,7 +45,6 @@ Exceptions and warnings
    errors.LossySetitemError
    errors.MergeError
    errors.NoBufferPresent
-   errors.NotThisMethod
    errors.NullFrequencyError
    errors.NumbaUtilError
    errors.NumExprClobberingError

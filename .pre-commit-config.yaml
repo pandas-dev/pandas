@@ -242,7 +242,7 @@ repos:
         entry: python scripts/validate_exception_location.py
         language: python
         files: ^pandas/
-        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$)
+        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
     -   id: flake8-pyi
         name: flake8-pyi
