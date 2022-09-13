@@ -7,10 +7,8 @@ from pandas._libs.parsers import (  # type: ignore[attr-defined]
 )
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NA,
-    set_option,
-)
+import pandas as pd
+from pandas import NA
 import pandas._testing as tm
 from pandas.core.arrays import (
     ArrowStringArray,
@@ -97,14 +95,14 @@ def test_maybe_upcast_object(val, storage):
     # GH#36712
     import pyarrow as pa
 
-    set_option("mode.string_storage", storage)
-    arr = np.array(["a", "b", val], dtype=np.object_)
-    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+    with pd.option_context("mode.string_storage", storage):
+        arr = np.array(["a", "b", val], dtype=np.object_)
+        result = _maybe_upcast(arr, use_nullable_dtypes=True)
 
-    if storage == "python":
-        exp_val = "c" if val == "c" else NA
-        expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
-    else:
-        exp_val = "c" if val == "c" else None
-        expected = ArrowStringArray(pa.array(["a", "b", exp_val]))
-    tm.assert_extension_array_equal(result, expected)
+        if storage == "python":
+            exp_val = "c" if val == "c" else NA
+            expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
+        else:
+            exp_val = "c" if val == "c" else None
+            expected = ArrowStringArray(pa.array(["a", "b", exp_val]))
+        tm.assert_extension_array_equal(result, expected)
