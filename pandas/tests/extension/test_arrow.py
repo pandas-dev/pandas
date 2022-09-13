@@ -1251,7 +1251,6 @@ class TestBaseMethods(base.BaseMethodsTests):
             data_missing_for_sorting, op_name, skipna, expected
         )
 
-    @pytest.mark.skip
     @pytest.mark.parametrize(
         "na_position, expected",
         [
