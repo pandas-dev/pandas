@@ -110,6 +110,7 @@ def group_quantile(
     sort_indexer: npt.NDArray[np.intp],  # const
     qs: npt.NDArray[np.float64],  # const
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_last(
     out: np.ndarray,  # rank_t[:, ::1]

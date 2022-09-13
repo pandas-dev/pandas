@@ -3657,6 +3657,10 @@ class MultiIndex(Index):
             # This is only necessary if both sides have nans or one has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
+
+            if isinstance(result, MultiIndex):
+                return result
+
         else:
             rvals = other._values.astype(object, copy=False)
             result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
