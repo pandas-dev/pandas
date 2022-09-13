@@ -13,7 +13,6 @@ from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    NaRep,
     npt,
 )
 from pandas.util._decorators import (
@@ -359,7 +358,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         extra = super()._format_attrs()
         return attrs + extra
 
-    def _format_with_header(self, header: list[str], na_rep: NaRep) -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
         result = [
             pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
             for x in self._values

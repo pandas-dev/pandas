@@ -30,7 +30,6 @@ from pandas._typing import (
     F,
     FillnaOptions,
     IgnoreRaise,
-    NaRep,
     QuantileInterpolation,
     Shape,
     npt,
@@ -540,7 +539,7 @@ class Block(PandasObject):
         return newb
 
     @final
-    def to_native_types(self, na_rep: NaRep = "nan", quoting=None, **kwargs) -> Block:
+    def to_native_types(self, na_rep: str = "nan", quoting=None, **kwargs) -> Block:
         """convert to our native types format"""
         result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
         return self.make_block(result)
@@ -2287,7 +2286,7 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
 def to_native_types(
     values: ArrayLike,
     *,
-    na_rep: NaRep = "nan",
+    na_rep: str = "nan",
     quoting=None,
     float_format=None,
     decimal: str = ".",

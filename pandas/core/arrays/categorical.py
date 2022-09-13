@@ -40,7 +40,6 @@ from pandas._typing import (
     ArrayLike,
     AstypeArg,
     Dtype,
-    NaRep,
     NpDtype,
     Ordered,
     Shape,
@@ -2200,7 +2199,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return f"Length: {len(self)}\n{info}"
 
     def _get_repr(
-        self, length: bool = True, na_rep: NaRep = "NaN", footer: bool = True
+        self, length: bool = True, na_rep: str = "NaN", footer: bool = True
     ) -> str:
         from pandas.io.formats import format as fmt
 

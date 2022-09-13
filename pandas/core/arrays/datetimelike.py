@@ -55,7 +55,6 @@ from pandas._typing import (
     DatetimeLikeScalar,
     Dtype,
     DtypeObj,
-    NaRep,
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -314,7 +313,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep: NaRep | float = "NaT", date_format=None
+        self, *, na_rep: str = "NaT", date_format=None
     ) -> npt.NDArray[np.object_]:
         """
         Helper method for astype when converting to strings.
@@ -1791,7 +1790,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        result = self._format_native_types(date_format=date_format, na_rep=str(np.nan))
         return result.astype(object, copy=False)
 
 

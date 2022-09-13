@@ -15,7 +15,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    NaRep,
     npt,
 )
 from pandas.util._decorators import (
@@ -284,7 +283,7 @@ class NumericIndex(Index):
     def _format_native_types(
         self,
         *,
-        na_rep: NaRep = "",
+        na_rep: str = "",
         float_format=None,
         decimal: str = ".",
         quoting=None,

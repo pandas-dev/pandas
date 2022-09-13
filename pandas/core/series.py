@@ -49,7 +49,6 @@ from pandas._typing import (
     IndexLabel,
     Level,
     NaPosition,
-    NaRep,
     QuantileInterpolation,
     Renamer,
     SingleManager,
@@ -1602,7 +1601,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def to_string(
         self,
         buf: None = ...,
-        na_rep: NaRep = ...,
+        na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
         index: bool = ...,
@@ -1618,7 +1617,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str],
-        na_rep: NaRep = ...,
+        na_rep: str = ...,
         float_format: str | None = ...,
         header: bool = ...,
         index: bool = ...,
@@ -1633,7 +1632,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        na_rep: NaRep = "NaN",
+        na_rep: str = "NaN",
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,

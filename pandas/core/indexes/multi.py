@@ -34,7 +34,6 @@ from pandas._typing import (
     DtypeObj,
     F,
     IgnoreRaise,
-    NaRep,
     Scalar,
     Shape,
     npt,
@@ -1322,7 +1321,7 @@ class MultiIndex(Index):
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
     def _format_native_types(
-        self, *, na_rep: NaRep = "nan", **kwargs
+        self, *, na_rep: str = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
         new_codes = []
@@ -1361,7 +1360,7 @@ class MultiIndex(Index):
         self,
         name: bool | None = None,
         formatter: Callable | None = None,
-        na_rep: NaRep | None = None,
+        na_rep: str | None = None,
         names: bool = False,
         space: int = 2,
         sparsify=None,

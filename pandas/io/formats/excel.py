@@ -26,7 +26,6 @@ import numpy as np
 from pandas._libs.lib import is_list_like
 from pandas._typing import (
     IndexLabel,
-    NaRep,
     StorageOptions,
 )
 from pandas.util._decorators import doc
@@ -500,7 +499,7 @@ class ExcelFormatter:
     def __init__(
         self,
         df,
-        na_rep: NaRep = "",
+        na_rep: str = "",
         float_format: str | None = None,
         cols: Sequence[Hashable] | None = None,
         header: Sequence[Hashable] | bool = True,

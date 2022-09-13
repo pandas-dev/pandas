@@ -29,7 +29,6 @@ from pandas._typing import (
     FilePath,
     IndexLabel,
     Level,
-    NaRep,
     QuantileInterpolation,
     Scalar,
     StorageOptions,
@@ -245,7 +244,7 @@ class Styler(StylerRenderer):
         caption: str | tuple | None = None,
         table_attributes: str | None = None,
         cell_ids: bool = True,
-        na_rep: NaRep | None = None,
+        na_rep: str | None = None,
         uuid_len: int = 5,
         decimal: str | None = None,
         thousands: str | None = None,
@@ -563,7 +562,7 @@ class Styler(StylerRenderer):
         self,
         excel_writer,
         sheet_name: str = "Sheet1",
-        na_rep: NaRep = "",
+        na_rep: str = "",
         float_format: str | None = None,
         columns: Sequence[Hashable] | None = None,
         header: Sequence[Hashable] | bool = True,
@@ -2650,7 +2649,7 @@ class Styler(StylerRenderer):
             self.table_styles = table_styles
         return self
 
-    def set_na_rep(self, na_rep: NaRep) -> StylerRenderer:
+    def set_na_rep(self, na_rep: str) -> StylerRenderer:
         """
         Set the missing data representation on a ``Styler``.
 

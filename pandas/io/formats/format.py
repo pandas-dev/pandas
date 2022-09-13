@@ -59,7 +59,6 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     IndexLabel,
-    NaRep,
     StorageOptions,
     WriteBuffer,
 )
@@ -208,7 +207,7 @@ class CategoricalFormatter:
         categorical: Categorical,
         buf: IO[str] | None = None,
         length: bool = True,
-        na_rep: NaRep = "NaN",
+        na_rep: str = "NaN",
         footer: bool = True,
     ) -> None:
         self.categorical = categorical
@@ -274,7 +273,7 @@ class SeriesFormatter:
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
-        na_rep: NaRep = "NaN",
+        na_rep: str = "NaN",
         name: bool = False,
         float_format: str | None = None,
         dtype: bool = True,
@@ -571,7 +570,7 @@ class DataFrameFormatter:
         col_space: ColspaceArgType | None = None,
         header: bool | Sequence[str] = True,
         index: bool = True,
-        na_rep: NaRep = "NaN",
+        na_rep: str = "NaN",
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
@@ -1254,7 +1253,7 @@ def format_array(
     values: Any,
     formatter: Callable | None,
     float_format: FloatFormatType | None = None,
-    na_rep: NaRep = "NaN",
+    na_rep: str = "NaN",
     digits: int | None = None,
     space: str | int | None = None,
     justify: str = "right",
@@ -1335,7 +1334,7 @@ class GenericArrayFormatter:
         values: Any,
         digits: int = 7,
         formatter: Callable | None = None,
-        na_rep: NaRep = "NaN",
+        na_rep: str = "NaN",
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
         justify: str = "right",
@@ -1510,7 +1509,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         the parameters given at initialisation, as a numpy array
         """
 
-        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: NaRep):
+        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
             mask = isna(values)
             formatted = np.array(
                 [
@@ -1622,7 +1621,7 @@ class Datetime64Formatter(GenericArrayFormatter):
     def __init__(
         self,
         values: np.ndarray | Series | DatetimeIndex | DatetimeArray,
-        nat_rep: NaRep = "NaT",
+        nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
     ) -> None:
@@ -1770,7 +1769,7 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
     return False
 
 
-def _format_datetime64(x: NaTType | Timestamp, nat_rep: NaRep = "NaT") -> str:
+def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
     if x is NaT:
         return nat_rep
 
@@ -1781,7 +1780,7 @@ def _format_datetime64(x: NaTType | Timestamp, nat_rep: NaRep = "NaT") -> str:
 
 def _format_datetime64_dateonly(
     x: NaTType | Timestamp,
-    nat_rep: NaRep = "NaT",
+    nat_rep: str = "NaT",
     date_format: str | None = None,
 ) -> str:
     if isinstance(x, NaTType):
@@ -1795,7 +1794,7 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: NaRep = "NaT", date_format: str | None = None
+    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
@@ -1841,7 +1840,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
     def __init__(
         self,
         values: np.ndarray | TimedeltaIndex,
-        nat_rep: NaRep = "NaT",
+        nat_rep: str = "NaT",
         box: bool = False,
         **kwargs,
     ) -> None:
@@ -1858,7 +1857,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
 
 def get_format_timedelta64(
     values: np.ndarray | TimedeltaIndex | TimedeltaArray,
-    nat_rep: NaRep | float = "NaT",
+    nat_rep: str = "NaT",
     box: bool = False,
 ) -> Callable:
     """

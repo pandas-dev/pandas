@@ -44,7 +44,6 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     DateTimeErrorChoices,
     IntervalClosedType,
-    NaRep,
     TimeAmbiguous,
     TimeNonexistent,
     npt,
@@ -649,7 +648,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep: NaRep | float = "NaT", date_format=None, **kwargs
+        self, *, na_rep: str = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values
 
