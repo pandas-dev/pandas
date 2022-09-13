@@ -795,9 +795,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 rslt[name] = pd.Series(self._string_chunk[js, :], index=ix)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = self._decode_string(rslt[name].str)
-                if self.blank_missing:
-                    ii = rslt[name].str.len() == 0
-                    rslt[name][ii] = np.nan
                 js += 1
             else:
                 self.close()
