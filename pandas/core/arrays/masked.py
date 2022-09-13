@@ -1028,7 +1028,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if name in {"any", "all", "min", "max", "sum", "prod", "mean"}:
+        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
         data = self._data
@@ -1104,6 +1104,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result(
             "mean", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def var(self, *, skipna=True, axis: int | None = 0, ddof: int = 1, **kwargs):
+        nv.validate_stat_ddof_func((), kwargs, fname="var")
+        result = masked_reductions.var(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
+            ddof=ddof,
+        )
+        return self._wrap_reduction_result(
+            "var", result, skipna=skipna, axis=axis, **kwargs
         )
 
     def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
