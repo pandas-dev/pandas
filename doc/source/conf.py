@@ -244,7 +244,7 @@ html_theme_options = {
     "google_analytics_id": "UA-27880019-2",
     "navbar_end": ["version-switcher", "navbar-icon-links"],
     "switcher": {
-        "json_url": "https://pandas.pydata.org/versions.json",
+        "json_url": "/versions.json",
         "version_match": switcher_version,
     },
 }
