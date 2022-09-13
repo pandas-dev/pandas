@@ -133,60 +133,6 @@ for Bokeh that can be loaded as a native pandas plotting backend via
 It is very similar to the matplotlib plotting backend, but provides interactive
 web-based charts and maps.
 
-
-`Seaborn <https://seaborn.pydata.org>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Seaborn is a Python visualization library based on
-`matplotlib <https://matplotlib.org>`__. It provides a high-level, dataset-oriented
-interface for creating attractive statistical graphics. The plotting functions
-in seaborn understand pandas objects and leverage pandas grouping operations
-internally to support concise specification of complex visualizations. Seaborn
-also goes beyond matplotlib and pandas with the option to perform statistical
-estimation while plotting, aggregating across observations and visualizing the
-fit of statistical models to emphasize patterns in a dataset.
-
-`plotnine <https://github.com/has2k1/plotnine/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
-Based on `"The Grammar of Graphics" <https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
-provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
-Various implementations to other languages are available.
-A good implementation for Python users is `has2k1/plotnine <https://github.com/has2k1/plotnine/>`__.
-
-`IPython vega <https://github.com/vega/ipyvega>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-`IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
-<https://github.com/vega/vega>`__ to create plots within Jupyter Notebook.
-
-`Plotly <https://plotly.com/python>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-`Plotly’s <https://plotly.com/>`__ `Python API <https://plotly.com/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plotly.com/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plotly.com/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `offline <https://plotly.com/python/offline/>`__, or `on-premise <https://plotly.com/product/enterprise/>`__ accounts for private use.
-
-`Lux <https://github.com/lux-org/lux>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-`Lux <https://github.com/lux-org/lux>`__ is a Python library that facilitates fast and easy experimentation with data by automating the visual data exploration process. To use Lux, simply add an extra import alongside pandas:
-
-.. code:: python
-
-    import lux
-    import pandas as pd
-
-    df = pd.read_csv("data.csv")
-    df  # discover interesting insights!
-
-By printing out a dataframe, Lux automatically `recommends a set of visualizations <https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif>`__ that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a `powerful, intuitive language <https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>`__ that allow users to create  `Altair <https://altair-viz.github.io/>`__, `matplotlib <https://matplotlib.org>`__, or `Vega-Lite <https://vega.github.io/vega-lite/>`__ visualizations without having to think at the level of code.
-
-`Qtpandas <https://github.com/draperjames/qtpandas>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
-library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
-
 `D-Tale <https://github.com/man-group/dtale>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -215,6 +161,59 @@ It can be loaded as a native pandas plotting backend via
 .. code:: python
 
     pd.set_option("plotting.backend", "hvplot")
+
+`IPython vega <https://github.com/vega/ipyvega>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
+<https://github.com/vega/vega>`__ to create plots within Jupyter Notebook.
+
+`Lux <https://github.com/lux-org/lux>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Lux <https://github.com/lux-org/lux>`__ is a Python library that facilitates fast and easy experimentation with data by automating the visual data exploration process. To use Lux, simply add an extra import alongside pandas:
+
+.. code:: python
+
+    import lux
+    import pandas as pd
+
+    df = pd.read_csv("data.csv")
+    df  # discover interesting insights!
+
+By printing out a dataframe, Lux automatically `recommends a set of visualizations <https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif>`__ that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a `powerful, intuitive language <https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>`__ that allow users to create  `Altair <https://altair-viz.github.io/>`__, `matplotlib <https://matplotlib.org>`__, or `Vega-Lite <https://vega.github.io/vega-lite/>`__ visualizations without having to think at the level of code.
+
+`Plotly <https://plotly.com/python>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Plotly’s <https://plotly.com/>`__ `Python API <https://plotly.com/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plotly.com/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plotly.com/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `offline <https://plotly.com/python/offline/>`__, or `on-premise <https://plotly.com/product/enterprise/>`__ accounts for private use.
+
+`plotnine <https://github.com/has2k1/plotnine/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
+Based on `"The Grammar of Graphics" <https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
+provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
+Various implementations to other languages are available.
+A good implementation for Python users is `has2k1/plotnine <https://github.com/has2k1/plotnine/>`__.
+
+`Qtpandas <https://github.com/draperjames/qtpandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
+library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
+
+`Seaborn <https://seaborn.pydata.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Seaborn is a Python visualization library based on
+`matplotlib <https://matplotlib.org>`__. It provides a high-level, dataset-oriented
+interface for creating attractive statistical graphics. The plotting functions
+in seaborn understand pandas objects and leverage pandas grouping operations
+internally to support concise specification of complex visualizations. Seaborn
+also goes beyond matplotlib and pandas with the option to perform statistical
+estimation while plotting, aggregating across observations and visualizing the
+fit of statistical models to emphasize patterns in a dataset.
 
 .. _ecosystem.ide:
 
