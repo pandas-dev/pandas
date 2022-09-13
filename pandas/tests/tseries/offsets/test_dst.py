@@ -251,6 +251,9 @@ def test_series_dst_addition():
         [Timestamp("2020-10-26 00:00:00+01:00"), Timestamp("2017-03-13 00:00:00-07:00")]
     )
 
-    tm.assert_series_equal((startdates + offset1), expected1)
+    result1 = startdates + offset1
+    result2 = startdates + offset2
 
-    tm.assert_series_equal((startdates + offset2), expected2)
+    tm.assert_series_equal(result1, expected1)
+
+    tm.assert_series_equal(result2, expected2)
