@@ -3978,7 +3978,7 @@ class DataFrame(NDFrame, OpsMixin):
             # set column
             self._set_item(key, value)
 
-    def _setitem_slice(self, key: slice, value):
+    def _setitem_slice(self, key: slice, value) -> None:
         # NB: we can't just use self.loc[key] = value because that
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
@@ -6624,15 +6624,17 @@ class DataFrame(NDFrame, OpsMixin):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last', ``False``}, default 'first'
             Determines which duplicates (if any) to keep.
-            - ``first`` : Drop duplicates except for the first occurrence.
-            - ``last`` : Drop duplicates except for the last occurrence.
-            - False : Drop all duplicates.
-        inplace : bool, default False
+
+            - 'first' : Drop duplicates except for the first occurrence.
+            - 'last' : Drop duplicates except for the last occurrence.
+            - ``False`` : Drop all duplicates.
+
+        inplace : bool, default ``False``
             Whether to modify the DataFrame rather than creating a new one.
-        ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
 
             .. versionadded:: 1.0.0
 
@@ -8581,7 +8583,9 @@ Parrot 2  Parrot       24.0
     @Substitution("")
     @Appender(_shared_docs["pivot"])
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def pivot(self, index=None, columns=None, values=None) -> DataFrame:
+    def pivot(
+        self, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
+    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
@@ -9241,8 +9245,14 @@ Parrot 2  Parrot       24.0
             periods = int(periods)
 
         axis = self._get_axis_number(axis)
-        if axis == 1 and periods != 0:
-            return self - self.shift(periods, axis=axis)
+        if axis == 1:
+            if periods != 0:
+                # in the periods == 0 case, this is equivalent diff of 0 periods
+                #  along axis=0, and the Manager method may be somewhat more
+                #  performant, so we dispatch in that case.
+                return self - self.shift(periods, axis=axis)
+            # With periods=0 this is equivalent to a diff with axis=0
+            axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")

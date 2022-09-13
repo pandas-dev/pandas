@@ -10,6 +10,8 @@ def group_median_float64(
     values: np.ndarray,  # ndarray[float64_t, ndim=2]
     labels: npt.NDArray[np.int64],
     min_count: int = ...,  # Py_ssize_t
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_cumprod_float64(
     out: np.ndarray,  # float64_t[:, ::1]
@@ -108,6 +110,7 @@ def group_quantile(
     sort_indexer: npt.NDArray[np.intp],  # const
     qs: npt.NDArray[np.float64],  # const
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_last(
     out: np.ndarray,  # rank_t[:, ::1]

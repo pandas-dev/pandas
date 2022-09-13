@@ -35,6 +35,10 @@ def get_dummies(
     """
     Convert categorical variable into dummy/indicator variables.
 
+    Each variable is converted in as many 0/1 variables as there are different
+    values. Columns in the output are each named after a value; if the input is
+    a DataFrame, the name of the original variable is prepended to the value.
+
     Parameters
     ----------
     data : array-like, Series, or DataFrame
@@ -65,11 +69,12 @@ def get_dummies(
     Returns
     -------
     DataFrame
-        Dummy-coded data.
+        Dummy-coded data. If `data` contains other columns than the
+        dummy-coded one(s), these will be prepended, unaltered, to the result.
 
     See Also
     --------
-    Series.str.get_dummies : Convert Series to dummy codes.
+    Series.str.get_dummies : Convert Series of strings to dummy codes.
     :func:`~pandas.from_dummies` : Convert dummy codes to categorical ``DataFrame``.
 
     Notes

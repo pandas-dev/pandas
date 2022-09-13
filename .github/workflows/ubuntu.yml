@@ -26,7 +26,7 @@ jobs:
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
@@ -42,18 +42,26 @@ jobs:
           - name: "Minimum Versions"
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-          - name: "Locale: it_IT.utf8"
+          - name: "Locale: it_IT"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
+            # Use the utf8 version as the default, it has no bad side-effect.
             lang: "it_IT.utf8"
             lc_all: "it_IT.utf8"
-          - name: "Locale: zh_CN.utf8"
+            # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "it_IT"
+          - name: "Locale: zh_CN"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
+            # Use the utf8 version as the default, it has no bad side-effect.
             lang: "zh_CN.utf8"
             lc_all: "zh_CN.utf8"
+            # Also install zh_CN (its encoding is gb2312) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "zh_CN"
           - name: "Copy-on-Write"
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -147,6 +155,12 @@ jobs:
     - name: Extra installs
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y xsel ${{ env.EXTRA_APT }}
+
+    - name: Generate extra locales
+      # These extra locales will be available for locale.setlocale() calls in tests
+      run: |
+        sudo locale-gen ${{ matrix.extra_loc }}
+      if: ${{ matrix.extra_loc }}
 
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
