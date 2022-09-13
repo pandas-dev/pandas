@@ -769,7 +769,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return indexer, value
 
     @final
-    def _ensure_listlike_indexer(self, key, axis=None, value=None):
+    def _ensure_listlike_indexer(self, key, axis=None, value=None) -> None:
         """
         Ensure that a list-like of column labels are all present by adding them if
         they do not already exist.
@@ -955,8 +955,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  is equivalent.
             #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
-                # error "_LocationIndexer" has no attribute
-                # "_handle_lowerdim_multi_index_axis0"
                 return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(tup)
 
         tup = self._validate_key_length(tup)
@@ -1013,8 +1011,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
-                    # error "_LocationIndexer" has no attribute
-                    # "_handle_lowerdim_multi_index_axis0"
                     return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(
                         tup
                     )
@@ -1955,7 +1951,7 @@ class _iLocIndexer(_LocationIndexer):
 
                 self._setitem_single_column(loc, val, pi)
 
-    def _setitem_single_column(self, loc: int, value, plane_indexer):
+    def _setitem_single_column(self, loc: int, value, plane_indexer) -> None:
         """
 
         Parameters
@@ -2038,7 +2034,7 @@ class _iLocIndexer(_LocationIndexer):
                 # TODO: what if we got here indirectly via loc?
         return
 
-    def _setitem_single_block(self, indexer, value, name: str):
+    def _setitem_single_block(self, indexer, value, name: str) -> None:
         """
         _setitem_with_indexer for the case when we have a single Block.
         """

@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas import isna
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.indexes.base import Index
+from pandas.core.indexes.multi import MultiIndex
 
 from pandas.io.common import (
     file_exists,
@@ -855,7 +856,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return table.xpath(".//tfoot//tr")
 
 
-def _expand_elements(body):
+def _expand_elements(body) -> None:
     data = [len(elem) for elem in body]
     lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     lens_max = lens.max()
@@ -1009,9 +1010,11 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
         try:
             df = _data_to_frame(data=table, **kwargs)
             # Cast MultiIndex header to an Index of tuples when extracting header
-            # links and replace nan with None.
+            # links and replace nan with None (therefore can't use mi.to_flat_index()).
             # This maintains consistency of selection (e.g. df.columns.str[1])
-            if extract_links in ("all", "header"):
+            if extract_links in ("all", "header") and isinstance(
+                df.columns, MultiIndex
+            ):
                 df.columns = Index(
                     ((col[0], None if isna(col[1]) else col[1]) for col in df.columns),
                     tupleize_cols=False,

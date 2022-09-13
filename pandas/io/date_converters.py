@@ -92,9 +92,7 @@ def generic_parser(parse_func, *cols) -> np.ndarray:
     """
 
     warnings.warn(
-        """
-        Use pd.to_datetime instead.
-""",
+        "Use pd.to_datetime instead.",
         FutureWarning,
         stacklevel=find_stack_level(inspect.currentframe()),
     )

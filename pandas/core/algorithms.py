@@ -14,6 +14,7 @@ from typing import (
     Sequence,
     cast,
     final,
+    overload,
 )
 import warnings
 
@@ -101,6 +102,7 @@ if TYPE_CHECKING:
         Categorical,
         DataFrame,
         Index,
+        MultiIndex,
         Series,
     )
     from pandas.core.arrays import (
@@ -1041,6 +1043,10 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
+    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
+        values = cast("BaseMaskedArray", values)
+        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)
 
@@ -1780,7 +1786,7 @@ def safe_sort(
     na_sentinel: int = -1,
     assume_unique: bool = False,
     verify: bool = True,
-) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray | MultiIndex | tuple[np.ndarray | MultiIndex, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
 
@@ -1809,7 +1815,7 @@ def safe_sort(
 
     Returns
     -------
-    ordered : ndarray
+    ordered : ndarray or MultiIndex
         Sorted ``values``
     new_codes : ndarray
         Reordered ``codes``; returned when ``codes`` is not None.
@@ -1827,6 +1833,8 @@ def safe_sort(
         raise TypeError(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
+    original_values = values
+    is_mi = isinstance(original_values, ABCMultiIndex)
 
     if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
@@ -1838,6 +1846,7 @@ def safe_sort(
         values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
+    ordered: np.ndarray | MultiIndex
 
     if (
         not is_extension_array_dtype(values)
@@ -1847,13 +1856,17 @@ def safe_sort(
     else:
         try:
             sorter = values.argsort()
-            ordered = values.take(sorter)
+            if is_mi:
+                # Operate on original object instead of casted array (MultiIndex)
+                ordered = original_values.take(sorter)
+            else:
+                ordered = values.take(sorter)
         except TypeError:
             # Previous sorters failed or were not applicable, try `_sort_mixed`
             # which would work, but which fails for special case of 1d arrays
             # with tuples.
             if values.size and isinstance(values[0], tuple):
-                ordered = _sort_tuples(values)
+                ordered = _sort_tuples(values, original_values)
             else:
                 ordered = _sort_mixed(values)
 
@@ -1915,19 +1928,33 @@ def _sort_mixed(values) -> np.ndarray:
     )
 
 
-def _sort_tuples(values: np.ndarray) -> np.ndarray:
+@overload
+def _sort_tuples(values: np.ndarray, original_values: np.ndarray) -> np.ndarray:
+    ...
+
+
+@overload
+def _sort_tuples(values: np.ndarray, original_values: MultiIndex) -> MultiIndex:
+    ...
+
+
+def _sort_tuples(
+    values: np.ndarray, original_values: np.ndarray | MultiIndex
+) -> np.ndarray | MultiIndex:
     """
     Convert array of tuples (1d) to array or array (2d).
     We need to keep the columns separately as they contain different types and
     nans (can't use `np.sort` as it may fail when str and nan are mixed in a
     column as types cannot be compared).
+    We have to apply the indexer to the original values to keep the dtypes in
+    case of MultiIndexes
     """
     from pandas.core.internals.construction import to_arrays
     from pandas.core.sorting import lexsort_indexer
 
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
-    return values[indexer]
+    return original_values[indexer]
 
 
 def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
