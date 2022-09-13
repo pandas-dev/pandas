@@ -1985,7 +1985,7 @@ def _trim_zeros_float(
     trimmed = str_floats
     number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
 
-    def is_number_with_decimal(x):
+    def is_number_with_decimal(x) -> bool:
         return re.match(number_regex, x) is not None
 
     def should_trim(values: np.ndarray | list[str]) -> bool:
