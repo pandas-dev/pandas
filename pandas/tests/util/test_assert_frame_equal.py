@@ -151,7 +151,8 @@ def test_frame_equal_index_mismatch(check_like, obj_fixture):
 
 {obj_fixture}\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)"""
+\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)
+At positional index 2, first diff: c != d"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "d"])

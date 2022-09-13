@@ -455,7 +455,7 @@ class JoinUnit:
         if upcasted_na is None and self.block.dtype.kind != "V":
             # No upcasting is necessary
             fill_value = self.block.fill_value
-            values = self.block.get_values()
+            values = self.block.values
         else:
             fill_value = upcasted_na
 
