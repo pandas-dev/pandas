@@ -27,7 +27,10 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_sparse,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCExtensionArray,
@@ -103,10 +106,12 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # ea_compat_axis see GH#39574
         to_concat = non_empties
 
+    dtypes = {obj.dtype for obj in to_concat}
     kinds = {obj.dtype.kind for obj in to_concat}
-    contains_datetime = any(kind in ["m", "M"] for kind in kinds) or any(
-        isinstance(obj, ABCExtensionArray) and obj.ndim > 1 for obj in to_concat
-    )
+    contains_datetime = any(
+        isinstance(dtype, (np.dtype, DatetimeTZDtype)) and dtype.kind in ["m", "M"]
+        for dtype in dtypes
+    ) or any(isinstance(obj, ABCExtensionArray) and obj.ndim > 1 for obj in to_concat)
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
