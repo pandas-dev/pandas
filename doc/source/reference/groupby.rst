@@ -27,6 +27,13 @@ Indexing, iteration
 
    Grouper
 
+Function application helper
+---------------------------
+.. autosummary::
+   :toctree: api/
+
+   NamedAgg
+
 .. currentmodule:: pandas.core.groupby
 
 Function application
