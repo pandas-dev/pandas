@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -62,6 +61,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -1349,12 +1349,12 @@ class _MergeOperation:
                 raise ValueError(msg)
             elif not needs_i8_conversion(lk.dtype) and needs_i8_conversion(rk.dtype):
                 raise ValueError(msg)
-            elif is_datetime64tz_dtype(lk.dtype) and not is_datetime64tz_dtype(
-                rk.dtype
+            elif isinstance(lk.dtype, DatetimeTZDtype) and not isinstance(
+                rk.dtype, DatetimeTZDtype
             ):
                 raise ValueError(msg)
-            elif not is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(
-                rk.dtype
+            elif not isinstance(lk.dtype, DatetimeTZDtype) and isinstance(
+                rk.dtype, DatetimeTZDtype
             ):
                 raise ValueError(msg)
 
@@ -2280,9 +2280,10 @@ def _factorize_keys(
     rk = extract_array(rk, extract_numpy=True, extract_range=True)
     # TODO: if either is a RangeIndex, we can likely factorize more efficiently?
 
-    if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
+    if isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
+        # TODO(non-nano): need to make sure resolutions match
         lk = cast("DatetimeArray", lk)._ndarray
         rk = cast("DatetimeArray", rk)._ndarray
 

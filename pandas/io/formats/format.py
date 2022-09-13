@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -79,6 +78,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -1290,7 +1290,7 @@ def format_array(
     fmt_klass: type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values.dtype):
+    elif isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
