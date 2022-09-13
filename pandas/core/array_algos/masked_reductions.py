@@ -22,6 +22,7 @@ def _reductions(
     skipna: bool = True,
     min_count: int = 0,
     axis: int | None = None,
+    **kwargs,
 ):
     """
     Sum, mean or product for 1D masked array.
@@ -45,14 +46,14 @@ def _reductions(
         if mask.any(axis=axis) or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
-            return func(values, axis=axis)
+            return func(values, axis=axis, **kwargs)
     else:
         if check_below_min_count(values.shape, mask, min_count) and (
             axis is None or values.ndim == 1
         ):
             return libmissing.NA
 
-        return func(values, where=~mask, axis=axis)
+        return func(values, where=~mask, axis=axis, **kwargs)
 
 
 def sum(
@@ -149,3 +150,19 @@ def mean(
     if not values.size or mask.all():
         return libmissing.NA
     return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
+
+
+def var(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: int | None = None,
+    ddof: int = 1,
+):
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    return _reductions(
+        np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+    )
