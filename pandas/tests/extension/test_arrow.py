@@ -319,20 +319,6 @@ class TestConstructors(base.BaseConstructorsTests):
         tm.assert_extension_array_equal(result, data)
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError, reason="pyarrow.ChunkedArray backing is 1D."
-)
-class TestDim2Compat(base.Dim2CompatTests):
-    pass
-
-
-@pytest.mark.xfail(
-    raises=NotImplementedError, reason="pyarrow.ChunkedArray backing is 1D."
-)
-class TestNDArrayBacked2D(base.NDArrayBacked2DTests):
-    pass
-
-
 class TestGetitemTests(base.BaseGetitemTests):
     @pytest.mark.xfail(
         reason=(
