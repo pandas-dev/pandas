@@ -1095,13 +1095,7 @@ class TestBaseMethods(base.BaseMethodsTests):
                 )
             )
         with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0
-            and not (
-                pa.types.is_date(pa_dtype)
-                or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is None)
-            ),
-            check_stacklevel=False,
+            PerformanceWarning, pa_version_under7p0, check_stacklevel=False
         ):
             super().test_value_counts_with_normalize(data)
 
@@ -1759,7 +1753,7 @@ def test_mode(data_for_grouping, dropna, take_idx, exp_idx, request):
 
 
 def test_repr_from_arrow_array(data, frame_or_series):
-    # GH 34986 & 48238
+    # GH 48238
     pa_array = pa.array([data[0], None])
     result = frame_or_series(pa_array, dtype=ArrowDtype(pa_array.type))
     repr(result)
