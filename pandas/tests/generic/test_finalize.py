@@ -109,14 +109,13 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("nsmallest", 1, "A")),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel")),
-    pytest.param(
+
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("add", pd.DataFrame(*frame_data)),
         ),
-        marks=not_implemented_mark,
-    ),
+
     # TODO: div, mul, etc.
     pytest.param(
         (
@@ -539,21 +538,18 @@ def test_finalize_called_eval_numexpr():
         (pd.DataFrame({"A": [1]}), pd.Series([1])),
     ],
 )
-def test_binops(request, args, annotate, all_arithmetic_functions):
-    # This generates 326 tests... Is that needed?
+def test_binops(request, args, annotate, all_binary_operators):
+    # This generates 624 tests... Is that needed?
     left, right = args
     if annotate == "both" and isinstance(left, int) or isinstance(right, int):
         return
-
-    if isinstance(left, pd.DataFrame) or isinstance(right, pd.DataFrame):
-        request.node.add_marker(pytest.mark.xfail(reason="not implemented"))
 
     if annotate in {"left", "both"} and not isinstance(left, int):
         left.attrs = {"a": 1}
     if annotate in {"left", "both"} and not isinstance(right, int):
         right.attrs = {"a": 1}
 
-    result = all_arithmetic_functions(left, right)
+    result = all_binary_operators(left, right)
     assert result.attrs == {"a": 1}
 
 

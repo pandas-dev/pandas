@@ -1236,6 +1236,7 @@ Metadata
 ^^^^^^^^
 - Fixed metadata propagation in :meth:`DataFrame.melt` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
+- Fixed metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 -
 
 Other
