@@ -330,22 +330,20 @@ def test_to_json_append_mode(mode_):
     # Test ValueError when mode is not supported option
     df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     msg = (
-        f"mode={repr(mode_)} is not a valid option."
+        f"mode={mode_} is not a valid option."
         "Only 'w' and 'a' are currently supported."
     )
     with pytest.raises(ValueError, match=msg):
         df.to_json(mode=mode_, lines=False, orient="records")
 
 
-def to_json_append_output():
+def to_json_append_output_consistent_columns():
     # GH 35849
-    # Testing that resulting outputs read in as expected.
+    # Testing that resulting output reads in as expected.
+    # Testing same columns, new rows
     df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
-    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
-    df4 = DataFrame({"col4": [True, False]})
 
-    # Test 1, df1 and df2
     expected = DataFrame({"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]})
     with tm.ensure_clean("test.json") as path:
         # Save dataframes to the same file
@@ -356,7 +354,46 @@ def to_json_append_output():
         result = read_json(path, lines=True)
         tm.assert_frame_equal(result, expected)
 
+
+def to_json_append_output_inconsistent_columns():
+    # GH 35849
+    # Testing that resulting output reads in as expected.
+    # Testing one new column, one old column, new rows
+    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
+
     # Test 2: df1, df2, df3, df4 (in that order)
+    expected = DataFrame(
+        {
+            "col1": [
+                1,
+                2,
+                None,
+                None,
+            ],
+            "col2": ["a", "b", "e", "f"],
+            "col3": [None, None, "!", "#"],
+        }
+    )
+    with tm.ensure_clean("test.json") as path:
+        # Save dataframes to the same file
+        df1.to_json(path, mode="a", lines=True, orient="records")
+        df3.to_json(path, mode="a", lines=True, orient="records")
+
+        # Read path file
+        result = read_json(path, lines=True)
+        tm.assert_frame_equal(result, expected)
+
+
+def to_json_append_output_different_columns():
+    # GH 35849
+    # Testing that resulting output reads in as expected.
+    # Testing same, differing and new columns
+    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
+    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
+    df4 = DataFrame({"col4": [True, False]})
+
     expected = DataFrame(
         {
             "col1": [1, 2, 3, 4, None, None, None, None],
@@ -376,7 +413,17 @@ def to_json_append_output():
         result = read_json(path, lines=True)
         tm.assert_frame_equal(result, expected)
 
-    # Test 3: df4, df3, df2, df1 (in that order)
+
+def to_json_append_output_different_columns_reordered():
+    # GH 35849
+    # Testing that resulting output reads in as expected.
+    # Testing specific result column order.
+    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
+    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
+    df4 = DataFrame({"col4": [True, False]})
+
+    # df4, df3, df2, df1 (in that order)
     expected = DataFrame(
         {
             "col4": [True, False, None, None, None, None, None, None],
