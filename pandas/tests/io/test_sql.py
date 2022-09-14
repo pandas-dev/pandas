@@ -1441,7 +1441,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         )
         table.create(self.conn)
 
-        df1 = pd.read_sql_table("test_type", self.conn)
+        df1 = read_sql_table("test_type", self.conn)
         assert df1.a.dtype == "float64"
         assert df1.b.dtype == "int64"
 
