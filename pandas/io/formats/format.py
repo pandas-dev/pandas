@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -79,6 +78,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -1290,7 +1290,7 @@ def format_array(
     fmt_klass: type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values.dtype):
+    elif isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
@@ -2116,11 +2116,56 @@ class EngFormatter:
 
 def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> None:
     """
-    Alter default behavior on how float is formatted in DataFrame.
-    Format float in engineering format. By accuracy, we mean the number of
-    decimal digits after the floating point.
+    Format float representation in DataFrame with SI notation.
 
-    See also EngFormatter.
+    Parameters
+    ----------
+    accuracy : int, default 3
+        Number of decimal digits after the floating point.
+    use_eng_prefix : bool, default False
+        Whether to represent a value with SI prefixes.
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([1e-9, 1e-3, 1, 1e3, 1e6])
+    >>> df
+                  0
+    0  1.000000e-09
+    1  1.000000e-03
+    2  1.000000e+00
+    3  1.000000e+03
+    4  1.000000e+06
+
+    >>> pd.set_eng_float_format(accuracy=1)
+    >>> df
+             0
+    0  1.0E-09
+    1  1.0E-03
+    2  1.0E+00
+    3  1.0E+03
+    4  1.0E+06
+
+    >>> pd.set_eng_float_format(use_eng_prefix=True)
+    >>> df
+            0
+    0  1.000n
+    1  1.000m
+    2   1.000
+    3  1.000k
+    4  1.000M
+
+    >>> pd.set_eng_float_format(accuracy=1, use_eng_prefix=True)
+    >>> df
+          0
+    0  1.0n
+    1  1.0m
+    2   1.0
+    3  1.0k
+    4  1.0M
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 
