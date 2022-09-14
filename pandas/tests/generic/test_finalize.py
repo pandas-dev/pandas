@@ -109,13 +109,11 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("nsmallest", 1, "A")),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel")),
-
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("add", pd.DataFrame(*frame_data)),
-        ),
-
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("add", pd.DataFrame(*frame_data)),
+    ),
     # TODO: div, mul, etc.
     pytest.param(
         (
