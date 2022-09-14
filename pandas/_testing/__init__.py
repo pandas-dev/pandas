@@ -215,7 +215,7 @@ if not pa_version_under1p01:
         for unit in ["s", "ms", "us", "ns"]
         for tz in [None, "UTC", "US/Pacific", "US/Eastern"]
     ]
-    TIMEDELTA_PYARROW_DTYPES = [pa.duration(unit) for unit in ["s", "ms", "us", "ns"]]
+    # TIMEDELTA_PYARROW_DTYPES = [pa.duration(unit) for unit in ["s", "ms", "us", "ns"]]
 
     BOOL_PYARROW_DTYPES = [pa.bool_()]
 
@@ -227,7 +227,7 @@ if not pa_version_under1p01:
         + TIME_PYARROW_DTYPES
         + DATE_PYARROW_DTYPES
         + DATETIME_PYARROW_DTYPES
-        + TIMEDELTA_PYARROW_DTYPES
+        # + TIMEDELTA_PYARROW_DTYPES
         + BOOL_PYARROW_DTYPES
     )
 
