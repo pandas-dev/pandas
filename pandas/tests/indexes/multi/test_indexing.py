@@ -898,3 +898,29 @@ def test_pyint_engine():
     missing = tuple([0, 1] * 5 * N)
     result = index.get_indexer([missing] + [keys[i] for i in idces])
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys,expected",
+    [
+        ((slice(None), [5, 4]), [1, 0]),
+        ((slice(None), [4, 5]), [0, 1]),
+        (([True, False, True], [4, 6]), [0, 2]),
+        (([True, False, True], [6, 4]), [0, 2]),
+        ((2, [4, 5]), [0, 1]),
+        ((2, [5, 4]), [1, 0]),
+        (([2], [4, 5]), [0, 1]),
+        (([2], [5, 4]), [1, 0]),
+    ],
+)
+def test_get_locs_reordering(keys, expected):
+    # GH48384
+    idx = MultiIndex.from_arrays(
+        [
+            [2, 2, 1],
+            [4, 5, 6],
+        ]
+    )
+    result = idx.get_locs(keys)
+    expected = np.array(expected, dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
