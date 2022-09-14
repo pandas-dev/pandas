@@ -10,6 +10,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -482,30 +483,37 @@ def _convert_by(by):
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["data"])
 def pivot(
     data: DataFrame,
-    index: IndexLabel | None = None,
-    columns: IndexLabel | None = None,
-    values: IndexLabel | None = None,
+    index: IndexLabel | lib.NoDefault = lib.NoDefault,
+    columns: IndexLabel | lib.NoDefault = lib.NoDefault,
+    values: IndexLabel | lib.NoDefault = lib.NoDefault,
 ) -> DataFrame:
-    if columns is None:
+    if columns is lib.NoDefault:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
     columns_listlike = com.convert_to_list_like(columns)
 
+    # If columns is None we will create a MultiIndex level with None as name
+    # which might cause duplicated names because None is the default for
+    # level names
+    data.index.names = [
+        name if name is not None else lib.NoDefault for name in data.index.names
+    ]
+
     indexed: DataFrame | Series
-    if values is None:
-        if index is not None:
+    if values is lib.NoDefault:
+        if index is not lib.NoDefault:
             cols = com.convert_to_list_like(index)
         else:
             cols = []
 
-        append = index is None
+        append = index is lib.NoDefault
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
             cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
-        if index is None:
+        if index is lib.NoDefault:
             if isinstance(data.index, MultiIndex):
                 # GH 23955
                 index_list = [
@@ -531,7 +539,12 @@ def pivot(
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
     # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
     # "Hashable"
-    return indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    result.index.names = [
+        name if name is not lib.NoDefault else None for name in result.index.names
+    ]
+
+    return result
 
 
 def crosstab(

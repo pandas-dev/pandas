@@ -11,7 +11,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    intp_t,
     ndarray,
 )
 

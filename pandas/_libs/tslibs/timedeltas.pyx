@@ -51,7 +51,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
-    get_conversion_factor,
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
@@ -1548,7 +1547,7 @@ cdef class _Timedelta(timedelta):
     @cython.cdivision(False)
     cdef _Timedelta _as_reso(self, NPY_DATETIMEUNIT reso, bint round_ok=True):
         cdef:
-            int64_t value, mult, div, mod
+            int64_t value
 
         if reso == self._reso:
             return self

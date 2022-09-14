@@ -1,9 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
-import inspect
 from typing import Literal
-import warnings
 
 cimport cython
 from cpython.datetime cimport (
@@ -31,8 +29,6 @@ from cython cimport (
     floating,
 )
 
-from pandas.util._exceptions import find_stack_level
-
 import_datetime()
 
 import numpy as np
@@ -47,7 +43,6 @@ from numpy cimport (
     PyArray_IterNew,
     complex128_t,
     flatiter,
-    float32_t,
     float64_t,
     int64_t,
     intp_t,
@@ -315,51 +310,42 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool = True):
+def fast_unique_multiple(ndarray left, ndarray right) -> list:
     """
-    Generate a list of unique values from a list of arrays.
+    Generate a list indices we have to add to the left to get the union
+    of both arrays.
 
     Parameters
     ----------
-    list : array-like
-        List of array-like objects.
-    sort : bool
-        Whether or not to sort the resulting unique list.
+    left : np.ndarray
+        Left array that is used as base.
+    right : np.ndarray
+        right array that is checked for values that are not in left.
+        right can not have duplicates.
 
     Returns
     -------
-    list of unique values
+    list of indices that we have to add to the left array.
     """
     cdef:
-        ndarray[object] buf
-        Py_ssize_t k = len(arrays)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
+        Py_ssize_t j, n
+        list indices = []
+        set table = set()
         object val, stub = 0
 
-    for i in range(k):
-        buf = arrays[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
+    n = len(left)
+    for j in range(n):
+        val = left[j]
+        if val not in table:
+            table.add(val)
 
-    if sort is None:
-        try:
-            uniques.sort()
-        except TypeError:
-            warnings.warn(
-                "The values in the array are unorderable. "
-                "Pass `sort=False` to suppress this warning.",
-                RuntimeWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-            pass
+    n = len(right)
+    for j in range(n):
+        val = right[j]
+        if val not in table:
+            indices.append(j)
 
-    return uniques
+    return indices
 
 
 @cython.wraparound(False)
