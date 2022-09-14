@@ -996,7 +996,6 @@ Datetimelike
 - Bug in :class:`.DatetimeArray` construction when passed another :class:`.DatetimeArray` and ``freq=None`` incorrectly inferring the freq from the given array (:issue:`47296`)
 - Bug in :func:`to_datetime` where ``OutOfBoundsDatetime`` would be thrown even if ``errors=coerce`` if there were more than 50 rows (:issue:`45319`)
 - Bug when adding a :class:`DateOffset` to a :class:`Series` would not add the ``nanoseconds`` field (:issue:`47856`)
-- Bug where adding a :class:`DateOffset` to a :class:`DatetimeIndex` or :class:`Series` over a Daylight Savings Time boundary would produce an incorrect result (:issue:`43784`)
 -
 
 Timedelta
