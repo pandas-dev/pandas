@@ -1933,7 +1933,7 @@ class MultiIndex(Index):
             return self.sortorder
         return _lexsort_depth(self.codes, self.nlevels)
 
-    def _sort_levels_monotonic(self) -> MultiIndex:
+    def _sort_levels_monotonic(self, raise_if_unsortable=False) -> MultiIndex:
         """
         This is an *internal* function.
 
@@ -1980,7 +1980,8 @@ class MultiIndex(Index):
                     # indexer to reorder the levels
                     indexer = lev.argsort()
                 except TypeError:
-                    pass
+                    if raise_if_unsortable:
+                        raise
                 else:
                     lev = lev.take(indexer)
 
@@ -2227,7 +2228,7 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         if len(args) == 0 and len(kwargs) == 0:
             # lexsort is significantly faster than self._values.argsort()
-            target = self._sort_levels_monotonic()
+            target = self._sort_levels_monotonic(raise_if_unsortable=True)
             return lexsort_indexer(target._get_codes_for_sorting())
         return self._values.argsort(*args, **kwargs)
 
