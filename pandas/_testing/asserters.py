@@ -883,8 +883,8 @@ def assert_series_equal(
     check_category_order=True,
     check_freq=True,
     check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
     obj: str = "Series",
     *,
     check_index=True,
@@ -1153,8 +1153,8 @@ def assert_frame_equal(
     check_like=False,
     check_freq=True,
     check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
     obj: str = "DataFrame",
 ) -> None:
     """

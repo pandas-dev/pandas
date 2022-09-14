@@ -44,6 +44,7 @@ from pandas._libs import (
 )
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     Dtype,
     FillnaOptions,
@@ -3185,7 +3186,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def quantile(
         self,
-        q=0.5,
+        q: float | AnyArrayLike = 0.5,
         interpolation: str = "linear",
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ):
@@ -3306,7 +3307,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            q = [q]
+            # error: Incompatible types in assignment (expression has type "List[
+            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
+            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
+            # Any, Any]], Index, Series]]")
+            q = [q]  # type: ignore[assignment]
 
         qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
