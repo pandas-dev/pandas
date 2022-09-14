@@ -362,15 +362,9 @@ def to_json_append_output_inconsistent_columns():
     df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
 
-    # Test 2: df1, df2, df3, df4 (in that order)
     expected = DataFrame(
         {
-            "col1": [
-                1,
-                2,
-                None,
-                None,
-            ],
+            "col1": [1, 2, None, None],
             "col2": ["a", "b", "e", "f"],
             "col3": [None, None, "!", "#"],
         }
