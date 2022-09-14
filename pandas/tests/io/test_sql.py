@@ -1426,13 +1426,13 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     def test_sqlalchemy_numeric_type_mapping(self):
         from sqlalchemy import (
             Column,
-            Metadata,
+            MetaData,
             Numeric,
             Table,
         )
 
         # GH34988 Lost precision of NUMBER in read_sql_table()
-        metadata = Metadata()
+        metadata = MetaData()
         table = Table(
             "test_type",
             metadata,
@@ -1441,8 +1441,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         )
         table.create(self.conn)
 
-        db = sql.SQLDatabase(self.conn)
-        df1 = sql.SQLTable("test_type", db, index=False)
+        df1 = pd.read_sql_table("test_type", self.conn)
         assert df1.a.dtype == "float64"
         assert df1.b.dtype == "int64"
 
