@@ -922,5 +922,5 @@ def test_get_locs_reordering(keys, expected):
         ]
     )
     result = idx.get_locs(keys)
-    expected = np.array(expected)
+    expected = np.array(expected, dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
