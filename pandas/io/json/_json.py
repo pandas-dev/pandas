@@ -136,6 +136,7 @@ def to_json(
     index: bool = True,
     indent: int = 0,
     storage_options: StorageOptions = None,
+    mode: str = "w",
 ) -> str | None:
 
     if not index and orient not in ["split", "table"]:
@@ -145,6 +146,20 @@ def to_json(
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
+
+    if mode not in ["a", "w"]:
+        msg = (
+            f"mode={repr(mode)} is not a valid option."
+            "Only 'w' and 'a' are currently supported."
+        )
+        raise ValueError(msg)
+
+    if mode == "a" and (not lines or orient != "records"):
+        msg = (
+            "mode='a' (append) is only supported when"
+            "lines is True and orient is 'records'"
+        )
+        raise ValueError(msg)
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
@@ -177,7 +192,7 @@ def to_json(
     if path_or_buf is not None:
         # apply compression and byte/text conversion
         with get_handle(
-            path_or_buf, "w", compression=compression, storage_options=storage_options
+            path_or_buf, mode, compression=compression, storage_options=storage_options
         ) as handles:
             handles.handle.write(s)
     else:

@@ -297,3 +297,101 @@ def test_chunksize_is_incremental():
     reader = MyReader(jsonl)
     assert len(list(read_json(reader, lines=True, chunksize=100))) > 1
     assert reader.read_count > 10
+
+
+@pytest.mark.parametrize("orient_", ["split", "index", "table"])
+def test_to_json_append_orient(orient_):
+    # GH 35849
+    # Test ValueError when orient is not 'records'
+    df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    msg = (
+        r"mode='a' \(append\) is only supported when"
+        "lines is True and orient is 'records'"
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.to_json(mode="a", orient=orient_)
+
+
+def test_to_json_append_lines():
+    # GH 35849
+    # Test ValueError when lines is not True
+    df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    msg = (
+        r"mode='a' \(append\) is only supported when"
+        "lines is True and orient is 'records'"
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.to_json(mode="a", lines=False, orient="records")
+
+
+@pytest.mark.parametrize("mode_", ["r", "x"])
+def test_to_json_append_mode(mode_):
+    # GH 35849
+    # Test ValueError when mode is not supported option
+    df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    msg = (
+        f"mode={repr(mode_)} is not a valid option."
+        "Only 'w' and 'a' are currently supported."
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.to_json(mode=mode_, lines=False, orient="records")
+
+
+def to_json_append_output():
+    # GH 35849
+    # Testing that resulting outputs read in as expected.
+    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
+    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
+    df4 = DataFrame({"col4": [True, False]})
+
+    # Test 1, df1 and df2
+    expected = DataFrame({"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]})
+    with tm.ensure_clean("test.json") as path:
+        # Save dataframes to the same file
+        df1.to_json(path, lines=True, orient="records")
+        df2.to_json(path, mode="a", lines=True, orient="records")
+
+        # Read path file
+        result = read_json(path, lines=True)
+        tm.assert_frame_equal(result, expected)
+
+    # Test 2: df1, df2, df3, df4 (in that order)
+    expected = DataFrame(
+        {
+            "col1": [1, 2, 3, 4, None, None, None, None],
+            "col2": ["a", "b", "c", "d", "e", "f", None, None],
+            "col3": [None, None, None, None, "!", "#", None, None],
+            "col4": [None, None, None, None, None, None, True, False],
+        }
+    )
+    with tm.ensure_clean("test.json") as path:
+        # Save dataframes to the same file
+        df1.to_json(path, mode="a", lines=True, orient="records")
+        df2.to_json(path, mode="a", lines=True, orient="records")
+        df3.to_json(path, mode="a", lines=True, orient="records")
+        df4.to_json(path, mode="a", lines=True, orient="records")
+
+        # Read path file
+        result = read_json(path, lines=True)
+        tm.assert_frame_equal(result, expected)
+
+    # Test 3: df4, df3, df2, df1 (in that order)
+    expected = DataFrame(
+        {
+            "col4": [True, False, None, None, None, None, None, None],
+            "col2": [None, None, "e", "f", "c", "d", "a", "b"],
+            "col3": [None, None, "!", "#", None, None, None, None],
+            "col1": [None, None, None, None, 3, 4, 1, 2],
+        }
+    )
+    with tm.ensure_clean("test.json") as path:
+        # Save dataframes to the same file
+        df4.to_json(path, mode="a", lines=True, orient="records")
+        df3.to_json(path, mode="a", lines=True, orient="records")
+        df2.to_json(path, mode="a", lines=True, orient="records")
+        df1.to_json(path, mode="a", lines=True, orient="records")
+
+        # Read path file
+        result = read_json(path, lines=True)
+        tm.assert_frame_equal(result, expected)

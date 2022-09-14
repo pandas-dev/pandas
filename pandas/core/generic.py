@@ -2400,6 +2400,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool_t = True,
         indent: int | None = None,
         storage_options: StorageOptions = None,
+        mode: str = "w",
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2477,6 +2478,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: 1.2.0
+
+        mode : str, default 'w' (writing)
+            Specify the IO mode for output when supplying a path_or_buf.
+            Accepted args are 'w' (writing) and 'a' (append) only.
+            mode='a' is only supported when lines is True and orient is 'records'.
 
         Returns
         -------
@@ -2661,6 +2667,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index=index,
             indent=indent,
             storage_options=storage_options,
+            mode=mode,
         )
 
     @final
