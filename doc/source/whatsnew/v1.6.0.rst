@@ -39,10 +39,41 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_160.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_160.notable_bug_fixes.at_DataFrame_expand:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Using DataFrame.at to expand DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.at` would allow the addition of columns and rows to a DataFrame. (:issue:`48323`)
+
+.. code-block:: ipython
+
+    In [3]: frame = pd.DataFrame({"a": [1, 2]})
+    In [4]: frame
+    Out[4]:
+       a
+    0  1
+    1  2
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: frame.at[2, "a"] = 7
+    In [6]: frame
+    Out[6]:
+       a
+    0  1
+    1  2
+    2  7
+
+*New Behavior*
+
+.. code-block:: ipython
+
+    In [5]: frame.at[2, "a"] = 7
+    Out[5]:
+    KeyError: 2
 
 .. _whatsnew_160.notable_bug_fixes.notable_bug_fix2:
 

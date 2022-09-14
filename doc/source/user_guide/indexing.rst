@@ -851,15 +851,11 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[5], 'E'] = 7
+   df.at[dates[5], 'D'] = 7
    df.iat[3, 0] = 7
-
-``at`` may enlarge the object in-place as above if the indexer is missing.
-
-.. ipython:: python
-
-   df.at[dates[-1] + pd.Timedelta('1 day'), 0] = 7
    df
+
+``at`` will not enlarge the object in-place if the indexer is missing.
 
 Boolean indexing
 ----------------

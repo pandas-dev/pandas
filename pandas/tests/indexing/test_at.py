@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
-
 from pandas import (
     CategoricalDtype,
     CategoricalIndex,
@@ -105,12 +103,15 @@ class TestAtSetItem:
             np.zeros((3, 2), dtype="int64"),
             columns=MultiIndex.from_tuples([("a", 0), ("a", 1)]),
         )
-        df.at[0, "a"] = 10
+        df.at[0, ("a", 0)] = 10
+        df.at[0, ("a", 1)] = 10
         expected = DataFrame(
             [[10, 10], [0, 0], [0, 0]],
             columns=MultiIndex.from_tuples([("a", 0), ("a", 1)]),
         )
         tm.assert_frame_equal(df, expected)
+        with pytest.raises(TypeError, match=""):
+            df.at[0, "a"] = 11
 
     @pytest.mark.parametrize("row", (Timestamp("2019-01-01"), "2019-01-01"))
     def test_at_datetime_index(self, row):
@@ -126,11 +127,13 @@ class TestAtSetItem:
         tm.assert_frame_equal(df, expected)
 
 
-class TestAtSetItemWithExpansion:
-    def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
+class TestAtSetTzItem:
+    def test_at_setitem_series_dt64tz_value(self, tz_naive_fixture):
         # GH#25506
+        # Modified in GH#48323 due to .at change
         ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
-        result = Series(ts)
+        ts2 = Timestamp("2017-09-05 00:00:00+0100", tz=tz_naive_fixture)
+        result = Series([ts, ts2])
         result.at[1] = ts
         expected = Series([ts, ts])
         tm.assert_series_equal(result, expected)
@@ -211,7 +214,7 @@ class TestAtErrors:
     def test_at_frame_multiple_columns(self):
         # GH#48296 - at shouldn't modify multiple columns
         df = DataFrame({"a": [1, 2], "b": [3, 4]})
-        with pytest.raises(InvalidIndexError, match=r"slice\(None, None, None\)"):
+        with pytest.raises(TypeError, match="col"):
             df.at[5] = [6, 7]
 
     def test_at_getitem_mixed_index_no_fallback(self):
@@ -234,3 +237,9 @@ class TestAtErrors:
             for key in [0, 1]:
                 with pytest.raises(KeyError, match=str(key)):
                     df.at[key, key]
+
+    def test_at_does_not_expand(self):
+        # GH#48323
+        frame = DataFrame({"a": [1, 2]})
+        with pytest.raises(KeyError, match="b"):
+            frame.at[2, "b"] = 9

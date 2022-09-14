@@ -551,8 +551,8 @@ class IndexingMixin:
         Raises
         ------
         KeyError
-            * If getting a value and 'label' does not exist in a DataFrame or
-                Series.
+            * If getting or setting a value and 'label' does not exist in a
+                DataFrame or Series.
         ValueError
             * If row/column label pair is not a tuple or if any label from
                 the pair is not a scalar for DataFrame.
@@ -560,7 +560,6 @@ class IndexingMixin:
 
         See Also
         --------
-        DataFrame.at : Access a single value for a row/column pair by label.
         DataFrame.iat : Access a single value for a row/column pair by integer
             position.
         DataFrame.loc : Access a group of rows and columns by label(s).
@@ -2429,6 +2428,9 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
+        # raises exception if key does not exist
+        self.__getitem__(key)
+
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
             if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
