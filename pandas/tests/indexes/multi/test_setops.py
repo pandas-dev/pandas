@@ -379,8 +379,7 @@ def test_union_sort_other_incomparable():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    with tm.assert_produces_warning(RuntimeWarning):
-        result = idx.union(idx[:1])
+    result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 
     # sort=False
