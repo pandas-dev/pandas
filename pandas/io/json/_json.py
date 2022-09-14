@@ -149,7 +149,7 @@ def to_json(
 
     if mode not in ["a", "w"]:
         msg = (
-            f"mode={repr(mode)} is not a valid option."
+            f"mode={mode} is not a valid option."
             "Only 'w' and 'a' are currently supported."
         )
         raise ValueError(msg)
