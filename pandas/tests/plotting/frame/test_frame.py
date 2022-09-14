@@ -1551,8 +1551,8 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
         ix = date_range("1/1/2000", periods=10, freq="M")
-        df = df.set_index(ix, copy=False)
-        df_err = df_err.set_index(ix, copy=False)
+        df.set_index(ix, inplace=True)
+        df_err.set_index(ix, inplace=True)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 

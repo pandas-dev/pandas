@@ -130,7 +130,7 @@ class TestMergeMulti:
 
         left["4th"] = bind_cols(left)
         right["5th"] = -bind_cols(right)
-        right = right.set_index(icols, copy=False)
+        right.set_index(icols, inplace=True)
 
         run_asserts(left, right, sort)
 
@@ -143,7 +143,7 @@ class TestMergeMulti:
         i = np.random.permutation(len(left))
         right = left.iloc[i, :-1]
         right["5th"] = -bind_cols(right)
-        right = right.set_index(icols, copy=False)
+        right.set_index(icols, inplace=True)
 
         run_asserts(left, right, sort)
 

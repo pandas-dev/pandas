@@ -4673,7 +4673,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s = s.set_index(self.levels, copy=False)
+            s.set_index(self.levels, inplace=True)
 
         s = s.iloc[:, 0]
 
