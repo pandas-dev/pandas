@@ -3737,6 +3737,157 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             storage_options=storage_options,
         )
 
+    def to_csv_relationaldb(self, relational_cols_dict: dict[str, list[str]]) -> list[DataFrame]:
+        r"""
+        This is a DataFrame function that takes the original dataframe and replaces certain columns in it with foreign key values
+        that correspond to primary keys in newly created tables in order to form a relational database schema. Only works for
+        primary keys that are single column only. Uses to_csv to write new tables to csv files.
+
+        Parameters
+        ----------
+        relational_cols_dict : dict with string keys and list of string values. The dictionary keys will be used to create a new
+        dataframe that will have primary key id numbers. The new tables will take the dictionary's keys and list of values and contain
+        columns with a primary key id, primary key, and the list of values that go with each key in the dictionary.
+
+        Returns
+        -------
+        List of dataframes
+            The list of dataframes returned are all the new tables and the original dataframe replaced with the right foreign key values.
+
+        See Also
+        --------
+        to_csv : Write a CSV File.
+
+        Examples
+        --------
+        >>> df
+
+                Email       First Name Last Name          City      State Product Name  Price Manufacturer Returnable Warehouse City Warehouse State  Square Footage
+        0     joe@gmail.com        Joe    Tanner       Memphis  Tennessee          fan     10       Carter        Yes         Dallas           Texas           50000
+        1     tom@gmail.com        Tom   Roberts         Tampa    Florida         desk    100       Alfred         No        Chicago        Illinois           40000
+        2  nick@outlook.com       Nick  Williams         Miami    Florida          bed   1000        Kelly         No    Los Angeles      California           32000
+        3   benny@yahoo.com      Benny  Jennings  Jacksonville    Florida       carpet   2000       Dennis         No     Pittsburgh    Pennsylvania           36000
+        4   chris@gmail.com      Chris   Sampson       Pheonix    Arizona        chair    200       Edward         No         Topeka          Kansas           90000
+        5     tom@gmail.com        Tom   Roberts         Tampa    Florida         shoe     40      Anthony        Yes        Seattle      Washington           85000
+        6    matt@gmail.com       Matt   Johnson        Mobile    Alabama          rug     60       Finley         No         Dallas           Texas           50000
+        7     joe@gmail.com        Joe    Tanner       Memphis  Tennessee        couch    500     Isabelle         No     Sacramento      California           55000
+
+
+        >>> relational_cols = {
+        ...        "Email" : ["First Name", "Last Name", "City", "State"],
+        ...         "Product Name" : ["Price", "Manufacturer", "Returnable"],
+        ...         "Warehouse City" : ["Warehouse State", "Square Footage"]
+        ...      }
+
+        >>> new_tables = df.to_csv_relationaldb(relational_cols)
+        >>> print(new_tables[0])
+
+                Email_id   Email        First Name   Last Name   City      State
+        0         1     joe@gmail.com        Joe    Tanner       Memphis  Tennessee
+        1         2     tom@gmail.com        Tom   Roberts         Tampa    Florida
+        2         3  nick@outlook.com       Nick  Williams         Miami    Florida
+        3         4   benny@yahoo.com      Benny  Jennings  Jacksonville    Florida
+        4         5   chris@gmail.com      Chris   Sampson       Pheonix    Arizona
+        5         6    matt@gmail.com       Matt   Johnson        Mobile    Alabama
+
+        >>> print(new_tables[1])
+
+            Product Name_id Product Name   Price Manufacturer Returnable
+        0                1          fan    10.0       Carter        Yes
+        1                2         desk   100.0       Alfred         No
+        2                3          bed  1000.0        Kelly         No
+        3                4       carpet  2000.0       Dennis         No
+        4                5        chair   200.0       Edward         No
+        5                6         shoe    40.0      Anthony        Yes
+        6                7          rug    60.0       Finley         No
+        7                8        couch   500.0     Isabelle         No
+
+        >>> print(new_tables[2])
+
+            Warehouse City_id  Warehouse City   Warehouse State  Square Footage
+        0                  1         Dallas           Texas         50000.0
+        1                  2        Chicago        Illinois         40000.0
+        2                  3    Los Angeles      California         32000.0
+        3                  4     Pittsburgh    Pennsylvania         36000.0
+        4                  5         Topeka          Kansas         90000.0
+        5                  6        Seattle      Washington         85000.0
+        6                  7     Sacramento      California         55000.0 
+
+        >>> print(new_tables[3])
+
+            Email  Product Name  Warehouse City
+        0      1             1               1
+        1      2             2               2
+        2      3             3               3
+        3      4             4               4
+        4      5             5               5
+        5      2             6               6
+        6      6             7               1
+        7      1             8               7
+
+        """
+
+        from pandas.core.frame import DataFrame
+
+        main_table = self.copy()
+        new_tables = []
+
+        primary_keys = relational_cols_dict.keys()
+
+        for primary_key in primary_keys:
+
+                primary_key_id_col = primary_key + "_id"
+
+                # Add columns from dictionary argument to a new, empty dataframe.
+                new_table = DataFrame()
+
+                new_table.insert(0, primary_key_id_col, value=[])
+                new_table.insert(1, primary_key, value=[])
+
+                for i, col in enumerate(relational_cols_dict[primary_key]):
+                        new_table.insert(i+2, col, value=[])
+
+
+                primary_key_unique_vals = main_table[primary_key].unique()
+
+                # Dictionary that will replace the values in main table with foreign key values.
+                id_replacement = {}
+
+                for unique_i, unique_val in enumerate(primary_key_unique_vals):
+
+                        id_replacement[unique_val] = unique_i + 1
+
+                        # Create new row to append or concat to current dataframe being created.
+                        temp_dict = {
+                                primary_key_id_col : [unique_i + 1],
+                                primary_key : [unique_val]
+                        }
+
+                        # Get the value in each column from the main table for each unique value in the primary key column.
+                        for df_col in relational_cols_dict[primary_key]:
+
+                                df_col_val = main_table[main_table[primary_key] == unique_val][df_col].unique()[0]
+                                temp_dict[df_col] = [df_col_val]
+
+                        new_table = concat([new_table, DataFrame(temp_dict)], ignore_index=True)
+
+                        new_table[primary_key_id_col] = new_table[primary_key_id_col].astype(int)
+
+
+                # Replace main table values with foreign keys.
+                main_table[primary_key].replace(id_replacement, inplace=True)
+                main_table.drop(columns=relational_cols_dict[primary_key], axis=1, inplace=True)
+                        
+                # Write out each new table.
+                new_table.to_csv(primary_key + ".csv")
+                new_tables.append(new_table)
+
+        # Write out the new main table.
+        main_table.to_csv("main_table.csv")
+        new_tables.append(main_table)
+
+        return new_tables
+
     # ----------------------------------------------------------------------
     # Lookup Caching
 
