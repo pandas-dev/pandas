@@ -6,7 +6,6 @@ import operator
 from typing import (
     Any,
     Callable,
-    Literal,
     cast,
 )
 import warnings
@@ -23,6 +22,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    CorrelationMethod,
     Dtype,
     DtypeObj,
     F,
@@ -1535,8 +1535,7 @@ def nancorr(
     a: np.ndarray,
     b: np.ndarray,
     *,
-    method: Literal["pearson", "kendall", "spearman"]
-    | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+    method: CorrelationMethod = "pearson",
     min_periods: int | None = None,
 ) -> float:
     """
@@ -1561,8 +1560,7 @@ def nancorr(
 
 
 def get_corr_func(
-    method: Literal["pearson", "kendall", "spearman"]
-    | Callable[[np.ndarray, np.ndarray], float]
+    method: CorrelationMethod,
 ) -> Callable[[np.ndarray, np.ndarray], float]:
     if method == "kendall":
         from scipy.stats import kendalltau

@@ -18,6 +18,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
+    AlignJoin,
     DtypeObj,
     F,
 )
@@ -431,7 +432,7 @@ class StringMethods(NoNewAttributesMixin):
         others=None,
         sep=None,
         na_rep=None,
-        join: Literal["outer", "inner", "left", "right"] = "left",
+        join: AlignJoin = "left",
     ) -> str | Series | Index:
         """
         Concatenate strings in the Series/Index with given separator.

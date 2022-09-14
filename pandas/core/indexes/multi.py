@@ -31,6 +31,7 @@ from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
+    DropKeep,
     DtypeObj,
     F,
     IgnoreRaise,
@@ -1619,9 +1620,7 @@ class MultiIndex(Index):
         return [i.inferred_type for i in self.levels]
 
     @doc(Index.duplicated)
-    def duplicated(
-        self, keep: Literal["last", "first", False] = "first"
-    ) -> npt.NDArray[np.bool_]:
+    def duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
         shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
@@ -3863,9 +3862,7 @@ class MultiIndex(Index):
     rename = set_names
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(
-        self, keep: Literal["first", "last", False] = "first"
-    ) -> MultiIndex:
+    def drop_duplicates(self, keep: DropKeep = "first") -> MultiIndex:
         return super().drop_duplicates(keep=keep)
 
     # ---------------------------------------------------------------

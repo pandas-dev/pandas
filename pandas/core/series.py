@@ -35,10 +35,13 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AlignJoin,
     AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
+    CorrelationMethod,
+    DropKeep,
     Dtype,
     DtypeObj,
     FilePath,
@@ -2247,29 +2250,22 @@ Name: Max Speed, dtype: float64
 
     @overload
     def drop_duplicates(
-        self,
-        keep: Literal["first", "last", False] = ...,
-        *,
-        inplace: Literal[False] = ...,
+        self, keep: DropKeep = ..., *, inplace: Literal[False] = ...
     ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(
-        self, keep: Literal["first", "last", False] = ..., *, inplace: Literal[True]
-    ) -> None:
+    def drop_duplicates(self, keep: DropKeep = ..., *, inplace: Literal[True]) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, keep: Literal["first", "last", False] = ..., *, inplace: bool = ...
+        self, keep: DropKeep = ..., *, inplace: bool = ...
     ) -> Series | None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(
-        self, keep: Literal["first", "last", False] = "first", inplace=False
-    ) -> Series | None:
+    def drop_duplicates(self, keep: DropKeep = "first", inplace=False) -> Series | None:
         """
         Return Series with duplicate values removed.
 
@@ -2353,7 +2349,7 @@ Name: Max Speed, dtype: float64
         else:
             return result
 
-    def duplicated(self, keep: Literal["first", "last", False] = "first") -> Series:
+    def duplicated(self, keep: DropKeep = "first") -> Series:
         """
         Indicate duplicate Series values.
 
@@ -2698,8 +2694,7 @@ Name: Max Speed, dtype: float64
     def corr(
         self,
         other: Series,
-        method: Literal["pearson", "kendall", "spearman"]
-        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: CorrelationMethod = "pearson",
         min_periods: int | None = None,
     ) -> float:
         """
@@ -4852,7 +4847,7 @@ Keep all original rows and also all original values
     def align(
         self,
         other: Series,
-        join: Literal["outer", "inner", "left", "right"] = "outer",
+        join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool = True,

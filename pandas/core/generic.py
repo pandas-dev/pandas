@@ -41,6 +41,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AlignJoin,
     AnyArrayLike,
     ArrayLike,
     Axis,
@@ -9302,7 +9303,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def align(
         self: NDFrameT,
         other: NDFrameT,
-        join: Literal["outer", "inner", "left", "right"] = "outer",
+        join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool_t = True,
@@ -9495,7 +9496,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _align_frame(
         self,
         other,
-        join: Literal["outer", "inner", "left", "right"] = "outer",
+        join: AlignJoin = "outer",
         axis=None,
         level=None,
         copy: bool_t = True,
@@ -9559,7 +9560,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _align_series(
         self,
         other,
-        join: Literal["outer", "inner", "left", "right"] = "outer",
+        join: AlignJoin = "outer",
         axis=None,
         level=None,
         copy: bool_t = True,

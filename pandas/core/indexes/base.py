@@ -48,6 +48,7 @@ from pandas._typing import (
     AnyAll,
     ArrayLike,
     Axes,
+    DropKeep,
     Dtype,
     DtypeObj,
     F,
@@ -3028,9 +3029,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(result)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(
-        self: _IndexT, keep: Literal["first", "last", False] = "first"
-    ) -> _IndexT:
+    def drop_duplicates(self: _IndexT, keep: DropKeep = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
 
@@ -3081,9 +3080,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return super().drop_duplicates(keep=keep)
 
-    def duplicated(
-        self, keep: Literal["first", "last", False] = "first"
-    ) -> npt.NDArray[np.bool_]:
+    def duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
         """
         Indicate duplicate index values.
 
