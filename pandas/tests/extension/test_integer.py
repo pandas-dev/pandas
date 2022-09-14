@@ -234,14 +234,3 @@ class TestParsing(base.BaseParsingTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     pass
-
-
-def test_concat_to_empty_ea():
-    """`concat` to an empty EA should maintain type EA information."""
-    df_empty = pd.DataFrame({"a": pd.array([], dtype=pd.Int64Dtype())})
-
-    df_new = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=pd.Int64Dtype())})
-
-    result = pd.concat([df_empty, df_new])
-
-    assert result["a"].dtype == df_empty["a"].dtype == df_new["a"].dtype
