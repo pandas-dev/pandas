@@ -148,14 +148,18 @@ def to_json(
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
     if mode not in ["a", "w"]:
-        raise ValueError(
-            f"mode={mode!r} is not a valid option. Only 'w' and 'a' are currently supported."
+        msg = (
+            f"mode={repr(mode)} is not a valid option."
+            "Only 'w' and 'a' are currently supported."
         )
+        raise ValueError(msg)
 
     if mode == "a" and (not lines or orient != "records"):
-        raise ValueError(
-            "mode='a' (append) is only supported when lines is True and orient is 'records'"
+        msg = (
+            "mode='a' (append) is only supported when"
+            "lines is True and orient is 'records'"
         )
+        raise ValueError(msg)
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
