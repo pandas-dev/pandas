@@ -95,7 +95,7 @@ class TestMultiIndexSorted:
         ]
         index = MultiIndex.from_arrays(arrays)
         result = index.argsort()
-        expected = np.array([2, 0, 1])
+        expected = np.array([2, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_sort_values_with_na(self):
