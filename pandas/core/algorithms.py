@@ -575,7 +575,9 @@ def factorize_array(
     if null_mask.any():
         na_value = na_value_for_dtype(values.dtype, compat=False)
         # Don't modify (potentially user-provided) array
-        values = np.where(null_mask, na_value, values)
+        # error: No overload variant of "where" matches argument types "Any", "object",
+        # "ndarray[Any, Any]"
+        values = np.where(null_mask, na_value, values)  # type: ignore[call-overload]
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
