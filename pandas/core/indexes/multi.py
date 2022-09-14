@@ -3638,17 +3638,15 @@ class MultiIndex(Index):
         if (
             any(-1 in code for code in self.codes)
             and any(-1 in code for code in other.codes)
-            or other.has_duplicates
+            and not other.has_duplicates
         ):
-            # This is only necessary if both sides have nans or other has dups,
+            # This is only necessary if both sides have nans,
             # fast_unique_multiple is faster
-            result = super()._union(other, sort)
+            return super()._union(other, sort)
 
-            if isinstance(result, MultiIndex):
-                return result
-            return MultiIndex.from_arrays(
-                zip(*result), sortorder=None, names=result_names
-            )
+        elif other.has_duplicates:
+            result_dups = algos.union_with_duplicates(self, other)
+            return ibase.maybe_try_sort(result_dups, sort)
 
         else:
             rvals = other._values.astype(object, copy=False)

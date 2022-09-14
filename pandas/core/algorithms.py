@@ -1957,22 +1957,34 @@ def _sort_tuples(
     return original_values[indexer]
 
 
+@overload
 def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
+    ...
+
+
+@overload
+def union_with_duplicates(lvals: MultiIndex, rvals: MultiIndex) -> MultiIndex:
+    ...
+
+
+def union_with_duplicates(
+    lvals: ArrayLike | MultiIndex, rvals: ArrayLike | MultiIndex
+) -> ArrayLike | MultiIndex:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
 
     Parameters
     ----------
-    lvals: np.ndarray or ExtensionArray
+    lvals: np.ndarray or ExtensionArray or MultiIndex
         left values which is ordered in front.
-    rvals: np.ndarray or ExtensionArray
+    rvals: np.ndarray or ExtensionArray or MultiIndex
         right values ordered after lvals.
 
     Returns
     -------
-    np.ndarray or ExtensionArray
-        Containing the unsorted union of both arrays.
+    Index or MultiIndex
+        Containing the unsorted union of both Indexes.
 
     Notes
     -----
@@ -1982,8 +1994,11 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
-    unique_array = unique(concat_compat([lvals, rvals]))
-    unique_array = ensure_wrapped_if_datetimelike(unique_array)
+    if isinstance(lvals, ABCMultiIndex):
+        unique_array = lvals.append(rvals).unique()
+    else:
+        unique_array = unique(concat_compat([lvals, rvals]))
+        unique_array = ensure_wrapped_if_datetimelike(unique_array)
 
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count.at[value], r_count.at[value]))

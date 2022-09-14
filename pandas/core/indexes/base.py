@@ -3399,7 +3399,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif not other.is_unique:
             # other has duplicates
             result_dups = algos.union_with_duplicates(lvals, rvals)
-            return _maybe_try_sort(result_dups, sort)
+            return maybe_try_sort(result_dups, sort)
 
         # Self may have duplicates; other already checked as unique
         # find indexes of things in "other" that are not in "self"
@@ -3423,7 +3423,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
             # if both are monotonic then result should already be sorted
-            result = _maybe_try_sort(result, sort)
+            result = maybe_try_sort(result, sort)
 
         return result
 
@@ -3536,7 +3536,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
-        res_values = _maybe_try_sort(res_values, sort)
+        res_values = maybe_try_sort(res_values, sort)
         return res_values
 
     def _wrap_intersection_result(self, other, result):
@@ -3635,7 +3635,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
         the_diff = this._values.take(label_diff)
-        the_diff = _maybe_try_sort(the_diff, sort)
+        the_diff = maybe_try_sort(the_diff, sort)
 
         return the_diff
 
@@ -3712,7 +3712,7 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other._values.take(right_indexer)
 
         res_values = concat_compat([left_diff, right_diff])
-        res_values = _maybe_try_sort(res_values, sort)
+        res_values = maybe_try_sort(res_values, sort)
 
         # pass dtype so we retain object dtype
         result = Index(res_values, name=result_name, dtype=res_values.dtype)
@@ -7515,7 +7515,7 @@ def unpack_nested_dtype(other: _IndexT) -> _IndexT:
     return other
 
 
-def _maybe_try_sort(result, sort):
+def maybe_try_sort(result, sort):
     if sort is None:
         try:
             result = algos.safe_sort(result)
