@@ -568,6 +568,15 @@ def factorize_array(
 
     hash_klass, values = _get_hashtable_algo(values)
 
+    # factorize can now handle differentiating various types of null values.
+    # However, for backwards compatibility we only use the null for the
+    # provided dtype. This may be revisited in the future, see GH#48476.
+    null_mask = isna(values)
+    if null_mask.any():
+        na_value = na_value_for_dtype(values.dtype, compat=False)
+        # Don't modify (potentially user-provided) array
+        values = np.where(null_mask, na_value, values)
+
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
         values,
