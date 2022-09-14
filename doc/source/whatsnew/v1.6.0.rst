@@ -212,6 +212,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`Series.mean` overflowing unnecessarily with nullable integers (:issue:`48378`)
+- Loss of dtype information when concatenating EA with empty EA of same type (:issue:`48510`)
 -
 
 Styler
