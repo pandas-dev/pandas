@@ -30,6 +30,19 @@ import pandas._testing as tm
 
 
 class TestAstypeAPI:
+    def test_astype_unitless_dt64_deprecated(self):
+        # GH#47844
+        ser = Series(["1970-01-01", "1970-01-01", "1970-01-01"], dtype="datetime64[ns]")
+
+        msg = "Passing unit-less datetime64 dtype to .astype is deprecated and "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.astype(np.datetime64)
+        tm.assert_series_equal(ser, res)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.astype("datetime64")
+        tm.assert_series_equal(ser, res)
+
     def test_arg_for_errors_in_astype(self):
         # see GH#14878
         ser = Series([1, 2, 3])
