@@ -1188,10 +1188,10 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     if arr_or_dtype is None:
         return False
-    if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
-        # fastpath
-        dtype = arr_or_dtype
-        return dtype.kind in ["m", "M"] or dtype.type is Period
+    if isinstance(arr_or_dtype, np.dtype):
+        return arr_or_dtype.kind in ["m", "M"]
+    elif isinstance(arr_or_dtype, ExtensionDtype):
+        return isinstance(arr_or_dtype, (PeriodDtype, DatetimeTZDtype))
 
     try:
         dtype = get_dtype(arr_or_dtype)
