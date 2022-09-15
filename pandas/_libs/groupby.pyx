@@ -274,7 +274,7 @@ def group_cumprod(
         bint uses_mask = mask is not None
 
     N, K = (<object>values).shape
-    accum = np.ones((ngroups, K), dtype=np.asarray(values).dtype)
+    accum = np.ones((ngroups, K), dtype=(<object>values).dtype)
     na_val = _get_na_val(<int64float_t>0, is_datetimelike)
     accum_mask = np.zeros((ngroups, K), dtype="uint8")
 
