@@ -461,11 +461,11 @@ def test_no_sort_keep_na(values, dtype, test_series):
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("dtype", [object, None])
 def test_null_is_null_for_dtype(
-    sort, dtype, unique_nulls_fixture, unique_nulls_fixture2, test_series
+    sort, dtype, nulls_fixture, nulls_fixture2, test_series
 ):
     # GH#48506 - groups should always result in using the null for the dtype
     df = pd.DataFrame({"a": [1, 2]})
-    groups = pd.Series([unique_nulls_fixture, unique_nulls_fixture2], dtype=dtype)
+    groups = pd.Series([nulls_fixture, nulls_fixture2], dtype=dtype)
     obj = df["a"] if test_series else df
     gb = obj.groupby(groups, dropna=False, sort=sort)
     result = gb.sum()
