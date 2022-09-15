@@ -1864,6 +1864,7 @@ class DataFrame(NDFrame, OpsMixin):
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
         into: type[dict] = dict,
+        index: bool = True,
     ) -> dict | list[dict]:
         """
         Convert the DataFrame to a dictionary.
@@ -1899,6 +1900,13 @@ class DataFrame(NDFrame, OpsMixin):
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
+
+        index : bool, default True
+            Whether to include the index item (and index_names item if `orient`
+            is 'tight') in the returned dictionary. Can only be ``False``
+            when `orient` is 'split' or 'tight'.
+
+            .. versionadded:: 1.6.0
 
         Returns
         -------
@@ -2005,6 +2013,11 @@ class DataFrame(NDFrame, OpsMixin):
             elif orient.startswith("i"):
                 orient = "index"
 
+        if not index and orient not in ["split", "tight"]:
+            raise ValueError(
+                "'index=False' is only valid when 'orient' is 'split' or 'tight'"
+            )
+
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
@@ -2015,8 +2028,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif orient == "split":
             return into_c(
-                (
-                    ("index", self.index.tolist()),
+                ((("index", self.index.tolist()),) if index else ())
+                + (
                     ("columns", self.columns.tolist()),
                     (
                         "data",
@@ -2030,8 +2043,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif orient == "tight":
             return into_c(
-                (
-                    ("index", self.index.tolist()),
+                ((("index", self.index.tolist()),) if index else ())
+                + (
                     ("columns", self.columns.tolist()),
                     (
                         "data",
@@ -2040,9 +2053,9 @@ class DataFrame(NDFrame, OpsMixin):
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
-                    ("index_names", list(self.index.names)),
-                    ("column_names", list(self.columns.names)),
                 )
+                + ((("index_names", list(self.index.names)),) if index else ())
+                + (("column_names", list(self.columns.names)),)
             )
 
         elif orient == "series":
@@ -5856,9 +5869,8 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         drop: bool = ...,
         append: bool = ...,
-        inplace: Literal[False] | lib.NoDefault = ...,
+        inplace: Literal[False] = ...,
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -5871,7 +5883,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[True],
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5881,9 +5892,8 @@ class DataFrame(NDFrame, OpsMixin):
         keys,
         drop: bool = True,
         append: bool = False,
-        inplace: bool | lib.NoDefault = lib.no_default,
+        inplace: bool = False,
         verify_integrity: bool = False,
-        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -5906,18 +5916,10 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to append columns to existing index.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
-
-            .. deprecated:: 1.5.0
-
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
-        copy : bool, default True
-            Whether to make a copy of the underlying data when returning a new
-            DataFrame.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5982,25 +5984,7 @@ class DataFrame(NDFrame, OpsMixin):
         3 9       7  2013    84
         4 16     10  2014    31
         """
-        if inplace is not lib.no_default:
-            inplace = validate_bool_kwarg(inplace, "inplace")
-            warnings.warn(
-                "The 'inplace' keyword in DataFrame.set_index is deprecated "
-                "and will be removed in a future version. Use "
-                "`df = df.set_index(..., copy=False)` instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        else:
-            inplace = False
-
-        if inplace:
-            if copy is not lib.no_default:
-                raise ValueError("Cannot specify copy when inplace=True")
-            copy = False
-        elif copy is lib.no_default:
-            copy = True
-
+        inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
             keys = [keys]
@@ -6036,7 +6020,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy(deep=copy)
+            frame = self.copy()
 
         arrays = []
         names: list[Hashable] = []
@@ -8583,7 +8567,9 @@ Parrot 2  Parrot       24.0
     @Substitution("")
     @Appender(_shared_docs["pivot"])
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def pivot(self, index=None, columns=None, values=None) -> DataFrame:
+    def pivot(
+        self, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
+    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)

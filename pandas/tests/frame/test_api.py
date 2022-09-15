@@ -244,8 +244,7 @@ class TestDataFrameMisc:
 
         # set_index
         f = lambda x: x.set_index("a", inplace=True)
-        with tm.assert_produces_warning(FutureWarning, match="The 'inplace' keyword"):
-            _check_f(data.copy(), f)
+        _check_f(data.copy(), f)
 
         # reset_index
         f = lambda x: x.reset_index(inplace=True)
