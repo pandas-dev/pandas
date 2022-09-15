@@ -214,6 +214,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`Series.mean` overflowing unnecessarily with nullable integers (:issue:`48378`)
+- Bug when concatenating an empty DataFrame with an ExtensionDtype to another DataFrame with the same ExtensionDtype, the resulting dtype turned into object (:issue:`48510`)
 -
 
 Styler
