@@ -69,6 +69,8 @@ CAPITALIZATION_EXCEPTIONS = {
     "CategoricalIndex",
     "Categorical",
     "GroupBy",
+    "DataFrameGroupBy",
+    "SeriesGroupBy",
     "SPSS",
     "ORC",
     "R",

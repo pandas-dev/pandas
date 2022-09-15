@@ -15,11 +15,11 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.convert_dtypes` incorrectly converts byte strings to strings (:issue:`43183`)
-- Fixed regression in :meth:`.GroupBy.agg` where it was failing silently with mixed data types along ``axis=1`` and :class:`MultiIndex` (:issue:`43209`)
+- Fixed regression in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` were failing silently with mixed data types along ``axis=1`` and :class:`MultiIndex` (:issue:`43209`)
 - Fixed regression in :func:`merge` with integer and ``NaN`` keys failing with ``outer`` merge (:issue:`43550`)
 - Fixed regression in :meth:`DataFrame.corr` raising ``ValueError`` with ``method="spearman"`` on 32-bit platforms (:issue:`43588`)
 - Fixed performance regression in :meth:`MultiIndex.equals` (:issue:`43549`)
-- Fixed performance regression in :meth:`.GroupBy.first` and :meth:`.GroupBy.last` with :class:`StringDtype` (:issue:`41596`)
+- Fixed performance regression in :meth:`.DataFrameGroupBy.first`, :meth:`.SeriesGroupBy.first`, :meth:`.DataFrameGroupBy.last`, and :meth:`.SeriesGroupBy.last` with :class:`StringDtype` (:issue:`41596`)
 - Fixed regression in :meth:`Series.cat.reorder_categories` failing to update the categories on the ``Series`` (:issue:`43232`)
 - Fixed regression in :meth:`Series.cat.categories` setter failing to update the categories on the ``Series`` (:issue:`43334`)
 - Fixed regression in :func:`read_csv` raising ``UnicodeDecodeError`` exception when ``memory_map=True`` (:issue:`43540`)
@@ -35,7 +35,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`pandas.DataFrame.groupby.rolling` and :class:`pandas.api.indexers.FixedForwardWindowIndexer` leading to segfaults and window endpoints being mixed across groups (:issue:`43267`)
-- Fixed bug in :meth:`.GroupBy.mean` with datetimelike values including ``NaT`` values returning incorrect results (:issue:`43132`)
+- Fixed bug in :meth:`.DataFrameGroupBy.mean` and :meth:`.SeriesGroupBy.mean` with datetimelike values including ``NaT`` values returning incorrect results (:issue:`43132`)
 - Fixed bug in :meth:`Series.aggregate` not passing the first ``args`` to the user supplied ``func`` in certain cases (:issue:`43357`)
 - Fixed memory leaks in :meth:`Series.rolling.quantile` and :meth:`Series.rolling.median` (:issue:`43339`)
 

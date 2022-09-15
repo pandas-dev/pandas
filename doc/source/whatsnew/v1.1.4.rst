@@ -41,7 +41,7 @@ Bug fixes
 ~~~~~~~~~
 - Bug causing ``groupby(...).sum()`` and similar to not preserve metadata (:issue:`29442`)
 - Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` raising a ``ValueError`` when the target was read-only (:issue:`37174`)
-- Bug in :meth:`GroupBy.fillna` that introduced a performance regression after 1.0.5 (:issue:`36757`)
+- Bug in :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna` that introduced a performance regression after 1.0.5 (:issue:`36757`)
 - Bug in :meth:`DataFrame.info` was raising a ``KeyError`` when the DataFrame has integer column names (:issue:`37245`)
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on (:issue:`35792`)
 

@@ -267,10 +267,10 @@ Other enhancements
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
 - :meth:`Series.round` and :meth:`DataFrame.round` now work with nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`read_csv` and :meth:`read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
-- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
-- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
-- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising with ``object`` data containing ``pd.NA`` even when ``skipna=True`` (:issue:`37501`)
-- :meth:`.GroupBy.rank` now supports object-dtype data (:issue:`38278`)
+- :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.any`, :meth:`.DataFrameGroupBy.all`, and :meth:`.SeriesGroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
+- :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.any`, :meth:`.DataFrameGroupBy.all`, and :meth:`.SeriesGroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
+- :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.any`, :meth:`.DataFrameGroupBy.all`, and :meth:`.SeriesGroupBy.all` raising with ``object`` data containing ``pd.NA`` even when ``skipna=True`` (:issue:`37501`)
+- :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now supports object-dtype data (:issue:`38278`)
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
@@ -391,8 +391,8 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
 .. _whatsnew_130.notable_bug_fixes.groupby_reductions_float_result:
 
-``float`` result for :meth:`.GroupBy.mean`, :meth:`.GroupBy.median`, and :meth:`.GroupBy.var`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``float`` result for :meth:`.DataFrameGroupBy.mean`, :meth:`.DataFrameGroupBy.median`, and :meth:`.GDataFrameGroupBy.var`, :meth:`.SeriesGroupBy.mean`, :meth:`.SeriesGroupBy.median`, and :meth:`.SeriesGroupBy.var`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, these methods could result in different dtypes depending on the input values.
 Now, these methods will always return a float dtype. (:issue:`41137`)
@@ -535,8 +535,8 @@ casts to ``dtype=object`` (:issue:`38709`)
 
 .. _whatsnew_130.notable_bug_fixes.rolling_groupby_column:
 
-GroupBy.rolling no longer returns grouped-by column in values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DataFrameGroupBy.rolling and SeriesGroupBy.rolling no longer return grouped-by column in values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The group-by column will now be dropped from the result of a
 ``groupby.rolling`` operation (:issue:`32262`)
@@ -583,10 +583,10 @@ However, floating point artifacts may now exist in the results when rolling over
 
 .. _whatsnew_130.notable_bug_fixes.rolling_groupby_multiindex:
 
-GroupBy.rolling with MultiIndex no longer drops levels in the result
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DataFrameGroupBy.rolling and SeriesGroupBy.rolling with MultiIndex no longer drop levels in the result
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`GroupBy.rolling` will no longer drop levels of a :class:`DataFrame`
+:meth:`DataFrameGroupBy.rolling` and :meth:`SeriesGroupBy.rolling` will no longer drop levels of a :class:`DataFrame`
 with a :class:`MultiIndex` in the result. This can lead to a perceived duplication of levels in the resulting
 :class:`MultiIndex`, but this change restores the behavior that was present in version 1.1.3 (:issue:`38787`, :issue:`38523`).
 
@@ -891,10 +891,10 @@ Performance improvements
 - Performance improvement in :class:`.Styler` where render times are more than 50% reduced and now matches :meth:`DataFrame.to_html` (:issue:`39972` :issue:`39952`, :issue:`40425`)
 - The method :meth:`.Styler.set_td_classes` is now as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap`, and even more so in some cases (:issue:`40453`)
 - Performance improvement in :meth:`.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
-- Performance improvement in :meth:`.GroupBy.apply` when requiring the Python fallback implementation (:issue:`40176`)
+- Performance improvement in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` when requiring the Python fallback implementation (:issue:`40176`)
 - Performance improvement in the conversion of a PyArrow Boolean array to a pandas nullable Boolean array (:issue:`41051`)
 - Performance improvement for concatenation of data with type :class:`CategoricalDtype` (:issue:`40193`)
-- Performance improvement in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable data types (:issue:`37493`)
+- Performance improvement in :meth:`.DataFrameGroupBy.cummin`, :meth:`.SeriesGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.SeriesGroupBy.cummax` with nullable data types (:issue:`37493`)
 - Performance improvement in :meth:`Series.nunique` with nan values (:issue:`40865`)
 - Performance improvement in :meth:`DataFrame.transpose`, :meth:`Series.unstack` with ``DatetimeTZDtype`` (:issue:`40149`)
 - Performance improvement in :meth:`Series.plot` and :meth:`DataFrame.plot` with entry point lazy loading (:issue:`41492`)
@@ -953,11 +953,11 @@ Numeric
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 - Bug in :meth:`DataFrame.rank` when the DataFrame contained ``np.inf`` (:issue:`32593`)
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising an ``IndexError`` (:issue:`38932`)
-- Bug in :meth:`Series.rank`, :meth:`DataFrame.rank`, and :meth:`.GroupBy.rank` treating the most negative ``int64`` value as missing (:issue:`32859`)
+- Bug in :meth:`Series.rank`, :meth:`DataFrame.rank`, :meth:`.DataFrameGroupBy.rank`, and :meth:`.SeriesGroupBy.rank` treating the most negative ``int64`` value as missing (:issue:`32859`)
 - Bug in :meth:`DataFrame.select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36596`)
 - Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.agg` when passed the argument ``func="size"`` would operate on the entire ``DataFrame`` instead of rows or columns (:issue:`39934`)
 - Bug in :meth:`DataFrame.transform` would raise a ``SpecificationError`` when passed a dictionary and columns were missing; will now raise a ``KeyError`` instead (:issue:`40004`)
-- Bug in :meth:`.GroupBy.rank` giving incorrect results with ``pct=True`` and equal values between consecutive groups (:issue:`40518`)
+- Bug in :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` giving incorrect results with ``pct=True`` and equal values between consecutive groups (:issue:`40518`)
 - Bug in :meth:`Series.count` would result in an ``int32`` result on 32-bit platforms when argument ``level=None`` (:issue:`40908`)
 - Bug in :class:`Series` and :class:`DataFrame` reductions with methods ``any`` and ``all`` not returning Boolean results for object data (:issue:`12863`, :issue:`35450`, :issue:`27709`)
 - Bug in :meth:`Series.clip` would fail if the Series contains NA values and has nullable int or float as a data type (:issue:`40851`)
@@ -1120,21 +1120,21 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-- Bug in :meth:`.GroupBy.agg` with :class:`PeriodDtype` columns incorrectly casting results too aggressively (:issue:`38254`)
+- Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` with :class:`PeriodDtype` columns incorrectly casting results too aggressively (:issue:`38254`)
 - Bug in :meth:`.SeriesGroupBy.value_counts` where unobserved categories in a grouped categorical Series were not tallied (:issue:`38672`)
 - Bug in :meth:`.SeriesGroupBy.value_counts` where an error was raised on an empty Series (:issue:`39172`)
 - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
-- Fixed bug in :meth:`.GroupBy.sum` causing a loss of precision by now using Kahan summation (:issue:`38778`)
-- Fixed bug in :meth:`.GroupBy.cumsum` and :meth:`.GroupBy.mean` causing loss of precision through using Kahan summation (:issue:`38934`)
+- Fixed bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` causing a loss of precision by now using Kahan summation (:issue:`38778`)
+- Fixed bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.SeriesGroupBy.cumsum`, :meth:`.DataFrameGroupBy.mean`, and :meth:`.SeriesGroupBy.mean` causing loss of precision through using Kahan summation (:issue:`38934`)
 - Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising a ``TypeError`` instead of ``SpecificationError`` when missing keys had mixed dtypes (:issue:`39025`)
 - Bug in :meth:`.DataFrameGroupBy.idxmin` and :meth:`.DataFrameGroupBy.idxmax` with ``ExtensionDtype`` columns (:issue:`38733`)
 - Bug in :meth:`Series.resample` would raise when the index was a :class:`PeriodIndex` consisting of ``NaT`` (:issue:`39227`)
 - Bug in :meth:`.RollingGroupby.corr` and :meth:`.ExpandingGroupby.corr` where the groupby column would return ``0`` instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
 - Bug in :meth:`.ExpandingGroupby.corr` and :meth:`.ExpandingGroupby.cov` where ``1`` would be returned instead of ``np.nan`` when providing ``other`` that was longer than each group (:issue:`39591`)
-- Bug in :meth:`.GroupBy.mean`, :meth:`.GroupBy.median` and :meth:`DataFrame.pivot_table` not propagating metadata (:issue:`28283`)
+- Bug in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.median`, :meth:`.SeriesGroupBy.median`, and :meth:`DataFrame.pivot_table` not propagating metadata (:issue:`28283`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly when window is an offset and dates are in descending order (:issue:`40002`)
 - Bug in :meth:`Series.groupby` and :meth:`DataFrame.groupby` on an empty ``Series`` or ``DataFrame`` would lose index, columns, and/or data types when directly using the methods ``idxmax``, ``idxmin``, ``mad``, ``min``, ``max``, ``sum``, ``prod``, and ``skew`` or using them through ``apply``, ``aggregate``, or ``resample`` (:issue:`26411`)
-- Bug in :meth:`.GroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` when used on a :class:`.RollingGroupby` object (:issue:`39732`)
+- Bug in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` where a :class:`MultiIndex` would be created instead of an :class:`Index` when used on a :class:`.RollingGroupby` object (:issue:`39732`)
 - Bug in :meth:`.DataFrameGroupBy.sample` where an error was raised when ``weights`` was specified and the index was an :class:`Int64Index` (:issue:`39927`)
 - Bug in :meth:`.DataFrameGroupBy.aggregate` and :meth:`.Resampler.aggregate` would sometimes raise a ``SpecificationError`` when passed a dictionary and columns were missing; will now always raise a ``KeyError`` instead (:issue:`40004`)
 - Bug in :meth:`.DataFrameGroupBy.sample` where column selection was not applied before computing the result (:issue:`39928`)
@@ -1148,14 +1148,14 @@ Groupby/resample/rolling
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
 - Bug in :meth:`.SeriesGroupBy.aggregate` where using a user-defined function to aggregate a Series with an object-typed :class:`Index` causes an incorrect :class:`Index` shape (:issue:`40014`)
 - Bug in :class:`.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
-- Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising a ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
-- Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` incorrectly rounding integer values near the ``int64`` implementations bounds (:issue:`40767`)
-- Bug in :meth:`.GroupBy.rank` with nullable dtypes incorrectly raising a ``TypeError`` (:issue:`41010`)
-- Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` computing wrong result with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
+- Bug in :meth:`.DataFrameGroupBy.any`, :meth:`.SeriesGroupBy.any`, :meth:`.DataFrameGroupBy.all` and :meth:`.SeriesGroupBy.all` raising a ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
+- Bug in :meth:`.DataFrameGroupBy.cummin`, :meth:`.SeriesGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax` and :meth:`.SeriesGroupBy.cummax` incorrectly rounding integer values near the ``int64`` implementations bounds (:issue:`40767`)
+- Bug in :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` with nullable dtypes incorrectly raising a ``TypeError`` (:issue:`41010`)
+- Bug in :meth:`.DataFrameGroupBy.cummin`, :meth:`.SeriesGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax` and :meth:`.SeriesGroupBy.cummax` computing wrong result with nullable data types too large to roundtrip when casting to float (:issue:`37493`)
 - Bug in :meth:`DataFrame.rolling` returning mean zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 - Bug in :meth:`DataFrame.rolling` returning sum not zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 - Bug in :meth:`.SeriesGroupBy.agg` failing to retain ordered :class:`CategoricalDtype` on order-preserving aggregations (:issue:`41147`)
-- Bug in :meth:`.GroupBy.min` and :meth:`.GroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising a ``ValueError`` (:issue:`41111`)
+- Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.SeriesGroupBy.min`, :meth:`.DataFrameGroupBy.max` and :meth:`.SeriesGroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising a ``ValueError`` (:issue:`41111`)
 - Bug in :meth:`.DataFrameGroupBy.rank` with the GroupBy object's ``axis=0`` and the ``rank`` method's keyword ``axis=1`` (:issue:`41320`)
 - Bug in :meth:`DataFrameGroupBy.__getitem__` with non-unique columns incorrectly returning a malformed :class:`SeriesGroupBy` instead of :class:`DataFrameGroupBy` (:issue:`41427`)
 - Bug in :meth:`.DataFrameGroupBy.transform` with non-unique columns incorrectly raising an ``AttributeError`` (:issue:`41427`)
