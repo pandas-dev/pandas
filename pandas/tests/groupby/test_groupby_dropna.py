@@ -3,6 +3,8 @@ import pytest
 
 from pandas.compat.pyarrow import pa_version_under1p01
 
+from pandas.core.dtypes.missing import na_value_for_dtype
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -422,7 +424,7 @@ def test_groupby_drop_nan_with_multi_index():
         (
             [
                 pd.Period("2012-02-01", freq="D"),
-                pd.NA,
+                pd.NaT,
                 pd.Period("2012-01-01", freq="D"),
                 pd.Period("2012-02-01", freq="D"),
             ],
@@ -454,3 +456,22 @@ def test_no_sort_keep_na(values, dtype, test_series):
         # TODO: Slicing reorders categories?
         expected.index = expected.index.reorder_categories(["y", "x"])
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("dtype", [object, None])
+def test_null_is_null_for_dtype(
+    sort, dtype, nulls_fixture, nulls_fixture2, test_series
+):
+    # GH#48506 - groups should always result in using the null for the dtype
+    df = pd.DataFrame({"a": [1, 2]})
+    groups = pd.Series([nulls_fixture, nulls_fixture2], dtype=dtype)
+    obj = df["a"] if test_series else df
+    gb = obj.groupby(groups, dropna=False, sort=sort)
+    result = gb.sum()
+    index = pd.Index([na_value_for_dtype(groups.dtype)])
+    expected = pd.DataFrame({"a": [3]}, index=index)
+    if test_series:
+        tm.assert_series_equal(result, expected["a"])
+    else:
+        tm.assert_frame_equal(result, expected)
