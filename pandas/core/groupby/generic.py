@@ -498,6 +498,10 @@ class SeriesGroupBy(GroupBy[Series]):
             Drop groups that do not pass the filter. True by default; if False,
             groups that evaluate False are filled with NaNs.
 
+        Returns
+        -------
+        filtered : Series
+
         Notes
         -----
         Functions that mutate the passed object can produce unexpected
@@ -516,10 +520,6 @@ class SeriesGroupBy(GroupBy[Series]):
         3    4
         5    6
         Name: B, dtype: int64
-
-        Returns
-        -------
-        filtered : Series
         """
         if isinstance(func, str):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
