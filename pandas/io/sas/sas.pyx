@@ -64,7 +64,7 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
     cdef:
         uint8_t control_byte, x
         int rpos = 0
-        int i, nbytes, end_of_first_byte, value
+        int i, nbytes, end_of_first_byte
         size_t ipos = 0
 
     while ipos < inbuff.length:
