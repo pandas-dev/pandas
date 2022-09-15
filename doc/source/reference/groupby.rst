@@ -14,10 +14,14 @@ Indexing, iteration
 .. autosummary::
    :toctree: api/
 
-   GroupBy.__iter__
-   GroupBy.groups
-   GroupBy.indices
-   GroupBy.get_group
+   DataFrameGroupBy.__iter__
+   SeriesGroupBy.__iter__
+   DataFrameGroupBy.groups
+   SeriesGroupBy.groups
+   DataFrameGroupBy.indices
+   SeriesGroupBy.indices
+   DataFrameGroupBy.get_group
+   SeriesGroupBy.get_group
 
 .. currentmodule:: pandas
 

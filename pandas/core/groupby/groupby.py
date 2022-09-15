@@ -20,6 +20,7 @@ import types
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Generator,
     Hashable,
     Iterable,
     Iterator,
@@ -1106,7 +1107,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             self._reset_cache("_selected_obj")
 
     @contextmanager
-    def _group_selection_context(self) -> Iterator[GroupBy]:
+    def _group_selection_context(self) -> Generator[GroupBy, None, None]:
         """
         Set / reset the _group_selection_context.
         """
@@ -2521,9 +2522,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.last : Compute the last non-null entry of each
-            column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        pandas.core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
+            of each column.
+        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -2593,9 +2594,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.first : Compute the first non-null entry of each
-            column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        pandas.core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
+            of each column.
+        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
