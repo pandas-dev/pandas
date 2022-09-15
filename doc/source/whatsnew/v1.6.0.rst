@@ -112,7 +112,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
-- Performance improvement to :func:`read_sas` with ``blank_missing=True`` (:issue:`48502`)
+- Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47405`, :issue:`47656`, :issue:`48502`)
 -
 
 .. ---------------------------------------------------------------------------
