@@ -136,7 +136,7 @@ def to_json(
     index: bool = True,
     indent: int = 0,
     storage_options: StorageOptions = None,
-    mode: str = "w",
+    mode: Literal["a", "w"] = "w",
 ) -> str | None:
 
     if not index and orient not in ["split", "table"]:
