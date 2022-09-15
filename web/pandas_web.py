@@ -55,6 +55,15 @@ class Preprocessors:
     """
 
     @staticmethod
+    def current_year(context):
+        """
+        Add the current year to the context, so it can be used for the copyright
+        note, or other places where it is needed.
+        """
+        context["current_year"] = datetime.datetime.now().year
+        return context
+
+    @staticmethod
     def navbar_add_info(context):
         """
         Items in the main navigation bar can be direct links, or dropdowns with
