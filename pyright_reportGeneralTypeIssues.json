@@ -108,6 +108,8 @@
         "pandas/io/sql.py",
         "pandas/io/stata.py",
         "pandas/io/xml.py",
+        "pandas/plotting/_matplotlib/boxplot.py",
         "pandas/tseries/frequencies.py",
+        "pandas/tseries/holiday.py",
       ],
 }

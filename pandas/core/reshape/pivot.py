@@ -557,7 +557,7 @@ def crosstab(
     margins: bool = False,
     margins_name: str = "All",
     dropna: bool = True,
-    normalize=False,
+    normalize: bool = False,
 ) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors.
@@ -695,6 +695,8 @@ def crosstab(
         df["__dummy__"] = values
         kwargs = {"aggfunc": aggfunc}
 
+    # error: Argument 7 to "pivot_table" of "DataFrame" has incompatible type
+    # "**Dict[str, object]"; expected "bool"
     table = df.pivot_table(
         "__dummy__",
         index=unique_rownames,
@@ -702,7 +704,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
     # Post-process

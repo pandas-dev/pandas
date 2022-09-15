@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class BaseAccessor:
     _validation_msg = "Can only use the '.sparse' accessor with Sparse data."
 
-    def __init__(self, data=None) -> None:
+    def __init__(self, *, data) -> None:
         self._parent = data
         self._validate(data)
 
@@ -58,7 +58,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             raise ValueError
 
     @classmethod
-    def from_coo(cls, A, dense_index=False) -> Series:
+    def from_coo(cls, A, dense_index: bool = False) -> Series:
         """
         Create a Series with sparse values from a scipy.sparse.coo_matrix.
 
@@ -107,7 +107,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         return result
 
-    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels=False):
+    def to_coo(self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False):
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 

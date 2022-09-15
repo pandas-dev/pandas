@@ -44,7 +44,9 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_contains(self, pat, case=True, flags=0, na=None, regex=True):
+    def _str_contains(
+        self, pat, case: bool = True, flags=0, na=None, regex: bool = True
+    ):
         pass
 
     @abc.abstractmethod
@@ -236,7 +238,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_split(self, pat=None, n=-1, expand=False):
+    def _str_split(self, pat=None, n=-1, expand: bool = False):
         pass
 
     @abc.abstractmethod
