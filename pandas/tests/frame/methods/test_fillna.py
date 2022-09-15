@@ -780,3 +780,16 @@ def test_fillna_nonconsolidated_frame():
     df_nonconsol = df.pivot(index="i1", columns="i2")
     result = df_nonconsol.fillna(0)
     assert result.isna().sum().sum() == 0
+
+
+def test_fillna_nones_inplace():
+    # GH 48480
+    df = DataFrame(
+        [[None, None], [None, None]],
+        columns=["A", "B"],
+    )
+    with tm.assert_produces_warning(False):
+        df.fillna(value={"A": 1, "B": 2}, inplace=True)
+
+    expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"])
+    tm.assert_frame_equal(df, expected)
