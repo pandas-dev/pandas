@@ -35,57 +35,6 @@ AGG_FUNCTIONS = [
 ]
 AGG_FUNCTIONS_WITH_SKIPNA = ["skew", "mad"]
 
-df_allowlist = [
-    "quantile",
-    "fillna",
-    "mad",
-    "take",
-    "idxmax",
-    "idxmin",
-    "tshift",
-    "skew",
-    "plot",
-    "hist",
-    "dtypes",
-    "corrwith",
-    "corr",
-    "cov",
-    "diff",
-]
-
-
-@pytest.fixture(params=df_allowlist)
-def df_allowlist_fixture(request):
-    return request.param
-
-
-s_allowlist = [
-    "quantile",
-    "fillna",
-    "mad",
-    "take",
-    "idxmax",
-    "idxmin",
-    "tshift",
-    "skew",
-    "plot",
-    "hist",
-    "dtype",
-    "corr",
-    "cov",
-    "diff",
-    "unique",
-    "nlargest",
-    "nsmallest",
-    "is_monotonic_increasing",
-    "is_monotonic_decreasing",
-]
-
-
-@pytest.fixture(params=s_allowlist)
-def s_allowlist_fixture(request):
-    return request.param
-
 
 @pytest.fixture
 def df():
@@ -111,54 +60,6 @@ def df_letters():
         }
     )
     return df
-
-
-@pytest.mark.parametrize("allowlist", [df_allowlist, s_allowlist])
-def test_groupby_allowlist(df_letters, allowlist):
-    df = df_letters
-    if allowlist == df_allowlist:
-        # dataframe
-        obj = df_letters
-    else:
-        obj = df_letters["floats"]
-
-    gb = obj.groupby(df.letters)
-
-    assert set(allowlist) == set(gb._apply_allowlist)
-
-
-def check_allowlist(obj, df, m):
-    # check the obj for a particular allowlist m
-
-    gb = obj.groupby(df.letters)
-
-    f = getattr(type(gb), m)
-
-    # name
-    try:
-        n = f.__name__
-    except AttributeError:
-        return
-    assert n == m
-
-    # qualname
-    try:
-        n = f.__qualname__
-    except AttributeError:
-        return
-    assert n.endswith(m)
-
-
-def test_groupby_series_allowlist(df_letters, s_allowlist_fixture):
-    m = s_allowlist_fixture
-    df = df_letters
-    check_allowlist(df.letters, df, m)
-
-
-def test_groupby_frame_allowlist(df_letters, df_allowlist_fixture):
-    m = df_allowlist_fixture
-    df = df_letters
-    check_allowlist(df, df, m)
 
 
 @pytest.fixture

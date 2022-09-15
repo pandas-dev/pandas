@@ -421,3 +421,31 @@ class TestDataFrameToDict:
         for i, key, value in assertion_iterator:
             assert value == data[key][i]
             assert type(value) is expected_types[key][i]
+
+    @pytest.mark.parametrize("orient", ["dict", "list", "series", "records", "index"])
+    def test_to_dict_index_false_error(self, orient):
+        # GH#46398
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
+        msg = "'index=False' is only valid when 'orient' is 'split' or 'tight'"
+        with pytest.raises(ValueError, match=msg):
+            df.to_dict(orient=orient, index=False)
+
+    @pytest.mark.parametrize(
+        "orient, expected",
+        [
+            ("split", {"columns": ["col1", "col2"], "data": [[1, 3], [2, 4]]}),
+            (
+                "tight",
+                {
+                    "columns": ["col1", "col2"],
+                    "data": [[1, 3], [2, 4]],
+                    "column_names": [None],
+                },
+            ),
+        ],
+    )
+    def test_to_dict_index_false(self, orient, expected):
+        # GH#46398
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
+        result = df.to_dict(orient=orient, index=False)
+        tm.assert_dict_equal(result, expected)

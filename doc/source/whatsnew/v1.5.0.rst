@@ -308,6 +308,7 @@ Other enhancements
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
 - :class:`Series` and :class:`DataFrame` with :class:`IntegerDtype` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`.DateOffset` (:issue:`43371`)
+- :meth:`DataFrame.where` tries to maintain dtype of :class:`DataFrame` if fill value can be cast without loss of precision (:issue:`45582`)
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :func:`concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
 - :func:`concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
@@ -329,8 +330,8 @@ Other enhancements
 - :meth:`DataFrame.quantile` gained a ``method`` argument that can accept ``table`` to evaluate multi-column quantiles (:issue:`43881`)
 - :class:`Interval` now supports checking whether one interval is contained by another interval (:issue:`46613`)
 - Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
-- :meth:`DataFrame.set_index` now supports a ``copy`` keyword. If ``False``, the underlying data is not copied when a new :class:`DataFrame` is returned (:issue:`48043`)
 - The method :meth:`.ExtensionArray.factorize` accepts ``use_na_sentinel=False`` for determining how null values are to be treated (:issue:`46601`)
+- The ``Dockerfile`` now installs a dedicated ``pandas-dev`` virtual environment for pandas development instead of using the ``base`` environment (:issue:`48427`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -932,7 +933,6 @@ Other Deprecations
 - Deprecated the ``inplace`` keyword in :meth:`DataFrame.set_axis` and :meth:`Series.set_axis`, use ``obj = obj.set_axis(..., copy=False)`` instead (:issue:`48130`)
 - Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 - Fixed up warning message of deprecation of :meth:`MultiIndex.lesort_depth` as public method, as the message previously referred to :meth:`MultiIndex.is_lexsorted` instead (:issue:`38701`)
-- Deprecated the ``inplace`` keyword in :meth:`DataFrame.set_index`, use ``df = df.set_index(..., copy=False)`` instead (:issue:`48115`)
 - Deprecated the ``sort_columns`` argument in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`).
 - Deprecated positional arguments for all but the first argument of :meth:`DataFrame.to_stata` and :func:`read_stata`, use keyword arguments instead (:issue:`48128`).
 - Deprecated the ``mangle_dupe_cols`` argument in :func:`read_csv`, :func:`read_fwf`, :func:`read_table` and :func:`read_excel`. The argument was never implemented, and a new argument where the renaming pattern can be specified will be added instead (:issue:`47718`)
@@ -1011,6 +1011,8 @@ Time Zones
 Numeric
 ^^^^^^^
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
+- Bug in arithmetic operations with nullable types without :attr:`NA` values not matching the same operation with non-nullable types (:issue:`48223`)
+- Bug in ``floordiv`` when dividing by ``IntegerDtype`` ``0`` would return ``0`` instead of ``inf`` (:issue:`48223`)
 - Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
 - Bug in :meth:`mean` where the optional dependency ``bottleneck`` causes precision loss linear in the length of the array. ``bottleneck`` has been disabled for :meth:`mean` improving the loss to log-linear but may result in a performance decrease. (:issue:`42878`)

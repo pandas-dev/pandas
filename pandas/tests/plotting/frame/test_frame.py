@@ -70,7 +70,8 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, use_index=True)
         self._check_ticks_props(ax, xrot=0)
-        _check_plot_works(df.plot, sort_columns=False)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
@@ -1550,8 +1551,8 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
         ix = date_range("1/1/2000", periods=10, freq="M")
-        df = df.set_index(ix, copy=False)
-        df_err = df_err.set_index(ix, copy=False)
+        df.set_index(ix, inplace=True)
+        df_err.set_index(ix, inplace=True)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 
