@@ -203,7 +203,7 @@ class SingleDataManager(DataManager):
         index = default_index(len(res))
 
         mgr = type(self).from_array(res, index)
-        return mgr
+        return mgr, np.arange(len(res), dtype=np.intp)  # TODO: is taker meaningful here?
 
     @classmethod
     def from_array(cls, arr: ArrayLike, index: Index):

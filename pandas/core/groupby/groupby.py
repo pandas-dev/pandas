@@ -1780,7 +1780,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=ignore_failures)
+        new_mgr, taker = data.grouped_reduce(array_func, ignore_failures=ignore_failures)
 
         if not is_ser and len(new_mgr) < orig_len:
             warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
@@ -2055,7 +2055,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return counted[0]
             return counted
 
-        new_mgr = data.grouped_reduce(hfunc)
+        new_mgr, taker = data.grouped_reduce(hfunc)
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
@@ -3374,7 +3374,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mgr = self._get_data_to_aggregate()
         data = mgr.get_numeric_data()[0] if numeric_only_bool else mgr
         ignore_failures = numeric_only_bool
-        res_mgr = data.grouped_reduce(blk_func, ignore_failures=ignore_failures)
+        res_mgr, taker = data.grouped_reduce(blk_func, ignore_failures=ignore_failures)
 
         if (
             numeric_only is lib.no_default
@@ -3401,6 +3401,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axes_dict["index"] = res_mgr.axes[-1]
             if res_mgr.ndim == 2:
                 axes_dict["columns"] = res_mgr.axes[0]
+            #breakpoint()
             res = obj._constructor(res_mgr, **axes_dict)
 
         if orig_scalar:
@@ -3693,7 +3694,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna = kwargs.get("skipna", True)
         if axis != 0:
             f = lambda x: np.minimum.accumulate(x, axis)
-            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)
+            numeric_only_bool = self._resolve_numeric_only("cummax", numeric_only, axis)  # TODO: "cummin"?
             obj = self._selected_obj
             if numeric_only_bool:
                 obj = obj._get_numeric_data()
@@ -3853,7 +3854,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if numeric_only_bool:
             mgr = mgr.get_numeric_data()[0]
 
-        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
+        res_mgr, taker = mgr.grouped_reduce(blk_func, ignore_failures=True)
 
         if not is_ser and len(res_mgr.items) != orig_mgr_len:
             howstr = how.replace("group_", "")
@@ -3871,7 +3872,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             out = self._wrap_agged_manager(res_mgr)
         else:
             # FIXME: get axes without mgr.axes
-            out = obj._constructor(res_mgr, index=res_mgr.axes[1], columns=res_mgr.axes[0])
+            if self.axis == 0 and not numeric_only_bool:
+                columns = self._obj_with_exclusions.columns[taker]
+            else:
+                #breakpoint()
+                columns = res_mgr.axes[0]
+            out = obj._constructor(res_mgr, index=res_mgr.axes[1], columns=columns)
 
         return self._wrap_aggregated_output(out)
 

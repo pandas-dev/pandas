@@ -1475,7 +1475,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> tuple[T, npt.NDArray[np.intp]]:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
 
@@ -1488,6 +1488,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         Returns
         -------
         BlockManager
+        np.ndarray[intp]
         """
         result_blocks: list[Block] = []
         dropped_any = False
@@ -1522,9 +1523,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if dropped_any:
             # faster to skip _combine if we haven't dropped any blocks
-            return self._combine(result_blocks, copy=False, index=index)[0]
+            return self._combine(result_blocks, copy=False, index=index)
 
-        return type(self).from_blocks(result_blocks, [self.axes[0], index])
+        taker = np.arange(len(self), dtype=np.intp)
+        return type(self).from_blocks(result_blocks, [self.axes[0], index]), taker
 
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
@@ -2055,6 +2057,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
     def get_numeric_data(self, copy: bool = False):
         if self._block.is_numeric:
+            taker = np.arange(len(self.items), dtype=np.intp)
             return self.copy(deep=copy), taker
         taker = np.array([], dtype=np.intp)
         return self.make_empty(), taker

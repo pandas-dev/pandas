@@ -840,7 +840,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         old_len = self.shape[axis]
         new_len = len(new_labels)
 
-        if axis == 1 and len(self.columns) == 0:
+        if self.ndim > 1 and axis == 0 and len(self.columns) == 0:
             # If we are setting the index on a DataFrame with no columns,
             #  it is OK to change the length.
             pass
@@ -3933,6 +3933,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             convert_indices=convert_indices,
         )
 
+        # We have 6 tests that get here with a slice; TODO: maybe avoid?
+        # TODO: de-duplicate with similar inside BlockManager.take
+        indices = (
+            np.arange(indices.start, indices.stop, indices.step, dtype=np.intp)
+            if isinstance(indices, slice)
+            else np.asanyarray(indices, dtype=np.intp)  # <- converts some cases with empty float64
+        )
+
         axes_dict = self._construct_axes_dict()
         if convert_indices and isinstance(indices, np.ndarray):
             # i.e. exclude slice, which in principle shouldn't be in a _take
@@ -5489,9 +5497,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if copy and new_data is self._mgr:
             new_data = new_data.copy()
-
-        # FIXME: get axes without mgr.axes
-        #axes_dict = self._get_axes_from_mgr(new_data)
 
         return self._constructor(new_data, **axes_dict).__finalize__(self)
 

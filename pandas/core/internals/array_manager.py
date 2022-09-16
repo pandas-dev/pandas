@@ -464,7 +464,7 @@ class BaseArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return len(self.arrays) == 1
 
-    def _get_data_subset(self: T, predicate: Callable) -> T:
+    def _get_data_subset(self: T, predicate: Callable) -> tuple[T, npt.NDArray[np.intp]]:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
         arrays = [self.arrays[i] for i in indices]
         # TODO copy?
@@ -473,9 +473,9 @@ class BaseArrayManager(DataManager):
         taker = np.array(indices, dtype="intp")
         new_cols = self._axes[1].take(taker)
         new_axes = [self._axes[0], new_cols]
-        return type(self)(arrays, new_axes, verify_integrity=False)
+        return type(self)(arrays, new_axes, verify_integrity=False), taker
 
-    def get_bool_data(self: T, copy: bool = False) -> T:
+    def get_bool_data(self: T, copy: bool = False) -> tuple[T, npt.NDArray[np.intp]]:
         """
         Select columns that are bool-dtype and object-dtype columns that are all-bool.
 
@@ -485,9 +485,8 @@ class BaseArrayManager(DataManager):
             Whether to copy the blocks
         """
         return self._get_data_subset(is_inferred_bool_dtype)
-        # FIXME: return indexer
 
-    def get_numeric_data(self: T, copy: bool = False) -> T:
+    def get_numeric_data(self: T, copy: bool = False) -> tuple[T, npt.NDArray[np.intp]]:
         """
         Select columns that have a numeric dtype.
 
@@ -935,7 +934,7 @@ class ArrayManager(BaseArrayManager):
     # --------------------------------------------------------------------
     # Array-wise Operation
 
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> tuple[T, npt.NDArray[np.intp]]:
         """
         Apply grouped reduction function columnwise, returning a new ArrayManager.
 
@@ -948,6 +947,7 @@ class ArrayManager(BaseArrayManager):
         Returns
         -------
         ArrayManager
+        np.ndarray[intp]
         """
         result_arrays: list[np.ndarray] = []
         result_indices: list[int] = []
@@ -975,14 +975,16 @@ class ArrayManager(BaseArrayManager):
         else:
             index = Index(range(result_arrays[0].shape[0]))
 
+        taker = None
         if ignore_failures:
-            columns = self.items[np.array(result_indices, dtype="int64")]
+            taker = np.array(result_indices, dtype=np.intp)
+            columns = self.items[taker]
         else:
             columns = self.items
 
         # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
         # expected "List[Union[ndarray, ExtensionArray]]"
-        return type(self)(result_arrays, [index, columns])  # type: ignore[arg-type]
+        return type(self)(result_arrays, [index, columns]), taker  # type: ignore[arg-type]
 
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False

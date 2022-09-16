@@ -4760,7 +4760,8 @@ class DataFrame(NDFrame, OpsMixin):
                 and not is_bool_dtype(dtype)
             )
 
-        def predicate(dtype: DtypeObj) -> bool:
+        def predicate(arr: ArrayLike) -> bool:
+            dtype = arr.dtype
             if include:
                 if not dtype_predicate(dtype, include):
                     return False
@@ -4771,14 +4772,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        def arr_predicate(arr: ArrayLike) -> bool:
-            dtype = arr.dtype
-            return predicate(dtype)
-
-        mgr, taker = self._mgr._get_data_subset(arr_predicate).copy(deep=None)
-        # FIXME: get axes without mgr.axes
-        # FIXME: return taker from _get_data_subset, this is really slow
-        #taker = self.dtypes.apply(predicate).values.nonzero()[0]
+        mgr, taker = self._mgr._get_data_subset(predicate)
+        mgr = mgr.copy(deep=None)
         columns = self.columns.take(taker)
         return type(self)(mgr, columns=columns, index=self.index).__finalize__(self)
 

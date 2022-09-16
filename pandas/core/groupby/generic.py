@@ -175,6 +175,7 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             mgr = cast(Manager2D, mgr)
             single = mgr.iget(0)
+        #breakpoint()
         # FIXME: get axes without mgr.axes
         index = single.axes[0]
         ser = self.obj._constructor(single, index=index, name=self.obj.name)
@@ -1329,14 +1330,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # We could use `mgr.apply` here and not have to set_axis, but
         #  we would have to do shape gymnastics for ArrayManager compat
-        res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
+        res_mgr, taker = mgr.grouped_reduce(arr_func, ignore_failures=True)
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < orig_mgr_len:
             warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
 
-        # FIXME: get axes without mgr.axes
-        res_df = self.obj._constructor(res_mgr, index=res_mgr.axes[1], columns=res_mgr.axes[0])
+        columns = mgr.axes[0]
+        index = res_mgr.axes[1]  # FIXME: get index without res_mgr.axes
+        if self.axis == 0:
+            
+            pass#index = self._obj_with_exclusions.index
+            #columns = columns[taker]
+            #breakpoint()
+        else:
+            #columns = self._obj_with_exclusions.index
+            pass#index = self._obj_with_exclusions.columns
+            #breakpoint()
+
+        columns = columns[taker]
+        res_df = self.obj._constructor(res_mgr, index=index, columns=columns)
         if self.axis == 1:
             res_df = res_df.T
         return res_df
