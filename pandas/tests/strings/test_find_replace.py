@@ -291,21 +291,22 @@ def test_contains_nan(any_string_dtype):
 # --------------------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
 @pytest.mark.parametrize("dtype", [None, "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_startswith(dtype, null_value, na):
+def test_startswith(pat, dtype, null_value, na):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
         dtype=dtype,
     )
 
-    result = values.str.startswith("foo")
+    result = values.str.startswith(pat)
     exp = Series([False, np.nan, True, False, False, np.nan, True])
     tm.assert_series_equal(result, exp)
 
-    result = values.str.startswith("foo", na=na)
+    result = values.str.startswith(pat, na=na)
     exp = Series([False, na, True, False, False, na, True])
     tm.assert_series_equal(result, exp)
 
@@ -351,21 +352,22 @@ def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
 # --------------------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
 @pytest.mark.parametrize("dtype", [None, "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
-def test_endswith(dtype, null_value, na):
+def test_endswith(pat, dtype, null_value, na):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
         dtype=dtype,
     )
 
-    result = values.str.endswith("foo")
+    result = values.str.endswith(pat)
     exp = Series([False, np.nan, False, False, True, np.nan, True])
     tm.assert_series_equal(result, exp)
 
-    result = values.str.endswith("foo", na=na)
+    result = values.str.endswith(pat, na=na)
     exp = Series([False, na, False, False, True, na, True])
     tm.assert_series_equal(result, exp)
 
