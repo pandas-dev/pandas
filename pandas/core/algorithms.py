@@ -568,6 +568,17 @@ def factorize_array(
 
     hash_klass, values = _get_hashtable_algo(values)
 
+    # factorize can now handle differentiating various types of null values.
+    # However, for backwards compatibility we only use the null for the
+    # provided dtype. This may be revisited in the future, see GH#48476.
+    null_mask = isna(values)
+    if null_mask.any():
+        na_value = na_value_for_dtype(values.dtype, compat=False)
+        # Don't modify (potentially user-provided) array
+        # error: No overload variant of "where" matches argument types "Any", "object",
+        # "ndarray[Any, Any]"
+        values = np.where(null_mask, na_value, values)  # type: ignore[call-overload]
+
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
         values,
@@ -1043,6 +1054,10 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
+    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
+        values = cast("BaseMaskedArray", values)
+        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)
 
@@ -1830,6 +1845,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
     original_values = values
+    is_mi = isinstance(original_values, ABCMultiIndex)
 
     if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
@@ -1851,7 +1867,11 @@ def safe_sort(
     else:
         try:
             sorter = values.argsort()
-            ordered = values.take(sorter)
+            if is_mi:
+                # Operate on original object instead of casted array (MultiIndex)
+                ordered = original_values.take(sorter)
+            else:
+                ordered = values.take(sorter)
         except TypeError:
             # Previous sorters failed or were not applicable, try `_sort_mixed`
             # which would work, but which fails for special case of 1d arrays

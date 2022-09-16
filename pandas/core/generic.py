@@ -1917,7 +1917,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Perform copy upfront and then use inplace operations below.
         # This ensures that we always perform exactly one copy.
         # ``copy`` and/or ``inplace`` options could be added in the future.
-        dropped = self.copy()
+        dropped = self.copy(deep=False)
 
         if axis == 0:
             # Handle dropping index levels
@@ -9087,7 +9087,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        core.groupby.GroupBy.rank : Rank of values within each group.
+        core.groupby.DataFrameGroupBy.rank : Rank of values within each group.
+        core.groupby.SeriesGroupBy.rank : Rank of values within each group.
 
         Examples
         --------
@@ -11660,10 +11661,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         setattr(cls, "all", all)
 
-        # error: Argument 1 to "doc" has incompatible type "Optional[str]"; expected
-        # "Union[str, Callable[..., Any]]"
         @doc(
-            NDFrame.mad.__doc__,  # type: ignore[arg-type]
+            NDFrame.mad.__doc__,
             desc="Return the mean absolute deviation of the values "
             "over the requested axis.",
             name1=name1,

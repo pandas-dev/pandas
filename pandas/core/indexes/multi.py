@@ -3466,22 +3466,35 @@ class MultiIndex(Index):
         -------
         indexer : a sorted position indexer of self ordered as seq
         """
-        # If the index is lexsorted and the list_like label in seq are sorted
-        # then we do not need to sort
-        if self._is_lexsorted():
-            need_sort = False
-            for i, k in enumerate(seq):
-                if is_list_like(k):
-                    if not need_sort:
-                        k_codes = self.levels[i].get_indexer(k)
-                        k_codes = k_codes[k_codes >= 0]  # Filter absent keys
-                        # True if the given codes are not ordered
-                        need_sort = (k_codes[:-1] > k_codes[1:]).any()
-                elif isinstance(k, slice) and k.step is not None and k.step < 0:
+
+        # check if sorting is necessary
+        need_sort = False
+        for i, k in enumerate(seq):
+            if com.is_null_slice(k) or com.is_bool_indexer(k) or is_scalar(k):
+                pass
+            elif is_list_like(k):
+                if len(k) <= 1:  # type: ignore[arg-type]
+                    pass
+                elif self._is_lexsorted():
+                    # If the index is lexsorted and the list_like label
+                    # in seq are sorted then we do not need to sort
+                    k_codes = self.levels[i].get_indexer(k)
+                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
+                    # True if the given codes are not ordered
+                    need_sort = (k_codes[:-1] > k_codes[1:]).any()
+                else:
                     need_sort = True
-            # Bail out if both index and seq are sorted
-            if not need_sort:
-                return indexer
+            elif isinstance(k, slice):
+                if self._is_lexsorted():
+                    need_sort = k.step is not None and k.step < 0
+                else:
+                    need_sort = True
+            else:
+                need_sort = True
+            if need_sort:
+                break
+        if not need_sort:
+            return indexer
 
         n = len(self)
         keys: tuple[np.ndarray, ...] = ()
@@ -3638,17 +3651,38 @@ class MultiIndex(Index):
         if (
             any(-1 in code for code in self.codes)
             and any(-1 in code for code in other.codes)
-            or self.has_duplicates
             or other.has_duplicates
         ):
-            # This is only necessary if both sides have nans or one has dups,
+            # This is only necessary if both sides have nans or other has dups,
             # fast_unique_multiple is faster
             result = super()._union(other, sort)
+
+            if isinstance(result, MultiIndex):
+                return result
+            return MultiIndex.from_arrays(
+                zip(*result), sortorder=None, names=result_names
+            )
+
         else:
             rvals = other._values.astype(object, copy=False)
-            result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
+            right_missing = lib.fast_unique_multiple(self._values, rvals)
+            if right_missing:
+                result = self.append(other.take(right_missing))
+            else:
+                result = self._get_reconciled_name_object(other)
 
-        return MultiIndex.from_arrays(zip(*result), sortorder=None, names=result_names)
+            if sort is None:
+                try:
+                    result = result.sort_values()
+                except TypeError:
+                    warnings.warn(
+                        "The values in the array are unorderable. "
+                        "Pass `sort=False` to suppress this warning.",
+                        RuntimeWarning,
+                        stacklevel=find_stack_level(inspect.currentframe()),
+                    )
+                    pass
+            return result
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
