@@ -6,7 +6,6 @@ import inspect
 import re
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Hashable,
     Iterator,
@@ -20,6 +19,7 @@ import pandas._libs.lib as lib
 from pandas._typing import (
     DtypeObj,
     F,
+    Scalar,
 )
 from pandas.util._decorators import (
     Appender,
@@ -2289,7 +2289,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def startswith(self, pat: str | tuple[str, ...], na: Any = None) -> Series | Index:
+    def startswith(
+        self, pat: str | tuple[str, ...], na: Scalar | None = None
+    ) -> Series | Index:
         """
         Test if the start of each string element matches a pattern.
 
@@ -2334,6 +2336,13 @@ class StringMethods(NoNewAttributesMixin):
         3      NaN
         dtype: object
 
+        >>> s.str.startswith(('b', 'B'))
+        0     True
+        1     True
+        2    False
+        3      NaN
+        dtype: object
+
         Specifying `na` to be `False` instead of `NaN`.
 
         >>> s.str.startswith('b', na=False)
@@ -2350,7 +2359,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def endswith(self, pat: str | tuple[str, ...], na: Any = None) -> Series | Index:
+    def endswith(
+        self, pat: str | tuple[str, ...], na: Scalar | None = None
+    ) -> Series | Index:
         """
         Test if the end of each string element matches a pattern.
 
@@ -2392,6 +2403,13 @@ class StringMethods(NoNewAttributesMixin):
         0     True
         1    False
         2    False
+        3      NaN
+        dtype: object
+
+        >>> s.str.endswith(('t', 'T'))
+        0     True
+        1    False
+        2     True
         3      NaN
         dtype: object
 
