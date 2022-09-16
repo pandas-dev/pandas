@@ -154,7 +154,7 @@ ul.task-bullet > li > p:first-child {
 
 .comparison-card .card-footer {
   border: none;
-  background-color:white;
+  background-color: transparent;
 }
 
 .install-block {
@@ -163,19 +163,18 @@ ul.task-bullet > li > p:first-child {
 
 .install-card .card-header {
   border: none;
-  background-color:white;
+  background-color: transparent;
   padding: 1rem 1rem 0rem 1rem;
 }
 
 .install-card .card-header p.card-text {
-  color: #150458;
   font-size: 1.1rem;
   font-weight: bold;
 }
 
 .install-card .card-footer {
   border: none;
-  background-color:white;
+  background-color: transparent;
 }
 
 .install-card pre {
