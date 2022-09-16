@@ -29,6 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
+- Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 -
 
 .. ---------------------------------------------------------------------------
