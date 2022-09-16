@@ -1,9 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
-import inspect
 from typing import Literal
-import warnings
 
 cimport cython
 from cpython.datetime cimport (
@@ -31,7 +29,7 @@ from cython cimport (
     floating,
 )
 
-from pandas.util._exceptions import find_stack_level
+from pandas._libs.missing import check_na_tuples_nonequal
 
 import_datetime()
 
@@ -314,51 +312,42 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool = True):
+def fast_unique_multiple(ndarray left, ndarray right) -> list:
     """
-    Generate a list of unique values from a list of arrays.
+    Generate a list indices we have to add to the left to get the union
+    of both arrays.
 
     Parameters
     ----------
-    list : array-like
-        List of array-like objects.
-    sort : bool
-        Whether or not to sort the resulting unique list.
+    left : np.ndarray
+        Left array that is used as base.
+    right : np.ndarray
+        right array that is checked for values that are not in left.
+        right can not have duplicates.
 
     Returns
     -------
-    list of unique values
+    list of indices that we have to add to the left array.
     """
     cdef:
-        ndarray[object] buf
-        Py_ssize_t k = len(arrays)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
+        Py_ssize_t j, n
+        list indices = []
+        set table = set()
         object val, stub = 0
 
-    for i in range(k):
-        buf = arrays[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
+    n = len(left)
+    for j in range(n):
+        val = left[j]
+        if val not in table:
+            table.add(val)
 
-    if sort is None:
-        try:
-            uniques.sort()
-        except TypeError:
-            warnings.warn(
-                "The values in the array are unorderable. "
-                "Pass `sort=False` to suppress this warning.",
-                RuntimeWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-            pass
+    n = len(right)
+    for j in range(n):
+        val = right[j]
+        if val not in table:
+            indices.append(j)
 
-    return uniques
+    return indices
 
 
 @cython.wraparound(False)
@@ -649,7 +638,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 or is_matching_na(x, y, nan_matches_none=True)
             ):
                 return False
-        except ValueError:
+        except (ValueError, TypeError):
             # Avoid raising ValueError when comparing Numpy arrays to other types
             if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
                 # Only compare scalars to scalars and non-scalars to non-scalars
@@ -658,7 +647,12 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                   and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
                 # Check if non-scalars have the same type
                 return False
+            elif check_na_tuples_nonequal(x, y):
+                # We have tuples where one Side has a NA and the other side does not
+                # Only condition we may end up with a TypeError
+                return False
             raise
+
     return True
 
 

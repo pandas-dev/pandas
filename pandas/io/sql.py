@@ -152,7 +152,7 @@ def _wrap_result(
     frame = _parse_date_columns(frame, parse_dates)
 
     if index_col is not None:
-        frame = frame.set_index(index_col, copy=False)
+        frame.set_index(index_col, inplace=True)
 
     return frame
 
@@ -980,7 +980,7 @@ class SQLTable(PandasObject):
                 self._harmonize_columns(parse_dates=parse_dates)
 
                 if self.index is not None:
-                    self.frame = self.frame.set_index(self.index, copy=False)
+                    self.frame.set_index(self.index, inplace=True)
 
                 yield self.frame
 
@@ -1021,7 +1021,7 @@ class SQLTable(PandasObject):
             self._harmonize_columns(parse_dates=parse_dates)
 
             if self.index is not None:
-                self.frame = self.frame.set_index(self.index, copy=False)
+                self.frame.set_index(self.index, inplace=True)
 
             return self.frame
 
