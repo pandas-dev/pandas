@@ -1334,8 +1334,10 @@ def test_result_name_when_one_group(name):
 
 
 def test_empty_df():
-    empty_df = pd.DataFrame({"a": [], "b": []})
+    empty_df = DataFrame({"a": [], "b": []})
+
+    # Both operations should return an empty series instead of IndexError for apply UDF
     result = empty_df.groupby("a").b.apply(lambda x: x.values[-1])
-    expected = empty_df.groupby("a").b.take([0])
+    expected = empty_df.groupby("a").b.agg("sum")
 
     tm.assert_series_equal(result, expected)
