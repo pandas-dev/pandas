@@ -1331,3 +1331,11 @@ def test_result_name_when_one_group(name):
     expected = Series([1, 2], name=name)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_empty_df():
+    empty_df = pd.DataFrame({"a": [], "b": []})
+    result = empty_df.groupby("a").b.apply(lambda x: x.values[-1])
+    expected = empty_df.groupby("a").b.take([0])
+
+    tm.assert_series_equal(result, expected)
