@@ -542,7 +542,7 @@ def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
 
 
 def test_union_keep_ea_dtype_duplicates_right(any_numeric_ea_dtype):
-    # GH#
+    # GH#48591
     arr1 = Series([4, 2], dtype=any_numeric_ea_dtype)
     arr2 = Series([2, 1, 1], dtype=any_numeric_ea_dtype)
     midx = MultiIndex.from_arrays([arr1, [1, 2]], names=["a", None])
