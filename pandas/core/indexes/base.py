@@ -3532,13 +3532,14 @@ class Index(IndexOpsMixin, PandasObject):
             and self._can_use_libjoin
         ):
             try:
-                result = self._inner_indexer(other)[0]
+                indexer = self._inner_indexer(other)[1]
             except TypeError:
                 # non-comparable; should only be for object dtype
                 pass
             else:
+                result = self.take(indexer)
                 # TODO: algos.unique1d should preserve DTA/TDA
-                res = algos.unique1d(result)
+                res = result.unique()
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
@@ -3573,7 +3574,10 @@ class Index(IndexOpsMixin, PandasObject):
             # unnecessary in the case with sort=None bc we will sort later
             taker = np.sort(taker)
 
-        result = left_unique.take(taker)._values
+        if isinstance(left_unique, ABCMultiIndex):
+            result = left_unique.take(taker)
+        else:
+            result = left_unique.take(taker)._values
         return result
 
     @final
