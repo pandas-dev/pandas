@@ -19,7 +19,7 @@ from .pandas_vb_common import tm
 class SetOperations:
 
     params = (
-        ["datetime", "date_string", "int", "strings"],
+        ["datetime", "date_string", "int", "strings", "ea_int"],
         ["intersection", "union", "symmetric_difference"],
     )
     param_names = ["dtype", "method"]
@@ -30,12 +30,14 @@ class SetOperations:
         fmt = "%Y-%m-%d %H:%M:%S"
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))
+        ea_int_left = Index(np.arange(N), dtype="Int64")
         str_left = tm.makeStringIndex(N)
         data = {
             "datetime": {"left": dates_left, "right": dates_left[:-1]},
             "date_string": {"left": date_str_left, "right": date_str_left[:-1]},
             "int": {"left": int_left, "right": int_left[:-1]},
             "strings": {"left": str_left, "right": str_left[:-1]},
+            "ea_int": {"left": ea_int_left, "right": ea_int_left[:-1]},
         }
         self.left = data[dtype]["left"]
         self.right = data[dtype]["right"]

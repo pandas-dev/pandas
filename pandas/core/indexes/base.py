@@ -3539,7 +3539,11 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 result = self.take(indexer)
                 # TODO: algos.unique1d should preserve DTA/TDA
-                res = result.unique()
+                if is_numeric_dtype(result):
+                    res = algos.unique1d(result)
+                else:
+                    res = result.drop_duplicates()
+                # return res
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
