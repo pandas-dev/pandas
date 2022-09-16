@@ -1970,7 +1970,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    casted = element.astype(dtype)
+                    with np.errstate(invalid="ignore"):
+                        # We check afterwards if cast was losslessly, so no need to show
+                        # the warning
+                        casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
                         # Return the casted values bc they can be passed to
