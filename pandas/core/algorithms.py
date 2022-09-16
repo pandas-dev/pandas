@@ -1764,7 +1764,7 @@ def diff(arr, n: int, axis: int = 0):
 def safe_sort(
     values,
     codes=None,
-    na_sentinel: int = -1,
+    na_sentinel: int | None = -1,
     assume_unique: bool = False,
     verify: bool = True,
 ) -> np.ndarray | MultiIndex | tuple[np.ndarray | MultiIndex, np.ndarray]:
@@ -1781,8 +1781,8 @@ def safe_sort(
     codes : list_like, optional
         Indices to ``values``. All out of bound indices are treated as
         "not found" and will be masked with ``na_sentinel``.
-    na_sentinel : int, default -1
-        Value in ``codes`` to mark "not found".
+    na_sentinel : int or None, default -1
+        Value in ``codes`` to mark "not found", or None to encode null values as normal.
         Ignored when ``codes`` is None.
     assume_unique : bool, default False
         When True, ``values`` are assumed to be unique, which can speed up
