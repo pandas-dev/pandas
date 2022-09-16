@@ -19,7 +19,7 @@ jobs:
       security-events: write
       # Used to receive a badge.
       id-token: write
-    
+
     if: github.repository == 'pandas-dev/pandas'  # don't run on forks
 
     steps:
