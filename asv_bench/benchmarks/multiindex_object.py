@@ -237,7 +237,7 @@ class SetOperations:
 
     params = [
         ("monotonic", "non_monotonic"),
-        ("datetime", "int", "string", "Int"),
+        ("datetime", "int", "string", "ea_int"),
         ("intersection", "union", "symmetric_difference"),
     ]
     param_names = ["index_structure", "dtype", "method"]
@@ -262,7 +262,7 @@ class SetOperations:
             "datetime": dates_left,
             "int": int_left,
             "string": str_left,
-            "Int": ea_int_left,
+            "ea_int": ea_int_left,
         }
 
         if index_structure == "non_monotonic":
