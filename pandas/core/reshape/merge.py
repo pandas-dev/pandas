@@ -30,6 +30,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     IndexLabel,
+    Shape,
     Suffixes,
     npt,
 )
@@ -1592,7 +1593,7 @@ def get_join_indexers(
     llab, rlab, shape = (list(x) for x in zipped)
 
     # get flat i8 keys from label lists
-    lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
+    lkey, rkey = _get_join_keys(llab, rlab, tuple(shape), sort)
 
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
@@ -2139,7 +2140,7 @@ def _get_multiindex_indexer(
             rcodes[i][mask] = shape[i] - 1
 
     # get flat i8 join keys
-    lkey, rkey = _get_join_keys(lcodes, rcodes, shape, sort)
+    lkey, rkey = _get_join_keys(lcodes, rcodes, tuple(shape), sort)
 
     # factorize keys to a dense i8 space
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
@@ -2377,7 +2378,12 @@ def _sort_labels(
     return new_left, new_right
 
 
-def _get_join_keys(llab, rlab, shape, sort: bool):
+def _get_join_keys(
+    llab: list[npt.NDArray[np.int64 | np.intp]],
+    rlab: list[npt.NDArray[np.int64 | np.intp]],
+    shape: Shape,
+    sort: bool,
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
 
     # how many levels can be done without overflow
     nlev = next(
@@ -2405,7 +2411,7 @@ def _get_join_keys(llab, rlab, shape, sort: bool):
 
     llab = [lkey] + llab[nlev:]
     rlab = [rkey] + rlab[nlev:]
-    shape = [count] + shape[nlev:]
+    shape = (count,) + shape[nlev:]
 
     return _get_join_keys(llab, rlab, shape, sort)
 
