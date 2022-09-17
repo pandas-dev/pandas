@@ -18,6 +18,7 @@ import pandas._libs.lib as lib
 from pandas._typing import (
     DtypeObj,
     F,
+    Scalar,
 )
 from pandas.util._decorators import (
     Appender,
@@ -2287,7 +2288,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def startswith(self, pat, na=None):
+    def startswith(
+        self, pat: str | tuple[str, ...], na: Scalar | None = None
+    ) -> Series | Index:
         """
         Test if the start of each string element matches a pattern.
 
@@ -2295,8 +2298,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        pat : str
-            Character sequence. Regular expressions are not accepted.
+        pat : str or tuple[str, ...]
+            Character sequence or tuple of strings. Regular expressions are not
+            accepted.
         na : object, default NaN
             Object shown if element tested is not a string. The default depends
             on dtype of the array. For object-dtype, ``numpy.nan`` is used.
@@ -2331,6 +2335,13 @@ class StringMethods(NoNewAttributesMixin):
         3      NaN
         dtype: object
 
+        >>> s.str.startswith(('b', 'B'))
+        0     True
+        1     True
+        2    False
+        3      NaN
+        dtype: object
+
         Specifying `na` to be `False` instead of `NaN`.
 
         >>> s.str.startswith('b', na=False)
@@ -2340,14 +2351,16 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
-        if not isinstance(pat, str):
-            msg = f"expected a string object, not {type(pat).__name__}"
+        if not isinstance(pat, (str, tuple)):
+            msg = f"expected a string or tuple, not {type(pat).__name__}"
             raise TypeError(msg)
         result = self._data.array._str_startswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def endswith(self, pat, na=None):
+    def endswith(
+        self, pat: str | tuple[str, ...], na: Scalar | None = None
+    ) -> Series | Index:
         """
         Test if the end of each string element matches a pattern.
 
@@ -2355,8 +2368,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        pat : str
-            Character sequence. Regular expressions are not accepted.
+        pat : str or tuple[str, ...]
+            Character sequence or tuple of strings. Regular expressions are not
+            accepted.
         na : object, default NaN
             Object shown if element tested is not a string. The default depends
             on dtype of the array. For object-dtype, ``numpy.nan`` is used.
@@ -2391,6 +2405,13 @@ class StringMethods(NoNewAttributesMixin):
         3      NaN
         dtype: object
 
+        >>> s.str.endswith(('t', 'T'))
+        0     True
+        1    False
+        2     True
+        3      NaN
+        dtype: object
+
         Specifying `na` to be `False` instead of `NaN`.
 
         >>> s.str.endswith('t', na=False)
@@ -2400,8 +2421,8 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
-        if not isinstance(pat, str):
-            msg = f"expected a string object, not {type(pat).__name__}"
+        if not isinstance(pat, (str, tuple)):
+            msg = f"expected a string or tuple, not {type(pat).__name__}"
             raise TypeError(msg)
         result = self._data.array._str_endswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
