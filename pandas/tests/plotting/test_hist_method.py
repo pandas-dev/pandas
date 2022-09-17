@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import is_at_least_matplotlib_36
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -191,6 +192,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
         tm.close()
 
+    @pytest.mark.xfail(is_at_least_matplotlib_36, reason="Api changed")
     @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
 

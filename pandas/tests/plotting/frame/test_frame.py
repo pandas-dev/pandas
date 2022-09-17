@@ -1534,8 +1534,8 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_errorbar_with_integer_column_names(self):
         # test with integer column names
-        df = DataFrame(np.random.randn(10, 2))
-        df_err = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(np.abs(np.random.randn(10, 2)))
+        df_err = DataFrame(np.abs(np.random.randn(10, 2)))
         ax = _check_plot_works(df.plot, yerr=df_err)
         self._check_has_errorbars(ax, xerr=0, yerr=2)
         ax = _check_plot_works(df.plot, y=0, yerr=1)
@@ -1632,9 +1632,11 @@ class TestDataFramePlots(TestPlotBase):
             assert len(ax.tables) == 1
 
     def test_errorbar_scatter(self):
-        df = DataFrame(np.random.randn(5, 2), index=range(5), columns=["x", "y"])
+        df = DataFrame(
+            np.abs(np.random.randn(5, 2)), index=range(5), columns=["x", "y"]
+        )
         df_err = DataFrame(
-            np.random.randn(5, 2) / 5, index=range(5), columns=["x", "y"]
+            np.abs(np.random.randn(5, 2)) / 5, index=range(5), columns=["x", "y"]
         )
 
         ax = _check_plot_works(df.plot.scatter, x="x", y="y")
@@ -1661,7 +1663,9 @@ class TestDataFramePlots(TestPlotBase):
             )
 
         # GH 8081
-        df = DataFrame(np.random.randn(10, 5), columns=["a", "b", "c", "d", "e"])
+        df = DataFrame(
+            np.abs(np.random.randn(10, 5)), columns=["a", "b", "c", "d", "e"]
+        )
         ax = df.plot.scatter(x="a", y="b", xerr="d", yerr="e", c="red")
         self._check_has_errorbars(ax, xerr=1, yerr=1)
         _check_errorbar_color(ax.containers, "red", has_err="has_xerr")
