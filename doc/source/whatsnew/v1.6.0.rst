@@ -182,7 +182,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` (:issue:`48595`)
 -
 
 Period
