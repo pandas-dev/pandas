@@ -459,7 +459,8 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
 def make_rand_series(name=None, dtype=np.float64) -> Series:
     index = makeStringIndex(_N)
     data = np.random.randn(_N)
-    data = data.astype(dtype, copy=False)
+    with np.errstate(invalid="ignore"):
+        data = data.astype(dtype, copy=False)
     return Series(data, index=index, name=name)
 
 
