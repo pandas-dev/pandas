@@ -238,7 +238,7 @@ class SetOperations:
     params = [
         ("monotonic", "non_monotonic"),
         ("datetime", "int", "string"),
-        ("intersection", "union", "symmetric_difference"),
+        ("intersection", "union", "symmetric_difference", "difference"),
     ]
     param_names = ["index_structure", "dtype", "method"]
 
