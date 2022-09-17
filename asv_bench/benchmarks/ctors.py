@@ -134,7 +134,7 @@ class DatetimeIndexConstructor:
         self.list_of_str = dti.strftime("%Y-%m-%d").tolist()
 
     def time_from_list_of_timestamps(self):
-        DatetimeIndex(self.list_of_timstamps)
+        DatetimeIndex(self.list_of_timestamps)
 
     def time_from_list_of_dates(self):
         DatetimeIndex(self.list_of_dates)
