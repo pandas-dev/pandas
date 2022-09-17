@@ -158,7 +158,7 @@ def _get_cmap_instance(colormap: str | Colormap) -> Colormap:
     """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap
-        if mpl_ge_3_6_0:
+        if mpl_ge_3_6_0():
             colormap = mpl.colormaps[colormap]
         else:
             colormap = cm.get_cmap(colormap)

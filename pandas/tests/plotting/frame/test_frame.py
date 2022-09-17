@@ -35,12 +35,12 @@ import pandas.plotting as plotting
 try:
     from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 except ImportError:
-    mpl_ge_3_6_0 = True
+    mpl_ge_3_6_0 = lambda: True
 
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    @pytest.mark.xfail(mpl_ge_3_6_0, reason="Api changed")
+    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
     @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()

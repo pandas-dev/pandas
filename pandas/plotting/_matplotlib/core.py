@@ -1229,7 +1229,7 @@ class ScatterPlot(PlanePlot):
         if is_integer_dtype(c_values):
             # pandas uses colormap, matplotlib uses cmap.
             cmap = self.colormap or "Greys"
-            if mpl_ge_3_6_0:
+            if mpl_ge_3_6_0():
                 cmap = mpl.colormaps[cmap]
             else:
                 cmap = self.plt.cm.get_cmap(cmap)
@@ -1300,7 +1300,7 @@ class HexBinPlot(PlanePlot):
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
-        if mpl_ge_3_6_0:
+        if mpl_ge_3_6_0():
             cmap = mpl.colormaps[cmap]
         else:
             cmap = self.plt.cm.get_cmap(cmap)
