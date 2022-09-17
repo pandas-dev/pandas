@@ -598,16 +598,3 @@ def _gen_two_subplots(f, fig, **kwargs):
     else:
         kwargs["ax"] = fig.add_subplot(212)
     yield f(**kwargs)
-
-
-try:
-    import matplotlib as mpl
-
-    from pandas.util.version import Version
-
-    _mpl_version = mpl.__version__
-    _mpllv = Version(_mpl_version)
-    is_at_least_mpl_36 = _mpllv >= Version("3.6.0")
-
-except ImportError:
-    is_at_least_mpl_36 = True

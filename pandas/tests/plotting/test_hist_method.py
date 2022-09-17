@@ -16,8 +16,9 @@ import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
-    is_at_least_mpl_36,
 )
+
+from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
 
 @pytest.fixture
@@ -192,7 +193,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
         tm.close()
 
-    @pytest.mark.xfail(is_at_least_mpl_36, reason="Api changed")
+    @pytest.mark.xfail(mpl_ge_3_6_0, reason="Api changed")
     @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
 
