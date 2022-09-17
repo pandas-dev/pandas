@@ -398,6 +398,9 @@ def assert_index_equal(
         if not left.equals(right):
             mismatch = left._values != right._values
 
+            # if is_extension_array_dtype(mismatch):
+            #     mismatch = mismatch.fillna(True)
+
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)

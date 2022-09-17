@@ -1242,7 +1242,7 @@ Other
 .. ***DO NOT USE THIS SECTION***
 
 - Bug in :func:`.assert_index_equal` with ``names=True`` and ``check_order=False`` not checking names (:issue:`47328`)
--
+- Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError` (:issue:`45608`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.contributors:
