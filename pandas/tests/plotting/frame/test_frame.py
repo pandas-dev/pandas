@@ -736,7 +736,7 @@ class TestDataFramePlots(TestPlotBase):
         from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
 
         df = DataFrame(
-            np.random.randn(6, 4),
+            np.random.randint(low=0, high=100, size=(6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )

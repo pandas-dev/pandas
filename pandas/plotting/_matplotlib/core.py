@@ -1209,9 +1209,6 @@ class ScatterPlot(PlanePlot):
 
         color_by_categorical = c_is_column and is_categorical_dtype(self.data[c])
 
-        # pandas uses colormap, matplotlib uses cmap.
-        cmap = self.colormap or "Greys"
-        cmap = self.plt.cm.get_cmap(cmap)
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
@@ -1225,6 +1222,13 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
+
+        if is_integer_dtype(c_values):
+            # pandas uses colormap, matplotlib uses cmap.
+            cmap = self.colormap or "Greys"
+            cmap = self.plt.cm.get_cmap(cmap)
+        else:
+            cmap = None
 
         if color_by_categorical:
             from matplotlib import colors
