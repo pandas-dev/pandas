@@ -178,6 +178,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
 - Bug in :meth:`MultiIndex.union` losing extension array (:issue:`48498`, :issue:`48505`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
+- Bug in :meth:`MultiIndex.symmetric_difference` losing extension array (:issue:`50000`)
 -
 
 I/O
