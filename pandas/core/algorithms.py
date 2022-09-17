@@ -810,9 +810,7 @@ def factorize(
             if null_mask.any():
                 na_value = na_value_for_dtype(values.dtype, compat=False)
                 # Don't modify (potentially user-provided) array
-                # error: No overload variant of "where" matches argument types
-                # "Any", "object", "ndarray[Any, Any]"
-                values = np.where(  # type: ignore[call-overload]
+                values = np.where(
                     null_mask,
                     na_value,
                     values,
