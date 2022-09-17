@@ -1223,6 +1223,7 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
 
+        # cmap is only used if c_values are integers, otherwise UserWarning
         if is_integer_dtype(c_values):
             # pandas uses colormap, matplotlib uses cmap.
             cmap = self.colormap or "Greys"
