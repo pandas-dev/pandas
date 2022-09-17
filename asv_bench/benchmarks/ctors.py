@@ -125,7 +125,7 @@ class MultiIndexConstructor:
 class DatetimeIndexConstructor:
     def setup(self):
 
-        N = 100_000
+        N = 20_000
         dti = date_range("1900-01-01", periods=N)
 
         self.list_of_timestamps = dti.tolist()
