@@ -111,6 +111,7 @@ Performance improvements
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
+- Performance improvement for :meth:`MultiIndex.intersection` (:issue:`50000`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
 - Performance improvement to :func:`read_sas` with ``blank_missing=True`` (:issue:`48502`)
 -
@@ -176,6 +177,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
+- Bug in :meth:`MultiIndex.intersection` losing extension array (:issue:`50000`)
 - Bug in :meth:`MultiIndex.union` losing extension array (:issue:`48498`, :issue:`48505`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
 -
