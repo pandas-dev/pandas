@@ -3773,6 +3773,10 @@ class Index(IndexOpsMixin, PandasObject):
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
+
+            .. deprecated:: 1.4
+                Use index.get_indexer([item], method=...) instead.
+
         tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location must satisfy the equation

@@ -546,6 +546,12 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("ffill", limit=limit)
 
     def pad(self, limit=None):
+        """
+        Forward fill the values.
+
+        .. deprecated:: 1.4
+            Use ffill instead.
+        """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
@@ -553,8 +559,6 @@ class Resampler(BaseGroupBy, PandasObject):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
-
-    pad.__doc__ = ffill.__doc__
 
     def nearest(self, limit=None):
         """
@@ -719,6 +723,12 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("bfill", limit=limit)
 
     def backfill(self, limit=None):
+        """
+        Backward fill the values.
+
+        .. deprecated:: 1.4
+            Use bfill instead.
+        """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
@@ -726,8 +736,6 @@ class Resampler(BaseGroupBy, PandasObject):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
-
-    backfill.__doc__ = bfill.__doc__
 
     def fillna(self, method, limit=None):
         """
