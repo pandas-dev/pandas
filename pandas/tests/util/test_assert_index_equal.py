@@ -283,7 +283,7 @@ def test_assert_index_equal_object_ints_order_false():
 
 
 def test_assert_ea_index_equal_non_matching_na():
-    # GH#45608
+    # GH#48608
     idx1 = Index([1, 2], dtype="Int64")
     idx2 = Index([1, NA], dtype="Int64")
     with pytest.raises(AssertionError, match="50.0 %"):
