@@ -68,6 +68,7 @@ typedef enum {
     EAT_CRNL_NOP,
     EAT_WHITESPACE,
     EAT_COMMENT,
+    CHECK_COMMENT,
     EAT_LINE_COMMENT,
     WHITESPACE_LINE,
     START_FIELD_IN_SKIP_LINE,
@@ -137,6 +138,7 @@ typedef struct parser_t {
     int quoting;          /* style of quoting to write */
 
     char commentchar;
+    char *commentstr;  // TODO switch from commentchar to commentstr
     int allow_embedded_newline;
 
     int usecols;  // Boolean: 1: usecols provided, 0: none provided

@@ -26,6 +26,7 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
+import numpy as np
 
 
 def test_default_separator(python_parser_only):
@@ -488,4 +489,21 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
         ParserWarning, "Length of header", data, engine="python", index_col=False
     )
     expected = DataFrame({"a": ["a", "c", "f"]})
+    tm.assert_frame_equal(result, expected)
+
+
+# The same as test_comment above but with #&
+@pytest.mark.parametrize("na_values", [None, ["NaN"]])
+def test_multichar_comment(python_parser_only, na_values):
+    # parser = all_parsers
+    # TODO first check python parser can handle multi-char comment
+    parser = python_parser_only
+    data = """A,B,C
+1,2.,4.#$hello world
+5.,NaN,10.0
+"""
+    expected = DataFrame(
+        [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
+    )
+    result = parser.read_csv(StringIO(data), comment="#$", na_values=na_values)
     tm.assert_frame_equal(result, expected)

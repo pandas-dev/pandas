@@ -201,7 +201,8 @@ cdef extern from "parser/tokenizer.h":
         int skipinitialspace       # ignore spaces following delimiter? */
         int quoting                # style of quoting to write */
 
-        char commentchar
+        # char commentchar
+        char *commentstr
         int allow_embedded_newline
 
         int usecols
@@ -440,9 +441,12 @@ cdef class TextReader:
         self.dtype_cast_order = [np.dtype(x) for x in dtype_order]
 
         if comment is not None:
-            if len(comment) > 1:
-                raise ValueError('Only length-1 comment characters supported')
-            self.parser.commentchar = <char>ord(comment)
+            # if len(comment) > 1:
+            #     raise UserWarning('Length > 1 comment characters are experimental')
+            # self.parser.commentchar = <char>ord(comment)
+            # Pass comment as a string instead of char
+            py_byte_string = comment.encode('UTF-8')
+            self.parser.commentstr = py_byte_string # [ord(c) for c in comment]
 
         self.parser.on_bad_lines = on_bad_lines
 

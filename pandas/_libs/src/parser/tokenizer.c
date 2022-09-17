@@ -96,7 +96,7 @@ void parser_set_default_options(parser_t *self) {
     self->expected_fields = -1;
     self->on_bad_lines = ERROR;
 
-    self->commentchar = '#';
+    self->commentstr = "#";
     self->thousands = '\0';
 
     self->skipset = NULL;
@@ -207,7 +207,7 @@ int parser_init(parser_t *self) {
     self->error_msg = NULL;
     self->warn_msg = NULL;
 
-    self->commentchar = '\0';
+    self->commentstr = "";  // String of '\0' is equivalent to "" though
 
     return 0;
 }
@@ -656,7 +656,10 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 // don't parse '\r' with a custom line terminator
 #define IS_CARRIAGE(c) (c == carriage_symbol)
 
-#define IS_COMMENT_CHAR(c) (c == comment_symbol)
+#define IS_COMMENT_START(c) (c == comment_start)
+
+// For multi-char comments
+#define IS_COMMENT_STR(c,i) (c == comment_str[i])
 
 #define IS_ESCAPE_CHAR(c) (c == escape_symbol)
 
@@ -724,10 +727,18 @@ int tokenize_bytes(parser_t *self,
     // 1000 is something that couldn't fit in "char"
     // thus comparing a char to it would always be "false"
     const int carriage_symbol = (self->lineterminator == '\0') ? '\r' : 1000;
-    const int comment_symbol = (self->commentchar != '\0') ?
-            self->commentchar : 1000;
+
+    const int comment_len = strlen(self->commentstr);
+    const int comment_start = (comment_len != 0) ?
+            self->commentstr[0] : 1000;
     const int escape_symbol = (self->escapechar != '\0') ?
             self->escapechar : 1000;
+
+    if (comment_len > 1) {
+        printf("Comment length is %d\n", comment_len);
+        printf("Comment string is %s\n", self->commentstr);
+//        exit(1);  //tmp we shouldn't be here without knowing
+    }
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         int64_t bufsize = 100;
@@ -844,9 +855,12 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_CARRIAGE(c)) {
                     self->state = EAT_CRNL;
                     break;
-                } else if (IS_COMMENT_CHAR(c)) {
+                } else if (IS_COMMENT_START(c)) {
                     self->state = EAT_COMMENT;
                     break;
+//                } else if (IS_COMMENT_START(c)) {
+//                    self->state = CHECK_COMMENT;
+//                    break;
                 } else if (!isblank(c)) {
                     self->state = START_FIELD;
                     // fall through to subsequent state
@@ -855,6 +869,44 @@ int tokenize_bytes(parser_t *self,
                     break;
                 }
 
+//            case CHECK_COMMENT:
+//                if (IS_COMMENT_START(c) && comment_len <= 1) {
+//                    self->state = EAT_COMMENT;
+//                    break;
+//                } else {
+//                    // Multi-char comment: Check the full comment is present, else backtrack and fall through
+//                    if (IS_TERMINATOR(c)) {
+//                        self->file_lines++;
+//                        self->state = START_RECORD;
+//                        break;
+//                    } else if (IS_CARRIAGE(c)) {
+//                        self->file_lines++;
+//                        self->state = EAT_CRNL_NOP;
+//                        break;
+//                    } else {
+//                        int j;
+//                        for (j = 1; j < comment_len; j++) {
+//                            if (buf[j] != self->commentstr[j]) { // Chomp chomp along the comment train
+//                            } else {
+//                                // backtrack
+//                                do {
+//                                    --buf;
+//                                    --i;
+//                                } while (i + 1 > self->datapos && !IS_TERMINATOR(*buf));
+//
+//                                // reached a newline rather than the beginning
+//                                if (IS_TERMINATOR(*buf)) {
+//                                    ++buf;  // move pointer to first char after newline
+//                                    ++i;
+//                                }
+//                                // Eaten whole of comment, skip to next line TODO next line or field?
+//                                self->state = START_FIELD;
+//                                break;
+//                            }
+//                        }
+//                    }
+//                }
+            
             case START_RECORD:
                 // start of record
                 should_skip = skip_this_line(self, self->file_lines);
@@ -888,7 +940,8 @@ int tokenize_bytes(parser_t *self,
                         self->state = EAT_CRNL;
                     }
                     break;
-                } else if (IS_COMMENT_CHAR(c)) {
+                } else if (IS_COMMENT_START(c)) {
+//                    self->state = CHECK_COMMENT;
                     self->state = EAT_LINE_COMMENT;
                     break;
                 } else if (isblank(c)) {
@@ -933,10 +986,28 @@ int tokenize_bytes(parser_t *self,
                         // save empty field
                         END_FIELD();
                     }
-                } else if (IS_COMMENT_CHAR(c)) {
+                } else if (IS_COMMENT_START(c)) {
                     END_FIELD();
                     self->state = EAT_COMMENT;
+
+//                    if (comment_len <= 1) {
+//                        END_FIELD();
+//                        self->state = EAT_COMMENT;
+//                    } else {
+//                        // TODO check comment here?
+//                        self->state = CHECK_COMMENT;
+//                    }
                 } else {
+//                    // // TODO tmp copied Debugging
+//                    if (c == '#') {
+//                        printf("tmp: Found a #\n");
+//                        // pass up error message
+//                        int bufsize = 100;
+//                        char *msg = malloc(bufsize);
+//                        snprintf(msg, bufsize, "Pushing char %c, not a comment. commentstr = '%x'\n", c, self->commentstr);  //
+//                        append_warning(self, msg);
+//                        free(msg);
+//                    }
                     // begin new unquoted field
                     PUSH_CHAR(c);
                     self->state = IN_FIELD;
@@ -978,7 +1049,9 @@ int tokenize_bytes(parser_t *self,
                     } else {
                         self->state = START_FIELD;
                     }
-                } else if (IS_COMMENT_CHAR(c)) {
+                // Read multiple-character comment
+                } else if (IS_COMMENT_START(c)) {
+                    // TODO Check if the full multi-character comment is present, and backtrack if not, maybe use CHECK_COMMENT?
                     END_FIELD();
                     self->state = EAT_COMMENT;
                 } else {
@@ -1138,6 +1211,7 @@ static int parser_handle_eof(parser_t *self) {
         case START_RECORD:
         case WHITESPACE_LINE:
         case EAT_CRNL_NOP:
+        case CHECK_COMMENT:
         case EAT_LINE_COMMENT:
             return 0;
 
