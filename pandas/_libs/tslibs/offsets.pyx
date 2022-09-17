@@ -1148,6 +1148,7 @@ cdef class Day(Tick):
     _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _reso = NPY_DATETIMEUNIT.NPY_FR_D
+    _use_relativedelta = True
 
 
 cdef class Hour(Tick):
@@ -1495,6 +1496,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
     """
     Mixin to business types to provide related functions.
     """
+    _use_relativedelta = True
 
     cdef readonly:
         timedelta _offset
@@ -2068,6 +2070,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
     """
     Mixin for methods common to WeekOfMonth and LastWeekOfMonth.
     """
+    _use_relativedelta = True
 
     cdef readonly:
         int weekday, week
@@ -2112,6 +2115,7 @@ cdef class YearOffset(SingleConstructorOffset):
     DateOffset that just needs a month.
     """
     _attributes = tuple(["n", "normalize", "month"])
+    _use_relativedelta = True
 
     # FIXME(cython#4446): python annotation here gives compile-time errors
     # _default_month: int
@@ -2277,6 +2281,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     # FIXME(cython#4446): python annotation here gives compile-time errors
     # _default_starting_month: int
     # _from_name_starting_month: int
+    _use_relativedelta = True
 
     cdef readonly:
         int startingMonth
@@ -2448,6 +2453,8 @@ cdef class QuarterBegin(QuarterOffset):
 # Month-Based Offset Classes
 
 cdef class MonthOffset(SingleConstructorOffset):
+    _use_relativedelta = True
+
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -2548,6 +2555,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     _default_day_of_month = 15
     _min_day_of_month = 2
     _attributes = tuple(["n", "normalize", "day_of_month"])
+    _use_relativedelta = True
 
     cdef readonly:
         int day_of_month
@@ -2750,6 +2758,7 @@ cdef class Week(SingleConstructorOffset):
     _inc = timedelta(weeks=1)
     _prefix = "W"
     _attributes = tuple(["n", "normalize", "weekday"])
+    _use_relativedelta = True
 
     cdef readonly:
         object weekday  # int or None
@@ -3027,6 +3036,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 # Special Offset Classes
 
 cdef class FY5253Mixin(SingleConstructorOffset):
+    _use_relativedelta = True
     cdef readonly:
         int startingMonth
         int weekday
@@ -3496,6 +3506,7 @@ cdef class Easter(SingleConstructorOffset):
     >>> ts + pd.offsets.Easter()
     Timestamp('2022-04-17 00:00:00')
     """
+    _use_relativedelta = True
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
