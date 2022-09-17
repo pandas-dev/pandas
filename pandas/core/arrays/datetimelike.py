@@ -2151,7 +2151,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
-        if np.ndim(data) == 0:
+        if not isinstance(data, (list, tuple)) and np.ndim(data) == 0:
             # i.e. generator
             data = list(data)
         data = np.asarray(data)
