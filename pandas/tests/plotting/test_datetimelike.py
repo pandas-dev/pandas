@@ -39,7 +39,11 @@ from pandas.core.indexes.period import (
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+try:
+    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+except ImportError:
+    mpl_ge_3_6_0 = True
+
 from pandas.tseries.offsets import WeekOfMonth
 
 

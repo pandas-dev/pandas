@@ -31,7 +31,11 @@ from pandas.tests.plotting.common import (
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
-from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
+try:
+    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+except ImportError:
+    mpl_ge_3_6_0 = True
 
 
 @td.skip_if_no_mpl
