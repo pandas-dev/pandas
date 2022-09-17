@@ -14,6 +14,7 @@ from typing import (
 )
 import warnings
 
+import matplotlib as mpl
 from matplotlib.artist import Artist
 import numpy as np
 
@@ -54,6 +55,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -1227,7 +1229,10 @@ class ScatterPlot(PlanePlot):
         if is_integer_dtype(c_values):
             # pandas uses colormap, matplotlib uses cmap.
             cmap = self.colormap or "Greys"
-            cmap = self.plt.cm.get_cmap(cmap)
+            if mpl_ge_3_6_0:
+                cmap = mpl.colormaps[cmap]
+            else:
+                cmap = self.plt.cm.get_cmap(cmap)
         else:
             cmap = None
 
@@ -1295,7 +1300,10 @@ class HexBinPlot(PlanePlot):
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
-        cmap = self.plt.cm.get_cmap(cmap)
+        if mpl_ge_3_6_0:
+            cmap = mpl.colormaps[cmap]
+        else:
+            cmap = self.plt.cm.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)
 
         if C is None:
