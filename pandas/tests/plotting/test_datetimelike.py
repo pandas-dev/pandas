@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-from pandas.compat import is_at_least_matplotlib_36
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -38,7 +37,10 @@ from pandas.core.indexes.period import (
     period_range,
 )
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    is_at_least_mpl_36,
+)
 
 from pandas.tseries.offsets import WeekOfMonth
 
@@ -261,7 +263,7 @@ class TestTSPlot(TestPlotBase):
         ser = Series(np.random.randn(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
-    @pytest.mark.xfail(is_at_least_matplotlib_36, reason="Api changed")
+    @pytest.mark.xfail(is_at_least_mpl_36, reason="Api changed")
     def test_uhf(self):
         import pandas.plotting._matplotlib.converter as conv
 
@@ -1211,7 +1213,7 @@ class TestTSPlot(TestPlotBase):
         # TODO: color cycle problems
         assert len(colors) == 4
 
-    @pytest.mark.xfail(is_at_least_matplotlib_36, reason="Api changed")
+    @pytest.mark.xfail(is_at_least_mpl_36, reason="Api changed")
     def test_format_date_axis(self):
         rng = date_range("1/1/2012", periods=12, freq="M")
         df = DataFrame(np.random.randn(len(rng), 3), rng)

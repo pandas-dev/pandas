@@ -10,7 +10,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import is_at_least_matplotlib_36
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -28,6 +27,7 @@ import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
+    is_at_least_mpl_36,
 )
 
 from pandas.io.formats.printing import pprint_thing
@@ -36,7 +36,7 @@ import pandas.plotting as plotting
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    @pytest.mark.xfail(is_at_least_matplotlib_36, reason="Api changed")
+    @pytest.mark.xfail(is_at_least_mpl_36, reason="Api changed")
     @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()

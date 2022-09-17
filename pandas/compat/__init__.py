@@ -15,7 +15,6 @@ import sys
 from typing import TYPE_CHECKING
 
 from pandas._typing import F
-from pandas.compat.matplotlib import is_at_least_matplotlib_36
 from pandas.compat.numpy import (
     is_numpy_dev,
     np_version_under1p21,
@@ -153,7 +152,6 @@ def get_lzma_file() -> type[lzma.LZMAFile]:
 
 
 __all__ = [
-    "is_at_least_matplotlib_36",
     "is_numpy_dev",
     "np_version_under1p21",
     "pa_version_under1p01",
