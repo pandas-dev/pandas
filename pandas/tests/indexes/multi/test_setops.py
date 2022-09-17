@@ -442,7 +442,7 @@ def test_setops_disallow_true(method):
 
 @pytest.mark.parametrize("val", [pd.NA, 5])
 def test_symmetric_difference_keeping_ea_dtype(any_numeric_ea_dtype, val):
-    # GH#
+    # GH#48607
     midx = MultiIndex.from_arrays(
         [Series([1, 2], dtype=any_numeric_ea_dtype), [2, 1]], names=["a", None]
     )
