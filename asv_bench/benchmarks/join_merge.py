@@ -158,6 +158,18 @@ class JoinIndex:
         self.left.join(self.right, on="jim")
 
 
+class JoinMultiindexSubset:
+    def setup(self):
+        N = 100_000
+        mi1 = MultiIndex.from_arrays([np.arange(N)] * 4, names=["a", "b", "c", "d"])
+        mi2 = MultiIndex.from_arrays([np.arange(N)] * 2, names=["a", "b"])
+        self.left = DataFrame({"col1": 1}, index=mi1)
+        self.right = DataFrame({"col2": 2}, index=mi2)
+
+    def time_join_multiindex_subset(self):
+        self.left.join(self.right)
+
+
 class JoinEmpty:
     def setup(self):
         N = 100_000
