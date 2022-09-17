@@ -12,6 +12,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
+    AxisInt,
     Dtype,
     Scalar,
     npt,
@@ -452,7 +453,7 @@ class StringArray(BaseStringArray, PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, axis: int | None = 0, **kwargs
+        self, name: str, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
     ):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna, axis=axis)

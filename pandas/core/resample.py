@@ -27,6 +27,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AxisInt,
     IndexLabel,
     NDFrameT,
     T,
@@ -147,7 +148,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: DataFrame | Series,
         groupby: TimeGrouper,
-        axis: int = 0,
+        axis: AxisInt = 0,
         kind=None,
         *,
         group_keys: bool | lib.NoDefault = lib.no_default,
@@ -1922,7 +1923,7 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
+    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: AxisInt = 0
 ) -> NDFrameT:
 
     if isinstance(obj, ABCSeries):

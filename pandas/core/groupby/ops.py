@@ -30,6 +30,7 @@ import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     NDFrameT,
     Shape,
@@ -674,7 +675,7 @@ class WrappedCythonOp:
         self,
         *,
         values: ArrayLike,
-        axis: int,
+        axis: AxisInt,
         min_count: int = -1,
         comp_ids: np.ndarray,
         ngroups: int,
@@ -779,7 +780,7 @@ class BaseGrouper:
         return len(self.groupings)
 
     def get_iterator(
-        self, data: NDFrameT, axis: int = 0
+        self, data: NDFrameT, axis: AxisInt = 0
     ) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
@@ -794,7 +795,7 @@ class BaseGrouper:
         yield from zip(keys, splitter)
 
     @final
-    def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame, axis: AxisInt = 0) -> DataSplitter:
         """
         Returns
         -------
@@ -825,7 +826,7 @@ class BaseGrouper:
 
     @final
     def apply(
-        self, f: Callable, data: DataFrame | Series, axis: int = 0
+        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
@@ -1028,7 +1029,7 @@ class BaseGrouper:
         kind: str,
         values,
         how: str,
-        axis: int,
+        axis: AxisInt,
         min_count: int = -1,
         **kwargs,
     ) -> ArrayLike:
@@ -1195,7 +1196,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data: NDFrame, axis: int = 0):
+    def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
         """
         Groupby iterator
 
@@ -1283,7 +1284,7 @@ class BinGrouper(BaseGrouper):
         )
 
 
-def _is_indexed_like(obj, axes, axis: int) -> bool:
+def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
@@ -1304,7 +1305,7 @@ class DataSplitter(Generic[NDFrameT]):
         data: NDFrameT,
         labels: npt.NDArray[np.intp],
         ngroups: int,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
@@ -1365,7 +1366,7 @@ class FrameSplitter(DataSplitter):
 
 
 def get_splitter(
-    data: NDFrame, labels: np.ndarray, ngroups: int, axis: int = 0
+    data: NDFrame, labels: np.ndarray, ngroups: int, axis: AxisInt = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter

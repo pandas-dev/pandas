@@ -49,6 +49,7 @@ from pandas._typing import (
     AnyAll,
     ArrayLike,
     Axes,
+    AxisInt,
     Dtype,
     DtypeObj,
     F,
@@ -1170,7 +1171,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
-        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
+        self,
+        indices,
+        axis: AxisInt = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
     ):
         if kwargs:
             nv.validate_take((), kwargs)

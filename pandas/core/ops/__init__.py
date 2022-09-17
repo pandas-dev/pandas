@@ -13,7 +13,10 @@ import warnings
 import numpy as np
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas._typing import Level
+from pandas._typing import (
+    AxisInt,
+    Level,
+)
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
@@ -386,7 +389,7 @@ def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> Da
     return result
 
 
-def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: AxisInt):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.

@@ -31,6 +31,7 @@ from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
+    AxisInt,
     DtypeObj,
     F,
     Scalar,
@@ -2158,7 +2159,7 @@ class MultiIndex(Index):
     def take(
         self: MultiIndex,
         indices,
-        axis: int = 0,
+        axis: AxisInt = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,

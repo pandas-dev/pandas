@@ -45,6 +45,7 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     IndexLabel,
     NDFrameT,
@@ -644,7 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "squeeze",
     }
 
-    axis: int
+    axis: AxisInt
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
     group_keys: bool | lib.NoDefault
@@ -917,7 +918,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         obj: NDFrameT,
         keys: _KeysArgType | None = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
         exclusions: frozenset[Hashable] | None = None,
@@ -1312,7 +1313,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(
-        self, how: str, numeric_only: bool | lib.NoDefault, axis: int
+        self, how: str, numeric_only: bool | lib.NoDefault, axis: AxisInt
     ) -> bool:
         """
         Determine subclass-specific default value for 'numeric_only'.
@@ -1793,7 +1794,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return res
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = True, axis: AxisInt = 0, **kwargs
     ):
         raise AbstractMethodError(self)
 
@@ -2537,7 +2538,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         3  6.0  3
         """
 
-        def first_compat(obj: NDFrameT, axis: int = 0):
+        def first_compat(obj: NDFrameT, axis: AxisInt = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
                 arr = x.array[notna(x.array)]
@@ -2597,7 +2598,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         3  6.0  3
         """
 
-        def last_compat(obj: NDFrameT, axis: int = 0):
+        def last_compat(obj: NDFrameT, axis: AxisInt = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
@@ -3548,7 +3549,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ascending: bool = True,
         na_option: str = "keep",
         pct: bool = False,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
@@ -3919,7 +3920,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def diff(self, periods: int = 1, axis: int = 0) -> NDFrameT:
+    def diff(self, periods: int = 1, axis: AxisInt = 0) -> NDFrameT:
         """
         First discrete difference of element.
 
@@ -4328,7 +4329,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 def get_groupby(
     obj: NDFrame,
     by: _KeysArgType | None = None,
-    axis: int = 0,
+    axis: AxisInt = 0,
     level=None,
     grouper: ops.BaseGrouper | None = None,
     exclusions=None,
