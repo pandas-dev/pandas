@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import is_at_least_matplotlib_36
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -35,6 +36,7 @@ import pandas.plotting as plotting
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    @pytest.mark.xfail(is_at_least_matplotlib_36, reason="Api changed")
     @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
@@ -1543,8 +1545,8 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_with_partial_columns(self):
-        df = DataFrame(np.random.randn(10, 3))
-        df_err = DataFrame(np.random.randn(10, 2), columns=[0, 2])
+        df = DataFrame(np.abs(np.random.randn(10, 3)))
+        df_err = DataFrame(np.abs(np.random.randn(10, 2)), columns=[0, 2])
         kinds = ["line", "bar"]
         for kind in kinds:
             ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
