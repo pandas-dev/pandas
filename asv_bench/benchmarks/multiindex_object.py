@@ -280,7 +280,7 @@ class Difference:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        N = 10**5
+        N = 10**4
         level1 = range(1000)
 
         level2 = date_range(start="1/1/2000", periods=N // 1000)
