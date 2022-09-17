@@ -238,7 +238,7 @@ class SetOperations:
     params = [
         ("monotonic", "non_monotonic"),
         ("datetime", "int", "string"),
-        ("intersection", "union", "symmetric_difference", "difference"),
+        ("intersection", "union", "symmetric_difference"),
     ]
     param_names = ["index_structure", "dtype", "method"]
 
@@ -270,6 +270,40 @@ class SetOperations:
 
     def time_operation(self, index_structure, dtype, method):
         getattr(self.left, method)(self.right)
+
+
+class Difference:
+
+    params = [
+        ("datetime", "int", "string"),
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**5
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_left = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_left = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_left = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_left,
+            "int": int_left,
+            "string": str_left,
+        }
+
+        data = {k: {"left": mi, "right": mi[:5]} for k, mi in data.items()}
+        self.left = data[dtype]["left"]
+        self.right = data[dtype]["right"]
+
+    def time_difference(self, dtype):
+        self.left.difference(self.right)
 
 
 class Unique:
