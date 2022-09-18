@@ -809,7 +809,6 @@ int tokenize_bytes(parser_t *self,
     if (comment_len > 1) {
         printf("Comment length is %d\n", comment_len);
         printf("Comment string is %s\n", self->commentstr);
-//        exit(1);  //tmp we shouldn't be here without knowing
     }
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {

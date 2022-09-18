@@ -201,3 +201,16 @@ y,NaN,10.0
     result = parser.read_csv(StringIO(data), comment="#$", na_values=na_values)
     print("df=", result)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("comment", ["$ ", "#\n", "#,#", " $"])
+def test_comment_containing_badchars(all_parsers, comment, request):
+    parser = all_parsers
+    data = """A,B,C
+    1,2,3
+    """
+    if all_parsers.engine == "c":
+        reason = "Comment shouldn't contain special characters"
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
+    _ = parser.read_csv(StringIO(data), comment=comment)
