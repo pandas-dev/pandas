@@ -441,6 +441,7 @@ cdef class TextReader:
         self.dtype_cast_order = [np.dtype(x) for x in dtype_order]
 
         if comment is not None:
+            # TODO verify comment != delimiter because that would be weird
             # if len(comment) > 1:
             #     raise UserWarning('Length > 1 comment characters are experimental')
             # self.parser.commentchar = <char>ord(comment)
