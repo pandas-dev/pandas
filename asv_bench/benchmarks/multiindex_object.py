@@ -299,4 +299,36 @@ class Unique:
         self.midx_dups.unique()
 
 
+class Isin:
+    params = [
+        ("string", "int", "date"),
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**5
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_midx = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_midx = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_midx = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_midx,
+            "int": int_midx,
+            "string": str_midx,
+        }
+
+        self.midx = data[dtype]
+        self.values = self.midx[:100]
+
+    def time_unique(self, dtype):
+        self.midx.isin(self.values)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
