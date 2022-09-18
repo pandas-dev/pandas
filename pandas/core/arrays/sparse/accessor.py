@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class BaseAccessor:
     _validation_msg = "Can only use the '.sparse' accessor with Sparse data."
 
-    def __init__(self, *, data) -> None:
+    def __init__(self, data=None) -> None:
         self._parent = data
         self._validate(data)
 
