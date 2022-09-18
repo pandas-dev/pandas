@@ -399,7 +399,7 @@ def assert_index_equal(
             mismatch = left._values != right._values
 
             if is_extension_array_dtype(mismatch):
-                mismatch = mismatch.fillna(True)
+                mismatch = cast("ExtensionArray", mismatch).fillna(True)
 
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
