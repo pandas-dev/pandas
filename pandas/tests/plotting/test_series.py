@@ -21,6 +21,11 @@ from pandas.tests.plotting.common import (
 
 import pandas.plotting as plotting
 
+try:
+    from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+except ImportError:
+    mpl_ge_3_6_0 = lambda: True
+
 
 @pytest.fixture
 def ts():
@@ -493,6 +498,7 @@ class TestSeriesPlots(TestPlotBase):
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
+    @pytest.mark.xfail(mpl_ge_3_6_0(), reason="Api changed")
     def test_boxplot_series(self, ts):
         _, ax = self.plt.subplots()
         ax = ts.plot.box(logy=True, ax=ax)
@@ -575,8 +581,10 @@ class TestSeriesPlots(TestPlotBase):
     def test_errorbar_plot(self):
 
         s = Series(np.arange(10), name="x")
-        s_err = np.random.randn(10)
-        d_err = DataFrame(np.random.randn(10, 2), index=s.index, columns=["x", "y"])
+        s_err = np.abs(np.random.randn(10))
+        d_err = DataFrame(
+            np.abs(np.random.randn(10, 2)), index=s.index, columns=["x", "y"]
+        )
         # test line and bar plots
         kinds = ["line", "bar"]
         for kind in kinds:
@@ -597,8 +605,8 @@ class TestSeriesPlots(TestPlotBase):
         # test time series plotting
         ix = date_range("1/1/2000", "1/1/2001", freq="M")
         ts = Series(np.arange(12), index=ix, name="x")
-        ts_err = Series(np.random.randn(12), index=ix)
-        td_err = DataFrame(np.random.randn(12, 2), index=ix, columns=["x", "y"])
+        ts_err = Series(np.abs(np.random.randn(12)), index=ix)
+        td_err = DataFrame(np.abs(np.random.randn(12, 2)), index=ix, columns=["x", "y"])
 
         ax = _check_plot_works(ts.plot, yerr=ts_err)
         self._check_has_errorbars(ax, xerr=0, yerr=1)

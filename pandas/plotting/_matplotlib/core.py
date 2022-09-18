@@ -14,6 +14,7 @@ from typing import (
 )
 import warnings
 
+import matplotlib as mpl
 from matplotlib.artist import Artist
 import numpy as np
 
@@ -54,6 +55,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
@@ -1209,9 +1211,6 @@ class ScatterPlot(PlanePlot):
 
         color_by_categorical = c_is_column and is_categorical_dtype(self.data[c])
 
-        # pandas uses colormap, matplotlib uses cmap.
-        cmap = self.colormap or "Greys"
-        cmap = self.plt.cm.get_cmap(cmap)
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
@@ -1225,6 +1224,17 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
+
+        # cmap is only used if c_values are integers, otherwise UserWarning
+        if is_integer_dtype(c_values):
+            # pandas uses colormap, matplotlib uses cmap.
+            cmap = self.colormap or "Greys"
+            if mpl_ge_3_6_0():
+                cmap = mpl.colormaps[cmap]
+            else:
+                cmap = self.plt.cm.get_cmap(cmap)
+        else:
+            cmap = None
 
         if color_by_categorical:
             from matplotlib import colors
@@ -1290,7 +1300,10 @@ class HexBinPlot(PlanePlot):
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
-        cmap = self.plt.cm.get_cmap(cmap)
+        if mpl_ge_3_6_0():
+            cmap = mpl.colormaps[cmap]
+        else:
+            cmap = self.plt.cm.get_cmap(cmap)
         cb = self.kwds.pop("colorbar", True)
 
         if C is None:
