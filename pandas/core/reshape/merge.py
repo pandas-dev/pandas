@@ -1678,19 +1678,16 @@ def restore_dropped_levels_multijoin(
     join_codes = join_index.codes
     join_names = join_index.names
 
+    # lindexer and rindexer hold the indexes where the join occurred
+    # for left and right respectively. If left/right is None then
+    # the join occurred on all indices of left/right
+
     # Iterate through the levels that must be restored
     for dropped_level_name in dropped_level_names:
-        # lindexer and rindexer hold the indexes where the join occurred
-        # for left and right respectively. If left/right is None then
-        # the join occurred on all indices of left/right
         if dropped_level_name in left.names:
-            if lindexer is None:
-                lindexer = np.arange(left.size)
             idx = left
             indexer = lindexer
         else:
-            if rindexer is None:
-                rindexer = np.arange(right.size)
             idx = right
             indexer = rindexer
 
@@ -1701,7 +1698,10 @@ def restore_dropped_levels_multijoin(
         # Inject -1 in the codes list where a join was not possible
         # IOW indexer[i]=-1
         codes = idx.codes[name_idx]
-        restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
+        if indexer is None:
+            restore_codes = codes
+        else:
+            restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
         join_levels = join_levels + [restore_levels]
         join_codes = join_codes + [restore_codes]
