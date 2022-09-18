@@ -16,7 +16,6 @@ from functools import (
 )
 import inspect
 from textwrap import dedent
-import types
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -46,6 +45,7 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
+    Dtype,
     IndexLabel,
     NDFrameT,
     PositionalIndexer,
@@ -92,6 +92,7 @@ from pandas.core.arrays import (
     BooleanArray,
     Categorical,
     ExtensionArray,
+    FloatingArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -627,7 +628,6 @@ _KeysArgType = Union[
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     _group_selection: IndexLabel | None = None
-    _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
@@ -751,7 +751,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     def _dir_additions(self) -> set[str]:
-        return self.obj._dir_additions() | self._apply_allowlist
+        return self.obj._dir_additions()
 
     @Substitution(
         klass="GroupBy",
@@ -783,8 +783,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         **kwargs,
     ) -> T:
         return com.pipe(self, func, *args, **kwargs)
-
-    plot = property(GroupByPlot)
 
     @final
     def get_group(self, name, obj=None) -> DataFrame | Series:
@@ -993,75 +991,66 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return super().__getattribute__(attr)
 
     @final
-    def _make_wrapper(self, name: str) -> Callable:
-        assert name in self._apply_allowlist
-
+    def _op_via_apply(self, name: str, *args, **kwargs):
+        """Compute the result of an operation by using GroupBy's apply."""
+        f = getattr(type(self._obj_with_exclusions), name)
         with self._group_selection_context():
             # need to setup the selection
             # as are not passed directly but in the grouper
-            f = getattr(self._obj_with_exclusions, name)
-            if not isinstance(f, types.MethodType):
-                #  error: Incompatible return value type
-                # (got "NDFrameT", expected "Callable[..., Any]")  [return-value]
-                return cast(Callable, self.apply(lambda self: getattr(self, name)))
+            f = getattr(type(self._obj_with_exclusions), name)
+            if not callable(f):
+                return self.apply(lambda self: getattr(self, name))
 
-        f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
 
-        def wrapper(*args, **kwargs):
-            # a little trickery for aggregation functions that need an axis
-            # argument
-            if "axis" in sig.parameters:
-                if kwargs.get("axis", None) is None:
-                    kwargs["axis"] = self.axis
+        # a little trickery for aggregation functions that need an axis
+        # argument
+        if "axis" in sig.parameters:
+            if kwargs.get("axis", None) is None or kwargs.get("axis") is lib.no_default:
+                kwargs["axis"] = self.axis
 
-            numeric_only = kwargs.get("numeric_only", lib.no_default)
+        numeric_only = kwargs.get("numeric_only", lib.no_default)
 
-            def curried(x):
-                with warnings.catch_warnings():
-                    # Catch any warnings from dispatch to DataFrame; we'll emit
-                    # a warning for groupby below
-                    match = "The default value of numeric_only "
-                    warnings.filterwarnings("ignore", match, FutureWarning)
-                    return f(x, *args, **kwargs)
+        def curried(x):
+            with warnings.catch_warnings():
+                # Catch any warnings from dispatch to DataFrame; we'll emit
+                # a warning for groupby below
+                match = "The default value of numeric_only "
+                warnings.filterwarnings("ignore", match, FutureWarning)
+                return f(x, *args, **kwargs)
 
-            # preserve the name so we can detect it when calling plot methods,
-            # to avoid duplicates
-            curried.__name__ = name
+        # preserve the name so we can detect it when calling plot methods,
+        # to avoid duplicates
+        curried.__name__ = name
 
-            # special case otherwise extra plots are created when catching the
-            # exception below
-            if name in base.plotting_methods:
-                return self.apply(curried)
+        # special case otherwise extra plots are created when catching the
+        # exception below
+        if name in base.plotting_methods:
+            return self.apply(curried)
 
-            is_transform = name in base.transformation_kernels
+        is_transform = name in base.transformation_kernels
+        # Transform needs to keep the same schema, including when empty
+        if is_transform and self._obj_with_exclusions.empty:
+            return self._obj_with_exclusions
+        result = self._python_apply_general(
+            curried,
+            self._obj_with_exclusions,
+            is_transform=is_transform,
+            not_indexed_same=not is_transform,
+        )
 
-            # Transform needs to keep the same schema, including when empty
-            if is_transform and self._obj_with_exclusions.empty:
-                return self._obj_with_exclusions
+        if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:
+            missing = self._obj_with_exclusions.columns.difference(result.columns)
+            if len(missing) > 0:
+                warn_dropping_nuisance_columns_deprecated(
+                    type(self), name, numeric_only
+                )
 
-            result = self._python_apply_general(
-                curried,
-                self._obj_with_exclusions,
-                is_transform=is_transform,
-                not_indexed_same=not is_transform,
-            )
-
-            if self._selected_obj.ndim != 1 and self.axis != 1 and result.ndim != 1:
-                missing = self._obj_with_exclusions.columns.difference(result.columns)
-                if len(missing) > 0:
-                    warn_dropping_nuisance_columns_deprecated(
-                        type(self), name, numeric_only
-                    )
-
-            if self.grouper.has_dropped_na and is_transform:
-                # result will have dropped rows due to nans, fill with null
-                # and ensure index is ordered same as the input
-                result = self._set_result_index_ordered(result)
-            return result
-
-        wrapper.__name__ = name
-        return wrapper
+        if self.grouper.has_dropped_na and is_transform:
+            # result will have dropped rows due to nans, fill with null
+            # and ensure index is ordered same as the input
+            result = self._set_result_index_ordered(result)
+        return result
 
     # -----------------------------------------------------------------
     # Selection
@@ -2522,9 +2511,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.last : Compute the last non-null entry of each
-            column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        pandas.core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
+            of each column.
+        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -2594,9 +2583,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.first : Compute the first non-null entry of each
-            column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        pandas.core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
+            of each column.
+        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3247,14 +3236,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
+        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, Dtype | None]:
             if is_object_dtype(vals):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
 
-            inference: np.dtype | None = None
-            if is_integer_dtype(vals.dtype):
+            inference: Dtype | None = None
+            if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
+                inference = vals.dtype
+            elif is_integer_dtype(vals.dtype):
                 if isinstance(vals, ExtensionArray):
                     out = vals.to_numpy(dtype=float, na_value=np.nan)
                 else:
@@ -3276,14 +3268,38 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return out, inference
 
-        def post_processor(vals: np.ndarray, inference: np.dtype | None) -> np.ndarray:
+        def post_processor(
+            vals: np.ndarray,
+            inference: Dtype | None,
+            result_mask: np.ndarray | None,
+            orig_vals: ArrayLike,
+        ) -> ArrayLike:
             if inference:
                 # Check for edge case
-                if not (
+                if isinstance(orig_vals, BaseMaskedArray):
+                    assert result_mask is not None  # for mypy
+
+                    if interpolation in {"linear", "midpoint"} and not is_float_dtype(
+                        orig_vals
+                    ):
+                        return FloatingArray(vals, result_mask)
+                    else:
+                        # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
+                        # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
+                        # [union-attr]
+                        return type(orig_vals)(
+                            vals.astype(
+                                inference.numpy_dtype  # type: ignore[union-attr]
+                            ),
+                            result_mask,
+                        )
+
+                elif not (
                     is_integer_dtype(inference)
                     and interpolation in {"linear", "midpoint"}
                 ):
-                    vals = vals.astype(inference)
+                    assert isinstance(inference, np.dtype)  # for mypy
+                    return vals.astype(inference)
 
             return vals
 
@@ -3306,7 +3322,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         labels_for_lexsort = np.where(ids == -1, na_label_for_sorting, ids)
 
         def blk_func(values: ArrayLike) -> ArrayLike:
-            mask = isna(values)
+            orig_vals = values
+            if isinstance(values, BaseMaskedArray):
+                mask = values._mask
+                result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
+            else:
+                mask = isna(values)
+                result_mask = None
+
             vals, inference = pre_processor(values)
 
             ncols = 1
@@ -3325,16 +3348,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sort_arr = np.lexsort(order).astype(np.intp, copy=False)
 
             if vals.ndim == 1:
-                func(out[0], values=vals, mask=mask, sort_indexer=sort_arr)
+                # Ea is always 1d
+                func(
+                    out[0],
+                    values=vals,
+                    mask=mask,
+                    sort_indexer=sort_arr,
+                    result_mask=result_mask,
+                )
             else:
                 for i in range(ncols):
                     func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
 
             if vals.ndim == 1:
                 out = out.ravel("K")
+                if result_mask is not None:
+                    result_mask = result_mask.ravel("K")
             else:
                 out = out.reshape(ncols, ngroups * nqs)
-            return post_processor(out, inference)
+            return post_processor(out, inference, result_mask, orig_vals)
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
@@ -4256,6 +4288,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   blue  2
         0    red  0
         """  # noqa:E501
+        if self._selected_obj.empty:
+            # GH48459 prevent ValueError when object is empty
+            return self._selected_obj
         size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
             weights_arr = sample.preprocess_weights(
