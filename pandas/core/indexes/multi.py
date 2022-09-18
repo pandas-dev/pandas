@@ -2226,9 +2226,12 @@ class MultiIndex(Index):
 
     def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         if len(args) == 0 and len(kwargs) == 0:
-            # np.lexsort is significantly faster than self._values.argsort()
-            values = [self._get_level_values(i) for i in reversed(range(self.nlevels))]
-            return np.lexsort(values)
+            if not any(-1 in code for code in self.codes):
+                # np.lexsort is significantly faster than self._values.argsort()
+                values = [
+                    self._get_level_values(i) for i in reversed(range(self.nlevels))
+                ]
+                return np.lexsort(values)
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
