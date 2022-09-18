@@ -196,7 +196,7 @@ def test_multichar_comment_line(all_parsers, na_values):
 y,NaN,10.0
 """
     expected = DataFrame(
-        [['#x', 2.0, 4.0], ['y', np.nan, 10.0]], columns=["A", "B", "#C"]
+        [["#x", 2.0, 4.0], ["y", np.nan, 10.0]], columns=["A", "B", "#C"]
     )
     result = parser.read_csv(StringIO(data), comment="#$", na_values=na_values)
     print("df=", result)
