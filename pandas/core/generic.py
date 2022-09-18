@@ -9087,7 +9087,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
-        core.groupby.GroupBy.rank : Rank of values within each group.
+        core.groupby.DataFrameGroupBy.rank : Rank of values within each group.
+        core.groupby.SeriesGroupBy.rank : Rank of values within each group.
 
         Examples
         --------
