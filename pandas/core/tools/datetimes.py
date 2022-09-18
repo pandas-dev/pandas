@@ -502,6 +502,7 @@ def _array_strptime_with_fallback(
             return _return_parsed_timezone_results(result, timezones, tz, name)
 
         if infer_datetime_format and np.isnan(result).any():
+            # Indicates to the caller to fallback to objects_to_datetime64ns
             return None
 
     return _box_as_indexlike(result, utc=utc, name=name)
