@@ -365,3 +365,18 @@ def test_store_multiindex(setup_path):
         )
         store.append("df", df)
         tm.assert_frame_equal(store.select("df"), df)
+
+
+def test_store_periodindex(setup_path):
+    # GH 7796
+    # test of PeriodIndex in HDFStore
+    df = pd.DataFrame(np.random.randn(5, 1), index=pd.period_range('20220101', freq='M', periods=5))
+
+    with ensure_clean_path(setup_path) as path:
+        df.to_hdf(path, 'fixed', mode='w', format='fixed')
+        fixed = pd.read_hdf(path, 'fixed')
+        tm.assert_frame_equal(df, fixed)
+
+        df.to_hdf(path, 'table', mode='w', format='table')
+        table = pd.read_hdf(path, 'table')
+        tm.assert_frame_equal(df, table)
