@@ -261,12 +261,6 @@ def test_union(idx, sort):
         assert result.equals(idx)
 
 
-@pytest.mark.xfail(
-    # This test was commented out from Oct 2011 to Dec 2021, may no longer
-    #  be relevant.
-    reason="Length of names must match number of levels in MultiIndex",
-    raises=ValueError,
-)
 def test_union_with_regular_index(idx):
     other = Index(["A", "B", "C"])
 
@@ -277,7 +271,9 @@ def test_union_with_regular_index(idx):
     msg = "The values in the array are unorderable"
     with tm.assert_produces_warning(RuntimeWarning, match=msg):
         result2 = idx.union(other)
-    assert result.equals(result2)
+    # This is more consistent now, if sorting fails then we don't sort at all
+    # in the MultiIndex case.
+    assert not result.equals(result2)
 
 
 def test_intersection(idx, sort):
@@ -525,6 +521,26 @@ def test_union_nan_got_duplicated():
     tm.assert_index_equal(result, mi2)
 
 
+@pytest.mark.parametrize("val", [4, 1])
+def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
+    # GH#48505
+
+    arr1 = Series([val, 2], dtype=any_numeric_ea_dtype)
+    arr2 = Series([2, 1], dtype=any_numeric_ea_dtype)
+    midx = MultiIndex.from_arrays([arr1, [1, 2]], names=["a", None])
+    midx2 = MultiIndex.from_arrays([arr2, [2, 1]])
+    result = midx.union(midx2)
+    if val == 4:
+        expected = MultiIndex.from_arrays(
+            [Series([1, 2, 4], dtype=any_numeric_ea_dtype), [1, 2, 1]]
+        )
+    else:
+        expected = MultiIndex.from_arrays(
+            [Series([1, 2], dtype=any_numeric_ea_dtype), [1, 2]]
+        )
+    tm.assert_index_equal(result, expected)
+
+
 def test_union_duplicates(index, request):
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
@@ -534,18 +550,49 @@ def test_union_duplicates(index, request):
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
-    result = mi1.union(mi2)
+    result = mi2.union(mi1)
     expected = mi2.sort_values()
+    tm.assert_index_equal(result, expected)
+
     if mi2.levels[0].dtype == np.uint64 and (mi2.get_level_values(0) < 2**63).all():
         # GH#47294 - union uses lib.fast_zip, converting data to Python integers
         # and loses type information. Result is then unsigned only when values are
-        # sufficiently large to require unsigned dtype.
+        # sufficiently large to require unsigned dtype. This happens only if other
+        # has dups or one of both have missing values
         expected = expected.set_levels(
             [expected.levels[0].astype(int), expected.levels[1]]
         )
+    result = mi1.union(mi2)
     tm.assert_index_equal(result, expected)
 
-    result = mi2.union(mi1)
+
+def test_union_keep_dtype_precision(any_real_numeric_dtype):
+    # GH#48498
+    arr1 = Series([4, 1, 1], dtype=any_real_numeric_dtype)
+    arr2 = Series([1, 4], dtype=any_real_numeric_dtype)
+    midx = MultiIndex.from_arrays([arr1, [2, 1, 1]], names=["a", None])
+    midx2 = MultiIndex.from_arrays([arr2, [1, 2]], names=["a", None])
+
+    result = midx.union(midx2)
+    expected = MultiIndex.from_arrays(
+        ([Series([1, 1, 4], dtype=any_real_numeric_dtype), [1, 1, 2]]),
+        names=["a", None],
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
+    # GH#48498
+
+    arr1 = Series([4, pd.NA], dtype=any_numeric_ea_dtype)
+    arr2 = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
+    midx = MultiIndex.from_arrays([arr1, [2, 1]], names=["a", None])
+    midx2 = MultiIndex.from_arrays([arr2, [1, 2]])
+    result = midx.union(midx2)
+    # Expected is actually off and should contain (1, 1) too. See GH#37222
+    expected = MultiIndex.from_arrays(
+        [Series([4, pd.NA, pd.NA], dtype=any_numeric_ea_dtype), [2, 1, 2]]
+    )
     tm.assert_index_equal(result, expected)
 
 

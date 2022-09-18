@@ -42,6 +42,7 @@ from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
+    is_unitless,
     tz_compare,
 )
 from pandas._typing import (
@@ -1086,6 +1087,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         values = self._data
         if isinstance(values, ExtensionArray):
+            if isinstance(dtype, np.dtype) and dtype.kind == "M" and is_unitless(dtype):
+                # TODO(2.0): remove this special-casing once this is enforced
+                #  in DTA.astype
+                raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
+
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
@@ -3398,8 +3404,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique:
             # other has duplicates
-            result = algos.union_with_duplicates(lvals, rvals)
-            return _maybe_try_sort(result, sort)
+            result_dups = algos.union_with_duplicates(lvals, rvals)
+            return _maybe_try_sort(result_dups, sort)
 
         # Self may have duplicates; other already checked as unique
         # find indexes of things in "other" that are not in "self"
@@ -3409,11 +3415,17 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
-        if len(missing) > 0:
-            other_diff = rvals.take(missing)
-            result = concat_compat((lvals, other_diff))
+        result: Index | MultiIndex | ArrayLike
+        if self._is_multi:
+            # Preserve MultiIndex to avoid losing dtypes
+            result = self.append(other.take(missing))
+
         else:
-            result = lvals
+            if len(missing) > 0:
+                other_diff = rvals.take(missing)
+                result = concat_compat((lvals, other_diff))
+            else:
+                result = lvals
 
         if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
             # if both are monotonic then result should already be sorted
