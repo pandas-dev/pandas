@@ -301,7 +301,7 @@ class Unique:
 
 class Isin:
     params = [
-        ("string", "int", "date"),
+        ("string", "int", "datetime"),
     ]
     param_names = ["dtype"]
 
@@ -327,7 +327,7 @@ class Isin:
         self.midx = data[dtype]
         self.values = self.midx[:100]
 
-    def time_unique(self, dtype):
+    def time_isin(self, dtype):
         self.midx.isin(self.values)
 
 
