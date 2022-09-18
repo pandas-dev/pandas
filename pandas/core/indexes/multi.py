@@ -3467,22 +3467,35 @@ class MultiIndex(Index):
         -------
         indexer : a sorted position indexer of self ordered as seq
         """
-        # If the index is lexsorted and the list_like label in seq are sorted
-        # then we do not need to sort
-        if self._is_lexsorted():
-            need_sort = False
-            for i, k in enumerate(seq):
-                if is_list_like(k):
-                    if not need_sort:
-                        k_codes = self.levels[i].get_indexer(k)
-                        k_codes = k_codes[k_codes >= 0]  # Filter absent keys
-                        # True if the given codes are not ordered
-                        need_sort = (k_codes[:-1] > k_codes[1:]).any()
-                elif isinstance(k, slice) and k.step is not None and k.step < 0:
+
+        # check if sorting is necessary
+        need_sort = False
+        for i, k in enumerate(seq):
+            if com.is_null_slice(k) or com.is_bool_indexer(k) or is_scalar(k):
+                pass
+            elif is_list_like(k):
+                if len(k) <= 1:  # type: ignore[arg-type]
+                    pass
+                elif self._is_lexsorted():
+                    # If the index is lexsorted and the list_like label
+                    # in seq are sorted then we do not need to sort
+                    k_codes = self.levels[i].get_indexer(k)
+                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
+                    # True if the given codes are not ordered
+                    need_sort = (k_codes[:-1] > k_codes[1:]).any()
+                else:
                     need_sort = True
-            # Bail out if both index and seq are sorted
-            if not need_sort:
-                return indexer
+            elif isinstance(k, slice):
+                if self._is_lexsorted():
+                    need_sort = k.step is not None and k.step < 0
+                else:
+                    need_sort = True
+            else:
+                need_sort = True
+            if need_sort:
+                break
+        if not need_sort:
+            return indexer
 
         n = len(self)
         keys: tuple[np.ndarray, ...] = ()
