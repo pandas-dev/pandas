@@ -802,8 +802,9 @@ def factorize(
         else:
             na_sentinel_arg = na_sentinel
 
-        if not dropna and not sort:
+        if not dropna and not sort and is_object_dtype(values):
             # factorize can now handle differentiating various types of null values.
+            # These can only occur when the array has object dtype.
             # However, for backwards compatibility we only use the null for the
             # provided dtype. This may be revisited in the future, see GH#48476.
             null_mask = isna(values)
