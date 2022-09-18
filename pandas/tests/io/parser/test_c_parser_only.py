@@ -689,3 +689,20 @@ def test_float_precision_options(c_parser_only):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(s), float_precision="junk")
+
+
+@pytest.mark.parametrize(
+    "comment,delimiter",
+    [
+        ("#", "#"),
+        ("$#", "#"),  # ("#", b'#'), the read_csv helper expects str
+    ],
+)
+def test_delimiter_comment(c_parser_only, request, comment, delimiter):
+    parser = c_parser_only
+    data = """A,B,C
+    1,2,3
+    """
+    # Comment shouldn't contain special characters
+    with pytest.raises(ValueError, match="shouldn't be part of a comment string"):
+        _ = parser.read_csv(StringIO(data), comment=comment, delimiter=delimiter)

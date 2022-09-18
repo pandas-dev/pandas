@@ -436,19 +436,6 @@ cdef class TextReader:
             # if len(comment) > 1:
             #     raise UserWarning('Length > 1 comment characters are experimental')
 
-            # need to disallow all whitespace for now, even if the line terminator and escapechar are not set as whitespace,
-            # because the c parser has a skip_whitespace mode that could clash with a comment containing whitespace
-            clashes = [delimiter, lineterminator, escapechar, quotechar, '\n', '\r', '\t', ' ']
-            # Could also just test with a regex but don't want to install re just for that
-            for x in clashes:
-                if x is not None and x in comment:
-                    raise ValueError("Delimiters, line terminators, escape characters or quotechars shouldn't be part of a comment string (for now).")
-
-            # for val in na_values:
-            #     # gh-#34002: At least give a warning for people passing in a na-value explicitly that it will be skipped?
-            #     if comment in val:
-            #         raise UserWarning("Comment string is a substring of one of the passed na_values:", val)
-
             # Copied from ensure_encoded
             if isinstance(comment, str):
                 comment_encoded = PyUnicode_AsUTF8String(comment)
@@ -456,7 +443,25 @@ cdef class TextReader:
                 comment_encoded = str(comment).encode('utf-8')
             else:
                 # Would love to use an f-string here
-                raise ValueError("Comment must be str or bytes, got ", comment)
+                raise ValueError("Comment must be str or bytes, got ", type(comment), comment, isinstance(comment, bytes))
+
+            # need to disallow all whitespace for now, even if the line terminator and escapechar are not set as whitespace,
+            # because the c parser has a skip_whitespace mode that could clash with a comment containing whitespace
+            clashes = [delimiter, lineterminator, escapechar, quotechar, '\n', '\r', '\t', ' ']
+            clashes_encoded = _ensure_encoded(clashes)
+            # Could also just test with a regex but don't want to install re just for that
+            for x in clashes_encoded:
+                print("x type: ", type(x))
+                print("x:", x, "comment_encoded:", comment_encoded)
+                if x is not None and x in comment_encoded:
+                    raise ValueError("Delimiters, line terminators, escape characters or quotechars shouldn't be part of a comment string (for now).")
+
+            # for val in na_values:
+            #     # gh-#34002: At least give a warning for people passing in a na-value explicitly that it will be skipped?
+            #     if comment in val:
+            #         raise UserWarning("Comment string is a substring of one of the passed na_values:", val)
+
+
 
             # Pass comment as a string instead of char:
             # From https://cython.readthedocs.io/en/latest/src/tutorial/strings.html#encoding-text-to-bytes

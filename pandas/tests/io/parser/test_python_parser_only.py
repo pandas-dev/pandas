@@ -13,6 +13,7 @@ from io import (
 )
 from typing import Iterator
 
+import numpy as np
 import pytest
 
 from pandas.errors import (
@@ -26,7 +27,6 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
-import numpy as np
 
 
 def test_default_separator(python_parser_only):
@@ -496,7 +496,6 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
 @pytest.mark.parametrize("na_values", [None, ["NaN"]])
 def test_multichar_comment(python_parser_only, na_values):
     # parser = all_parsers
-    # TODO first check python parser can handle multi-char comment
     parser = python_parser_only
     data = """A,B,C
 1,2.,4.#$hello world
