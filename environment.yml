@@ -100,7 +100,7 @@ dependencies:
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
   - pandas-dev-flaker=0.5.0
-  - pydata-sphinx-theme=0.8.0
+  - pydata-sphinx-theme
   - pytest-cython  # doctest
   - sphinx
   - sphinx-panels
@@ -129,5 +129,5 @@ dependencies:
   # build the interactive terminal
   - jupyterlab >=3.4,<4
   - pip:
-      - jupyterlite==0.1.0b10
+      - jupyterlite==0.1.0b12
       - sphinx-toggleprompt

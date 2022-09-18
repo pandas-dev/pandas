@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np
@@ -252,7 +253,7 @@ class TestSeriesConstructors:
     def test_constructor_iterable(self):
         # GH 21987
         class Iter:
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 yield from range(10)
 
         expected = Series(list(range(10)), dtype="int64")
@@ -1879,6 +1880,19 @@ class TestSeriesConstructors:
         result = Series(index=[0], dtype="bool")
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_int64_dtype(self, any_int_dtype):
+        # GH#44923
+        result = Series(["0", "1", "2"], dtype=any_int_dtype)
+        expected = Series([0, 1, 2], dtype=any_int_dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_raise_on_lossy_conversion_of_strings(self):
+        # GH#44923
+        with pytest.raises(
+            ValueError, match="string values cannot be losslessly cast to int8"
+        ):
+            Series(["128"], dtype="int8")
 
     def test_constructor_dtype_timedelta_alternative_construct(self):
         # GH#35465
