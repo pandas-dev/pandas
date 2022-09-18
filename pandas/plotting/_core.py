@@ -1016,7 +1016,7 @@ class PlotAccessor(PandasObject):
 
             >>> s = pd.Series([1, 3, 2])
             >>> s.plot.line()
-            <AxesSubplot:ylabel='Density'>
+            <AxesSubplot: ylabel='Density'>
 
         .. plot::
             :context: close-figs
