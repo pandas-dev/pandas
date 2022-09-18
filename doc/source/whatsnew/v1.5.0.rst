@@ -301,7 +301,7 @@ Other enhancements
 - :meth:`DataFrame.plot` will now allow the ``subplots`` parameter to be a list of iterables specifying column groups, so that columns may be grouped together in the same subplot (:issue:`29688`).
 - :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
 - :meth:`Series.reset_index` and :meth:`DataFrame.reset_index` now support the argument ``allow_duplicates`` (:issue:`44410`)
-- :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
+- :meth:`.DataFrameGroupBy.min`, :meth:`.SeriesGroupBy.min`, :meth:`.DataFrameGroupBy.max`, and :meth:`.SeriesGroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
 - :func:`read_csv` now supports ``defaultdict`` as a ``dtype`` parameter (:issue:`41574`)
 - :meth:`DataFrame.rolling` and :meth:`Series.rolling` now support a ``step`` parameter with fixed-length windows (:issue:`15354`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
@@ -312,7 +312,7 @@ Other enhancements
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :func:`concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
 - :func:`concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
-- Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, :meth:`DataFrame.cov`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.GroupBy.var`, :meth:`.GroupBy.std`, :meth:`.GroupBy.sem`, and :meth:`.DataFrameGroupBy.quantile` (:issue:`46560`)
+- Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, :meth:`DataFrame.cov`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.DataFrameGroupBy.var`, :meth:`.SeriesGroupBy.var`, :meth:`.DataFrameGroupBy.std`, :meth:`.SeriesGroupBy.std`, :meth:`.DataFrameGroupBy.sem`, :meth:`.SeriesGroupBy.sem`, and :meth:`.DataFrameGroupBy.quantile` (:issue:`46560`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`, :issue:`46725`)
 - Added ``validate`` argument to :meth:`DataFrame.join` (:issue:`46622`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
@@ -320,7 +320,7 @@ Other enhancements
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
 - :class:`.DataError`, :class:`.SpecificationError`, :class:`.SettingWithCopyError`, :class:`.SettingWithCopyWarning`, :class:`.NumExprClobberingError`, :class:`.UndefinedVariableError`, :class:`.IndexingError`, :class:`.PyperclipException`, :class:`.PyperclipWindowsException`, :class:`.CSSWarning`, :class:`.PossibleDataLossError`, :class:`.ClosedFileError`, :class:`.IncompatibilityWarning`, :class:`.AttributeConflictWarning`, :class:`.DatabaseError`, :class:`.PossiblePrecisionLoss`, :class:`.ValueLabelTypeMismatch`, :class:`.InvalidColumnName`, and :class:`.CategoricalConversionWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
 - Added ``check_like`` argument to :func:`testing.assert_series_equal` (:issue:`47247`)
-- Add support for :meth:`.GroupBy.ohlc` for extension array dtypes (:issue:`37493`)
+- Add support for :meth:`.DataFrameGroupBy.ohlc` and :meth:`.SeriesGroupBy.ohlc` for extension array dtypes (:issue:`37493`)
 - Allow reading compressed SAS files with :func:`read_sas` (e.g., ``.sas7bdat.gz`` files)
 - :func:`pandas.read_html` now supports extracting links from table cells (:issue:`13141`)
 - :meth:`DatetimeIndex.astype` now supports casting timezone-naive indexes to ``datetime64[s]``, ``datetime64[ms]``, and ``datetime64[us]``, and timezone-aware indexes to the corresponding ``datetime64[unit, tzname]`` dtypes (:issue:`47579`)
@@ -330,7 +330,6 @@ Other enhancements
 - :meth:`DataFrame.quantile` gained a ``method`` argument that can accept ``table`` to evaluate multi-column quantiles (:issue:`43881`)
 - :class:`Interval` now supports checking whether one interval is contained by another interval (:issue:`46613`)
 - Added ``copy`` keyword to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` to allow user to set axis on a new object without necessarily copying the underlying data (:issue:`47932`)
-- :meth:`DataFrame.set_index` now supports a ``copy`` keyword. If ``False``, the underlying data is not copied when a new :class:`DataFrame` is returned (:issue:`48043`)
 - The method :meth:`.ExtensionArray.factorize` accepts ``use_na_sentinel=False`` for determining how null values are to be treated (:issue:`46601`)
 - The ``Dockerfile`` now installs a dedicated ``pandas-dev`` virtual environment for pandas development instead of using the ``base`` environment (:issue:`48427`)
 
@@ -739,11 +738,11 @@ See the documentation of :class:`ExcelWriter` for further details.
 
 .. _whatsnew_150.deprecations.group_keys_in_apply:
 
-Using ``group_keys`` with transformers in :meth:`.GroupBy.apply`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using ``group_keys`` with transformers in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions of pandas, if it was inferred that the function passed to
-:meth:`.GroupBy.apply` was a transformer (i.e. the resulting index was equal to
+:meth:`.DataFrameGroupBy.apply` or :meth:`.SeriesGroupBy.apply` was a transformer (i.e. the resulting index was equal to
 the input index), the ``group_keys`` argument of :meth:`DataFrame.groupby` and
 :meth:`Series.groupby` was ignored and the group keys would never be added to
 the index of the result. In the future, the group keys will be added to the index
@@ -880,9 +879,9 @@ gained the ``numeric_only`` argument.
 - :meth:`.DataFrameGroupBy.cummax`
 - :meth:`.DataFrameGroupBy.idxmin`
 - :meth:`.DataFrameGroupBy.idxmax`
-- :meth:`.GroupBy.var`
-- :meth:`.GroupBy.std`
-- :meth:`.GroupBy.sem`
+- :meth:`.DataFrameGroupBy.var`
+- :meth:`.DataFrameGroupBy.std`
+- :meth:`.DataFrameGroupBy.sem`
 - :meth:`.DataFrameGroupBy.quantile`
 - :meth:`.Resampler.mean`
 - :meth:`.Resampler.median`
@@ -934,10 +933,10 @@ Other Deprecations
 - Deprecated the ``inplace`` keyword in :meth:`DataFrame.set_axis` and :meth:`Series.set_axis`, use ``obj = obj.set_axis(..., copy=False)`` instead (:issue:`48130`)
 - Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
 - Fixed up warning message of deprecation of :meth:`MultiIndex.lesort_depth` as public method, as the message previously referred to :meth:`MultiIndex.is_lexsorted` instead (:issue:`38701`)
-- Deprecated the ``inplace`` keyword in :meth:`DataFrame.set_index`, use ``df = df.set_index(..., copy=False)`` instead (:issue:`48115`)
 - Deprecated the ``sort_columns`` argument in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`).
 - Deprecated positional arguments for all but the first argument of :meth:`DataFrame.to_stata` and :func:`read_stata`, use keyword arguments instead (:issue:`48128`).
 - Deprecated the ``mangle_dupe_cols`` argument in :func:`read_csv`, :func:`read_fwf`, :func:`read_table` and :func:`read_excel`. The argument was never implemented, and a new argument where the renaming pattern can be specified will be added instead (:issue:`47718`)
+- Deprecated allowing ``dtype='datetime64'`` or ``dtype=np.datetime64`` in :meth:`Series.astype`, use "datetime64[ns]" instead (:issue:`47844`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -945,14 +944,14 @@ Other Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`DataFrame.corrwith` for column-wise (axis=0) Pearson and Spearman correlation when other is a :class:`Series` (:issue:`46174`)
-- Performance improvement in :meth:`.GroupBy.transform` for some user-defined DataFrame -> Series functions (:issue:`45387`)
+- Performance improvement in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` for some user-defined DataFrame -> Series functions (:issue:`45387`)
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
-- Performance improvement in :meth:`.GroupBy.diff` (:issue:`16706`)
-- Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
-- Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
-- Performance improvement in :meth:`.GroupBy.apply` when grouping on a non-unique unsorted index (:issue:`46527`)
+- Performance improvement in :meth:`.DataFrameGroupBy.diff` and :meth:`.SeriesGroupBy.diff` (:issue:`16706`)
+- Performance improvement in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
+- Performance improvement in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
+- Performance improvement in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` when grouping on a non-unique unsorted index (:issue:`46527`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`45681`, :issue:`46040`, :issue:`46330`)
-- Performance improvement in :meth:`.GroupBy.var` with ``ddof`` other than one (:issue:`48152`)
+- Performance improvement in :meth:`.DataFrameGroupBy.var` and :meth:`.SeriesGroupBy.var` with ``ddof`` other than one (:issue:`48152`)
 - Performance improvement in :meth:`DataFrame.to_records` when the index is a :class:`MultiIndex` (:issue:`47263`)
 - Performance improvement in :attr:`MultiIndex.values` when the MultiIndex contains levels of type DatetimeIndex, TimedeltaIndex or ExtensionDtypes (:issue:`46288`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
@@ -967,7 +966,7 @@ Performance improvements
 - Performance improvement in :class:`BusinessHour` ``str`` and ``repr`` (:issue:`44764`)
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
-- Performance improvements to :func:`read_sas` (:issue:`47403`, :issue:`47404`, :issue:`47405`)
+- Performance improvement to :func:`read_sas` (:issue:`47404`)
 - Performance improvement in ``argmax`` and ``argmin`` for :class:`arrays.SparseArray` (:issue:`34197`)
 -
 
@@ -1018,7 +1017,6 @@ Numeric
 - Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
 - Bug in :meth:`mean` where the optional dependency ``bottleneck`` causes precision loss linear in the length of the array. ``bottleneck`` has been disabled for :meth:`mean` improving the loss to log-linear but may result in a performance decrease. (:issue:`42878`)
-- Bug in :func:`factorize` would convert the value ``None`` to ``np.nan`` (:issue:`46601`)
 
 Conversion
 ^^^^^^^^^^
@@ -1171,15 +1169,15 @@ Groupby/resample/rolling
 - Bug when using ``engine="numba"`` would return the same jitted function when modifying ``engine_kwargs`` (:issue:`46086`)
 - Bug in :meth:`.DataFrameGroupBy.transform` fails when ``axis=1`` and ``func`` is ``"first"`` or ``"last"`` (:issue:`45986`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` with ``skipna=False`` giving incorrect results (:issue:`46216`)
-- Bug in :meth:`.GroupBy.sum`, :meth:`.GroupBy.prod` and :meth:`.GroupBy.cumsum` with integer dtypes losing precision (:issue:`37493`)
-- Bug in :meth:`.GroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`46216`)
-- Bug in :meth:`.GroupBy.cumsum` with integer dtypes causing overflows when sum was bigger than maximum of dtype (:issue:`37493`)
-- Bug in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
+- Bug in :meth:`.DataFrameGroupBy.sum`, :meth:`.SeriesGroupBy.sum`, :meth:`.DataFrameGroupBy.prod`, :meth:`.SeriesGroupBy.prod, :meth:`.DataFrameGroupBy.cumsum`, and :meth:`.SeriesGroupBy.cumsum` with integer dtypes losing precision (:issue:`37493`)
+- Bug in :meth:`.DataFrameGroupBy.cumsum` and :meth:`.SeriesGroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`46216`)
+- Bug in :meth:`.DataFrameGroupBy.cumsum` and :meth:`.SeriesGroupBy.cumsum` with integer dtypes causing overflows when sum was bigger than maximum of dtype (:issue:`37493`)
+- Bug in :meth:`.DataFrameGroupBy.cummin`, :meth:`.SeriesGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax` and :meth:`.SeriesGroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
 - Bug in :meth:`DataFrame.groupby` raising error when ``None`` is in first level of :class:`MultiIndex` (:issue:`47348`)
-- Bug in :meth:`.GroupBy.cummax` with ``int64`` dtype with leading value being the smallest possible int64 (:issue:`46382`)
-- Bug in :meth:`.GroupBy.cumprod` ``NaN`` influences calculation in different columns with ``skipna=False`` (:issue:`48064`)
-- Bug in :meth:`.GroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
-- Bug in :meth:`.GroupBy.apply` would fail when ``func`` was a string and args or kwargs were supplied (:issue:`46479`)
+- Bug in :meth:`.DataFrameGroupBy.cummax` and :meth:`.SeriesGroupBy.cummax` with ``int64`` dtype with leading value being the smallest possible int64 (:issue:`46382`)
+- Bug in :meth:`.DataFrameGroupBy.cumprod` and :meth:`.SeriesGroupBy.cumprod` ``NaN`` influences calculation in different columns with ``skipna=False`` (:issue:`48064`)
+- Bug in :meth:`.DataFrameGroupBy.max` and :meth:`.SeriesGroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
+- Bug in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` would fail when ``func`` was a string and args or kwargs were supplied (:issue:`46479`)
 - Bug in :meth:`SeriesGroupBy.apply` would incorrectly name its result when there was a unique group (:issue:`46369`)
 - Bug in :meth:`.Rolling.sum` and :meth:`.Rolling.mean` would give incorrect result with window of same values (:issue:`42064`, :issue:`46431`)
 - Bug in :meth:`.Rolling.var` and :meth:`.Rolling.std` would give non-zero result with window of same values (:issue:`42064`)
