@@ -3556,7 +3556,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     @final
-    def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
+    def _intersection_via_get_indexer(
+        self, other: Index, sort
+    ) -> ArrayLike | MultiIndex:
         """
         Find the intersection of two Indexes using get_indexer.
 
