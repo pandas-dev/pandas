@@ -382,9 +382,10 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(s)
     True
     """
-    if isinstance(arr_or_dtype, ExtensionDtype):
+    if isinstance(arr_or_dtype, DatetimeTZDtype):
         # GH#33400 fastpath for dtype object
-        return arr_or_dtype.kind == "M"
+        # GH 34986
+        return True
 
     if arr_or_dtype is None:
         return False
