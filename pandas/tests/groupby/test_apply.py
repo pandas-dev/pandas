@@ -1337,7 +1337,25 @@ def test_empty_df():
     empty_df = DataFrame({"a": [], "b": []})
 
     # Both operations should return an empty series instead of IndexError for apply UDF
-    result = empty_df.groupby("a").b.apply(lambda x: x.values[-1])
-    expected = empty_df.groupby("a").b.agg("sum")
+    result = empty_df.groupby("a", group_keys=True).b.apply(lambda x: x.values[-1])
+    expected = empty_df.groupby("a", group_keys=True).b.agg("sum")
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "error_type",
+    [
+        TypeError,
+        ValueError,
+        IndexError,
+    ],
+)
+def test_udf_raise_error_on_empty_df(error_type):
+    empty_df = DataFrame({"a": [], "b": []})
+
+    def f(group):
+        raise error_type
+
+    # Exception should not be raised.
+    empty_df.groupby("a", group_keys=True).b.apply(f)

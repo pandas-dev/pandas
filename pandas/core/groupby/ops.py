@@ -845,21 +845,16 @@ class BaseGrouper:
                 mutated = True
             result_values.append(res)
         # getattr pattern for __name__ is needed for functools.partial objects
-        if len(group_keys) == 0 and getattr(f, "__name__", None) not in [
-            "idxmin",
-            "idxmax",
-            "nanargmin",
-            "nanargmax",
+        if len(group_keys) == 0 and getattr(f, "__name__", None) in [
+            "mad",
+            "skew",
+            "sum",
+            "prod",
         ]:
-            try:
-                #  If group_keys is empty, then no function calls have been made,
-                #  so we will not have raised even if this is an invalid dtype.
-                #  So do one dummy call here to raise appropriate TypeError.
-                f(data.iloc[:0])
-            except IndexError:
-                # If IndexError is raised,
-                # maintain consistency for all operations on empty groups
-                pass
+            #  If group_keys is empty, then no function calls have been made,
+            #  so we will not have raised even if this is an invalid dtype.
+            #  So do one dummy call here to raise appropriate TypeError.
+            f(data.iloc[:0])
 
         return result_values, mutated
 
