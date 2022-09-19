@@ -68,9 +68,7 @@ class TestPreserves:
         assert ser.to_frame().flags.allows_duplicate_labels is False
 
     @pytest.mark.parametrize("func", ["add", "sub"])
-    @pytest.mark.parametrize(
-        "frame", [False, pytest.param(True, marks=not_implemented)]
-    )
+    @pytest.mark.parametrize("frame", [False, True])
     @pytest.mark.parametrize("other", [1, pd.Series([1, 2], name="A")])
     def test_binops(self, func, other, frame):
         df = pd.Series([1, 2], name="A", index=["a", "b"]).set_flags(
