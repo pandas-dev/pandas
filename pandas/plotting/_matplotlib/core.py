@@ -417,7 +417,7 @@ class MPLPlot(ABC):
                         "other or pass 'style' without a color symbol"
                     )
 
-    def _iter_data(self, data=None, keep_index=False, fillna=None):
+    def _iter_data(self, data=None, keep_index: bool = False, fillna=None):
         if data is None:
             data = self.data
         if fillna is not None:
@@ -911,7 +911,7 @@ class MPLPlot(ABC):
         return name
 
     @classmethod
-    def _get_ax_layer(cls, ax, primary=True):
+    def _get_ax_layer(cls, ax, primary: bool = True):
         """get left (primary) or right (secondary) axes"""
         if primary:
             return getattr(ax, "left_ax", ax)
@@ -1087,7 +1087,9 @@ class MPLPlot(ABC):
 
         return err
 
-    def _get_errorbars(self, label=None, index=None, xerr=True, yerr=True):
+    def _get_errorbars(
+        self, label=None, index=None, xerr: bool = True, yerr: bool = True
+    ):
         errors = {}
 
         for kw, flag in zip(["xerr", "yerr"], [xerr, yerr]):
@@ -1645,7 +1647,7 @@ class BarPlot(MPLPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+        cls, ax: Axes, x, y, w, start=0, log: bool = False, **kwds
     ):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
@@ -1771,7 +1773,7 @@ class BarhPlot(BarPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+        cls, ax: Axes, x, y, w, start=0, log: bool = False, **kwds
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 

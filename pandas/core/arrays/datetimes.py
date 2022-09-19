@@ -333,19 +333,21 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         return result
 
+    # error: Signature of "_generate_range" incompatible with supertype
+    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(
+    def _generate_range(  # type: ignore[override]
         cls,
         start,
         end,
         periods,
         freq,
         tz=None,
-        normalize=False,
+        normalize: bool = False,
         ambiguous="raise",
         nonexistent="raise",
         inclusive="both",
-    ):
+    ) -> DatetimeArray:
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -2133,7 +2135,7 @@ def objects_to_datetime64ns(
     data: np.ndarray,
     dayfirst,
     yearfirst,
-    utc=False,
+    utc: bool = False,
     errors="raise",
     require_iso8601: bool = False,
     allow_object: bool = False,
