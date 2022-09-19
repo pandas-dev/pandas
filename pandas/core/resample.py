@@ -551,6 +551,15 @@ class Resampler(BaseGroupBy, PandasObject):
 
         .. deprecated:: 1.4
             Use ffill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        An upsampled Series.
         """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
@@ -728,6 +737,16 @@ class Resampler(BaseGroupBy, PandasObject):
 
         .. deprecated:: 1.4
             Use bfill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series, DataFrame
+            An upsampled Series or DataFrame with backward filled NaN values.
         """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "

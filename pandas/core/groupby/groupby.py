@@ -2943,6 +2943,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         .. deprecated:: 1.4
             Use ffill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
         """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
@@ -2983,6 +2993,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         .. deprecated:: 1.4
             Use bfill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+
         """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
