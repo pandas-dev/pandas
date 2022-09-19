@@ -332,7 +332,7 @@ def test_multi_drop_duplicates_pos_args_deprecation():
     idx = MultiIndex.from_arrays([[1, 2, 3, 1], [1, 2, 3, 1]])
     msg = (
         "In a future version of pandas all arguments of "
-        "MultiIndex.drop_duplicates will be keyword-only"
+        "Index.drop_duplicates will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = idx.drop_duplicates("last")
