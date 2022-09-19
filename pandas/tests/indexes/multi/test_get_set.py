@@ -476,6 +476,14 @@ def test_set_levels_pos_args_deprecation():
     tm.assert_index_equal(result, expected)
 
 
+def test_set_empty_level():
+    # GH#48636
+    midx = MultiIndex.from_arrays([[]], names=["A"])
+    result = midx.set_levels(pd.DatetimeIndex([]), level=0)
+    expected = MultiIndex.from_arrays([pd.DatetimeIndex([])], names=["A"])
+    tm.assert_index_equal(result, expected)
+
+
 def test_set_codes_pos_args_depreciation(idx):
     # https://github.com/pandas-dev/pandas/issues/41485
     msg = (
