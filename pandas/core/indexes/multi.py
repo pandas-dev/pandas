@@ -4028,7 +4028,7 @@ def _require_listlike(level, arr, arrname: str):
     if level is not None and not is_list_like(level):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
-        if is_list_like(arr[0]):
+        if len(arr) > 0 and is_list_like(arr[0]):
             raise TypeError(f"{arrname} must be list-like")
         level = [level]
         arr = [arr]
