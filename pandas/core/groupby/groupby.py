@@ -3003,7 +3003,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Object with missing values filled.
-
         """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
