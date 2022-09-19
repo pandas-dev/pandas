@@ -40,7 +40,7 @@ _ALLOWED_DTYPES = {
 _MIN_ELEMENTS = 1_000_000
 
 
-def set_use_numexpr(v=True) -> None:
+def set_use_numexpr(v: bool = True) -> None:
     # set/unset to use numexpr
     global USE_NUMEXPR
     if NUMEXPR_INSTALLED:
@@ -243,7 +243,7 @@ def evaluate(op, a, b, use_numexpr: bool = True):
     return _evaluate_standard(op, op_str, a, b)
 
 
-def where(cond, a, b, use_numexpr=True):
+def where(cond, a, b, use_numexpr: bool = True):
     """
     Evaluate the where condition cond on a and b.
 

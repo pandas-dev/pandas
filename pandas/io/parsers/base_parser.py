@@ -679,7 +679,7 @@ class ParserBase:
 
         return noconvert_columns
 
-    def _infer_types(self, values, na_values, try_num_bool=True):
+    def _infer_types(self, values, na_values, try_num_bool: bool = True):
         """
         Infer types of values, possibly casting
 
@@ -1055,7 +1055,10 @@ class ParserBase:
 
 
 def _make_date_converter(
-    date_parser=None, dayfirst=False, infer_datetime_format=False, cache_dates=True
+    date_parser=None,
+    dayfirst: bool = False,
+    infer_datetime_format: bool = False,
+    cache_dates: bool = True,
 ):
     def converter(*date_cols):
         if date_parser is None:

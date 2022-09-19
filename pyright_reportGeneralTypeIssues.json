@@ -31,6 +31,7 @@
         "pandas/core/arrays/interval.py",
         "pandas/core/arrays/masked.py",
         "pandas/core/arrays/period.py",
+        "pandas/core/arrays/sparse/accessor.py",
         "pandas/core/arrays/sparse/array.py",
         "pandas/core/arrays/sparse/dtype.py",
         "pandas/core/arrays/string_.py",
@@ -108,6 +109,8 @@
         "pandas/io/sql.py",
         "pandas/io/stata.py",
         "pandas/io/xml.py",
+        "pandas/plotting/_matplotlib/boxplot.py",
         "pandas/tseries/frequencies.py",
+        "pandas/tseries/holiday.py",
       ],
 }

@@ -18,7 +18,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.indexes.api import MultiIndex
 
 
-def flex_binary_moment(arg1, arg2, f, pairwise=False):
+def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
 
     if isinstance(arg1, ABCSeries) and isinstance(arg2, ABCSeries):
         X, Y = prep_binary(arg1, arg2)
