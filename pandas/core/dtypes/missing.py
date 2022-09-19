@@ -292,7 +292,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
             # type "ndarray[Any, dtype[bool_]]")
             result = values.isna()  # type: ignore[assignment]
-    elif is_string_or_object_np_dtype(values.dtype):
+    elif is_string_or_object_np_dtype(values.dtype) or isinstance(values, np.recarray):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern

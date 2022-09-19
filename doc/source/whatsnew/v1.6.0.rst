@@ -150,7 +150,7 @@ Conversion
 ^^^^^^^^^^
 - Bug in constructing :class:`Series` with ``int64`` dtype from a string list raising instead of casting (:issue:`44923`)
 - Bug in :meth:`DataFrame.eval` incorrectly raising an ``AttributeError`` when there are negative values in function call (:issue:`46471`)
--
+- Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)
 
 Strings
 ^^^^^^^
