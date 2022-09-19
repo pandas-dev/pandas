@@ -147,8 +147,10 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     chunksize : int, defaults to None
         Return SAS7BDATReader object for iterations, returns chunks
         with given number of lines.
-    encoding : string, defaults to None
-        String encoding.
+    encoding : str, 'infer', defaults to None
+        String encoding acc. to python standard encodings,
+        encoding='infer' tries to detect the encoding from the file header,
+        encoding=None will leave the data in binary format.
     convert_text : bool, defaults to True
         If False, text variables are left as raw bytes.
     convert_header_text : bool, defaults to True
@@ -265,9 +267,11 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         # Get encoding information
         buf = self._read_bytes(const.encoding_offset, const.encoding_length)[0]
         if buf in const.encoding_names:
-            self.file_encoding = const.encoding_names[buf]
+            self.inferred_encoding = const.encoding_names[buf]
+            if self.encoding == "infer":
+                self.encoding = self.inferred_encoding
         else:
-            self.file_encoding = f"unknown (code={buf})"
+            self.inferred_encoding = f"unknown (code={buf})"
 
         # Get platform information
         buf = self._read_bytes(const.platform_offset, const.platform_length)
