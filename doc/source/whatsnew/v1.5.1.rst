@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError`` (:issue:`48608`)
 -
 
 .. ---------------------------------------------------------------------------
