@@ -3557,6 +3557,7 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and not isinstance(self, ABCMultiIndex)
         ):
             try:
                 res_indexer, indexer, _ = self._inner_indexer(other)
@@ -4741,13 +4742,11 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return self._join_non_unique(other, how=how)
         elif (
+            # GH48504: exclude MultiIndex to avoid going through MultiIndex._values
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
-            and (
-                not isinstance(self, ABCMultiIndex)
-                or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
-            )
+            and not isinstance(self, ABCMultiIndex)
             and not is_categorical_dtype(self.dtype)
         ):
             # Categorical is monotonic if data are ordered as categories, but join can
