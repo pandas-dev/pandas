@@ -5,9 +5,14 @@
         "url": "https://pandas.pydata.org/docs/dev/"
     },
     {
-        "name": "1.4 (stable)",
-        "version": "1.4 (stable)",
+        "name": "1.5 (stable)",
+        "version": "1.5 (stable)",
         "url": "https://pandas.pydata.org/docs/"
+    },
+    {
+        "name": "1.4",
+        "version": "1.4",
+        "url": "https://pandas.pydata.org/pandas-docs/version/1.4/"
     },
     {
         "name": "1.3",
