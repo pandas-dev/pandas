@@ -228,13 +228,15 @@ def group_median_float64(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cumprod_float64(
-    float64_t[:, ::1] out,
-    const float64_t[:, :] values,
+def group_cumprod(
+    int64float_t[:, ::1] out,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
     int ngroups,
     bint is_datetimelike,
     bint skipna=True,
+    const uint8_t[:, :] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Cumulative product of columns of `values`, in row groups `labels`.
@@ -253,6 +255,10 @@ def group_cumprod_float64(
         Always false, `values` is never datetime-like.
     skipna : bool
         If true, ignore nans in `values`.
+    mask: np.ndarray[uint8], optional
+        Mask of values
+    result_mask: np.ndarray[int8], optional
+        Mask of out array
 
     Notes
     -----
@@ -260,12 +266,17 @@ def group_cumprod_float64(
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        float64_t val
-        float64_t[:, ::1] accum
+        int64float_t val, na_val
+        int64float_t[:, ::1] accum
         intp_t lab
+        uint8_t[:, ::1] accum_mask
+        bint isna_entry, isna_prev = False
+        bint uses_mask = mask is not None
 
     N, K = (<object>values).shape
-    accum = np.ones((ngroups, K), dtype=np.float64)
+    accum = np.ones((ngroups, K), dtype=(<object>values).dtype)
+    na_val = _get_na_val(<int64float_t>0, is_datetimelike)
+    accum_mask = np.zeros((ngroups, K), dtype="uint8")
 
     with nogil:
         for i in range(N):
@@ -275,13 +286,35 @@ def group_cumprod_float64(
                 continue
             for j in range(K):
                 val = values[i, j]
-                if val == val:
-                    accum[lab, j] *= val
-                    out[i, j] = accum[lab, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                elif int64float_t is float64_t or int64float_t is float32_t:
+                    isna_entry = val != val
                 else:
-                    out[i, j] = NaN
+                    isna_entry = False
+
+                if not isna_entry:
+                    isna_prev = accum_mask[lab, j]
+                    if isna_prev:
+                        out[i, j] = na_val
+                        if uses_mask:
+                            result_mask[i, j] = True
+
+                    else:
+                        accum[lab, j] *= val
+                        out[i, j] = accum[lab, j]
+
+                else:
+                    if uses_mask:
+                        result_mask[i, j] = True
+                        out[i, j] = 0
+                    else:
+                        out[i, j] = na_val
+
                     if not skipna:
-                        accum[lab, j] = NaN
+                        accum[lab, j] = na_val
+                        accum_mask[lab, j] = True
 
 
 @cython.boundscheck(False)

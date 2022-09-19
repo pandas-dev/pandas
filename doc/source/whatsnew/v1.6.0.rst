@@ -45,8 +45,33 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_160.notable_bug_fixes.notable_bug_fix1:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+:meth:`.GroupBy.cumsum` and :meth:`.GroupBy.cumprod` overflow instead of lossy casting to float
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions we cast to float when applying ``cumsum`` and ``cumprod`` which
+lead to incorrect results even if the result could be hold by ``int64`` dtype.
+Additionally, the aggregation overflows consistent with numpy and the regular
+:meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods when the limit of
+``int64`` is reached (:issue:`37493`).
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"key": ["b"] * 7, "value": 625})
+    In [2]: df.groupby("key")["value"].cumprod()[5]
+    Out[2]: 5.960464477539062e+16
+
+We return incorrect results with the 6th value.
+
+*New Behavior*
+
+.. ipython:: python
+
+    df = pd.DataFrame({"key": ["b"] * 7, "value": 625})
+    df.groupby("key")["value"].cumprod()
+
+We overflow with the 7th value, but the 6th value is still correct.
 
 .. _whatsnew_160.notable_bug_fixes.notable_bug_fix2:
 
@@ -104,7 +129,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
