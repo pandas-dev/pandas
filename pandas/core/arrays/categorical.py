@@ -494,7 +494,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return Categorical
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Categorical:
         return Categorical(scalars, dtype=dtype, copy=copy)
 
     @overload
@@ -784,7 +786,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         v.flags.writeable = False
         return v
 
-    def _set_categories(self, categories, fastpath=False):
+    def _set_categories(self, categories, fastpath: bool = False) -> None:
         """
         Sets new categories inplace
 
@@ -952,7 +954,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self.set_ordered(False, inplace=inplace)
 
     def set_categories(
-        self, new_categories, ordered=None, rename=False, inplace=no_default
+        self, new_categories, ordered=None, rename: bool = False, inplace=no_default
     ):
         """
         Set the categories to the specified new_categories.
@@ -1822,11 +1824,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Categorical to an ordered one\n"
             )
 
-    #  error: Signature of "argsort" incompatible with supertype "ExtensionArray"
+    # error: Signature of "argsort" incompatible with supertype "ExtensionArray"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(  # type: ignore[override]
         self, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
-    ) -> npt.NDArray[np.intp]:
+    ):
         """
         Return the indices that would sort the Categorical.
 
@@ -2297,7 +2299,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # Reductions
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def min(self, *, skipna=True, **kwargs):
+    def min(self, *, skipna: bool = True, **kwargs):
         """
         The minimum value of the object.
 
@@ -2334,7 +2336,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._wrap_reduction_result(None, pointer)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def max(self, *, skipna=True, **kwargs):
+    def max(self, *, skipna: bool = True, **kwargs):
         """
         The maximum value of the object.
 

@@ -213,7 +213,7 @@ class PyArrowImpl(BaseImpl):
         self,
         path,
         columns=None,
-        use_nullable_dtypes=False,
+        use_nullable_dtypes: bool = False,
         storage_options: StorageOptions = None,
         **kwargs,
     ) -> DataFrame:

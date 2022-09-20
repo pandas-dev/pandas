@@ -118,8 +118,8 @@ def optional_args(decorator):
 def network(
     t,
     url: str = "https://www.google.com",
-    raise_on_error=False,
-    check_before_test=False,
+    raise_on_error: bool = False,
+    check_before_test: bool = False,
     error_classes=None,
     skip_errnos=_network_errno_vals,
     _skip_on_messages=_network_error_messages,

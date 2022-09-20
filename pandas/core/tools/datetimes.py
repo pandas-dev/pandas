@@ -1307,7 +1307,10 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
 
 
 def to_time(
-    arg, format=None, infer_time_format=False, errors: DateTimeErrorChoices = "raise"
+    arg,
+    format=None,
+    infer_time_format: bool = False,
+    errors: DateTimeErrorChoices = "raise",
 ):
     # GH#34145
     warnings.warn(

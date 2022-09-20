@@ -900,7 +900,7 @@ class Resampler(BaseGroupBy, PandasObject):
         method: QuantileInterpolation = "linear",
         axis=0,
         limit=None,
-        inplace=False,
+        inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
         downcast=None,

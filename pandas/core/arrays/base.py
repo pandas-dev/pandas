@@ -248,7 +248,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -271,7 +271,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -1773,7 +1773,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
 
     @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True, result_dtype=None):
+    def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):
         """
         A class method that returns a method that will correspond to an
         operator for an ExtensionArray subclass, by dispatching to the

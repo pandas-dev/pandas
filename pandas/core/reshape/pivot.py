@@ -565,7 +565,7 @@ def crosstab(
     margins: bool = False,
     margins_name: Hashable = "All",
     dropna: bool = True,
-    normalize=False,
+    normalize: bool = False,
 ) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors.

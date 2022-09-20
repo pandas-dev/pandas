@@ -163,11 +163,8 @@ master_doc = "index"
 
 # General information about the project.
 project = "pandas"
-copyright = (
-    f"{datetime.now().year} "
-    'pandas via <a href="https://numfocus.org">NumFOCUS, Inc.</a> '
-    'Hosted by <a href="https://www.ovhcloud.com">OVH Cloud</a>'
-)
+# We have our custom "pandas_footer.html" template, using copyright for the current year
+copyright = f"{datetime.now().year}"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -243,13 +240,14 @@ elif "rc" in version:
 
 html_theme_options = {
     "external_links": [],
+    "footer_items": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
     "google_analytics_id": "UA-27880019-2",
+    "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_end": ["version-switcher", "navbar-icon-links"],
     "switcher": {
-        "json_url": "https://pandas.pydata.org/versions.json",
-        "url_template": "https://pandas.pydata.org/{version}/",
+        "json_url": "/versions.json",
         "version_match": switcher_version,
     },
 }

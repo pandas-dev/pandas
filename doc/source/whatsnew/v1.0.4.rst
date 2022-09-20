@@ -16,7 +16,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fix regression where :meth:`Series.isna` and :meth:`DataFrame.isna` would raise for categorical dtype when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33594`)
-- Fix regression in :meth:`GroupBy.first` and :meth:`GroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
+- Fix regression in :meth:`.DataFrameGroupBy.first`, :meth:`.SeriesGroupBy.first`, :meth:`.DataFrameGroupBy.last`, and :meth:`.SeriesGroupBy.last` where None is not preserved in object dtype (:issue:`32800`)
 - Fix regression in DataFrame reductions using ``numeric_only=True`` and ExtensionArrays (:issue:`33256`).
 - Fix performance regression in ``memory_usage(deep=True)`` for object dtype (:issue:`33012`)
 - Fix regression where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)
@@ -26,7 +26,7 @@ Fixed regressions
 - Fix regression in :meth:`DataFrame.describe` raising ``TypeError: unhashable type: 'dict'`` (:issue:`32409`)
 - Fix regression in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
 - Fix regression in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)
-- Fix regression in :meth:`GroupBy.rolling.apply` ignores args and kwargs parameters (:issue:`33433`)
+- Fix regression in :meth:`DataFrameGroupBy.rolling.apply` and :meth:`SeriesGroupBy.rolling.apply` ignoring args and kwargs parameters (:issue:`33433`)
 - Fix regression in error message with ``np.min`` or ``np.max`` on unordered :class:`Categorical` (:issue:`33115`)
 - Fix regression in :meth:`DataFrame.loc` and :meth:`Series.loc` throwing an error when a ``datetime64[ns, tz]`` value is provided (:issue:`32395`)
 
@@ -40,7 +40,7 @@ Bug fixes
 - Bug in :meth:`~DataFrame.to_csv` was silently failing when writing to an invalid s3 bucket. (:issue:`32486`)
 - Bug in :meth:`read_parquet` was raising a ``FileNotFoundError`` when passed an s3 directory path. (:issue:`26388`)
 - Bug in :meth:`~DataFrame.to_parquet` was throwing an ``AttributeError`` when writing a partitioned parquet file to s3 (:issue:`27596`)
-- Bug in :meth:`GroupBy.quantile` causes the quantiles to be shifted when the ``by`` axis contains ``NaN`` (:issue:`33200`, :issue:`33569`)
+- Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` causes the quantiles to be shifted when the ``by`` axis contains ``NaN`` (:issue:`33200`, :issue:`33569`)
 
 Contributors
 ~~~~~~~~~~~~

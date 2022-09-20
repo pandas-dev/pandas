@@ -258,10 +258,10 @@ repos:
             |/_testing/
     -   id: autotyping
         name: autotyping
-        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics --bytes-param --str-param --float-param
+        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics --bool-param --bytes-param --str-param --float-param
         types_or: [python, pyi]
         files: ^pandas
-        exclude: ^(pandas/tests|pandas/io/clipboard)
+        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
         language: python
         additional_dependencies:
         - autotyping==22.9.0

@@ -98,7 +98,7 @@ def test_builtins_apply(keys, f):
 
     if f != sum:
         expected = gb.agg(fname).reset_index()
-        expected = expected.set_index(keys, copy=False, drop=False)
+        expected.set_index(keys, inplace=True, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
@@ -454,7 +454,7 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
     df_out = DataFrame(exp)
 
     df_out["b"] = df_out.b.astype(out_type)
-    df_out = df_out.set_index("a", copy=False)
+    df_out.set_index("a", inplace=True)
 
     grpd = df.groupby("a")
     t = getattr(grpd, method)(*data["args"])
@@ -641,13 +641,28 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
     df = DataFrame({"key": ["b"] * 100, "value": 2})
-    actual = df.groupby("key")["value"].cumprod()
-    # if overflows, groupby product casts to float
-    # while numpy passes back invalid values
     df["value"] = df["value"].astype(float)
+    actual = df.groupby("key")["value"].cumprod()
     expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
+
+
+def test_groupby_cumprod_overflow():
+    # GH#37493 if we overflow we return garbage consistent with numpy
+    df = DataFrame({"key": ["b"] * 4, "value": 100_000})
+    actual = df.groupby("key")["value"].cumprod()
+    expected = Series(
+        [100_000, 10_000_000_000, 1_000_000_000_000_000, 7766279631452241920],
+        name="value",
+    )
+    tm.assert_series_equal(actual, expected)
+
+    numpy_result = df.groupby("key", group_keys=False)["value"].apply(
+        lambda x: x.cumprod()
+    )
+    numpy_result.name = "value"
+    tm.assert_series_equal(actual, numpy_result)
 
 
 def test_groupby_cumprod_nan_influences_other_columns():

@@ -123,7 +123,7 @@ class NumericIndex(Index):
         }[self.dtype.kind]
 
     def __new__(
-        cls, data=None, dtype: Dtype | None = None, copy=False, name=None
+        cls, data=None, dtype: Dtype | None = None, copy: bool = False, name=None
     ) -> NumericIndex:
         name = maybe_extract_name(name, data, cls)
 

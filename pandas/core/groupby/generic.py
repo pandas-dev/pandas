@@ -486,15 +486,22 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
-        Return a copy of a Series excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        Filter elements from groups that don't satisfy a criterion.
+
+        Elements from groups are filtered if they do not satisfy the
+        boolean criterion specified by func.
 
         Parameters
         ----------
         func : function
-            To apply to each group. Should return True or False.
-        dropna : Drop groups that do not pass the filter. True by default;
-            if False, groups that evaluate False are filled with NaNs.
+            Criterion to apply to each group. Should return True or False.
+        dropna : bool
+            Drop groups that do not pass the filter. True by default; if False,
+            groups that evaluate False are filled with NaNs.
+
+        Returns
+        -------
+        filtered : Series
 
         Notes
         -----
@@ -514,10 +521,6 @@ class SeriesGroupBy(GroupBy[Series]):
         3    4
         5    6
         Name: B, dtype: int64
-
-        Returns
-        -------
-        filtered : Series
         """
         if isinstance(func, str):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
@@ -1481,9 +1484,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result.columns = columns
         return result
 
-    def filter(self, func, dropna=True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
-        Return a copy of a DataFrame excluding filtered elements.
+        Filter elements from groups that don't satisfy a criterion.
 
         Elements from groups are filtered if they do not satisfy the
         boolean criterion specified by func.
@@ -1491,9 +1494,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Parameters
         ----------
         func : function
-            Function to apply to each subframe. Should return True or False.
-        dropna : Drop groups that do not pass the filter. True by default;
-            If False, groups that evaluate False are filled with NaNs.
+            Criterion to apply to each group. Should return True or False.
+        dropna : bool
+            Drop groups that do not pass the filter. True by default; if False,
+            groups that evaluate False are filled with NaNs.
 
         Returns
         -------

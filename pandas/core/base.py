@@ -703,7 +703,7 @@ class IndexOpsMixin(OpsMixin):
         return nanops.nanmin(self._values, skipna=skipna)
 
     @doc(argmax, op="min", oppose="max", value="smallest")
-    def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
@@ -780,7 +780,7 @@ class IndexOpsMixin(OpsMixin):
         name: str,
         *,
         axis=0,
-        skipna=True,
+        skipna: bool = True,
         numeric_only=None,
         filter_type=None,
         **kwds,

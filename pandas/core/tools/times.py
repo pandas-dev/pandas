@@ -18,7 +18,10 @@ from pandas.core.dtypes.missing import notna
 
 
 def to_time(
-    arg, format=None, infer_time_format=False, errors: DateTimeErrorChoices = "raise"
+    arg,
+    format=None,
+    infer_time_format: bool = False,
+    errors: DateTimeErrorChoices = "raise",
 ):
     """
     Parse time strings to time objects using fixed strptime formats ("%H:%M",

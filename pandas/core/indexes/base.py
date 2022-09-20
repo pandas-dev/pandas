@@ -42,6 +42,7 @@ from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
     Timestamp,
+    is_unitless,
     tz_compare,
 )
 from pandas._typing import (
@@ -431,7 +432,13 @@ class Index(IndexOpsMixin, PandasObject):
     # Constructors
 
     def __new__(
-        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
+        cls,
+        data=None,
+        dtype=None,
+        copy: bool = False,
+        name=None,
+        tupleize_cols: bool = True,
+        **kwargs,
     ) -> Index:
 
         if kwargs:
@@ -1087,6 +1094,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         values = self._data
         if isinstance(values, ExtensionArray):
+            if isinstance(dtype, np.dtype) and dtype.kind == "M" and is_unitless(dtype):
+                # TODO(2.0): remove this special-casing once this is enforced
+                #  in DTA.astype
+                raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
+
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
@@ -1847,8 +1859,26 @@ class Index(IndexOpsMixin, PandasObject):
 
     names = property(fset=_set_names, fget=_get_names)
 
+    @overload
+    def set_names(
+        self: _IndexT, names, *, level=..., inplace: Literal[False] = ...
+    ) -> _IndexT:
+        ...
+
+    @overload
+    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_names(
+        self: _IndexT, names, *, level=..., inplace: bool = ...
+    ) -> _IndexT | None:
+        ...
+
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
-    def set_names(self, names, level=None, inplace: bool = False):
+    def set_names(
+        self: _IndexT, names, level=None, inplace: bool = False
+    ) -> _IndexT | None:
         """
         Set Index or MultiIndex name.
 
@@ -1957,8 +1987,9 @@ class Index(IndexOpsMixin, PandasObject):
         idx._set_names(names, level=level)
         if not inplace:
             return idx
+        return None
 
-    def rename(self, name, inplace=False):
+    def rename(self, name, inplace: bool = False):
         """
         Alter Index or MultiIndex name.
 
@@ -2053,7 +2084,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._validate_index_level(level)
         return 0
 
-    def sortlevel(self, level=None, ascending=True, sort_remaining=None):
+    def sortlevel(
+        self, level=None, ascending: bool | list[bool] = True, sort_remaining=None
+    ):
         """
         For internal compatibility with the Index API.
 
@@ -3437,7 +3470,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def intersection(self, other, sort=False):
+    def intersection(self, other, sort: bool = False):
         """
         Form the intersection of two Index objects.
 
@@ -3515,7 +3548,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = self._intersection(other, sort=sort)
         return self._wrap_intersection_result(other, result)
 
-    def _intersection(self, other: Index, sort=False):
+    def _intersection(self, other: Index, sort: bool = False):
         """
         intersection specialized to the case with matching dtypes.
         """
@@ -3523,15 +3556,22 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and not isinstance(self, ABCMultiIndex)
         ):
             try:
-                result = self._inner_indexer(other)[0]
+                res_indexer, indexer, _ = self._inner_indexer(other)
             except TypeError:
                 # non-comparable; should only be for object dtype
                 pass
             else:
                 # TODO: algos.unique1d should preserve DTA/TDA
-                res = algos.unique1d(result)
+                if self.is_numeric():
+                    # This is faster, because Index.unique() checks for uniqueness
+                    # before calculating the unique values.
+                    res = algos.unique1d(res_indexer)
+                else:
+                    result = self.take(indexer)
+                    res = result.drop_duplicates()
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
@@ -3543,7 +3583,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     @final
-    def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
+    def _intersection_via_get_indexer(
+        self, other: Index | MultiIndex, sort
+    ) -> ArrayLike | MultiIndex:
         """
         Find the intersection of two Indexes using get_indexer.
 
@@ -3566,7 +3608,10 @@ class Index(IndexOpsMixin, PandasObject):
             # unnecessary in the case with sort=None bc we will sort later
             taker = np.sort(taker)
 
-        result = left_unique.take(taker)._values
+        if isinstance(left_unique, ABCMultiIndex):
+            result = left_unique.take(taker)
+        else:
+            result = left_unique.take(taker)._values
         return result
 
     @final
@@ -3704,31 +3749,23 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = np.setdiff1d(
             np.arange(this.size), common_indexer, assume_unique=True
         )
-        left_diff = this._values.take(left_indexer)
+        left_diff = this.take(left_indexer)
 
         # {other} minus {this}
         right_indexer = (indexer == -1).nonzero()[0]
-        right_diff = other._values.take(right_indexer)
+        right_diff = other.take(right_indexer)
 
-        res_values = concat_compat([left_diff, right_diff])
-        res_values = _maybe_try_sort(res_values, sort)
+        res_values = left_diff.append(right_diff)
+        result = _maybe_try_sort(res_values, sort)
 
-        # pass dtype so we retain object dtype
-        result = Index(res_values, name=result_name, dtype=res_values.dtype)
-
-        if self._is_multi:
-            self = cast("MultiIndex", self)
+        if not self._is_multi:
+            return Index(result, name=result_name, dtype=res_values.dtype)
+        else:
+            left_diff = cast("MultiIndex", left_diff)
             if len(result) == 0:
-                # On equal symmetric_difference MultiIndexes the difference is empty.
-                # Therefore, an empty MultiIndex is returned GH#13490
-                return type(self)(
-                    levels=[[] for _ in range(self.nlevels)],
-                    codes=[[] for _ in range(self.nlevels)],
-                    names=result.name,
-                )
-            return type(self).from_tuples(result, names=result.name)
-
-        return result
+                # result might be an Index, if other was an Index
+                return left_diff.remove_unused_levels().set_names(result_name)
+            return result.set_names(result_name)
 
     @final
     def _assert_can_do_setop(self, other) -> bool:
@@ -4704,13 +4741,11 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return self._join_non_unique(other, how=how)
         elif (
+            # GH48504: exclude MultiIndex to avoid going through MultiIndex._values
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
-            and (
-                not isinstance(self, ABCMultiIndex)
-                or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
-            )
+            and not isinstance(self, ABCMultiIndex)
             and not is_categorical_dtype(self.dtype)
         ):
             # Categorical is monotonic if data are ordered as categories, but join can
@@ -7172,7 +7207,7 @@ class Index(IndexOpsMixin, PandasObject):
             make_invalid_op(opname)(self)
 
     @Appender(IndexOpsMixin.argmin.__doc__)
-    def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7184,7 +7219,7 @@ class Index(IndexOpsMixin, PandasObject):
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
-    def argmax(self, axis=None, skipna=True, *args, **kwargs) -> int:
+    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7196,7 +7231,7 @@ class Index(IndexOpsMixin, PandasObject):
         return super().argmax(skipna=skipna)
 
     @doc(IndexOpsMixin.min)
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7222,7 +7257,7 @@ class Index(IndexOpsMixin, PandasObject):
         return super().min(skipna=skipna)
 
     @doc(IndexOpsMixin.max)
-    def max(self, axis=None, skipna=True, *args, **kwargs):
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs):
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
 

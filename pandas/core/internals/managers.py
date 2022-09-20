@@ -611,7 +611,7 @@ class BaseBlockManager(DataManager):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self: T, deep=True) -> T:
+    def copy(self: T, deep: bool | None | Literal["all"] = True) -> T:
         """
         Make deep or shallow copy of BlockManager
 
@@ -726,6 +726,9 @@ class BaseBlockManager(DataManager):
             result.axes = list(self.axes)
             result.axes[axis] = new_axis
             return result
+
+        # Should be intp, but in some cases we get int64 on 32bit builds
+        assert isinstance(indexer, np.ndarray)
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
