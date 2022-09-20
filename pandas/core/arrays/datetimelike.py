@@ -2042,9 +2042,14 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if isinstance(self.dtype, np.dtype):
             new_dtype = new_values.dtype
         else:
-            new_dtype = DatetimeTZDtype(tz=self.tz, unit=unit)
+            tz = cast("DatetimeArray", self).tz
+            new_dtype = DatetimeTZDtype(tz=tz, unit=unit)
 
-        return type(self)._simple_new(new_values, dtype=new_dtype, freq=self.freq)
+        # error: Unexpected keyword argument "freq" for "_simple_new" of
+        # "NDArrayBacked"  [call-arg]
+        return type(self)._simple_new(
+            new_values, dtype=new_dtype, freq=self.freq  # type: ignore[call-arg]
+        )
 
     # --------------------------------------------------------------
 
