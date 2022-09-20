@@ -474,12 +474,10 @@ cpdef array_to_datetime(
         Py_ssize_t i, n = len(values)
         object val, tz
         ndarray[int64_t] iresult
-        ndarray[object] oresult
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
         bint seen_integer = False
-        bint seen_string = False
         bint seen_datetime = False
         bint seen_datetime_offset = False
         bint is_raise = errors=='raise'
@@ -489,7 +487,7 @@ cpdef array_to_datetime(
         _TSObject _ts
         int64_t value
         int out_local = 0, out_tzoffset = 0
-        float offset_seconds, tz_offset
+        float tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
         datetime py_dt
@@ -572,7 +570,6 @@ cpdef array_to_datetime(
 
                 elif isinstance(val, str):
                     # string
-                    seen_string = True
                     if type(val) is not str:
                         # GH#32264 np.str_ object
                         val = str(val)

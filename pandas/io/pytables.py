@@ -15,6 +15,7 @@ import itertools
 import os
 import re
 from textwrap import dedent
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -632,7 +633,12 @@ class HDFStore:
     def __enter__(self) -> HDFStore:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def keys(self, include: str = "pandas") -> list[str]:
@@ -803,7 +809,7 @@ class HDFStore:
         start=None,
         stop=None,
         columns=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -951,7 +957,7 @@ class HDFStore:
         columns=None,
         start=None,
         stop=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -1070,8 +1076,8 @@ class HDFStore:
         key: str,
         value: DataFrame | Series,
         format=None,
-        index=True,
-        append=False,
+        index: bool = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         min_itemsize: int | dict[str, int] | None = None,
@@ -1200,8 +1206,8 @@ class HDFStore:
         value: DataFrame | Series,
         format=None,
         axes=None,
-        index=True,
-        append=True,
+        index: bool | list[str] = True,
+        append: bool = True,
         complib=None,
         complevel: int | None = None,
         columns=None,
@@ -1289,7 +1295,7 @@ class HDFStore:
         selector,
         data_columns=None,
         axes=None,
-        dropna=False,
+        dropna: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -1530,7 +1536,7 @@ class HDFStore:
         complib=None,
         complevel: int | None = None,
         fletcher32: bool = False,
-        overwrite=True,
+        overwrite: bool = True,
     ) -> HDFStore:
         """
         Copy the existing store to a new file, updating in place.
@@ -1736,15 +1742,15 @@ class HDFStore:
         value: DataFrame | Series,
         format,
         axes=None,
-        index=True,
-        append=False,
+        index: bool | list[str] = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         fletcher32=None,
         min_itemsize: int | dict[str, int] | None = None,
         chunksize=None,
         expectedrows=None,
-        dropna=False,
+        dropna: bool = False,
         nan_rep=None,
         data_columns=None,
         encoding=None,
@@ -1903,7 +1909,7 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         # iterate
         current = self.start
         if self.coordinates is None:
@@ -2125,7 +2131,7 @@ class IndexCol:
         """return my cython values"""
         return self.values
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None) -> None:
@@ -4318,7 +4324,7 @@ class AppendableTable(Table):
         dropna: bool = False,
         nan_rep=None,
         data_columns=None,
-        track_times=True,
+        track_times: bool = True,
     ) -> None:
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
@@ -4667,7 +4673,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s = s.set_index(self.levels, copy=False)
+            s.set_index(self.levels, inplace=True)
 
         s = s.iloc[:, 0]
 

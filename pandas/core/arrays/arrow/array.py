@@ -219,16 +219,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         self._dtype = ArrowDtype(self._data.type)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
         pa_dtype = to_pyarrow_type(dtype)
-        if isinstance(scalars, cls):
-            data = scalars._data
+        is_cls = isinstance(scalars, cls)
+        if is_cls or isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            if is_cls:
+                scalars = scalars._data
             if pa_dtype:
-                data = data.cast(pa_dtype)
-            return cls(data)
+                scalars = scalars.cast(pa_dtype)
+            return cls(scalars)
         else:
             return cls(
                 pa.chunked_array(pa.array(scalars, type=pa_dtype, from_pandas=True))
@@ -236,13 +238,16 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
         pa_type = to_pyarrow_type(dtype)
-        if pa.types.is_timestamp(pa_type):
+        if pa_type is None:
+            # Let pyarrow try to infer or raise
+            scalars = strings
+        elif pa.types.is_timestamp(pa_type):
             from pandas.core.tools.datetimes import to_datetime
 
             scalars = to_datetime(strings, errors="raise")
@@ -272,8 +277,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
             scalars = to_numeric(strings, errors="raise")
         else:
-            # Let pyarrow try to infer or raise
-            scalars = strings
+            raise NotImplementedError(
+                f"Converting strings to {pa_type} is not implemented."
+            )
         return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
     def __getitem__(self, item: PositionalIndexer):

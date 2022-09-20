@@ -12,7 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Final,
-    Iterator,
+    Generator,
     cast,
 )
 
@@ -99,7 +99,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Iterator[None]:
+def pandas_converters() -> Generator[None, None, None]:
     """
     Context manager registering pandas' converters for a plot.
 
@@ -606,7 +606,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         day_start = period_break(dates_, "day")
         month_start = period_break(dates_, "month")
 
-        def _hour_finder(label_interval, force_year_start):
+        def _hour_finder(label_interval, force_year_start) -> None:
             _hour = dates_.hour
             _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
@@ -619,7 +619,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             if force_year_start and not has_level_label(year_start, vmin_orig):
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
-        def _minute_finder(label_interval):
+        def _minute_finder(label_interval) -> None:
             hour_start = period_break(dates_, "hour")
             _minute = dates_.minute
             _prev_minute = (dates_ - 1 * dates_.freq).minute
@@ -632,7 +632,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
-        def _second_finder(label_interval):
+        def _second_finder(label_interval) -> None:
             minute_start = period_break(dates_, "minute")
             _second = dates_.second
             _prev_second = (dates_ - 1 * dates_.freq).second

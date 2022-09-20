@@ -17,14 +17,10 @@ from numpy cimport (
     float32_t,
     float64_t,
     int8_t,
-    int16_t,
-    int32_t,
     int64_t,
     intp_t,
     ndarray,
     uint8_t,
-    uint16_t,
-    uint32_t,
     uint64_t,
 )
 from numpy.math cimport NAN
@@ -38,9 +34,9 @@ from pandas._libs.algos cimport (
 )
 
 from pandas._libs.algos import (
-    ensure_platform_int,
     groupsort_indexer,
     rank_1d,
+    take_2d_axis1_bool_bool,
     take_2d_axis1_float64_float64,
 )
 
@@ -64,11 +60,48 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
+cdef inline float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+    cdef:
+        int i, j, na_count = 0
+        float64_t* tmp
+        float64_t result
+
+    if n == 0:
+        return NaN
+
+    # count NAs
+    for i in range(n):
+        if mask[i]:
+            na_count += 1
+
+    if na_count:
+        if na_count == n:
+            return NaN
+
+        tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
+
+        j = 0
+        for i in range(n):
+            if not mask[i]:
+                tmp[j] = a[i]
+                j += 1
+
+        a = tmp
+        n -= na_count
+
+    result = calc_median_linear(a, n, na_count)
+
+    if na_count:
+        free(a)
+
+    return result
+
+
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef:
         int i, j, na_count = 0
-        float64_t result
         float64_t* tmp
+        float64_t result
 
     if n == 0:
         return NaN
@@ -93,16 +126,32 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         a = tmp
         n -= na_count
 
+    result = calc_median_linear(a, n, na_count)
+
+    if na_count:
+        free(a)
+
+    return result
+
+
+cdef inline float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+    cdef:
+        float64_t result
+
     if n % 2:
         result = kth_smallest_c(a, n // 2, n)
     else:
         result = (kth_smallest_c(a, n // 2, n) +
                   kth_smallest_c(a, n // 2 - 1, n)) / 2
 
-    if na_count:
-        free(a)
-
     return result
+
+
+ctypedef fused int64float_t:
+    int64_t
+    uint64_t
+    float32_t
+    float64_t
 
 
 @cython.boundscheck(False)
@@ -113,6 +162,8 @@ def group_median_float64(
     ndarray[float64_t, ndim=2] values,
     ndarray[intp_t] labels,
     Py_ssize_t min_count=-1,
+    const uint8_t[:, :] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -121,8 +172,12 @@ def group_median_float64(
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[intp_t] _counts
         ndarray[float64_t, ndim=2] data
+        ndarray[uint8_t, ndim=2] data_mask
         ndarray[intp_t] indexer
         float64_t* ptr
+        uint8_t* ptr_mask
+        float64_t result
+        bint uses_mask = mask is not None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -137,26 +192,51 @@ def group_median_float64(
 
     take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
-    with nogil:
+    if uses_mask:
+        data_mask = np.empty((K, N), dtype=np.uint8)
+        ptr_mask = <uint8_t *>cnp.PyArray_DATA(data_mask)
 
-        for i in range(K):
-            # exclude NA group
-            ptr += _counts[0]
-            for j in range(ngroups):
-                size = _counts[j + 1]
-                out[j, i] = median_linear(ptr, size)
-                ptr += size
+        take_2d_axis1_bool_bool(mask.T, indexer, out=data_mask, fill_value=1)
+
+        with nogil:
+
+            for i in range(K):
+                # exclude NA group
+                ptr += _counts[0]
+                ptr_mask += _counts[0]
+
+                for j in range(ngroups):
+                    size = _counts[j + 1]
+                    result = median_linear_mask(ptr, size, ptr_mask)
+                    out[j, i] = result
+
+                    if result != result:
+                        result_mask[j, i] = 1
+                    ptr += size
+                    ptr_mask += size
+
+    else:
+        with nogil:
+            for i in range(K):
+                # exclude NA group
+                ptr += _counts[0]
+                for j in range(ngroups):
+                    size = _counts[j + 1]
+                    out[j, i] = median_linear(ptr, size)
+                    ptr += size
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cumprod_float64(
-    float64_t[:, ::1] out,
-    const float64_t[:, :] values,
+def group_cumprod(
+    int64float_t[:, ::1] out,
+    ndarray[int64float_t, ndim=2] values,
     const intp_t[::1] labels,
     int ngroups,
     bint is_datetimelike,
     bint skipna=True,
+    const uint8_t[:, :] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Cumulative product of columns of `values`, in row groups `labels`.
@@ -175,6 +255,10 @@ def group_cumprod_float64(
         Always false, `values` is never datetime-like.
     skipna : bool
         If true, ignore nans in `values`.
+    mask: np.ndarray[uint8], optional
+        Mask of values
+    result_mask: np.ndarray[int8], optional
+        Mask of out array
 
     Notes
     -----
@@ -182,12 +266,17 @@ def group_cumprod_float64(
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        float64_t val
-        float64_t[:, ::1] accum
+        int64float_t val, na_val
+        int64float_t[:, ::1] accum
         intp_t lab
+        uint8_t[:, ::1] accum_mask
+        bint isna_entry, isna_prev = False
+        bint uses_mask = mask is not None
 
     N, K = (<object>values).shape
-    accum = np.ones((ngroups, K), dtype=np.float64)
+    accum = np.ones((ngroups, K), dtype=(<object>values).dtype)
+    na_val = _get_na_val(<int64float_t>0, is_datetimelike)
+    accum_mask = np.zeros((ngroups, K), dtype="uint8")
 
     with nogil:
         for i in range(N):
@@ -197,20 +286,35 @@ def group_cumprod_float64(
                 continue
             for j in range(K):
                 val = values[i, j]
-                if val == val:
-                    accum[lab, j] *= val
-                    out[i, j] = accum[lab, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                elif int64float_t is float64_t or int64float_t is float32_t:
+                    isna_entry = val != val
                 else:
-                    out[i, j] = NaN
+                    isna_entry = False
+
+                if not isna_entry:
+                    isna_prev = accum_mask[lab, j]
+                    if isna_prev:
+                        out[i, j] = na_val
+                        if uses_mask:
+                            result_mask[i, j] = True
+
+                    else:
+                        accum[lab, j] *= val
+                        out[i, j] = accum[lab, j]
+
+                else:
+                    if uses_mask:
+                        result_mask[i, j] = True
+                        out[i, j] = 0
+                    else:
+                        out[i, j] = na_val
+
                     if not skipna:
-                        accum[lab, j] = NaN
-
-
-ctypedef fused int64float_t:
-    int64_t
-    uint64_t
-    float32_t
-    float64_t
+                        accum[lab, j] = na_val
+                        accum_mask[lab, j] = True
 
 
 @cython.boundscheck(False)
@@ -759,6 +863,8 @@ def group_var(
     const intp_t[::1] labels,
     Py_ssize_t min_count=-1,
     int64_t ddof=1,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -766,6 +872,7 @@ def group_var(
         floating[:, ::1] mean
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = not mask is None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -790,8 +897,12 @@ def group_var(
             for j in range(K):
                 val = values[i, j]
 
-                # not nan
-                if val == val:
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = not val == val
+
+                if not isna_entry:
                     nobs[lab, j] += 1
                     oldmean = mean[lab, j]
                     mean[lab, j] += (val - oldmean) / nobs[lab, j]
@@ -801,7 +912,10 @@ def group_var(
             for j in range(K):
                 ct = nobs[i, j]
                 if ct <= ddof:
-                    out[i, j] = NAN
+                    if uses_mask:
+                        result_mask[i, j] = True
+                    else:
+                        out[i, j] = NAN
                 else:
                     out[i, j] /= (ct - ddof)
 
@@ -839,9 +953,9 @@ def group_mean(
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
     mask : ndarray[bool, ndim=2], optional
-        Not used.
+        Mask of the input values.
     result_mask : ndarray[bool, ndim=2], optional
-        Not used.
+        Mask of the out array
 
     Notes
     -----
@@ -855,6 +969,7 @@ def group_mean(
         mean_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = not mask is None
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -867,7 +982,12 @@ def group_mean(
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
-    nan_val = NPY_NAT if is_datetimelike else NAN
+    if uses_mask:
+        nan_val = 0
+    elif is_datetimelike:
+        nan_val = NPY_NAT
+    else:
+        nan_val = NAN
 
     with nogil:
         for i in range(N):
@@ -878,8 +998,15 @@ def group_mean(
             counts[lab] += 1
             for j in range(K):
                 val = values[i, j]
-                # not nan
-                if val == val and not (is_datetimelike and val == NPY_NAT):
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                elif is_datetimelike:
+                    isna_entry = val == NPY_NAT
+                else:
+                    isna_entry = not val == val
+
+                if not isna_entry:
                     nobs[lab, j] += 1
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
@@ -890,7 +1017,12 @@ def group_mean(
             for j in range(K):
                 count = nobs[i, j]
                 if nobs[i, j] == 0:
-                    out[i, j] = nan_val
+
+                    if uses_mask:
+                        result_mask[i, j] = True
+                    else:
+                        out[i, j] = nan_val
+
                 else:
                     out[i, j] = sumx[i, j] / count
 
@@ -977,6 +1109,7 @@ def group_quantile(
     const intp_t[:] sort_indexer,
     const float64_t[:] qs,
     str interpolation,
+    uint8_t[:, ::1] result_mask=None,
 ) -> None:
     """
     Calculate the quantile per group.
@@ -1007,6 +1140,7 @@ def group_quantile(
         InterpolationEnumType interp
         float64_t q_val, q_idx, frac, val, next_val
         int64_t[::1] counts, non_na_counts
+        bint uses_result_mask = result_mask is not None
 
     assert values.shape[0] == N
 
@@ -1049,7 +1183,10 @@ def group_quantile(
 
             if non_na_sz == 0:
                 for k in range(nqs):
-                    out[i, k] = NaN
+                    if uses_result_mask:
+                        result_mask[i, k] = 1
+                    else:
+                        out[i, k] = NaN
             else:
                 for k in range(nqs):
                     q_val = qs[k]

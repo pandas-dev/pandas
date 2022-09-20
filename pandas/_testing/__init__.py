@@ -275,7 +275,7 @@ def equalContents(arr1, arr2) -> bool:
     return frozenset(arr1) == frozenset(arr2)
 
 
-def box_expected(expected, box_cls, transpose=True):
+def box_expected(expected, box_cls, transpose: bool = True):
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -459,7 +459,8 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
 def make_rand_series(name=None, dtype=np.float64) -> Series:
     index = makeStringIndex(_N)
     data = np.random.randn(_N)
-    data = data.astype(dtype, copy=False)
+    with np.errstate(invalid="ignore"):
+        data = data.astype(dtype, copy=False)
     return Series(data, index=index, name=name)
 
 
@@ -655,8 +656,8 @@ def makeCustomIndex(
 def makeCustomDataframe(
     nrows,
     ncols,
-    c_idx_names=True,
-    r_idx_names=True,
+    c_idx_names: bool | list[str] = True,
+    r_idx_names: bool | list[str] = True,
     c_idx_nlevels=1,
     r_idx_nlevels=1,
     data_gen_f=None,
@@ -672,7 +673,7 @@ def makeCustomDataframe(
     Parameters
     ----------
     nrows,  ncols - number of data rows/cols
-    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
+    c_idx_names, r_idx_names  - False/True/list of strings,  yields No names ,
             default names or uses the provided names for the levels of the
             corresponding index. You can provide a single string when
             c_idx_nlevels ==1.

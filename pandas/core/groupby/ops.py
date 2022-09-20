@@ -138,7 +138,7 @@ class WrappedCythonOp:
             "ohlc": "group_ohlc",
         },
         "transform": {
-            "cumprod": "group_cumprod_float64",
+            "cumprod": "group_cumprod",
             "cumsum": "group_cumsum",
             "cummin": "group_cummin",
             "cummax": "group_cummax",
@@ -158,8 +158,12 @@ class WrappedCythonOp:
         "rank",
         "sum",
         "ohlc",
+        "cumprod",
         "cumsum",
         "prod",
+        "mean",
+        "var",
+        "median",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -215,7 +219,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["median", "cumprod"]:
+        if how in ["median"]:
             # these two only have float64 implementations
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
@@ -228,7 +232,7 @@ class WrappedCythonOp:
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how in ["sum", "ohlc", "prod", "cumsum"]:
+            elif how in ["sum", "ohlc", "prod", "cumsum", "cumprod"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
@@ -327,7 +331,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["sum", "cumsum", "sum", "prod"]:
+        if how in ["sum", "cumsum", "sum", "prod", "cumprod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
         elif how in ["mean", "median", "var"]:
@@ -598,7 +602,7 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["ohlc", "prod"]:
+            elif self.how in ["var", "ohlc", "prod", "median"]:
                 func(
                     result,
                     counts,
@@ -607,9 +611,10 @@ class WrappedCythonOp:
                     min_count=min_count,
                     mask=mask,
                     result_mask=result_mask,
+                    **kwargs,
                 )
             else:
-                func(result, counts, values, comp_ids, min_count, **kwargs)
+                func(result, counts, values, comp_ids, min_count)
         else:
             # TODO: min_count
             if self.uses_mask():
@@ -1319,7 +1324,7 @@ class DataSplitter(Generic[NDFrameT]):
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         sdata = self.sorted_data
 
         if self.ngroups == 0:

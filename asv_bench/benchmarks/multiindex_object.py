@@ -8,6 +8,7 @@ from pandas import (
     MultiIndex,
     RangeIndex,
     Series,
+    array,
     date_range,
 )
 
@@ -176,6 +177,20 @@ class Sortlevel:
         self.mi.sortlevel(1)
 
 
+class SortValues:
+
+    params = ["int64", "Int64"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        a = array(np.tile(np.arange(100), 1000), dtype=dtype)
+        b = array(np.tile(np.arange(1000), 100), dtype=dtype)
+        self.mi = MultiIndex.from_arrays([a, b])
+
+    def time_sort_values(self, dtype):
+        self.mi.sort_values()
+
+
 class Values:
     def setup_cache(self):
 
@@ -222,7 +237,7 @@ class SetOperations:
 
     params = [
         ("monotonic", "non_monotonic"),
-        ("datetime", "int", "string"),
+        ("datetime", "int", "string", "ea_int"),
         ("intersection", "union", "symmetric_difference"),
     ]
     param_names = ["index_structure", "dtype", "method"]
@@ -240,10 +255,14 @@ class SetOperations:
         level2 = tm.makeStringIndex(N // 1000).values
         str_left = MultiIndex.from_product([level1, level2])
 
+        level2 = range(N // 1000)
+        ea_int_left = MultiIndex.from_product([level1, Series(level2, dtype="Int64")])
+
         data = {
             "datetime": dates_left,
             "int": int_left,
             "string": str_left,
+            "ea_int": ea_int_left,
         }
 
         if index_structure == "non_monotonic":
@@ -282,6 +301,38 @@ class Unique:
 
     def time_unique_dups(self, dtype_val):
         self.midx_dups.unique()
+
+
+class Isin:
+    params = [
+        ("string", "int", "datetime"),
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**5
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_midx = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_midx = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_midx = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_midx,
+            "int": int_midx,
+            "string": str_midx,
+        }
+
+        self.midx = data[dtype]
+        self.values = self.midx[:100]
+
+    def time_isin(self, dtype):
+        self.midx.isin(self.values)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

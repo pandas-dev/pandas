@@ -769,7 +769,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return indexer, value
 
     @final
-    def _ensure_listlike_indexer(self, key, axis=None, value=None):
+    def _ensure_listlike_indexer(self, key, axis=None, value=None) -> None:
         """
         Ensure that a list-like of column labels are all present by adding them if
         they do not already exist.
@@ -955,8 +955,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  is equivalent.
             #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
-                # error "_LocationIndexer" has no attribute
-                # "_handle_lowerdim_multi_index_axis0"
                 return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(tup)
 
         tup = self._validate_key_length(tup)
@@ -1013,8 +1011,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
-                    # error "_LocationIndexer" has no attribute
-                    # "_handle_lowerdim_multi_index_axis0"
                     return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(
                         tup
                     )
@@ -1955,7 +1951,7 @@ class _iLocIndexer(_LocationIndexer):
 
                 self._setitem_single_column(loc, val, pi)
 
-    def _setitem_single_column(self, loc: int, value, plane_indexer):
+    def _setitem_single_column(self, loc: int, value, plane_indexer) -> None:
         """
 
         Parameters
@@ -1994,21 +1990,17 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._clear_item_cache()
             return
 
+        self.obj._iset_item(loc, value)
+
         # We will not operate in-place, but will attempt to in the future.
         #  To determine whether we need to issue a FutureWarning, see if the
         #  setting in-place would work, i.e. behavior will change.
-        if isinstance(value, ABCSeries):
-            warn = can_hold_element(orig_values, value._values)
-        else:
-            warn = can_hold_element(orig_values, value)
 
-        # Don't issue the warning yet, as we can still trim a few cases where
-        #  behavior will not change.
+        new_values = self.obj._get_column_array(loc)
 
-        self.obj._iset_item(loc, value)
-
-        if warn:
-            new_values = self.obj._get_column_array(loc)
+        if can_hold_element(orig_values, new_values):
+            # Don't issue the warning yet, as we can still trim a few cases where
+            #  behavior will not change.
 
             if (
                 isinstance(new_values, np.ndarray)
@@ -2038,7 +2030,7 @@ class _iLocIndexer(_LocationIndexer):
                 # TODO: what if we got here indirectly via loc?
         return
 
-    def _setitem_single_block(self, indexer, value, name: str):
+    def _setitem_single_block(self, indexer, value, name: str) -> None:
         """
         _setitem_with_indexer for the case when we have a single Block.
         """
@@ -2110,7 +2102,9 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value and of the object
-            if is_valid_na_for_dtype(value, self.obj.dtype):
+            if not is_scalar(value):
+                new_dtype = None
+            elif is_valid_na_for_dtype(value, self.obj.dtype):
                 value = na_value_for_dtype(self.obj.dtype, compat=False)
                 new_dtype = maybe_promote(self.obj.dtype, value)[0]
             elif isna(value):

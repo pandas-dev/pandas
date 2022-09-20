@@ -18,6 +18,7 @@ from io import BytesIO
 import os
 import struct
 import sys
+from types import TracebackType
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -413,7 +414,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     NS_PER_DAY = 24 * 3600 * 1000 * 1000 * 1000
     US_PER_DAY = NS_PER_DAY / 1000
 
-    def parse_dates_safe(dates, delta=False, year=False, days=False):
+    def parse_dates_safe(
+        dates, delta: bool = False, year: bool = False, days: bool = False
+    ):
         d = {}
         if is_datetime64_dtype(dates.dtype):
             if delta:
@@ -1178,7 +1181,12 @@ class StataReader(StataParser, abc.Iterator):
         """enter context manager"""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         """exit context manager"""
         self.close()
 

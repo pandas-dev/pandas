@@ -573,7 +573,10 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         labels = ensure_index(labels)
 
-        if labels._is_all_dates:
+        if labels._is_all_dates and not (
+            type(labels) is Index and not isinstance(labels.dtype, np.dtype)
+        ):
+            # exclude e.g. timestamp[ns][pyarrow] dtype from this casting
             deep_labels = labels
             if isinstance(labels, CategoricalIndex):
                 deep_labels = labels.categories
@@ -1178,7 +1181,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
-    def _set_with(self, key, value):
+    def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1216,7 +1219,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def _set_value(self, label, value, takeable: bool = False):
+    def _set_value(self, label, value, takeable: bool = False) -> None:
         """
         Quickly set single value at passed label.
 
@@ -1329,7 +1332,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     # Unsorted
 
     @property
-    def _is_mixed_type(self):
+    def _is_mixed_type(self) -> bool:
         return False
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
@@ -1633,9 +1636,9 @@ class Series(base.IndexOpsMixin, NDFrame):
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,
-        length=False,
-        dtype=False,
-        name=False,
+        length: bool = False,
+        dtype: bool = False,
+        name: bool = False,
         max_rows: int | None = None,
         min_rows: int | None = None,
     ) -> str | None:
@@ -1946,7 +1949,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace=False) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -2265,7 +2268,7 @@ Name: Max Speed, dtype: float64
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(
-        self, keep: Literal["first", "last", False] = "first", inplace=False
+        self, keep: Literal["first", "last", False] = "first", inplace: bool = False
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -4777,7 +4780,7 @@ Keep all original rows and also all original values
         name: str,
         *,
         axis=0,
-        skipna=True,
+        skipna: bool = True,
         numeric_only=None,
         filter_type=None,
         **kwds,
