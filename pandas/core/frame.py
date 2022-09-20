@@ -7711,7 +7711,7 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
-        out = self._constructor(result, copy=False)
+        out = self._constructor(result, copy=False).__finalize__(self)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
@@ -8728,11 +8728,11 @@ Parrot 2  Parrot       24.0
         columns=None,
         aggfunc="mean",
         fill_value=None,
-        margins=False,
-        dropna=True,
+        margins: bool = False,
+        dropna: bool = True,
         margins_name="All",
-        observed=False,
-        sort=True,
+        observed: bool = False,
+        sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 

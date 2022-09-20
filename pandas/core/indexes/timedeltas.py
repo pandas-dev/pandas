@@ -122,7 +122,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         freq=lib.no_default,
         closed=None,
         dtype=TD64NS_DTYPE,
-        copy=False,
+        copy: bool = False,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)

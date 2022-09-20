@@ -15,6 +15,7 @@ from typing import (
     Sequence,
     Tuple,
     cast,
+    overload,
 )
 import warnings
 
@@ -308,7 +309,7 @@ class MultiIndex(Index):
         sortorder=None,
         names=None,
         dtype=None,
-        copy=False,
+        copy: bool = False,
         name=None,
         verify_integrity: bool = True,
     ) -> MultiIndex:
@@ -435,7 +436,12 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> MultiIndex:
+    def from_arrays(
+        cls,
+        arrays,
+        sortorder=None,
+        names: Sequence[Hashable] | Hashable | lib.NoDefault = lib.no_default,
+    ) -> MultiIndex:
         """
         Convert arrays to MultiIndex.
 
@@ -506,7 +512,7 @@ class MultiIndex(Index):
         cls,
         tuples: Iterable[tuple[Hashable, ...]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | Hashable | None = None,
+        names: Sequence[Hashable] | Hashable = None,
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
@@ -586,7 +592,7 @@ class MultiIndex(Index):
         cls,
         iterables: Sequence[Iterable[Hashable]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | lib.NoDefault = lib.no_default,
+        names: Sequence[Hashable] | Hashable | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
@@ -1153,13 +1159,14 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    def copy(
+    # error: Signature of "copy" incompatible with supertype "Index"
+    def copy(  # type: ignore[override]
         self,
         names=None,
         dtype=None,
         levels=None,
         codes=None,
-        deep=False,
+        deep: bool = False,
         name=None,
     ):
         """
@@ -2446,7 +2453,7 @@ class MultiIndex(Index):
         ]
 
     def sortlevel(
-        self, level=0, ascending: bool = True, sort_remaining: bool = True
+        self, level=0, ascending: bool | list[bool] = True, sort_remaining: bool = True
     ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
         """
         Sort MultiIndex at the requested level.
@@ -3695,9 +3702,8 @@ class MultiIndex(Index):
         """
         names = self._maybe_match_names(other)
         if self.names != names:
-            # Incompatible return value type (got "Optional[MultiIndex]", expected
-            # "MultiIndex")
-            return self.rename(names)  # type: ignore[return-value]
+            # error: Cannot determine type of "rename"
+            return self.rename(names)  # type: ignore[has-type]
         return self
 
     def _maybe_match_names(self, other):
@@ -3719,16 +3725,7 @@ class MultiIndex(Index):
 
     def _wrap_intersection_result(self, other, result) -> MultiIndex:
         _, result_names = self._convert_can_do_setop(other)
-
-        if len(result) == 0:
-            return MultiIndex(
-                levels=self.levels,
-                codes=[[]] * self.nlevels,
-                names=result_names,
-                verify_integrity=False,
-            )
-        else:
-            return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
+        return result.set_names(result_names)
 
     def _wrap_difference_result(self, other, result) -> MultiIndex:
         _, result_names = self._convert_can_do_setop(other)
@@ -3848,8 +3845,7 @@ class MultiIndex(Index):
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
         if level is None:
-            values = MultiIndex.from_tuples(values, names=self.names)._values
-            return algos.isin(self._values, values)
+            return MultiIndex.from_tuples(algos.unique(values)).get_indexer(self) != -1
         else:
             num = self._get_level_number(level)
             levs = self.get_level_values(num)
@@ -3858,15 +3854,30 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
+    @overload
+    def set_names(
+        self, names, *, level=..., inplace: Literal[False] = ...
+    ) -> MultiIndex:
+        ...
+
+    @overload
+    def set_names(self, names, *, level=..., inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def set_names(self, names, *, level=..., inplace: bool = ...) -> MultiIndex | None:
+        ...
+
+    # error: Signature of "set_names" incompatible with supertype "Index"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
-    def set_names(self, names, level=None, inplace: bool = False) -> MultiIndex | None:
+    def set_names(  # type: ignore[override]
+        self, names, level=None, inplace: bool = False
+    ) -> MultiIndex | None:
         return super().set_names(names=names, level=level, inplace=inplace)
 
-    rename = set_names
-
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self, keep: str | bool = "first") -> MultiIndex:
-        return super().drop_duplicates(keep=keep)
+    # error: Incompatible types in assignment (expression has type overloaded function,
+    # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
+    rename = set_names  # type: ignore[assignment]
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled
@@ -4003,7 +4014,7 @@ def _require_listlike(level, arr, arrname: str):
     if level is not None and not is_list_like(level):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
-        if is_list_like(arr[0]):
+        if len(arr) > 0 and is_list_like(arr[0]):
             raise TypeError(f"{arrname} must be list-like")
         level = [level]
         arr = [arr]
