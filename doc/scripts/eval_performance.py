@@ -1,7 +1,9 @@
-import numpy as np
 from timeit import repeat as timeit
-from pandas import DataFrame
+
+import numpy as np
 import seaborn as sns
+
+from pandas import DataFrame
 
 setup_common = """from pandas import DataFrame
 from numpy.random import randn
@@ -88,7 +90,6 @@ def plot_perf(df, engines, title, filename=None):
 
 if __name__ == "__main__":
     import os
-    import pandas as pd
 
     pandas_dir = os.path.dirname(
         os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
