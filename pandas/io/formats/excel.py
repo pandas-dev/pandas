@@ -289,6 +289,8 @@ class CSSToExcelConverter:
             # not handled
             return width_name
 
+        if style == "hair":
+            return "hair"
         if style == "double":
             return "double"
         if style == "dotted":
