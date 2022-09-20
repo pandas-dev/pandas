@@ -342,9 +342,7 @@ class TestFactorize:
         data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
         data.setflags(write=writable)
         expected_codes = np.array([0], dtype=np.intp)
-        expected_uniques = np.array(
-            ["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"
-        )
+        expected_uniques = np.array(["2020-01-01T00:00:00.000"], dtype="datetime64[ms]")
 
         codes, uniques = pd.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -609,13 +607,13 @@ class TestUnique:
     def test_datetime_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="datetime64[s]")
         result = pd.unique(a)
-        expected = np.array(["2000", "2001"], dtype="datetime64[ns]")
+        expected = a[1:]
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="timedelta64[s]")
         result = pd.unique(a)
-        expected = np.array([2000000000000, 2001000000000], dtype="timedelta64[ns]")
+        expected = a[1:]
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta64_dtype_array_returned(self):

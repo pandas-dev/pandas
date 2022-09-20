@@ -41,7 +41,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -51,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
-    is_datetime64_dtype,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -61,7 +59,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -184,8 +181,6 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
-        if isinstance(values, np.ndarray):
-            values = sanitize_to_nanoseconds(values)
         npvalues = values.view("i8")
         npvalues = cast(np.ndarray, npvalues)
         return npvalues
@@ -223,11 +218,6 @@ def _reconstruct_data(
         values = cls._from_sequence(values, dtype=dtype)
 
     else:
-        if is_datetime64_dtype(dtype):
-            dtype = np.dtype("datetime64[ns]")
-        elif is_timedelta64_dtype(dtype):
-            dtype = np.dtype("timedelta64[ns]")
-
         values = values.astype(dtype, copy=False)
 
     return values

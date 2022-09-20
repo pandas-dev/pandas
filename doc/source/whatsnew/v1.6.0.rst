@@ -115,7 +115,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- :func:`factorize` and :func:`unique` preserve the original dtype when passed numpy timedelta64 or datetime64 with non-nanosecond resolution (:issue:`??`)
 -
 
 .. ---------------------------------------------------------------------------
