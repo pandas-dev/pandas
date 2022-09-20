@@ -253,10 +253,7 @@ class CSSToExcelConverter:
             color = self.color_to_excel(props.get(f"border-{side}-color"))
             if style and style != "none" and color is None:
                 color = self.color_to_excel("black")
-            border_dict[side] = {
-                "style": style,
-                "color": color
-            }
+            border_dict[side] = {"style": style, "color": color}
         return border_dict
 
     def _border_style(self, style: str | None, width: str | None, color: str | None):
@@ -304,8 +301,13 @@ class CSSToExcelConverter:
                 return "dashed"
             return "mediumDashed"
         elif style in (
-            "hair", "mediumDashDot", "dashDotDot", "mediumDashDotDot",
-            "dashDot", "slandDashDot", "mediumDashed"
+            "hair",
+            "mediumDashDot",
+            "dashDotDot",
+            "mediumDashDotDot",
+            "dashDot",
+            "slandDashDot",
+            "mediumDashed",
         ):
             # Excel-specific styles
             return style

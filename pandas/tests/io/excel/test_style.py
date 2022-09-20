@@ -119,7 +119,7 @@ shared_style_params = [
     (
         "border-left-style: hair; border-left-color: black",
         ["border", "left", "style"],
-        "hair"
+        "hair",
     ),
     ("border-left-style: hair;", ["border", "left", "style"], "hair"),
     # CSS should default to black if style provided w/o color
