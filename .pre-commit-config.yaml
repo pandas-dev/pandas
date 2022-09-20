@@ -236,6 +236,14 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+    -   id: validate-errors-locations
+        name: Validate errors locations
+        description: Validate errors are in approriate locations.
+        entry: python scripts/validate_exception_location.py
+        language: python
+        files: ^pandas/
+        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
+        types: [python]
     -   id: flake8-pyi
         name: flake8-pyi
         entry: flake8 --extend-ignore=E301,E302,E305,E701,E704
