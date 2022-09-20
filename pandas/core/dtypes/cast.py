@@ -1841,8 +1841,10 @@ def maybe_cast_to_integer_array(
             f"casted to the dtype {dtype}"
         ) from err
 
-    if np.array_equal(arr, casted):
-        return casted
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        if np.array_equal(arr, casted):
+            return casted
 
     # We do this casting to allow for proper
     # data and dtype checking.
