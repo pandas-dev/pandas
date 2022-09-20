@@ -9,7 +9,10 @@ from typing import Callable
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._typing import npt
+from pandas._typing import (
+    AxisInt,
+    npt,
+)
 
 from pandas.core.nanops import check_below_min_count
 
@@ -21,7 +24,7 @@ def _reductions(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     **kwargs,
 ):
     """
@@ -62,7 +65,7 @@ def sum(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _reductions(
         np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
@@ -75,7 +78,7 @@ def prod(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _reductions(
         np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
@@ -88,7 +91,7 @@ def _minmax(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     """
     Reduction for 1D masked array.
@@ -125,7 +128,7 @@ def min(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _minmax(np.min, values=values, mask=mask, skipna=skipna, axis=axis)
 
@@ -135,7 +138,7 @@ def max(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _minmax(np.max, values=values, mask=mask, skipna=skipna, axis=axis)
 
@@ -145,7 +148,7 @@ def mean(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     if not values.size or mask.all():
         return libmissing.NA
@@ -157,7 +160,7 @@ def var(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
     ddof: int = 1,
 ):
     if not values.size or mask.all():

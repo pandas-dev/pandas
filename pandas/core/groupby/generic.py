@@ -37,6 +37,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
+    AxisInt,
     FillnaOptions,
     IndexLabel,
     Level,
@@ -439,7 +440,7 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = True, axis: AxisInt = 0, **kwargs
     ):
         assert axis == 0  # handled by caller
 
@@ -1306,7 +1307,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         how: str,
         numeric_only: bool | lib.NoDefault = lib.no_default,
-        axis: int = 0,
+        axis: AxisInt = 0,
         **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller

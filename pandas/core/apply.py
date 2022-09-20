@@ -31,6 +31,7 @@ from pandas._typing import (
     AggFuncTypeDict,
     AggObjType,
     Axis,
+    AxisInt,
     NDFrameT,
     npt,
 )
@@ -104,7 +105,7 @@ def frame_apply(
 
 
 class Apply(metaclass=abc.ABCMeta):
-    axis: int
+    axis: AxisInt
 
     def __init__(
         self,

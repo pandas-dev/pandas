@@ -29,7 +29,10 @@ from pandas._libs.lib import (
     is_bool,
     is_integer,
 )
-from pandas._typing import Axis
+from pandas._typing import (
+    Axis,
+    AxisInt,
+)
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args,
@@ -413,7 +416,7 @@ def validate_resampler_func(method: str, args, kwargs) -> None:
             raise TypeError("too many arguments passed in")
 
 
-def validate_minmax_axis(axis: int | None, ndim: int = 1) -> None:
+def validate_minmax_axis(axis: AxisInt | None, ndim: int = 1) -> None:
     """
     Ensure that the axis argument passed to min, max, argmin, or argmax is zero
     or None, as otherwise it will be incorrectly ignored.

@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._typing import (
+    AxisInt,
     Dtype,
     NpDtype,
     Scalar,
@@ -202,7 +203,7 @@ class PandasArray(
     def any(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -214,7 +215,7 @@ class PandasArray(
     def all(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -223,14 +224,18 @@ class PandasArray(
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
@@ -238,7 +243,7 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def sum(
-        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+        self, *, axis: AxisInt | None = None, skipna: bool = True, min_count=0, **kwargs
     ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
@@ -247,7 +252,7 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def prod(
-        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+        self, *, axis: AxisInt | None = None, skipna: bool = True, min_count=0, **kwargs
     ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
@@ -258,7 +263,7 @@ class PandasArray(
     def mean(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -271,7 +276,7 @@ class PandasArray(
     def median(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         out=None,
         overwrite_input: bool = False,
         keepdims: bool = False,
@@ -286,7 +291,7 @@ class PandasArray(
     def std(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         ddof=1,
@@ -302,7 +307,7 @@ class PandasArray(
     def var(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         ddof=1,
@@ -318,7 +323,7 @@ class PandasArray(
     def sem(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         ddof=1,
@@ -334,7 +339,7 @@ class PandasArray(
     def kurt(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -349,7 +354,7 @@ class PandasArray(
     def skew(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
