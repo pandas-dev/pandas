@@ -1060,7 +1060,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._maybe_mask_result(result, mask)
         return result
 
-    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
+    def sum(self, *, skipna: bool = True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_sum((), kwargs)
 
         # TODO: do this in validate_sum?
@@ -1081,7 +1081,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "sum", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
+    def prod(self, *, skipna: bool = True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_prod((), kwargs)
         result = masked_reductions.prod(
             self._data,
@@ -1094,7 +1094,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "prod", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def mean(self, *, skipna=True, axis: int | None = 0, **kwargs):
+    def mean(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
         nv.validate_mean((), kwargs)
         result = masked_reductions.mean(
             self._data,
@@ -1106,7 +1106,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "mean", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def var(self, *, skipna=True, axis: int | None = 0, ddof: int = 1, **kwargs):
+    def var(
+        self, *, skipna: bool = True, axis: int | None = 0, ddof: int = 1, **kwargs
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="var")
         result = masked_reductions.var(
             self._data,
@@ -1119,7 +1121,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "var", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
+    def min(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
         nv.validate_min((), kwargs)
         return masked_reductions.min(
             self._data,
@@ -1128,7 +1130,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
 
-    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
+    def max(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
         return masked_reductions.max(
             self._data,

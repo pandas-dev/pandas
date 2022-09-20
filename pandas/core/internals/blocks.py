@@ -28,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     F,
+    FillnaOptions,
     IgnoreRaise,
     Shape,
     npt,
@@ -1611,8 +1612,15 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    def interpolate(
-        self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
+    # error: Signature of "interpolate" incompatible with supertype "Block"
+    def interpolate(  # type: ignore[override]
+        self,
+        method: FillnaOptions = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        fill_value=None,
+        **kwargs,
     ):
         values = self.values
         if values.ndim == 2 and axis == 0:
