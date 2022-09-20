@@ -508,11 +508,3 @@ class TestDataFrameToRecords:
 
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_to_records_no_typeerror_in_repr(self):
-        # GH 48526
-        df = DataFrame([["a", "b"], ["c", "d"], ["e", "f"]], columns=["left", "right"])
-        df["record"] = df[["left", "right"]].to_records()
-
-        with tm.assert_produces_warning(False):
-            print(df)

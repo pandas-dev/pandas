@@ -363,3 +363,14 @@ NaT   4"""
         df = df.iloc[:, :5]
         result = repr(df)
         assert result == expected
+
+    def test_to_records_no_typeerror_in_repr(self):
+        # GH 48526
+        df = DataFrame([["a", "b"], ["c", "d"], ["e", "f"]], columns=["left", "right"])
+        df["record"] = df[["left", "right"]].to_records()
+        expected = """  left right     record
+0    a     b  [0, a, b]
+1    c     d  [1, c, d]
+2    e     f  [2, e, f]"""
+        result = repr(df)
+        assert result == expected
