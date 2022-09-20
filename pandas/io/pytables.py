@@ -810,7 +810,7 @@ class HDFStore:
         start=None,
         stop=None,
         columns=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -958,7 +958,7 @@ class HDFStore:
         columns=None,
         start=None,
         stop=None,
-        iterator=False,
+        iterator: bool = False,
         chunksize=None,
         auto_close: bool = False,
     ):
@@ -1077,8 +1077,8 @@ class HDFStore:
         key: str,
         value: DataFrame | Series,
         format=None,
-        index=True,
-        append=False,
+        index: bool = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         min_itemsize: int | dict[str, int] | None = None,
@@ -1207,8 +1207,8 @@ class HDFStore:
         value: DataFrame | Series,
         format=None,
         axes=None,
-        index=True,
-        append=True,
+        index: bool | list[str] = True,
+        append: bool = True,
         complib=None,
         complevel: int | None = None,
         columns=None,
@@ -1296,7 +1296,7 @@ class HDFStore:
         selector,
         data_columns=None,
         axes=None,
-        dropna=False,
+        dropna: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -1537,7 +1537,7 @@ class HDFStore:
         complib=None,
         complevel: int | None = None,
         fletcher32: bool = False,
-        overwrite=True,
+        overwrite: bool = True,
     ) -> HDFStore:
         """
         Copy the existing store to a new file, updating in place.
@@ -1743,15 +1743,15 @@ class HDFStore:
         value: DataFrame | Series,
         format,
         axes=None,
-        index=True,
-        append=False,
+        index: bool | list[str] = True,
+        append: bool = False,
         complib=None,
         complevel: int | None = None,
         fletcher32=None,
         min_itemsize: int | dict[str, int] | None = None,
         chunksize=None,
         expectedrows=None,
-        dropna=False,
+        dropna: bool = False,
         nan_rep=None,
         data_columns=None,
         encoding=None,
@@ -4325,7 +4325,7 @@ class AppendableTable(Table):
         dropna: bool = False,
         nan_rep=None,
         data_columns=None,
-        track_times=True,
+        track_times: bool = True,
     ) -> None:
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")

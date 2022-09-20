@@ -611,7 +611,7 @@ class BaseBlockManager(DataManager):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self: T, deep=True) -> T:
+    def copy(self: T, deep: bool | None | Literal["all"] = True) -> T:
         """
         Make deep or shallow copy of BlockManager
 

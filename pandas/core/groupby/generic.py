@@ -1485,7 +1485,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result.columns = columns
         return result
 
-    def filter(self, func, dropna=True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Filter elements from groups that don't satisfy a criterion.
 

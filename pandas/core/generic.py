@@ -1324,7 +1324,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return None
 
     @final
-    def _set_axis_name(self, name, axis=0, inplace=False):
+    def _set_axis_name(self, name, axis=0, inplace: bool_t = False):
         """
         Set the name(s) of the axis.
 
@@ -4140,7 +4140,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return False
 
     @final
-    def _check_setitem_copy(self, t="setting", force=False):
+    def _check_setitem_copy(self, t="setting", force: bool_t = False):
         """
 
         Parameters
@@ -4774,7 +4774,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         *,
         axis: Axis = ...,
-        ascending=...,
+        ascending: bool_t | Sequence[bool_t] = ...,
         inplace: Literal[False] = ...,
         kind: str = ...,
         na_position: str = ...,
@@ -4788,7 +4788,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         *,
         axis: Axis = ...,
-        ascending=...,
+        ascending: bool_t | Sequence[bool_t] = ...,
         inplace: Literal[True],
         kind: str = ...,
         na_position: str = ...,
@@ -4802,7 +4802,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         *,
         axis: Axis = ...,
-        ascending=...,
+        ascending: bool_t | Sequence[bool_t] = ...,
         inplace: bool_t = ...,
         kind: str = ...,
         na_position: str = ...,
@@ -4815,7 +4815,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def sort_values(
         self: NDFrameT,
         axis: Axis = 0,
-        ascending=True,
+        ascending: bool_t | Sequence[bool_t] = True,
         inplace: bool_t = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -9654,7 +9654,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         cond,
         other=lib.no_default,
-        inplace=False,
+        inplace: bool_t = False,
         axis: Axis | None = None,
         level=None,
     ):
@@ -11656,7 +11656,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             examples=_any_examples,
             empty_value=False,
         )
-        def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+        def any(
+            self, axis=0, bool_only=None, skipna: bool_t = True, level=None, **kwargs
+        ):
             return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
 
         setattr(cls, "any", any)
@@ -11671,7 +11673,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             examples=_all_examples,
             empty_value=True,
         )
-        def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+        def all(
+            self, axis=0, bool_only=None, skipna: bool_t = True, level=None, **kwargs
+        ):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
         setattr(cls, "all", all)
@@ -11686,7 +11690,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def mad(self, axis: Axis | None = None, skipna=True, level=None):
+        def mad(self, axis: Axis | None = None, skipna: bool_t = True, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
         setattr(cls, "mad", mad)
@@ -11705,7 +11709,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def sem(
             self,
             axis: Axis | None = None,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             ddof=1,
             numeric_only=None,
@@ -11728,7 +11732,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def var(
             self,
             axis: Axis | None = None,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             ddof=1,
             numeric_only=None,
@@ -11752,7 +11756,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def std(
             self,
             axis: Axis | None = None,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             ddof=1,
             numeric_only=None,
@@ -11771,7 +11775,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="min",
             examples=_cummin_examples,
         )
-        def cummin(self, axis: Axis | None = None, skipna=True, *args, **kwargs):
+        def cummin(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cummin", cummin)
@@ -11785,7 +11791,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="max",
             examples=_cummax_examples,
         )
-        def cummax(self, axis: Axis | None = None, skipna=True, *args, **kwargs):
+        def cummax(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cummax", cummax)
@@ -11799,7 +11807,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="sum",
             examples=_cumsum_examples,
         )
-        def cumsum(self, axis: Axis | None = None, skipna=True, *args, **kwargs):
+        def cumsum(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cumsum", cumsum)
@@ -11813,7 +11823,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="prod",
             examples=_cumprod_examples,
         )
-        def cumprod(self, axis: Axis | None = None, skipna=True, *args, **kwargs):
+        def cumprod(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cumprod", cumprod)
@@ -11833,7 +11845,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def sum(
             self,
             axis: Axis | None = None,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             min_count=0,
@@ -11858,7 +11870,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def prod(
             self,
             axis: Axis | None = None,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             min_count=0,
@@ -11884,7 +11896,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def mean(
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             **kwargs,
@@ -11906,7 +11918,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def skew(
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             **kwargs,
@@ -11931,7 +11943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def kurt(
             self,
             axis: Axis | None | lib.NoDefault = lib.no_default,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             **kwargs,
@@ -11954,7 +11966,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def median(
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             **kwargs,
@@ -11978,7 +11990,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def max(
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             **kwargs,
@@ -12002,7 +12014,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def min(
             self,
             axis: AxisInt | None | lib.NoDefault = lib.no_default,
-            skipna=True,
+            skipna: bool_t = True,
             level=None,
             numeric_only=None,
             **kwargs,

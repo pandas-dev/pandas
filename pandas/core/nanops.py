@@ -721,7 +721,7 @@ def nanmean(
 
 
 @bottleneck_switch()
-def nanmedian(values, *, axis: AxisInt | None = None, skipna=True, mask=None):
+def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=None):
     """
     Parameters
     ----------
@@ -870,7 +870,9 @@ def _get_counts_nanvar(
 
 
 @bottleneck_switch(ddof=1)
-def nanstd(values, *, axis: AxisInt | None = None, skipna=True, ddof=1, mask=None):
+def nanstd(
+    values, *, axis: AxisInt | None = None, skipna: bool = True, ddof=1, mask=None
+):
     """
     Compute the standard deviation along given axis while ignoring NaNs
 
@@ -910,7 +912,9 @@ def nanstd(values, *, axis: AxisInt | None = None, skipna=True, ddof=1, mask=Non
 
 @disallow("M8", "m8")
 @bottleneck_switch(ddof=1)
-def nanvar(values, *, axis: AxisInt | None = None, skipna=True, ddof=1, mask=None):
+def nanvar(
+    values, *, axis: AxisInt | None = None, skipna: bool = True, ddof=1, mask=None
+):
     """
     Compute the variance along given axis while ignoring NaNs
 

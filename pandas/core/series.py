@@ -1640,9 +1640,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,
-        length=False,
-        dtype=False,
-        name=False,
+        length: bool = False,
+        dtype: bool = False,
+        name: bool = False,
         max_rows: int | None = None,
         min_rows: int | None = None,
     ) -> str | None:
@@ -1953,7 +1953,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace=False) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -2272,7 +2272,7 @@ Name: Max Speed, dtype: float64
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(
-        self, keep: Literal["first", "last", False] = "first", inplace=False
+        self, keep: Literal["first", "last", False] = "first", inplace: bool = False
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -4788,7 +4788,7 @@ Keep all original rows and also all original values
         name: str,
         *,
         axis=0,
-        skipna=True,
+        skipna: bool = True,
         numeric_only=None,
         filter_type=None,
         **kwds,

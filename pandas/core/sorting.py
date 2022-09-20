@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 def get_indexer_indexer(
     target: Index,
     level: Level | list[Level] | None,
-    ascending: Sequence[bool] | bool,
+    ascending: list[bool] | bool,
     kind: SortKind,
     na_position: NaPosition,
     sort_remaining: bool,

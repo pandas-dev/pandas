@@ -1637,7 +1637,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_agg_general(self, func, *args, raise_on_typeerror=False, **kwargs):
+    def _python_agg_general(
+        self, func, *args, raise_on_typeerror: bool = False, **kwargs
+    ):
         func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -3677,7 +3679,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
+    def cummin(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
         """
         Cumulative min for each group.
 
@@ -3701,7 +3703,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
+    def cummax(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
         """
         Cumulative max for each group.
 

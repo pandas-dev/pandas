@@ -467,7 +467,14 @@ def _interpolate_1d(
 
 
 def _interpolate_scipy_wrapper(
-    x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs
+    x,
+    y,
+    new_x,
+    method,
+    fill_value=None,
+    bounds_error: bool = False,
+    order=None,
+    **kwargs,
 ):
     """
     Passed off to scipy.interpolate.interp1d. method is scipy's kind.
@@ -536,7 +543,7 @@ def _interpolate_scipy_wrapper(
     return new_y
 
 
-def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
+def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate: bool = False):
     """
     Convenience function for interpolate.BPoly.from_derivatives.
 
