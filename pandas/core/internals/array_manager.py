@@ -268,7 +268,9 @@ class BaseArrayManager(DataManager):
         # expected "List[Union[ndarray, ExtensionArray]]"
         return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
 
-    def apply_with_block(self: T, f, align_keys=None, swap_axis=True, **kwargs) -> T:
+    def apply_with_block(
+        self: T, f, align_keys=None, swap_axis: bool = True, **kwargs
+    ) -> T:
         # switch axis to follow BlockManager logic
         if swap_axis and "axis" in kwargs and self.ndim == 2:
             kwargs["axis"] = 1 if kwargs["axis"] == 0 else 0
@@ -500,7 +502,7 @@ class BaseArrayManager(DataManager):
             or getattr(arr.dtype, "_is_numeric", False)
         )
 
-    def copy(self: T, deep=True) -> T:
+    def copy(self: T, deep: bool | Literal["all"] | None = True) -> T:
         """
         Make deep or shallow copy of ArrayManager
 
@@ -669,7 +671,7 @@ class BaseArrayManager(DataManager):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def _make_na_array(self, fill_value=None, use_na_proxy=False):
+    def _make_na_array(self, fill_value=None, use_na_proxy: bool = False):
         if use_na_proxy:
             assert fill_value is None
             return NullArrayProxy(self.shape_proper[0])

@@ -1306,7 +1306,7 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
     return None
 
 
-def to_time(arg, format=None, infer_time_format=False, errors="raise"):
+def to_time(arg, format=None, infer_time_format: bool = False, errors="raise"):
     # GH#34145
     warnings.warn(
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "
