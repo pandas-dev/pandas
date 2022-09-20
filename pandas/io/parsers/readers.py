@@ -59,6 +59,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    stringify_path,
     validate_header_arg,
 )
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -1726,6 +1727,16 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 is_text = False
                 mode = "rb"
+            elif (
+                engine == "c"
+                and self.options.get("encoding", "utf-8") == "utf-8"
+                and isinstance(stringify_path(f), str)
+            ):
+                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
+                # the c-engine especially for memory_map=True far slower
+                is_text = False
+                if "b" not in mode:
+                    mode += "b"
             self.handles = get_handle(
                 f,
                 mode,
