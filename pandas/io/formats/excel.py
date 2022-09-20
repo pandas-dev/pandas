@@ -289,8 +289,6 @@ class CSSToExcelConverter:
             # not handled
             return width_name
 
-        if style == "hair":
-            return "hair"
         if style == "double":
             return "double"
         if style == "dotted":
@@ -301,6 +299,19 @@ class CSSToExcelConverter:
             if width_name in ("hair", "thin"):
                 return "dashed"
             return "mediumDashed"
+        elif style in (
+            "hair", "mediumDashDot", "dashDotDot", "mediumDashDotDot",
+            "dashDot", "slandDashDot", "mediumDashed"
+        ):
+            # Excel-specific styles
+            return style
+        else:
+            warnings.warn(
+                f"Unhandled border style format: {repr(style)}",
+                CSSWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+            return "none"
 
     def _get_width_name(self, width_input: str | None) -> str | None:
         width = self._width_to_float(width_input)
