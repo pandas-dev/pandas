@@ -23,7 +23,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :class:`CSSToExcelConverter` leading to error when unrecognized ``border-style`` (including ``"hair"``) provided to Excel writers (:issue:`48649`)
+- Bug in :class:`CSSToExcelConverter` where border would not fall back on black when border style or width provided without a color (:issue:`48649`)
 -
 
 .. ---------------------------------------------------------------------------
