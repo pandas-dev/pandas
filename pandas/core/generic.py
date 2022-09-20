@@ -487,13 +487,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _stat_axis_number = 0
     _stat_axis_name = "index"
     _AXIS_ORDERS: list[Literal["index", "columns"]]
-    # error: Dict entry 2 has incompatible type "Literal['rows']": "int"; expected
-    # "Union[int, Literal['index', 'columns']]": "int"
-    _AXIS_TO_AXIS_NUMBER: dict[Axis, AxisInt] = {
-        0: 0,
-        "index": 0,
-        "rows": 0,  # type: ignore[dict-item]
-    }
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, AxisInt] = {0: 0, "index": 0, "rows": 0}
     _info_axis_number: int
     _info_axis_name: Literal["index", "columns"]
     _AXIS_LEN: int
