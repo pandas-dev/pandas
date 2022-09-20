@@ -28,7 +28,7 @@ _NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
 }
 
 
-def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
+def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
 
@@ -53,7 +53,7 @@ def from_dataframe(df, allow_copy=True) -> pd.DataFrame:
     return _from_dataframe(df.__dataframe__(allow_copy=allow_copy))
 
 
-def _from_dataframe(df: DataFrameXchg, allow_copy=True):
+def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
     """
     Build a ``pd.DataFrame`` from the DataFrame interchange object.
 

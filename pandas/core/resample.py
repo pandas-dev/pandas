@@ -896,7 +896,7 @@ class Resampler(BaseGroupBy, PandasObject):
         method="linear",
         axis=0,
         limit=None,
-        inplace=False,
+        inplace: bool = False,
         limit_direction="forward",
         limit_area=None,
         downcast=None,
