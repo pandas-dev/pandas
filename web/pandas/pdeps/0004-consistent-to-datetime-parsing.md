@@ -1,7 +1,7 @@
 # PDEP-4: Consistent datetime parsing
 
 - Created: 18 September 2022
-- Status: Under discussion
+- Status: Accepted
 - Discussion: [#48621](https://github.com/pandas-dev/pandas/pull/48621)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli)
 - Revision: 1
@@ -17,10 +17,10 @@ The suggestion is that:
 
 ## Motivation and Scope
 
-Pandas date parsing is very flexibible, but arguably too much so - see
+Pandas date parsing is very flexible, but arguably too much so - see
 https://github.com/pandas-dev/pandas/issues/12585 and linked issues for how
 much confusion this causes. Pandas can swap format midway, and though this
-is document, it regularly breaks users' expectations.
+is documented, it regularly breaks users' expectations.
 
 Simple example:
 ```ipython
@@ -32,7 +32,7 @@ However, it's read as "1st of December, 13th of January". No warning or error is
 
 Currently, the only way to ensure consistent parsing is by explicitly passing
 ``format=``. The argument ``infer_datetime_format``
-isn't strict and can still break users' expectations.
+isn't strict, can be called together with ``format``, and can still break users' expectations:
 
 ```ipython
 In [2]: pd.to_datetime(['12-01-2000 00:00:00', '13-01-2000 00:00:00'], infer_datetime_format=True)
@@ -46,6 +46,7 @@ Concretely, the suggestion is:
   and parse the rest of the input according to that format. Errors will be handled
   according to the ``errors`` argument - there will be no silent switching of format;
 - ``infer_datetime_format`` will be deprecated;
+- ``dayfirst`` and ``yearfirst`` will continue working as they currently do;
 - if the format cannot be guessed from the first non-NaN row, a ``UserWarning`` will be thrown,
   encouraging users to explicitly pass in a format.
   Note that this should only happen for invalid inputs such as `'a'`
@@ -82,6 +83,14 @@ I'd suggest making this change as part of the above, because:
 - it would only help prevent bugs, not introduce any;
 - given the severity of bugs that can result from the current behaviour, waiting another 2 years until pandas 3.0.0
   would potentially cause a lot of damage.
+
+Note that this wouldn't mean getting rid of ``dateutil.parser``, as that would still be used within ``guess_datetime_format``. With this proposal, however, subsequent rows would be parsed with the guessed format rather than repeatedly calling ``dateutil.parser`` and risk having it silently switch format
+
+Finally, the function ``from pandas._libs.tslibs.parsing import guess_datetime_format`` would be made public, under ``pandas.tools``.
+
+## Out of scope
+
+We could make ``guess_datetime_format`` smarter by using a random sample of elements to infer the format.
 
 ### PDEP History
 
