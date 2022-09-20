@@ -195,9 +195,7 @@ _all_methods = [
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("corr")),
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("corr")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("cov")),
         marks=[
