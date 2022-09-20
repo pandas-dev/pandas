@@ -243,17 +243,21 @@ class CSSToExcelConverter:
     def build_border(
         self, props: Mapping[str, str]
     ) -> dict[str, dict[str, str | None]]:
-        return {
-            side: {
-                "style": self._border_style(
-                    props.get(f"border-{side}-style"),
-                    props.get(f"border-{side}-width"),
-                    self.color_to_excel(props.get(f"border-{side}-color")),
-                ),
-                "color": self.color_to_excel(props.get(f"border-{side}-color")),
+        border_dict = {}
+        for side in ["top", "right", "bottom", "left"]:
+            style = self._border_style(
+                props.get(f"border-{side}-style"),
+                props.get(f"border-{side}-width"),
+                self.color_to_excel(props.get(f"border-{side}-color")),
+            )
+            color = self.color_to_excel(props.get(f"border-{side}-color"))
+            if style and style != "none" and color is None:
+                color = self.color_to_excel("black")
+            border_dict[side] = {
+                "style": style,
+                "color": color
             }
-            for side in ["top", "right", "bottom", "left"]
-        }
+        return border_dict
 
     def _border_style(self, style: str | None, width: str | None, color: str | None):
         # convert styles and widths to openxml, one of:
