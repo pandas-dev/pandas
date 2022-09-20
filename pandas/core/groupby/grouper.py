@@ -18,6 +18,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     NDFrameT,
     npt,
 )
@@ -259,7 +260,7 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    axis: int
+    axis: AxisInt
     sort: bool
     dropna: bool
     _gpr_index: Index | None
@@ -280,7 +281,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
@@ -704,7 +705,7 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: int = 0,
+    axis: AxisInt = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,

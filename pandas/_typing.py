@@ -106,7 +106,8 @@ NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
-Axis = Union[str, int]
+AxisInt = int
+Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = Tuple[int, ...]
