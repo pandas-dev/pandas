@@ -40,7 +40,10 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    LossySetitemError,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -2103,11 +2106,3 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     if not len(rng):
         return True
     return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
-
-
-class LossySetitemError(Exception):
-    """
-    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
-    """
-
-    pass
