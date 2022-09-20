@@ -27,7 +27,6 @@ import pandas as pd
         "LossySetitemError",
         "MergeError",
         "NoBufferPresent",
-        "NotThisMethod",
         "NumExprClobberingError",
         "NumbaUtilError",
         "OptionError",

@@ -577,7 +577,6 @@ __all__ = [
     "LossySetitemError",
     "MergeError",
     "NoBufferPresent",
-    "NotThisMethod",
     "NullFrequencyError",
     "NumbaUtilError",
     "NumExprClobberingError",
