@@ -178,7 +178,7 @@ def eval(
     resolvers=(),
     level=0,
     target=None,
-    inplace=False,
+    inplace: bool = False,
 ):
     """
     Evaluate a Python expression as a string using various backends.

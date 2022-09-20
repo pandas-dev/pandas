@@ -5869,9 +5869,8 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         drop: bool = ...,
         append: bool = ...,
-        inplace: Literal[False] | lib.NoDefault = ...,
+        inplace: Literal[False] = ...,
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -5884,7 +5883,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[True],
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5894,9 +5892,8 @@ class DataFrame(NDFrame, OpsMixin):
         keys,
         drop: bool = True,
         append: bool = False,
-        inplace: bool | lib.NoDefault = lib.no_default,
+        inplace: bool = False,
         verify_integrity: bool = False,
-        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -5919,18 +5916,10 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to append columns to existing index.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
-
-            .. deprecated:: 1.5.0
-
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
-        copy : bool, default True
-            Whether to make a copy of the underlying data when returning a new
-            DataFrame.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5995,25 +5984,7 @@ class DataFrame(NDFrame, OpsMixin):
         3 9       7  2013    84
         4 16     10  2014    31
         """
-        if inplace is not lib.no_default:
-            inplace = validate_bool_kwarg(inplace, "inplace")
-            warnings.warn(
-                "The 'inplace' keyword in DataFrame.set_index is deprecated "
-                "and will be removed in a future version. Use "
-                "`df = df.set_index(..., copy=False)` instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        else:
-            inplace = False
-
-        if inplace:
-            if copy is not lib.no_default:
-                raise ValueError("Cannot specify copy when inplace=True")
-            copy = False
-        elif copy is lib.no_default:
-            copy = True
-
+        inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
             keys = [keys]
@@ -6049,7 +6020,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy(deep=copy)
+            frame = self.copy()
 
         arrays = []
         names: list[Hashable] = []
@@ -7740,7 +7711,7 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
-        out = self._constructor(result, copy=False)
+        out = self._constructor(result, copy=False).__finalize__(self)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
@@ -8757,11 +8728,11 @@ Parrot 2  Parrot       24.0
         columns=None,
         aggfunc="mean",
         fill_value=None,
-        margins=False,
-        dropna=True,
+        margins: bool = False,
+        dropna: bool = True,
         margins_name="All",
-        observed=False,
-        sort=True,
+        observed: bool = False,
+        sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 

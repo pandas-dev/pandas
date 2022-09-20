@@ -28,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     F,
+    FillnaOptions,
     IgnoreRaise,
     Shape,
     npt,
@@ -881,8 +882,13 @@ class Block(PandasObject):
         )
 
         # Called from three places in managers, all of which satisfy
-        #  this assertion
+        #  these assertions
+        if isinstance(self, ExtensionBlock):
+            # NB: in this case, the 'axis' kwarg will be ignored in the
+            #  algos.take_nd call above.
+            assert not (self.ndim == 1 and new_mgr_locs is None)
         assert not (axis == 0 and new_mgr_locs is None)
+
         if new_mgr_locs is None:
             new_mgr_locs = self._mgr_locs
 
@@ -1606,8 +1612,15 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    def interpolate(
-        self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
+    # error: Signature of "interpolate" incompatible with supertype "Block"
+    def interpolate(  # type: ignore[override]
+        self,
+        method: FillnaOptions = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        fill_value=None,
+        **kwargs,
     ):
         values = self.values
         if values.ndim == 2 and axis == 0:
@@ -1752,33 +1765,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     @cache_readonly
     def is_numeric(self):
         return self.values.dtype._is_numeric
-
-    def take_nd(
-        self,
-        indexer: npt.NDArray[np.intp],
-        axis: int = 0,
-        new_mgr_locs: BlockPlacement | None = None,
-        fill_value=lib.no_default,
-    ) -> Block:
-        """
-        Take values according to indexer and return them as a block.
-        """
-        if fill_value is lib.no_default:
-            fill_value = None
-
-        # TODO(EA2D): special case not needed with 2D EAs
-        # axis doesn't matter; we are really a single-dim object
-        # but are passed the axis depending on the calling routing
-        # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take(indexer, fill_value=fill_value, allow_fill=True)
-
-        # Called from three places in managers, all of which satisfy
-        #  this assertion
-        assert not (self.ndim == 1 and new_mgr_locs is None)
-        if new_mgr_locs is None:
-            new_mgr_locs = self._mgr_locs
-
-        return self.make_block_same_class(new_values, new_mgr_locs)
 
     def _slice(
         self, slicer: slice | npt.NDArray[np.bool_] | npt.NDArray[np.intp]
