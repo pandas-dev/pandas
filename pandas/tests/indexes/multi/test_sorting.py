@@ -14,6 +14,7 @@ from pandas import (
     Index,
     MultiIndex,
     RangeIndex,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
@@ -288,4 +289,21 @@ def test_sort_values_nan():
     expected = MultiIndex(
         levels=[["A", "B", "C"], ["D"]], codes=[[0, 1, 2], [-1, -1, 0]]
     )
+    tm.assert_index_equal(result, expected)
+
+
+def test_sort_values_monotonic_incomparable():
+    mi = MultiIndex.from_arrays(
+        [
+            [1, Timestamp("2000-01-01")],
+            [3, 4],
+        ]
+    )
+
+    match = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=match):
+        mi._sort_levels_monotonic(raise_if_incomparable=True)
+
+    result = mi._sort_levels_monotonic()
+    expected = mi
     tm.assert_index_equal(result, expected)
