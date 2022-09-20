@@ -38,6 +38,7 @@ if PY39:
 
 class TestDatetimeIndex:
     def test_explicit_tz_none(self):
+        # GH#48659
         dti = date_range("2016-01-01", periods=10, tz="UTC")
 
         msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
