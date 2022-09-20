@@ -523,7 +523,11 @@ def assert_is_sorted(seq) -> None:
 
 
 def assert_categorical_equal(
-    left, right, check_dtype=True, check_category_order=True, obj="Categorical"
+    left,
+    right,
+    check_dtype: bool = True,
+    check_category_order: bool = True,
+    obj="Categorical",
 ) -> None:
     """
     Test that Categoricals are equivalent.
@@ -618,7 +622,7 @@ def assert_period_array_equal(left, right, obj="PeriodArray") -> None:
 
 
 def assert_datetime_array_equal(
-    left, right, obj="DatetimeArray", check_freq=True
+    left, right, obj="DatetimeArray", check_freq: bool = True
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
@@ -630,7 +634,7 @@ def assert_datetime_array_equal(
 
 
 def assert_timedelta_array_equal(
-    left, right, obj="TimedeltaArray", check_freq=True
+    left, right, obj="TimedeltaArray", check_freq: bool = True
 ) -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
@@ -639,7 +643,9 @@ def assert_timedelta_array_equal(
         assert_attr_equal("freq", left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
+def raise_assert_detail(
+    obj, message, left, right, diff=None, first_diff=None, index_values=None
+):
     __tracebackhide__ = True
 
     msg = f"""{obj} are different
@@ -674,13 +680,16 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
     if diff is not None:
         msg += f"\n[diff]: {diff}"
 
+    if first_diff is not None:
+        msg += f"\n{first_diff}"
+
     raise AssertionError(msg)
 
 
 def assert_numpy_array_equal(
     left,
     right,
-    strict_nan=False,
+    strict_nan: bool = False,
     check_dtype: bool | Literal["equiv"] = True,
     err_msg=None,
     check_same=None,
@@ -763,7 +772,7 @@ def assert_extension_array_equal(
     check_dtype: bool | Literal["equiv"] = True,
     index_values=None,
     check_less_precise=no_default,
-    check_exact=False,
+    check_exact: bool = False,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
 ) -> None:
@@ -867,21 +876,21 @@ def assert_series_equal(
     right,
     check_dtype: bool | Literal["equiv"] = True,
     check_index_type: bool | Literal["equiv"] = "equiv",
-    check_series_type=True,
+    check_series_type: bool = True,
     check_less_precise: bool | int | NoDefault = no_default,
-    check_names=True,
-    check_exact=False,
-    check_datetimelike_compat=False,
-    check_categorical=True,
-    check_category_order=True,
-    check_freq=True,
-    check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
+    check_names: bool = True,
+    check_exact: bool = False,
+    check_datetimelike_compat: bool = False,
+    check_categorical: bool = True,
+    check_category_order: bool = True,
+    check_freq: bool = True,
+    check_flags: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
     obj="Series",
     *,
-    check_index=True,
-    check_like=False,
+    check_index: bool = True,
+    check_like: bool = False,
 ) -> None:
     """
     Check that left and right Series are equal.
@@ -1135,19 +1144,19 @@ def assert_frame_equal(
     right,
     check_dtype: bool | Literal["equiv"] = True,
     check_index_type: bool | Literal["equiv"] = "equiv",
-    check_column_type="equiv",
-    check_frame_type=True,
+    check_column_type: bool | Literal["equiv"] = "equiv",
+    check_frame_type: bool = True,
     check_less_precise=no_default,
-    check_names=True,
-    by_blocks=False,
-    check_exact=False,
-    check_datetimelike_compat=False,
-    check_categorical=True,
-    check_like=False,
-    check_freq=True,
-    check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
+    check_names: bool = True,
+    by_blocks: bool = False,
+    check_exact: bool = False,
+    check_datetimelike_compat: bool = False,
+    check_categorical: bool = True,
+    check_like: bool = False,
+    check_freq: bool = True,
+    check_flags: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
     obj="DataFrame",
 ) -> None:
     """
