@@ -260,7 +260,7 @@ class StringMethods(NoNewAttributesMixin):
         name=None,
         expand: bool | None = None,
         fill_value=np.nan,
-        returns_string=True,
+        returns_string: bool = True,
         returns_bool: bool = False,
     ):
         from pandas import (
@@ -855,7 +855,7 @@ class StringMethods(NoNewAttributesMixin):
         self,
         pat: str | re.Pattern | None = None,
         n=-1,
-        expand=False,
+        expand: bool = False,
         *,
         regex: bool | None = None,
     ):
@@ -883,7 +883,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
-    def rsplit(self, pat=None, n=-1, expand=False):
+    def rsplit(self, pat=None, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -979,7 +979,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def partition(self, sep=" ", expand=True):
+    def partition(self, sep=" ", expand: bool = True):
         result = self._data.array._str_partition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -993,7 +993,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def rpartition(self, sep=" ", expand=True):
+    def rpartition(self, sep=" ", expand: bool = True):
         result = self._data.array._str_rpartition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -1127,7 +1127,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def contains(self, pat, case=True, flags=0, na=None, regex=True):
+    def contains(self, pat, case: bool = True, flags=0, na=None, regex: bool = True):
         r"""
         Test if pattern or regex is contained within a string of a Series or Index.
 
@@ -1263,7 +1263,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def match(self, pat, case=True, flags=0, na=None):
+    def match(self, pat, case: bool = True, flags=0, na=None):
         """
         Determine if each string starts with a match of a regular expression.
 
@@ -1295,7 +1295,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def fullmatch(self, pat, case=True, flags=0, na=None):
+    def fullmatch(self, pat, case: bool = True, flags=0, na=None):
         """
         Determine if each string entirely matches a regular expression.
 

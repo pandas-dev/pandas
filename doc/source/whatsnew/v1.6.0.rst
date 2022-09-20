@@ -28,10 +28,12 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :func:`read_sas` now supports using ``encoding='infer'`` to correctly read and use the encoding specified by the sas file. (:issue:`48048`)
 - :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` now preserve nullable dtypes instead of casting to numpy dtypes (:issue:`37493`)
 - :meth:`Series.add_suffix`, :meth:`DataFrame.add_suffix`, :meth:`Series.add_prefix` and :meth:`DataFrame.add_prefix` support an ``axis`` argument. If ``axis`` is set, the default behaviour of which axis to consider can be overwritten (:issue:`47819`)
 - :func:`assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
+- Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -44,8 +46,33 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_160.notable_bug_fixes.notable_bug_fix1:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+:meth:`.GroupBy.cumsum` and :meth:`.GroupBy.cumprod` overflow instead of lossy casting to float
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions we cast to float when applying ``cumsum`` and ``cumprod`` which
+lead to incorrect results even if the result could be hold by ``int64`` dtype.
+Additionally, the aggregation overflows consistent with numpy and the regular
+:meth:`DataFrame.cumprod` and :meth:`DataFrame.cumsum` methods when the limit of
+``int64`` is reached (:issue:`37493`).
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"key": ["b"] * 7, "value": 625})
+    In [2]: df.groupby("key")["value"].cumprod()[5]
+    Out[2]: 5.960464477539062e+16
+
+We return incorrect results with the 6th value.
+
+*New Behavior*
+
+.. ipython:: python
+
+    df = pd.DataFrame({"key": ["b"] * 7, "value": 625})
+    df.groupby("key")["value"].cumprod()
+
+We overflow with the 7th value, but the 6th value is still correct.
 
 .. _whatsnew_160.notable_bug_fixes.notable_bug_fix2:
 
@@ -103,14 +130,18 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` for nullable dtypes (:issue:`37493`)
+- Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
+- Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
+- Performance improvement for :class:`DatetimeIndex` constructor passing a list (:issue:`48609`)
+- Performance improvement in :func:`merge` and :meth:`DataFrame.join` when joining on a sorted :class:`MultiIndex` (:issue:`48504`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
+- Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
 - Performance improvement to :func:`read_sas` with ``blank_missing=True`` (:issue:`48502`)
 -
@@ -150,6 +181,7 @@ Conversion
 ^^^^^^^^^^
 - Bug in constructing :class:`Series` with ``int64`` dtype from a string list raising instead of casting (:issue:`44923`)
 - Bug in :meth:`DataFrame.eval` incorrectly raising an ``AttributeError`` when there are negative values in function call (:issue:`46471`)
+- Bug where any :class:`ExtensionDtype` subclass with ``kind="M"`` would be interpreted as a timezone type (:issue:`34986`)
 -
 
 Strings
@@ -175,9 +207,12 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :class:`MultiIndex.set_levels` raising ``IndexError`` when setting empty level (:issue:`48636`)
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
+- Bug in :meth:`MultiIndex.intersection` losing extension array (:issue:`48604`)
 - Bug in :meth:`MultiIndex.union` losing extension array (:issue:`48498`, :issue:`48505`)
 - Bug in :meth:`MultiIndex.append` not checking names for equality (:issue:`48288`)
+- Bug in :meth:`MultiIndex.symmetric_difference` losing extension array (:issue:`48607`)
 -
 
 I/O

@@ -184,7 +184,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _can_hold_na(self) -> bool:
         return True
 
-    def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False) -> None:
+    def __init__(
+        self, data, dtype: Dtype | None = None, freq=None, copy: bool = False
+    ) -> None:
         raise AbstractMethodError(self)
 
     @property
@@ -2151,7 +2153,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
-        if np.ndim(data) == 0:
+        if not isinstance(data, (list, tuple)) and np.ndim(data) == 0:
             # i.e. generator
             data = list(data)
         data = np.asarray(data)
