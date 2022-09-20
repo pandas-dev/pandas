@@ -432,6 +432,13 @@ class TestDateRanges:
         rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="BH")
         tm.assert_index_equal(idx, rng)
 
+    def test_date_range_timedelta(self):
+        start = "2020-01-01"
+        end = "2020-01-11"
+        rng1 = date_range(start, end, freq="3D")
+        rng2 = date_range(start, end, freq=timedelta(days=3))
+        tm.assert_index_equal(rng1, rng2)
+
     def test_range_misspecified(self):
         # GH #1095
         msg = (

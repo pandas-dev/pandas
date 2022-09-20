@@ -28,6 +28,7 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeObj,
     IndexLabel,
     Shape,
@@ -619,8 +620,8 @@ class _MergeOperation:
     right_on: Sequence[Hashable | AnyArrayLike]
     left_index: bool
     right_index: bool
-    axis: int
-    bm_axis: int
+    axis: AxisInt
+    bm_axis: AxisInt
     sort: bool
     suffixes: Suffixes
     copy: bool
@@ -638,7 +639,7 @@ class _MergeOperation:
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
-        axis: int = 1,
+        axis: AxisInt = 1,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
@@ -1669,7 +1670,7 @@ def restore_dropped_levels_multijoin(
     Returns the levels, labels and names of a multi-index to multi-index join.
     Depending on the type of join, this method restores the appropriate
     dropped levels of the joined multi-index.
-    The method relies on lidx, rindexer which hold the index positions of
+    The method relies on lindexer, rindexer which hold the index positions of
     left and right, where a join was feasible
 
     Parameters
@@ -1715,15 +1716,6 @@ def restore_dropped_levels_multijoin(
     join_codes = join_index.codes
     join_names = join_index.names
 
-    # lindexer and rindexer hold the indexes where the join occurred
-    # for left and right respectively. If left/right is None then
-    # the join occurred on all indices of left/right
-    if lindexer is None:
-        lindexer = range(left.size)
-
-    if rindexer is None:
-        rindexer = range(right.size)
-
     # Iterate through the levels that must be restored
     for dropped_level_name in dropped_level_names:
         if dropped_level_name in left.names:
@@ -1740,7 +1732,10 @@ def restore_dropped_levels_multijoin(
         # Inject -1 in the codes list where a join was not possible
         # IOW indexer[i]=-1
         codes = idx.codes[name_idx]
-        restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
+        if indexer is None:
+            restore_codes = codes
+        else:
+            restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
         join_levels = join_levels + [restore_levels]
         join_codes = join_codes + [restore_codes]
@@ -1761,7 +1756,7 @@ class _OrderedMerge(_MergeOperation):
         right_on: IndexLabel | None = None,
         left_index: bool = False,
         right_index: bool = False,
-        axis: int = 1,
+        axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         fill_method: str | None = None,
         how: str = "outer",
@@ -1850,7 +1845,7 @@ class _AsOfMerge(_OrderedMerge):
         by=None,
         left_by=None,
         right_by=None,
-        axis: int = 1,
+        axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         fill_method: str | None = None,

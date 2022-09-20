@@ -56,6 +56,7 @@ from pandas._typing import (
     ArrayLike,
     Axes,
     Axis,
+    AxisInt,
     ColspaceArgType,
     CompressionOptions,
     CorrelationMethod,
@@ -3715,7 +3716,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: int = 0) -> Series:
+    def _ixs(self, i: int, axis: AxisInt = 0) -> Series:
         """
         Parameters
         ----------
@@ -7607,7 +7608,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _logical_method = _arith_method
 
-    def _dispatch_frame_op(self, right, func: Callable, axis: int | None = None):
+    def _dispatch_frame_op(self, right, func: Callable, axis: AxisInt | None = None):
         """
         Evaluate the frame operation func(left, right) by evaluating
         column-by-column, dispatching to the Series implementation.
@@ -10358,7 +10359,8 @@ Parrot 2  Parrot       24.0
                 f"'{method}' was supplied"
             )
 
-        return self._constructor(correl, index=idx, columns=cols)
+        result = self._constructor(correl, index=idx, columns=cols)
+        return result.__finalize__(self, method="corr")
 
     def cov(
         self,
@@ -10493,7 +10495,8 @@ Parrot 2  Parrot       24.0
         else:
             base_cov = libalgos.nancorr(mat, cov=True, minp=min_periods)
 
-        return self._constructor(base_cov, index=idx, columns=cols)
+        result = self._constructor(base_cov, index=idx, columns=cols)
+        return result.__finalize__(self, method="cov")
 
     def corrwith(
         self,
@@ -10771,7 +10774,7 @@ Parrot 2  Parrot       24.0
 
         return result.astype("int64").__finalize__(self, method="count")
 
-    def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
+    def _count_level(self, level: Level, axis: AxisInt = 0, numeric_only: bool = False):
         if numeric_only:
             frame = self._get_numeric_data()
         else:
@@ -11656,7 +11659,7 @@ Parrot 2  Parrot       24.0
 
     # ----------------------------------------------------------------------
     # Add index and columns
-    _AXIS_ORDERS = ["index", "columns"]
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
     _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
         **NDFrame._AXIS_TO_AXIS_NUMBER,
         1: 1,
@@ -11664,7 +11667,7 @@ Parrot 2  Parrot       24.0
     }
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 1
-    _info_axis_name = "columns"
+    _info_axis_name: Literal["columns"] = "columns"
 
     index = properties.AxisProperty(
         axis=1, doc="The index (row labels) of the DataFrame."

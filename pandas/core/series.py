@@ -40,6 +40,7 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     Axis,
+    AxisInt,
     CorrelationMethod,
     DropKeep,
     Dtype,
@@ -217,8 +218,11 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
-
-class Series(base.IndexOpsMixin, NDFrame):
+# error: Definition of "max" in base class "IndexOpsMixin" is incompatible with
+# definition in base class "NDFrame"
+# error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
+# definition in base class "NDFrame"
+class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -567,7 +571,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
+    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
         """
         Override generic, we want to set the _typ here.
 
@@ -949,7 +953,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self.take(indices=indices, axis=axis)
 
-    def _ixs(self, i: int, axis: int = 0) -> Any:
+    def _ixs(self, i: int, axis: AxisInt = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
@@ -963,7 +967,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0) -> Series:
+    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -2494,7 +2498,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmin(skipna=False)
         nan
         """
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        # error: Argument 1 to "argmin" of "IndexOpsMixin" has incompatible type "Union
+        # [int, Literal['index', 'columns']]"; expected "Optional[int]"
+        i = self.argmin(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2563,7 +2569,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmax(skipna=False)
         nan
         """
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        # error: Argument 1 to "argmax" of "IndexOpsMixin" has incompatible type
+        # "Union[int, Literal['index', 'columns']]"; expected "Optional[int]"
+        i = self.argmax(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
         if i == -1:
             return np.nan
         return self.index[i]
@@ -6217,10 +6225,10 @@ Keep all original rows and also all original values
 
     # ----------------------------------------------------------------------
     # Add index
-    _AXIS_ORDERS = ["index"]
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index"]
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
-    _info_axis_name = "index"
+    _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."

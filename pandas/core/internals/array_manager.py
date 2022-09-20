@@ -21,6 +21,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     QuantileInterpolation,
     npt,
@@ -161,12 +162,12 @@ class BaseArrayManager(DataManager):
         return tuple(len(ax) for ax in self._axes)
 
     @staticmethod
-    def _normalize_axis(axis: int) -> int:
+    def _normalize_axis(axis: AxisInt) -> int:
         # switch axis
         axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         self._validate_set_axis(axis, new_labels)
         axis = self._normalize_axis(axis)
@@ -356,14 +357,14 @@ class BaseArrayManager(DataManager):
             new=new,
         )
 
-    def diff(self: T, n: int, axis: int) -> T:
+    def diff(self: T, n: int, axis: AxisInt) -> T:
         assert self.ndim == 2 and axis == 0  # caller ensures
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self: T, **kwargs) -> T:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
 
-    def shift(self: T, periods: int, axis: int, fill_value) -> T:
+    def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
         if fill_value is lib.no_default:
             fill_value = None
 
@@ -543,7 +544,7 @@ class BaseArrayManager(DataManager):
         self: T,
         new_axis,
         indexer,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
@@ -567,7 +568,7 @@ class BaseArrayManager(DataManager):
         self: T,
         new_axis,
         indexer: npt.NDArray[np.intp] | None,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
@@ -645,7 +646,7 @@ class BaseArrayManager(DataManager):
     def take(
         self: T,
         indexer,
-        axis: int = 1,
+        axis: AxisInt = 1,
         verify: bool = True,
         convert_indices: bool = True,
     ) -> T:
@@ -779,7 +780,7 @@ class ArrayManager(BaseArrayManager):
             result = np.array(values, dtype=dtype)
         return SingleArrayManager([result], [self._axes[1]])
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> ArrayManager:
+    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> ArrayManager:
         axis = self._normalize_axis(axis)
 
         if axis == 0:
@@ -1055,7 +1056,7 @@ class ArrayManager(BaseArrayManager):
         self,
         *,
         qs: Float64Index,
-        axis: int = 0,
+        axis: AxisInt = 0,
         transposed: bool = False,
         interpolation: QuantileInterpolation = "linear",
     ) -> ArrayManager:
@@ -1285,7 +1286,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def fast_xs(self, loc: int) -> SingleArrayManager:
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> SingleArrayManager:
+    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> SingleArrayManager:
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 

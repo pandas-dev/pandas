@@ -32,6 +32,7 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
 )
 from pandas._typing import (
+    AxisInt,
     DateTimeErrorChoices,
     DtypeObj,
     NpDtype,
@@ -328,7 +329,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def sum(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -348,7 +349,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def std(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,

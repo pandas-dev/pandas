@@ -45,6 +45,7 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     Axis,
+    AxisInt,
     ColspaceArgType,
     CompressionOptions,
     Dtype,
@@ -488,10 +489,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Axis
     _stat_axis_number = 0
     _stat_axis_name = "index"
-    _AXIS_ORDERS: list[str]
-    _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {0: 0, "index": 0, "rows": 0}
+    _AXIS_ORDERS: list[Literal["index", "columns"]]
+    _AXIS_TO_AXIS_NUMBER: dict[Axis, AxisInt] = {0: 0, "index": 0, "rows": 0}
     _info_axis_number: int
-    _info_axis_name: str
+    _info_axis_name: Literal["index", "columns"]
     _AXIS_LEN: int
 
     @property
@@ -514,10 +515,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return {0: "index"}
 
     @final
-    def _construct_axes_dict(self, axes=None, **kwargs):
+    def _construct_axes_dict(self, axes: Sequence[Axis] | None = None, **kwargs):
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
-        d.update(kwargs)
+        # error: Argument 1 to "update" of "MutableMapping" has incompatible type
+        # "Dict[str, Any]"; expected "SupportsKeysAndGetItem[Union[int, str], Any]"
+        d.update(kwargs)  # type: ignore[arg-type]
         return d
 
     @final
@@ -554,7 +557,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _get_axis_number(cls, axis: Axis) -> int:
+    def _get_axis_number(cls, axis: Axis) -> AxisInt:
         try:
             return cls._AXIS_TO_AXIS_NUMBER[axis]
         except KeyError:
@@ -562,7 +565,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _get_axis_name(cls, axis: Axis) -> str:
+    def _get_axis_name(cls, axis: Axis) -> Literal["index", "columns"]:
         axis_number = cls._get_axis_number(axis)
         return cls._AXIS_ORDERS[axis_number]
 
@@ -821,7 +824,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
-    def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
+    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
@@ -929,7 +932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
-    def squeeze(self, axis=None):
+    def squeeze(self, axis: Axis | None = None):
         """
         Squeeze 1 dimensional axis objects into scalars.
 
@@ -1032,10 +1035,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df_0a.squeeze()
         1
         """
-        axis = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
+        axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         return self.iloc[
             tuple(
-                0 if i in axis and len(a) == 1 else slice(None)
+                0 if i in axes and len(a) == 1 else slice(None)
                 for i, a in enumerate(self.axes)
             )
         ]
@@ -1730,7 +1733,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _is_label_or_level_reference(self, key: Level, axis: int = 0) -> bool_t:
+    def _is_label_or_level_reference(self, key: Level, axis: AxisInt = 0) -> bool_t:
         """
         Test whether a key is a label or level reference for a given axis.
 
@@ -1755,7 +1758,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _check_label_or_level_ambiguity(self, key: Level, axis: int = 0) -> None:
+    def _check_label_or_level_ambiguity(self, key: Level, axis: AxisInt = 0) -> None:
         """
         Check whether `key` is ambiguous.
 
@@ -1800,7 +1803,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(msg)
 
     @final
-    def _get_label_or_level_values(self, key: Level, axis: int = 0) -> ArrayLike:
+    def _get_label_or_level_values(self, key: Level, axis: AxisInt = 0) -> ArrayLike:
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1872,7 +1875,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return values
 
     @final
-    def _drop_labels_or_levels(self, keys, axis: int = 0):
+    def _drop_labels_or_levels(self, keys, axis: AxisInt = 0):
         """
         Drop labels and/or levels for the given `axis`.
 
@@ -4688,11 +4691,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_name = self._get_axis_name(axis)
 
         mapper = {axis_name: f}
+
         # error: Incompatible return value type (got "Optional[NDFrameT]",
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
+        # error: Keywords must be strings
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type, misc]
 
     @final
     def add_suffix(self: NDFrameT, suffix: str, axis: Axis | None = None) -> NDFrameT:
@@ -4764,7 +4769,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
+        # error: Keywords must be strings
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type, misc]
 
     @overload
     def sort_values(
@@ -5403,7 +5409,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         items=None,
         like: str | None = None,
         regex: str | None = None,
-        axis=None,
+        axis: Axis | None = None,
     ) -> NDFrameT:
         """
         Subset the dataframe rows or columns according to the specified index labels.
@@ -5481,7 +5487,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if items is not None:
             name = self._get_axis_name(axis)
-            return self.reindex(**{name: [r for r in items if r in labels]})
+            # error: Keywords must be strings
+            return self.reindex(  # type: ignore[misc]
+                **{name: [r for r in items if r in labels]}
+            )
         elif like:
 
             def f(x) -> bool_t:
@@ -8271,7 +8280,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def at_time(self: NDFrameT, time, asof: bool_t = False, axis=None) -> NDFrameT:
+    def at_time(
+        self: NDFrameT, time, asof: bool_t = False, axis: Axis | None = None
+    ) -> NDFrameT:
         """
         Select values at particular time of day (e.g., 9:30AM).
 
@@ -8334,7 +8345,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
         inclusive: IntervalClosedType | None = None,
-        axis=None,
+        axis: Axis | None = None,
     ) -> NDFrameT:
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
@@ -9498,7 +9509,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         other,
         join: AlignJoin = "outer",
-        axis=None,
+        axis: Axis | None = None,
         level=None,
         copy: bool_t = True,
         fill_value=None,
@@ -9562,7 +9573,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         other,
         join: AlignJoin = "outer",
-        axis=None,
+        axis: Axis | None = None,
         level=None,
         copy: bool_t = True,
         fill_value=None,
@@ -9647,7 +9658,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond,
         other=lib.no_default,
         inplace: bool_t = False,
-        axis=None,
+        axis: Axis | None = None,
         level=None,
     ):
         """
@@ -10332,7 +10343,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.shift(periods, freq, axis)
 
     def truncate(
-        self: NDFrameT, before=None, after=None, axis=None, copy: bool_t = True
+        self: NDFrameT,
+        before=None,
+        after=None,
+        axis: Axis | None = None,
+        copy: bool_t = True,
     ) -> NDFrameT:
         """
         Truncate a Series or DataFrame before and after some index value.
@@ -11678,7 +11693,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def mad(self, axis=None, skipna: bool_t = True, level=None):
+        def mad(self, axis: Axis | None = None, skipna: bool_t = True, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
         setattr(cls, "mad", mad)
@@ -11696,7 +11711,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def sem(
             self,
-            axis=None,
+            axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
             ddof=1,
@@ -11719,7 +11734,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def var(
             self,
-            axis=None,
+            axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
             ddof=1,
@@ -11743,7 +11758,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def std(
             self,
-            axis=None,
+            axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
             ddof=1,
@@ -11763,7 +11778,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="min",
             examples=_cummin_examples,
         )
-        def cummin(self, axis=None, skipna: bool_t = True, *args, **kwargs):
+        def cummin(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cummin", cummin)
@@ -11777,7 +11794,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="max",
             examples=_cummax_examples,
         )
-        def cummax(self, axis=None, skipna: bool_t = True, *args, **kwargs):
+        def cummax(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cummax", cummax)
@@ -11791,7 +11810,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="sum",
             examples=_cumsum_examples,
         )
-        def cumsum(self, axis=None, skipna: bool_t = True, *args, **kwargs):
+        def cumsum(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cumsum", cumsum)
@@ -11805,7 +11826,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             accum_func_name="prod",
             examples=_cumprod_examples,
         )
-        def cumprod(self, axis=None, skipna: bool_t = True, *args, **kwargs):
+        def cumprod(
+            self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+        ):
             return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
         setattr(cls, "cumprod", cumprod)
@@ -11824,7 +11847,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def sum(
             self,
-            axis=None,
+            axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
@@ -11849,7 +11872,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def prod(
             self,
-            axis=None,
+            axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
@@ -11875,7 +11898,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def mean(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
@@ -11897,7 +11920,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def skew(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
@@ -11945,7 +11968,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def median(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
@@ -11969,7 +11992,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def max(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
@@ -11993,7 +12016,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def min(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: AxisInt | None | lib.NoDefault = lib.no_default,
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
