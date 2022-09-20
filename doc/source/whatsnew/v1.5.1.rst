@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`Series.__getitem__` not falling back to positional for integer keys and boolean :class:`Index` (:issue:`48653`)
 -
 
 .. ---------------------------------------------------------------------------

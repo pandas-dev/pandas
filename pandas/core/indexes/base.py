@@ -6003,7 +6003,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        return not self.holds_integer() and not self.is_boolean()
+        return not self.holds_integer()
 
     def _get_values_for_loc(self, series: Series, loc, key):
         """
