@@ -73,7 +73,8 @@ class CParserWrapper(ParserBase):
             isinstance(src, TextIOWrapper)
             and src.encoding == "utf-8"
             and (src.errors or "strict") == kwds["encoding_errors"]
-            and (not src.seekable() or src.tell() == src.buffer.tell())
+            and src.seekable()
+            and src.tell() == src.buffer.tell()
         ):
             # error: Incompatible types in assignment (expression has type "BinaryIO",
             # variable has type "ReadCsvBuffer[str]")
