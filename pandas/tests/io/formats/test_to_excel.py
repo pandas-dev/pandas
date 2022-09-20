@@ -113,10 +113,10 @@ from pandas.io.formats.excel import (
             "border-style: solid",
             {
                 "border": {
-                    "top": {"style": "medium"},
-                    "bottom": {"style": "medium"},
-                    "left": {"style": "medium"},
-                    "right": {"style": "medium"},
+                    "top": {"style": "medium", "color": "000000"},
+                    "bottom": {"style": "medium", "color": "000000"},
+                    "left": {"style": "medium", "color": "000000"},
+                    "right": {"style": "medium", "color": "000000"},
                 }
             },
         ),
@@ -124,52 +124,61 @@ from pandas.io.formats.excel import (
             "border-style: solid; border-width: thin",
             {
                 "border": {
-                    "top": {"style": "thin"},
-                    "bottom": {"style": "thin"},
-                    "left": {"style": "thin"},
-                    "right": {"style": "thin"},
+                    "top": {"style": "thin", "color": "000000"},
+                    "bottom": {"style": "thin", "color": "000000"},
+                    "left": {"style": "thin", "color": "000000"},
+                    "right": {"style": "thin", "color": "000000"},
                 }
             },
         ),
         (
             "border-top-style: solid; border-top-width: thin",
-            {"border": {"top": {"style": "thin"}}},
+            {"border": {"top": {"style": "thin", "color": "000000"}}},
         ),
         (
             "border-top-style: solid; border-top-width: 1pt",
-            {"border": {"top": {"style": "thin"}}},
+            {"border": {"top": {"style": "thin", "color": "000000"}}},
         ),
-        ("border-top-style: solid", {"border": {"top": {"style": "medium"}}}),
+        (
+            "border-top-style: solid",
+            {"border": {"top": {"style": "medium", "color": "000000"}}},
+        ),
         (
             "border-top-style: solid; border-top-width: medium",
-            {"border": {"top": {"style": "medium"}}},
+            {"border": {"top": {"style": "medium", "color": "000000"}}},
         ),
         (
             "border-top-style: solid; border-top-width: 2pt",
-            {"border": {"top": {"style": "medium"}}},
+            {"border": {"top": {"style": "medium", "color": "000000"}}},
         ),
         (
             "border-top-style: solid; border-top-width: thick",
-            {"border": {"top": {"style": "thick"}}},
+            {"border": {"top": {"style": "thick", "color": "000000"}}},
         ),
         (
             "border-top-style: solid; border-top-width: 4pt",
-            {"border": {"top": {"style": "thick"}}},
+            {"border": {"top": {"style": "thick", "color": "000000"}}},
         ),
         (
             "border-top-style: dotted",
-            {"border": {"top": {"style": "mediumDashDotDot"}}},
+            {"border": {"top": {"style": "mediumDashDotDot", "color": "000000"}}},
         ),
         (
             "border-top-style: dotted; border-top-width: thin",
-            {"border": {"top": {"style": "dotted"}}},
+            {"border": {"top": {"style": "dotted", "color": "000000"}}},
         ),
-        ("border-top-style: dashed", {"border": {"top": {"style": "mediumDashed"}}}),
+        (
+            "border-top-style: dashed",
+            {"border": {"top": {"style": "mediumDashed", "color": "000000"}}},
+        ),
         (
             "border-top-style: dashed; border-top-width: thin",
-            {"border": {"top": {"style": "dashed"}}},
+            {"border": {"top": {"style": "dashed", "color": "000000"}}},
         ),
-        ("border-top-style: double", {"border": {"top": {"style": "double"}}}),
+        (
+            "border-top-style: double",
+            {"border": {"top": {"style": "double", "color": "000000"}}},
+        ),
         # - color
         (
             "border-style: solid; border-color: #0000ff",
@@ -240,10 +249,10 @@ def test_css_to_excel_multiple():
     assert {
         "font": {"bold": True, "underline": "single", "color": "FF0000"},
         "border": {
-            "top": {"style": "thin"},
-            "right": {"style": "thin"},
-            "bottom": {"style": "thin"},
-            "left": {"style": "thin"},
+            "top": {"style": "thin", "color": "000000"},
+            "right": {"style": "thin", "color": "000000"},
+            "bottom": {"style": "thin", "color": "000000"},
+            "left": {"style": "thin", "color": "000000"},
         },
         "alignment": {"horizontal": "center", "vertical": "top"},
     } == actual
