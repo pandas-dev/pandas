@@ -367,7 +367,8 @@ def test_store_multiindex(setup_path):
         tm.assert_frame_equal(store.select("df"), df)
 
 
-def test_store_periodindex(setup_path):
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_store_periodindex(setup_path, format):
     # GH 7796
     # test of PeriodIndex in HDFStore
     df = DataFrame(
@@ -375,10 +376,6 @@ def test_store_periodindex(setup_path):
     )
 
     with ensure_clean_path(setup_path) as path:
-        df.to_hdf(path, "fixed", mode="w", format="fixed")
-        fixed = pd.read_hdf(path, "fixed")
-        tm.assert_frame_equal(df, fixed)
-
-        df.to_hdf(path, "table", mode="w", format="table")
-        table = pd.read_hdf(path, "table")
-        tm.assert_frame_equal(df, table)
+        df.to_hdf(path, "df", mode="w", format=format)
+        expected = pd.read_hdf(path, "df")
+        tm.assert_frame_equal(df, expected)
