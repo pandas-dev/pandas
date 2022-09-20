@@ -129,7 +129,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
--
+- Bug in :class:`DatetimeIndex` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``dtype`` or data (:issue:`??`)
 
 Timedelta
 ^^^^^^^^^
