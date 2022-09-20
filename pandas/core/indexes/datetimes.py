@@ -966,7 +966,7 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
@@ -1163,7 +1163,7 @@ def bdate_range(
         Right bound for generating dates.
     periods : int, default None
         Number of periods to generate.
-    freq : str or DateOffset, default 'B' (business daily)
+    freq : str, datetime.timedelta, or DateOffset, default 'B' (business daily)
         Frequency strings can have multiples, e.g. '5H'.
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example
