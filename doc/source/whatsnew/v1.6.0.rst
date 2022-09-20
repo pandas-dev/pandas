@@ -116,7 +116,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 -
--
+- Disallow passing non-round floats to :class:`Timestamp` with ``unit="M"`` or ``unit="Y"`` (:issue:`47266`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.deprecations:
