@@ -292,18 +292,13 @@ def test_sort_values_nan():
     tm.assert_index_equal(result, expected)
 
 
-def test_sort_values_monotonic_incomparable():
+def test_sort_values_incomparable():
     mi = MultiIndex.from_arrays(
         [
             [1, Timestamp("2000-01-01")],
             [3, 4],
         ]
     )
-
     match = "'<' not supported between instances of 'Timestamp' and 'int'"
     with pytest.raises(TypeError, match=match):
-        mi._sort_levels_monotonic(raise_if_incomparable=True)
-
-    result = mi._sort_levels_monotonic()
-    expected = mi
-    tm.assert_index_equal(result, expected)
+        mi.sort_values()
