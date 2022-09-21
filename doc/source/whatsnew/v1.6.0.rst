@@ -219,7 +219,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` and raised :class:`.errors.PerformanceWarning` (:issue:`48595`)
 -
 
 Period
