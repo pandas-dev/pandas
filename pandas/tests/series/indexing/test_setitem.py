@@ -563,7 +563,7 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_enlargement_object_none(self):
-        # GH#
+        # GH#48665
         ser = Series(["a", "b"])
         ser[3] = None
         expected = Series(["a", "b", None], index=[0, 1, 3])
