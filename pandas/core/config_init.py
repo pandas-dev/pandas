@@ -131,11 +131,11 @@ pc_max_cols_doc = """
     a summary view. 'None' value means unlimited.
 
     In case python/IPython is running in a terminal and `large_repr`
-    equals 'truncate' this can be set to 0 and pandas will auto-detect
+    equals 'truncate' this can be set to 0 or None and pandas will auto-detect
     the width of the terminal and print a truncated object which fits
     the screen width. The IPython notebook, IPython qtconsole, or IDLE
     do not run in a terminal and hence it is not possible to do
-    correct auto-detection.
+    correct auto-detection and defaults to 20.
 """
 
 pc_max_categories_doc = """
