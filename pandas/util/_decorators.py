@@ -330,6 +330,8 @@ def deprecate_nonkeyword_arguments(
                 )
             return func(*args, **kwargs)
 
+        # error: "Callable[[VarArg(Any), KwArg(Any)], Any]" has no
+        # attribute "__signature__"
         wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         return wrapper
 
