@@ -562,6 +562,14 @@ class TestSetitemWithExpansion:
         expected = Series(expected_values, dtype=target_dtype)
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_enlargement_object_none(self):
+        # GH#
+        ser = Series(["a", "b"])
+        ser[3] = None
+        expected = Series(["a", "b", None], index=[0, 1, 3])
+        tm.assert_series_equal(ser, expected)
+        assert ser[3] is None
+
 
 def test_setitem_scalar_into_readonly_backing_data():
     # GH#14359: test that you cannot mutate a read only buffer

@@ -2112,9 +2112,14 @@ class _iLocIndexer(_LocationIndexer):
             # this preserves dtype of the value and of the object
             if not is_scalar(value):
                 new_dtype = None
+
             elif is_valid_na_for_dtype(value, self.obj.dtype):
-                value = na_value_for_dtype(self.obj.dtype, compat=False)
+                if not is_object_dtype(self.obj.dtype):
+                    # Every NA value is suitable for object, no conversion needed
+                    value = na_value_for_dtype(self.obj.dtype, compat=False)
+
                 new_dtype = maybe_promote(self.obj.dtype, value)[0]
+
             elif isna(value):
                 new_dtype = None
             elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
