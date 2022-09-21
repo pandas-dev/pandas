@@ -201,7 +201,7 @@ class TestSeriesGetitemScalars:
         with pytest.raises(KeyError, match=msg):
             ser["50 days"]
 
-    def test_getitem_boo_index_positional(self):
+    def test_getitem_bool_index_positional(self):
         # GH#48653
         ser = Series({True: 1, False: 0})
         result = ser[0]
