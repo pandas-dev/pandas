@@ -304,7 +304,10 @@ def deprecate_nonkeyword_arguments(
 
         new_params = [
             p.replace(kind=p.KEYWORD_ONLY)
-            if (p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) and p.name not in allow_args)
+            if (
+                p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                and p.name not in allow_args
+            )
             else p
             for p in old_sig.parameters.values()
         ]
