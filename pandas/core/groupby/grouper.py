@@ -660,7 +660,7 @@ class Grouping:
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
-        if self._dropna and self._passed_categorical:
+        if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
             # doesn't (yet - GH#46909) handle dropna=False
