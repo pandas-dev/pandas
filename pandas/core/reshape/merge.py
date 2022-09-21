@@ -644,7 +644,7 @@ class _MergeOperation:
         right_index: bool = False,
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
-        indicator: bool = False,
+        indicator: str | bool = False,
         validate: str | None = None,
     ) -> None:
         _left = _validate_operand(left)
