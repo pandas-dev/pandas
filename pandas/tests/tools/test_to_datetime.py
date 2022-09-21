@@ -2815,3 +2815,27 @@ def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
 
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"):
         to_datetime(s, errors="raise", utc=True)
+
+
+@pytest.mark.parametrize(
+    "arg",
+    [
+        ["1724-12-20 20:20:20+00:00", "2022-01-01 00:00:00"],
+        [
+            Timestamp("1724-12-20 20:20:20+00:00"),
+            Timestamp("2022-01-01 00:00:00"),
+        ],
+        [datetime(1724, 12, 20, 20, 20, 20, tzinfo=timezone.utc), datetime(2022, 1, 1)],
+    ],
+    ids=["string", "pd.Timestamp", "datetime.datetime"],
+)
+@pytest.mark.parametrize("tz_aware_first", [True, False])
+def test_to_datetime_mixed_tzaware_timestamp_utc_true(arg, tz_aware_first):
+    # GH 48678
+    exp_arg = ["1724-12-20 20:20:20", "2022-01-01 00:00:00"]
+    if not tz_aware_first:
+        arg.reverse()
+        exp_arg.reverse()
+    result = to_datetime(arg, utc=True)
+    expected = DatetimeIndex(exp_arg).tz_localize("UTC")
+    tm.assert_index_equal(result, expected)

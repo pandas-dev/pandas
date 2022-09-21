@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
--
+- Regression in :func:`to_datetime` when ``utc=True`` and ``arg`` contained timezone naive and aware arguments raised a ``ValueError`` (:issue:`48678`)
 
 .. ---------------------------------------------------------------------------
 
