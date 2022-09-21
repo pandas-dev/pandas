@@ -1143,10 +1143,13 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_coerce_malformed(self):
+    @pytest.mark.parametrize("infer_datetime_format", [True, False])
+    def test_to_datetime_coerce_malformed(self, infer_datetime_format):
         # GH 28299
         ts_strings = ["200622-12-31", "111111-24-11"]
-        result = to_datetime(ts_strings, errors="coerce")
+        result = to_datetime(
+            ts_strings, errors="coerce", infer_datetime_format=infer_datetime_format
+        )
         expected = Index([NaT, NaT])
         tm.assert_index_equal(result, expected)
 
