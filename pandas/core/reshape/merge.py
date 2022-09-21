@@ -107,7 +107,7 @@ def merge(
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
-    indicator: bool = False,
+    indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
@@ -625,7 +625,7 @@ class _MergeOperation:
     sort: bool
     suffixes: Suffixes
     copy: bool
-    indicator: bool
+    indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
     right_join_keys: list[AnyArrayLike]
@@ -644,7 +644,7 @@ class _MergeOperation:
         right_index: bool = False,
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
-        indicator: bool = False,
+        indicator: str | bool = False,
         validate: str | None = None,
     ) -> None:
         _left = _validate_operand(left)
