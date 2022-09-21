@@ -7,6 +7,7 @@ from datetime import (
     timedelta,
     tzinfo,
 )
+import inspect
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -36,7 +37,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    IntervalInclusiveType,
+    IntervalClosedType,
     IntervalLeftRight,
     npt,
 )
@@ -115,7 +116,7 @@ def _new_DatetimeIndex(cls, d):
     + [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize", "tz_convert")
+        if method not in ("tz_localize", "tz_convert", "strftime")
     ],
     DatetimeArray,
     wrap=True,
@@ -145,8 +146,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), optional
-        Optional datetime-like data to construct index with.
+    data : array-like (1-dimensional)
+        Datetime-like data to construct index with.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
@@ -269,7 +270,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.strftime)
     def strftime(self, date_format) -> Index:
         arr = self._data.strftime(date_format)
-        return Index(arr, name=self.name)
+        return Index(arr, name=self.name, dtype=object)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> DatetimeIndex:
@@ -314,7 +315,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         cls,
         data=None,
         freq: str | BaseOffset | lib.NoDefault = lib.no_default,
-        tz=None,
+        tz=lib.no_default,
         normalize: bool = False,
         closed=None,
         ambiguous="raise",
@@ -335,7 +336,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and dtype is None
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
@@ -346,7 +347,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and is_dtype_equal(data.dtype, dtype)
         ):
             # Reached via Index.__new__ when we call .astype
@@ -415,6 +416,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
+    def _can_range_setop(self, other) -> bool:
+        # GH 46702: If self or other have non-UTC tzs, DST transitions prevent
+        # range representation due to no singular step
+        if (
+            self.tz is not None
+            and not timezones.is_utc(self.tz)
+            and not timezones.is_fixed_offset(self.tz)
+        ):
+            return False
+        if (
+            other.tz is not None
+            and not timezones.is_utc(other.tz)
+            and not timezones.is_fixed_offset(other.tz)
+        ):
+            return False
+        return super()._can_range_setop(other)
+
     def union_many(self, others):
         """
         A bit of a hack to accelerate unioning a collection of indexes.
@@ -423,7 +441,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.union_many is deprecated and will be removed in "
             "a future version. Use obj.union instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
 
         this = self
@@ -496,8 +514,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
-        Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index.
+        Create a Series with both index and values equal to the index keys.
+
+        Useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -546,7 +565,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
             else:
                 warnings.warn(
@@ -556,7 +575,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "can do 'idx.tz_convert(None)' before calling "
                     "'to_series'.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
         else:
             keep_tz = True
@@ -659,7 +678,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg, FutureWarning, stacklevel=find_stack_level(inspect.currentframe())
+            )
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -777,7 +798,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError("Cannot mix time and non-time slice keys")
 
-        def check_str_or_none(point):
+        def check_str_or_none(point) -> bool:
             return point is not None and not isinstance(point, str)
 
         # GH#33146 if start and end are combinations of str and None and Index is not
@@ -808,7 +829,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -826,8 +847,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof: bool = False) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values at particular time of day
-        (e.g. 9:30AM).
+        Return index locations of values at particular time of day.
 
         Parameters
         ----------
@@ -867,8 +887,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
     ) -> npt.NDArray[np.intp]:
         """
-        Return index locations of values between particular times of day
-        (e.g., 9:00-9:30AM).
+        Return index locations of values between particular times of day.
 
         Parameters
         ----------
@@ -924,7 +943,7 @@ def date_range(
     normalize: bool = False,
     name: Hashable = None,
     closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
-    inclusive: IntervalInclusiveType | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -947,7 +966,7 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
@@ -1090,7 +1109,7 @@ def date_range(
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         if closed is None:
             inclusive = "both"
@@ -1130,12 +1149,11 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
-    inclusive: IntervalInclusiveType | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
-    Return a fixed frequency DatetimeIndex, with business day as the default
-    frequency.
+    Return a fixed frequency DatetimeIndex with business day as the default.
 
     Parameters
     ----------
@@ -1145,7 +1163,7 @@ def bdate_range(
         Right bound for generating dates.
     periods : int, default None
         Number of periods to generate.
-    freq : str or DateOffset, default 'B' (business daily)
+    freq : str, datetime.timedelta, or DateOffset, default 'B' (business daily)
         Frequency strings can have multiples, e.g. '5H'.
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example

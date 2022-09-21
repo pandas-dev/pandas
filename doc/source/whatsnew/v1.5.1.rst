@@ -1,0 +1,43 @@
+.. _whatsnew_151:
+
+What's new in 1.5.1 (October ??, 2022)
+--------------------------------------
+
+These are the changes in pandas 1.5.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.contributors:
+
+Contributors
+~~~~~~~~~~~~

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import (
     Callable,
     Hashable,
@@ -42,9 +43,10 @@ from pandas.core.indexes.base import (
 
 class NumericIndex(Index):
     """
-    Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects. NumericIndex is a special case
-    of `Index` with purely numpy int/uint/float labels.
+    Immutable numeric sequence used for indexing and alignment.
+
+    The basic object storing axis labels for all pandas objects.
+    NumericIndex is a special case of `Index` with purely numpy int/uint/float labels.
 
     .. versionadded:: 1.4.0
 
@@ -121,7 +123,7 @@ class NumericIndex(Index):
         }[self.dtype.kind]
 
     def __new__(
-        cls, data=None, dtype: Dtype | None = None, copy=False, name=None
+        cls, data=None, dtype: Dtype | None = None, copy: bool = False, name=None
     ) -> NumericIndex:
         name = maybe_extract_name(name, data, cls)
 
@@ -309,13 +311,14 @@ _num_index_shared_docs = {}
 _num_index_shared_docs[
     "class_descr"
 ] = """
-    Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s.
+    Immutable sequence used for indexing and alignment.
 
     .. deprecated:: 1.4.0
         In pandas v2.0 %(klass)s will be removed and :class:`NumericIndex` used instead.
         %(klass)s will remain fully functional for the duration of pandas 1.x.
+
+    The basic object storing axis labels for all pandas objects.
+    %(klass)s is a special case of `Index` with purely %(ltype)s labels. %(extra)s.
 
     Parameters
     ----------
@@ -358,7 +361,7 @@ class IntegerIndex(NumericIndex):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self._values.view(self._default_dtype)
 

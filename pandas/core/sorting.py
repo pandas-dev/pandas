@@ -22,6 +22,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
+    AxisInt,
     IndexKeyFunc,
     Level,
     NaPosition,
@@ -52,7 +53,7 @@ if TYPE_CHECKING:
 def get_indexer_indexer(
     target: Index,
     level: Level | list[Level] | None,
-    ascending: Sequence[bool] | bool,
+    ascending: list[bool] | bool,
     kind: SortKind,
     na_position: NaPosition,
     sort_remaining: bool,
@@ -447,7 +448,7 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
+def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.

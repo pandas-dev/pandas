@@ -4,10 +4,12 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Iterator,
     final,
 )
 import warnings
@@ -16,6 +18,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     NDFrameT,
     npt,
 )
@@ -257,7 +260,7 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    axis: int
+    axis: AxisInt
     sort: bool
     dropna: bool
     _gpr_index: Index | None
@@ -278,7 +281,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
@@ -563,7 +566,7 @@ class Grouping:
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.indices)
 
     @cache_readonly
@@ -657,9 +660,10 @@ class Grouping:
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
-        if self._passed_categorical:
+        if self._dropna and self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
-            # preserving the categories / ordered attributes
+            # preserving the categories / ordered attributes;
+            # doesn't (yet - GH#46909) handle dropna=False
             cat = self.grouping_vector
             categories = cat.categories
 
@@ -701,7 +705,7 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: int = 0,
+    axis: AxisInt = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,
@@ -948,7 +952,7 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
 
 
-def _check_deprecated_resample_kwargs(kwargs, origin):
+def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
     """
     Check for use of deprecated parameters in ``resample`` and related functions.
 
@@ -981,7 +985,7 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             "\nbecomes:\n"
             '\n>>> df.resample(freq="3s", offset="2s")\n',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     if kwargs.get("loffset", None) is not None:
         warnings.warn(
@@ -992,5 +996,5 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             '\n>>> df = df.resample(freq="3s").mean()'
             '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )

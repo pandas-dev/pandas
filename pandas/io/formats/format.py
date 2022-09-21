@@ -20,9 +20,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Final,
+    Generator,
     Hashable,
     Iterable,
-    Iterator,
     List,
     Mapping,
     Sequence,
@@ -50,6 +51,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    Axes,
     ColspaceArgType,
     ColspaceType,
     CompressionOptions,
@@ -66,7 +68,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -77,6 +78,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -117,7 +119,7 @@ if TYPE_CHECKING:
     )
 
 
-common_docstring = """
+common_docstring: Final = """
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -190,7 +192,7 @@ _VALID_JUSTIFY_PARAMETERS = (
     "unset",
 )
 
-return_docstring = """
+return_docstring: Final = """
         Returns
         -------
         str or None
@@ -688,7 +690,9 @@ class DataFrameFormatter:
 
     def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
         if columns is not None:
-            cols = ensure_index(columns)
+            # GH 47231 - columns doesn't have to be `Sequence[str]`
+            # Will fix in later PR
+            cols = ensure_index(cast(Axes, columns))
             self.frame = self.frame[cols]
             return cols
         else:
@@ -1032,7 +1036,7 @@ class DataFrameRenderer:
         multicolumn: bool = False,
         multicolumn_format: str | None = None,
         multirow: bool = False,
-        caption: str | None = None,
+        caption: str | tuple[str, str] | None = None,
         label: str | None = None,
         position: str | None = None,
     ) -> str | None:
@@ -1212,7 +1216,7 @@ def save_to_buffer(
 @contextmanager
 def get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Iterator[WriteBuffer[str]] | Iterator[StringIO]:
+) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1286,7 +1290,7 @@ def format_array(
     fmt_klass: type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values.dtype):
+    elif isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
@@ -1446,7 +1450,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _value_formatter(
         self,
         float_format: FloatFormatType | None = None,
-        threshold: float | int | None = None,
+        threshold: float | None = None,
     ) -> Callable:
         """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
@@ -1716,11 +1720,12 @@ def format_percentiles(
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
+    percentiles_round_type = percentiles.round().astype(int)
 
-    int_idx = np.isclose(percentiles.astype(int), percentiles)
+    int_idx = np.isclose(percentiles_round_type, percentiles)
 
     if np.all(int_idx):
-        out = percentiles.astype(int).astype(str)
+        out = percentiles_round_type.astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1733,7 +1738,7 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
+    out[int_idx] = percentiles[int_idx].round().astype(int).astype(str)
 
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
@@ -1980,7 +1985,7 @@ def _trim_zeros_float(
     trimmed = str_floats
     number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
 
-    def is_number_with_decimal(x):
+    def is_number_with_decimal(x) -> bool:
         return re.match(number_regex, x) is not None
 
     def should_trim(values: np.ndarray | list[str]) -> bool:
@@ -2046,7 +2051,7 @@ class EngFormatter:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
-    def __call__(self, num: int | float) -> str:
+    def __call__(self, num: float) -> str:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
@@ -2111,11 +2116,56 @@ class EngFormatter:
 
 def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> None:
     """
-    Alter default behavior on how float is formatted in DataFrame.
-    Format float in engineering format. By accuracy, we mean the number of
-    decimal digits after the floating point.
+    Format float representation in DataFrame with SI notation.
 
-    See also EngFormatter.
+    Parameters
+    ----------
+    accuracy : int, default 3
+        Number of decimal digits after the floating point.
+    use_eng_prefix : bool, default False
+        Whether to represent a value with SI prefixes.
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([1e-9, 1e-3, 1, 1e3, 1e6])
+    >>> df
+                  0
+    0  1.000000e-09
+    1  1.000000e-03
+    2  1.000000e+00
+    3  1.000000e+03
+    4  1.000000e+06
+
+    >>> pd.set_eng_float_format(accuracy=1)
+    >>> df
+             0
+    0  1.0E-09
+    1  1.0E-03
+    2  1.0E+00
+    3  1.0E+03
+    4  1.0E+06
+
+    >>> pd.set_eng_float_format(use_eng_prefix=True)
+    >>> df
+            0
+    0  1.000n
+    1  1.000m
+    2   1.000
+    3  1.000k
+    4  1.000M
+
+    >>> pd.set_eng_float_format(accuracy=1, use_eng_prefix=True)
+    >>> df
+          0
+    0  1.0n
+    1  1.0m
+    2   1.0
+    3  1.0k
+    4  1.0M
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 

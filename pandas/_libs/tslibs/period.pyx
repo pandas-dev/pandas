@@ -1,4 +1,7 @@
+import inspect
 import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport numpy as cnp
 from cpython.object cimport (
@@ -22,7 +25,6 @@ cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDelta_Check,
     datetime,
     import_datetime,
 )
@@ -43,10 +45,10 @@ from libc.time cimport (
 import_datetime()
 
 cimport pandas._libs.tslibs.util as util
+from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
-    NPY_FR_us,
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
@@ -776,7 +778,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     """
     cdef:
         int64_t unix_date
-        int freq_group, fmonth, mdiff
+        int freq_group, fmonth
         NPY_DATETIMEUNIT unit
 
     freq_group = get_freq_group(freq)
@@ -1158,7 +1160,8 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return "NaT"
 
     if isinstance(fmt, str):
-        fmt = fmt.encode("utf-8")
+        # Encode using current locale, in case fmt contains non-utf8 chars
+        fmt = <bytes>util.string_encode_locale(fmt)
 
     if fmt is None:
         freq_group = get_freq_group(freq)
@@ -1227,7 +1230,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
-    result = util.char_to_string(formatted)
+    # Decode result according to current locale
+    result = util.char_to_string_locale(formatted)
     free(formatted)
 
     # Now we will fill the placeholders corresponding to our additional directives
@@ -1470,7 +1474,7 @@ cdef inline int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
     cdef:
         int64_t ordinal
 
-    if checknull_with_nat(item):
+    if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
         if item == NPY_NAT:
@@ -1826,7 +1830,7 @@ cdef class _Period(PeriodMixin):
                 "be removed in a future version.  Use "
                 "`per.to_timestamp(...).tz_localize(tz)` instead.",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         how = validate_end_alias(how)
@@ -2322,12 +2326,12 @@ cdef class _Period(PeriodMixin):
 
     def strftime(self, fmt: str) -> str:
         r"""
-        Returns the string representation of the :class:`Period`, depending
-        on the selected ``fmt``. ``fmt`` must be a string
-        containing one or several directives.  The method recognizes the same
-        directives as the :func:`time.strftime` function of the standard Python
-        distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        Returns a formatted string representation of the :class:`Period`.
+
+        ``fmt`` must be a string containing one or several directives.
+        The method recognizes the same directives as the :func:`time.strftime`
+        function of the standard Python distribution, as well as the specific
+        additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
         (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+

@@ -9,12 +9,15 @@ from __future__ import annotations
 
 from collections import abc
 from functools import partial
+import inspect
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
     Iterable,
+    Literal,
     Mapping,
     NamedTuple,
     Sequence,
@@ -33,9 +36,15 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    Axis,
+    AxisInt,
+    FillnaOptions,
+    IndexLabel,
+    Level,
     Manager,
     Manager2D,
     SingleManager,
+    TakeIndexer,
 )
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
@@ -69,13 +78,14 @@ from pandas.core.apply import (
     reconstruct_func,
     validate_func_kwargs,
 )
+from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
+    GroupByPlot,
     _agg_template,
     _apply_docs,
     _transform_template,
@@ -87,11 +97,15 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
 )
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
@@ -102,6 +116,31 @@ ScalarResult = TypeVar("ScalarResult")
 
 
 class NamedAgg(NamedTuple):
+    """
+    Helper for column specific aggregation with control over output column names.
+
+    Subclass of typing.NamedTuple.
+
+    Parameters
+    ----------
+    column : Hashable
+        Column label in the DataFrame to apply aggfunc.
+    aggfunc : function or str
+        Function to apply to the provided column. If string, the name of a built-in
+        pandas function.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], 1: [10, 11, 12]})
+    >>> agg_a = pd.NamedAgg(column="a", aggfunc="min")
+    >>> agg_1 = pd.NamedAgg(column=1, aggfunc=np.mean)
+    >>> df.groupby("key").agg(result_a=agg_a, result_1=agg_1)
+         result_a  result_1
+    key
+    1          -1      10.5
+    2           1      12.0
+    """
+
     column: Hashable
     aggfunc: AggScalar
 
@@ -129,48 +168,7 @@ def generate_property(name: str, klass: type[DataFrame | Series]):
     return property(prop)
 
 
-def pin_allowlisted_properties(
-    klass: type[DataFrame | Series], allowlist: frozenset[str]
-):
-    """
-    Create GroupBy member defs for DataFrame/Series names in a allowlist.
-
-    Parameters
-    ----------
-    klass : DataFrame or Series class
-        class where members are defined.
-    allowlist : frozenset[str]
-        Set of names of klass methods to be constructed
-
-    Returns
-    -------
-    class decorator
-
-    Notes
-    -----
-    Since we don't want to override methods explicitly defined in the
-    base class, any such name is skipped.
-    """
-
-    def pinner(cls):
-        for name in allowlist:
-            if hasattr(cls, name):
-                # don't override anything that was explicitly defined
-                #  in the base class
-                continue
-
-            prop = generate_property(name, klass)
-            setattr(cls, name, prop)
-
-        return cls
-
-    return pinner
-
-
-@pin_allowlisted_properties(Series, base.series_apply_allowlist)
 class SeriesGroupBy(GroupBy[Series]):
-    _apply_allowlist = base.series_apply_allowlist
-
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         if mgr.ndim == 1:
             mgr = cast(SingleManager, mgr)
@@ -442,7 +440,7 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = True, axis: AxisInt = 0, **kwargs
     ):
         assert axis == 0  # handled by caller
 
@@ -465,7 +463,9 @@ class SeriesGroupBy(GroupBy[Series]):
         klass = type(self.obj)
 
         results = []
-        for name, group in self:
+        for name, group in self.grouper.get_iterator(
+            self._selected_obj, axis=self.axis
+        ):
             # this setattr is needed for test_transform_lambda_with_datetimetz
             object.__setattr__(group, "name", name)
             res = func(group, *args, **kwargs)
@@ -486,15 +486,22 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
-        Return a copy of a Series excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        Filter elements from groups that don't satisfy a criterion.
+
+        Elements from groups are filtered if they do not satisfy the
+        boolean criterion specified by func.
 
         Parameters
         ----------
         func : function
-            To apply to each group. Should return True or False.
-        dropna : Drop groups that do not pass the filter. True by default;
-            if False, groups that evaluate False are filled with NaNs.
+            Criterion to apply to each group. Should return True or False.
+        dropna : bool
+            Drop groups that do not pass the filter. True by default; if False,
+            groups that evaluate False are filled with NaNs.
+
+        Returns
+        -------
+        filtered : Series
 
         Notes
         -----
@@ -514,10 +521,6 @@ class SeriesGroupBy(GroupBy[Series]):
         3    4
         5    6
         Name: B, dtype: int64
-
-        Returns
-        -------
-        filtered : Series
         """
         if isinstance(func, str):
             wrapper = lambda x: getattr(x, func)(*args, **kwargs)
@@ -746,8 +749,82 @@ class SeriesGroupBy(GroupBy[Series]):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self.obj.name)
 
-    @doc(Series.nlargest)
-    def nlargest(self, n: int = 5, keep: str = "first") -> Series:
+    @doc(Series.fillna.__doc__)
+    def fillna(
+        self,
+        value: object | ArrayLike | None = None,
+        method: FillnaOptions | None = None,
+        axis: Axis | None = None,
+        inplace: bool = False,
+        limit: int | None = None,
+        downcast: dict | None = None,
+    ) -> Series | None:
+        result = self._op_via_apply(
+            "fillna",
+            value=value,
+            method=method,
+            axis=axis,
+            inplace=inplace,
+            limit=limit,
+            downcast=downcast,
+        )
+        return result
+
+    @doc(Series.take.__doc__)
+    def take(
+        self,
+        indices: TakeIndexer,
+        axis: Axis = 0,
+        is_copy: bool | None = None,
+        **kwargs,
+    ) -> Series:
+        result = self._op_via_apply(
+            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
+        )
+        return result
+
+    @doc(Series.skew.__doc__)
+    def skew(
+        self,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        skipna: bool = True,
+        level: Level | None = None,
+        numeric_only: bool | None = None,
+        **kwargs,
+    ) -> Series:
+        result = self._op_via_apply(
+            "skew",
+            axis=axis,
+            skipna=skipna,
+            level=level,
+            numeric_only=numeric_only,
+            **kwargs,
+        )
+        return result
+
+    @doc(Series.mad.__doc__)
+    def mad(
+        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
+    ) -> Series:
+        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
+        return result
+
+    @doc(Series.tshift.__doc__)
+    def tshift(self, periods: int = 1, freq=None) -> Series:
+        result = self._op_via_apply("tshift", periods=periods, freq=freq)
+        return result
+
+    # Decorated property not supported - https://github.com/python/mypy/issues/1362
+    @property  # type: ignore[misc]
+    @doc(Series.plot.__doc__)
+    def plot(self):
+        result = GroupByPlot(self)
+        return result
+
+    @doc(Series.nlargest.__doc__)
+    def nlargest(
+        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    ) -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -755,8 +832,10 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._python_apply_general(f, data, not_indexed_same=True)
         return result
 
-    @doc(Series.nsmallest)
-    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
+    @doc(Series.nsmallest.__doc__)
+    def nsmallest(
+        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    ) -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -764,11 +843,99 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._python_apply_general(f, data, not_indexed_same=True)
         return result
 
+    @doc(Series.idxmin.__doc__)
+    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
+        return result
 
-@pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
+    @doc(Series.idxmax.__doc__)
+    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
+        return result
+
+    @doc(Series.corr.__doc__)
+    def corr(
+        self,
+        other: Series,
+        method: Literal["pearson", "kendall", "spearman"]
+        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        min_periods: int | None = None,
+    ) -> Series:
+        result = self._op_via_apply(
+            "corr", other=other, method=method, min_periods=min_periods
+        )
+        return result
+
+    @doc(Series.cov.__doc__)
+    def cov(
+        self, other: Series, min_periods: int | None = None, ddof: int | None = 1
+    ) -> Series:
+        result = self._op_via_apply(
+            "cov", other=other, min_periods=min_periods, ddof=ddof
+        )
+        return result
+
+    # Decorated property not supported - https://github.com/python/mypy/issues/1362
+    @property  # type: ignore[misc]
+    @doc(Series.is_monotonic_increasing.__doc__)
+    def is_monotonic_increasing(self) -> Series:
+        result = self._op_via_apply("is_monotonic_increasing")
+        return result
+
+    # Decorated property not supported - https://github.com/python/mypy/issues/1362
+    @property  # type: ignore[misc]
+    @doc(Series.is_monotonic_decreasing.__doc__)
+    def is_monotonic_decreasing(self) -> Series:
+        result = self._op_via_apply("is_monotonic_decreasing")
+        return result
+
+    @doc(Series.hist.__doc__)
+    def hist(
+        self,
+        by=None,
+        ax=None,
+        grid: bool = True,
+        xlabelsize: int | None = None,
+        xrot: float | None = None,
+        ylabelsize: int | None = None,
+        yrot: float | None = None,
+        figsize: tuple[int, int] | None = None,
+        bins: int | Sequence[int] = 10,
+        backend: str | None = None,
+        legend: bool = False,
+        **kwargs,
+    ):
+        result = self._op_via_apply(
+            "hist",
+            by=by,
+            ax=ax,
+            grid=grid,
+            xlabelsize=xlabelsize,
+            xrot=xrot,
+            ylabelsize=ylabelsize,
+            yrot=yrot,
+            figsize=figsize,
+            bins=bins,
+            backend=backend,
+            legend=legend,
+            **kwargs,
+        )
+        return result
+
+    # Decorated property not supported - https://github.com/python/mypy/issues/1362
+    @property  # type: ignore[misc]
+    @doc(Series.dtype.__doc__)
+    def dtype(self) -> Series:
+        result = self._op_via_apply("dtype")
+        return result
+
+    @doc(Series.unique.__doc__)
+    def unique(self) -> Series:
+        result = self._op_via_apply("unique")
+        return result
+
+
 class DataFrameGroupBy(GroupBy[DataFrame]):
-
-    _apply_allowlist = base.dataframe_apply_allowlist
 
     _agg_examples_doc = dedent(
         """
@@ -965,7 +1132,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result: dict[Hashable, NDFrame | np.ndarray] = {}
         if self.axis == 0:
             # test_pass_args_kwargs_duplicate_columns gets here with non-unique columns
-            for name, data in self:
+            for name, data in self.grouper.get_iterator(obj, self.axis):
                 fres = func(data, *args, **kwargs)
                 result[name] = fres
         else:
@@ -1140,7 +1307,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         how: str,
         numeric_only: bool | lib.NoDefault = lib.no_default,
-        axis: int = 0,
+        axis: AxisInt = 0,
         **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller
@@ -1228,7 +1395,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "`.to_numpy()` to the result in the transform function to keep "
                 "the current behavior and silence this warning.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         concat_index = obj.columns if self.axis == 0 else obj.index
@@ -1318,9 +1485,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result.columns = columns
         return result
 
-    def filter(self, func, dropna=True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
-        Return a copy of a DataFrame excluding filtered elements.
+        Filter elements from groups that don't satisfy a criterion.
 
         Elements from groups are filtered if they do not satisfy the
         boolean criterion specified by func.
@@ -1328,9 +1495,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Parameters
         ----------
         func : function
-            Function to apply to each subframe. Should return True or False.
-        dropna : Drop groups that do not pass the filter. True by default;
-            If False, groups that evaluate False are filled with NaNs.
+            Criterion to apply to each group. Should return True or False.
+        dropna : bool
+            Drop groups that do not pass the filter. True by default; if False,
+            groups that evaluate False are filled with NaNs.
 
         Returns
         -------
@@ -1398,7 +1566,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "Indexing with multiple keys (implicitly converted to a tuple "
                 "of keys) will be deprecated, use a list instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         return super().__getitem__(key)
 
@@ -1626,7 +1794,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmax"
-        result = self._python_apply_general(func, self._obj_with_exclusions)
+        result = self._python_apply_general(
+            func, self._obj_with_exclusions, not_indexed_same=True
+        )
         self._maybe_warn_numeric_only_depr("idxmax", result, numeric_only)
         return result
 
@@ -1665,7 +1835,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return df._constructor_sliced(result, index=res.index)
 
         func.__name__ = "idxmin"
-        result = self._python_apply_general(func, self._obj_with_exclusions)
+        result = self._python_apply_general(
+            func, self._obj_with_exclusions, not_indexed_same=True
+        )
         self._maybe_warn_numeric_only_depr("idxmin", result, numeric_only)
         return result
 
@@ -1797,20 +1969,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 name = self._selected_obj.name
                 keys = [] if name in in_axis_names else [self._selected_obj]
             else:
+                unique_cols = set(self._selected_obj.columns)
+                if subset is not None:
+                    subsetted = set(subset)
+                    clashing = subsetted & set(in_axis_names)
+                    if clashing:
+                        raise ValueError(
+                            f"Keys {clashing} in subset cannot be in "
+                            "the groupby column keys."
+                        )
+                    doesnt_exist = subsetted - unique_cols
+                    if doesnt_exist:
+                        raise ValueError(
+                            f"Keys {doesnt_exist} in subset do not "
+                            f"exist in the DataFrame."
+                        )
+                else:
+                    subsetted = unique_cols
+
                 keys = [
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
                     for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names
+                    if name not in in_axis_names and name in subsetted
                 ]
-
-            if subset is not None:
-                clashing = set(subset) & set(in_axis_names)
-                if clashing:
-                    raise ValueError(
-                        f"Keys {clashing} in subset cannot be in "
-                        "the groupby column keys"
-                    )
 
             groupings = list(self.grouper.groupings)
             for key in keys:
@@ -1819,6 +2001,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     key=key,
                     axis=self.axis,
                     sort=self.sort,
+                    observed=False,
                     dropna=dropna,
                 )
                 groupings += list(grouper.groupings)
@@ -1832,6 +2015,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             )
             result_series = cast(Series, gb.size())
 
+            # GH-46357 Include non-observed categories
+            # of non-grouping columns regardless of `observed`
+            if any(
+                isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
+                and not grouping._observed
+                for grouping in groupings
+            ):
+                levels_list = [ping.result_index for ping in groupings]
+                multi_index, _ = MultiIndex.from_product(
+                    levels_list, names=[ping.name for ping in groupings]
+                ).sortlevel()
+                result_series = result_series.reindex(multi_index, fill_value=0)
+
             if normalize:
                 # Normalize the results by dividing by the original group sizes.
                 # We are guaranteed to have the first N levels be the
@@ -1842,11 +2038,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 indexed_group_size = result_series.groupby(
                     result_series.index.droplevel(levels),
                     sort=self.sort,
-                    observed=self.observed,
                     dropna=self.dropna,
                 ).transform("sum")
-
                 result_series /= indexed_group_size
+
+                # Handle groups of non-observed categories
+                result_series = result_series.fillna(0.0)
 
             if sort:
                 # Sort the values and then resort by the main grouping
@@ -1873,6 +2070,169 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result_frame.columns = columns + [name]
                 result = result_frame
             return result.__finalize__(self.obj, method="value_counts")
+
+    @doc(DataFrame.fillna.__doc__)
+    def fillna(
+        self,
+        value: Hashable | Mapping | Series | DataFrame = None,
+        method: FillnaOptions | None = None,
+        axis: Axis | None = None,
+        inplace: bool = False,
+        limit=None,
+        downcast=None,
+    ) -> DataFrame | None:
+        result = self._op_via_apply(
+            "fillna",
+            value=value,
+            method=method,
+            axis=axis,
+            inplace=inplace,
+            limit=limit,
+            downcast=downcast,
+        )
+        return result
+
+    @doc(DataFrame.take.__doc__)
+    def take(
+        self,
+        indices: TakeIndexer,
+        axis: Axis | None = 0,
+        is_copy: bool | None = None,
+        **kwargs,
+    ) -> DataFrame:
+        result = self._op_via_apply(
+            "take", indices=indices, axis=axis, is_copy=is_copy, **kwargs
+        )
+        return result
+
+    @doc(DataFrame.skew.__doc__)
+    def skew(
+        self,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
+        skipna: bool = True,
+        level: Level | None = None,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        **kwargs,
+    ) -> DataFrame:
+        result = self._op_via_apply(
+            "skew",
+            axis=axis,
+            skipna=skipna,
+            level=level,
+            numeric_only=numeric_only,
+            **kwargs,
+        )
+        return result
+
+    @doc(DataFrame.mad.__doc__)
+    def mad(
+        self, axis: Axis | None = None, skipna: bool = True, level: Level | None = None
+    ) -> DataFrame:
+        result = self._op_via_apply("mad", axis=axis, skipna=skipna, level=level)
+        return result
+
+    @doc(DataFrame.tshift.__doc__)
+    def tshift(self, periods: int = 1, freq=None, axis: Axis = 0) -> DataFrame:
+        result = self._op_via_apply("tshift", periods=periods, freq=freq, axis=axis)
+        return result
+
+    @property  # type: ignore[misc]
+    @doc(DataFrame.plot.__doc__)
+    def plot(self) -> GroupByPlot:
+        result = GroupByPlot(self)
+        return result
+
+    @doc(DataFrame.corr.__doc__)
+    def corr(
+        self,
+        method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        min_periods: int = 1,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame:
+        result = self._op_via_apply(
+            "corr", method=method, min_periods=min_periods, numeric_only=numeric_only
+        )
+        return result
+
+    @doc(DataFrame.cov.__doc__)
+    def cov(
+        self,
+        min_periods: int | None = None,
+        ddof: int | None = 1,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame:
+        result = self._op_via_apply(
+            "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
+        )
+        return result
+
+    @doc(DataFrame.hist.__doc__)
+    def hist(
+        self,
+        column: IndexLabel = None,
+        by=None,
+        grid: bool = True,
+        xlabelsize: int | None = None,
+        xrot: float | None = None,
+        ylabelsize: int | None = None,
+        yrot: float | None = None,
+        ax=None,
+        sharex: bool = False,
+        sharey: bool = False,
+        figsize: tuple[int, int] | None = None,
+        layout: tuple[int, int] | None = None,
+        bins: int | Sequence[int] = 10,
+        backend: str | None = None,
+        legend: bool = False,
+        **kwargs,
+    ):
+        result = self._op_via_apply(
+            "hist",
+            column=column,
+            by=by,
+            grid=grid,
+            xlabelsize=xlabelsize,
+            xrot=xrot,
+            ylabelsize=ylabelsize,
+            yrot=yrot,
+            ax=ax,
+            sharex=sharex,
+            sharey=sharey,
+            figsize=figsize,
+            layout=layout,
+            bins=bins,
+            backend=backend,
+            legend=legend,
+            **kwargs,
+        )
+        return result
+
+    # Decorated property not supported - https://github.com/python/mypy/issues/1362
+    @property  # type: ignore[misc]
+    @doc(DataFrame.dtypes.__doc__)
+    def dtypes(self) -> Series:
+        result = self._op_via_apply("dtypes")
+        return result
+
+    @doc(DataFrame.corrwith.__doc__)
+    def corrwith(
+        self,
+        other: DataFrame | Series,
+        axis: Axis = 0,
+        drop: bool = False,
+        method: Literal["pearson", "kendall", "spearman"]
+        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame:
+        result = self._op_via_apply(
+            "corrwith",
+            other=other,
+            axis=axis,
+            drop=drop,
+            method=method,
+            numeric_only=numeric_only,
+        )
+        return result
 
 
 def _wrap_transform_general_frame(

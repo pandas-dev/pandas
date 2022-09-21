@@ -3,7 +3,7 @@ import pytest
 
 from pandas._libs import groupby as libgroupby
 from pandas._libs.groupby import (
-    group_cumprod_float64,
+    group_cumprod,
     group_cumsum,
     group_mean,
     group_var,
@@ -183,9 +183,10 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     tm.assert_numpy_array_equal(np_op(data), answer[:, 0], check_dtype=False)
 
 
-def test_cython_group_transform_cumsum(any_real_numpy_dtype):
+@pytest.mark.parametrize("np_dtype", ["int64", "uint64", "float32", "float64"])
+def test_cython_group_transform_cumsum(np_dtype):
     # see gh-4095
-    dtype = np.dtype(any_real_numpy_dtype).type
+    dtype = np.dtype(np_dtype).type
     pd_op, np_op = group_cumsum, np.cumsum
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
@@ -193,7 +194,7 @@ def test_cython_group_transform_cumsum(any_real_numpy_dtype):
 def test_cython_group_transform_cumprod():
     # see gh-4095
     dtype = np.float64
-    pd_op, np_op = group_cumprod_float64, np.cumproduct
+    pd_op, np_op = group_cumprod, np.cumproduct
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
 
@@ -208,7 +209,7 @@ def test_cython_group_transform_algos():
     data = np.array([[1], [2], [3], [np.nan], [4]], dtype="float64")
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    group_cumprod_float64(actual, data, labels, ngroups, is_datetimelike)
+    group_cumprod(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 2, 6, np.nan, 24], dtype="float64")
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 

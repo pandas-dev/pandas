@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
+    Iterator,
     cast,
 )
 
@@ -31,6 +32,7 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
 )
 from pandas._typing import (
+    AxisInt,
     DtypeObj,
     NpDtype,
     npt,
@@ -304,7 +306,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         if self.ndim > 1:
             for i in range(len(self)):
                 yield self[i]
@@ -326,7 +328,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def sum(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -346,7 +348,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def std(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
@@ -697,9 +699,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         return res1, res2
 
     def __neg__(self) -> TimedeltaArray:
+        freq = None
         if self.freq is not None:
-            return type(self)(-self._ndarray, freq=-self.freq)
-        return type(self)(-self._ndarray)
+            freq = -self.freq
+        return type(self)._simple_new(-self._ndarray, dtype=self.dtype, freq=freq)
 
     def __pos__(self) -> TimedeltaArray:
         return type(self)(self._ndarray.copy(), freq=self.freq)
@@ -771,8 +774,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
-        Return Timedelta Array/Index as object ndarray of datetime.timedelta
-        objects.
+        Return an ndarray of datetime.timedelta objects.
 
         Returns
         -------
@@ -800,8 +802,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     @property
     def components(self) -> DataFrame:
         """
-        Return a dataframe of the components (days, hours, minutes,
-        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
+        Return a DataFrame of the individual resolution components of the Timedeltas.
+
+        The components (days, hours, minutes seconds, milliseconds, microseconds,
+        nanoseconds) are returned as columns in a DataFrame.
 
         Returns
         -------

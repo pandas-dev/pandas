@@ -5,6 +5,8 @@ from typing import Any
 import numpy as np
 
 from pandas._libs.lib import infer_dtype
+from pandas._libs.tslibs import iNaT
+from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
@@ -12,17 +14,16 @@ from pandas.api.types import (
     is_categorical_dtype,
     is_string_dtype,
 )
-from pandas.core.exchange.buffer import PandasBuffer
-from pandas.core.exchange.dataframe_protocol import (
+from pandas.core.interchange.buffer import PandasBuffer
+from pandas.core.interchange.dataframe_protocol import (
     Column,
     ColumnBuffers,
     ColumnNullType,
     DtypeKind,
 )
-from pandas.core.exchange.utils import (
+from pandas.core.interchange.utils import (
     ArrowCTypes,
     Endianness,
-    NoBufferPresent,
     dtype_to_arrow_c_fmt,
 )
 
@@ -38,7 +39,7 @@ _NP_KINDS = {
 
 _NULL_DESCRIPTION = {
     DtypeKind.FLOAT: (ColumnNullType.USE_NAN, None),
-    DtypeKind.DATETIME: (ColumnNullType.USE_NAN, None),
+    DtypeKind.DATETIME: (ColumnNullType.USE_SENTINEL, iNaT),
     DtypeKind.INT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.UINT: (ColumnNullType.NON_NULLABLE, None),
     DtypeKind.BOOL: (ColumnNullType.NON_NULLABLE, None),
@@ -80,7 +81,6 @@ class PandasColumn(Column):
         self._col = column
         self._allow_copy = allow_copy
 
-    @property
     def size(self) -> int:
         """
         Size of the column, in elements.
@@ -136,7 +136,7 @@ class PandasColumn(Column):
         kind = _NP_KINDS.get(dtype.kind, None)
         if kind is None:
             # Not a NumPy dtype. Check if it's a categorical maybe
-            raise ValueError(f"Data type {dtype} not supported by exchange protocol")
+            raise ValueError(f"Data type {dtype} not supported by interchange protocol")
 
         return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder
 
@@ -145,15 +145,18 @@ class PandasColumn(Column):
         """
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
-        - There is a separate dictionary-style encoding for categorical values.
-        Raises RuntimeError if the dtype is not categorical
+        - There is a separate non-categorical Column encoding for categorical values.
+
+        Raises TypeError if the dtype is not categorical
+
         Content of returned dict:
             - "is_ordered" : bool, whether the ordering of dictionary indices is
                              semantically meaningful.
             - "is_dictionary" : bool, whether a dictionary-style mapping of
                                 categorical values to other objects exists
-            - "mapping" : dict, Python-level only (e.g. ``{int: str}``).
-                          None if not a dictionary-style categorical.
+            - "categories" : Column representing the (implicit) mapping of indices to
+                             category values (e.g. an array of cat1, cat2, ...).
+                             None if not a dictionary-style categorical.
         """
         if not self.dtype[0] == DtypeKind.CATEGORICAL:
             raise TypeError(
@@ -163,7 +166,7 @@ class PandasColumn(Column):
         return {
             "is_ordered": self._col.cat.ordered,
             "is_dictionary": True,
-            "mapping": dict(enumerate(self._col.cat.categories)),
+            "categories": PandasColumn(pd.Series(self._col.cat.categories)),
         }
 
     @property
@@ -266,7 +269,7 @@ class PandasColumn(Column):
             buffer = PandasBuffer(self._col.to_numpy(), allow_copy=self._allow_copy)
             dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
-            codes = self._col.values.codes
+            codes = self._col.values._codes
             buffer = PandasBuffer(codes, allow_copy=self._allow_copy)
             dtype = self._dtype_from_pandasdtype(codes.dtype)
         elif self.dtype[0] == DtypeKind.STRING:

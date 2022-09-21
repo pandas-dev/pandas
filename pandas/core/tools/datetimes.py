@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import abc
 from datetime import datetime
 from functools import partial
+import inspect
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
@@ -91,7 +92,7 @@ if TYPE_CHECKING:
 # types used in annotations
 
 ArrayConvertible = Union[List, Tuple, AnyArrayLike]
-Scalar = Union[int, float, str]
+Scalar = Union[float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
@@ -227,7 +228,11 @@ def _maybe_cache(
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
-            cache_array = Series(cache_dates, index=unique_dates)
+            # GH#45319
+            try:
+                cache_array = Series(cache_dates, index=unique_dates)
+            except OutOfBoundsDatetime:
+                return cache_array
             # GH#39882 and GH#35888 in case of None and NaT we get duplicates
             if not cache_array.index.is_unique:
                 cache_array = cache_array[~cache_array.index.duplicated()]
@@ -772,11 +777,19 @@ def to_datetime(
         #time-zone-handling>`_.
 
     format : str, default None
-        The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. Note that
-        :const:`"%f"` will parse all the way up to nanoseconds. See
+        The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
-        #strftime-and-strptime-behavior>`_ for more information on choices.
+        #strftime-and-strptime-behavior>`_ for more information on choices, though
+        note the following differences:
+
+        - :const:`"%f"` will parse all the way
+          up to nanoseconds;
+
+        - :const:`"%S"` without :const:`"%f"` will capture all the way
+          up to nanoseconds if present as decimal places, and will also handle
+          the case where the number of seconds is an integer.
+
     exact : bool, default True
         Control how `format` is used:
 
@@ -944,6 +957,21 @@ def to_datetime(
     ...                origin=pd.Timestamp('1960-01-01'))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
+
+    **Differences with strptime behavior**
+
+    :const:`"%f"` will parse all the way up to nanoseconds.
+
+    >>> pd.to_datetime('2018-10-26 12:00:00.0000000011',
+    ...                format='%Y-%m-%d %H:%M:%S.%f')
+    Timestamp('2018-10-26 12:00:00.000000001')
+
+    :const:`"%S"` without :const:`"%f"` will capture all the way
+    up to nanoseconds if present as decimal places.
+
+    >>> pd.to_datetime('2017-03-22 15:16:45.433502912',
+    ...                format='%Y-%m-%d %H:%M:%S')
+    Timestamp('2017-03-22 15:16:45.433502912')
 
     **Non-convertible date/times**
 
@@ -1278,13 +1306,13 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
     return None
 
 
-def to_time(arg, format=None, infer_time_format=False, errors="raise"):
+def to_time(arg, format=None, infer_time_format: bool = False, errors="raise"):
     # GH#34145
     warnings.warn(
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
-        stacklevel=find_stack_level(),
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     from pandas.core.tools.times import to_time
 

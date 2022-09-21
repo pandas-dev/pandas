@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - 1.5.x
       - 1.4.x
   pull_request:
     branches:
       - main
+      - 1.5.x
       - 1.4.x
     paths-ignore:
       - "doc/**"
@@ -26,7 +28,7 @@ jobs:
     defaults:
       run:
         shell: bash -el {0}
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       matrix:
         os: [macos-latest, windows-latest]

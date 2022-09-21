@@ -10,6 +10,7 @@ from datetime import (
     timedelta,
 )
 import functools
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,7 +40,10 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    LossySetitemError,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -515,7 +519,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
         elif isinstance(dtype, IntervalDtype):
             # TODO(GH#45349): don't special-case IntervalDtype, allow
             #  overriding instead of returning object below.
-            return IntervalDtype(np.float64, inclusive=dtype.inclusive)
+            return IntervalDtype(np.float64, closed=dtype.closed)
         return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
@@ -590,6 +594,12 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         fv = na_value_for_dtype(dtype)
         return dtype, fv
 
+    elif isinstance(dtype, CategoricalDtype):
+        if fill_value in dtype.categories or isna(fill_value):
+            return dtype, fill_value
+        else:
+            return object, ensure_object(fill_value)
+
     elif isna(fill_value):
         dtype = _dtype_obj
         if fill_value is None:
@@ -624,7 +634,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                     "dtype is deprecated. In a future version, this will be cast "
                     "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
                     FutureWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=find_stack_level(inspect.currentframe()),
                 )
                 return dtype, fv
         elif isinstance(fill_value, str):
@@ -834,7 +844,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = PeriodDtype(freq=val.freq)
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype, inclusive=val.inclusive)
+            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
     return dtype, val
 
@@ -1277,7 +1287,7 @@ def maybe_infer_to_datetimelike(
             "and will be removed in a future version. To retain the old behavior "
             f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
     return value
 
@@ -1336,7 +1346,7 @@ def maybe_cast_to_datetime(
                                 "`pd.Series(values).dt.tz_localize(None)` "
                                 "instead.",
                                 FutureWarning,
-                                stacklevel=find_stack_level(),
+                                stacklevel=find_stack_level(inspect.currentframe()),
                             )
                             # equiv: dta.view(dtype)
                             # Note: NOT equivalent to dta.astype(dtype)
@@ -1376,7 +1386,7 @@ def maybe_cast_to_datetime(
                                     ".tz_localize('UTC').tz_convert(dtype.tz) "
                                     "or pd.Series(data.view('int64'), dtype=dtype)",
                                     FutureWarning,
-                                    stacklevel=find_stack_level(),
+                                    stacklevel=find_stack_level(inspect.currentframe()),
                                 )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
@@ -1745,7 +1755,7 @@ def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
                 "`pd.Series(values).dt.tz_localize(None)` "
                 "instead.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             new_value = value.tz_localize(None)
             return _maybe_unbox_datetimelike(new_value, dtype)
@@ -1834,8 +1844,10 @@ def maybe_cast_to_integer_array(
             f"casted to the dtype {dtype}"
         ) from err
 
-    if np.array_equal(arr, casted):
-        return casted
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        if np.array_equal(arr, casted):
+            return casted
 
     # We do this casting to allow for proper
     # data and dtype checking.
@@ -1843,6 +1855,11 @@ def maybe_cast_to_integer_array(
     # We didn't do this earlier because NumPy
     # doesn't handle `uint64` correctly.
     arr = np.asarray(arr)
+
+    if np.issubdtype(arr.dtype, str):
+        if (casted.astype(str) == arr).all():
+            return casted
+        raise ValueError(f"string values cannot be losslessly cast to {dtype}")
 
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
@@ -1863,7 +1880,7 @@ def maybe_cast_to_integer_array(
             "In a future version this will raise OverflowError. To retain the "
             f"old behavior, use pd.Series(values).astype({dtype})",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return casted
 
@@ -1874,7 +1891,7 @@ def maybe_cast_to_integer_array(
             f"dtype={dtype} is deprecated and will raise in a future version. "
             "Use values.view(dtype) instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return casted
 
@@ -1963,7 +1980,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    casted = element.astype(dtype)
+                    with np.errstate(invalid="ignore"):
+                        # We check afterwards if cast was losslessly, so no need to show
+                        # the warning
+                        casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
                         # Return the casted values bc they can be passed to
@@ -2086,11 +2106,3 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     if not len(rng):
         return True
     return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
-
-
-class LossySetitemError(Exception):
-    """
-    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
-    """
-
-    pass

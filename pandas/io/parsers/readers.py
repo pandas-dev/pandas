@@ -5,8 +5,10 @@ from __future__ import annotations
 
 from collections import abc
 import csv
+import inspect
 import sys
 from textwrap import fill
+from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -38,6 +40,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     Appender,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
@@ -57,6 +60,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    stringify_path,
     validate_header_arg,
 )
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -162,6 +166,10 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+
+    .. deprecated:: 1.5.0
+        Not implemented, and a new argument to specify the pattern for the
+        names of duplicated columns will be added instead
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
@@ -421,7 +429,7 @@ float_precision : str, optional
 
 Returns
 -------
-DataFrame or TextParser
+DataFrame or TextFileReader
     A comma-separated values (csv) file is returned as two-dimensional
     data structure with labeled axes.
 
@@ -499,7 +507,7 @@ def validate_integer(name, val: None, min_val=...) -> None:
 
 
 @overload
-def validate_integer(name, val: int | float, min_val=...) -> int:
+def validate_integer(name, val: float, min_val=...) -> int:
     ...
 
 
@@ -633,7 +641,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -693,7 +701,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -753,7 +761,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -813,7 +821,7 @@ def read_csv(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -845,6 +853,7 @@ def read_csv(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -885,7 +894,7 @@ def read_csv(
     verbose: bool = False,
     skip_blank_lines: bool = True,
     # Datetime Handling
-    parse_dates=None,
+    parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool = False,
     keep_date_col: bool = False,
     date_parser=None,
@@ -971,7 +980,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -994,7 +1003,7 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
@@ -1031,7 +1040,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -1054,7 +1063,7 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
@@ -1091,7 +1100,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -1114,7 +1123,7 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
@@ -1151,7 +1160,7 @@ def read_table(
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
-    parse_dates=...,
+    parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool = ...,
     keep_date_col: bool = ...,
     date_parser=...,
@@ -1174,7 +1183,7 @@ def read_table(
     error_bad_lines: bool | None = ...,
     warn_bad_lines: bool | None = ...,
     on_bad_lines=...,
-    delim_whitespace=...,
+    delim_whitespace: bool = ...,
     low_memory=...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
@@ -1183,6 +1192,7 @@ def read_table(
     ...
 
 
+@deprecate_kwarg(old_arg_name="mangle_dupe_cols", new_arg_name=None)
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["filepath_or_buffer"])
 @Appender(
     _doc_read_csv_and_table.format(
@@ -1223,7 +1233,7 @@ def read_table(
     verbose: bool = False,
     skip_blank_lines: bool = True,
     # Datetime Handling
-    parse_dates=False,
+    parse_dates: bool | Sequence[Hashable] = False,
     infer_datetime_format: bool = False,
     keep_date_col: bool = False,
     date_parser=None,
@@ -1252,7 +1262,7 @@ def read_table(
     # See _refine_defaults_read comment for why we do this.
     on_bad_lines=None,
     # Internal
-    delim_whitespace=False,
+    delim_whitespace: bool = False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: str | None = None,
@@ -1609,7 +1619,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         index_col = options["index_col"]
@@ -1628,7 +1638,11 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     f"removed in a future version. {depr_default.msg}\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    msg,
+                    FutureWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
             else:
                 result[arg] = parser_default
 
@@ -1714,6 +1728,16 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 is_text = False
                 mode = "rb"
+            elif (
+                engine == "c"
+                and self.options.get("encoding", "utf-8") == "utf-8"
+                and isinstance(stringify_path(f), str)
+            ):
+                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
+                # the c-engine especially for memory_map=True far slower
+                is_text = False
+                if "b" not in mode:
+                    mode += "b"
             self.handles = get_handle(
                 f,
                 mode,
@@ -1794,7 +1818,12 @@ class TextFileReader(abc.Iterator):
     def __enter__(self) -> TextFileReader:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 
@@ -1858,7 +1887,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     return TextFileReader(*args, **kwds)
 
 
-def _clean_na_values(na_values, keep_default_na=True):
+def _clean_na_values(na_values, keep_default_na: bool = True):
     na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:
@@ -1910,7 +1939,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """return a stringified and numeric for these values"""
-    result: list[int | str | float] = []
+    result: list[str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -2203,7 +2232,9 @@ def _merge_with_dialect_properties(
 
         if conflict_msgs:
             warnings.warn(
-                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
+                "\n\n".join(conflict_msgs),
+                ParserWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
         kwds[param] = dialect_val
     return kwds

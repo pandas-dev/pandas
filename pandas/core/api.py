@@ -25,6 +25,7 @@ from pandas.core.algorithms import (
     value_counts,
 )
 from pandas.core.arrays import Categorical
+from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.floating import (
     Float32Dtype,
@@ -85,6 +86,7 @@ from pandas.core.frame import DataFrame  # isort:skip
 
 __all__ = [
     "array",
+    "ArrowDtype",
     "bdate_range",
     "BooleanDtype",
     "Categorical",

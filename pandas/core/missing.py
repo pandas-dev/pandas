@@ -22,6 +22,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
+    AxisInt,
     F,
     npt,
 )
@@ -209,7 +210,7 @@ def find_valid_index(values, *, how: str) -> int | None:
 def interpolate_array_2d(
     data: np.ndarray,
     method: str = "pad",
-    axis: int = 0,
+    axis: AxisInt = 0,
     index: Index | None = None,
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -263,7 +264,7 @@ def interpolate_array_2d(
 def _interpolate_2d_with_fill(
     data: np.ndarray,  # floating dtype
     index: Index,
-    axis: int,
+    axis: AxisInt,
     method: str = "linear",
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -376,7 +377,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     **kwargs,
-):
+) -> None:
     """
     Logic for the 1-d interpolation.  The input
     indices and yvalues will each be 1-d arrays of the same length.
@@ -466,7 +467,14 @@ def _interpolate_1d(
 
 
 def _interpolate_scipy_wrapper(
-    x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs
+    x,
+    y,
+    new_x,
+    method,
+    fill_value=None,
+    bounds_error: bool = False,
+    order=None,
+    **kwargs,
 ):
     """
     Passed off to scipy.interpolate.interp1d. method is scipy's kind.
@@ -535,7 +543,7 @@ def _interpolate_scipy_wrapper(
     return new_y
 
 
-def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
+def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate: bool = False):
     """
     Convenience function for interpolate.BPoly.from_derivatives.
 

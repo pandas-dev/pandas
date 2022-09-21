@@ -10,6 +10,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -19,6 +20,7 @@ from pandas._typing import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
 )
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -178,7 +180,9 @@ def __internal_pivot_table(
                 and v in agged
                 and not is_integer_dtype(agged[v])
             ):
-                if not isinstance(agged[v], ABCDataFrame):
+                if not isinstance(agged[v], ABCDataFrame) and isinstance(
+                    data[v].dtype, np.dtype
+                ):
                     # exclude DataFrame case bc maybe_downcast_to_dtype expects
                     #  ArrayLike
                     # e.g. test_pivot_table_multiindex_columns_doctest_case
@@ -389,7 +393,13 @@ def _generate_marginal_results(
                 # GH31016 this is to calculate margin for each group, and assign
                 # corresponded key as index
                 transformed_piece = DataFrame(piece.apply(aggfunc)).T
-                transformed_piece.index = Index([all_key], name=piece.index.name)
+                if isinstance(piece.index, MultiIndex):
+                    # We are adding an empty level
+                    transformed_piece.index = MultiIndex.from_tuples(
+                        [all_key], names=piece.index.names + [None]
+                    )
+                else:
+                    transformed_piece.index = Index([all_key], name=piece.index.name)
 
                 # append piece for margin into table_piece
                 table_pieces.append(transformed_piece)
@@ -470,32 +480,40 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["data"])
 def pivot(
     data: DataFrame,
-    index: IndexLabel | None = None,
-    columns: IndexLabel | None = None,
-    values: IndexLabel | None = None,
+    index: IndexLabel | lib.NoDefault = lib.NoDefault,
+    columns: IndexLabel | lib.NoDefault = lib.NoDefault,
+    values: IndexLabel | lib.NoDefault = lib.NoDefault,
 ) -> DataFrame:
-    if columns is None:
+    if columns is lib.NoDefault:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
     columns_listlike = com.convert_to_list_like(columns)
 
+    # If columns is None we will create a MultiIndex level with None as name
+    # which might cause duplicated names because None is the default for
+    # level names
+    data.index.names = [
+        name if name is not None else lib.NoDefault for name in data.index.names
+    ]
+
     indexed: DataFrame | Series
-    if values is None:
-        if index is not None:
+    if values is lib.NoDefault:
+        if index is not lib.NoDefault:
             cols = com.convert_to_list_like(index)
         else:
             cols = []
 
-        append = index is None
+        append = index is lib.NoDefault
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
             cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
-        if index is None:
+        if index is lib.NoDefault:
             if isinstance(data.index, MultiIndex):
                 # GH 23955
                 index_list = [
@@ -521,7 +539,12 @@ def pivot(
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
     # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
     # "Hashable"
-    return indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
+    result.index.names = [
+        name if name is not lib.NoDefault else None for name in result.index.names
+    ]
+
+    return result
 
 
 def crosstab(
@@ -534,12 +557,13 @@ def crosstab(
     margins: bool = False,
     margins_name: str = "All",
     dropna: bool = True,
-    normalize=False,
+    normalize: bool = False,
 ) -> DataFrame:
     """
-    Compute a simple cross tabulation of two (or more) factors. By default
-    computes a frequency table of the factors unless an array of values and an
-    aggregation function are passed.
+    Compute a simple cross tabulation of two (or more) factors.
+
+    By default, computes a frequency table of the factors unless an
+    array of values and an aggregation function are passed.
 
     Parameters
     ----------
@@ -671,6 +695,8 @@ def crosstab(
         df["__dummy__"] = values
         kwargs = {"aggfunc": aggfunc}
 
+    # error: Argument 7 to "pivot_table" of "DataFrame" has incompatible type
+    # "**Dict[str, object]"; expected "bool"
     table = df.pivot_table(
         "__dummy__",
         index=unique_rownames,
@@ -678,7 +704,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
     # Post-process

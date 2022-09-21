@@ -1,3 +1,4 @@
+import inspect
 import warnings
 
 cimport cython
@@ -8,6 +9,8 @@ from cpython.datetime cimport (
     import_datetime,
     tzinfo,
 )
+
+from pandas.util._exceptions import find_stack_level
 
 # import datetime C API
 import_datetime()
@@ -30,9 +33,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
-    dtstruct_to_dt64,
     get_datetime64_value,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     pydatetime_to_dt64,
@@ -92,7 +95,7 @@ def _test_parse_iso8601(ts: str):
         return Timestamp.now().normalize()
 
     string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
-    obj.value = dtstruct_to_dt64(&obj.dts)
+    obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = pytz.FixedOffset(out_tzoffset)
@@ -471,12 +474,10 @@ cpdef array_to_datetime(
         Py_ssize_t i, n = len(values)
         object val, tz
         ndarray[int64_t] iresult
-        ndarray[object] oresult
         npy_datetimestruct dts
         NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
         bint seen_integer = False
-        bint seen_string = False
         bint seen_datetime = False
         bint seen_datetime_offset = False
         bint is_raise = errors=='raise'
@@ -486,7 +487,7 @@ cpdef array_to_datetime(
         _TSObject _ts
         int64_t value
         int out_local = 0, out_tzoffset = 0
-        float offset_seconds, tz_offset
+        float tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
         datetime py_dt
@@ -546,7 +547,7 @@ cpdef array_to_datetime(
 
                 elif is_datetime64_object(val):
                     seen_datetime = True
-                    iresult[i] = get_datetime64_nanos(val)
+                    iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
                     # these must be ns unit by-definition
@@ -569,7 +570,6 @@ cpdef array_to_datetime(
 
                 elif isinstance(val, str):
                     # string
-                    seen_string = True
                     if type(val) is not str:
                         # GH#32264 np.str_ object
                         val = str(val)
@@ -595,7 +595,7 @@ cpdef array_to_datetime(
                                 continue
                             elif is_raise:
                                 raise ValueError(
-                                    f"time data {val} doesn't match format specified"
+                                    f"time data \"{val}\" at position {i} doesn't match format specified"
                                 )
                             return values, tz_out
 
@@ -611,7 +611,7 @@ cpdef array_to_datetime(
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
-                            raise TypeError("invalid string coercion to datetime")
+                            raise TypeError(f"invalid string coercion to datetime for \"{val}\" at position {i}")
 
                         if tz is not None:
                             seen_datetime_offset = True
@@ -628,7 +628,7 @@ cpdef array_to_datetime(
                     if not string_to_dts_failed:
                         # No error reported by string_to_dts, pick back up
                         # where we left off
-                        value = dtstruct_to_dt64(&dts)
+                        value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
                         if out_local == 1:
                             seen_datetime_offset = True
                             # Store the out_tzoffset in seconds
@@ -652,7 +652,8 @@ cpdef array_to_datetime(
                     else:
                         raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            except OutOfBoundsDatetime:
+            except OutOfBoundsDatetime as ex:
+                ex.args = (str(ex) + f" present at position {i}", )
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
@@ -798,6 +799,7 @@ cdef _array_to_datetime_object(
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
+    # 3) special strings - "now" & "today"
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
@@ -816,7 +818,8 @@ cdef _array_to_datetime_object(
                                                    yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError) as ex:
+                ex.args = (f"{ex} present at position {i}", )
                 if is_coerce:
                     oresult[i] = <object>NaT
                     continue
@@ -842,7 +845,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
                 "deprecated. In a future version, this will match Timestamp('now') "
                 "and Timestamp.now()",
                 FutureWarning,
-                stacklevel=1,
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
 
         return True

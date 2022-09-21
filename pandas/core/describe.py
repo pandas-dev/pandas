@@ -9,6 +9,7 @@ from abc import (
     ABC,
     abstractmethod,
 )
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -31,6 +32,7 @@ from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_complex_dtype,
     is_datetime64_any_dtype,
     is_numeric_dtype,
     is_timedelta64_dtype,
@@ -239,7 +241,9 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         + series.quantile(percentiles).tolist()
         + [series.max()]
     )
-    return Series(d, index=stat_index, name=series.name)
+    # GH#48340 - always return float on non-complex numeric data
+    dtype = float if is_numeric_dtype(series) and not is_complex_dtype(series) else None
+    return Series(d, index=stat_index, name=series.name, dtype=dtype)
 
 
 def describe_categorical_1d(
@@ -373,7 +377,7 @@ def select_describe_func(
                 "version of pandas. Specify `datetime_is_numeric=True` to "
                 "silence this warning and adopt the future behavior now.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=find_stack_level(inspect.currentframe()),
             )
             return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):

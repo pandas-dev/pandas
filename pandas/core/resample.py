@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 from datetime import timedelta
+import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -26,6 +27,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AxisInt,
     IndexLabel,
     NDFrameT,
     T,
@@ -68,7 +70,6 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.core.indexes.api import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -96,6 +97,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -146,7 +148,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: DataFrame | Series,
         groupby: TimeGrouper,
-        axis: int = 0,
+        axis: AxisInt = 0,
         kind=None,
         *,
         group_keys: bool | lib.NoDefault = lib.no_default,
@@ -362,8 +364,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def transform(self, arg, *args, **kwargs):
         """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values.
+        Call function producing a like-indexed Series on each group.
+
+        Return a Series with the transformed values.
 
         Parameters
         ----------
@@ -544,15 +547,28 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("ffill", limit=limit)
 
     def pad(self, limit=None):
+        """
+        Forward fill the values.
+
+        .. deprecated:: 1.4
+            Use ffill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        An upsampled Series.
+        """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
-
-    pad.__doc__ = ffill.__doc__
 
     def nearest(self, limit=None):
         """
@@ -717,15 +733,29 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._upsample("bfill", limit=limit)
 
     def backfill(self, limit=None):
+        """
+        Backward fill the values.
+
+        .. deprecated:: 1.4
+            Use bfill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series, DataFrame
+            An upsampled Series or DataFrame with backward filled NaN values.
+        """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
-
-    backfill.__doc__ = bfill.__doc__
 
     def fillna(self, method, limit=None):
         """
@@ -894,7 +924,7 @@ class Resampler(BaseGroupBy, PandasObject):
         method="linear",
         axis=0,
         limit=None,
-        inplace=False,
+        inplace: bool = False,
         limit_direction="forward",
         limit_area=None,
         downcast=None,
@@ -1043,7 +1073,7 @@ class Resampler(BaseGroupBy, PandasObject):
             Return a DataFrame, where the columns are the columns of self,
             and the values are the quantiles.
         DataFrameGroupBy.quantile
-            Return a DataFrame, where the coulmns are groupby columns,
+            Return a DataFrame, where the columns are groupby columns,
             and the values are its quantiles.
         """
         return self._downsample("quantile", q=q, **kwargs)
@@ -1920,7 +1950,7 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
+    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: AxisInt = 0
 ) -> NDFrameT:
 
     if isinstance(obj, ABCSeries):
