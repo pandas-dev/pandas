@@ -625,7 +625,7 @@ class _MergeOperation:
     sort: bool
     suffixes: Suffixes
     copy: bool
-    indicator: bool
+    indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
     right_join_keys: list[AnyArrayLike]
