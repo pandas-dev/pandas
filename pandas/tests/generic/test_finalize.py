@@ -192,14 +192,10 @@ _all_methods = [
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("corr")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("corr")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("cov")),
         marks=[
-            not_implemented_mark,
             pytest.mark.filterwarnings("ignore::RuntimeWarning"),
         ],
     ),

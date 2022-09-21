@@ -49,6 +49,7 @@ from pandas._typing import (
     AnyAll,
     ArrayLike,
     Axes,
+    AxisInt,
     Dtype,
     DtypeObj,
     F,
@@ -1176,7 +1177,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
-        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
+        self,
+        indices,
+        axis: AxisInt = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
     ):
         if kwargs:
             nv.validate_take((), kwargs)
@@ -3804,6 +3810,10 @@ class Index(IndexOpsMixin, PandasObject):
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
+
+            .. deprecated:: 1.4
+                Use index.get_indexer([item], method=...) instead.
+
         tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location must satisfy the equation

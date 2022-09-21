@@ -29,6 +29,7 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeObj,
     IndexLabel,
     TakeIndexer,
@@ -1106,7 +1107,7 @@ def mode(
 
 def rank(
     values: ArrayLike,
-    axis: int = 0,
+    axis: AxisInt = 0,
     method: str = "average",
     na_option: str = "keep",
     ascending: bool = True,
@@ -1484,7 +1485,7 @@ class SelectNFrame(SelectN):
 def take(
     arr,
     indices: TakeIndexer,
-    axis: int = 0,
+    axis: AxisInt = 0,
     allow_fill: bool = False,
     fill_value=None,
 ):
@@ -1676,7 +1677,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0):
+def diff(arr, n: int, axis: AxisInt = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
