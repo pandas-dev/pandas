@@ -592,6 +592,8 @@ class IntervalIndex(ExtensionIndex):
         method : {None}, optional
             * default: matches where the label is within an interval only.
 
+            .. deprecated:: 1.4
+
         Returns
         -------
         int if unique index, slice if monotonic index, else mask
