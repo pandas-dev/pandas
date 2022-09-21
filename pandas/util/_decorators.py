@@ -330,7 +330,7 @@ def deprecate_nonkeyword_arguments(
                 )
             return func(*args, **kwargs)
 
-        wrapper.__signature__ = new_sig
+        wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         return wrapper
 
     return decorate
