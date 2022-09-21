@@ -3930,7 +3930,10 @@ def _background_gradient(
         rng = smax - smin
         # extend lower / upper bounds, compresses color range
         norm = mpl.colors.Normalize(smin - (rng * low), smax + (rng * high))
-        rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+        if cmap is None:
+            rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
+        else:
+            rgbas = mpl.colormaps[cmap](norm(gmap))
 
         def relative_luminance(rgba) -> float:
             """
@@ -4210,7 +4213,7 @@ def _bar(
         # use the matplotlib colormap input
         with _mpl(Styler.bar) as (plt, mpl):
             cmap = (
-                mpl.cm.get_cmap(cmap)
+                mpl.colormaps[cmap]
                 if isinstance(cmap, str)
                 else cmap  # assumed to be a Colormap instance as documented
             )
