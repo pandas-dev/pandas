@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterator,
     Sized,
 )
 import warnings
@@ -369,7 +370,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()
@@ -1861,7 +1862,7 @@ class Rolling(RollingAndExpandingMixin):
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate self._on is monotonic (increasing or decreasing) and has
         no NaT values for frequency windows.

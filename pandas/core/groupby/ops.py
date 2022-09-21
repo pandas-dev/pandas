@@ -30,6 +30,7 @@ import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     NDFrameT,
     Shape,
@@ -138,7 +139,7 @@ class WrappedCythonOp:
             "ohlc": "group_ohlc",
         },
         "transform": {
-            "cumprod": "group_cumprod_float64",
+            "cumprod": "group_cumprod",
             "cumsum": "group_cumsum",
             "cummin": "group_cummin",
             "cummax": "group_cummax",
@@ -158,7 +159,12 @@ class WrappedCythonOp:
         "rank",
         "sum",
         "ohlc",
+        "cumprod",
         "cumsum",
+        "prod",
+        "mean",
+        "var",
+        "median",
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
@@ -214,20 +220,20 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["median", "cumprod"]:
+        if how in ["median"]:
             # these two only have float64 implementations
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["var", "prod", "mean"] or (
+            if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-            elif how in ["sum", "ohlc", "cumsum"]:
+            elif how in ["sum", "ohlc", "prod", "cumsum", "cumprod"]:
                 # Avoid overflow during group op
                 if values.dtype.kind == "i":
                     values = ensure_int64(values)
@@ -326,7 +332,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["sum", "cumsum", "sum", "prod"]:
+        if how in ["sum", "cumsum", "sum", "prod", "cumprod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
         elif how in ["mean", "median", "var"]:
@@ -597,10 +603,19 @@ class WrappedCythonOp:
                     min_count=min_count,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how == "ohlc":
-                func(result, counts, values, comp_ids, min_count, mask, result_mask)
+            elif self.how in ["var", "ohlc", "prod", "median"]:
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
+                    **kwargs,
+                )
             else:
-                func(result, counts, values, comp_ids, min_count, **kwargs)
+                func(result, counts, values, comp_ids, min_count)
         else:
             # TODO: min_count
             if self.uses_mask():
@@ -631,8 +646,8 @@ class WrappedCythonOp:
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
             if is_integer_dtype(result.dtype) and not is_datetimelike:
-                # Neutral value for sum is 0, so don't fill empty groups with nan
-                cutoff = max(0 if self.how == "sum" else 1, min_count)
+                # if the op keeps the int dtypes, we have to use 0
+                cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
                     if result_mask is not None and self.uses_mask():
@@ -661,7 +676,7 @@ class WrappedCythonOp:
         self,
         *,
         values: ArrayLike,
-        axis: int,
+        axis: AxisInt,
         min_count: int = -1,
         comp_ids: np.ndarray,
         ngroups: int,
@@ -766,7 +781,7 @@ class BaseGrouper:
         return len(self.groupings)
 
     def get_iterator(
-        self, data: NDFrameT, axis: int = 0
+        self, data: NDFrameT, axis: AxisInt = 0
     ) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
@@ -781,7 +796,7 @@ class BaseGrouper:
         yield from zip(keys, splitter)
 
     @final
-    def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame, axis: AxisInt = 0) -> DataSplitter:
         """
         Returns
         -------
@@ -812,7 +827,7 @@ class BaseGrouper:
 
     @final
     def apply(
-        self, f: Callable, data: DataFrame | Series, axis: int = 0
+        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
@@ -1015,7 +1030,7 @@ class BaseGrouper:
         kind: str,
         values,
         how: str,
-        axis: int,
+        axis: AxisInt,
         min_count: int = -1,
         **kwargs,
     ) -> ArrayLike:
@@ -1182,7 +1197,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data: NDFrame, axis: int = 0):
+    def get_iterator(self, data: NDFrame, axis: AxisInt = 0):
         """
         Groupby iterator
 
@@ -1270,7 +1285,7 @@ class BinGrouper(BaseGrouper):
         )
 
 
-def _is_indexed_like(obj, axes, axis: int) -> bool:
+def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
@@ -1291,7 +1306,7 @@ class DataSplitter(Generic[NDFrameT]):
         data: NDFrameT,
         labels: npt.NDArray[np.intp],
         ngroups: int,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
@@ -1310,7 +1325,7 @@ class DataSplitter(Generic[NDFrameT]):
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         sdata = self.sorted_data
 
         if self.ngroups == 0:
@@ -1352,7 +1367,7 @@ class FrameSplitter(DataSplitter):
 
 
 def get_splitter(
-    data: NDFrame, labels: np.ndarray, ngroups: int, axis: int = 0
+    data: NDFrame, labels: np.ndarray, ngroups: int, axis: AxisInt = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter

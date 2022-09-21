@@ -35,9 +35,11 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
+    AxisInt,
     Dtype,
     DtypeObj,
     FilePath,
@@ -213,8 +215,11 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
-
-class Series(base.IndexOpsMixin, NDFrame):
+# error: Definition of "max" in base class "IndexOpsMixin" is incompatible with
+# definition in base class "NDFrame"
+# error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
+# definition in base class "NDFrame"
+class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -563,7 +568,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
+    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
         """
         Override generic, we want to set the _typ here.
 
@@ -572,7 +577,10 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         labels = ensure_index(labels)
 
-        if labels._is_all_dates:
+        if labels._is_all_dates and not (
+            type(labels) is Index and not isinstance(labels.dtype, np.dtype)
+        ):
+            # exclude e.g. timestamp[ns][pyarrow] dtype from this casting
             deep_labels = labels
             if isinstance(labels, CategoricalIndex):
                 deep_labels = labels.categories
@@ -942,7 +950,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self.take(indices=indices, axis=axis)
 
-    def _ixs(self, i: int, axis: int = 0) -> Any:
+    def _ixs(self, i: int, axis: AxisInt = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
@@ -956,7 +964,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0) -> Series:
+    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -1169,7 +1177,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 self._set_with(key, value)
 
         if cacher_needs_updating:
-            self._maybe_update_cacher()
+            self._maybe_update_cacher(inplace=True)
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
@@ -1177,7 +1185,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
-    def _set_with(self, key, value):
+    def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1215,7 +1223,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def _set_value(self, label, value, takeable: bool = False):
+    def _set_value(self, label, value, takeable: bool = False) -> None:
         """
         Quickly set single value at passed label.
 
@@ -1328,7 +1336,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     # Unsorted
 
     @property
-    def _is_mixed_type(self):
+    def _is_mixed_type(self) -> bool:
         return False
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
@@ -1632,9 +1640,9 @@ class Series(base.IndexOpsMixin, NDFrame):
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,
-        length=False,
-        dtype=False,
-        name=False,
+        length: bool = False,
+        dtype: bool = False,
+        name: bool = False,
         max_rows: int | None = None,
         min_rows: int | None = None,
     ) -> str | None:
@@ -1945,7 +1953,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace=False) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -2264,7 +2272,7 @@ Name: Max Speed, dtype: float64
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(
-        self, keep: Literal["first", "last", False] = "first", inplace=False
+        self, keep: Literal["first", "last", False] = "first", inplace: bool = False
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -2492,7 +2500,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmin(skipna=False)
         nan
         """
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        # error: Argument 1 to "argmin" of "IndexOpsMixin" has incompatible type "Union
+        # [int, Literal['index', 'columns']]"; expected "Optional[int]"
+        i = self.argmin(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2561,7 +2571,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmax(skipna=False)
         nan
         """
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        # error: Argument 1 to "argmax" of "IndexOpsMixin" has incompatible type
+        # "Union[int, Literal['index', 'columns']]"; expected "Optional[int]"
+        i = self.argmax(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
         if i == -1:
             return np.nan
         return self.index[i]
@@ -4776,7 +4788,7 @@ Keep all original rows and also all original values
         name: str,
         *,
         axis=0,
-        skipna=True,
+        skipna: bool = True,
         numeric_only=None,
         filter_type=None,
         **kwds,
@@ -5731,19 +5743,30 @@ Keep all original rows and also all original values
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[False] = ..., how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        how: AnyAll | None = ...,
     ) -> Series:
         ...
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[True], how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        how: AnyAll | None = ...,
     ) -> None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
-        self, axis: Axis = 0, inplace: bool = False, how: str | None = None
+        self,
+        axis: Axis = 0,
+        inplace: bool = False,
+        how: AnyAll | None = None,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
@@ -6205,10 +6228,10 @@ Keep all original rows and also all original values
 
     # ----------------------------------------------------------------------
     # Add index
-    _AXIS_ORDERS = ["index"]
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index"]
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
-    _info_axis_name = "index"
+    _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."

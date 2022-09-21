@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Iterator,
     final,
 )
 import warnings
@@ -17,6 +18,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     NDFrameT,
     npt,
 )
@@ -258,7 +260,7 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    axis: int
+    axis: AxisInt
     sort: bool
     dropna: bool
     _gpr_index: Index | None
@@ -279,7 +281,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
@@ -564,7 +566,7 @@ class Grouping:
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return iter(self.indices)
 
     @cache_readonly
@@ -703,7 +705,7 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: int = 0,
+    axis: AxisInt = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,
@@ -950,7 +952,7 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
 
 
-def _check_deprecated_resample_kwargs(kwargs, origin):
+def _check_deprecated_resample_kwargs(kwargs, origin) -> None:
     """
     Check for use of deprecated parameters in ``resample`` and related functions.
 

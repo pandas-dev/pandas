@@ -32,6 +32,7 @@ from pandas._libs.tslibs import NaT
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    AxisInt,
     Dtype,
     NpDtype,
     PositionalIndexer,
@@ -661,7 +662,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.dtype.fill_value
 
     @fill_value.setter
-    def fill_value(self, value):
+    def fill_value(self, value) -> None:
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
@@ -1500,7 +1501,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return values.any().item()
 
     def sum(
-        self, axis: int = 0, min_count: int = 0, skipna: bool = True, *args, **kwargs
+        self,
+        axis: AxisInt = 0,
+        min_count: int = 0,
+        skipna: bool = True,
+        *args,
+        **kwargs,
     ) -> Scalar:
         """
         Sum of non-NA/null values
@@ -1538,7 +1544,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
-    def cumsum(self, axis: int = 0, *args, **kwargs) -> SparseArray:
+    def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
         """
         Cumulative sum of non-NA/null values.
 
@@ -1589,7 +1595,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def max(self, *, axis: int | None = None, skipna: bool = True):
+    def max(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
         Max of array values, ignoring NA values if specified.
 
@@ -1607,7 +1613,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_minmax_axis(axis, self.ndim)
         return self._min_max("max", skipna=skipna)
 
-    def min(self, *, axis: int | None = None, skipna: bool = True):
+    def min(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
         Min of array values, ignoring NA values if specified.
 
@@ -1872,7 +1878,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         pp_index = printing.pprint_thing(self.sp_index)
         return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed: bool = False):
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None

@@ -1,10 +1,5 @@
 """Strptime-related classes and functions.
 """
-import calendar
-import locale
-import re
-import time
-
 from cpython.datetime cimport (
     date,
     tzinfo,
@@ -26,9 +21,10 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_FR_ns,
     check_dts_bounds,
-    dtstruct_to_dt64,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
 )
 
 
@@ -334,7 +330,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
         dts.us = us
         dts.ps = ns * 1000
 
-        iresult[i] = dtstruct_to_dt64(&dts)
+        iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
         try:
             check_dts_bounds(&dts)
         except ValueError:
@@ -365,10 +361,10 @@ FUNCTIONS:
 """
 
 from _strptime import (
-    LocaleTime,
     TimeRE as _TimeRE,
     _getlang,
 )
+from _strptime import LocaleTime  # no-cython-lint
 
 
 class TimeRE(_TimeRE):
@@ -507,7 +503,7 @@ cdef tzinfo parse_timezone_directive(str z):
     """
 
     cdef:
-        int gmtoff_fraction, hours, minutes, seconds, pad_number, microseconds
+        int hours, minutes, seconds, pad_number, microseconds
         int total_minutes
         object gmtoff_remainder, gmtoff_remainder_padding
 

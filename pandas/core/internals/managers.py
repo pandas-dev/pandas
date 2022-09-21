@@ -26,6 +26,7 @@ from pandas._libs import (
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     Shape,
     npt,
@@ -217,13 +218,13 @@ class BaseBlockManager(DataManager):
     # Python3 compat
     __bool__ = __nonzero__
 
-    def _normalize_axis(self, axis: int) -> int:
+    def _normalize_axis(self, axis: AxisInt) -> int:
         # switch axis to follow BlockManager logic
         if self.ndim == 2:
             axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         self._validate_set_axis(axis, new_labels)
         self.axes[axis] = new_labels
@@ -412,14 +413,15 @@ class BaseBlockManager(DataManager):
             new=new,
         )
 
-    def diff(self: T, n: int, axis: int) -> T:
+    def diff(self: T, n: int, axis: AxisInt) -> T:
+        # only reached with self.ndim == 2 and axis == 1
         axis = self._normalize_axis(axis)
         return self.apply("diff", n=n, axis=axis)
 
     def interpolate(self: T, **kwargs) -> T:
         return self.apply("interpolate", **kwargs)
 
-    def shift(self: T, periods: int, axis: int, fill_value) -> T:
+    def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
         axis = self._normalize_axis(axis)
         if fill_value is lib.no_default:
             fill_value = None
@@ -609,7 +611,7 @@ class BaseBlockManager(DataManager):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self: T, deep=True) -> T:
+    def copy(self: T, deep: bool | None | Literal["all"] = True) -> T:
         """
         Make deep or shallow copy of BlockManager
 
@@ -683,7 +685,7 @@ class BaseBlockManager(DataManager):
         self: T,
         new_axis: Index,
         indexer: npt.NDArray[np.intp] | None,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
         copy: bool | None = True,
@@ -724,6 +726,9 @@ class BaseBlockManager(DataManager):
             result.axes = list(self.axes)
             result.axes[axis] = new_axis
             return result
+
+        # Should be intp, but in some cases we get int64 on 32bit builds
+        assert isinstance(indexer, np.ndarray)
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
@@ -935,7 +940,7 @@ class BaseBlockManager(DataManager):
     def take(
         self: T,
         indexer,
-        axis: int = 1,
+        axis: AxisInt = 1,
         verify: bool = True,
         convert_indices: bool = True,
     ) -> T:
@@ -1085,11 +1090,20 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
 
         n = len(self)
-        if isinstance(dtype, ExtensionDtype):
+
+        # GH#46406
+        immutable_ea = isinstance(dtype, SparseDtype)
+
+        if isinstance(dtype, ExtensionDtype) and not immutable_ea:
             cls = dtype.construct_array_type()
             result = cls._empty((n,), dtype=dtype)
         else:
-            result = np.empty(n, dtype=dtype)
+            # error: Argument "dtype" to "empty" has incompatible type
+            # "Union[Type[object], dtype[Any], ExtensionDtype, None]"; expected
+            # "None"
+            result = np.empty(
+                n, dtype=object if immutable_ea else dtype  # type: ignore[arg-type]
+            )
             result = ensure_wrapped_if_datetimelike(result)
 
         for blk in self.blocks:
@@ -1097,6 +1111,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
+
+        if immutable_ea:
+            dtype = cast(ExtensionDtype, dtype)
+            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
         block = new_block(result, placement=slice(0, len(result)), ndim=1)
         return SingleBlockManager(block, self.axes[0])
@@ -1563,7 +1581,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self: T,
         *,
         qs: Float64Index,
-        axis: int = 0,
+        axis: AxisInt = 0,
         interpolation="linear",
     ) -> T:
         """
@@ -1961,7 +1979,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         self._post_setstate()
 
-    def _post_setstate(self):
+    def _post_setstate(self) -> None:
         pass
 
     @cache_readonly
@@ -1994,7 +2012,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         ref = weakref.ref(blk)
         return type(self)(block, new_idx, [ref])
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
+    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> SingleBlockManager:
         # Assertion disabled for performance
         # assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
@@ -2077,7 +2095,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def set_values(self, values: ArrayLike):
+    def set_values(self, values: ArrayLike) -> None:
         """
         Set the values of the single block in place.
 

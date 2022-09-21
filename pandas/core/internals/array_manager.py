@@ -21,6 +21,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     npt,
 )
@@ -160,12 +161,12 @@ class BaseArrayManager(DataManager):
         return tuple(len(ax) for ax in self._axes)
 
     @staticmethod
-    def _normalize_axis(axis: int) -> int:
+    def _normalize_axis(axis: AxisInt) -> int:
         # switch axis
         axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(self, axis: int, new_labels: Index) -> None:
+    def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         self._validate_set_axis(axis, new_labels)
         axis = self._normalize_axis(axis)
@@ -268,7 +269,9 @@ class BaseArrayManager(DataManager):
         # expected "List[Union[ndarray, ExtensionArray]]"
         return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
 
-    def apply_with_block(self: T, f, align_keys=None, swap_axis=True, **kwargs) -> T:
+    def apply_with_block(
+        self: T, f, align_keys=None, swap_axis: bool = True, **kwargs
+    ) -> T:
         # switch axis to follow BlockManager logic
         if swap_axis and "axis" in kwargs and self.ndim == 2:
             kwargs["axis"] = 1 if kwargs["axis"] == 0 else 0
@@ -297,19 +300,10 @@ class BaseArrayManager(DataManager):
                         if obj.ndim == 2:
                             kwargs[k] = obj[[i]]
 
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "tz"
-            if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
-                # DatetimeArray needs to be converted to ndarray for DatetimeLikeBlock
-
-                # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-                # attribute "_data"
-                arr = arr._data  # type: ignore[union-attr]
-            elif arr.dtype.kind == "m" and not isinstance(arr, np.ndarray):
-                # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
-
-                # error: "ExtensionArray" has no attribute "_data"
-                arr = arr._data  # type: ignore[attr-defined]
+            if isinstance(arr.dtype, np.dtype) and not isinstance(arr, np.ndarray):
+                # i.e. TimedeltaArray, DatetimeArray with tz=None. Need to
+                #  convert for the Block constructors.
+                arr = np.asarray(arr)
 
             if self.ndim == 2:
                 arr = ensure_block_shape(arr, 2)
@@ -362,18 +356,14 @@ class BaseArrayManager(DataManager):
             new=new,
         )
 
-    def diff(self: T, n: int, axis: int) -> T:
-        if axis == 1:
-            # DataFrame only calls this for n=0, in which case performing it
-            # with axis=0 is equivalent
-            assert n == 0
-            axis = 0
+    def diff(self: T, n: int, axis: AxisInt) -> T:
+        assert self.ndim == 2 and axis == 0  # caller ensures
         return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self: T, **kwargs) -> T:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
 
-    def shift(self: T, periods: int, axis: int, fill_value) -> T:
+    def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
         if fill_value is lib.no_default:
             fill_value = None
 
@@ -513,7 +503,7 @@ class BaseArrayManager(DataManager):
             or getattr(arr.dtype, "_is_numeric", False)
         )
 
-    def copy(self: T, deep=True) -> T:
+    def copy(self: T, deep: bool | Literal["all"] | None = True) -> T:
         """
         Make deep or shallow copy of ArrayManager
 
@@ -553,7 +543,7 @@ class BaseArrayManager(DataManager):
         self: T,
         new_axis,
         indexer,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
@@ -577,7 +567,7 @@ class BaseArrayManager(DataManager):
         self: T,
         new_axis,
         indexer: npt.NDArray[np.intp] | None,
-        axis: int,
+        axis: AxisInt,
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
@@ -655,7 +645,7 @@ class BaseArrayManager(DataManager):
     def take(
         self: T,
         indexer,
-        axis: int = 1,
+        axis: AxisInt = 1,
         verify: bool = True,
         convert_indices: bool = True,
     ) -> T:
@@ -682,7 +672,7 @@ class BaseArrayManager(DataManager):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def _make_na_array(self, fill_value=None, use_na_proxy=False):
+    def _make_na_array(self, fill_value=None, use_na_proxy: bool = False):
         if use_na_proxy:
             assert fill_value is None
             return NullArrayProxy(self.shape_proper[0])
@@ -789,7 +779,7 @@ class ArrayManager(BaseArrayManager):
             result = np.array(values, dtype=dtype)
         return SingleArrayManager([result], [self._axes[1]])
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> ArrayManager:
+    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> ArrayManager:
         axis = self._normalize_axis(axis)
 
         if axis == 0:
@@ -1065,7 +1055,7 @@ class ArrayManager(BaseArrayManager):
         self,
         *,
         qs: Float64Index,
-        axis: int = 0,
+        axis: AxisInt = 0,
         transposed: bool = False,
         interpolation="linear",
     ) -> ArrayManager:
@@ -1295,7 +1285,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def fast_xs(self, loc: int) -> SingleArrayManager:
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> SingleArrayManager:
+    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> SingleArrayManager:
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 

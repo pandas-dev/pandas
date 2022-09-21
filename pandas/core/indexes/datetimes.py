@@ -315,7 +315,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         cls,
         data=None,
         freq: str | BaseOffset | lib.NoDefault = lib.no_default,
-        tz=None,
+        tz=lib.no_default,
         normalize: bool = False,
         closed=None,
         ambiguous="raise",
@@ -336,7 +336,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and dtype is None
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
@@ -347,7 +347,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and is_dtype_equal(data.dtype, dtype)
         ):
             # Reached via Index.__new__ when we call .astype
@@ -798,7 +798,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError("Cannot mix time and non-time slice keys")
 
-        def check_str_or_none(point):
+        def check_str_or_none(point) -> bool:
             return point is not None and not isinstance(point, str)
 
         # GH#33146 if start and end are combinations of str and None and Index is not
@@ -966,7 +966,7 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
@@ -1163,7 +1163,7 @@ def bdate_range(
         Right bound for generating dates.
     periods : int, default None
         Number of periods to generate.
-    freq : str or DateOffset, default 'B' (business daily)
+    freq : str, datetime.timedelta, or DateOffset, default 'B' (business daily)
         Frequency strings can have multiples, e.g. '5H'.
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example

@@ -33,7 +33,7 @@ def data_test_ix(request, dirpath):
     for k in range(df.shape[1]):
         col = df.iloc[:, k]
         if col.dtype == np.int64:
-            df.iloc[:, k] = df.iloc[:, k].astype(np.float64)
+            df.isetitem(k, df.iloc[:, k].astype(np.float64))
     return df, test_ix
 
 
@@ -134,6 +134,21 @@ def test_encoding_options(datapath):
         df3 = rdr.read()
     for x, y in zip(df1.columns, df3.columns):
         assert x == y.decode()
+
+
+def test_encoding_infer(datapath):
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+
+    with pd.read_sas(fname, encoding="infer", iterator=True) as df1_reader:
+        # check: is encoding inferred correctly from file
+        assert df1_reader.inferred_encoding == "cp1252"
+        df1 = df1_reader.read()
+
+    with pd.read_sas(fname, encoding="cp1252", iterator=True) as df2_reader:
+        df2 = df2_reader.read()
+
+    # check: reader reads correct information
+    tm.assert_frame_equal(df1, df2)
 
 
 def test_productsales(datapath):

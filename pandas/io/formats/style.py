@@ -11,6 +11,7 @@ import operator
 from typing import (
     Any,
     Callable,
+    Generator,
     Hashable,
     Sequence,
     overload,
@@ -24,6 +25,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
+    AxisInt,
     FilePath,
     IndexLabel,
     Level,
@@ -80,7 +82,7 @@ except ImportError:
 
 
 @contextmanager
-def _mpl(func: Callable):
+def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
     if has_mpl:
         yield plt, mpl
     else:
@@ -828,7 +830,7 @@ class Styler(StylerRenderer):
         ``display_value`` with the default structure:
         ``\<command><options> <display_value>``.
         Where there are multiple commands the latter is nested recursively, so that
-        the above example highlighed cell is rendered as
+        the above example highlighted cell is rendered as
         ``\cellcolor{red} \bfseries 4``.
 
         Occasionally this format does not suit the applied command, or
@@ -1581,7 +1583,7 @@ class Styler(StylerRenderer):
                 i = self.index.get_loc(rn)
                 self.ctx[(i, j)].extend(css_list)
 
-    def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
+    def _update_ctx_header(self, attrs: DataFrame, axis: AxisInt) -> None:
         """
         Update the state of the ``Styler`` for header cells.
 
@@ -1853,7 +1855,7 @@ class Styler(StylerRenderer):
     def _apply_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: Axis = 0,
         level: Level | list[Level] | None = None,
         method: str = "apply",
         **kwargs,
@@ -1887,7 +1889,7 @@ class Styler(StylerRenderer):
     def apply_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
@@ -1972,7 +1974,7 @@ class Styler(StylerRenderer):
     def applymap_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
@@ -2499,7 +2501,7 @@ class Styler(StylerRenderer):
     def set_table_styles(
         self,
         table_styles: dict[Any, CSSStyles] | CSSStyles | None = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         overwrite: bool = True,
         css_class_names: dict[str, str] | None = None,
     ) -> Styler:

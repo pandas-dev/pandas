@@ -152,7 +152,7 @@ def _wrap_result(
     frame = _parse_date_columns(frame, parse_dates)
 
     if index_col is not None:
-        frame = frame.set_index(index_col, copy=False)
+        frame.set_index(index_col, inplace=True)
 
     return frame
 
@@ -819,7 +819,7 @@ class SQLTable(PandasObject):
 
         return str(CreateTable(self.table).compile(self.pd_sql.connectable))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
         self.table = self.table.to_metadata(self.pd_sql.meta)
         self.table.create(bind=self.pd_sql.connectable)
@@ -980,7 +980,7 @@ class SQLTable(PandasObject):
                 self._harmonize_columns(parse_dates=parse_dates)
 
                 if self.index is not None:
-                    self.frame = self.frame.set_index(self.index, copy=False)
+                    self.frame.set_index(self.index, inplace=True)
 
                 yield self.frame
 
@@ -1021,7 +1021,7 @@ class SQLTable(PandasObject):
             self._harmonize_columns(parse_dates=parse_dates)
 
             if self.index is not None:
-                self.frame = self.frame.set_index(self.index, copy=False)
+                self.frame.set_index(self.index, inplace=True)
 
             return self.frame
 
@@ -1102,7 +1102,7 @@ class SQLTable(PandasObject):
         meta = MetaData()
         return Table(self.name, meta, *columns, schema=schema)
 
-    def _harmonize_columns(self, parse_dates=None):
+    def _harmonize_columns(self, parse_dates=None) -> None:
         """
         Make the DataFrame's column types align with the SQL table
         column types.
@@ -1290,7 +1290,7 @@ class BaseEngine:
         con,
         frame,
         name,
-        index=True,
+        index: bool | str | list[str] | None = True,
         schema=None,
         chunksize=None,
         method=None,
@@ -1314,7 +1314,7 @@ class SQLAlchemyEngine(BaseEngine):
         con,
         frame,
         name,
-        index=True,
+        index: bool | str | list[str] | None = True,
         schema=None,
         chunksize=None,
         method=None,
@@ -1471,7 +1471,7 @@ class SQLDatabase(PandasSQL):
         chunksize: int,
         columns,
         index_col=None,
-        coerce_float=True,
+        coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
     ):
@@ -1590,7 +1590,7 @@ class SQLDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
-        index=True,
+        index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
@@ -1856,7 +1856,7 @@ class SQLiteTable(SQLTable):
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
-        def _adapt_time(t):
+        def _adapt_time(t) -> str:
             # This is faster than strftime
             return f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}.{t.microsecond:06d}"
 
@@ -1866,7 +1866,7 @@ class SQLiteTable(SQLTable):
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         with self.pd_sql.run_transaction() as conn:
             for stmt in self.table:
                 conn.execute(stmt)

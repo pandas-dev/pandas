@@ -32,7 +32,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     _str_na_value = np.nan
 
-    def __len__(self):
+    def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
 
@@ -114,7 +114,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             raise ValueError("Invalid side")
         return self._str_map(f)
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
+    def _str_contains(
+        self, pat, case: bool = True, flags=0, na=np.nan, regex: bool = True
+    ):
         if regex:
             if not case:
                 flags |= re.IGNORECASE
@@ -310,7 +312,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         self,
         pat: str | re.Pattern | None = None,
         n=-1,
-        expand=False,
+        expand: bool = False,
         regex: bool | None = None,
     ):
         if pat is None:
