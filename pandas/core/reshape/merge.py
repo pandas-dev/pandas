@@ -107,7 +107,7 @@ def merge(
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
-    indicator: bool = False,
+    indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
