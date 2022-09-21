@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`50000`)
+- Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
 -
 
 .. ---------------------------------------------------------------------------

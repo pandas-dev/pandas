@@ -1029,7 +1029,7 @@ def test_hdfstore_strides(setup_path):
 
 
 def test_store_bool_index(setup_path):
-    # GH#
+    # GH#48667
     df = DataFrame([[1]], columns=[True], index=Index([False], dtype="bool"))
     expected = df.copy()
 
