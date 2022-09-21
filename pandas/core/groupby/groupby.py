@@ -2941,6 +2941,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("ffill", limit=limit)
 
     def pad(self, limit=None):
+        """
+        Forward fill the values.
+
+        .. deprecated:: 1.4
+            Use ffill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+        """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
@@ -2948,8 +2964,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
-
-    pad.__doc__ = ffill.__doc__
 
     @final
     @Substitution(name="groupby")
@@ -2977,6 +2991,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("bfill", limit=limit)
 
     def backfill(self, limit=None):
+        """
+        Backward fill the values.
+
+        .. deprecated:: 1.4
+            Use bfill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+        """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
@@ -2984,8 +3014,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
-
-    backfill.__doc__ = bfill.__doc__
 
     @final
     @Substitution(name="groupby")
