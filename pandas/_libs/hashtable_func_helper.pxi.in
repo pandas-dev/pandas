@@ -48,9 +48,7 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         int ret = 0
         bint uses_mask = mask is not None
         bint isna_entry = False
-
-    if uses_mask and not dropna:
-        raise NotImplementedError("uses_mask not implemented with dropna=False")
+        int na_count = 0, first_na = -1, iterate_length
 
     # we track the order in which keys are first seen (GH39009),
     # khash-map isn't insertion-ordered, thus:
@@ -89,30 +87,46 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
                 isna_entry = is_nan_{{c_type}}(val)
 
         if not dropna or not isna_entry:
-            k = kh_get_{{ttype}}(table, val)
-            if k != table.n_buckets:
-                table.vals[k] += 1
+            if not dropna and uses_mask and mask[i]:
+                na_count += 1
+                if first_na == -1:
+                    first_na = table.size
+                    result_keys.append(val)
             else:
-                k = kh_put_{{ttype}}(table, val, &ret)
-                table.vals[k] = 1
-                result_keys.append(val)
+                k = kh_get_{{ttype}}(table, val)
+                if k != table.n_buckets:
+                    table.vals[k] += 1
+                else:
+                    k = kh_put_{{ttype}}(table, val, &ret)
+                    table.vals[k] = 1
+                    result_keys.append(val)
     {{endif}}
+
+    iterate_length = table.size + (0 if first_na == -1 else 1)
 
     # collect counts in the order corresponding to result_keys:
     cdef:
-        int64_t[::1] result_counts = np.empty(table.size, dtype=np.int64)
+        int64_t[::1] result_counts = np.empty(iterate_length, dtype=np.int64)
+        uint8_t[::1] result_mask = np.zeros(iterate_length, dtype=np.uint8)
 
-    for i in range(table.size):
-        {{if dtype == 'object'}}
-        k = kh_get_{{ttype}}(table, result_keys.data[i])
-        {{else}}
-        k = kh_get_{{ttype}}(table, result_keys.data.data[i])
-        {{endif}}
-        result_counts[i] = table.vals[k]
+    for i in range(iterate_length):
+        if uses_mask and not dropna and i == first_na:
+            result_counts[i] = na_count
+            result_mask[i] = 1
+        else:
+            {{if dtype == 'object'}}
+            k = kh_get_{{ttype}}(table, result_keys.data[i])
+            {{else}}
+            k = kh_get_{{ttype}}(table, result_keys.data.data[i])
+            {{endif}}
+            result_counts[i] = table.vals[k]
 
     kh_destroy_{{ttype}}(table)
 
-    return result_keys.to_array(), result_counts.base
+    if not uses_mask:
+        return result_keys.to_array(), result_counts.base
+
+    return result_keys.to_array(), result_counts.base, result_mask.base
 
 
 @cython.wraparound(False)
@@ -412,13 +426,20 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
         ndarray[htfunc_t] modes
 
         int64_t[::1] counts
+        uint8_t[::1] result_mask, counts_mask
         int64_t count, max_count = -1
         Py_ssize_t nkeys, k, j = 0
+        bint uses_mask = mask is not None
 
-    keys, counts = value_count(values, dropna, mask=mask)
+    if uses_mask:
+        keys, counts, counts_mask = value_count(values, dropna, mask=mask)
+    else:
+        keys, counts = value_count(values, dropna, mask=mask)
+
     nkeys = len(keys)
 
     modes = np.empty(nkeys, dtype=values.dtype)
+    result_mask = np.zeros(nkeys, dtype=np.uint8)
 
     if htfunc_t is not object:
         with nogil:
@@ -433,6 +454,11 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
                     continue
 
                 modes[j] = keys[k]
+                if uses_mask and not dropna and counts_mask[k]:
+                    result_mask[j] = 1
+                elif uses_mask and not dropna:
+                    result_mask[j] = 0
+
     else:
         for k in range(nkeys):
             count = counts[k]
@@ -445,6 +471,8 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
                 continue
 
             modes[j] = keys[k]
+    if uses_mask:
+        return modes[:j + 1], result_mask.base[:j + 1]
 
     return modes[:j + 1]
 

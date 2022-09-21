@@ -1,6 +1,7 @@
 from typing import (
     Hashable,
     Literal,
+    overload,
 )
 
 import numpy as np
@@ -185,13 +186,25 @@ def duplicated(
     keep: Literal["last", "first", False] = ...,
     mask: npt.NDArray[np.bool_] | None = ...,
 ) -> npt.NDArray[np.bool_]: ...
+@overload
 def mode(
-    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = ...
-) -> np.ndarray: ...
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_]
+) -> tuple[np.ndarray, npt.NDArray[np.uint8]]: ...
+@overload
+def mode(values: np.ndarray, dropna: bool, mask: None) -> np.ndarray: ...
+@overload
 def value_count(
     values: np.ndarray,
     dropna: bool,
-    mask: npt.NDArray[np.bool_] | None = ...,
+    mask: npt.NDArray[np.bool_],
+) -> tuple[
+    np.ndarray, npt.NDArray[np.int64], npt.NDArray[np.uint8]
+]: ...  # np.ndarray[same-as-values]
+@overload
+def value_count(
+    values: np.ndarray,
+    dropna: bool,
+    mask: None = ...,
 ) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype

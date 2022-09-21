@@ -983,7 +983,7 @@ def value_counts(
 
         else:
             values = _ensure_arraylike(values)
-            keys, counts = value_counts_arraylike(values, dropna)
+            keys, counts = value_counts_arraylike(values, dropna, mask=None)
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
@@ -1002,10 +1002,26 @@ def value_counts(
     return result
 
 
+@overload
+def value_counts_arraylike(
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_]
+) -> tuple[np.ndarray, npt.NDArray[np.int64], npt.NDArray[np.uint8]]:
+    ...
+
+
+@overload
+def value_counts_arraylike(
+    values: np.ndarray, dropna: bool, mask: None = ...
+) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
+    ...
+
+
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
+) -> tuple[ArrayLike, npt.NDArray[np.int64]] | tuple[
+    np.ndarray, npt.NDArray[np.int64], npt.NDArray[np.uint8]
+]:
     """
     Parameters
     ----------
@@ -1021,7 +1037,11 @@ def value_counts_arraylike(
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna, mask=mask)
+    if mask is not None:
+        keys, counts, result_mask = htable.value_count(values, dropna, mask=mask)
+        return keys, counts, result_mask
+    else:
+        keys, counts = htable.value_count(values, dropna)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -1089,9 +1109,28 @@ def mode(
         values = cast("ExtensionArray", values)
         return values._mode(dropna=dropna)
 
-    values = _ensure_data(values)
+    if isinstance(values.dtype, BaseMaskedDtype):
+        if mask is None:
+            mask = values._mask
 
-    npresult = htable.mode(values, dropna=dropna, mask=mask)
+        values = values._data
+        npresult, result_mask = htable.mode(values, dropna=dropna, mask=mask)
+        result = type(original)(npresult, result_mask.view("bool"))
+        try:
+            return np.sort(result)
+        except TypeError as err:
+            warnings.warn(
+                f"Unable to sort modes: {err}",
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+            return result
+    else:
+        values = _ensure_data(values)
+        if mask is not None:
+            npresult, _ = htable.mode(values, dropna=dropna, mask=mask)
+        else:
+            npresult = htable.mode(values, dropna=dropna, mask=mask)
+
     try:
         npresult = np.sort(npresult)
     except TypeError as err:

@@ -950,26 +950,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         from pandas.arrays import IntegerArray
 
-        keys, value_counts = algos.value_counts_arraylike(
-            self._data, dropna=True, mask=self._mask
+        keys, value_counts, result_mask = algos.value_counts_arraylike(
+            self._data, dropna=dropna, mask=self._mask
         )
 
-        if dropna:
-            res = Series(value_counts, index=keys)
-            res.index = res.index.astype(self.dtype)
-            res = res.astype("Int64")
-            return res
-
-        # if we want nans, count the mask
-        counts = np.empty(len(value_counts) + 1, dtype="int64")
-        counts[:-1] = value_counts
-        counts[-1] = self._mask.sum()
-
-        index = Index(keys, dtype=self.dtype).insert(len(keys), self.dtype.na_value)
-        index = index.astype(self.dtype)
-
-        mask = np.zeros(len(counts), dtype="bool")
-        counts_array = IntegerArray(counts, mask)
+        index = Index(
+            type(self)(keys.view(self.dtype.numpy_dtype), result_mask.view("bool"))
+        )
+        mask = np.zeros(len(value_counts), dtype="bool")
+        counts_array = IntegerArray(value_counts, mask)
 
         return Series(counts_array, index=index)
 
