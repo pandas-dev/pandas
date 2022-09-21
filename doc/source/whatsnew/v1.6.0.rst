@@ -35,6 +35,7 @@ Other enhancements
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
 - :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
+- Avoid showing deprecated signatures when introspecting functions using ``deprecate_nonkeyword_arguments`` (:issue:`48692`)
 -
 
 .. ---------------------------------------------------------------------------
