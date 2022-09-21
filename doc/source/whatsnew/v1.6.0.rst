@@ -124,7 +124,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 -
--
+- Deprecated passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` (:issue:`48538`, :issue:`48255`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.performance:

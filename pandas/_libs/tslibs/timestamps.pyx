@@ -1692,7 +1692,18 @@ class Timestamp(_Timestamp):
             )
             # Once this deprecation is enforced, we can do
             #  return Timestamp(ts_input).tz_localize(tzobj)
-        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
+        if nanosecond is None:
+            nanosecond = 0
+        elif not (999 >= nanosecond >= 0):
+            warnings.warn(
+                "In a future version, nanosecond must be between 0 and 999 inclusive "
+                "and will raise a ValueError otherwise. For nanoseconds > 999, "
+                "please distribute excess nanoseconds to microseconds and "
+                "other components as needed.",
+                FutureWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond)
 
         if ts.value == NPY_NAT:
             return NaT
