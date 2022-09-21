@@ -15,7 +15,6 @@ from pandas._libs.tslibs.offsets import (
     Nano,
 )
 
-import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     Base,
     assert_offset_equal,
@@ -95,11 +94,9 @@ class TestCustomBusinessHour(Base):
         assert hash(self.offset1) == hash(self.offset1)
         assert hash(self.offset2) == hash(self.offset2)
 
-    def test_call(self):
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-            assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
+    def test_add_dateime(self):
+        assert self.offset1 + self.d == datetime(2014, 7, 1, 11)
+        assert self.offset2 + self.d == datetime(2014, 7, 1, 11)
 
     def testRollback1(self):
         assert self.offset1.rollback(self.d) == self.d

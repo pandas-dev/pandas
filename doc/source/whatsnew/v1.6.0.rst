@@ -123,7 +123,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Removed deprecated ``apply``, ``apply_index``, ``__call__``, ``onOffset``, and ``isAnchored`` attributes from :class:`DateOffset` (:issue:`34171`)
 -
 
 .. ---------------------------------------------------------------------------

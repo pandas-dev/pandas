@@ -168,16 +168,14 @@ class TestBusinessHour(Base):
         offset = getattr(self, offset_name)
         assert offset == offset
 
-    def test_call(self):
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#34171 DateOffset.__call__ is deprecated
-            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-            assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
-            assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
-            assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
-            assert self.offset8(self.d) == datetime(2014, 7, 1, 11)
-            assert self.offset9(self.d) == datetime(2014, 7, 1, 22)
-            assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
+    def test_add_datetime(self):
+        assert self.offset1 + self.d == datetime(2014, 7, 1, 11)
+        assert self.offset2 + self.d == datetime(2014, 7, 1, 13)
+        assert self.offset3 + self.d == datetime(2014, 6, 30, 17)
+        assert self.offset4 + self.d == datetime(2014, 6, 30, 14)
+        assert self.offset8 + self.d == datetime(2014, 7, 1, 11)
+        assert self.offset9 + self.d == datetime(2014, 7, 1, 22)
+        assert self.offset10 + self.d == datetime(2014, 7, 1, 1)
 
     def test_sub(self):
         # we have to override test_sub here because self.offset2 is not
