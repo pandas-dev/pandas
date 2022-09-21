@@ -565,28 +565,28 @@ def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
     with tm.maybe_produces_warning(
-        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
     ):
         result = s.isin(["a", "c"])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
 
     with tm.maybe_produces_warning(
-        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
     ):
         result = s.isin(["a", pd.NA])
     expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
     with tm.maybe_produces_warning(
-        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
     ):
         result = s.isin([])
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
     with tm.maybe_produces_warning(
-        PerformanceWarning, dtype == "pyarrow" and pa_version_under2p0
+        PerformanceWarning, dtype.storage == "pyarrow" and pa_version_under2p0
     ):
         result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
