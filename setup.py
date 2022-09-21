@@ -538,6 +538,7 @@ ext_data = {
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timedeltas": {
         "pyxfile": "_libs/tslibs/timedeltas",
