@@ -30,7 +30,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
                                             int32_t nanos=*,
                                             NPY_DATETIMEUNIT reso=*)
 
-cdef int64_t get_datetime64_nanos(object val) except? -1
+cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, tzinfo tz)
 cdef int64_t cast_from_unit(object ts, str unit) except? -1

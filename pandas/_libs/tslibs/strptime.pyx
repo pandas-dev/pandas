@@ -21,9 +21,10 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_FR_ns,
     check_dts_bounds,
-    dtstruct_to_dt64,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
 )
 
 
@@ -329,7 +330,7 @@ def array_strptime(ndarray[object] values, str fmt, bint exact=True, errors='rai
         dts.us = us
         dts.ps = ns * 1000
 
-        iresult[i] = dtstruct_to_dt64(&dts)
+        iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
         try:
             check_dts_bounds(&dts)
         except ValueError:

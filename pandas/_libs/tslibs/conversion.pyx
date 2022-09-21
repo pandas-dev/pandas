@@ -37,7 +37,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
-    dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
@@ -171,7 +170,7 @@ cpdef inline (int64_t, int) precision_from_unit(str unit):
     return m, p
 
 
-cdef inline int64_t get_datetime64_nanos(object val) except? -1:
+cdef inline int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
     """
     Extract the value and unit from a np.datetime64 object, then convert the
     value to nanoseconds if necessary.
@@ -187,10 +186,10 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
     unit = get_datetime64_unit(val)
 
-    if unit != NPY_FR_ns:
+    if unit != reso:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
-        check_dts_bounds(&dts)
-        ival = dtstruct_to_dt64(&dts)
+        check_dts_bounds(&dts, reso)
+        ival = npy_datetimestruct_to_datetime(reso, &dts)
 
     return ival
 
@@ -238,7 +237,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        obj.value = get_datetime64_nanos(ts)
+        obj.value = get_datetime64_nanos(ts, NPY_FR_ns)
         if obj.value != NPY_NAT:
             pandas_datetime_to_datetimestruct(obj.value, NPY_FR_ns, &obj.dts)
     elif is_integer_object(ts):
@@ -403,7 +402,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         datetime dt
         Py_ssize_t pos
 
-    value = dtstruct_to_dt64(&dts)
+    value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
     obj.dts = dts
     obj.tzinfo = pytz.FixedOffset(tzoffset)
     obj.value = tz_localize_to_utc_single(value, obj.tzinfo)
@@ -490,12 +489,12 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         )
         if not string_to_dts_failed:
             try:
-                check_dts_bounds(&dts)
+                check_dts_bounds(&dts, NPY_FR_ns)
                 if out_local == 1:
                     return _create_tsobject_tz_using_offset(dts,
                                                             out_tzoffset, tz)
                 else:
-                    ival = dtstruct_to_dt64(&dts)
+                    ival = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
                     if tz is not None:
                         # shift for _localize_tso
                         ival = tz_localize_to_utc_single(ival, tz,

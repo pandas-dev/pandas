@@ -33,9 +33,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
-    dtstruct_to_dt64,
     get_datetime64_value,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     pydatetime_to_dt64,
@@ -95,7 +95,7 @@ def _test_parse_iso8601(ts: str):
         return Timestamp.now().normalize()
 
     string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
-    obj.value = dtstruct_to_dt64(&obj.dts)
+    obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = pytz.FixedOffset(out_tzoffset)
@@ -547,7 +547,7 @@ cpdef array_to_datetime(
 
                 elif is_datetime64_object(val):
                     seen_datetime = True
-                    iresult[i] = get_datetime64_nanos(val)
+                    iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
 
                 elif is_integer_object(val) or is_float_object(val):
                     # these must be ns unit by-definition
@@ -628,7 +628,7 @@ cpdef array_to_datetime(
                     if not string_to_dts_failed:
                         # No error reported by string_to_dts, pick back up
                         # where we left off
-                        value = dtstruct_to_dt64(&dts)
+                        value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
                         if out_local == 1:
                             seen_datetime_offset = True
                             # Store the out_tzoffset in seconds
