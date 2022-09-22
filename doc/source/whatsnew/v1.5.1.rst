@@ -32,6 +32,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Avoid showing deprecated signatures when introspecting functions that use ``deprecate_nonkeyword_arguments`` (:issue:`48692`)
 -
 -
 
