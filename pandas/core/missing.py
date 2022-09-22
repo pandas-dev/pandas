@@ -629,7 +629,9 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     return P(x, nu=der)
 
 
-def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolate=None):
+def _cubicspline_interpolate(
+    xi, yi, x, axis=0, bc_type: str | tuple[Any, Any] = "not-a-knot", extrapolate=None
+):
     """
     Convenience function for cubic spline data interpolator.
 
