@@ -30,12 +30,14 @@ from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    AxisInt,
     Dtype,
     FillnaOptions,
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -670,7 +672,7 @@ class ExtensionArray:
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,
@@ -1137,7 +1139,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(
-        self: ExtensionArrayT, repeats: int | Sequence[int], axis: int | None = None
+        self: ExtensionArrayT, repeats: int | Sequence[int], axis: AxisInt | None = None
     ) -> ExtensionArrayT:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
@@ -1567,7 +1569,7 @@ class ExtensionArray:
     def _rank(
         self,
         *,
-        axis: int = 0,
+        axis: AxisInt = 0,
         method: str = "average",
         na_option: str = "keep",
         ascending: bool = True,
