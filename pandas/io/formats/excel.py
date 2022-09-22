@@ -306,7 +306,7 @@ class CSSToExcelConverter:
             "dashDotDot",
             "mediumDashDotDot",
             "dashDot",
-            "slandDashDot",
+            "slantDashDot",
             "mediumDashed",
         ):
             # Excel-specific styles
