@@ -4220,7 +4220,7 @@ def _bar(
             from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
 
             cmap = (
-                (mpl.colormaps[cmap] if mpl_ge_3_6_0 else mpl.cm.get_cmap(cmap))
+                (mpl.colormaps[cmap] if mpl_ge_3_6_0() else mpl.cm.get_cmap(cmap))
                 if isinstance(cmap, str)
                 else cmap  # assumed to be a Colormap instance as documented
             )
