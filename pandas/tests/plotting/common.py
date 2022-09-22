@@ -479,12 +479,14 @@ class TestPlotBase:
             mpl.rc("axes", grid=False)
             obj.plot(kind=kind, **kws)
             assert not is_grid_on()
+            self.plt.clf()
 
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc("axes", grid=True)
             obj.plot(kind=kind, grid=False, **kws)
             assert not is_grid_on()
+            self.plt.clf()
 
             if kind not in ["pie", "hexbin", "scatter"]:
                 self.plt.subplot(1, 4 * len(kinds), spndx)
@@ -492,12 +494,14 @@ class TestPlotBase:
                 mpl.rc("axes", grid=True)
                 obj.plot(kind=kind, **kws)
                 assert is_grid_on()
+                self.plt.clf()
 
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc("axes", grid=False)
                 obj.plot(kind=kind, grid=True, **kws)
                 assert is_grid_on()
+                self.plt.clf()
 
     def _unpack_cycler(self, rcParams, field="color"):
         """
