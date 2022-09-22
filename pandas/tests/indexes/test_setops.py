@@ -8,7 +8,10 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under2p0,
+    pa_version_under7p0,
+)
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import find_common_type
@@ -573,14 +576,15 @@ def test_intersection_duplicates_all_indexes(index):
         # No duplicates in empty indexes
         return
 
-    def check_intersection_commutative(left, right):
-        assert left.intersection(right).equals(right.intersection(left))
-
     idx = index
     idx_non_unique = idx[[0, 0, 1, 2]]
 
-    check_intersection_commutative(idx, idx_non_unique)
-    assert idx.intersection(idx_non_unique).is_unique
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under2p0 and getattr(index.dtype, "storage", "") == "pyarrow",
+    ):
+        assert idx.intersection(idx_non_unique).equals(idx_non_unique.intersection(idx))
+        assert idx.intersection(idx_non_unique).is_unique
 
 
 @pytest.mark.parametrize(

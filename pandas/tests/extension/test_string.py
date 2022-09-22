@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    pa_version_under2p0,
     pa_version_under6p0,
     pa_version_under7p0,
 )
@@ -318,6 +319,26 @@ class TestMethods(base.BaseMethodsTests):
             check_stacklevel=False,
         ):
             super().test_sort_values_frame(data_for_sorting, ascending)
+
+    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
+    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
+    def test_unique(self, data, box, method):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under2p0 and getattr(data.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_unique(data, box, method)
+
+    @pytest.mark.parametrize("na_sentinel", [-1, -2])
+    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under2p0
+            and getattr(data_for_grouping.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
+            super().test_factorize_equivalence(data_for_grouping, na_sentinel)
 
 
 class TestCasting(base.BaseCastingTests):
