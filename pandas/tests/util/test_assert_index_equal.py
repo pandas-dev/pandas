@@ -282,9 +282,13 @@ def test_assert_index_equal_object_ints_order_false():
     tm.assert_index_equal(idx1, idx2, check_order=False)
 
 
-def test_assert_ea_index_equal_non_matching_na():
+@pytest.mark.parametrize("check_categorical", [True, False])
+@pytest.mark.parametrize("check_names", [True, False])
+def test_assert_ea_index_equal_non_matching_na(check_names, check_categorical):
     # GH#48608
     idx1 = Index([1, 2], dtype="Int64")
     idx2 = Index([1, NA], dtype="Int64")
     with pytest.raises(AssertionError, match="50.0 %"):
-        tm.assert_index_equal(idx1, idx2)
+        tm.assert_index_equal(
+            idx1, idx2, check_names=check_names, check_categorical=check_categorical
+        )
