@@ -3731,13 +3731,9 @@ class MultiIndex(Index):
         _, result_names = self._convert_can_do_setop(other)
 
         if len(result) == 0:
-            # Incompatible return value type (got "Optional[MultiIndex]",
-            # expected "MultiIndex")  [return-value]
-            return result.remove_unused_levels().set_names(
-                result_names
-            )  # type: ignore[return-value]
+            return result.remove_unused_levels().set_names(result_names)
         else:
-            return result.set_names(result_names)  # type: ignore[return-value]
+            return result.set_names(result_names)
 
     def _convert_can_do_setop(self, other):
         result_names = self.names
