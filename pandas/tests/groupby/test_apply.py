@@ -3,7 +3,6 @@ from datetime import (
     datetime,
 )
 from io import StringIO
-from tkinter import S
 
 import numpy as np
 import pytest
