@@ -1337,20 +1337,11 @@ def maybe_cast_to_datetime(
                         # didn't specify one
 
                         if dta.tz is not None:
-                            warnings.warn(
-                                "Data is timezone-aware. Converting "
-                                "timezone-aware data to timezone-naive by "
-                                "passing dtype='datetime64[ns]' to "
-                                "DataFrame or Series is deprecated and will "
-                                "raise in a future version. Use "
-                                "`pd.Series(values).dt.tz_localize(None)` "
-                                "instead.",
-                                FutureWarning,
-                                stacklevel=find_stack_level(inspect.currentframe()),
+                            raise ValueError(
+                                "Cannot convert timezone-aware data to "
+                                "timezone-naive dtype. Use "
+                                "pd.Series(values).dt.tz_localize(None) instead."
                             )
-                            # equiv: dta.view(dtype)
-                            # Note: NOT equivalent to dta.astype(dtype)
-                            dta = dta.tz_localize(None)
 
                         value = dta
                     elif is_datetime64tz:

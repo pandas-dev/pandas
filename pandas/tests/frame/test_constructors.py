@@ -2827,36 +2827,32 @@ class TestDataFrameConstructorWithDatetimeTZ:
         ts = Timestamp("2019", tz=tz)
         if pydt:
             ts = ts.to_pydatetime()
-        ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame({0: [ts]}, dtype="datetime64[ns]")
+        msg = (
+            "Cannot convert timezone-aware data to timezone-naive dtype. "
+            r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+        )
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({0: [ts]}, dtype="datetime64[ns]")
 
-        expected = DataFrame({0: [ts_naive]})
-        tm.assert_frame_equal(result, expected)
-
-        msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
-        with pytest.raises(TypeError, match=msg):
+        msg2 = "Cannot unbox tzaware Timestamp to tznaive dtype"
+        with pytest.raises(TypeError, match=msg2):
             DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame([ts], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([ts], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg2):
             DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame([Series([ts])], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([Series([ts])], dtype="datetime64[ns]")
 
-        with tm.assert_produces_warning(FutureWarning):
-            df = DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
-        tm.assert_equal(df, expected)
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
 
     def test_from_dict(self):
 
@@ -3125,22 +3121,19 @@ class TestFromScalar:
     def test_tzaware_data_tznaive_dtype(self, constructor, box, frame_or_series):
         tz = "US/Eastern"
         ts = Timestamp("2019", tz=tz)
-        ts_naive = Timestamp("2019")
 
         if box is None or (frame_or_series is DataFrame and box is dict):
             msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
-            with pytest.raises(TypeError, match=msg):
-                constructor(ts, dtype="M8[ns]")
-
+            err = TypeError
         else:
+            msg = (
+                "Cannot convert timezone-aware data to timezone-naive dtype. "
+                r"Use pd.Series\(values\).dt.tz_localize\(None\) instead."
+            )
+            err = ValueError
 
-            with tm.assert_produces_warning(
-                FutureWarning, match="Data is timezone-aware"
-            ):
-                result = constructor(ts, dtype="M8[ns]")
-
-            assert np.all(result.dtypes == "M8[ns]")
-            assert np.all(result == ts_naive)
+        with pytest.raises(err, match=msg):
+            constructor(ts, dtype="M8[ns]")
 
 
 # TODO: better location for this test?
