@@ -265,7 +265,7 @@ cdef class Parser:
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        int (*decompress)(Buffer, Buffer) except 0
+        int (*decompress)(Buffer, Buffer) except? 0
         object parser
 
     def __init__(self, object parser):
