@@ -1722,9 +1722,10 @@ class TestSeriesConstructors:
             result = Series({0: ts}, dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(
+            TypeError, match="Cannot unbox tzaware Timestamp to tznaive dtype"
+        ):
             result = Series(ts, index=[0], dtype="datetime64[ns]")
-        tm.assert_series_equal(result, expected)
 
     def test_constructor_datetime64(self):
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")

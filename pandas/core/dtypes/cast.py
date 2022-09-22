@@ -1726,6 +1726,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
+# TODO: rename? remove?
 def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
     """
     Wrap _maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
@@ -1737,31 +1738,7 @@ def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
         # we dont want to box dt64, in particular datetime64("NaT")
         value = maybe_box_datetimelike(value, dtype)
 
-    try:
-        value = _maybe_unbox_datetimelike(value, dtype)
-    except TypeError:
-        if (
-            isinstance(value, Timestamp)
-            and value.tzinfo is not None
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-        ):
-            warnings.warn(
-                "Data is timezone-aware. Converting "
-                "timezone-aware data to timezone-naive by "
-                "passing dtype='datetime64[ns]' to "
-                "DataFrame or Series is deprecated and will "
-                "raise in a future version. Use "
-                "`pd.Series(values).dt.tz_localize(None)` "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-            new_value = value.tz_localize(None)
-            return _maybe_unbox_datetimelike(new_value, dtype)
-        else:
-            raise
-    return value
+    return _maybe_unbox_datetimelike(value, dtype)
 
 
 def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:

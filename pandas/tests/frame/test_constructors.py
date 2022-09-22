@@ -2835,9 +2835,9 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = DataFrame({0: [ts_naive]})
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
+        with pytest.raises(TypeError, match=msg):
+            DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
 
         with tm.assert_produces_warning(FutureWarning):
             result = DataFrame([ts], dtype="datetime64[ns]")
@@ -2847,9 +2847,8 @@ class TestDataFrameConstructorWithDatetimeTZ:
             result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
 
         with tm.assert_produces_warning(FutureWarning):
             df = DataFrame([Series([ts])], dtype="datetime64[ns]")
@@ -3030,8 +3029,11 @@ def get1(obj):  # TODO: make a helper in tm?
 
 class TestFromScalar:
     @pytest.fixture(params=[list, dict, None])
-    def constructor(self, request, frame_or_series):
-        box = request.param
+    def box(self, request):
+        return request.param
+
+    @pytest.fixture
+    def constructor(self, frame_or_series, box):
 
         extra = {"index": range(2)}
         if frame_or_series is DataFrame:
@@ -3120,16 +3122,25 @@ class TestFromScalar:
 
         assert type(get1(result)) is cls
 
-    def test_tzaware_data_tznaive_dtype(self, constructor):
+    def test_tzaware_data_tznaive_dtype(self, constructor, box, frame_or_series):
         tz = "US/Eastern"
         ts = Timestamp("2019", tz=tz)
         ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning, match="Data is timezone-aware"):
-            result = constructor(ts, dtype="M8[ns]")
+        if box is None or (frame_or_series is DataFrame and box is dict):
+            msg = "Cannot unbox tzaware Timestamp to tznaive dtype"
+            with pytest.raises(TypeError, match=msg):
+                constructor(ts, dtype="M8[ns]")
 
-        assert np.all(result.dtypes == "M8[ns]")
-        assert np.all(result == ts_naive)
+        else:
+
+            with tm.assert_produces_warning(
+                FutureWarning, match="Data is timezone-aware"
+            ):
+                result = constructor(ts, dtype="M8[ns]")
+
+            assert np.all(result.dtypes == "M8[ns]")
+            assert np.all(result == ts_naive)
 
 
 # TODO: better location for this test?
