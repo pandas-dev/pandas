@@ -300,7 +300,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data,
         dtype=None,
         copy: bool = False,
-        tz=None,
+        tz=lib.no_default,
         freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
@@ -1997,7 +1997,7 @@ def _sequence_to_dt64ns(
     data,
     dtype=None,
     copy: bool = False,
-    tz=None,
+    tz=lib.no_default,
     dayfirst: bool = False,
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
@@ -2034,6 +2034,9 @@ def _sequence_to_dt64ns(
     ------
     TypeError : PeriodDType data is passed
     """
+    explicit_tz_none = tz is None
+    if tz is lib.no_default:
+        tz = None
 
     inferred_freq = None
 
@@ -2041,7 +2044,7 @@ def _sequence_to_dt64ns(
     tz = timezones.maybe_get_tz(tz)
 
     # if dtype has an embedded tz, capture it
-    tz = validate_tz_from_dtype(dtype, tz)
+    tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="DatetimeArray"
@@ -2137,7 +2140,12 @@ def _sequence_to_dt64ns(
     assert result.dtype == "M8[ns]", result.dtype
 
     # We have to call this again after possibly inferring a tz above
-    validate_tz_from_dtype(dtype, tz)
+    validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+    if tz is not None and explicit_tz_none:
+        raise ValueError(
+            "Passed data is timezone-aware, incompatible with 'tz=None'. "
+            "Use obj.tz_localize(None) instead."
+        )
 
     return result, tz, inferred_freq
 
@@ -2379,7 +2387,9 @@ def _validate_dt64_dtype(dtype):
     return dtype
 
 
-def validate_tz_from_dtype(dtype, tz: tzinfo | None) -> tzinfo | None:
+def validate_tz_from_dtype(
+    dtype, tz: tzinfo | None, explicit_tz_none: bool = False
+) -> tzinfo | None:
     """
     If the given dtype is a DatetimeTZDtype, extract the implied
     tzinfo object from it and check that it does not conflict with the given
@@ -2389,6 +2399,8 @@ def validate_tz_from_dtype(dtype, tz: tzinfo | None) -> tzinfo | None:
     ----------
     dtype : dtype, str
     tz : None, tzinfo
+    explicit_tz_none : bool, default False
+        Whether tz=None was passed explicitly, as opposed to lib.no_default.
 
     Returns
     -------
@@ -2412,6 +2424,8 @@ def validate_tz_from_dtype(dtype, tz: tzinfo | None) -> tzinfo | None:
         if dtz is not None:
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a dtype with a tz")
+            elif explicit_tz_none:
+                raise ValueError("Cannot pass both a timezone-aware dtype and tz=None")
             tz = dtz
 
         if tz is not None and is_datetime64_dtype(dtype):

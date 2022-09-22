@@ -322,7 +322,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         cls,
         data=None,
         freq: Frequency | lib.NoDefault = lib.no_default,
-        tz=None,
+        tz=lib.no_default,
         normalize: bool = False,
         closed=None,
         ambiguous: TimeAmbiguous = "raise",
@@ -343,7 +343,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and dtype is None
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
@@ -354,7 +354,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and is_dtype_equal(data.dtype, dtype)
         ):
             # Reached via Index.__new__ when we call .astype
