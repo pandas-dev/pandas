@@ -12,6 +12,7 @@ from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     PositionalIndexer,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -219,7 +220,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         self._dtype = ArrowDtype(self._data.type)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
@@ -238,7 +239,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy=False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -472,7 +473,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,

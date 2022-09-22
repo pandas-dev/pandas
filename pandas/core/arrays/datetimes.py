@@ -41,7 +41,13 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._typing import npt
+from pandas._typing import (
+    DateTimeErrorChoices,
+    IntervalClosedType,
+    TimeAmbiguous,
+    TimeNonexistent,
+    npt,
+)
 from pandas.errors import (
     OutOfBoundsDatetime,
     PerformanceWarning,
@@ -294,11 +300,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data,
         dtype=None,
         copy: bool = False,
-        tz=None,
+        tz=lib.no_default,
         freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
-        ambiguous="raise",
+        ambiguous: TimeAmbiguous = "raise",
     ):
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
@@ -333,19 +339,21 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         return result
 
+    # error: Signature of "_generate_range" incompatible with supertype
+    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(
+    def _generate_range(  # type: ignore[override]
         cls,
         start,
         end,
         periods,
         freq,
         tz=None,
-        normalize=False,
-        ambiguous="raise",
-        nonexistent="raise",
-        inclusive="both",
-    ):
+        normalize: bool = False,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+        inclusive: IntervalClosedType = "both",
+    ) -> DatetimeArray:
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -656,7 +664,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values
 
@@ -828,7 +836,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
 
     @dtl.ravel_compat
-    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeArray:
+    def tz_localize(
+        self,
+        tz,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ) -> DatetimeArray:
         """
         Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index.
 
@@ -1984,10 +1997,10 @@ def _sequence_to_dt64ns(
     data,
     dtype=None,
     copy: bool = False,
-    tz=None,
+    tz=lib.no_default,
     dayfirst: bool = False,
     yearfirst: bool = False,
-    ambiguous="raise",
+    ambiguous: TimeAmbiguous = "raise",
     *,
     allow_mixed: bool = False,
     require_iso8601: bool = False,
@@ -2021,6 +2034,9 @@ def _sequence_to_dt64ns(
     ------
     TypeError : PeriodDType data is passed
     """
+    explicit_tz_none = tz is None
+    if tz is lib.no_default:
+        tz = None
 
     inferred_freq = None
 
@@ -2028,7 +2044,7 @@ def _sequence_to_dt64ns(
     tz = timezones.maybe_get_tz(tz)
 
     # if dtype has an embedded tz, capture it
-    tz = validate_tz_from_dtype(dtype, tz)
+    tz = validate_tz_from_dtype(dtype, tz, explicit_tz_none)
 
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="DatetimeArray"
@@ -2124,7 +2140,12 @@ def _sequence_to_dt64ns(
     assert result.dtype == "M8[ns]", result.dtype
 
     # We have to call this again after possibly inferring a tz above
-    validate_tz_from_dtype(dtype, tz)
+    validate_tz_from_dtype(dtype, tz, explicit_tz_none)
+    if tz is not None and explicit_tz_none:
+        raise ValueError(
+            "Passed data is timezone-aware, incompatible with 'tz=None'. "
+            "Use obj.tz_localize(None) instead."
+        )
 
     return result, tz, inferred_freq
 
@@ -2133,8 +2154,8 @@ def objects_to_datetime64ns(
     data: np.ndarray,
     dayfirst,
     yearfirst,
-    utc=False,
-    errors="raise",
+    utc: bool = False,
+    errors: DateTimeErrorChoices = "raise",
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,
@@ -2366,7 +2387,9 @@ def _validate_dt64_dtype(dtype):
     return dtype
 
 
-def validate_tz_from_dtype(dtype, tz: tzinfo | None) -> tzinfo | None:
+def validate_tz_from_dtype(
+    dtype, tz: tzinfo | None, explicit_tz_none: bool = False
+) -> tzinfo | None:
     """
     If the given dtype is a DatetimeTZDtype, extract the implied
     tzinfo object from it and check that it does not conflict with the given
@@ -2376,6 +2399,8 @@ def validate_tz_from_dtype(dtype, tz: tzinfo | None) -> tzinfo | None:
     ----------
     dtype : dtype, str
     tz : None, tzinfo
+    explicit_tz_none : bool, default False
+        Whether tz=None was passed explicitly, as opposed to lib.no_default.
 
     Returns
     -------
@@ -2399,6 +2424,8 @@ def validate_tz_from_dtype(dtype, tz: tzinfo | None) -> tzinfo | None:
         if dtz is not None:
             if tz is not None and not timezones.tz_compare(tz, dtz):
                 raise ValueError("cannot supply both a tz and a dtype with a tz")
+            elif explicit_tz_none:
+                raise ValueError("Cannot pass both a timezone-aware dtype and tz=None")
             tz = dtz
 
         if tz is not None and is_datetime64_dtype(dtype):

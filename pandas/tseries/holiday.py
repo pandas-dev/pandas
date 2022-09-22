@@ -242,7 +242,7 @@ class Holiday:
         repr = f"Holiday: {self.name} ({info})"
         return repr
 
-    def dates(self, start_date, end_date, return_name=False):
+    def dates(self, start_date, end_date, return_name: bool = False):
         """
         Calculate holidays observed between start date and end date
 
@@ -420,7 +420,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         return None
 
-    def holidays(self, start=None, end=None, return_name=False):
+    def holidays(self, start=None, end=None, return_name: bool = False):
         """
         Returns a curve with holidays between start_date and end_date
 
@@ -506,7 +506,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         other_holidays.update(base_holidays)
         return list(other_holidays.values())
 
-    def merge(self, other, inplace=False):
+    def merge(self, other, inplace: bool = False):
         """
         Merge holiday calendars together.  The caller's class
         rules take precedence.  The merge will be done

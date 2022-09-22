@@ -32,6 +32,8 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
 )
 from pandas._typing import (
+    AxisInt,
+    DateTimeErrorChoices,
     DtypeObj,
     NpDtype,
     npt,
@@ -327,7 +329,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def sum(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         keepdims: bool = False,
@@ -347,7 +349,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def std(
         self,
         *,
-        axis: int | None = None,
+        axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
@@ -372,7 +374,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         return get_format_timedelta64(self, box=True)
 
     def _format_native_types(
-        self, *, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_timedelta64
 
@@ -845,7 +847,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
 
 def sequence_to_td64ns(
-    data, copy: bool = False, unit=None, errors="raise"
+    data,
+    copy: bool = False,
+    unit=None,
+    errors: DateTimeErrorChoices = "raise",
 ) -> tuple[np.ndarray, Tick | None]:
     """
     Parameters
@@ -931,7 +936,7 @@ def sequence_to_td64ns(
     return data, inferred_freq
 
 
-def ints_to_td64ns(data, unit="ns"):
+def ints_to_td64ns(data, unit: str = "ns"):
     """
     Convert an ndarray with integer-dtype to timedelta64[ns] dtype, treating
     the integers as multiples of the given timedelta unit.
@@ -971,7 +976,7 @@ def ints_to_td64ns(data, unit="ns"):
     return data, copy_made
 
 
-def _objects_to_td64ns(data, unit=None, errors="raise"):
+def _objects_to_td64ns(data, unit=None, errors: DateTimeErrorChoices = "raise"):
     """
     Convert a object-dtyped or string-dtyped array into an
     timedelta64[ns]-dtyped array.
