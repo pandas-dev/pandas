@@ -1660,7 +1660,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value, name="iloc"):
+    def _setitem_with_indexer(self, indexer, value, name: str = "iloc"):
         """
         _setitem_with_indexer is for setting values on a Series/DataFrame
         using positional indexers.
@@ -1986,7 +1986,7 @@ class _iLocIndexer(_LocationIndexer):
             and self.obj.shape[0] == value.shape[0]
             and not is_empty_indexer(pi)
         ):
-            if is_list_like(pi):
+            if is_list_like(pi) and not is_bool_dtype(pi):
                 value = value[np.argsort(pi)]
             else:
                 # in case of slice

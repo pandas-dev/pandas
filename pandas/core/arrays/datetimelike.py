@@ -37,11 +37,13 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     Timestamp,
+    astype_overflowsafe,
     delta_to_nanoseconds,
     get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
+    npy_unit_to_abbrev,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -61,6 +63,8 @@ from pandas._typing import (
     PositionalIndexerTuple,
     ScalarIndexer,
     SequenceIndexer,
+    TimeAmbiguous,
+    TimeNonexistent,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -306,7 +310,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep="NaT", date_format=None
+        self, *, na_rep: str | float = "NaT", date_format=None
     ) -> npt.NDArray[np.object_]:
         """
         Helper method for astype when converting to strings.
@@ -554,7 +558,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_obj._freq = new_freq
         return new_obj
 
-    def copy(self: DatetimeLikeArrayT, order="C") -> DatetimeLikeArrayT:
+    def copy(self: DatetimeLikeArrayT, order: str = "C") -> DatetimeLikeArrayT:
         # error: Unexpected keyword argument "order" for "copy"
         new_obj = super().copy(order=order)  # type: ignore[call-arg]
         new_obj._freq = self.freq
@@ -1130,10 +1134,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
         if self._reso != other._reso:
-            raise NotImplementedError(
-                "Addition between TimedeltaArray and Timestamp with mis-matched "
-                "resolutions is not yet supported."
-            )
+            # Just as with Timestamp/Timedelta, we cast to the lower resolution
+            #  so long as doing so is lossless.
+            if self._reso < other._reso:
+                other = other._as_unit(self._unit, round_ok=False)
+            else:
+                unit = npy_unit_to_abbrev(other._reso)
+                self = self._as_unit(unit)
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
@@ -1289,10 +1296,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("DatetimeArray | TimedeltaArray", self)
 
         if self._reso != other._reso:
-            raise NotImplementedError(
-                f"Addition of {type(self).__name__} with TimedeltaArray with "
-                "mis-matched resolutions is not yet supported."
-            )
+            # Just as with Timestamp/Timedelta, we cast to the lower resolution
+            #  so long as doing so is lossless.
+            if self._reso < other._reso:
+                other = other._as_unit(self._unit)
+            else:
+                self = self._as_unit(other._unit)
 
         self_i8 = self.asi8
         other_i8 = other.asi8
@@ -2028,6 +2037,22 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
+    def _as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
+        dtype = np.dtype(f"{self.dtype.kind}8[{unit}]")
+        new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=False)
+
+        if isinstance(self.dtype, np.dtype):
+            new_dtype = new_values.dtype
+        else:
+            tz = cast("DatetimeArray", self).tz
+            new_dtype = DatetimeTZDtype(tz=tz, unit=unit)
+
+        # error: Unexpected keyword argument "freq" for "_simple_new" of
+        # "NDArrayBacked"  [call-arg]
+        return type(self)._simple_new(
+            new_values, dtype=new_dtype, freq=self.freq  # type: ignore[call-arg]
+        )
+
     # --------------------------------------------------------------
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -2062,15 +2087,30 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))
-    def round(self, freq, ambiguous="raise", nonexistent="raise"):
+    def round(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent)
 
     @Appender((_round_doc + _floor_example).format(op="floor"))
-    def floor(self, freq, ambiguous="raise", nonexistent="raise"):
+    def floor(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
-    def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
+    def ceil(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     # --------------------------------------------------------------
