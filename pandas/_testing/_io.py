@@ -117,7 +117,7 @@ def optional_args(decorator):
 @optional_args  # type: ignore[misc]
 def network(
     t,
-    url="https://www.google.com",
+    url: str = "https://www.google.com",
     raise_on_error: bool = False,
     check_before_test: bool = False,
     error_classes=None,
@@ -369,7 +369,7 @@ def round_trip_localpath(writer, reader, path: str | None = None):
     return obj
 
 
-def write_to_compressed(compression, path, data, dest="test"):
+def write_to_compressed(compression, path, data, dest: str = "test"):
     """
     Write data to a compressed file.
 

@@ -23,6 +23,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     AxisInt,
+    CorrelationMethod,
     Dtype,
     DtypeObj,
     F,
@@ -1536,7 +1537,11 @@ def _zero_out_fperr(arg):
 
 @disallow("M8", "m8")
 def nancorr(
-    a: np.ndarray, b: np.ndarray, *, method="pearson", min_periods: int | None = None
+    a: np.ndarray,
+    b: np.ndarray,
+    *,
+    method: CorrelationMethod = "pearson",
+    min_periods: int | None = None,
 ) -> float:
     """
     a, b: ndarrays
@@ -1559,7 +1564,9 @@ def nancorr(
     return f(a, b)
 
 
-def get_corr_func(method) -> Callable[[np.ndarray, np.ndarray], float]:
+def get_corr_func(
+    method: CorrelationMethod,
+) -> Callable[[np.ndarray, np.ndarray], float]:
     if method == "kendall":
         from scipy.stats import kendalltau
 
