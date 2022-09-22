@@ -3,6 +3,7 @@ from datetime import (
     datetime,
 )
 from io import StringIO
+from tkinter import S
 
 import numpy as np
 import pytest
@@ -1334,13 +1335,19 @@ def test_result_name_when_one_group(name):
 
 
 def test_empty_df():
+    # GH 47985
     empty_df = DataFrame({"a": [], "b": []})
 
     # Both operations should return an empty series instead of IndexError for apply UDF
-    result = empty_df.groupby("a", group_keys=True).b.apply(lambda x: x.values[-1])
-    expected = empty_df.groupby("a", group_keys=True).b.agg("sum")
+    result1 = empty_df.groupby("a", group_keys=True).b.apply(lambda x: x.values[-1])
+    result2 = empty_df.groupby("a", group_keys=True).b.agg("sum")
 
-    tm.assert_series_equal(result, expected)
+    expected = Series(
+        [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
+    )
+
+    tm.assert_series_equal(result1, expected)
+    tm.assert_series_equal(result2, expected)
 
 
 @pytest.mark.parametrize(
@@ -1352,10 +1359,16 @@ def test_empty_df():
     ],
 )
 def test_udf_raise_error_on_empty_df(error_type):
+    # GH 47985
     empty_df = DataFrame({"a": [], "b": []})
 
     def f(group):
         raise error_type
 
     # Exception should not be raised.
-    empty_df.groupby("a", group_keys=True).b.apply(f)
+    result = empty_df.groupby("a", group_keys=True).b.apply(f)
+    expected = Series(
+        [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
+    )
+
+    tm.assert_series_equal(result, expected)
