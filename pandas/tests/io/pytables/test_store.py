@@ -1026,3 +1026,16 @@ def test_hdfstore_strides(setup_path):
     with ensure_clean_store(setup_path) as store:
         store.put("df", df)
         assert df["a"].values.strides == store["df"]["a"].values.strides
+
+
+def test_store_bool_index(setup_path):
+    # GH#48667
+    df = DataFrame([[1]], columns=[True], index=Index([False], dtype="bool"))
+    expected = df.copy()
+
+    # # Test to make sure defaults are to not drop.
+    # # Corresponding to Issue 9382
+    with ensure_clean_path(setup_path) as path:
+        df.to_hdf(path, "a")
+        result = read_hdf(path, "a")
+        tm.assert_frame_equal(expected, result)
