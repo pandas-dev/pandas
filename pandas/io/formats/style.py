@@ -9,6 +9,7 @@ from functools import partial
 import inspect
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generator,
@@ -70,6 +71,9 @@ from pandas.io.formats.style_render import (
     non_reducing_slice,
     refactor_levels,
 )
+
+if TYPE_CHECKING:
+    from matplotlib.colors import Colormap
 
 try:
     import matplotlib as mpl
@@ -2996,7 +3000,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def background_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3151,7 +3155,7 @@ class Styler(StylerRenderer):
     )
     def text_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3907,7 +3911,7 @@ def _validate_apply_axis_arg(
 
 def _background_gradient(
     data,
-    cmap="PuBu",
+    cmap: str | Colormap = "PuBu",
     low: float = 0,
     high: float = 0,
     text_color_threshold: float = 0.408,

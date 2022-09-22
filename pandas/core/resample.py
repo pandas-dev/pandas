@@ -27,11 +27,15 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    AnyArrayLike,
     AxisInt,
+    Frequency,
     IndexLabel,
     NDFrameT,
+    QuantileInterpolation,
     T,
     TimedeltaConvertibleTypes,
+    TimeGrouperOrigin,
     TimestampConvertibleTypes,
     npt,
 )
@@ -921,11 +925,11 @@ class Resampler(BaseGroupBy, PandasObject):
     @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
-        method="linear",
+        method: QuantileInterpolation = "linear",
         axis=0,
         limit=None,
         inplace: bool = False,
-        limit_direction="forward",
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
         downcast=None,
         **kwargs,
@@ -1052,7 +1056,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q=0.5, **kwargs):
+    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
@@ -1585,12 +1589,14 @@ class TimeGrouper(Grouper):
         "offset",
     )
 
+    origin: TimeGrouperOrigin
+
     def __init__(
         self,
-        freq="Min",
+        freq: Frequency = "Min",
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
-        how="mean",
+        how: str = "mean",
         axis=0,
         fill_method=None,
         limit=None,
@@ -1598,7 +1604,8 @@ class TimeGrouper(Grouper):
         kind: str | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
         base: int | None = None,
-        origin: str | TimestampConvertibleTypes = "start_day",
+        origin: Literal["epoch", "start", "start_day", "end", "end_day"]
+        | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = True,
         **kwargs,
@@ -1649,7 +1656,12 @@ class TimeGrouper(Grouper):
         self.group_keys = group_keys
 
         if origin in ("epoch", "start", "start_day", "end", "end_day"):
-            self.origin = origin
+            # error: Incompatible types in assignment (expression has type "Union[Union[
+            # Timestamp, datetime, datetime64, signedinteger[_64Bit], float, str],
+            # Literal['epoch', 'start', 'start_day', 'end', 'end_day']]", variable has
+            # type "Union[Timestamp, Literal['epoch', 'start', 'start_day', 'end',
+            # 'end_day']]")
+            self.origin = origin  # type: ignore[assignment]
         else:
             try:
                 self.origin = Timestamp(origin)
@@ -1975,7 +1987,7 @@ def _get_timestamp_range_edges(
     last: Timestamp,
     freq: BaseOffset,
     closed: Literal["right", "left"] = "left",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
     """
@@ -2053,7 +2065,7 @@ def _get_period_range_edges(
     last: Period,
     freq: BaseOffset,
     closed: Literal["right", "left"] = "left",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
     """
@@ -2127,7 +2139,7 @@ def _adjust_dates_anchored(
     last: Timestamp,
     freq: Tick,
     closed: Literal["right", "left"] = "right",
-    origin="start_day",
+    origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Timestamp, Timestamp]:
     # First and last offsets should be calculated from the start day to fix an
@@ -2143,11 +2155,11 @@ def _adjust_dates_anchored(
     elif isinstance(origin, Timestamp):
         origin_nanos = origin.value
     elif origin in ["end", "end_day"]:
-        origin = last if origin == "end" else last.ceil("D")
-        sub_freq_times = (origin.value - first.value) // freq.nanos
+        origin_last = last if origin == "end" else last.ceil("D")
+        sub_freq_times = (origin_last.value - first.value) // freq.nanos
         if closed == "left":
             sub_freq_times += 1
-        first = origin - sub_freq_times * freq
+        first = origin_last - sub_freq_times * freq
         origin_nanos = first.value
     origin_nanos += offset.value if offset else 0
 

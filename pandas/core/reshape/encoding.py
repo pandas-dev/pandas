@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 import itertools
-from typing import Hashable
+from typing import (
+    Hashable,
+    Iterable,
+)
 
 import numpy as np
 
@@ -25,7 +28,7 @@ from pandas.core.series import Series
 def get_dummies(
     data,
     prefix=None,
-    prefix_sep="_",
+    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     columns=None,
     sparse: bool = False,
@@ -221,7 +224,7 @@ def get_dummies(
 def _get_dummies_1d(
     data,
     prefix,
-    prefix_sep="_",
+    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,

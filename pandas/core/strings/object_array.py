@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections.abc import Callable  # noqa: PDF001
 import re
 import textwrap
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 import unicodedata
 
 import numpy as np
@@ -103,7 +106,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         f = lambda x: len(regex.findall(x))
         return self._str_map(f, dtype="int64")
 
-    def _str_pad(self, width, side="left", fillchar=" "):
+    def _str_pad(
+        self,
+        width,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
         if side == "left":
             f = lambda x: x.rjust(width, fillchar)
         elif side == "right":
@@ -220,7 +228,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         f = lambda x: regex.fullmatch(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
-    def _str_encode(self, encoding, errors="strict"):
+    def _str_encode(self, encoding, errors: str = "strict"):
         f = lambda x: x.encode(encoding, errors=errors)
         return self._str_map(f, dtype=object)
 
@@ -356,7 +364,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep: str = "|"):
         from pandas import Series
 
         arr = Series(self).fillna("")

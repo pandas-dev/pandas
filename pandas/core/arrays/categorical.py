@@ -44,6 +44,7 @@ from pandas._typing import (
     NpDtype,
     Ordered,
     Shape,
+    SortKind,
     npt,
     type_t,
 )
@@ -1827,7 +1828,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # error: Signature of "argsort" incompatible with supertype "ExtensionArray"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(  # type: ignore[override]
-        self, ascending: bool = True, kind="quicksort", **kwargs
+        self, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
     ):
         """
         Return the indices that would sort the Categorical.
@@ -2200,7 +2201,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, length: bool = True, na_rep="NaN", footer: bool = True) -> str:
+    def _get_repr(
+        self, length: bool = True, na_rep: str = "NaN", footer: bool = True
+    ) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(
@@ -2716,7 +2719,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         result = PandasArray(categories.to_numpy())._str_map(f, na_value, dtype)
         return take_nd(result, codes, fill_value=na_value)
 
-    def _str_get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep: str = "|"):
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import PandasArray
 

@@ -447,7 +447,7 @@ class ExponentialMovingWindow(BaseWindow):
         return ExponentialMovingWindowIndexer()
 
     def online(
-        self, engine="numba", engine_kwargs=None
+        self, engine: str = "numba", engine_kwargs=None
     ) -> OnlineExponentialMovingWindow:
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate

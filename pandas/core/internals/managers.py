@@ -28,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     DtypeObj,
+    QuantileInterpolation,
     Shape,
     npt,
     type_t,
@@ -1582,7 +1583,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         *,
         qs: Float64Index,
         axis: AxisInt = 0,
-        interpolation="linear",
+        interpolation: QuantileInterpolation = "linear",
     ) -> T:
         """
         Iterate over blocks applying quantile reduction.

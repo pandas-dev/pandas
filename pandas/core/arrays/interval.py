@@ -38,6 +38,7 @@ from pandas._typing import (
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
+    SortKind,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -564,7 +565,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_tuples(
         cls: type[IntervalArrayT],
         data,
-        closed="right",
+        closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -799,7 +800,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,
