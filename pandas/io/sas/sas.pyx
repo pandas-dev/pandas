@@ -31,9 +31,10 @@ cdef inline uint8_t buf_get(Buffer buf, size_t offset) except? 255:
     return buf.data[offset]
 
 
-cdef inline void buf_set(Buffer buf, size_t offset, uint8_t value) except *:
+cdef inline bint buf_set(Buffer buf, size_t offset, uint8_t value) except 0:
     assert offset < buf.length, "Out of bounds write"
     buf.data[offset] = value
+    return True
 
 
 cdef inline bytes buf_as_bytes(Buffer buf, size_t offset, size_t length):
@@ -264,7 +265,7 @@ cdef class Parser:
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        int (*decompress)(Buffer, Buffer) except *
+        int (*decompress)(Buffer, Buffer) except 0
         object parser
 
     def __init__(self, object parser):
