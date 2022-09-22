@@ -4013,7 +4013,7 @@ def _require_listlike(level, arr, arrname: str):
     return level, arr
 
 
-def _maybe_try_sort(result, sort):
+def _maybe_try_sort(result: MultiIndex, sort) -> MultiIndex:
     if sort is None:
         try:
             result = result.sort_values()

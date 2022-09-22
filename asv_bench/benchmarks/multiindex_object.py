@@ -268,7 +268,11 @@ class SetOperations:
         if index_structure == "non_monotonic":
             data = {k: mi[::-1] for k, mi in data.items()}
 
-        data = {k: {"left": mi, "right": mi[:-1]} for k, mi in data.items()}
+        # left and right each have values not in the other
+        for k, mi in data.items():
+            n = len(mi) // 10
+            data[k] = {"left": mi[:-n], "right": mi[n:]}
+
         self.left = data[dtype]["left"]
         self.right = data[dtype]["right"]
 
