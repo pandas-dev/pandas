@@ -451,9 +451,8 @@ class WrappedCythonOp:
         )
 
         if self.how == "ohlc":
-            result_mask = np.tile(
-                result_mask, (self._cython_arity.get(self.how, 1), 1)
-            ).T
+            arity = self._cython_arity.get(self.how, 1)
+            result_mask = np.tile(result_mask, (arity, 1)).T
 
         # res_values should already have the correct dtype, we just need to
         #  wrap in a MaskedArray
