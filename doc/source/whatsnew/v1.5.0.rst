@@ -932,7 +932,6 @@ Other Deprecations
 - Deprecated unused arguments ``encoding`` and ``verbose`` in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:issue:`47912`)
 - Deprecated the ``inplace`` keyword in :meth:`DataFrame.set_axis` and :meth:`Series.set_axis`, use ``obj = obj.set_axis(..., copy=False)`` instead (:issue:`48130`)
 - Deprecated producing a single element when iterating over a :class:`DataFrameGroupBy` or a :class:`SeriesGroupBy` that has been grouped by a list of length 1; A tuple of length one will be returned instead (:issue:`42795`)
-- Deprecated ``np.uint8`` as the default ``dtype`` for :func:`get_dummies` - in a future version, it will be changed to ``bool`` (:issue:`45848`)
 - Fixed up warning message of deprecation of :meth:`MultiIndex.lesort_depth` as public method, as the message previously referred to :meth:`MultiIndex.is_lexsorted` instead (:issue:`38701`)
 - Deprecated the ``sort_columns`` argument in :meth:`DataFrame.plot` and :meth:`Series.plot` (:issue:`47563`).
 - Deprecated positional arguments for all but the first argument of :meth:`DataFrame.to_stata` and :func:`read_stata`, use keyword arguments instead (:issue:`48128`).

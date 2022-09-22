@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import inspect
 import itertools
 from typing import Hashable
-import warnings
 
 import numpy as np
 
 from pandas._libs.sparse import IntIndex
 from pandas._typing import Dtype
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -66,7 +63,7 @@ def get_dummies(
     drop_first : bool, default False
         Whether to get k-1 dummies out of k categorical levels by removing the
         first level.
-    dtype : dtype, default np.uint8
+    dtype : dtype, default bool
         Data type for new columns. Only a single dtype is allowed.
 
     Returns
@@ -89,50 +86,50 @@ def get_dummies(
     >>> s = pd.Series(list('abca'))
 
     >>> pd.get_dummies(s)
-       a  b  c
-    0  1  0  0
-    1  0  1  0
-    2  0  0  1
-    3  1  0  0
+           a      b      c
+    0   True  False  False
+    1  False   True  False
+    2  False  False   True
+    3   True  False  False
 
     >>> s1 = ['a', 'b', np.nan]
 
     >>> pd.get_dummies(s1)
-       a  b
-    0  1  0
-    1  0  1
-    2  0  0
+           a      b
+    0   True  False
+    1  False   True
+    2  False  False
 
     >>> pd.get_dummies(s1, dummy_na=True)
-       a  b  NaN
-    0  1  0    0
-    1  0  1    0
-    2  0  0    1
+           a      b    NaN
+    0   True  False  False
+    1  False   True  False
+    2  False  False   True
 
     >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
     ...                    'C': [1, 2, 3]})
 
     >>> pd.get_dummies(df, prefix=['col1', 'col2'])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
-    0  1       1       0       0       1       0
-    1  2       0       1       1       0       0
-    2  3       1       0       0       0       1
+    0  1    True   False   False    True   False
+    1  2   False    True    True   False   False
+    2  3    True   False   False   False    True
 
     >>> pd.get_dummies(pd.Series(list('abcaa')))
-       a  b  c
-    0  1  0  0
-    1  0  1  0
-    2  0  0  1
-    3  1  0  0
-    4  1  0  0
+           a      b      c
+    0   True  False  False
+    1  False   True  False
+    2  False  False   True
+    3   True  False  False
+    4   True  False  False
 
     >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True)
-       b  c
-    0  0  0
-    1  1  0
-    2  0  1
-    3  0  0
-    4  0  0
+           b      c
+    0  False  False
+    1   True  False
+    2  False   True
+    3  False  False
+    4  False  False
 
     >>> pd.get_dummies(pd.Series(list('abc')), dtype=float)
          a    b    c
@@ -236,16 +233,11 @@ def _get_dummies_1d(
     codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
-        warnings.warn(
-            "In a future version of pandas the default dtype will change from "
-            "'uint8' to 'bool', please specify a dtype to silence this warning",
-            FutureWarning,
-            stacklevel=find_stack_level(inspect.currentframe()),
-        )
-        dtype = np.dtype(np.uint8)
+        dtype = bool
     # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
     # dtype[Any], Type[object]]"; expected "Type[Any]"
-    dtype = np.dtype(dtype)  # type: ignore[arg-type]
+    else:
+        dtype = np.dtype(dtype)  # type: ignore[arg-type]
 
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")

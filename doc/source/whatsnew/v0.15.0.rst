@@ -1007,7 +1007,6 @@ Other:
   left untouched.
 
   .. ipython:: python
-    :okwarning:
 
     df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['c', 'c', 'b'],
                     'C': [1, 2, 3]})

@@ -19,7 +19,7 @@ class TestDataFrameSortValues:
         # GH#45618
         # TODO(2.0): test will be unnecessary
         ser = pd.Series(Categorical(["a", "b", "a"], categories=["a", "b", "c"]))
-        df = pd.get_dummies(ser, sparse=True)
+        df = pd.get_dummies(ser, dtype=np.uint8, sparse=True)
 
         with tm.assert_produces_warning(None):
             # No warnings about constructing Index from SparseArray
