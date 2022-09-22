@@ -3654,6 +3654,15 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Set Methods
 
+    def _difference(self, other, sort) -> MultiIndex:
+        other, result_names = self._convert_can_do_setop(other)
+        this = self.unique()
+        indexer = this.get_indexer_for(other)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+        label_diff = np.setdiff1d(np.arange(len(this)), indexer, assume_unique=True)
+        result = this.take(label_diff)
+        return _maybe_try_sort(result, sort)
+
     def _union(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
         if (
@@ -3678,19 +3687,7 @@ class MultiIndex(Index):
                 result = self.append(other.take(right_missing))
             else:
                 result = self._get_reconciled_name_object(other)
-
-            if sort is None:
-                try:
-                    result = result.sort_values()
-                except TypeError:
-                    warnings.warn(
-                        "The values in the array are unorderable. "
-                        "Pass `sort=False` to suppress this warning.",
-                        RuntimeWarning,
-                        stacklevel=find_stack_level(inspect.currentframe()),
-                    )
-                    pass
-            return result
+            return _maybe_try_sort(result, sort)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
@@ -3730,16 +3727,7 @@ class MultiIndex(Index):
 
     def _wrap_difference_result(self, other, result) -> MultiIndex:
         _, result_names = self._convert_can_do_setop(other)
-
-        if len(result) == 0:
-            return MultiIndex(
-                levels=[[]] * self.nlevels,
-                codes=[[]] * self.nlevels,
-                names=result_names,
-                verify_integrity=False,
-            )
-        else:
-            return MultiIndex.from_tuples(result, sortorder=0, names=result_names)
+        return result.set_names(result_names)
 
     def _convert_can_do_setop(self, other):
         result_names = self.names
@@ -4023,3 +4011,18 @@ def _require_listlike(level, arr, arrname: str):
         if not is_list_like(arr) or not is_list_like(arr[0]):
             raise TypeError(f"{arrname} must be list of lists-like")
     return level, arr
+
+
+def _maybe_try_sort(result, sort):
+    if sort is None:
+        try:
+            result = result.sort_values()
+        except TypeError:
+            warnings.warn(
+                "The values in the array are unorderable. "
+                "Pass `sort=False` to suppress this warning.",
+                RuntimeWarning,
+                stacklevel=find_stack_level(inspect.currentframe()),
+            )
+            pass
+    return result

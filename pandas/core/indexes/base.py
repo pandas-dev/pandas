@@ -3677,7 +3677,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_difference_result(other, result)
 
     def _difference(self, other, sort):
-        # overridden by RangeIndex
+        # overridden by MultiIndex, RangeIndex
 
         this = self.unique()
 

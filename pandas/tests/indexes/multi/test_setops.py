@@ -216,7 +216,10 @@ def test_difference_sort_incomparable():
 
     other = MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
     # sort=None, the default
-    msg = "sort order is undefined for incomparable objects"
+    msg = (
+        "The values in the array are unorderable. "
+        "Pass `sort=False` to suppress this warning."
+    )
     with tm.assert_produces_warning(RuntimeWarning, match=msg):
         result = idx.difference(other)
     tm.assert_index_equal(result, idx)
