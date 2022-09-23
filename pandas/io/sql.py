@@ -1635,8 +1635,8 @@ class SQLDatabase(PandasSQL):
 
     def check_case_sensitive(
         self,
-        name,
-        schema,
+        name: str,
+        schema: str | None,
     ) -> None:
         """
         Checks table name for issues with case-sensitivity.
@@ -1666,11 +1666,11 @@ class SQLDatabase(PandasSQL):
     def to_sql(
         self,
         frame,
-        name,
+        name: str,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
-        schema=None,
+        schema: str | None = None,
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
