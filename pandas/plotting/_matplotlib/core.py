@@ -987,7 +987,11 @@ class MPLPlot(ABC):
                 kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
-    def _get_colors(self, num_colors=None, color_kwds="color"):
+    def _get_colors(
+        self,
+        num_colors: int | None = None,
+        color_kwds: str = "color",
+    ):
         if num_colors is None:
             num_colors = self.nseries
 
@@ -1227,16 +1231,22 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
 
-        # cmap is only used if c_values are integers, otherwise UserWarning
-        if is_integer_dtype(c_values):
-            # pandas uses colormap, matplotlib uses cmap.
-            cmap = self.colormap or "Greys"
+        if self.colormap is not None:
             if mpl_ge_3_6_0():
-                cmap = mpl.colormaps[cmap]
+                cmap = mpl.colormaps[self.colormap]
             else:
-                cmap = self.plt.cm.get_cmap(cmap)
+                cmap = self.plt.cm.get_cmap(self.colormap)
         else:
-            cmap = None
+            # cmap is only used if c_values are integers, otherwise UserWarning
+            if is_integer_dtype(c_values):
+                # pandas uses colormap, matplotlib uses cmap.
+                cmap = "Greys"
+                if mpl_ge_3_6_0():
+                    cmap = mpl.colormaps[cmap]
+                else:
+                    cmap = self.plt.cm.get_cmap(cmap)
+            else:
+                cmap = None
 
         if color_by_categorical:
             from matplotlib import colors
