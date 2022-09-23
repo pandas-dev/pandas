@@ -318,7 +318,7 @@ def _add_margins(
 
     from pandas import DataFrame
 
-    margin_dummy = DataFrame(row_margin, columns=[key]).T
+    margin_dummy = DataFrame(row_margin, columns=Index([key])).T
 
     row_names = result.index.names
     # check the result column and leave floats
