@@ -6710,6 +6710,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def fillna(
         self: NDFrameT,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool_t = False,

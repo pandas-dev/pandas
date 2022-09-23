@@ -753,6 +753,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def fillna(
         self,
         value: object | ArrayLike | None = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -2075,6 +2076,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
+        *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
