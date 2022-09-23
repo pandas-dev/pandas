@@ -34,6 +34,7 @@ Other enhancements
 - :func:`assert_frame_equal` now shows the first element where the DataFrames differ, analogously to ``pytest``'s output (:issue:`47910`)
 - Added ``index`` parameter to :meth:`DataFrame.to_dict` (:issue:`46398`)
 - Added metadata propagation for binary operators on :class:`DataFrame` (:issue:`28283`)
+- :class:`.CategoricalConversionWarning`, :class:`.InvalidComparison`, :class:`.InvalidVersion`, :class:`.LossySetitemError`, and :class:`.NoBufferPresent` are now exposed in ``pandas.errors`` (:issue:`27656`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -132,14 +133,17 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
+- Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
 - Performance improvement for :class:`Series` constructor passing integer numpy array with nullable dtype (:issue:`48338`)
+- Performance improvement for :class:`DatetimeIndex` constructor passing a list (:issue:`48609`)
 - Performance improvement in :func:`merge` and :meth:`DataFrame.join` when joining on a sorted :class:`MultiIndex` (:issue:`48504`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`48384`)
 - Performance improvement for :meth:`MultiIndex.unique` (:issue:`48335`)
+- Performance improvement in :meth:`DataFrame.join` when joining on a subset of a :class:`MultiIndex` (:issue:`48611`)
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
 - Performance improvement to :func:`read_sas` with ``blank_missing=True`` (:issue:`48502`)
@@ -159,7 +163,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
--
+- Bug in :class:`DatetimeIndex` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``dtype`` or data (:issue:`48659`)
 
 Timedelta
 ^^^^^^^^^
@@ -216,7 +220,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :func:`read_sas` caused fragmentation of :class:`DataFrame` and raised :class:`.errors.PerformanceWarning` (:issue:`48595`)
 -
 
 Period
@@ -236,6 +240,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :meth:`DataFrame.pivot_table` raising ``TypeError`` for nullable dtype and ``margins=True`` (:issue:`48681`)
 - Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`48293`)
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -
@@ -254,6 +259,11 @@ ExtensionArray
 Styler
 ^^^^^^
 -
+-
+
+Metadata
+^^^^^^^^
+- Fixed metadata propagation in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` (:issue:`28283`)
 -
 
 Other
