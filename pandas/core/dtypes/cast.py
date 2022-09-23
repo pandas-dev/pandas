@@ -1643,7 +1643,7 @@ def construct_2d_arraylike_from_scalar(
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
-        value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+        value = _maybe_box_and_unbox_datetimelike(value, dtype)
     elif dtype == _dtype_obj:
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
@@ -1707,7 +1707,7 @@ def construct_1d_arraylike_from_scalar(
             if not isna(value):
                 value = ensure_str(value)
         elif dtype.kind in ["M", "m"]:
-            value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+            value = _maybe_box_and_unbox_datetimelike(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
         if length:
@@ -1717,12 +1717,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-# TODO: rename? remove?
-def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
-    """
-    Wrap _maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
-    along with a timezone-naive datetime64 dtype, which is deprecated.
-    """
+def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     # Caller is responsible for checking dtype.kind in ["m", "M"]
 
     if isinstance(value, datetime):
