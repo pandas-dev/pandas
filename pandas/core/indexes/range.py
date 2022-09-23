@@ -582,7 +582,7 @@ class RangeIndex(NumericIndex):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def _intersection(self, other: Index, sort=False):
+    def _intersection(self, other: Index, sort: bool = False):
         # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):

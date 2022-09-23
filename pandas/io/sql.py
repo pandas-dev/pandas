@@ -18,6 +18,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Iterator,
+    Literal,
     cast,
     overload,
 )
@@ -152,7 +153,7 @@ def _wrap_result(
     frame = _parse_date_columns(frame, parse_dates)
 
     if index_col is not None:
-        frame = frame.set_index(index_col, copy=False)
+        frame.set_index(index_col, inplace=True)
 
     return frame
 
@@ -603,7 +604,7 @@ def to_sql(
     name: str,
     con,
     schema: str | None = None,
-    if_exists: str = "fail",
+    if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
     index_label: IndexLabel = None,
     chunksize: int | None = None,
@@ -784,7 +785,7 @@ class SQLTable(PandasObject):
         pandas_sql_engine,
         frame=None,
         index: bool | str | list[str] | None = True,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         prefix: str = "pandas",
         index_label=None,
         schema=None,
@@ -980,7 +981,7 @@ class SQLTable(PandasObject):
                 self._harmonize_columns(parse_dates=parse_dates)
 
                 if self.index is not None:
-                    self.frame = self.frame.set_index(self.index, copy=False)
+                    self.frame.set_index(self.index, inplace=True)
 
                 yield self.frame
 
@@ -1021,7 +1022,7 @@ class SQLTable(PandasObject):
             self._harmonize_columns(parse_dates=parse_dates)
 
             if self.index is not None:
-                self.frame = self.frame.set_index(self.index, copy=False)
+                self.frame.set_index(self.index, inplace=True)
 
             return self.frame
 
@@ -1269,7 +1270,7 @@ class PandasSQL(PandasObject):
         self,
         frame,
         name,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
@@ -1290,7 +1291,7 @@ class BaseEngine:
         con,
         frame,
         name,
-        index=True,
+        index: bool | str | list[str] | None = True,
         schema=None,
         chunksize=None,
         method=None,
@@ -1314,7 +1315,7 @@ class SQLAlchemyEngine(BaseEngine):
         con,
         frame,
         name,
-        index=True,
+        index: bool | str | list[str] | None = True,
         schema=None,
         chunksize=None,
         method=None,
@@ -1471,7 +1472,7 @@ class SQLDatabase(PandasSQL):
         chunksize: int,
         columns,
         index_col=None,
-        coerce_float=True,
+        coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
     ):
@@ -1589,8 +1590,8 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name,
-        if_exists="fail",
-        index=True,
+        if_exists: Literal["fail", "replace", "append"] = "fail",
+        index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
@@ -1666,14 +1667,14 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
-        engine="auto",
+        engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         """

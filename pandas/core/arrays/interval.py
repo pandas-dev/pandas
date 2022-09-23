@@ -31,12 +31,14 @@ from pandas._libs.interval import (
 from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     Dtype,
     IntervalClosedType,
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
+    SortKind,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -563,7 +565,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_tuples(
         cls: type[IntervalArrayT],
         data,
-        closed="right",
+        closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -798,7 +800,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,
@@ -813,7 +815,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
 
-    def min(self, *, axis: int | None = None, skipna: bool = True) -> IntervalOrNA:
+    def min(self, *, axis: AxisInt | None = None, skipna: bool = True) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -830,7 +832,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[0]
         return obj[indexer]
 
-    def max(self, *, axis: int | None = None, skipna: bool = True) -> IntervalOrNA:
+    def max(self, *, axis: AxisInt | None = None, skipna: bool = True) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
 
         if not len(self):
@@ -1517,7 +1519,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["to_tuples"] % {"return_type": "ndarray", "examples": ""}
     )
-    def to_tuples(self, na_tuple=True) -> np.ndarray:
+    def to_tuples(self, na_tuple: bool = True) -> np.ndarray:
         tuples = com.asarray_tuplesafe(zip(self._left, self._right))
         if not na_tuple:
             # GH 18756
@@ -1571,7 +1573,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def repeat(
         self: IntervalArrayT,
         repeats: int | Sequence[int],
-        axis: int | None = None,
+        axis: AxisInt | None = None,
     ) -> IntervalArrayT:
         nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)

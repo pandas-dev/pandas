@@ -29,6 +29,8 @@ from cython cimport (
     floating,
 )
 
+from pandas._libs.missing import check_na_tuples_nonequal
+
 import_datetime()
 
 import numpy as np
@@ -636,7 +638,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 or is_matching_na(x, y, nan_matches_none=True)
             ):
                 return False
-        except ValueError:
+        except (ValueError, TypeError):
             # Avoid raising ValueError when comparing Numpy arrays to other types
             if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
                 # Only compare scalars to scalars and non-scalars to non-scalars
@@ -645,7 +647,12 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                   and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
                 # Check if non-scalars have the same type
                 return False
+            elif check_na_tuples_nonequal(x, y):
+                # We have tuples where one Side has a NA and the other side does not
+                # Only condition we may end up with a TypeError
+                return False
             raise
+
     return True
 
 

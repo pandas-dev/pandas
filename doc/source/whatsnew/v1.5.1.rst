@@ -1,0 +1,45 @@
+.. _whatsnew_151:
+
+What's new in 1.5.1 (October ??, 2022)
+--------------------------------------
+
+These are the changes in pandas 1.5.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed Regression in :meth:`DataFrame.loc` when setting values as a :class:`DataFrame` with all ``True`` indexer (:issue:`48701`)
+- Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
+- Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_151.contributors:
+
+Contributors
+~~~~~~~~~~~~
