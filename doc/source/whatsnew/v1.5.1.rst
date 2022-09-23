@@ -10,7 +10,7 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_143.concat:
+.. _whatsnew_151.groupby_categorical_regr:
 
 Behavior of ``groupby`` with categorical groupers (:issue:`48645`)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
