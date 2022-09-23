@@ -15,6 +15,8 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
+from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
 
 @td.skip_if_no_mpl
 class TestDataFrameColor(TestPlotBase):
@@ -204,7 +206,11 @@ class TestDataFrameColor(TestPlotBase):
             columns=["length", "width"],
         )
         df["species"] = ["r", "r", "g", "g", "b"]
-        ax = df.plot.scatter(x=0, y=1, cmap=cmap, **{kw: "species"})
+        if mpl_ge_3_6_0() and cmap is not None:
+            with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+                ax = df.plot.scatter(x=0, y=1, cmap=cmap, **{kw: "species"})
+        else:
+            ax = df.plot.scatter(x=0, y=1, cmap=cmap, **{kw: "species"})
         assert ax.collections[0].colorbar is None
 
     def test_scatter_colors(self):
