@@ -408,7 +408,13 @@ def test_groupby_drop_nan_with_multi_index():
         ([2, np.nan, 1, 2], "Float32"),
         ([2, np.nan, 1, 2], "Int64"),
         ([2, np.nan, 1, 2], "Float64"),
-        (["y", None, "x", "y"], "category"),
+        pytest.param(
+            ["y", None, "x", "y"],
+            "category",
+            marks=pytest.mark.xfail(
+                reason="dropna=False not correct for categorical, GH#48645"
+            ),
+        ),
         (["y", pd.NA, "x", "y"], "string"),
         pytest.param(
             ["y", pd.NA, "x", "y"],
