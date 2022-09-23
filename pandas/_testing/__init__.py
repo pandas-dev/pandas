@@ -25,7 +25,10 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    Frequency,
+)
 from pandas.compat import pa_version_under1p01
 
 from pandas.core.dtypes.common import (
@@ -401,13 +404,17 @@ def makeFloatIndex(k=10, name=None) -> Float64Index:
     return Float64Index(base_idx)
 
 
-def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:
+def makeDateIndex(
+    k: int = 10, freq: Frequency = "B", name=None, **kwargs
+) -> DatetimeIndex:
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(k: int = 10, freq="D", name=None, **kwargs) -> TimedeltaIndex:
+def makeTimedeltaIndex(
+    k: int = 10, freq: Frequency = "D", name=None, **kwargs
+) -> TimedeltaIndex:
     return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
 
 
@@ -484,7 +491,7 @@ def getSeriesData() -> dict[str, Series]:
     return {c: Series(np.random.randn(_N), index=index) for c in getCols(_K)}
 
 
-def makeTimeSeries(nper=None, freq="B", name=None) -> Series:
+def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     if nper is None:
         nper = _N
     return Series(
@@ -498,7 +505,7 @@ def makePeriodSeries(nper=None, name=None) -> Series:
     return Series(np.random.randn(nper), index=makePeriodIndex(nper), name=name)
 
 
-def getTimeSeriesData(nper=None, freq="B") -> dict[str, Series]:
+def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
     return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
 
 
@@ -507,7 +514,7 @@ def getPeriodData(nper=None) -> dict[str, Series]:
 
 
 # make frame
-def makeTimeDataFrame(nper=None, freq="B") -> DataFrame:
+def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
     data = getTimeSeriesData(nper, freq)
     return DataFrame(data)
 
@@ -542,7 +549,7 @@ def makePeriodFrame(nper=None) -> DataFrame:
 def makeCustomIndex(
     nentries,
     nlevels,
-    prefix="#",
+    prefix: str = "#",
     names: bool | str | list[str] | None = False,
     ndupe_l=None,
     idx_type=None,
@@ -760,7 +767,7 @@ def makeCustomDataframe(
     return DataFrame(data, index, columns, dtype=dtype)
 
 
-def _create_missing_idx(nrows, ncols, density, random_state=None):
+def _create_missing_idx(nrows, ncols, density: float, random_state=None):
     if random_state is None:
         random_state = np.random
     else:
@@ -787,7 +794,7 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
     return i.tolist(), j.tolist()
 
 
-def makeMissingDataframe(density=0.9, random_state=None) -> DataFrame:
+def makeMissingDataframe(density: float = 0.9, random_state=None) -> DataFrame:
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
     df.values[i, j] = np.nan
