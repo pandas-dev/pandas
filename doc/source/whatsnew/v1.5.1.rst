@@ -14,7 +14,11 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed Regression in :meth:`Series.__setitem__` casting ``None`` to ``NaN`` for object dtype (:issue:`48665`)
+- Fixed Regression in :meth:`DataFrame.loc` when setting values as a :class:`DataFrame` with all ``True`` indexer (:issue:`48701`)
 - Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
+- Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
+- Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -24,6 +28,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :func:`get_dummies` with default ``dtype`` being ``uint8`` - the default ``dtype`` is now changed to ``bool`` (:issue:`45848`)
+- Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
+- Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
 -
 
 .. ---------------------------------------------------------------------------

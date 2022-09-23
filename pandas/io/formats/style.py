@@ -9,6 +9,7 @@ from functools import partial
 import inspect
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generator,
@@ -70,6 +71,9 @@ from pandas.io.formats.style_render import (
     non_reducing_slice,
     refactor_levels,
 )
+
+if TYPE_CHECKING:
+    from matplotlib.colors import Colormap
 
 try:
     import matplotlib as mpl
@@ -2996,7 +3000,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def background_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3151,7 +3155,7 @@ class Styler(StylerRenderer):
     )
     def text_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3907,7 +3911,7 @@ def _validate_apply_axis_arg(
 
 def _background_gradient(
     data,
-    cmap="PuBu",
+    cmap: str | Colormap = "PuBu",
     low: float = 0,
     high: float = 0,
     text_color_threshold: float = 0.408,
@@ -3930,7 +3934,15 @@ def _background_gradient(
         rng = smax - smin
         # extend lower / upper bounds, compresses color range
         norm = mpl.colors.Normalize(smin - (rng * low), smax + (rng * high))
-        rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
+        if mpl_ge_3_6_0():
+            if cmap is None:
+                rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
+            else:
+                rgbas = mpl.colormaps[cmap](norm(gmap))
+        else:
+            rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
 
         def relative_luminance(rgba) -> float:
             """
@@ -4209,8 +4221,10 @@ def _bar(
     if cmap is not None:
         # use the matplotlib colormap input
         with _mpl(Styler.bar) as (plt, mpl):
+            from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
             cmap = (
-                mpl.cm.get_cmap(cmap)
+                (mpl.colormaps[cmap] if mpl_ge_3_6_0() else mpl.cm.get_cmap(cmap))
                 if isinstance(cmap, str)
                 else cmap  # assumed to be a Colormap instance as documented
             )

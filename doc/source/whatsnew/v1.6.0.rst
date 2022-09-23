@@ -133,7 +133,9 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
+- Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
+- Performance improvement in :meth:`MultiIndex.difference` (:issue:`48606`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
@@ -209,6 +211,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`MultiIndex.difference` losing extension array dtype (:issue:`48606`)
 - Bug in :class:`MultiIndex.set_levels` raising ``IndexError`` when setting empty level (:issue:`48636`)
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
 - Bug in :meth:`MultiIndex.intersection` losing extension array (:issue:`48604`)
@@ -239,6 +242,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :meth:`DataFrame.pivot_table` raising ``TypeError`` for nullable dtype and ``margins=True`` (:issue:`48681`)
 - Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`48293`)
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -
