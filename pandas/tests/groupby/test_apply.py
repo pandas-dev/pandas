@@ -1347,27 +1347,3 @@ def test_empty_df():
 
     tm.assert_series_equal(result1, expected)
     tm.assert_series_equal(result2, expected)
-
-
-@pytest.mark.parametrize(
-    "error_type",
-    [
-        TypeError,
-        ValueError,
-        IndexError,
-    ],
-)
-def test_udf_raise_error_on_empty_df(error_type):
-    # GH 47985
-    empty_df = DataFrame({"a": [], "b": []})
-
-    def f(group):
-        raise error_type
-
-    # Exception should not be raised.
-    result = empty_df.groupby("a", group_keys=True).b.apply(f)
-    expected = Series(
-        [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
-    )
-
-    tm.assert_series_equal(result, expected)
