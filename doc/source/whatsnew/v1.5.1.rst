@@ -17,7 +17,7 @@ Fixed regressions
 - Fixed Regression in :meth:`DataFrame.loc` when setting values as a :class:`DataFrame` with all ``True`` indexer (:issue:`48701`)
 - Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
 - Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
--
+- Fixed regression in :meth:`SQLDatabase.check_case_sensitive` causing an ``AttributeError`` when table name can't be found (:issue:`48733`)
 
 .. ---------------------------------------------------------------------------
 

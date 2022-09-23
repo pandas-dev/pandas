@@ -1645,10 +1645,10 @@ class SQLDatabase(PandasSQL):
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
-            from sqlalchemy import inspect
+            sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
             with self.connectable.connect() as conn:
-                insp = inspect(conn)
+                insp = sqlalchemy.inspect(conn)
                 table_names = insp.get_table_names(schema=schema or self.meta.schema)
             if name not in table_names:
                 msg = (
@@ -1757,9 +1757,9 @@ class SQLDatabase(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name: str, schema: str | None = None):
-        from sqlalchemy import inspect
+        sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
-        insp = inspect(self.connectable)
+        insp = sqlalchemy.inspect(self.connectable)
         return insp.has_table(name, schema or self.meta.schema)
 
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
