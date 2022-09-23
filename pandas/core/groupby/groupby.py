@@ -204,7 +204,7 @@ _apply_docs = {
     >>> g1 = df.groupby('A', group_keys=False)
     >>> g2 = df.groupby('A', group_keys=True)
 
-    Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
+    Notice that ``g1`` and ``g2`` have two groups, ``a`` and ``b``, and only
     differ in their ``group_keys`` argument. Calling `apply` in various ways,
     we can get different grouping results:
 
