@@ -284,6 +284,7 @@ def test_remove_unused_levels_with_nan():
 
 
 def test_sort_values_nan():
+    # GH48495, GH48626
     midx = MultiIndex(levels=[["A", "B", "C"], ["D"]], codes=[[1, 0, 2], [-1, -1, 0]])
     result = midx.sort_values()
     expected = MultiIndex(
