@@ -276,6 +276,45 @@ class SetOperations:
         getattr(self.left, method)(self.right)
 
 
+class Difference:
+
+    params = [
+        ("datetime", "int", "string", "ea_int"),
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**4 * 2
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_left = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_left = MultiIndex.from_product([level1, level2])
+
+        level2 = Series(range(N // 1000), dtype="Int64")
+        level2[0] = NA
+        ea_int_left = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_left = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_left,
+            "int": int_left,
+            "ea_int": ea_int_left,
+            "string": str_left,
+        }
+
+        data = {k: {"left": mi, "right": mi[:5]} for k, mi in data.items()}
+        self.left = data[dtype]["left"]
+        self.right = data[dtype]["right"]
+
+    def time_difference(self, dtype):
+        self.left.difference(self.right)
+
+
 class Unique:
     params = [
         (("Int64", NA), ("int64", 0)),
