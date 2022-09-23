@@ -433,6 +433,7 @@ cdef class _Timestamp(ABCTimestamp):
                     # TODO: deprecate allowing this?  We only get here
                     #  with test_timedelta_add_timestamp_interval
                     other = np.timedelta64(other.view("i8"), "ns")
+                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
                 elif (
                     other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
                 ):
@@ -440,6 +441,8 @@ cdef class _Timestamp(ABCTimestamp):
                     #  corresponding DateOffsets?
                     # TODO: no tests get here
                     other = ensure_td64ns(other)
+                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
+
                 if other_reso > NPY_DATETIMEUNIT.NPY_FR_ns:
                     # TODO: no tests
                     other = ensure_td64ns(other)
