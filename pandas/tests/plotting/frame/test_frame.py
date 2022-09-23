@@ -1680,6 +1680,12 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
         _check_errorbar_color(ax.containers, "green", has_err="has_yerr")
 
+    def test_scatter_unknown_colormap(self):
+        # GH#48726
+        df = DataFrame({"a": [1, 2, 3], "b": 4})
+        with pytest.raises((ValueError, KeyError), match="'unknown' is not a"):
+            df.plot(x="a", y="b", colormap="unknown", kind="scatter")
+
     def test_sharex_and_ax(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
