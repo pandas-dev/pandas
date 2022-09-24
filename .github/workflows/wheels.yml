@@ -107,6 +107,8 @@ jobs:
           # Really doesn't matter what version we upload with
           # just the version we test with
           python-version: '3.8'
+          channels: conda-forge,defaults
+          channel-priority: true
           mamba-version: "*"
 
       - name: Install anaconda client
@@ -157,7 +159,12 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          python-version: '3.8' # Build on lowest supported version
+          # Really doesn't matter what version we upload with
+          # just the version we test with
+          python-version: '3.8'
+          channels: conda-forge,defaults
+          channel-priority: true
+          mamba-version: "*"
 
       - name: Build sdist
         run: |
