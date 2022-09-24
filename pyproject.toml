@@ -56,7 +56,7 @@ disable = [
   "not-callable",
   "too-many-function-args",
   "invalid-repr-returned",
-  "undefined-variable,
+  "undefined-variable",
   "function-redefined",
 ]
 
