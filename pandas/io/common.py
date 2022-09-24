@@ -1110,7 +1110,7 @@ def _maybe_memory_map(
     if not memory_map:
         return handle, memory_map, handles
 
-    # mmap only used csv
+    # mmap used by only read_csv
     handle = cast(ReadCsvBuffer, handle)
 
     # need to open the file first
