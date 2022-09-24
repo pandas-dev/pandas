@@ -3690,7 +3690,7 @@ class MultiIndex(Index):
             )
 
         else:
-            right_missing = other.difference(self)
+            right_missing = other.difference(self, sort=False)
             if len(right_missing):
                 result = self.append(right_missing)
             else:
