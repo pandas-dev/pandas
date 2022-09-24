@@ -684,8 +684,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 int PANDAS_INLINE CHECK_COMMENT_OR_BACKTRACK(parser_t *self,
                                              char *buf,
                                              int curpos,
-                                             int comment_len,
- ) {
+                                             int comment_len) {
     char c;
     // We start off having just found an int at *buf - 1 (before buf++)
     // We need to make sure we don't go too far while reading the line
