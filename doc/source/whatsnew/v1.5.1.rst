@@ -74,7 +74,7 @@ Fixed regressions
 - Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
 - Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
 - Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
--
+- Fixed :meth:`.DataFrameGroupBy.size` not returning a Series when ``axis=1`` (:issue:`48738`)
 
 .. ---------------------------------------------------------------------------
 
