@@ -2394,13 +2394,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         result = self.grouper.size()
 
-        if self.axis == 1:
-            return DataFrame(
-                data=np.tile(result.values, (self.obj.shape[0], 1)),
-                columns=result.index,
-                index=self.obj.index,
-            )
-
         # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
