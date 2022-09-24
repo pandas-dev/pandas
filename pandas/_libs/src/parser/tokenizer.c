@@ -681,24 +681,32 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
     }
 
 // Comment checker and backtracking as a macro
-int PANDAS_INLINE CHECK_COMMENT_OR_BACKTRACK(parser_t *self, char *buf, int curpos, int comment_len, char comment_start) {
+int PANDAS_INLINE CHECK_COMMENT_OR_BACKTRACK(parser_t *self,
+                                             char *buf,
+                                             int curpos,
+                                             int comment_len,
+ ) {
     char c;
     // We start off having just found an int at *buf - 1 (before buf++)
-//     We need to make sure we don't go too far while reading the line
+    // We need to make sure we don't go too far while reading the line
     if (curpos + comment_len > self->datalen) {
-        // Clearly we won't be able to find the full comment before the end of the data, therefore it's not a comment
+        // Clearly we won't be able to find the full comment
+        // before the end of the data, therefore it's not a comment
         return 0;
     }
-    // We assume our comment doesn't contain whitespace / EOF / etc so if we encounter them we're in trouble.
-    // That's why ideally we should use the state machine to safely iterate through?
-    int j; // Could use int64_t here but comment_len should be less
+    // We assume our comment doesn't contain whitespace / EOF / etc
+    // so if we encounter them we're in trouble.
+    // That's why ideally we should use the state machine
+    // to safely iterate through?
+    int j;  // Could use int64_t here but comment_len should be less
     for (j = 1; j < comment_len; j++) {
         // next character in file
         c = *buf++;
-        if (c == self->commentstr[j]) { // Continue reading
+        if (c == self->commentstr[j]) {  // Continue reading
             continue;
         } else {
-            // Not a comment (includes whitespace, line terminators, EOF etc); backtrack
+            // Not a comment (includes whitespace, line terminators, EOF etc);
+            // backtrack
             break;
         }
     }
@@ -715,44 +723,6 @@ int PANDAS_INLINE CHECK_COMMENT_OR_BACKTRACK(parser_t *self, char *buf, int curp
 //    printf("No comment found at %d+%d, backtracking.\n", curpos, j);
     return 0;
 }
-//int PANDAS_INLINE CHECK_COMMENT_OR_BACKTRACK(parser_t *self, char *buf, int curpos, int comment_len, char comment_start) {
-//    char c;
-//    // We start off having just found an int at *buf
-//    c = *buf;
-//    if (!IS_COMMENT_START(c)) {
-//        // Error, something has gone wrong
-//        fprintf("Oops, entered comment checker but our first char is off: %c is not a comment start; commentstr: %s", c, self->commentstr);
-//        exit(1);
-//    }
-//    // We need to make sure we don't go too far while reading the line
-//    if (curpos + comment_len > self->datalen) {
-//        // Clearly we won't be able to find the full comment before the end of the data, therefore it's not a comment
-//        return 0;
-//    }
-//    // We assume our comment doesn't contain whitespace / EOF / etc so if we encounter them we're in trouble.
-//    // That's why ideally we should use the state machine to safely iterate through?
-//    int j; // Could use int64_t here but comment_len should be less
-//    for (j = 1; j < comment_len; j++) {
-//        // next character in file
-//        c = *buf++;
-//        if (c == self->commentstr[j]) { // Continue reading
-//            continue;
-//        } else {
-//            // Not a comment (includes whitespace, line terminators, EOF etc); backtrack
-//            break;
-//        }
-//    }
-//    if (j == comment_len) {
-//        // We've found a full comment
-//        return 1;
-//    }
-//    // Backtrack and return 0
-//    // I hope this isn't off by one
-//    for (int k = j; k > 1; k--) {
-//        buf--;
-//    }
-//    return 0;
-//}
 
 
 int skip_this_line(parser_t *self, int64_t rownum) {
@@ -806,11 +776,6 @@ int tokenize_bytes(parser_t *self,
     const int escape_symbol = (self->escapechar != '\0') ?
             self->escapechar : 1000;
 
-    if (comment_len > 1) {
-        printf("Comment length is %d\n", comment_len);
-        printf("Comment string is %s\n", self->commentstr);
-    }
-
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         int64_t bufsize = 100;
         self->error_msg = malloc(bufsize);
@@ -827,8 +792,11 @@ int tokenize_bytes(parser_t *self,
         CHECK_FOR_BOM();
     }
 
-    // Attempt 1: Put comment checker in function and call (slow, but precise backtracking and stays in same state)
-    // Attempt 2: Put comment checker in state machine and backtrack to state after checking comment (fast, but not precise)
+    // Attempt 1: Put comment checker in function and call
+    //  (slow, but precise backtracking and stays in same state)
+    // Attempt 2: Put comment checker in state machine
+    //  and backtrack to state after checking comment
+    //  (fast, but not precise)
     for (i = self->datapos; i < self->datalen; ++i) {
         // next character in file
         c = *buf++;
@@ -903,8 +871,8 @@ int tokenize_bytes(parser_t *self,
                 } else if (!self->delim_whitespace) {
                     if (isblank(c) && c != self->delimiter) {
                     } else {  // backtrack
-                        // use i + 1 because buf has been incremented at the start of the for loop but not i
-                        // TODO(Lood add better comment)
+                        // use i + 1 because buf has been incremented
+                        // at the start of the for loop but not i
                         do {
                             --buf;
                             --i;
@@ -916,7 +884,6 @@ int tokenize_bytes(parser_t *self,
                             ++i;
                         }
                         self->state = START_FIELD;
-                        // TODO check if this should rather be START_RECORD, maybe we're skipping the skip_line?
                     }
                     break;
                 }
@@ -943,44 +910,6 @@ int tokenize_bytes(parser_t *self,
                     // if whitespace char, keep slurping
                     break;
                 }
-
-//            case CHECK_COMMENT:
-//                if (IS_COMMENT_START(c) && comment_len <= 1) {
-//                    self->state = EAT_COMMENT;
-//                    break;
-//                } else {
-//                    // Multi-char comment: Check the full comment is present, else backtrack and fall through
-//                    if (IS_TERMINATOR(c)) {
-//                        self->file_lines++;
-//                        self->state = START_RECORD;
-//                        break;
-//                    } else if (IS_CARRIAGE(c)) {
-//                        self->file_lines++;
-//                        self->state = EAT_CRNL_NOP;
-//                        break;
-//                    } else {
-//                        int j;
-//                        for (j = 1; j < comment_len; j++) {
-//                            if (buf[j] != self->commentstr[j]) { // Chomp chomp along the comment train
-//                            } else {
-//                                // backtrack
-//                                do {
-//                                    --buf;
-//                                    --i;
-//                                } while (i + 1 > self->datapos && !IS_TERMINATOR(*buf));
-//
-//                                // reached a newline rather than the beginning
-//                                if (IS_TERMINATOR(*buf)) {
-//                                    ++buf;  // move pointer to first char after newline
-//                                    ++i;
-//                                }
-//                                // Eaten whole of comment, skip to next line TODO next line or field?
-//                                self->state = START_FIELD;
-//                                break;
-//                            }
-//                        }
-//                    }
-//                }
 
             case START_RECORD:
                 // start of record
@@ -1029,8 +958,10 @@ int tokenize_bytes(parser_t *self,
                     }
                     // fall through
                 } else if (IS_COMMENT_START(c)) {
-                    // We can safely move this to the end of if-elses, as the comment is not going to be blank anyway
-                    if (CHECK_COMMENT_OR_BACKTRACK(self, buf, i, comment_len, comment_start)) {
+                    // We can safely move this to the end of if-elses,
+                    // as the comment is not going to be blank anyway
+                    if (CHECK_COMMENT_OR_BACKTRACK(
+                            self, buf, i, comment_len)) {
                         self->state = EAT_LINE_COMMENT;
                         break;
                     }
@@ -1064,7 +995,9 @@ int tokenize_bytes(parser_t *self,
                         // save empty field
                         END_FIELD();
                     }
-                } else if (IS_COMMENT_START(c) && CHECK_COMMENT_OR_BACKTRACK(self, buf, i, comment_len, comment_start)) {
+                } else if (IS_COMMENT_START(c)
+                    && CHECK_COMMENT_OR_BACKTRACK(
+                            self, buf, i, comment_len)) {
                         END_FIELD();
                         self->state = EAT_COMMENT;
                 } else {
@@ -1079,7 +1012,8 @@ int tokenize_bytes(parser_t *self,
                 self->state = IN_FIELD;
                 break;
 
-            // The difference between this and EAT_COMMENT is that this eats a whole line without worrying about fields etc.
+            // The difference between this and EAT_COMMENT is
+            // this eats a whole line without worrying about fields etc
             case EAT_LINE_COMMENT:
                 if (IS_TERMINATOR(c)) {
                     self->file_lines++;
@@ -1111,8 +1045,9 @@ int tokenize_bytes(parser_t *self,
                         self->state = START_FIELD;
                     }
                 // Read multiple-character comment
-                } else if (IS_COMMENT_START(c)) {
-                    // TODO Check if the full multi-character comment is present, and backtrack if not, maybe use CHECK_COMMENT?
+                } else if (IS_COMMENT_START(c)
+                    && CHECK_COMMENT_OR_BACKTRACK(
+                            self, buf, i, comment_len)) {
                     END_FIELD();
                     self->state = EAT_COMMENT;
                 } else {

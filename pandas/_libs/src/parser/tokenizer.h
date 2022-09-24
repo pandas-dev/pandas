@@ -138,7 +138,7 @@ typedef struct parser_t {
     int quoting;          /* style of quoting to write */
 
     char commentchar;
-    char *commentstr;  // TODO switch from commentchar to commentstr
+    char *commentstr;
     int allow_embedded_newline;
 
     int usecols;  // Boolean: 1: usecols provided, 0: none provided

@@ -203,6 +203,22 @@ y,NaN,10.0
     tm.assert_frame_equal(result, expected)
 
 
+def test_multichar_comment_field(all_parsers):
+    parser = all_parsers
+    # parser = c_parser_only
+    data = """A,B,#C
+#$Skipped line, other #s should be kept
+#x,2.,4.#$Skipped rest of line,,
+y,NaN,10.0
+"""
+    expected = DataFrame(
+        [["#x", 2.0, 4.0], ["y", np.nan, 10.0]], columns=["A", "B", "#C"]
+    )
+    result = parser.read_csv(StringIO(data), comment="#$")
+    print("df=", result)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("comment", ["$ ", "#\n", "#,#", " $"])
 def test_comment_containing_badchars(all_parsers, request, comment):
     parser = all_parsers

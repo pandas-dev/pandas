@@ -451,8 +451,6 @@ cdef class TextReader:
             clashes_encoded = _ensure_encoded(clashes)
             # Could also just test with a regex but don't want to install re just for that
             for x in clashes_encoded:
-                print("x type: ", type(x))
-                print("x:", x, "comment_encoded:", comment_encoded)
                 if x is not None and x in comment_encoded:
                     raise ValueError("Delimiters, line terminators, escape characters or quotechars shouldn't be part of a comment string (for now).")
 
