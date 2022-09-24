@@ -188,10 +188,6 @@ class BaseBuffer(Protocol):
         # for _get_filepath_or_buffer
         ...
 
-    def fileno(self) -> int:
-        # for _MMapWrapper
-        ...
-
     def seek(self, __offset: int, __whence: int = ...) -> int:
         # with one argument: gzip.GzipFile, bz2.BZ2File
         # with two arguments: zip.ZipFile, read_sas
@@ -235,6 +231,10 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
 class ReadCsvBuffer(ReadBuffer[AnyStr_cov], Protocol):
     def __iter__(self) -> Iterator[AnyStr_cov]:
         # for engine=python
+        ...
+
+    def fileno(self) -> int:
+        # for _MMapWrapper
         ...
 
     def readline(self) -> AnyStr_cov:
