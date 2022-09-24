@@ -112,6 +112,7 @@
         "pandas/io/stata.py",
         "pandas/io/xml.py",
         "pandas/plotting/_matplotlib/boxplot.py",
+        "pandas/plotting/_matplotlib/hist.py",
         "pandas/tseries/frequencies.py",
         "pandas/tseries/holiday.py",
       ],

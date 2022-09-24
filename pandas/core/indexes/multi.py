@@ -32,7 +32,7 @@ from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
-    AxisInt,
+    Axis,
     DropKeep,
     DtypeObj,
     F,
@@ -2176,7 +2176,7 @@ class MultiIndex(Index):
     def take(
         self: MultiIndex,
         indices,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
