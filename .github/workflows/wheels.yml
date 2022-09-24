@@ -107,11 +107,12 @@ jobs:
           # Really doesn't matter what version we upload with
           # just the version we test with
           python-version: '3.8'
+          mamba-version: "*"
 
       - name: Install anaconda client
         if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
-        run: |
-          conda install -q -y anaconda-client
+        run: conda install -q -y anaconda-client
+
 
       - name: Upload wheels
         if: success()
