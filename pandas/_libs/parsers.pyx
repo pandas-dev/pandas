@@ -936,6 +936,7 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict result
+            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -1056,8 +1057,15 @@ cdef class TextReader:
                     self._free_na_set(na_hashset)
 
             # don't try to upcast EAs
-            if na_count > 0 and not is_extension_array_dtype(col_dtype) or self.use_nullable_dtypes:
-                col_res = _maybe_upcast(col_res, use_nullable_dtypes=self.use_nullable_dtypes)
+            print(col_dtype)
+            if (
+                na_count > 0 and not is_extension_array_dtype(col_dtype)
+                or self.use_nullable_dtypes
+            ):
+                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                col_res = _maybe_upcast(
+                    col_res, use_nullable_dtypes=use_nullable_dtypes
+                )
 
             if col_res is None:
                 raise ParserError(f'Unable to parse column {i}')
