@@ -2266,7 +2266,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  1.0  3.0  NaN  NaN
         4  1.0  NaN  NaN  NaN
 
-
         Only replace the first NaN element within a group along rows.
 
         >>> df.groupby("key").fillna(method="ffill", limit=1)
