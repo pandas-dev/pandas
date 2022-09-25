@@ -1057,7 +1057,6 @@ cdef class TextReader:
                     self._free_na_set(na_hashset)
 
             # don't try to upcast EAs
-            print(col_dtype)
             if (
                 na_count > 0 and not is_extension_array_dtype(col_dtype)
                 or self.use_nullable_dtypes

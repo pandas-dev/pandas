@@ -735,7 +735,7 @@ class ParserBase:
             else:
                 if use_nullable_dtypes:
                     if result_mask is None:
-                        result_mask = np.zeros(result.shape, dtype="bool")
+                        result_mask = np.zeros(result.shape, dtype=np.bool_)
 
                     if is_integer_dtype(result):
                         result = IntegerArray(result, result_mask)
