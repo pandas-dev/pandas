@@ -15,6 +15,13 @@ import warnings
 
 from pandas.util._exceptions import find_stack_level
 
+from pandas import StringDtype
+from pandas.core.arrays import (
+    BooleanArray,
+    FloatingArray,
+    IntegerArray,
+)
+
 cimport cython
 from cpython.bytes cimport (
     PyBytes_AsString,
@@ -1378,18 +1385,53 @@ STR_NA_VALUES = {
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
-def _maybe_upcast(arr):
-    """
+def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
+    """Sets nullable dtypes or upcasts if nans are present.
 
+    Upcast, if use_nullable_dtypes is false and nans are present so that the
+    current dtype can not hold the na value. We use nullable dtypes if the
+    flag is true for every array.
+
+    Parameters
+    ----------
+    arr: ndarray
+        Numpy array that is potentially being upcast.
+
+    use_nullable_dtypes: bool, default False
+        If true, we cast to the associated nullable dtypes.
+
+    Returns
+    -------
+    The casted array.
     """
+    na_value = na_values[arr.dtype]
+
     if issubclass(arr.dtype.type, np.integer):
-        na_value = na_values[arr.dtype]
-        arr = arr.astype(float)
-        np.putmask(arr, arr == na_value, np.nan)
+        mask = arr == na_value
+
+        if use_nullable_dtypes:
+            arr = IntegerArray(arr, mask)
+        else:
+            arr = arr.astype(float)
+            np.putmask(arr, mask, np.nan)
+
     elif arr.dtype == np.bool_:
-        mask = arr.view(np.uint8) == na_values[np.uint8]
-        arr = arr.astype(object)
-        np.putmask(arr, mask, np.nan)
+        mask = arr.view(np.uint8) == na_value
+
+        if use_nullable_dtypes:
+            arr = BooleanArray(arr, mask)
+        else:
+            arr = arr.astype(object)
+            np.putmask(arr, mask, np.nan)
+
+    elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
+        if use_nullable_dtypes:
+            mask = np.isnan(arr)
+            arr = FloatingArray(arr, mask)
+
+    elif arr.dtype == np.object_:
+        if use_nullable_dtypes:
+            arr = StringDtype().construct_array_type()._from_sequence(arr)
 
     return arr
 
@@ -1985,6 +2027,7 @@ def _compute_na_values():
     uint16info = np.iinfo(np.uint16)
     uint8info = np.iinfo(np.uint8)
     na_values = {
+        np.float32: np.nan,
         np.float64: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,

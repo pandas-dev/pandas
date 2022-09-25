@@ -37,6 +37,8 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
+    AxisInt,
+    CorrelationMethod,
     FillnaOptions,
     IndexLabel,
     Level,
@@ -439,7 +441,7 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = True, axis: AxisInt = 0, **kwargs
     ):
         assert axis == 0  # handled by caller
 
@@ -856,8 +858,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def corr(
         self,
         other: Series,
-        method: Literal["pearson", "kendall", "spearman"]
-        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: CorrelationMethod = "pearson",
         min_periods: int | None = None,
     ) -> Series:
         result = self._op_via_apply(
@@ -1306,7 +1307,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         how: str,
         numeric_only: bool | lib.NoDefault = lib.no_default,
-        axis: int = 0,
+        axis: AxisInt = 0,
         **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller
@@ -1484,7 +1485,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result.columns = columns
         return result
 
-    def filter(self, func, dropna=True, *args, **kwargs):
+    def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Filter elements from groups that don't satisfy a criterion.
 
@@ -2219,8 +2220,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         other: DataFrame | Series,
         axis: Axis = 0,
         drop: bool = False,
-        method: Literal["pearson", "kendall", "spearman"]
-        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: CorrelationMethod = "pearson",
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         result = self._op_via_apply(
