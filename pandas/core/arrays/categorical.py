@@ -841,17 +841,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return type(self)(codes, dtype=dtype, fastpath=True)
 
     @overload
-    def set_ordered(
-        self, value, *, inplace: NoDefault | Literal[False] = ...
-    ) -> Categorical:
-        ...
-
-    @overload
-    def set_ordered(self, value, *, inplace: Literal[True]) -> None:
-        ...
-
-    @overload
-    def set_ordered(self, value, *, inplace: bool) -> Categorical | None:
+    def set_ordered(self, value) -> Categorical:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
@@ -893,11 +883,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return None
 
     @overload
-    def as_ordered(self, *, inplace: NoDefault | Literal[False] = ...) -> Categorical:
-        ...
-
-    @overload
-    def as_ordered(self, *, inplace: Literal[True]) -> None:
+    def as_ordered(self) -> Categorical:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
@@ -923,11 +909,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self.set_ordered(True, inplace=inplace)
 
     @overload
-    def as_unordered(self, *, inplace: NoDefault | Literal[False] = ...) -> Categorical:
-        ...
-
-    @overload
-    def as_unordered(self, *, inplace: Literal[True]) -> None:
+    def as_unordered(self) -> Categorical:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
