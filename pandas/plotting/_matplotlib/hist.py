@@ -94,11 +94,11 @@ class HistPlot(LinePlot):
         ax,
         y,
         style=None,
-        *,
-        bins,
         bottom: int | np.ndarray = 0,
         column_num: int = 0,
         stacking_id=None,
+        *,
+        bins,
         **kwds,
     ):
         if column_num == 0:
