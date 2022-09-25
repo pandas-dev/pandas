@@ -242,10 +242,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             raise ValueError("magic number mismatch (not a SAS file?)")
 
         # Get alignment information
-        align1, align2 = 0, 0
         buf = self._read_bytes(const.align_1_offset, const.align_1_length)
         if buf == const.u64_byte_checker_value:
-            align2 = const.align_2_value
             self.U64 = True
             self._int_length = 8
             self._page_bit_offset = const.page_bit_offset_x64
@@ -258,7 +256,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         buf = self._read_bytes(const.align_2_offset, const.align_2_length)
         if buf == const.align_1_checker_value:
             align1 = const.align_2_value
-        total_align = align1 + align2
+        else:
+            align1 = 0
 
         # Get endianness information
         buf = self._read_bytes(const.endianness_offset, const.endianness_length)
