@@ -496,7 +496,7 @@ class TestAstype:
 
         msg = (
             "Error during type conversion for column a: "
-            "invalid literal for int() with base 10: 'text' "
+            "invalid literal for int() with base 10: 'text'"
         )
 
         with pytest.raises(ValueError, match=re.escape(msg)):

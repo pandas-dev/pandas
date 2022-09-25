@@ -6265,7 +6265,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
                     except ValueError as ex:
                         ex.args = (
-                            f"Error during type conversion for column {col_name}: {ex} ",
+                            f"Error during type conversion for column {col_name}: {ex}",
                         )
                         raise
                 results.append(res_col)
