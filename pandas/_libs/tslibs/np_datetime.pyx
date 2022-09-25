@@ -215,11 +215,6 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
 # ----------------------------------------------------------------------
 # Conversion
 
-cdef inline int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil:
-    """Convenience function to call npy_datetimestruct_to_datetime
-    with the by-far-most-common frequency NPY_FR_ns"""
-    return npy_datetimestruct_to_datetime(NPY_FR_ns, dts)
-
 
 # just exposed for testing at the moment
 def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
@@ -247,12 +242,13 @@ cdef inline void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
 
 
 cdef inline int64_t pydatetime_to_dt64(datetime val,
-                                       npy_datetimestruct *dts):
+                                       npy_datetimestruct *dts,
+                                       NPY_DATETIMEUNIT reso=NPY_FR_ns):
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
     pydatetime_to_dtstruct(val, dts)
-    return dtstruct_to_dt64(dts)
+    return npy_datetimestruct_to_datetime(reso, dts)
 
 
 cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
@@ -263,9 +259,11 @@ cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.ps = dts.as = 0
     return
 
-cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
+cdef inline int64_t pydate_to_dt64(
+    date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
+):
     pydate_to_dtstruct(val, dts)
-    return dtstruct_to_dt64(dts)
+    return npy_datetimestruct_to_datetime(reso, dts)
 
 
 cdef inline int string_to_dts(

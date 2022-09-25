@@ -22,6 +22,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Axis,
+    AxisInt,
     F,
     npt,
 )
@@ -209,7 +210,7 @@ def find_valid_index(values, *, how: str) -> int | None:
 def interpolate_array_2d(
     data: np.ndarray,
     method: str = "pad",
-    axis: int = 0,
+    axis: AxisInt = 0,
     index: Index | None = None,
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -263,7 +264,7 @@ def interpolate_array_2d(
 def _interpolate_2d_with_fill(
     data: np.ndarray,  # floating dtype
     index: Index,
-    axis: int,
+    axis: AxisInt,
     method: str = "linear",
     limit: int | None = None,
     limit_direction: str = "forward",
@@ -628,7 +629,9 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     return P(x, nu=der)
 
 
-def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolate=None):
+def _cubicspline_interpolate(
+    xi, yi, x, axis=0, bc_type: str | tuple[Any, Any] = "not-a-knot", extrapolate=None
+):
     """
     Convenience function for cubic spline data interpolator.
 

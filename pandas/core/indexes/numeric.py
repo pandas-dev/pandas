@@ -281,7 +281,13 @@ class NumericIndex(Index):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
     def _format_native_types(
-        self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
+        self,
+        *,
+        na_rep: str = "",
+        float_format=None,
+        decimal: str = ".",
+        quoting=None,
+        **kwargs,
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import FloatArrayFormatter
 
