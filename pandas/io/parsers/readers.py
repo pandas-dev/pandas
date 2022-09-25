@@ -196,9 +196,9 @@ converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
 true_values : list, optional
-    Values to consider as True.
+    Values to consider as True in addition to case-insensitive variants of "True".
 false_values : list, optional
-    Values to consider as False.
+    Values to consider as False in addition to case-insensitive variants of "False".
 skipinitialspace : bool, default False
     Skip spaces after delimiter.
 skiprows : list-like, int or callable, optional

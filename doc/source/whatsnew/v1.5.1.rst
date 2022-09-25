@@ -10,11 +10,70 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_151.groupby_categorical_regr:
+
+Behavior of ``groupby`` with categorical groupers (:issue:`48645`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In versions of pandas prior to 1.5, ``groupby`` with ``dropna=False`` would still drop
+NA values when the grouper was a categorical dtype. A fix for this was attempted in
+1.5, however it introduced a regression where passing ``observed=False`` and
+``dropna=False`` to ``groupby`` would result in only observed categories. It was found
+that the patch fixing the ``dropna=False`` bug is incompatible with ``observed=False``,
+and decided that the best resolution is to restore the correct ``observed=False``
+behavior at the cost of reintroducing the ``dropna=False`` bug.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "x": pd.Categorical([1, None], categories=[1, 2, 3]),
+           "y": [3, 4],
+       }
+   )
+   df
+
+*1.5.0 behavior*:
+
+.. code-block:: ipython
+
+   In [3]: # Correct behavior, NA values are not dropped
+           df.groupby("x", observed=True, dropna=False).sum()
+   Out[3]:
+        y
+   x
+   1    3
+   NaN  4
+
+
+   In [4]: # Incorrect behavior, only observed categories present
+           df.groupby("x", observed=False, dropna=False).sum()
+   Out[4]:
+        y
+   x
+   1    3
+   NaN  4
+
+
+*1.5.1 behavior*:
+
+.. ipython:: python
+
+   # Incorrect behavior, NA values are dropped
+   df.groupby("x", observed=True, dropna=False).sum()
+
+   # Correct behavior, unobserved categories present (NA values still dropped)
+   df.groupby("x", observed=False, dropna=False).sum()
+
 .. _whatsnew_151.regressions:
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed Regression in :meth:`Series.__setitem__` casting ``None`` to ``NaN`` for object dtype (:issue:`48665`)
+- Fixed Regression in :meth:`DataFrame.loc` when setting values as a :class:`DataFrame` with all ``True`` indexer (:issue:`48701`)
 - Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
+- Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
+- Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -23,7 +82,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
+- Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
 -
 
 .. ---------------------------------------------------------------------------

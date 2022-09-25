@@ -9,6 +9,7 @@ from typing import (
     Callable,
     Hashable,
     Iterator,
+    Literal,
     cast,
 )
 import warnings
@@ -17,6 +18,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
+    AlignJoin,
     DtypeObj,
     F,
     Scalar,
@@ -427,7 +429,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes", "mixed", "mixed-integer"])
     def cat(
-        self, others=None, sep=None, na_rep=None, join="left"
+        self,
+        others=None,
+        sep=None,
+        na_rep=None,
+        join: AlignJoin = "left",
     ) -> str | Series | Index:
         """
         Concatenate strings in the Series/Index with given separator.
@@ -979,7 +985,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def partition(self, sep=" ", expand: bool = True):
+    def partition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_partition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -993,7 +999,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def rpartition(self, sep=" ", expand: bool = True):
+    def rpartition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_rpartition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -1553,7 +1559,12 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def pad(self, width, side="left", fillchar=" "):
+    def pad(
+        self,
+        width,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
         """
         Pad strings in the Series/Index up to width.
 
@@ -1642,17 +1653,17 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
     @forbid_nonstring_types(["bytes"])
-    def center(self, width, fillchar=" "):
+    def center(self, width, fillchar: str = " "):
         return self.pad(width, side="both", fillchar=fillchar)
 
     @Appender(_shared_docs["str_pad"] % {"side": "right", "method": "ljust"})
     @forbid_nonstring_types(["bytes"])
-    def ljust(self, width, fillchar=" "):
+    def ljust(self, width, fillchar: str = " "):
         return self.pad(width, side="right", fillchar=fillchar)
 
     @Appender(_shared_docs["str_pad"] % {"side": "left", "method": "rjust"})
     @forbid_nonstring_types(["bytes"])
-    def rjust(self, width, fillchar=" "):
+    def rjust(self, width, fillchar: str = " "):
         return self.pad(width, side="left", fillchar=fillchar)
 
     @forbid_nonstring_types(["bytes"])
@@ -1874,7 +1885,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_slice_replace(start, stop, repl)
         return self._wrap_result(result)
 
-    def decode(self, encoding, errors="strict"):
+    def decode(self, encoding, errors: str = "strict"):
         """
         Decode character string in the Series/Index using indicated encoding.
 
@@ -1903,7 +1914,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def encode(self, encoding, errors="strict"):
+    def encode(self, encoding, errors: str = "strict"):
         """
         Encode character string in the Series/Index using indicated encoding.
 
@@ -2152,7 +2163,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def get_dummies(self, sep="|"):
+    def get_dummies(self, sep: str = "|"):
         """
         Return DataFrame of dummy/indicator variables for Series.
 
