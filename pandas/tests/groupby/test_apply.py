@@ -1333,17 +1333,19 @@ def test_result_name_when_one_group(name):
     tm.assert_series_equal(result, expected)
 
 
-def test_empty_df():
+@pytest.mark.parametrize(
+    "apply_func", [lambda x: x.values[-1], lambda gb: gb["b"].iloc[0]]
+)
+@pytest.mark.parametrize("op", ["mad", "skew", "sum", "prod"])
+def test_empty_df(apply_func, op):
     # GH 47985
     empty_df = DataFrame({"a": [], "b": []})
+    gb = empty_df.groupby("a", group_keys=True)
+    group = getattr(gb, "b")
 
-    # Both operations should return an empty series instead of IndexError for apply UDF
-    result1 = empty_df.groupby("a", group_keys=True).b.apply(lambda x: x.values[-1])
-    result2 = empty_df.groupby("a", group_keys=True).b.agg("sum")
-
+    result = group.apply(apply_func) if apply_func else group.agg(op)
     expected = Series(
         [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
     )
 
-    tm.assert_series_equal(result1, expected)
-    tm.assert_series_equal(result2, expected)
+    tm.assert_series_equal(result, expected)
