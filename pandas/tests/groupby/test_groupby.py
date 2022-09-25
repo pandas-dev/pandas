@@ -2907,3 +2907,30 @@ def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
         dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)
+
+def test_groupby_index_name_in_index_content():
+    # GH 48567
+    series1 = Series(data=[1.0, 2.0, 3.0, 4.0, 5.0], name='values',
+                     index=Index(['foo', 'foo', 'bar', 'baz', 'blah'],
+                                 name='blah'))
+    result1 = series1.groupby('blah').sum()
+    expected1 = Series(data=[3.0, 4.0, 5.0, 3.0], name='values',
+                       index=Index(['bar', 'baz', 'blah', 'foo'], name='blah'))
+    tm.assert_series_equal(result1, expected1)
+
+    series2 = Series(data=[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], name='values',
+                     index=Index(['foo', 'foo', 'bar', 'baz', 'blah', 'blah'],
+                                 name='blah'))
+    result2 = series2.groupby('blah').sum()
+    expected2 = Series(data=[3.0, 4.0, 11.0, 3.0], name='values',
+                       index=Index(['bar', 'baz', 'blah', 'foo'],
+                                      name='blah'))
+    tm.assert_series_equal(result2, expected2)
+
+    result3 = series1.to_frame().groupby('blah').sum()
+    expected3 = expected1.to_frame()
+    tm.assert_frame_equal(result3, expected3)
+
+    result4 = series2.to_frame().groupby('blah').sum()
+    expected4 = expected2.to_frame()
+    tm.assert_frame_equal(result4, expected4)
