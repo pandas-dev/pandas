@@ -107,7 +107,7 @@ jobs:
           # Really doesn't matter what version we upload with
           # just the version we test with
           python-version: '3.8'
-          channels: conda-forge,defaults
+          channels: conda-forge
           channel-priority: true
           mamba-version: "*"
 
@@ -162,7 +162,7 @@ jobs:
           # Really doesn't matter what version we upload with
           # just the version we test with
           python-version: '3.8'
-          channels: conda-forge,defaults
+          channels: conda-forge
           channel-priority: true
           mamba-version: "*"
 
