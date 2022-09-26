@@ -4314,7 +4314,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-14          22.0    medium
         2014-02-15          35.0    medium
 
-        >>> df['windspeed'].get('2014-02-13')
+        >>> ser = df['windspeed']
+        >>> ser.get('2014-02-13')
         'high'
 
         If the key isn't found, the default value will be used.
@@ -4322,7 +4323,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
         'default_value'
 
-        >>> df['windspeed'].get('2014-02-10', '[unknown]')
+        >>> ser.get('2014-02-10', '[unknown]')
         '[unknown]'
         """
         try:
