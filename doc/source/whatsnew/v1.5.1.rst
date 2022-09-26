@@ -86,6 +86,9 @@ Bug fixes
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
 -
 
+Groupby
+^^^^^^^
+- Bug in :meth:`DataFrameGroupBy.apply` invokes user defined function when called on an empty dataframe (:issue:`47985`)
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_151.other:
