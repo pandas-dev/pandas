@@ -560,6 +560,11 @@ the pandas-equivalent operations compared to software you already know:
     ---
     :card: + comparison-card-sql
     :img-top: ../_static/logo_sql.svg
+     :class: only-light
+
+    :img-top: ../_static/logo_sql_white.svg
+     :class: only-dark
+    
 
     Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
     Most of these SQL manipulations do have equivalents in pandas.
@@ -607,6 +612,10 @@ the pandas-equivalent operations compared to software you already know:
     ---
     :card: + comparison-card-sas
     :img-top: ../_static/logo_sas.svg
+     :class: only-light
+
+    .. image:: ../_static/logo_sas_white.svg
+     :class: only-dark
 
     The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
     also provides the ``data set`` corresponding to the pandas ``DataFrame``.
