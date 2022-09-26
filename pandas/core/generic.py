@@ -4314,10 +4314,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-14          22.0    medium
         2014-02-15          35.0    medium
 
+        >>> df['windspeed'].get('2014-02-13')
+        'high'
+
         If the key isn't found, the default value will be used.
 
         >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
         'default_value'
+
+        >>> df['windspeed'].get('2014-02-10', '[unknown]')
+        '[unknown]'
         """
         try:
             return self[key]
