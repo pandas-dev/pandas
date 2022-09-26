@@ -84,6 +84,7 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
+- Stopped emitting unnecessary ``FutureWarning`` in :meth:`DataFrame.sort_values` with boolean sparse columns (:issue:`48784`)
 -
 
 .. ---------------------------------------------------------------------------
