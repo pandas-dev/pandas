@@ -213,13 +213,9 @@ def test_transform_axis_1_reducer(request, reduction_func):
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     with tm.assert_produces_warning(warn, match=msg):
         result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
-    if reduction_func == "size":
-        # size doesn't behave in the same manner; hardcode expected result
-        expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
-    else:
-        warn = FutureWarning if reduction_func == "mad" else None
-        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
-            expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
+    warn = FutureWarning if reduction_func == "mad" else None
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
 
