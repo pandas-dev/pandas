@@ -148,7 +148,7 @@ Performance improvements
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
 - Performance improvement to :func:`read_sas` with ``blank_missing=True`` (:issue:`48502`)
-- Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`?`)
+- Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.bug_fixes:
