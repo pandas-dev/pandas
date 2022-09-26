@@ -26,6 +26,7 @@ from typing import (
     Iterable,
     Iterator,
     Literal,
+    Mapping,
     Sequence,
     cast,
     overload,
@@ -49,12 +50,17 @@ from pandas._libs.lib import (
 )
 from pandas._typing import (
     AggFuncType,
+    AlignJoin,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axes,
     Axis,
+    AxisInt,
     ColspaceArgType,
     CompressionOptions,
+    CorrelationMethod,
+    DropKeep,
     Dtype,
     DtypeObj,
     FilePath,
@@ -68,6 +74,7 @@ from pandas._typing import (
     Level,
     NaPosition,
     PythonFuncType,
+    QuantileInterpolation,
     ReadBuffer,
     Renamer,
     Scalar,
@@ -81,7 +88,10 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+    np_percentile_argname,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -1319,7 +1329,35 @@ class DataFrame(NDFrame, OpsMixin):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    @Appender(_shared_docs["items"])
+    _shared_docs[
+        "iteritems"
+    ] = r"""
+        Iterate over (column name, Series) pairs.
+
+        .. deprecated:: 1.5.0
+            iteritems is deprecated and will be removed in a future version.
+            Use .items instead.
+
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
+
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iter : Recommended alternative.
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+        """
+
+    @Appender(_shared_docs["iteritems"])
     def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "
@@ -1618,10 +1656,10 @@ class DataFrame(NDFrame, OpsMixin):
     @classmethod
     def from_dict(
         cls,
-        data,
+        data: dict,
         orient: str = "columns",
         dtype: Dtype | None = None,
-        columns=None,
+        columns: Axes | None = None,
     ) -> DataFrame:
         """
         Construct DataFrame from dict of array-like or dicts.
@@ -1713,7 +1751,10 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(list(data.values())[0], (Series, dict)):
                     data = _from_nested_dict(data)
                 else:
-                    data, index = list(data.values()), list(data.keys())
+                    index = list(data.keys())
+                    # error: Incompatible types in assignment (expression has type
+                    # "List[Any]", variable has type "Dict[Any, Any]")
+                    data = list(data.values())  # type: ignore[assignment]
         elif orient == "columns" or orient == "tight":
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
@@ -1809,7 +1850,26 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
-    def to_dict(self, orient: str = "dict", into=dict):
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+        into: type[dict] = ...,
+    ) -> dict:
+        ...
+
+    @overload
+    def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
+        ...
+
+    def to_dict(
+        self,
+        orient: Literal[
+            "dict", "list", "series", "split", "tight", "records", "index"
+        ] = "dict",
+        into: type[dict] = dict,
+        index: bool = True,
+    ) -> dict | list[dict]:
         """
         Convert the DataFrame to a dictionary.
 
@@ -1844,6 +1904,13 @@ class DataFrame(NDFrame, OpsMixin):
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
+
+        index : bool, default True
+            Whether to include the index item (and index_names item if `orient`
+            is 'tight') in the returned dictionary. Can only be ``False``
+            when `orient` is 'split' or 'tight'.
+
+            .. versionadded:: 1.6.0
 
         Returns
         -------
@@ -1915,7 +1982,10 @@ class DataFrame(NDFrame, OpsMixin):
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        orient = orient.lower()
+        #  error: Incompatible types in assignment (expression has type "str",
+        # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
+        # 'records', 'index']")
+        orient = orient.lower()  # type: ignore[assignment]
         # GH32515
         if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
             "dict",
@@ -1947,6 +2017,11 @@ class DataFrame(NDFrame, OpsMixin):
             elif orient.startswith("i"):
                 orient = "index"
 
+        if not index and orient not in ["split", "tight"]:
+            raise ValueError(
+                "'index=False' is only valid when 'orient' is 'split' or 'tight'"
+            )
+
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
@@ -1957,8 +2032,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif orient == "split":
             return into_c(
-                (
-                    ("index", self.index.tolist()),
+                ((("index", self.index.tolist()),) if index else ())
+                + (
                     ("columns", self.columns.tolist()),
                     (
                         "data",
@@ -1972,8 +2047,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         elif orient == "tight":
             return into_c(
-                (
-                    ("index", self.index.tolist()),
+                ((("index", self.index.tolist()),) if index else ())
+                + (
                     ("columns", self.columns.tolist()),
                     (
                         "data",
@@ -1982,9 +2057,9 @@ class DataFrame(NDFrame, OpsMixin):
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
-                    ("index_names", list(self.index.names)),
-                    ("column_names", list(self.columns.names)),
                 )
+                + ((("index_names", list(self.index.names)),) if index else ())
+                + (("column_names", list(self.columns.names)),)
             )
 
         elif orient == "series":
@@ -2333,7 +2408,7 @@ class DataFrame(NDFrame, OpsMixin):
         return cls(mgr)
 
     def to_records(
-        self, index=True, column_dtypes=None, index_dtypes=None
+        self, index: bool = True, column_dtypes=None, index_dtypes=None
     ) -> np.recarray:
         """
         Convert DataFrame to a NumPy record array.
@@ -2442,7 +2517,7 @@ class DataFrame(NDFrame, OpsMixin):
         formats = []
 
         for i, v in enumerate(arrays):
-            index = i
+            index_int = i
 
             # When the names and arrays are collected, we
             # first collect those in the DataFrame's index,
@@ -2453,13 +2528,13 @@ class DataFrame(NDFrame, OpsMixin):
             #
             # This check allows us to see whether we are
             # handling a name / array in the index or column.
-            if index < index_len:
+            if index_int < index_len:
                 dtype_mapping = index_dtypes
-                name = index_names[index]
+                name = index_names[index_int]
             else:
-                index -= index_len
+                index_int -= index_len
                 dtype_mapping = column_dtypes
-                name = self.columns[index]
+                name = self.columns[index_int]
 
             # We have a dictionary, so we get the data type
             # associated with the index or column (which can
@@ -2469,8 +2544,8 @@ class DataFrame(NDFrame, OpsMixin):
             if is_dict_like(dtype_mapping):
                 if name in dtype_mapping:
                     dtype_mapping = dtype_mapping[name]
-                elif index in dtype_mapping:
-                    dtype_mapping = dtype_mapping[index]
+                elif index_int in dtype_mapping:
+                    dtype_mapping = dtype_mapping[index_int]
                 else:
                     dtype_mapping = None
 
@@ -2547,6 +2622,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression_options=_shared_docs["compression_options"] % "path",
     )
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "path"])
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
@@ -3640,7 +3716,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: int = 0) -> Series:
+    def _ixs(self, i: int, axis: AxisInt = 0) -> Series:
         """
         Parameters
         ----------
@@ -3678,6 +3754,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
+
+        Warning! The returned array is a view but doesn't handle Copy-on-Write,
+        so this should be used with caution (for read-only purposes).
         """
         return self._mgr.iget_values(i)
 
@@ -3685,6 +3764,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over the arrays of all columns in order.
         This returns the values as stored in the Block (ndarray or ExtensionArray).
+
+        Warning! The returned array is a view but doesn't handle Copy-on-Write,
+        so this should be used with caution (for read-only purposes).
         """
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
@@ -3913,7 +3995,7 @@ class DataFrame(NDFrame, OpsMixin):
             # set column
             self._set_item(key, value)
 
-    def _setitem_slice(self, key: slice, value):
+    def _setitem_slice(self, key: slice, value) -> None:
         # NB: we can't just use self.loc[key] = value because that
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
@@ -4038,13 +4120,30 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(self.columns, MultiIndex) and isinstance(
                 loc, (slice, Series, np.ndarray, Index)
             ):
-                cols = maybe_droplevels(cols, key)
-                if len(cols) and not cols.equals(value.columns):
-                    value = value.reindex(cols, axis=1)
+                cols_droplevel = maybe_droplevels(cols, key)
+                if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
+                    value = value.reindex(cols_droplevel, axis=1)
 
-        # now align rows
-        arraylike = _reindex_for_setitem(value, self.index)
-        self._set_item_mgr(key, arraylike)
+                for col, col_droplevel in zip(cols, cols_droplevel):
+                    self[col] = value[col_droplevel]
+                return
+
+            if is_scalar(cols):
+                self[cols] = value[value.columns[0]]
+                return
+
+            # now align rows
+            arraylike = _reindex_for_setitem(value, self.index)
+            self._set_item_mgr(key, arraylike)
+            return
+
+        if len(value.columns) != 1:
+            raise ValueError(
+                "Cannot set a DataFrame with multiple columns to the single "
+                f"column {key}"
+            )
+
+        self[key] = value[value.columns[0]]
 
     def _iset_item_mgr(
         self, loc: int | slice | np.ndarray, value, inplace: bool = False
@@ -4640,8 +4739,11 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"include and exclude overlap on {(include & exclude)}")
 
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
+            # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             return issubclass(dtype.type, tuple(dtypes_set)) or (
-                np.number in dtypes_set and getattr(dtype, "_is_numeric", False)
+                np.number in dtypes_set
+                and getattr(dtype, "_is_numeric", False)
+                and not is_bool_dtype(dtype)
             )
 
         def predicate(arr: ArrayLike) -> bool:
@@ -4656,7 +4758,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        mgr = self._mgr._get_data_subset(predicate)
+        mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
         return type(self)(mgr).__finalize__(self)
 
     def insert(
@@ -4984,14 +5086,14 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
-        other,
-        join: str = "outer",
+        other: DataFrame,
+        join: AlignJoin = "outer",
         axis: Axis | None = None,
-        level: Level | None = None,
+        level: Level = None,
         copy: bool = True,
         fill_value=None,
-        method: str | None = None,
-        limit=None,
+        method: FillnaOptions | None = None,
+        limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
     ) -> DataFrame:
@@ -5010,20 +5112,38 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
     @overload
-    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        copy: bool | lib.NoDefault = ...,
+    ) -> None:
         ...
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: bool = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: bool | lib.NoDefault = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
+    # error: Signature of "set_axis" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     @Appender(
         """
@@ -5047,10 +5167,9 @@ class DataFrame(NDFrame, OpsMixin):
         1  2   5
         2  3   6
 
-        Now, update the labels inplace.
+        Now, update the labels without copying the underlying data.
 
-        >>> df.set_axis(['i', 'ii'], axis='columns', inplace=True)
-        >>> df
+        >>> df.set_axis(['i', 'ii'], axis='columns', copy=False)
            i  ii
         0  1   4
         1  2   5
@@ -5064,8 +5183,15 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
-        return super().set_axis(labels, axis=axis, inplace=inplace)
+    def set_axis(
+        self,
+        labels,
+        axis: Axis = 0,
+        inplace: bool | lib.NoDefault = lib.no_default,
+        *,
+        copy: bool | lib.NoDefault = lib.no_default,
+    ):
+        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
@@ -5073,7 +5199,7 @@ class DataFrame(NDFrame, OpsMixin):
         "labels",
         [
             ("method", None),
-            ("copy", True),
+            ("copy", None),
             ("level", None),
             ("fill_value", np.nan),
             ("limit", None),
@@ -5096,7 +5222,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         index: IndexLabel = ...,
         columns: IndexLabel = ...,
-        level: Level | None = ...,
+        level: Level = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
     ) -> None:
@@ -5110,7 +5236,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         index: IndexLabel = ...,
         columns: IndexLabel = ...,
-        level: Level | None = ...,
+        level: Level = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
     ) -> DataFrame:
@@ -5124,7 +5250,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         index: IndexLabel = ...,
         columns: IndexLabel = ...,
-        level: Level | None = ...,
+        level: Level = ...,
         inplace: bool = ...,
         errors: IgnoreRaise = ...,
     ) -> DataFrame | None:
@@ -5139,7 +5265,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         index: IndexLabel = None,
         columns: IndexLabel = None,
-        level: Level | None = None,
+        level: Level = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
     ) -> DataFrame | None:
@@ -5298,9 +5424,9 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: Literal[True],
-        level: Level | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise = ...,
     ) -> None:
         ...
@@ -5313,9 +5439,9 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: Literal[False] = ...,
-        level: Level | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise = ...,
     ) -> DataFrame:
         ...
@@ -5328,9 +5454,9 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: bool = ...,
-        level: Level | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise = ...,
     ) -> DataFrame | None:
         ...
@@ -5342,9 +5468,9 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool = True,
+        copy: bool | None = None,
         inplace: bool = False,
-        level: Level | None = None,
+        level: Level = None,
         errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
         """
@@ -5468,128 +5594,53 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def fillna(
         self,
-        value=...,
+        value: Hashable | Mapping | Series | DataFrame = ...,
+        *,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> DataFrame:
         ...
 
     @overload
     def fillna(
         self,
-        value,
-        method: FillnaOptions | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
+        value: Hashable | Mapping | Series | DataFrame = ...,
         *,
+        method: FillnaOptions | None = ...,
+        axis: Axis | None = ...,
         inplace: Literal[True],
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> None:
         ...
 
     @overload
     def fillna(
         self,
-        value,
+        value: Hashable | Mapping | Series | DataFrame = ...,
         *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        method: FillnaOptions | None,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value=...,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> DataFrame | None:
         ...
 
+    # error: Signature of "fillna" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(
+    def fillna(  # type: ignore[override]
         self,
-        value: object | ArrayLike | None = None,
+        value: Hashable | Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
-        limit=None,
-        downcast=None,
+        limit: int | None = None,
+        downcast: dict | None = None,
     ) -> DataFrame | None:
         return super().fillna(
             value=value,
@@ -5730,10 +5781,10 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods=1,
+        periods: int = 1,
         freq: Frequency | None = None,
         axis: Axis = 0,
-        fill_value=lib.no_default,
+        fill_value: Hashable = lib.no_default,
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
@@ -5824,7 +5875,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[False] = ...,
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -5837,7 +5887,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: Literal[True],
         verify_integrity: bool = ...,
-        copy: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5849,7 +5898,6 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = False,
         inplace: bool = False,
         verify_integrity: bool = False,
-        copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -5876,11 +5924,6 @@ class DataFrame(NDFrame, OpsMixin):
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
-        copy : bool, default True
-            Whether to make a copy of the underlying data when returning a new
-            DataFrame.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5946,13 +5989,6 @@ class DataFrame(NDFrame, OpsMixin):
         4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        if inplace:
-            if copy is not lib.no_default:
-                raise ValueError("Cannot specify copy when inplace=True")
-            copy = False
-        elif copy is lib.no_default:
-            copy = True
-
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
             keys = [keys]
@@ -5988,7 +6024,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             frame = self
         else:
-            frame = self.copy(deep=copy)
+            frame = self.copy()
 
         arrays = []
         names: list[Hashable] = []
@@ -6060,7 +6096,8 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def reset_index(
         self,
-        level: Hashable | Sequence[Hashable] | None = ...,
+        level: IndexLabel = ...,
+        *,
         drop: bool = ...,
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
@@ -6073,21 +6110,9 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def reset_index(
         self,
-        level: Hashable | Sequence[Hashable] | None,
-        drop: bool,
-        inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
-    ) -> None:
-        ...
-
-    @overload
-    def reset_index(
-        self,
+        level: IndexLabel = ...,
         *,
-        drop: bool,
+        drop: bool = ...,
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
@@ -6099,32 +6124,8 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def reset_index(
         self,
-        level: Hashable | Sequence[Hashable] | None,
+        level: IndexLabel = ...,
         *,
-        inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
-    ) -> None:
-        ...
-
-    @overload
-    def reset_index(
-        self,
-        *,
-        inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
-    ) -> None:
-        ...
-
-    @overload
-    def reset_index(
-        self,
-        level: Hashable | Sequence[Hashable] | None = ...,
         drop: bool = ...,
         inplace: bool = ...,
         col_level: Hashable = ...,
@@ -6137,7 +6138,7 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
-        level: Hashable | Sequence[Hashable] | None = None,
+        level: IndexLabel = None,
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
@@ -6312,7 +6313,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             new_obj = self
         else:
-            new_obj = self.copy()
+            new_obj = self.copy(deep=None)
         if allow_duplicates is not lib.no_default:
             allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
@@ -6411,7 +6412,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
@@ -6423,7 +6424,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: str | NoDefault = ...,
+        how: AnyAll | NoDefault = ...,
         thresh: int | NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
@@ -6434,7 +6435,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str | NoDefault = no_default,
+        how: AnyAll | NoDefault = no_default,
         thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
@@ -6596,7 +6597,7 @@ class DataFrame(NDFrame, OpsMixin):
     def drop_duplicates(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
-        keep: Literal["first"] | Literal["last"] | Literal[False] = "first",
+        keep: DropKeep = "first",
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6611,15 +6612,17 @@ class DataFrame(NDFrame, OpsMixin):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns.
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last', ``False``}, default 'first'
             Determines which duplicates (if any) to keep.
-            - ``first`` : Drop duplicates except for the first occurrence.
-            - ``last`` : Drop duplicates except for the last occurrence.
-            - False : Drop all duplicates.
-        inplace : bool, default False
+
+            - 'first' : Drop duplicates except for the first occurrence.
+            - 'last' : Drop duplicates except for the last occurrence.
+            - ``False`` : Drop all duplicates.
+
+        inplace : bool, default ``False``
             Whether to modify the DataFrame rather than creating a new one.
-        ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+        ignore_index : bool, default ``False``
+            If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
 
             .. versionadded:: 1.0.0
 
@@ -6693,7 +6696,7 @@ class DataFrame(NDFrame, OpsMixin):
     def duplicated(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
-        keep: Literal["first"] | Literal["last"] | Literal[False] = "first",
+        keep: DropKeep = "first",
     ) -> Series:
         """
         Return boolean Series denoting duplicate rows.
@@ -6839,7 +6842,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload  # type: ignore[override]
     def sort_values(
         self,
-        by,
+        by: IndexLabel,
         *,
         axis: Axis = ...,
         ascending=...,
@@ -6854,7 +6857,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def sort_values(
         self,
-        by,
+        by: IndexLabel,
         *,
         axis: Axis = ...,
         ascending=...,
@@ -6873,9 +6876,9 @@ class DataFrame(NDFrame, OpsMixin):
     @Appender(NDFrame.sort_values.__doc__)
     def sort_values(  # type: ignore[override]
         self,
-        by,
+        by: IndexLabel,
         axis: Axis = 0,
-        ascending=True,
+        ascending: bool | list[bool] | tuple[bool, ...] = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
@@ -6887,9 +6890,16 @@ class DataFrame(NDFrame, OpsMixin):
         ascending = validate_ascending(ascending)
         if not isinstance(by, list):
             by = [by]
-        if is_sequence(ascending) and len(by) != len(ascending):
+        # error: Argument 1 to "len" has incompatible type "Union[bool, List[bool]]";
+        # expected "Sized"
+        if is_sequence(ascending) and (
+            len(by) != len(ascending)  # type: ignore[arg-type]
+        ):
+            # error: Argument 1 to "len" has incompatible type "Union[bool,
+            # List[bool]]"; expected "Sized"
             raise ValueError(
-                f"Length of ascending ({len(ascending)}) != length of by ({len(by)})"
+                f"Length of ascending ({len(ascending)})"  # type: ignore[arg-type]
+                f" != length of by ({len(by)})"
             )
         if len(by) > 1:
 
@@ -6948,7 +6958,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
@@ -6964,7 +6974,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
@@ -6980,7 +6990,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: bool = ...,
         kind: SortKind = ...,
@@ -6996,7 +7006,7 @@ class DataFrame(NDFrame, OpsMixin):
     def sort_index(  # type: ignore[override]
         self,
         axis: Axis = 0,
-        level: Level | None = None,
+        level: IndexLabel = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
@@ -7598,7 +7608,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _logical_method = _arith_method
 
-    def _dispatch_frame_op(self, right, func: Callable, axis: int | None = None):
+    def _dispatch_frame_op(self, right, func: Callable, axis: AxisInt | None = None):
         """
         Evaluate the frame operation func(left, right) by evaluating
         column-by-column, dispatching to the Series implementation.
@@ -7705,7 +7715,7 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
         """
-        out = self._constructor(result, copy=False)
+        out = self._constructor(result, copy=False).__finalize__(self)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
@@ -7858,7 +7868,11 @@ Keep all original rows and columns and also all original values
         )
 
     def combine(
-        self, other: DataFrame, func, fill_value=None, overwrite: bool = True
+        self,
+        other: DataFrame,
+        func: Callable[[Series, Series], Series | Hashable],
+        fill_value=None,
+        overwrite: bool = True,
     ) -> DataFrame:
         """
         Perform column-wise combine with another DataFrame.
@@ -8020,7 +8034,11 @@ Keep all original rows and columns and also all original values
             if isinstance(new_dtype, np.dtype):
                 # if new_dtype is an EA Dtype, then `func` is expected to return
                 # the correct dtype without any additional casting
-                arr = maybe_downcast_to_dtype(arr, new_dtype)
+                # error: No overload variant of "maybe_downcast_to_dtype" matches
+                # argument types "Union[Series, Hashable]", "dtype[Any]"
+                arr = maybe_downcast_to_dtype(  # type: ignore[call-overload]
+                    arr, new_dtype
+                )
 
             result[col] = arr
 
@@ -8552,7 +8570,10 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(self, index=None, columns=None, values=None) -> DataFrame:
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def pivot(
+        self, index=lib.NoDefault, columns=lib.NoDefault, values=lib.NoDefault
+    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
@@ -8709,13 +8730,13 @@ Parrot 2  Parrot       24.0
         values=None,
         index=None,
         columns=None,
-        aggfunc="mean",
+        aggfunc: AggFuncType = "mean",
         fill_value=None,
-        margins=False,
-        dropna=True,
-        margins_name="All",
-        observed=False,
-        sort=True,
+        margins: bool = False,
+        dropna: bool = True,
+        margins_name: Level = "All",
+        observed: bool = False,
+        sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 
@@ -9008,7 +9029,7 @@ Parrot 2  Parrot       24.0
         if is_scalar(column) or isinstance(column, tuple):
             columns = [column]
         elif isinstance(column, list) and all(
-            map(lambda c: is_scalar(c) or isinstance(c, tuple), column)
+            is_scalar(c) or isinstance(c, tuple) for c in column
         ):
             if not column:
                 raise ValueError("column must be nonempty")
@@ -9110,8 +9131,8 @@ Parrot 2  Parrot       24.0
         id_vars=None,
         value_vars=None,
         var_name=None,
-        value_name="value",
-        col_level: Level | None = None,
+        value_name: Hashable = "value",
+        col_level: Level = None,
         ignore_index: bool = True,
     ) -> DataFrame:
 
@@ -9212,8 +9233,14 @@ Parrot 2  Parrot       24.0
             periods = int(periods)
 
         axis = self._get_axis_number(axis)
-        if axis == 1 and periods != 0:
-            return self - self.shift(periods, axis=axis)
+        if axis == 1:
+            if periods != 0:
+                # in the periods == 0 case, this is equivalent diff of 0 periods
+                #  along axis=0, and the Manager method may be somewhat more
+                #  performant, so we dispatch in that case.
+                return self - self.shift(periods, axis=axis)
+            # With periods=0 this is equivalent to a diff with axis=0
+            axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
@@ -9379,7 +9406,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = 0,
         bool_only: bool | None = None,
         skipna: bool = True,
-        level: Level | None = None,
+        level: Level = None,
         **kwargs,
     ) -> DataFrame | Series:
         ...
@@ -9404,7 +9431,7 @@ Parrot 2  Parrot       24.0
         func: AggFuncType,
         axis: Axis = 0,
         raw: bool = False,
-        result_type=None,
+        result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         **kwargs,
     ):
@@ -9833,7 +9860,7 @@ Parrot 2  Parrot       24.0
             values given, the `other` DataFrame must have a MultiIndex. Can
             pass an array as the join key if it is not already contained in
             the calling DataFrame. Like an Excel VLOOKUP operation.
-        how : {'left', 'right', 'outer', 'inner'}, default 'left'
+        how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'left'
             How to handle the operation of the two objects.
 
             * left: use calling frame's index (or column if on is specified)
@@ -10076,7 +10103,7 @@ Parrot 2  Parrot       24.0
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        indicator: bool = False,
+        indicator: str | bool = False,
         validate: str | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
@@ -10218,7 +10245,7 @@ Parrot 2  Parrot       24.0
 
     def corr(
         self,
-        method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: CorrelationMethod = "pearson",
         min_periods: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
@@ -10332,7 +10359,8 @@ Parrot 2  Parrot       24.0
                 f"'{method}' was supplied"
             )
 
-        return self._constructor(correl, index=idx, columns=cols)
+        result = self._constructor(correl, index=idx, columns=cols)
+        return result.__finalize__(self, method="corr")
 
     def cov(
         self,
@@ -10467,14 +10495,15 @@ Parrot 2  Parrot       24.0
         else:
             base_cov = libalgos.nancorr(mat, cov=True, minp=min_periods)
 
-        return self._constructor(base_cov, index=idx, columns=cols)
+        result = self._constructor(base_cov, index=idx, columns=cols)
+        return result.__finalize__(self, method="cov")
 
     def corrwith(
         self,
-        other,
+        other: DataFrame | Series,
         axis: Axis = 0,
-        drop=False,
-        method="pearson",
+        drop: bool = False,
+        method: CorrelationMethod = "pearson",
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
@@ -10642,9 +10671,7 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(
-        self, axis: Axis = 0, level: Level | None = None, numeric_only: bool = False
-    ):
+    def count(self, axis: Axis = 0, level: Level = None, numeric_only: bool = False):
         """
         Count non-NA cells for each column or row.
 
@@ -10747,7 +10774,7 @@ Parrot 2  Parrot       24.0
 
         return result.astype("int64").__finalize__(self, method="count")
 
-    def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
+    def _count_level(self, level: Level, axis: AxisInt = 0, numeric_only: bool = False):
         if numeric_only:
             frame = self._get_numeric_data()
         else:
@@ -11160,13 +11187,44 @@ Parrot 2  Parrot       24.0
 
         return data
 
+    @overload
     def quantile(
         self,
-        q=0.5,
+        q: float = ...,
+        axis: Axis = ...,
+        numeric_only: bool | lib.NoDefault = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: AnyArrayLike | Sequence[float],
+        axis: Axis = ...,
+        numeric_only: bool | lib.NoDefault = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series | DataFrame:
+        ...
+
+    @overload
+    def quantile(
+        self,
+        q: float | AnyArrayLike | Sequence[float] = ...,
+        axis: Axis = ...,
+        numeric_only: bool | lib.NoDefault = ...,
+        interpolation: QuantileInterpolation = ...,
+    ) -> Series | DataFrame:
+        ...
+
+    def quantile(
+        self,
+        q: float | AnyArrayLike | Sequence[float] = 0.5,
         axis: Axis = 0,
         numeric_only: bool | lib.NoDefault = no_default,
-        interpolation: str = "linear",
-    ):
+        interpolation: QuantileInterpolation = "linear",
+        method: Literal["single", "table"] = "single",
+    ) -> Series | DataFrame:
         """
         Return values at the given quantile over requested axis.
 
@@ -11194,6 +11252,10 @@ Parrot 2  Parrot       24.0
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
+        method : {'single', 'table'}, default 'single'
+            Whether to compute quantiles per-column ('single') or over all columns
+            ('table'). When 'table', the only allowed interpolation methods are
+            'nearest', 'lower', and 'higher'.
 
         Returns
         -------
@@ -11223,6 +11285,17 @@ Parrot 2  Parrot       24.0
         0.1  1.3   3.7
         0.5  2.5  55.0
 
+        Specifying `method='table'` will compute the quantile over all columns.
+
+        >>> df.quantile(.1, method="table", interpolation="nearest")
+        a    1
+        b    1
+        Name: 0.1, dtype: int64
+        >>> df.quantile([.1, .5], method="table", interpolation="nearest")
+             a    b
+        0.1  1    1
+        0.5  3  100
+
         Specifying `numeric_only=False` will also compute the quantile of
         datetime and timedelta data.
 
@@ -11246,10 +11319,21 @@ Parrot 2  Parrot       24.0
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
-            res_df = self.quantile(
-                [q], axis=axis, numeric_only=numeric_only, interpolation=interpolation
+            # error: List item 0 has incompatible type "Union[float, Union[Union[
+            # ExtensionArray, ndarray[Any, Any]], Index, Series], Sequence[float]]";
+            # expected "float"
+            res_df = self.quantile(  # type: ignore[call-overload]
+                [q],
+                axis=axis,
+                numeric_only=numeric_only,
+                interpolation=interpolation,
+                method=method,
             )
-            res = res_df.iloc[0]
+            if method == "single":
+                res = res_df.iloc[0]
+            else:
+                # cannot directly iloc over sparse arrays
+                res = res_df.T.iloc[:, 0]
             if axis == 1 and len(self) == 0:
                 # GH#41544 try to get an appropriate dtype
                 dtype = find_common_type(list(self.dtypes))
@@ -11277,7 +11361,47 @@ Parrot 2  Parrot       24.0
             res = self._constructor([], index=q, columns=cols, dtype=dtype)
             return res.__finalize__(self, method="quantile")
 
-        res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
+        valid_method = {"single", "table"}
+        if method not in valid_method:
+            raise ValueError(
+                f"Invalid method: {method}. Method must be in {valid_method}."
+            )
+        if method == "single":
+            # error: Argument "qs" to "quantile" of "BlockManager" has incompatible type
+            # "Index"; expected "Float64Index"
+            res = data._mgr.quantile(
+                qs=q, axis=1, interpolation=interpolation  # type: ignore[arg-type]
+            )
+        elif method == "table":
+            valid_interpolation = {"nearest", "lower", "higher"}
+            if interpolation not in valid_interpolation:
+                raise ValueError(
+                    f"Invalid interpolation: {interpolation}. "
+                    f"Interpolation must be in {valid_interpolation}"
+                )
+            # handle degenerate case
+            if len(data) == 0:
+                if data.ndim == 2:
+                    dtype = find_common_type(list(self.dtypes))
+                else:
+                    dtype = self.dtype
+                return self._constructor([], index=q, columns=data.columns, dtype=dtype)
+
+            q_idx = np.quantile(  # type: ignore[call-overload]
+                np.arange(len(data)), q, **{np_percentile_argname: interpolation}
+            )
+
+            by = data.columns
+            if len(by) > 1:
+                keys = [data._get_label_or_level_values(x) for x in by]
+                indexer = lexsort_indexer(keys)
+            else:
+                by = by[0]
+                k = data._get_label_or_level_values(by)  # type: ignore[arg-type]
+                indexer = nargsort(k)
+
+            res = data._mgr.take(indexer[q_idx], verify=False)
+            res.axes[1] = q
 
         result = self._constructor(res)
         return result.__finalize__(self, method="quantile")
@@ -11286,10 +11410,10 @@ Parrot 2  Parrot       24.0
     def asfreq(
         self,
         freq: Frequency,
-        method=None,
+        method: FillnaOptions | None = None,
         how: str | None = None,
         normalize: bool = False,
-        fill_value=None,
+        fill_value: Hashable = None,
     ) -> DataFrame:
         return super().asfreq(
             freq=freq,
@@ -11303,15 +11427,15 @@ Parrot 2  Parrot       24.0
     def resample(
         self,
         rule,
-        axis=0,
+        axis: Axis = 0,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
         kind: str | None = None,
         loffset=None,
         base: int | None = None,
-        on=None,
-        level=None,
+        on: Level = None,
+        level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = no_default,
@@ -11426,7 +11550,7 @@ Parrot 2  Parrot       24.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def isin(self, values) -> DataFrame:
+    def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
 
@@ -11521,8 +11645,13 @@ Parrot 2  Parrot       24.0
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
+            # error: Argument 2 to "isin" has incompatible type "Union[Sequence[Any],
+            # Mapping[Any, Any]]"; expected "Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]"
             result = self._constructor(
-                algorithms.isin(self.values.ravel(), values).reshape(self.shape),
+                algorithms.isin(
+                    self.values.ravel(), values  # type: ignore[arg-type]
+                ).reshape(self.shape),
                 self.index,
                 self.columns,
             )
@@ -11530,7 +11659,7 @@ Parrot 2  Parrot       24.0
 
     # ----------------------------------------------------------------------
     # Add index and columns
-    _AXIS_ORDERS = ["index", "columns"]
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index", "columns"]
     _AXIS_TO_AXIS_NUMBER: dict[Axis, int] = {
         **NDFrame._AXIS_TO_AXIS_NUMBER,
         1: 1,
@@ -11538,7 +11667,7 @@ Parrot 2  Parrot       24.0
     }
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 1
-    _info_axis_name = "columns"
+    _info_axis_name: Literal["columns"] = "columns"
 
     index = properties.AxisProperty(
         axis=1, doc="The index (row labels) of the DataFrame."
@@ -11667,7 +11796,7 @@ Parrot 2  Parrot       24.0
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> DataFrame:
         ...
 
@@ -11678,7 +11807,7 @@ Parrot 2  Parrot       24.0
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> None:
         ...
 
@@ -11689,7 +11818,7 @@ Parrot 2  Parrot       24.0
         axis: None | Axis = ...,
         inplace: bool = ...,
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> DataFrame | None:
         ...
 
@@ -11700,7 +11829,7 @@ Parrot 2  Parrot       24.0
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
-        downcast=None,
+        downcast: dict | None = None,
     ) -> DataFrame | None:
         return super().ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
@@ -11753,8 +11882,8 @@ Parrot 2  Parrot       24.0
     )
     def clip(
         self: DataFrame,
-        lower=None,
-        upper=None,
+        lower: float | None = None,
+        upper: float | None = None,
         axis: Axis | None = None,
         inplace: bool = False,
         *args,
@@ -11792,10 +11921,10 @@ Parrot 2  Parrot       24.0
         other=...,
         *,
         inplace: Literal[False] = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11806,10 +11935,10 @@ Parrot 2  Parrot       24.0
         other=...,
         *,
         inplace: Literal[True],
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11820,10 +11949,10 @@ Parrot 2  Parrot       24.0
         other=...,
         *,
         inplace: bool = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -11837,10 +11966,10 @@ Parrot 2  Parrot       24.0
         cond,
         other=lib.no_default,
         inplace: bool = False,
-        axis=None,
-        level=None,
+        axis: Axis | None = None,
+        level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast=lib.no_default,
+        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().where(
             cond,
@@ -11858,10 +11987,10 @@ Parrot 2  Parrot       24.0
         other=...,
         *,
         inplace: Literal[False] = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -11872,10 +12001,10 @@ Parrot 2  Parrot       24.0
         other=...,
         *,
         inplace: Literal[True],
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -11886,10 +12015,10 @@ Parrot 2  Parrot       24.0
         other=...,
         *,
         inplace: bool = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -11903,10 +12032,10 @@ Parrot 2  Parrot       24.0
         cond,
         other=np.nan,
         inplace: bool = False,
-        axis=None,
-        level=None,
+        axis: Axis | None = None,
+        level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = "raise",
-        try_cast=lib.no_default,
+        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         return super().mask(
             cond,

@@ -173,7 +173,7 @@ class TestExpressions:
 
             with warnings.catch_warnings():
                 # array has 0s
-                msg = "invalid value encountered in true_divide"
+                msg = "invalid value encountered in divide|true_divide"
                 warnings.filterwarnings("ignore", msg, RuntimeWarning)
                 result = expr.evaluate(op, left, left, use_numexpr=True)
                 expected = expr.evaluate(op, left, left, use_numexpr=False)

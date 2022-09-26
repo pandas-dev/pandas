@@ -600,6 +600,20 @@ class TestEval:
         res = df.eval(expr)
         assert res.values == np.array([False])
 
+    def test_unary_in_function(self):
+        # GH 46471
+        df = DataFrame({"x": [0, 1, np.nan]})
+
+        result = df.eval("x.fillna(-1)")
+        expected = df.x.fillna(-1)
+        # column name becomes None if using numexpr
+        # only check names when the engine is not numexpr
+        tm.assert_series_equal(result, expected, check_names=not USE_NUMEXPR)
+
+        result = df.eval("x.shift(1, fill_value=-1)")
+        expected = df.x.shift(1, fill_value=-1)
+        tm.assert_series_equal(result, expected, check_names=not USE_NUMEXPR)
+
     @pytest.mark.parametrize(
         "ex",
         (
@@ -1910,6 +1924,26 @@ def test_eval_no_support_column_name(request, column):
     result = df.query(f"{column}>6")
 
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_array_manager_not_yet_implemented
+def test_set_inplace(using_copy_on_write):
+    # https://github.com/pandas-dev/pandas/issues/47449
+    # Ensure we don't only update the DataFrame inplace, but also the actual
+    # column values, such that references to this column also get updated
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+    result_view = df[:]
+    ser = df["A"]
+    df.eval("A = B + C", inplace=True)
+    expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
+    tm.assert_frame_equal(df, expected)
+    if not using_copy_on_write:
+        tm.assert_series_equal(ser, expected["A"])
+        tm.assert_series_equal(result_view["A"], expected["A"])
+    else:
+        expected = Series([1, 2, 3], name="A")
+        tm.assert_series_equal(ser, expected)
+        tm.assert_series_equal(result_view["A"], expected)
 
 
 class TestValidate:

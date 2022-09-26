@@ -82,15 +82,13 @@ class Timedelta(timedelta):
     max: ClassVar[Timedelta]
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
-    def __new__(
+    # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
+    def __new__(  # type: ignore[misc]
         cls: type[_S],
         value=...,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
-    ) -> _S: ...
-    # GH 46171
-    # While Timedelta can return pd.NaT, having the constructor return
-    # a Union with NaTType makes things awkward for users of pandas
+    ) -> _S | NaTType: ...
     @classmethod
     def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property

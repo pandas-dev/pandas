@@ -10,22 +10,28 @@ def group_median_float64(
     values: np.ndarray,  # ndarray[float64_t, ndim=2]
     labels: npt.NDArray[np.int64],
     min_count: int = ...,  # Py_ssize_t
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
-def group_cumprod_float64(
+def group_cumprod(
     out: np.ndarray,  # float64_t[:, ::1]
     values: np.ndarray,  # const float64_t[:, :]
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
     skipna: bool = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_cumsum(
-    out: np.ndarray,  # numeric[:, ::1]
-    values: np.ndarray,  # ndarray[numeric, ndim=2]
+    out: np.ndarray,  # int64float_t[:, ::1]
+    values: np.ndarray,  # ndarray[int64float_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     ngroups: int,
     is_datetimelike: bool,
     skipna: bool = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_shift_indexer(
     out: np.ndarray,  # int64_t[::1]
@@ -61,10 +67,12 @@ def group_sum(
     is_datetimelike: bool = ...,
 ) -> None: ...
 def group_prod(
-    out: np.ndarray,  # floating[:, ::1]
+    out: np.ndarray,  # int64float_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[floating, ndim=2]
+    values: np.ndarray,  # ndarray[int64float_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
+    mask: np.ndarray | None,
+    result_mask: np.ndarray | None = ...,
     min_count: int = ...,
 ) -> None: ...
 def group_var(
@@ -74,6 +82,8 @@ def group_var(
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,  # Py_ssize_t
     ddof: int = ...,  # int64_t
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]
@@ -86,11 +96,13 @@ def group_mean(
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_ohlc(
-    out: np.ndarray,  # floating[:, ::1]
+    out: np.ndarray,  # floatingintuint_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
-    values: np.ndarray,  # ndarray[floating, ndim=2]
+    values: np.ndarray,  # ndarray[floatingintuint_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_quantile(
     out: npt.NDArray[np.float64],
@@ -100,6 +112,7 @@ def group_quantile(
     sort_indexer: npt.NDArray[np.intp],  # const
     qs: npt.NDArray[np.float64],  # const
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_last(
     out: np.ndarray,  # rank_t[:, ::1]

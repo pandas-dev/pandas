@@ -40,7 +40,10 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    LossySetitemError,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -516,7 +519,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
         elif isinstance(dtype, IntervalDtype):
             # TODO(GH#45349): don't special-case IntervalDtype, allow
             #  overriding instead of returning object below.
-            return IntervalDtype(np.float64, inclusive=dtype.inclusive)
+            return IntervalDtype(np.float64, closed=dtype.closed)
         return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
@@ -590,6 +593,12 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         dtype = ensure_dtype_can_hold_na(dtype)
         fv = na_value_for_dtype(dtype)
         return dtype, fv
+
+    elif isinstance(dtype, CategoricalDtype):
+        if fill_value in dtype.categories or isna(fill_value):
+            return dtype, fill_value
+        else:
+            return object, ensure_object(fill_value)
 
     elif isna(fill_value):
         dtype = _dtype_obj
@@ -835,7 +844,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = PeriodDtype(freq=val.freq)
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype, inclusive=val.inclusive)
+            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
     return dtype, val
 
@@ -1835,8 +1844,10 @@ def maybe_cast_to_integer_array(
             f"casted to the dtype {dtype}"
         ) from err
 
-    if np.array_equal(arr, casted):
-        return casted
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        if np.array_equal(arr, casted):
+            return casted
 
     # We do this casting to allow for proper
     # data and dtype checking.
@@ -1844,6 +1855,11 @@ def maybe_cast_to_integer_array(
     # We didn't do this earlier because NumPy
     # doesn't handle `uint64` correctly.
     arr = np.asarray(arr)
+
+    if np.issubdtype(arr.dtype, str):
+        if (casted.astype(str) == arr).all():
+            return casted
+        raise ValueError(f"string values cannot be losslessly cast to {dtype}")
 
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
@@ -1964,7 +1980,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    casted = element.astype(dtype)
+                    with np.errstate(invalid="ignore"):
+                        # We check afterwards if cast was losslessly, so no need to show
+                        # the warning
+                        casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
                         # Return the casted values bc they can be passed to
@@ -2087,11 +2106,3 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     if not len(rng):
         return True
     return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
-
-
-class LossySetitemError(Exception):
-    """
-    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
-    """
-
-    pass

@@ -8,14 +8,13 @@ from typing import (
 import numpy as np
 import numpy.typing as npt
 
-from pandas._libs import lib
 from pandas._typing import (
-    IntervalInclusiveType,
+    IntervalClosedType,
     Timedelta,
     Timestamp,
 )
 
-VALID_INCLUSIVE: frozenset[str]
+VALID_CLOSED: frozenset[str]
 
 _OrderableScalarT = TypeVar("_OrderableScalarT", int, float)
 _OrderableTimesT = TypeVar("_OrderableTimesT", Timestamp, Timedelta)
@@ -50,13 +49,7 @@ class IntervalMixin:
     def open_right(self) -> bool: ...
     @property
     def is_empty(self) -> bool: ...
-    def _check_inclusive_matches(
-        self, other: IntervalMixin, name: str = ...
-    ) -> None: ...
-
-def _warning_interval(
-    inclusive, closed
-) -> tuple[IntervalInclusiveType, lib.NoDefault]: ...
+    def _check_closed_matches(self, other: IntervalMixin, name: str = ...) -> None: ...
 
 class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
@@ -64,25 +57,29 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def inclusive(self) -> IntervalInclusiveType: ...
-    @property
-    def closed(self) -> IntervalInclusiveType: ...
+    def closed(self) -> IntervalClosedType: ...
     mid: _MidDescriptor
     length: _LengthDescriptor
     def __init__(
         self,
         left: _OrderableT,
         right: _OrderableT,
-        inclusive: IntervalInclusiveType = ...,
-        closed: IntervalInclusiveType = ...,
+        closed: IntervalClosedType = ...,
     ) -> None: ...
     def __hash__(self) -> int: ...
     @overload
     def __contains__(
-        self: Interval[_OrderableTimesT], key: _OrderableTimesT
+        self: Interval[Timedelta], key: Timedelta | Interval[Timedelta]
     ) -> bool: ...
     @overload
-    def __contains__(self: Interval[_OrderableScalarT], key: float) -> bool: ...
+    def __contains__(
+        self: Interval[Timestamp], key: Timestamp | Interval[Timestamp]
+    ) -> bool: ...
+    @overload
+    def __contains__(
+        self: Interval[_OrderableScalarT],
+        key: _OrderableScalarT | Interval[_OrderableScalarT],
+    ) -> bool: ...
     @overload
     def __add__(
         self: Interval[_OrderableTimesT], y: Timedelta
@@ -150,15 +147,15 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     def overlaps(self: Interval[_OrderableT], other: Interval[_OrderableT]) -> bool: ...
 
 def intervals_to_interval_bounds(
-    intervals: np.ndarray, validate_inclusive: bool = ...
-) -> tuple[np.ndarray, np.ndarray, IntervalInclusiveType]: ...
+    intervals: np.ndarray, validate_closed: bool = ...
+) -> tuple[np.ndarray, np.ndarray, str]: ...
 
 class IntervalTree(IntervalMixin):
     def __init__(
         self,
         left: np.ndarray,
         right: np.ndarray,
-        inclusive: IntervalInclusiveType = ...,
+        closed: IntervalClosedType = ...,
         leaf_size: int = ...,
     ) -> None: ...
     @property

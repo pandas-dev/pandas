@@ -18,6 +18,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Iterator,
+    Literal,
     cast,
     overload,
 )
@@ -603,7 +604,7 @@ def to_sql(
     name: str,
     con,
     schema: str | None = None,
-    if_exists: str = "fail",
+    if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
     index_label: IndexLabel = None,
     chunksize: int | None = None,
@@ -762,6 +763,7 @@ def pandasSQL_builder(con, schema: str | None = None) -> SQLDatabase | SQLiteDat
         "database string URI or sqlite3 DBAPI2 connection. "
         "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
         UserWarning,
+        stacklevel=find_stack_level(inspect.currentframe()),
     )
     return SQLiteDatabase(con)
 
@@ -783,7 +785,7 @@ class SQLTable(PandasObject):
         pandas_sql_engine,
         frame=None,
         index: bool | str | list[str] | None = True,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         prefix: str = "pandas",
         index_label=None,
         schema=None,
@@ -818,7 +820,7 @@ class SQLTable(PandasObject):
 
         return str(CreateTable(self.table).compile(self.pd_sql.connectable))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         # Inserting table into database, add to MetaData object
         self.table = self.table.to_metadata(self.pd_sql.meta)
         self.table.create(bind=self.pd_sql.connectable)
@@ -1101,7 +1103,7 @@ class SQLTable(PandasObject):
         meta = MetaData()
         return Table(self.name, meta, *columns, schema=schema)
 
-    def _harmonize_columns(self, parse_dates=None):
+    def _harmonize_columns(self, parse_dates=None) -> None:
         """
         Make the DataFrame's column types align with the SQL table
         column types.
@@ -1268,7 +1270,7 @@ class PandasSQL(PandasObject):
         self,
         frame,
         name,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
@@ -1289,7 +1291,7 @@ class BaseEngine:
         con,
         frame,
         name,
-        index=True,
+        index: bool | str | list[str] | None = True,
         schema=None,
         chunksize=None,
         method=None,
@@ -1313,7 +1315,7 @@ class SQLAlchemyEngine(BaseEngine):
         con,
         frame,
         name,
-        index=True,
+        index: bool | str | list[str] | None = True,
         schema=None,
         chunksize=None,
         method=None,
@@ -1470,7 +1472,7 @@ class SQLDatabase(PandasSQL):
         chunksize: int,
         columns,
         index_col=None,
-        coerce_float=True,
+        coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
     ):
@@ -1588,8 +1590,8 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name,
-        if_exists="fail",
-        index=True,
+        if_exists: Literal["fail", "replace", "append"] = "fail",
+        index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
@@ -1655,20 +1657,24 @@ class SQLDatabase(PandasSQL):
                     "due to case sensitivity issues. Consider using lower "
                     "case table names."
                 )
-                warnings.warn(msg, UserWarning)
+                warnings.warn(
+                    msg,
+                    UserWarning,
+                    stacklevel=find_stack_level(inspect.currentframe()),
+                )
 
     def to_sql(
         self,
         frame,
         name,
-        if_exists: str = "fail",
+        if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
-        engine="auto",
+        engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         """
@@ -1851,7 +1857,7 @@ class SQLiteTable(SQLTable):
 
         # this will transform time(12,34,56,789) into '12:34:56.000789'
         # (this is what sqlalchemy does)
-        def _adapt_time(t):
+        def _adapt_time(t) -> str:
             # This is faster than strftime
             return f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}.{t.microsecond:06d}"
 
@@ -1861,7 +1867,7 @@ class SQLiteTable(SQLTable):
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
 
-    def _execute_create(self):
+    def _execute_create(self) -> None:
         with self.pd_sql.run_transaction() as conn:
             for stmt in self.table:
                 conn.execute(stmt)

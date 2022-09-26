@@ -136,7 +136,7 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title: str, height: float | None = None):
+    def _make_table(self, ax, df, title: str, height: float | None = None) -> None:
         if df is None:
             ax.set_visible(False)
             return

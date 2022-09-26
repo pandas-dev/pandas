@@ -1272,7 +1272,7 @@ class FixedWidthReader(abc.Iterator):
         else:
             line = next(self.f)  # type: ignore[arg-type]
         # Note: 'colspecs' is a sequence of half-open intervals.
-        return [line[fromm:to].strip(self.delimiter) for (fromm, to) in self.colspecs]
+        return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]
 
 
 class FixedWidthFieldParser(PythonParser):

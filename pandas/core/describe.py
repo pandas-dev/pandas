@@ -32,6 +32,7 @@ from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_complex_dtype,
     is_datetime64_any_dtype,
     is_numeric_dtype,
     is_timedelta64_dtype,
@@ -240,7 +241,9 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         + series.quantile(percentiles).tolist()
         + [series.max()]
     )
-    return Series(d, index=stat_index, name=series.name)
+    # GH#48340 - always return float on non-complex numeric data
+    dtype = float if is_numeric_dtype(series) and not is_complex_dtype(series) else None
+    return Series(d, index=stat_index, name=series.name, dtype=dtype)
 
 
 def describe_categorical_1d(

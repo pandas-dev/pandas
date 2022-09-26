@@ -6,10 +6,13 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     MultiIndex,
     Series,
     Timestamp,
@@ -109,6 +112,19 @@ class TestAtSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("row", (Timestamp("2019-01-01"), "2019-01-01"))
+    def test_at_datetime_index(self, row):
+        df = DataFrame(
+            data=[[1] * 2], index=DatetimeIndex(data=["2019-01-01", "2019-01-02"])
+        )
+        expected = DataFrame(
+            data=[[0.5, 1], [1.0, 1]],
+            index=DatetimeIndex(data=["2019-01-01", "2019-01-02"]),
+        )
+
+        df.at[row, 0] = 0.5
+        tm.assert_frame_equal(df, expected)
+
 
 class TestAtSetItemWithExpansion:
     def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
@@ -191,6 +207,12 @@ class TestAtErrors:
 
         with pytest.raises(KeyError, match="^0$"):
             indexer_al(df)["a", 0]
+
+    def test_at_frame_multiple_columns(self):
+        # GH#48296 - at shouldn't modify multiple columns
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        with pytest.raises(InvalidIndexError, match=r"slice\(None, None, None\)"):
+            df.at[5] = [6, 7]
 
     def test_at_getitem_mixed_index_no_fallback(self):
         # GH#19860

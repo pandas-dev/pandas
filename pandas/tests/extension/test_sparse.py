@@ -246,11 +246,11 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         self.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_pad(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_limit_pad(data_missing)
 
     def test_fillna_limit_backfill(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
@@ -258,11 +258,11 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             request.node.add_marker(
                 pytest.mark.xfail(reason="returns array with different fill value")
             )
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_no_op_returns_copy(data)
 
     def test_fillna_series_method(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_limit_backfill(data_missing)
 
     @pytest.mark.xfail(reason="Unsupported")
@@ -373,7 +373,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_shift_0_periods(self, data):

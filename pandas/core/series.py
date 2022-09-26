@@ -13,6 +13,7 @@ from typing import (
     Hashable,
     Iterable,
     Literal,
+    Mapping,
     Sequence,
     Union,
     cast,
@@ -34,13 +35,19 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AlignJoin,
+    AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
+    AxisInt,
+    CorrelationMethod,
+    DropKeep,
     Dtype,
     DtypeObj,
     FilePath,
     FillnaOptions,
+    Frequency,
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
@@ -162,7 +169,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -212,8 +218,11 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
-
-class Series(base.IndexOpsMixin, NDFrame):
+# error: Definition of "max" in base class "IndexOpsMixin" is incompatible with
+# definition in base class "NDFrame"
+# error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
+# definition in base class "NDFrame"
+class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -562,7 +571,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels: AnyArrayLike | list) -> None:
+    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
         """
         Override generic, we want to set the _typ here.
 
@@ -571,7 +580,10 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         labels = ensure_index(labels)
 
-        if labels._is_all_dates:
+        if labels._is_all_dates and not (
+            type(labels) is Index and not isinstance(labels.dtype, np.dtype)
+        ):
+            # exclude e.g. timestamp[ns][pyarrow] dtype from this casting
             deep_labels = labels
             if isinstance(labels, CategoricalIndex):
                 deep_labels = labels.categories
@@ -743,7 +755,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         return self._mgr.array_values()
 
     # ops
-    def ravel(self, order="C"):
+    def ravel(self, order: str = "C") -> np.ndarray:
         """
         Return the flattened underlying data as an ndarray.
 
@@ -911,7 +923,9 @@ class Series(base.IndexOpsMixin, NDFrame):
     # Indexing Methods
 
     @Appender(NDFrame.take.__doc__)
-    def take(self, indices, axis=0, is_copy=None, **kwargs) -> Series:
+    def take(
+        self, indices, axis: Axis = 0, is_copy: bool | None = None, **kwargs
+    ) -> Series:
         if is_copy is not None:
             warnings.warn(
                 "is_copy is deprecated and will be removed in a future version. "
@@ -939,7 +953,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self.take(indices=indices, axis=axis)
 
-    def _ixs(self, i: int, axis: int = 0) -> Any:
+    def _ixs(self, i: int, axis: AxisInt = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
@@ -953,7 +967,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0) -> Series:
+    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -1166,7 +1180,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 self._set_with(key, value)
 
         if cacher_needs_updating:
-            self._maybe_update_cacher()
+            self._maybe_update_cacher(inplace=True)
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
@@ -1174,7 +1188,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
-    def _set_with(self, key, value):
+    def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1212,7 +1226,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    def _set_value(self, label, value, takeable: bool = False):
+    def _set_value(self, label, value, takeable: bool = False) -> None:
         """
         Quickly set single value at passed label.
 
@@ -1298,7 +1312,16 @@ class Series(base.IndexOpsMixin, NDFrame):
             # a copy
             if ref is None:
                 del self._cacher
-            elif len(self) == len(ref) and self.name in ref.columns:
+            # for CoW, we never want to update the parent DataFrame cache
+            # if the Series changed, and always pop the cached item
+            elif (
+                not (
+                    get_option("mode.copy_on_write")
+                    and get_option("mode.data_manager") == "block"
+                )
+                and len(self) == len(ref)
+                and self.name in ref.columns
+            ):
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
@@ -1316,10 +1339,10 @@ class Series(base.IndexOpsMixin, NDFrame):
     # Unsorted
 
     @property
-    def _is_mixed_type(self):
+    def _is_mixed_type(self) -> bool:
         return False
 
-    def repeat(self, repeats, axis=None) -> Series:
+    def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
         """
         Repeat elements of a Series.
 
@@ -1380,9 +1403,21 @@ class Series(base.IndexOpsMixin, NDFrame):
     @overload
     def reset_index(
         self,
-        level: Level = ...,
+        level: IndexLabel = ...,
         *,
-        drop: bool = ...,
+        drop: Literal[False] = ...,
+        name: Level = ...,
+        inplace: Literal[False] = ...,
+        allow_duplicates: bool = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def reset_index(
+        self,
+        level: IndexLabel = ...,
+        *,
+        drop: Literal[True],
         name: Level = ...,
         inplace: Literal[False] = ...,
         allow_duplicates: bool = ...,
@@ -1392,7 +1427,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     @overload
     def reset_index(
         self,
-        level: Level = ...,
+        level: IndexLabel = ...,
         *,
         drop: bool = ...,
         name: Level = ...,
@@ -1404,12 +1439,12 @@ class Series(base.IndexOpsMixin, NDFrame):
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
     def reset_index(
         self,
-        level: Level = None,
+        level: IndexLabel = None,
         drop: bool = False,
         name: Level = lib.no_default,
         inplace: bool = False,
         allow_duplicates: bool = False,
-    ) -> Series | None:
+    ) -> DataFrame | Series | None:
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1554,9 +1589,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            # error: Incompatible return value type (got "DataFrame", expected
-            # "Optional[Series]")
-            return df.reset_index(  # type: ignore[return-value]
+            return df.reset_index(
                 level=level, drop=drop, allow_duplicates=allow_duplicates
             )
         return None
@@ -1610,9 +1643,9 @@ class Series(base.IndexOpsMixin, NDFrame):
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,
-        length=False,
-        dtype=False,
-        name=False,
+        length: bool = False,
+        dtype: bool = False,
+        name: bool = False,
         max_rows: int | None = None,
         min_rows: int | None = None,
     ) -> str | None:
@@ -1794,8 +1827,29 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return zip(iter(self.index), iter(self))
 
-    @Appender(items.__doc__)
     def iteritems(self) -> Iterable[tuple[Hashable, Any]]:
+        """
+        Lazily iterate over (index, value) tuples.
+
+        .. deprecated:: 1.5.0
+            iteritems is deprecated and will be removed in a future version.
+            Use .items instead.
+
+        This method returns an iterable tuple (index, value). This is
+        convenient if you want to create a lazy iterator.
+
+        Returns
+        -------
+        iterable
+            Iterable of tuples containing the (index, value) pairs from a
+            Series.
+
+        See Also
+        --------
+        Series.items : Recommended alternative.
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
+        """
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
@@ -1818,7 +1872,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         """
         return self.index
 
-    def to_dict(self, into=dict):
+    def to_dict(self, into: type[dict] = dict) -> dict:
         """
         Convert Series to {label -> value} dict or dict-like object.
 
@@ -1902,7 +1956,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace=False) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -2003,8 +2057,8 @@ Name: Max Speed, dtype: float64
     def groupby(
         self,
         by=None,
-        axis=0,
-        level=None,
+        axis: Axis = 0,
+        level: Level = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = no_default,
@@ -2047,8 +2101,7 @@ Name: Max Speed, dtype: float64
     # Statistics, overridden ndarray methods
 
     # TODO: integrate bottleneck
-
-    def count(self, level=None):
+    def count(self, level: Level = None):
         """
         Return number of non-NA/null observations in the Series.
 
@@ -2200,23 +2253,25 @@ Name: Max Speed, dtype: float64
         return super().unique()
 
     @overload
-    def drop_duplicates(self, keep=..., inplace: Literal[False] = ...) -> Series:
+    def drop_duplicates(
+        self, keep: DropKeep = ..., *, inplace: Literal[False] = ...
+    ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(self, keep, inplace: Literal[True]) -> None:
+    def drop_duplicates(self, keep: DropKeep = ..., *, inplace: Literal[True]) -> None:
         ...
 
     @overload
-    def drop_duplicates(self, *, inplace: Literal[True]) -> None:
-        ...
-
-    @overload
-    def drop_duplicates(self, keep=..., inplace: bool = ...) -> Series | None:
+    def drop_duplicates(
+        self, keep: DropKeep = ..., *, inplace: bool = ...
+    ) -> Series | None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self, keep="first", inplace=False) -> Series | None:
+    def drop_duplicates(
+        self, keep: DropKeep = "first", inplace: bool = False
+    ) -> Series | None:
         """
         Return Series with duplicate values removed.
 
@@ -2300,7 +2355,7 @@ Name: Max Speed, dtype: float64
         else:
             return result
 
-    def duplicated(self, keep="first") -> Series:
+    def duplicated(self, keep: DropKeep = "first") -> Series:
         """
         Indicate duplicate Series values.
 
@@ -2380,7 +2435,7 @@ Name: Max Speed, dtype: float64
         result = self._constructor(res, index=self.index)
         return result.__finalize__(self, method="duplicated")
 
-    def idxmin(self, axis=0, skipna=True, *args, **kwargs):
+    def idxmin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
         """
         Return the row label of the minimum value.
 
@@ -2443,12 +2498,14 @@ Name: Max Speed, dtype: float64
         >>> s.idxmin(skipna=False)
         nan
         """
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        # error: Argument 1 to "argmin" of "IndexOpsMixin" has incompatible type "Union
+        # [int, Literal['index', 'columns']]"; expected "Optional[int]"
+        i = self.argmin(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
         if i == -1:
             return np.nan
         return self.index[i]
 
-    def idxmax(self, axis=0, skipna=True, *args, **kwargs):
+    def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
         """
         Return the row label of the maximum value.
 
@@ -2512,12 +2569,14 @@ Name: Max Speed, dtype: float64
         >>> s.idxmax(skipna=False)
         nan
         """
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        # error: Argument 1 to "argmax" of "IndexOpsMixin" has incompatible type
+        # "Union[int, Literal['index', 'columns']]"; expected "Optional[int]"
+        i = self.argmax(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
         if i == -1:
             return np.nan
         return self.index[i]
 
-    def round(self, decimals=0, *args, **kwargs) -> Series:
+    def round(self, decimals: int = 0, *args, **kwargs) -> Series:
         """
         Round each value in a Series to the given number of decimals.
 
@@ -2642,7 +2701,12 @@ Name: Max Speed, dtype: float64
             # scalar
             return result.iloc[0]
 
-    def corr(self, other, method="pearson", min_periods=None) -> float:
+    def corr(
+        self,
+        other: Series,
+        method: CorrelationMethod = "pearson",
+        min_periods: int | None = None,
+    ) -> float:
         """
         Compute correlation with `other` Series, excluding missing values.
 
@@ -2850,7 +2914,7 @@ Name: Max Speed, dtype: float64
             self, method="diff"
         )
 
-    def autocorr(self, lag=1) -> float:
+    def autocorr(self, lag: int = 1) -> float:
         """
         Compute the lag-N autocorrelation.
 
@@ -2895,7 +2959,7 @@ Name: Max Speed, dtype: float64
         """
         return self.corr(self.shift(lag))
 
-    def dot(self, other):
+    def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
         """
         Compute the dot product between the Series and the columns of other.
 
@@ -3253,7 +3317,12 @@ Keep all original rows and also all original values
             result_names=result_names,
         )
 
-    def combine(self, other, func, fill_value=None) -> Series:
+    def combine(
+        self,
+        other: Series | Hashable,
+        func: Callable[[Hashable, Hashable], Hashable],
+        fill_value: Hashable = None,
+    ) -> Series:
         """
         Combine the Series with a Series or scalar according to `func`.
 
@@ -3400,7 +3469,7 @@ Keep all original rows and also all original values
 
         return this.where(notna(this), other)
 
-    def update(self, other) -> None:
+    def update(self, other: Series | Sequence | Mapping) -> None:
         """
         Modify Series in place using values from passed Series.
 
@@ -3724,7 +3793,7 @@ Keep all original rows and also all original values
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
@@ -3740,7 +3809,7 @@ Keep all original rows and also all original values
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
@@ -3756,7 +3825,7 @@ Keep all original rows and also all original values
         self,
         *,
         axis: Axis = ...,
-        level: Level | None = ...,
+        level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: bool = ...,
         kind: SortKind = ...,
@@ -3772,7 +3841,7 @@ Keep all original rows and also all original values
     def sort_index(  # type: ignore[override]
         self,
         axis: Axis = 0,
-        level: Level | None = None,
+        level: IndexLabel = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
@@ -3928,7 +3997,12 @@ Keep all original rows and also all original values
             key=key,
         )
 
-    def argsort(self, axis=0, kind="quicksort", order=None) -> Series:
+    def argsort(
+        self,
+        axis: Axis = 0,
+        kind: SortKind = "quicksort",
+        order: None = None,
+    ) -> Series:
         """
         Return the integer indices that would sort the Series values.
 
@@ -3968,7 +4042,9 @@ Keep all original rows and also all original values
         res = self._constructor(result, index=self.index, name=self.name, dtype=np.intp)
         return res.__finalize__(self, method="argsort")
 
-    def nlargest(self, n=5, keep="first") -> Series:
+    def nlargest(
+        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    ) -> Series:
         """
         Return the largest `n` elements.
 
@@ -4223,7 +4299,7 @@ Keep all original rows and also all original values
         dtype: object"""
         ),
     )
-    def swaplevel(self, i=-2, j=-1, copy=True) -> Series:
+    def swaplevel(self, i: Level = -2, j: Level = -1, copy: bool = True) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
 
@@ -4248,7 +4324,7 @@ Keep all original rows and also all original values
             self, method="swaplevel"
         )
 
-    def reorder_levels(self, order) -> Series:
+    def reorder_levels(self, order: Sequence[Level]) -> Series:
         """
         Rearrange index levels using input order.
 
@@ -4341,7 +4417,7 @@ Keep all original rows and also all original values
 
         return self._constructor(values, index=index, name=self.name)
 
-    def unstack(self, level=-1, fill_value=None) -> DataFrame:
+    def unstack(self, level: IndexLabel = -1, fill_value: Hashable = None) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
@@ -4390,7 +4466,11 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # function application
 
-    def map(self, arg, na_action=None) -> Series:
+    def map(
+        self,
+        arg: Callable | Mapping | Series,
+        na_action: Literal["ignore"] | None = None,
+    ) -> Series:
         """
         Map values of Series according to an input mapping or function.
 
@@ -4522,7 +4602,7 @@ Keep all original rows and also all original values
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
     )
-    def aggregate(self, func=None, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
 
@@ -4705,7 +4785,7 @@ Keep all original rows and also all original values
         name: str,
         *,
         axis=0,
-        skipna=True,
+        skipna: bool = True,
         numeric_only=None,
         filter_type=None,
         **kwds,
@@ -4776,17 +4856,17 @@ Keep all original rows and also all original values
     )
     def align(
         self,
-        other,
-        join="outer",
-        axis=None,
-        level=None,
-        copy=True,
-        fill_value=None,
-        method=None,
-        limit=None,
-        fill_axis=0,
-        broadcast_axis=None,
-    ):
+        other: Series,
+        join: AlignJoin = "outer",
+        axis: Axis | None = None,
+        level: Level = None,
+        copy: bool = True,
+        fill_value: Hashable = None,
+        method: FillnaOptions | None = None,
+        limit: int | None = None,
+        fill_axis: Axis = 0,
+        broadcast_axis: Axis | None = None,
+    ) -> Series:
         return super().align(
             other,
             join=join,
@@ -4935,17 +5015,34 @@ Keep all original rows and also all original values
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: Literal[False] = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] | lib.NoDefault = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
     @overload
-    def set_axis(self, labels, *, axis: Axis = ..., inplace: Literal[True]) -> None:
+    def set_axis(
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        copy: bool | lib.NoDefault = ...,
+    ) -> None:
         ...
 
     @overload
     def set_axis(
-        self, labels, *, axis: Axis = ..., inplace: bool = ...
+        self,
+        labels,
+        *,
+        axis: Axis = ...,
+        inplace: bool | lib.NoDefault = ...,
+        copy: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -4977,9 +5074,13 @@ Keep all original rows and also all original values
     )
     @Appender(NDFrame.set_axis.__doc__)
     def set_axis(  # type: ignore[override]
-        self, labels, axis: Axis = 0, inplace: bool = False
+        self,
+        labels,
+        axis: Axis = 0,
+        inplace: bool | lib.NoDefault = lib.no_default,
+        copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
-        return super().set_axis(labels, axis=axis, inplace=inplace)
+        return super().set_axis(labels, axis=axis, inplace=inplace, copy=copy)
 
     # error: Cannot determine type of 'reindex'
     @doc(
@@ -5155,129 +5256,53 @@ Keep all original rows and also all original values
     @overload
     def fillna(
         self,
-        value=...,
+        value: Hashable | Mapping | Series | DataFrame = ...,
+        *,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: Literal[False] = ...,
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> Series:
         ...
 
     @overload
     def fillna(
         self,
-        value,
-        method: FillnaOptions | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
+        value: Hashable | Mapping | Series | DataFrame = ...,
         *,
+        method: FillnaOptions | None = ...,
+        axis: Axis | None = ...,
         inplace: Literal[True],
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> None:
         ...
 
     @overload
     def fillna(
         self,
-        value,
+        value: Hashable | Mapping | Series | DataFrame = ...,
         *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        *,
-        method: FillnaOptions | None,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value,
-        method: FillnaOptions | None,
-        *,
-        inplace: Literal[True],
-        limit=...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value=...,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
         inplace: bool = ...,
-        limit=...,
-        downcast=...,
+        limit: int | None = ...,
+        downcast: dict | None = ...,
     ) -> Series | None:
         ...
 
-    # error: Cannot determine type of 'fillna'
+    #  error: Signature of "fillna" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
-    @doc(NDFrame.fillna, **_shared_doc_kwargs)  # type: ignore[has-type]
-    def fillna(
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
+    def fillna(  # type: ignore[override]
         self,
-        value: object | ArrayLike | None = None,
+        value: Hashable | Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
-        axis=None,
-        inplace=False,
-        limit=None,
-        downcast=None,
+        axis: Axis | None = None,
+        inplace: bool = False,
+        limit: int | None = None,
+        downcast: dict | None = None,
     ) -> Series | None:
         return super().fillna(
             value=value,
@@ -5324,7 +5349,7 @@ Keep all original rows and also all original values
         *,
         inplace: Literal[False] = ...,
         limit: int | None = ...,
-        regex=...,
+        regex: bool = ...,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
     ) -> Series:
         ...
@@ -5337,7 +5362,7 @@ Keep all original rows and also all original values
         *,
         inplace: Literal[True],
         limit: int | None = ...,
-        regex=...,
+        regex: bool = ...,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
     ) -> None:
         ...
@@ -5358,7 +5383,7 @@ Keep all original rows and also all original values
         value=lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
-        regex=False,
+        regex: bool = False,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().replace(
@@ -5410,7 +5435,9 @@ Keep all original rows and also all original values
 
     # error: Cannot determine type of 'shift'
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> Series:
+    def shift(
+        self, periods: int = 1, freq=None, axis: Axis = 0, fill_value: Hashable = None
+    ) -> Series:
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
@@ -5547,7 +5574,12 @@ Keep all original rows and also all original values
             self, method="isin"
         )
 
-    def between(self, left, right, inclusive="both") -> Series:
+    def between(
+        self,
+        left,
+        right,
+        inclusive: Literal["both", "neither", "left", "right"] = "both",
+    ) -> Series:
         """
         Return boolean Series equivalent to left <= series <= right.
 
@@ -5615,7 +5647,9 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-        if inclusive is True or inclusive is False:
+        # error: Non-overlapping identity check (left operand type: "Literal['both',
+        # 'neither', 'left', 'right']", right operand type: "Literal[False]")
+        if inclusive is True or inclusive is False:  # type: ignore[comparison-overlap]
             warnings.warn(
                 "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
@@ -5706,19 +5740,30 @@ Keep all original rows and also all original values
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[False] = ..., how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[False] = ...,
+        how: AnyAll | None = ...,
     ) -> Series:
         ...
 
     @overload
     def dropna(
-        self, *, axis: Axis = ..., inplace: Literal[True], how: str | None = ...
+        self,
+        *,
+        axis: Axis = ...,
+        inplace: Literal[True],
+        how: AnyAll | None = ...,
     ) -> None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def dropna(
-        self, axis: Axis = 0, inplace: bool = False, how: str | None = None
+        self,
+        axis: Axis = 0,
+        inplace: bool = False,
+        how: AnyAll | None = None,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
@@ -5812,11 +5857,11 @@ Keep all original rows and also all original values
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)  # type: ignore[has-type]
     def asfreq(
         self,
-        freq,
-        method=None,
+        freq: Frequency,
+        method: FillnaOptions | None = None,
         how: str | None = None,
         normalize: bool = False,
-        fill_value=None,
+        fill_value: Hashable = None,
     ) -> Series:
         return super().asfreq(
             freq=freq,
@@ -5831,15 +5876,15 @@ Keep all original rows and also all original values
     def resample(
         self,
         rule,
-        axis=0,
+        axis: Axis = 0,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
         kind: str | None = None,
         loffset=None,
         base: int | None = None,
-        on=None,
-        level=None,
+        on: Level = None,
+        level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = no_default,
@@ -5860,7 +5905,12 @@ Keep all original rows and also all original values
             group_keys=group_keys,
         )
 
-    def to_timestamp(self, freq=None, how="start", copy=True) -> Series:
+    def to_timestamp(
+        self,
+        freq=None,
+        how: Literal["s", "e", "start", "end"] = "start",
+        copy: bool = True,
+    ) -> Series:
         """
         Cast to DatetimeIndex of Timestamps, at *beginning* of period.
 
@@ -5889,7 +5939,7 @@ Keep all original rows and also all original values
             self, method="to_timestamp"
         )
 
-    def to_period(self, freq=None, copy=True) -> Series:
+    def to_period(self, freq: str | None = None, copy: bool = True) -> Series:
         """
         Convert Series from DatetimeIndex to PeriodIndex.
 
@@ -5923,7 +5973,7 @@ Keep all original rows and also all original values
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> Series:
         ...
 
@@ -5934,7 +5984,7 @@ Keep all original rows and also all original values
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> None:
         ...
 
@@ -5945,7 +5995,7 @@ Keep all original rows and also all original values
         axis: None | Axis = ...,
         inplace: bool = ...,
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> Series | None:
         ...
 
@@ -5956,7 +6006,7 @@ Keep all original rows and also all original values
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
-        downcast=None,
+        downcast: dict | None = None,
     ) -> Series | None:
         return super().ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
@@ -5967,7 +6017,7 @@ Keep all original rows and also all original values
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> Series:
         ...
 
@@ -5978,7 +6028,7 @@ Keep all original rows and also all original values
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> None:
         ...
 
@@ -5989,7 +6039,7 @@ Keep all original rows and also all original values
         axis: None | Axis = ...,
         inplace: bool = ...,
         limit: None | int = ...,
-        downcast=...,
+        downcast: dict | None = ...,
     ) -> Series | None:
         ...
 
@@ -6000,7 +6050,7 @@ Keep all original rows and also all original values
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
-        downcast=None,
+        downcast: dict | None = None,
     ) -> Series | None:
         return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
 
@@ -6048,10 +6098,10 @@ Keep all original rows and also all original values
         other=...,
         *,
         inplace: Literal[False] = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6062,10 +6112,10 @@ Keep all original rows and also all original values
         other=...,
         *,
         inplace: Literal[True],
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6076,10 +6126,10 @@ Keep all original rows and also all original values
         other=...,
         *,
         inplace: bool = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -6093,10 +6143,10 @@ Keep all original rows and also all original values
         cond,
         other=lib.no_default,
         inplace: bool = False,
-        axis=None,
-        level=None,
+        axis: Axis | None = None,
+        level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = lib.no_default,
-        try_cast=lib.no_default,
+        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().where(
             cond,
@@ -6114,10 +6164,10 @@ Keep all original rows and also all original values
         other=...,
         *,
         inplace: Literal[False] = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> Series:
         ...
 
@@ -6128,10 +6178,10 @@ Keep all original rows and also all original values
         other=...,
         *,
         inplace: Literal[True],
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -6142,10 +6192,10 @@ Keep all original rows and also all original values
         other=...,
         *,
         inplace: bool = ...,
-        axis=...,
-        level=...,
+        axis: Axis | None = ...,
+        level: Level = ...,
         errors: IgnoreRaise | lib.NoDefault = ...,
-        try_cast=...,
+        try_cast: bool | lib.NoDefault = ...,
     ) -> Series | None:
         ...
 
@@ -6159,10 +6209,10 @@ Keep all original rows and also all original values
         cond,
         other=np.nan,
         inplace: bool = False,
-        axis=None,
-        level=None,
+        axis: Axis | None = None,
+        level: Level = None,
         errors: IgnoreRaise | lib.NoDefault = lib.no_default,
-        try_cast=lib.no_default,
+        try_cast: bool | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         return super().mask(
             cond,
@@ -6175,10 +6225,10 @@ Keep all original rows and also all original values
 
     # ----------------------------------------------------------------------
     # Add index
-    _AXIS_ORDERS = ["index"]
+    _AXIS_ORDERS: list[Literal["index", "columns"]] = ["index"]
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
-    _info_axis_name = "index"
+    _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."

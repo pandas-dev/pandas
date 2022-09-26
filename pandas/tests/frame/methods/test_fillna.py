@@ -20,13 +20,40 @@ from pandas.tests.frame.common import _check_mixed_float
 
 class TestFillNA:
     @td.skip_array_manager_not_yet_implemented
-    def test_fillna_on_column_view(self):
+    def test_fillna_dict_inplace_nonunique_columns(self, using_copy_on_write):
+        df = DataFrame(
+            {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
+        )
+        df.columns = ["A", "A", "A"]
+        orig = df[:]
+
+        df.fillna({"A": 2}, inplace=True)
+        # The first and third columns can be set inplace, while the second cannot.
+
+        expected = DataFrame(
+            {"A": [2.0] * 3, "B": [2, Timestamp(1), 2], "C": [2, "foo", 2]}
+        )
+        expected.columns = ["A", "A", "A"]
+        tm.assert_frame_equal(df, expected)
+
+        # TODO: what's the expected/desired behavior with CoW?
+        if not using_copy_on_write:
+            assert tm.shares_memory(df.iloc[:, 0], orig.iloc[:, 0])
+        assert not tm.shares_memory(df.iloc[:, 1], orig.iloc[:, 1])
+        if not using_copy_on_write:
+            assert tm.shares_memory(df.iloc[:, 2], orig.iloc[:, 2])
+
+    @td.skip_array_manager_not_yet_implemented
+    def test_fillna_on_column_view(self, using_copy_on_write):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr)
 
         df[0].fillna(-1, inplace=True)
-        assert (arr[:, 0] == -1).all()
+        if using_copy_on_write:
+            assert np.isnan(arr[:, 0]).all()
+        else:
+            assert (arr[:, 0] == -1).all()
 
         # i.e. we didn't create a new 49-column block
         assert len(df._mgr.arrays) == 1
@@ -284,7 +311,6 @@ class TestFillNA:
         res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
         tm.assert_equal(res3, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476
@@ -676,14 +702,18 @@ class TestFillNA:
 
     @td.skip_array_manager_invalid_test
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
-    def test_inplace_dict_update_view(self, val):
+    def test_inplace_dict_update_view(self, val, using_copy_on_write):
         # GH#47188
         df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
+        df_orig = df.copy()
         result_view = df[:]
         df.fillna(val, inplace=True)
         expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
         tm.assert_frame_equal(df, expected)
-        tm.assert_frame_equal(result_view, expected)
+        if using_copy_on_write:
+            tm.assert_frame_equal(result_view, df_orig)
+        else:
+            tm.assert_frame_equal(result_view, expected)
 
     def test_single_block_df_with_horizontal_axis(self):
         # GH 47713
@@ -708,6 +738,34 @@ class TestFillNA:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_fillna_with_multi_index_frame(self):
+        # GH 47649
+        pdf = DataFrame(
+            {
+                ("x", "a"): [np.nan, 2.0, 3.0],
+                ("x", "b"): [1.0, 2.0, np.nan],
+                ("y", "c"): [1.0, 2.0, np.nan],
+            }
+        )
+        expected = DataFrame(
+            {
+                ("x", "a"): [-1.0, 2.0, 3.0],
+                ("x", "b"): [1.0, 2.0, -1.0],
+                ("y", "c"): [1.0, 2.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(pdf.fillna({"x": -1}), expected)
+        tm.assert_frame_equal(pdf.fillna({"x": -1, ("x", "b"): -2}), expected)
+
+        expected = DataFrame(
+            {
+                ("x", "a"): [-1.0, 2.0, 3.0],
+                ("x", "b"): [1.0, 2.0, -2.0],
+                ("y", "c"): [1.0, 2.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(pdf.fillna({("x", "b"): -2, "x": -1}), expected)
+
 
 def test_fillna_nonconsolidated_frame():
     # https://github.com/pandas-dev/pandas/issues/36495
@@ -719,6 +777,19 @@ def test_fillna_nonconsolidated_frame():
         ],
         columns=["i1", "i2", "i3", "f1"],
     )
-    df_nonconsol = df.pivot("i1", "i2")
+    df_nonconsol = df.pivot(index="i1", columns="i2")
     result = df_nonconsol.fillna(0)
     assert result.isna().sum().sum() == 0
+
+
+def test_fillna_nones_inplace():
+    # GH 48480
+    df = DataFrame(
+        [[None, None], [None, None]],
+        columns=["A", "B"],
+    )
+    with tm.assert_produces_warning(False):
+        df.fillna(value={"A": 1, "B": 2}, inplace=True)
+
+    expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"])
+    tm.assert_frame_equal(df, expected)

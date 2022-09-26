@@ -31,7 +31,7 @@ import operator
 import os
 from typing import (
     Callable,
-    Literal,
+    Iterator,
 )
 
 from dateutil.tz import (
@@ -135,7 +135,7 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
         item.add_marker(pytest.mark.filterwarnings(f"ignore:{message}"))
 
 
-def pytest_collection_modifyitems(items, config):
+def pytest_collection_modifyitems(items, config) -> None:
     skip_slow = config.getoption("--skip-slow")
     only_slow = config.getoption("--only-slow")
     skip_network = config.getoption("--skip-network")
@@ -449,10 +449,7 @@ def frame_or_series(request):
     return request.param
 
 
-# error: List item 0 has incompatible type "Type[Index]"; expected "Type[IndexOpsMixin]"
-@pytest.fixture(
-    params=[Index, Series], ids=["index", "series"]  # type: ignore[list-item]
-)
+@pytest.fixture(params=[Index, Series], ids=["index", "series"])
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -515,10 +512,10 @@ def non_dict_mapping_subclass():
         def __getitem__(self, key):
             return self._data.__getitem__(key)
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator:
             return self._data.__iter__()
 
-        def __len__(self):
+        def __len__(self) -> int:
             return self._data.__len__()
 
     return TestNonDictMapping
@@ -620,7 +617,7 @@ indices_dict = {
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100, inclusive="right"),
+    "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -933,14 +930,8 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (
-            Interval(left=0, right=5, inclusive="right"),
-            IntervalDtype("int64", inclusive="right"),
-        ),
-        (
-            Interval(left=0.1, right=0.5, inclusive="right"),
-            IntervalDtype("float64", inclusive="right"),
-        ),
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
@@ -1575,6 +1566,31 @@ def any_real_numpy_dtype(request):
     return request.param
 
 
+@pytest.fixture(
+    params=tm.ALL_REAL_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES
+)
+def any_real_numeric_dtype(request):
+    """
+    Parameterized fixture for any (purely) real numeric dtype.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+
+    and associated ea dtypes.
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_NUMPY_DTYPES)
 def any_numpy_dtype(request):
     """
@@ -1608,6 +1624,45 @@ def any_numpy_dtype(request):
     * 'm8[ns]'
     * object
     * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=tm.ALL_REAL_NUMPY_DTYPES
+    + tm.COMPLEX_DTYPES
+    + tm.ALL_INT_EA_DTYPES
+    + tm.FLOAT_EA_DTYPES
+)
+def any_numeric_dtype(request):
+    """
+    Parameterized fixture for all numeric dtypes.
+
+    * int
+    * 'int8'
+    * 'uint8'
+    * 'int16'
+    * 'uint16'
+    * 'int32'
+    * 'uint32'
+    * 'int64'
+    * 'uint64'
+    * float
+    * 'float32'
+    * 'float64'
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
     """
     return request.param
 
@@ -1844,8 +1899,8 @@ def using_array_manager():
 
 
 @pytest.fixture
-def using_copy_on_write() -> Literal[False]:
+def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return False
+    return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"

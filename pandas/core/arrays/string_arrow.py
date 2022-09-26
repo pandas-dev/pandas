@@ -114,7 +114,6 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
 
     def __init__(self, values) -> None:
         super().__init__(values)
-        # TODO: Migrate to ArrowDtype instead
         self._dtype = StringDtype(storage="pyarrow")
 
         if not pa.types.is_string(self._data.type):
@@ -202,7 +201,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
                     raise ValueError("Scalar must be NA or str")
         return value
 
-    def isin(self, values):
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         if pa_version_under2p0:
             fallback_performancewarning(version="2")
             return super().isin(values)
@@ -310,7 +309,9 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
-    def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
+    def _str_contains(
+        self, pat, case: bool = True, flags=0, na=np.nan, regex: bool = True
+    ):
         if flags:
             fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)

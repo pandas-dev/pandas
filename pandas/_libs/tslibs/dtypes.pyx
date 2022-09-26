@@ -1,7 +1,5 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
-cimport cython
-
 from enum import Enum
 
 from pandas._libs.tslibs.np_datetime cimport (

@@ -744,7 +744,7 @@ class TestBlockManager:
             mgr.iget(3).internal_values(), reindexed.iget(3).internal_values()
         )
 
-    def test_get_numeric_data(self):
+    def test_get_numeric_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
             "str: object; bool: bool; obj: object; dt: datetime",
@@ -765,10 +765,16 @@ class TestBlockManager:
             np.array([100.0, 200.0, 300.0]),
             inplace=True,
         )
-        tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
-        )
+        if using_copy_on_write:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([1.0, 1.0, 1.0]),
+            )
+        else:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([100.0, 200.0, 300.0]),
+            )
 
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
@@ -777,12 +783,18 @@ class TestBlockManager:
             np.array([1000.0, 2000.0, 3000.0]),
             inplace=True,
         )
-        tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
-        )
+        if using_copy_on_write:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([1.0, 1.0, 1.0]),
+            )
+        else:
+            tm.assert_almost_equal(
+                mgr.iget(mgr.items.get_loc("float")).internal_values(),
+                np.array([100.0, 200.0, 300.0]),
+            )
 
-    def test_get_bool_data(self):
+    def test_get_bool_data(self, using_copy_on_write):
         msg = "object-dtype columns with all-bool values"
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
@@ -800,19 +812,31 @@ class TestBlockManager:
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        tm.assert_numpy_array_equal(
-            mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
-        )
+        if using_copy_on_write:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, True, True]),
+            )
+        else:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, False, True]),
+            )
 
         # Check sharing
         with tm.assert_produces_warning(FutureWarning, match=msg):
             bools2 = mgr.get_bool_data(copy=True)
         bools2.iset(0, np.array([False, True, False]))
-        tm.assert_numpy_array_equal(
-            mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
-        )
+        if using_copy_on_write:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, True, True]),
+            )
+        else:
+            tm.assert_numpy_array_equal(
+                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
+                np.array([True, False, True]),
+            )
 
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))
@@ -1271,7 +1295,7 @@ class TestCanHoldElement:
 
         # Careful: to get the expected Series-inplace behavior we need
         # `elem` to not have the same length as `arr`
-        ii2 = IntervalIndex.from_breaks(arr[:-1], inclusive="neither")
+        ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
         self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)

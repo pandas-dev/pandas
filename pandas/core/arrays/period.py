@@ -172,7 +172,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     _typ = "periodarray"  # ABCPeriodArray
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
-    _is_recognized_dtype = is_period_dtype
+    _is_recognized_dtype = is_period_dtype  # check_compatible_with checks freq match
     _infer_matches = ("period",)
 
     @property
@@ -342,7 +342,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other, setitem: bool = False):
+    def _check_compatible_with(self, other, setitem: bool = False) -> None:
         if other is NaT:
             return
         self._require_matching_freq(other)
@@ -377,7 +377,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         import pyarrow
 
-        from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
+        from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
         if type is not None:
             if pyarrow.types.is_integer(type):
@@ -642,7 +642,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, *, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types

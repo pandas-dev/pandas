@@ -112,7 +112,7 @@ class BinOp(ops.BinOp):
         self.encoding = encoding
         self.condition = None
 
-    def _disallow_scalar_only_bool_ops(self):
+    def _disallow_scalar_only_bool_ops(self) -> None:
         pass
 
     def prune(self, klass):
@@ -261,7 +261,7 @@ class BinOp(ops.BinOp):
         else:
             raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
 
-    def convert_values(self):
+    def convert_values(self) -> None:
         pass
 
 

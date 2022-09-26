@@ -37,6 +37,21 @@ if PY39:
 
 
 class TestDatetimeIndex:
+    def test_explicit_tz_none(self):
+        # GH#48659
+        dti = date_range("2016-01-01", periods=10, tz="UTC")
+
+        msg = "Passed data is timezone-aware, incompatible with 'tz=None'"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, tz=None)
+
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(np.array(dti), tz=None)
+
+        msg = "Cannot pass both a timezone-aware dtype and tz=None"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex([], dtype="M8[ns, UTC]", tz=None)
+
     @pytest.mark.parametrize(
         "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
     )
@@ -1137,7 +1152,10 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 
 _tzs = ["dateutil/Europe/London"]
 if PY39:
-    _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    try:
+        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+    except zoneinfo.ZoneInfoNotFoundError:
+        pass
 
 
 @pytest.mark.parametrize("tz", _tzs)
