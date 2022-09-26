@@ -33,12 +33,12 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
     counts = {key: sum(value == key for value in by) for key in dict.fromkeys(by)}
     if dropna:
         counts = {key: value for key, value in counts.items() if key is not None}
-    expected = DataFrame(counts, index=df.index)
+    expected = Series(counts)
     if sort:
-        expected = expected.sort_index(axis=1)
+        expected = expected.sort_index()
     grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
     result = grouped.size()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])

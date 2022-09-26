@@ -18,7 +18,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    AxisInt,
+    Axis,
     NDFrameT,
     npt,
 )
@@ -260,7 +260,6 @@ class Grouper:
     Freq: 17T, dtype: int64
     """
 
-    axis: AxisInt
     sort: bool
     dropna: bool
     _gpr_index: Index | None
@@ -281,7 +280,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
@@ -660,7 +659,7 @@ class Grouping:
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
-        if self._dropna and self._passed_categorical:
+        if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
             # doesn't (yet - GH#46909) handle dropna=False
@@ -705,7 +704,7 @@ class Grouping:
 def get_grouper(
     obj: NDFrameT,
     key=None,
-    axis: AxisInt = 0,
+    axis: Axis = 0,
     level=None,
     sort: bool = True,
     observed: bool = False,
