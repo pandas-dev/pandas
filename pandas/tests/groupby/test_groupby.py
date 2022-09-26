@@ -140,7 +140,6 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-
     with tm.assert_produces_warning(FutureWarning):
         result = df2.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)

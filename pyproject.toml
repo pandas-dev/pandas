@@ -59,6 +59,7 @@ disable = [
   "undefined-variable",
   "function-redefined",
   "c-extension-no-member",
+  "redundant-keyword-arg",
 ]
 
 [tool.pytest.ini_options]
