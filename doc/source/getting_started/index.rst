@@ -614,7 +614,7 @@ the pandas-equivalent operations compared to software you already know:
     :img-top: ../_static/logo_sas.svg
      :class: only-light
 
-    .. image:: ../_static/logo_sas_white.svg
+    :img-top: ../_static/logo_sas_white.svg
      :class: only-dark
 
     The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
