@@ -84,6 +84,7 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
+- Bug in pd.read_sql_table for Oracle databases where NUMBER types that are actually floats would still get interpreted as integers and lose precision (:issue:`34988`)
 -
 
 .. ---------------------------------------------------------------------------
