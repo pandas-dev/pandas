@@ -2,6 +2,7 @@
 Tests for the `deprecate_nonkeyword_arguments` decorator
 """
 
+import inspect
 import warnings
 
 from pandas.util._decorators import deprecate_nonkeyword_arguments
@@ -14,6 +15,10 @@ import pandas._testing as tm
 )
 def f(a, b=0, c=0, d=0):
     return a + b + c + d
+
+
+def test_f_signature():
+    assert str(inspect.signature(f)) == "(a, b=0, *, c=0, d=0)"
 
 
 def test_one_argument():
@@ -65,6 +70,10 @@ def g(a, b=0, c=0, d=0):
         return a + b + c + d
 
 
+def test_g_signature():
+    assert str(inspect.signature(g)) == "(a, *, b=0, c=0, d=0)"
+
+
 def test_one_and_three_arguments_default_allowed_args():
     with tm.assert_produces_warning(None):
         assert g(1, b=3, c=3, d=5) == 12
@@ -93,6 +102,10 @@ def h(a=0, b=0, c=0, d=0):
     return a + b + c + d
 
 
+def test_h_signature():
+    assert str(inspect.signature(h)) == "(*, a=0, b=0, c=0, d=0)"
+
+
 def test_all_keyword_arguments():
     with tm.assert_produces_warning(None):
         assert h(a=1, b=2) == 3
@@ -116,10 +129,23 @@ def test_one_positional_argument_with_warning_message_analysis():
             )
 
 
+@deprecate_nonkeyword_arguments(version="1.1")
+def i(a=0, /, b=0, *, c=0, d=0):
+    return a + b + c + d
+
+
+def test_i_signature():
+    assert str(inspect.signature(i)) == "(*, a=0, b=0, c=0, d=0)"
+
+
 class Foo:
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "bar"])
     def baz(self, bar=None, foobar=None):
         ...
+
+
+def test_foo_signature():
+    assert str(inspect.signature(Foo.baz)) == "(self, bar=None, *, foobar=None)"
 
 
 def test_class():
