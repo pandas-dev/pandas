@@ -329,7 +329,7 @@ def _convert_listlike_datetimes(
     name: Hashable = None,
     tz: Timezone | None = None,
     unit: str | None = None,
-    errors: str = "raise",
+    errors: DateTimeErrorChoices = "raise",
     infer_datetime_format: bool = False,
     dayfirst: bool | None = None,
     yearfirst: bool | None = None,
@@ -713,7 +713,7 @@ def to_datetime(
     exact: bool = True,
     unit: str | None = None,
     infer_datetime_format: bool = False,
-    origin="unix",
+    origin: str = "unix",
     cache: bool = True,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
     """
@@ -1306,7 +1306,12 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
     return None
 
 
-def to_time(arg, format=None, infer_time_format=False, errors="raise"):
+def to_time(
+    arg,
+    format=None,
+    infer_time_format: bool = False,
+    errors: DateTimeErrorChoices = "raise",
+):
     # GH#34145
     warnings.warn(
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "

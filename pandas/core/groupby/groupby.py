@@ -44,8 +44,11 @@ from pandas._libs import (
 )
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
+    AxisInt,
     Dtype,
+    FillnaOptions,
     IndexLabel,
     NDFrameT,
     PositionalIndexer,
@@ -201,7 +204,7 @@ _apply_docs = {
     >>> g1 = df.groupby('A', group_keys=False)
     >>> g2 = df.groupby('A', group_keys=True)
 
-    Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only
+    Notice that ``g1`` and ``g2`` have two groups, ``a`` and ``b``, and only
     differ in their ``group_keys`` argument. Calling `apply` in various ways,
     we can get different grouping results:
 
@@ -644,7 +647,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         "squeeze",
     }
 
-    axis: int
+    axis: AxisInt
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
     group_keys: bool | lib.NoDefault
@@ -917,7 +920,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         obj: NDFrameT,
         keys: _KeysArgType | None = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
         exclusions: frozenset[Hashable] | None = None,
@@ -1312,7 +1315,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(
-        self, how: str, numeric_only: bool | lib.NoDefault, axis: int
+        self, how: str, numeric_only: bool | lib.NoDefault, axis: AxisInt
     ) -> bool:
         """
         Determine subclass-specific default value for 'numeric_only'.
@@ -1636,7 +1639,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_agg_general(self, func, *args, raise_on_typeerror=False, **kwargs):
+    def _python_agg_general(
+        self, func, *args, raise_on_typeerror: bool = False, **kwargs
+    ):
         func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -1793,7 +1798,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return res
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self, how: str, numeric_only: bool = True, axis: AxisInt = 0, **kwargs
     ):
         raise AbstractMethodError(self)
 
@@ -2511,9 +2516,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.last : Compute the last non-null entry of each
-            column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        pandas.core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
+            of each column.
+        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -2537,7 +2542,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         3  6.0  3
         """
 
-        def first_compat(obj: NDFrameT, axis: int = 0):
+        def first_compat(obj: NDFrameT, axis: AxisInt = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
                 arr = x.array[notna(x.array)]
@@ -2583,9 +2588,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        DataFrame.core.groupby.GroupBy.first : Compute the first non-null entry of each
-            column.
-        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+        pandas.core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
+            of each column.
+        pandas.core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -2597,7 +2602,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         3  6.0  3
         """
 
-        def last_compat(obj: NDFrameT, axis: int = 0):
+        def last_compat(obj: NDFrameT, axis: AxisInt = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
@@ -2938,6 +2943,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("ffill", limit=limit)
 
     def pad(self, limit=None):
+        """
+        Forward fill the values.
+
+        .. deprecated:: 1.4
+            Use ffill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+        """
         warnings.warn(
             "pad is deprecated and will be removed in a future version. "
             "Use ffill instead.",
@@ -2945,8 +2966,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.ffill(limit=limit)
-
-    pad.__doc__ = ffill.__doc__
 
     @final
     @Substitution(name="groupby")
@@ -2974,6 +2993,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._fill("bfill", limit=limit)
 
     def backfill(self, limit=None):
+        """
+        Backward fill the values.
+
+        .. deprecated:: 1.4
+            Use bfill instead.
+
+        Parameters
+        ----------
+        limit : int, optional
+            Limit of how many values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            Object with missing values filled.
+        """
         warnings.warn(
             "backfill is deprecated and will be removed in a future version. "
             "Use bfill instead.",
@@ -2981,8 +3016,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             stacklevel=find_stack_level(inspect.currentframe()),
         )
         return self.bfill(limit=limit)
-
-    backfill.__doc__ = bfill.__doc__
 
     @final
     @Substitution(name="groupby")
@@ -3184,7 +3217,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def quantile(
         self,
-        q=0.5,
+        q: float | AnyArrayLike = 0.5,
         interpolation: str = "linear",
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ):
@@ -3305,7 +3338,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            q = [q]
+            # error: Incompatible types in assignment (expression has type "List[
+            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
+            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
+            # Any, Any]], Index, Series]]")
+            q = [q]  # type: ignore[assignment]
 
         qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
@@ -3548,7 +3585,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ascending: bool = True,
         na_option: str = "keep",
         pct: bool = False,
-        axis: int = 0,
+        axis: AxisInt = 0,
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
@@ -3676,7 +3713,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
+    def cummin(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
         """
         Cumulative min for each group.
 
@@ -3700,7 +3737,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, numeric_only=False, **kwargs) -> NDFrameT:
+    def cummax(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
         """
         Cumulative max for each group.
 
@@ -3919,7 +3956,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def diff(self, periods: int = 1, axis: int = 0) -> NDFrameT:
+    def diff(self, periods: int = 1, axis: AxisInt = 0) -> NDFrameT:
         """
         First discrete difference of element.
 
@@ -3960,7 +3997,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def pct_change(self, periods=1, fill_method="ffill", limit=None, freq=None, axis=0):
+    def pct_change(
+        self,
+        periods=1,
+        fill_method: FillnaOptions = "ffill",
+        limit=None,
+        freq=None,
+        axis=0,
+    ):
         """
         Calculate pct_change of each value to previous entry in group.
 
@@ -4328,7 +4372,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 def get_groupby(
     obj: NDFrame,
     by: _KeysArgType | None = None,
-    axis: int = 0,
+    axis: AxisInt = 0,
     level=None,
     grouper: ops.BaseGrouper | None = None,
     exclusions=None,

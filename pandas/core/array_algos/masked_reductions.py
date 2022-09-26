@@ -9,7 +9,10 @@ from typing import Callable
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._typing import npt
+from pandas._typing import (
+    AxisInt,
+    npt,
+)
 
 from pandas.core.nanops import check_below_min_count
 
@@ -21,7 +24,8 @@ def _reductions(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
+    **kwargs,
 ):
     """
     Sum, mean or product for 1D masked array.
@@ -45,14 +49,14 @@ def _reductions(
         if mask.any(axis=axis) or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
-            return func(values, axis=axis)
+            return func(values, axis=axis, **kwargs)
     else:
         if check_below_min_count(values.shape, mask, min_count) and (
             axis is None or values.ndim == 1
         ):
             return libmissing.NA
 
-        return func(values, where=~mask, axis=axis)
+        return func(values, where=~mask, axis=axis, **kwargs)
 
 
 def sum(
@@ -61,7 +65,7 @@ def sum(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _reductions(
         np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
@@ -74,7 +78,7 @@ def prod(
     *,
     skipna: bool = True,
     min_count: int = 0,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _reductions(
         np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
@@ -87,7 +91,7 @@ def _minmax(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     """
     Reduction for 1D masked array.
@@ -124,7 +128,7 @@ def min(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _minmax(np.min, values=values, mask=mask, skipna=skipna, axis=axis)
 
@@ -134,7 +138,7 @@ def max(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     return _minmax(np.max, values=values, mask=mask, skipna=skipna, axis=axis)
 
@@ -144,8 +148,24 @@ def mean(
     mask: npt.NDArray[np.bool_],
     *,
     skipna: bool = True,
-    axis: int | None = None,
+    axis: AxisInt | None = None,
 ):
     if not values.size or mask.all():
         return libmissing.NA
     return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
+
+
+def var(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: AxisInt | None = None,
+    ddof: int = 1,
+):
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    return _reductions(
+        np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+    )
