@@ -367,6 +367,13 @@ def test_loc_setitem_nested_data_enlargement():
     tm.assert_series_equal(ser, expected)
 
 
+def test_getitem_bool_int_key():
+    # GH#48653
+    ser = Series({True: 1, False: 0})
+    with pytest.raises(KeyError, match="0"):
+        ser.loc[0]
+
+
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
