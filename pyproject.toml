@@ -58,6 +58,7 @@ disable = [
   "invalid-repr-returned",
   "undefined-variable",
   "function-redefined",
+  "c-extension-no-member",
 ]
 
 [tool.pytest.ini_options]
