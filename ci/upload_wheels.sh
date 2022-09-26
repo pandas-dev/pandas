@@ -24,7 +24,6 @@ upload_wheels() {
         if [ -z ${TOKEN} ]; then
             echo no token set, not uploading
         else
-            conda install -q -y anaconda-client
             # sdists are located under dist folder when built through setup.py
             if compgen -G "./dist/*.gz"; then
                 echo "Found sdist"
