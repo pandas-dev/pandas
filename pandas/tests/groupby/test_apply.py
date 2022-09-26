@@ -1334,16 +1334,23 @@ def test_result_name_when_one_group(name):
 
 
 @pytest.mark.parametrize(
-    "apply_func", [lambda x: x.values[-1], lambda gb: gb["b"].iloc[0]]
+    "method, op",
+    [
+        ("apply", lambda gb: gb.values[-1]),
+        ("apply", lambda gb: gb["b"].iloc[0]),
+        ("agg", "mad"),
+        ("agg", "skew"),
+        ("agg", "prod"),
+        ("agg", "sum"),
+    ],
 )
-@pytest.mark.parametrize("op", ["mad", "skew", "sum", "prod"])
-def test_empty_df(apply_func, op):
+def test_empty_df(method, op):
     # GH 47985
     empty_df = DataFrame({"a": [], "b": []})
     gb = empty_df.groupby("a", group_keys=True)
     group = getattr(gb, "b")
 
-    result = group.apply(apply_func) if apply_func else group.agg(op)
+    result = getattr(group, method)(op)
     expected = Series(
         [], name="b", dtype="float64", index=Index([], dtype="float64", name="a")
     )
