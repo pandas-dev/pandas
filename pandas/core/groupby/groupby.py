@@ -46,6 +46,7 @@ import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    Axis,
     AxisInt,
     Dtype,
     FillnaOptions,
@@ -920,7 +921,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         obj: NDFrameT,
         keys: _KeysArgType | None = None,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
         exclusions: frozenset[Hashable] | None = None,
@@ -3677,7 +3678,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumprod(self, axis=0, *args, **kwargs) -> NDFrameT:
+    def cumprod(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -3695,7 +3696,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumsum(self, axis=0, *args, **kwargs) -> NDFrameT:
+    def cumsum(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -3713,7 +3714,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
+    def cummin(
+        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative min for each group.
 
@@ -3737,7 +3740,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, numeric_only: bool = False, **kwargs) -> NDFrameT:
+    def cummax(
+        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative max for each group.
 
@@ -3907,7 +3912,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+    def shift(self, periods: int = 1, freq=None, axis: Axis = 0, fill_value=None):
         """
         Shift each group by periods observations.
 
@@ -3999,11 +4004,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Appender(_common_see_also)
     def pct_change(
         self,
-        periods=1,
+        periods: int = 1,
         fill_method: FillnaOptions = "ffill",
         limit=None,
         freq=None,
-        axis=0,
+        axis: Axis = 0,
     ):
         """
         Calculate pct_change of each value to previous entry in group.
