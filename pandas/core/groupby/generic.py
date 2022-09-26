@@ -1850,7 +1850,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     )
     def idxmax(
         self,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
@@ -1891,7 +1891,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     )
     def idxmin(
         self,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:

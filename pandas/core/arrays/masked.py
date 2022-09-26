@@ -1062,7 +1062,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return result
 
     def sum(
-        self, *, skipna: bool = True, min_count=0, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         nv.validate_sum((), kwargs)
 
@@ -1085,7 +1090,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
     def prod(
-        self, *, skipna: bool = True, min_count=0, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         nv.validate_prod((), kwargs)
         result = masked_reductions.prod(

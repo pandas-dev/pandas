@@ -310,7 +310,7 @@ class ArrowStringArray(ArrowExtensionArray, BaseStringArray, ObjectStringArrayMi
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _str_contains(
-        self, pat, case: bool = True, flags=0, na=np.nan, regex: bool = True
+        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
         if flags:
             fallback_performancewarning()

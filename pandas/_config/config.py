@@ -704,7 +704,7 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
+def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap

@@ -337,7 +337,7 @@ def _concatenate_2d(to_concat, axis: AxisInt):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis=0):
+def _concat_datetime(to_concat, axis: AxisInt = 0):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetime64[ns, tz] or m8[ns] dtype

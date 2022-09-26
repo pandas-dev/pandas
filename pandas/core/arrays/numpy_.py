@@ -243,7 +243,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def sum(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
@@ -252,7 +257,12 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def prod(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, min_count=0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
@@ -294,7 +304,7 @@ class PandasArray(
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -310,7 +320,7 @@ class PandasArray(
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):
@@ -326,7 +336,7 @@ class PandasArray(
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out=None,
-        ddof=1,
+        ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
     ):

@@ -1133,7 +1133,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def contains(self, pat, case: bool = True, flags=0, na=None, regex: bool = True):
+    def contains(
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+    ):
         r"""
         Test if pattern or regex is contained within a string of a Series or Index.
 
@@ -1269,7 +1271,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def match(self, pat, case: bool = True, flags=0, na=None):
+    def match(self, pat, case: bool = True, flags: int = 0, na=None):
         """
         Determine if each string starts with a match of a regular expression.
 
@@ -1301,7 +1303,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def fullmatch(self, pat, case: bool = True, flags=0, na=None):
+    def fullmatch(self, pat, case: bool = True, flags: int = 0, na=None):
         """
         Determine if each string entirely matches a regular expression.
 
@@ -2232,7 +2234,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def count(self, pat, flags=0):
+    def count(self, pat, flags: int = 0):
         r"""
         Count occurrences of pattern in each string of the Series/Index.
 
@@ -2440,7 +2442,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def findall(self, pat, flags=0):
+    def findall(self, pat, flags: int = 0):
         """
         Find all occurrences of pattern or regular expression in the Series/Index.
 
@@ -2661,7 +2663,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
-    def extractall(self, pat, flags=0):
+    def extractall(self, pat, flags: int = 0):
         r"""
         Extract capture groups in the regex `pat` as columns in DataFrame.
 
@@ -2774,7 +2776,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def find(self, sub, start=0, end=None):
+    def find(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -2791,7 +2793,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def rfind(self, sub, start=0, end=None):
+    def rfind(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -2858,7 +2860,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def index(self, sub, start=0, end=None):
+    def index(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -2876,7 +2878,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def rindex(self, sub, start=0, end=None):
+    def rindex(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -3345,7 +3347,7 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     return [names.get(1 + i, i) for i in range(regex.groups)]
 
 
-def str_extractall(arr, pat, flags=0):
+def str_extractall(arr, pat, flags: int = 0):
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:

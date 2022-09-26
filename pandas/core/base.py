@@ -25,6 +25,7 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
+    Axis,
     AxisInt,
     DtypeObj,
     IndexLabel,
@@ -784,7 +785,7 @@ class IndexOpsMixin(OpsMixin):
         op,
         name: str,
         *,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only=None,
         filter_type=None,
