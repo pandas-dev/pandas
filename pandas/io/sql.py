@@ -1233,10 +1233,11 @@ class SQLTable(PandasObject):
             Float,
             Integer,
         )
+        from sqlalchemy.dialects.oracle import NUMBER
 
         # GH34988 - Workaround Oracle Dialect NUMBER defaulting to int
         # and losing precision
-        if isinstance(sqltype, sqlalchemy.dialects.oracle.NUMBER):
+        if isinstance(sqltype, NUMBER):
             if sqltype.scale is None:
                 return np.dtype("int64")
             else:
