@@ -575,7 +575,7 @@ class RangeIndex(NumericIndex):
 
         if return_indexer:
             if inverse_indexer:
-                rng = range(len(self) + 1, -1, -1)
+                rng = range(len(self) - 1, -1, -1)
             else:
                 rng = range(len(self))
             return sorted_index, RangeIndex(rng)
