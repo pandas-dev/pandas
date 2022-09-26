@@ -129,6 +129,15 @@ def test_one_positional_argument_with_warning_message_analysis():
             )
 
 
+@deprecate_nonkeyword_arguments(version="1.1")
+def i(a=0, /, b=0, *, c=0, d=0):
+    return a + b + c + d
+
+
+def test_i_signature():
+    assert str(inspect.signature(i)) == "(*, a=0, b=0, c=0, d=0)"
+
+
 class Foo:
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "bar"])
     def baz(self, bar=None, foobar=None):
