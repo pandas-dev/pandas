@@ -84,6 +84,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
+- Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError`` (:issue:`48608`)
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
 -
 
