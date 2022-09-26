@@ -93,6 +93,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Avoid showing deprecated signatures when introspecting functions with warnings about arguments becoming keyword-only (:issue:`48692`)
 -
 -
 
