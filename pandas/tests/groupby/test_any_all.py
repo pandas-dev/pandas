@@ -83,6 +83,23 @@ def test_any_non_keyword_deprecation():
     tm.assert_equal(result, expected)
 
 
+def test_any_apply_keyword_non_zero_axis_regression():
+    # https://github.com/pandas-dev/pandas/issues/48656
+    df = DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+    expected = df.any(axis=1)
+    result = df.apply('any', axis=1)
+    tm.assert_series_equal(result, expected)
+
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.any and Series.any will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.any(1)
+    result = df.apply('any', 1)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 def test_bool_aggs_dup_column_labels(bool_agg_func):
     # 21668

@@ -552,10 +552,11 @@ class Apply(metaclass=abc.ABCMeta):
         if callable(func):
             sig = inspect.getfullargspec(func)
             if self.axis != 0 and (
-                "axis" not in sig.args or f in ("corrwith", "mad", "skew")
+                ("axis" not in sig.args and "axis" not in sig.kwonlyargs)
+                or f in ("corrwith", "mad", "skew")
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
-            elif "axis" in sig.args:
+            elif "axis" in sig.args or "axis" in sig.kwonlyargs:
                 self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
