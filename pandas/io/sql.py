@@ -1232,14 +1232,17 @@ class SQLTable(PandasObject):
             DateTime,
             Float,
             Integer,
-            Numeric,
         )
 
+        # GH34988 - Workaround Oracle Dialect NUMBER defaulting to int
+        # and losing precision
+        if isinstance(sqltype, sqlalchemy.dialects.oracle.NUMBER):
+            if sqltype.scale is None:
+                return np.dtype("int64")
+            else:
+                return float
+
         if isinstance(sqltype, Float):
-            return float
-        elif isinstance(sqltype, Numeric) and sqltype.scale is None:
-            return np.dtype("int64")
-        elif isinstance(sqltype, Numeric) and sqltype.scale > 0:
             return float
         elif isinstance(sqltype, Integer):
             # TODO: Refine integer size.
