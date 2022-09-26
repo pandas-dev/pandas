@@ -1729,7 +1729,7 @@ class MultiIndex(Index):
         Index(['d', 'e', 'f'], dtype='object', name='level_2')
 
         If a level contains missing values, the return type of the level
-        maybe casted to ``float``.
+        may be cast to ``float``.
 
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).dtypes
         level_0    int64
