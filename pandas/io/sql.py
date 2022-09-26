@@ -1225,6 +1225,7 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
+        from sqlalchemy.dialects.oracle import NUMBER
         from sqlalchemy.types import (
             TIMESTAMP,
             Boolean,
@@ -1233,7 +1234,6 @@ class SQLTable(PandasObject):
             Float,
             Integer,
         )
-        from sqlalchemy.dialects.oracle import NUMBER
 
         # GH34988 - Workaround Oracle Dialect NUMBER defaulting to int
         # and losing precision
