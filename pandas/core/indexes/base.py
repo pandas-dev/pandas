@@ -49,12 +49,13 @@ from pandas._typing import (
     AnyAll,
     ArrayLike,
     Axes,
-    AxisInt,
+    Axis,
     DropKeep,
     Dtype,
     DtypeObj,
     F,
     IgnoreRaise,
+    IndexLabel,
     Level,
     Shape,
     npt,
@@ -1180,7 +1181,7 @@ class Index(IndexOpsMixin, PandasObject):
     def take(
         self,
         indices,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
@@ -2167,7 +2168,7 @@ class Index(IndexOpsMixin, PandasObject):
     get_level_values = _get_level_values
 
     @final
-    def droplevel(self, level=0):
+    def droplevel(self, level: IndexLabel = 0):
         """
         Return index with requested level(s) removed.
 
@@ -5867,7 +5868,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
-    def shift(self, periods=1, freq=None):
+    def shift(self, periods: int = 1, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
@@ -6017,7 +6018,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        return not self.holds_integer() and not self.is_boolean()
+        return not self.holds_integer()
 
     def _get_values_for_loc(self, series: Series, loc, key):
         """
