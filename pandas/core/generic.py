@@ -1327,7 +1327,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return None
 
     @final
-    def _set_axis_name(self, name, axis=0, inplace: bool_t = False):
+    def _set_axis_name(self, name, axis: Axis = 0, inplace: bool_t = False):
         """
         Set the name(s) of the axis.
 
@@ -1672,7 +1672,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # have consistent precedence and validation logic throughout the library.
 
     @final
-    def _is_level_reference(self, key: Level, axis=0) -> bool_t:
+    def _is_level_reference(self, key: Level, axis: Axis = 0) -> bool_t:
         """
         Test whether a key is a level reference for a given axis.
 
@@ -1693,17 +1693,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         is_level : bool
         """
-        axis = self._get_axis_number(axis)
+        axis_int = self._get_axis_number(axis)
 
         return (
             key is not None
             and is_hashable(key)
-            and key in self.axes[axis].names
-            and not self._is_label_reference(key, axis=axis)
+            and key in self.axes[axis_int].names
+            and not self._is_label_reference(key, axis=axis_int)
         )
 
     @final
-    def _is_label_reference(self, key: Level, axis=0) -> bool_t:
+    def _is_label_reference(self, key: Level, axis: int = 0) -> bool_t:
         """
         Test whether a key is a label reference for a given axis.
 
@@ -1758,7 +1758,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _check_label_or_level_ambiguity(self, key: Level, axis: AxisInt = 0) -> None:
+    def _check_label_or_level_ambiguity(self, key: Level, axis: Axis = 0) -> None:
         """
         Check whether `key` is ambiguous.
 
@@ -1777,23 +1777,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ValueError: `key` is ambiguous
         """
 
-        axis = self._get_axis_number(axis)
-        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
+        axis_int = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis_int)
 
         if (
             key is not None
             and is_hashable(key)
-            and key in self.axes[axis].names
+            and key in self.axes[axis_int].names
             and any(key in self.axes[ax] for ax in other_axes)
         ):
 
             # Build an informative and grammatical warning
             level_article, level_type = (
-                ("an", "index") if axis == 0 else ("a", "column")
+                ("an", "index") if axis_int == 0 else ("a", "column")
             )
 
             label_article, label_type = (
-                ("a", "column") if axis == 0 else ("an", "index")
+                ("a", "column") if axis_int == 0 else ("an", "index")
             )
 
             msg = (
@@ -3784,7 +3784,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Indexing Methods
 
     def take(
-        self: NDFrameT, indices, axis=0, is_copy: bool_t | None = None, **kwargs
+        self: NDFrameT, indices, axis: Axis = 0, is_copy: bool_t | None = None, **kwargs
     ) -> NDFrameT:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3881,7 +3881,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _take(
         self: NDFrameT,
         indices,
-        axis=0,
+        axis: Axis = 0,
         convert_indices: bool_t = True,
     ) -> NDFrameT:
         """
@@ -3899,7 +3899,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
-    def _take_with_is_copy(self: NDFrameT, indices, axis=0) -> NDFrameT:
+    def _take_with_is_copy(self: NDFrameT, indices, axis: Axis = 0) -> NDFrameT:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -4102,7 +4102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
-    def _slice(self: NDFrameT, slobj: slice, axis=0) -> NDFrameT:
+    def _slice(self: NDFrameT, slobj: slice, axis: Axis = 0) -> NDFrameT:
         """
         Construct a slice of this container.
 
@@ -6730,9 +6730,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             each index (for a Series) or column (for a DataFrame).  Values not
             in the dict/Series/DataFrame will not be filled. This value cannot
             be a list.
-        method : {{'backfill', 'bfill', 'pad', 'ffill', None}}, default None
+        method : {{'backfill', 'bfill', 'ffill', None}}, default None
             Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
+            ffill: propagate last valid observation forward to next valid
             backfill / bfill: use next valid observation to fill gap.
         axis : {axes_single_arg}
             Axis along which to fill missing values. For `Series`
@@ -9052,7 +9052,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def rank(
         self: NDFrameT,
-        axis=0,
+        axis: Axis = 0,
         method: str = "average",
         numeric_only: bool_t | None | lib.NoDefault = lib.no_default,
         na_option: str = "keep",
@@ -9168,7 +9168,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif numeric_only is lib.no_default:
             numeric_only = None
 
-        axis = self._get_axis_number(axis)
+        axis_int = self._get_axis_number(axis)
 
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
@@ -9184,7 +9184,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             if isinstance(values, ExtensionArray):
                 ranks = values._rank(
-                    axis=axis,
+                    axis=axis_int,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
@@ -9193,7 +9193,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 ranks = algos.rank(
                     values,
-                    axis=axis,
+                    axis=axis_int,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
@@ -9515,7 +9515,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_value=None,
         method=None,
         limit=None,
-        fill_axis=0,
+        fill_axis: Axis = 0,
     ):
         # defaults
         join_index, join_columns = None, None
@@ -9579,7 +9579,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_value=None,
         method=None,
         limit=None,
-        fill_axis=0,
+        fill_axis: Axis = 0,
     ):
 
         is_series = isinstance(self, ABCSeries)
@@ -10247,7 +10247,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result.__finalize__(self, method="shift")
 
     @final
-    def slice_shift(self: NDFrameT, periods: int = 1, axis=0) -> NDFrameT:
+    def slice_shift(self: NDFrameT, periods: int = 1, axis: Axis = 0) -> NDFrameT:
         """
         Equivalent to `shift` without copying data.
 
@@ -10506,7 +10506,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def tz_convert(
-        self: NDFrameT, tz, axis=0, level=None, copy: bool_t = True
+        self: NDFrameT, tz, axis: Axis = 0, level=None, copy: bool_t = True
     ) -> NDFrameT:
         """
         Convert tz-aware axis to target time zone.
@@ -10567,7 +10567,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def tz_localize(
         self: NDFrameT,
         tz,
-        axis=0,
+        axis: Axis = 0,
         level=None,
         copy: bool_t = True,
         ambiguous: TimeAmbiguous = "raise",
@@ -10995,7 +10995,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def pct_change(
         self: NDFrameT,
-        periods=1,
+        periods: int = 1,
         fill_method: Literal["backfill", "bfill", "pad", "ffill"] = "pad",
         limit=None,
         freq=None,
@@ -11542,7 +11542,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
-        min_count=0,
+        min_count: int = 0,
         **kwargs,
     ):
         return self._min_count_stat_function(
@@ -11660,7 +11660,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             empty_value=False,
         )
         def any(
-            self, axis=0, bool_only=None, skipna: bool_t = True, level=None, **kwargs
+            self,
+            axis: Axis = 0,
+            bool_only=None,
+            skipna: bool_t = True,
+            level=None,
+            **kwargs,
         ):
             return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
 
@@ -11677,7 +11682,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             empty_value=True,
         )
         def all(
-            self, axis=0, bool_only=None, skipna: bool_t = True, level=None, **kwargs
+            self,
+            axis: Axis = 0,
+            bool_only=None,
+            skipna: bool_t = True,
+            level=None,
+            **kwargs,
         ):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
@@ -11714,7 +11724,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
-            ddof=1,
+            ddof: int = 1,
             numeric_only=None,
             **kwargs,
         ):
@@ -11737,7 +11747,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
-            ddof=1,
+            ddof: int = 1,
             numeric_only=None,
             **kwargs,
         ):
@@ -11761,7 +11771,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis: Axis | None = None,
             skipna: bool_t = True,
             level=None,
-            ddof=1,
+            ddof: int = 1,
             numeric_only=None,
             **kwargs,
         ):
@@ -11851,7 +11861,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
-            min_count=0,
+            min_count: int = 0,
             **kwargs,
         ):
             return NDFrame.sum(
@@ -11876,7 +11886,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna: bool_t = True,
             level=None,
             numeric_only=None,
-            min_count=0,
+            min_count: int = 0,
             **kwargs,
         ):
             return NDFrame.prod(
