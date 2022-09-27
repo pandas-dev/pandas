@@ -8385,7 +8385,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = 0,
         level: IndexLabel | None = None,
         as_index: bool = True,
-        sort: bool = True,
+        sort: bool | lib.NoDefault = no_default,
         group_keys: bool | lib.NoDefault = no_default,
         squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
@@ -8393,6 +8393,10 @@ Parrot 2  Parrot       24.0
     ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 
+        if sort is no_default:
+            # no_default is just there to signal to users that
+            # the default may differ across DataFrame libraries
+            sort = True
         if squeeze is not no_default:
             warnings.warn(
                 (
@@ -9838,7 +9842,7 @@ Parrot 2  Parrot       24.0
         how: str = "left",
         lsuffix: str = "",
         rsuffix: str = "",
-        sort: bool = False,
+        sort: bool | lib.NoDefault = lib.no_default,
         validate: str | None = None,
     ) -> DataFrame:
         """
@@ -9994,6 +9998,10 @@ Parrot 2  Parrot       24.0
         4  K0  A4   B0
         5  K1  A5   B1
         """
+        if sort is no_default:
+            # no_default is just there to signal to users that
+            # the default may differ across DataFrame libraries
+            sort = False
         return self._join_compat(
             other,
             on=on,

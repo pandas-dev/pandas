@@ -2060,7 +2060,7 @@ Name: Max Speed, dtype: float64
         axis: Axis = 0,
         level: Level = None,
         as_index: bool = True,
-        sort: bool = True,
+        sort: bool | lib.NoDefault = no_default,
         group_keys: bool | lib.NoDefault = no_default,
         squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
@@ -2068,6 +2068,10 @@ Name: Max Speed, dtype: float64
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
 
+        if sort is no_default:
+            # no_default is just there to signal to users that
+            # the default may differ across DataFrame libraries
+            sort = True
         if squeeze is not no_default:
             warnings.warn(
                 (
