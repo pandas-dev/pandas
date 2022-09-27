@@ -105,7 +105,7 @@ props = """props : str, default None
            CSS properties to use for highlighting. If ``props`` is given, ``color``
            is not used."""
 
-color = """color : str, default 'yellow'
+color = """color : str, default '{default}'
            Background color to use for highlighting."""
 
 buf = """buf : str, path object, file-like object, optional
@@ -3335,7 +3335,7 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props, color=color)
+    @Substitution(subset=subset, props=props, color=color.format(default="red"))
     def highlight_null(
         self,
         color: str | None = None,
@@ -3397,7 +3397,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -3441,7 +3441,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -3485,7 +3485,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3589,7 +3589,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
