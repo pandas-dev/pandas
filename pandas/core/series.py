@@ -35,11 +35,14 @@ from pandas._libs import (
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AlignJoin,
     AnyAll,
     AnyArrayLike,
     ArrayLike,
     Axis,
     AxisInt,
+    CorrelationMethod,
+    DropKeep,
     Dtype,
     DtypeObj,
     FilePath,
@@ -939,7 +942,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = self._constructor(new_values, index=new_index, fastpath=True)
         return result.__finalize__(self, method="take")
 
-    def _take_with_is_copy(self, indices, axis=0) -> Series:
+    def _take_with_is_copy(self, indices, axis: Axis = 0) -> Series:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -964,7 +967,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
+    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -2251,28 +2254,23 @@ Name: Max Speed, dtype: float64
 
     @overload
     def drop_duplicates(
-        self,
-        keep: Literal["first", "last", False] = ...,
-        *,
-        inplace: Literal[False] = ...,
+        self, keep: DropKeep = ..., *, inplace: Literal[False] = ...
     ) -> Series:
         ...
 
     @overload
-    def drop_duplicates(
-        self, keep: Literal["first", "last", False] = ..., *, inplace: Literal[True]
-    ) -> None:
+    def drop_duplicates(self, keep: DropKeep = ..., *, inplace: Literal[True]) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, keep: Literal["first", "last", False] = ..., *, inplace: bool = ...
+        self, keep: DropKeep = ..., *, inplace: bool = ...
     ) -> Series | None:
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(
-        self, keep: Literal["first", "last", False] = "first", inplace: bool = False
+        self, keep: DropKeep = "first", inplace: bool = False
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -2357,7 +2355,7 @@ Name: Max Speed, dtype: float64
         else:
             return result
 
-    def duplicated(self, keep: Literal["first", "last", False] = "first") -> Series:
+    def duplicated(self, keep: DropKeep = "first") -> Series:
         """
         Indicate duplicate Series values.
 
@@ -2706,8 +2704,7 @@ Name: Max Speed, dtype: float64
     def corr(
         self,
         other: Series,
-        method: Literal["pearson", "kendall", "spearman"]
-        | Callable[[np.ndarray, np.ndarray], float] = "pearson",
+        method: CorrelationMethod = "pearson",
         min_periods: int | None = None,
     ) -> float:
         """
@@ -4787,7 +4784,7 @@ Keep all original rows and also all original values
         op,
         name: str,
         *,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only=None,
         filter_type=None,
@@ -4860,7 +4857,7 @@ Keep all original rows and also all original values
     def align(
         self,
         other: Series,
-        join: Literal["outer", "inner", "left", "right"] = "outer",
+        join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool = True,

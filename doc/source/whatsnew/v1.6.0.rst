@@ -115,8 +115,10 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
+- :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
+-
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.deprecations:
@@ -133,7 +135,9 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.DataFrameGroupBy.median` and :meth:`.SeriesGroupBy.median` and :meth:`.GroupBy.cumprod` for nullable dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.argsort` and :meth:`MultiIndex.sort_values` (:issue:`48406`)
+- Performance improvement in :meth:`MultiIndex.size` (:issue:`48723`)
 - Performance improvement in :meth:`MultiIndex.union` without missing values and without duplicates (:issue:`48505`)
+- Performance improvement in :meth:`MultiIndex.difference` (:issue:`48606`)
 - Performance improvement in :meth:`.DataFrameGroupBy.mean`, :meth:`.SeriesGroupBy.mean`, :meth:`.DataFrameGroupBy.var`, and :meth:`.SeriesGroupBy.var` for extension array dtypes (:issue:`37493`)
 - Performance improvement in :meth:`MultiIndex.isin` when ``level=None`` (:issue:`48622`)
 - Performance improvement for :meth:`Series.value_counts` with nullable dtype (:issue:`48338`)
@@ -146,7 +150,7 @@ Performance improvements
 - Performance improvement for :meth:`MultiIndex.intersection` (:issue:`48604`)
 - Performance improvement in ``var`` for nullable dtypes (:issue:`48379`).
 - Performance improvement to :func:`read_sas` with ``blank_missing=True`` (:issue:`48502`)
--
+- Memory improvement in :meth:`RangeIndex.sort_values` (:issue:`48801`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.bug_fixes:
@@ -204,11 +208,12 @@ Indexing
 
 Missing
 ^^^^^^^
-- Bug in :meth:`Index.equals` raising ``TypeError` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
+- Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
 -
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`MultiIndex.difference` losing extension array dtype (:issue:`48606`)
 - Bug in :class:`MultiIndex.set_levels` raising ``IndexError`` when setting empty level (:issue:`48636`)
 - Bug in :meth:`MultiIndex.unique` losing extension array dtype (:issue:`48335`)
 - Bug in :meth:`MultiIndex.intersection` losing extension array (:issue:`48604`)
@@ -239,6 +244,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :meth:`DataFrame.pivot_table` raising ``TypeError`` for nullable dtype and ``margins=True`` (:issue:`48681`)
 - Bug in :meth:`DataFrame.pivot` not respecting ``None`` as column name (:issue:`48293`)
 - Bug in :func:`join` when ``left_on`` or ``right_on`` is or includes a :class:`CategoricalIndex` incorrectly raising ``AttributeError`` (:issue:`48464`)
 -

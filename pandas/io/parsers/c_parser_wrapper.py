@@ -33,6 +33,7 @@ from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    ParserError,
     is_index_col,
 )
 
@@ -269,6 +270,13 @@ class CParserWrapper(ParserBase):
 
             # implicit index, no index names
             arrays = []
+
+            if self.index_col and self._reader.leading_cols != len(self.index_col):
+                raise ParserError(
+                    "Could not construct index. Requested to use "
+                    f"{len(self.index_col)} number of columns, but "
+                    f"{self._reader.leading_cols} left to parse."
+                )
 
             for i in range(self._reader.leading_cols):
                 if self.index_col is None:
