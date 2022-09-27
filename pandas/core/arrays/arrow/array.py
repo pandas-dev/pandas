@@ -619,8 +619,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 na_mask = indices.values == -1
                 na_index = na_mask.argmax()
                 if na_mask[na_index]:
-                    uniques = uniques.insert(na_index, self.dtype.na_value)
-                    na_code = 0 if na_index == 0 else indices[:na_index].argmax() + 1
+                    na_code = 0 if na_index == 0 else indices[:na_index].max() + 1
+                    uniques = uniques.insert(na_code, self.dtype.na_value)
                     indices[indices >= na_code] += 1
                     indices[indices == -1] = na_code
         else:
