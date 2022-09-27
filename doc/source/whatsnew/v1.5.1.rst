@@ -86,6 +86,7 @@ Bug fixes
 - Bug in :meth:`Series.__getitem__` not falling back to positional for integer keys and boolean :class:`Index` (:issue:`48653`)
 - Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
+- Bug in :meth:`DataFrame.sort_values` emitting unnecessary ``FutureWarning`` when called on :class:`DataFrame` with boolean sparse columns (:issue:`48784`)
 -
 
 .. ---------------------------------------------------------------------------

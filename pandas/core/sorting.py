@@ -343,7 +343,9 @@ def lexsort_indexer(
         with warnings.catch_warnings():
             # TODO(2.0): unnecessary once deprecation is enforced
             # GH#45618 don't issue warning user can't do anything about
-            warnings.filterwarnings("ignore", ".*SparseArray.*", category=FutureWarning)
+            warnings.filterwarnings(
+                "ignore", ".*(SparseArray|SparseDtype).*", category=FutureWarning
+            )
 
             cat = Categorical(k, ordered=True)
 
