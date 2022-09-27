@@ -25,6 +25,8 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
+    Axis,
+    AxisInt,
     DtypeObj,
     IndexLabel,
     NDFrameT,
@@ -79,6 +81,7 @@ from pandas.core.construction import (
 if TYPE_CHECKING:
 
     from pandas._typing import (
+        DropKeep,
         NumpySorter,
         NumpyValueArrayLike,
     )
@@ -545,7 +548,7 @@ class IndexOpsMixin(OpsMixin):
     def empty(self) -> bool:
         return not self.size
 
-    def max(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
@@ -590,7 +593,9 @@ class IndexOpsMixin(OpsMixin):
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(op="max", oppose="min", value="largest")
-    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmax(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         """
         Return int position of the {value} value in the Series.
 
@@ -657,7 +662,7 @@ class IndexOpsMixin(OpsMixin):
                 delegate, skipna=skipna
             )
 
-    def min(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def min(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -702,7 +707,9 @@ class IndexOpsMixin(OpsMixin):
         return nanops.nanmin(self._values, skipna=skipna)
 
     @doc(argmax, op="min", oppose="max", value="smallest")
-    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmin(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         delegate = self._values
         nv.validate_minmax_axis(axis)
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
@@ -778,7 +785,7 @@ class IndexOpsMixin(OpsMixin):
         op,
         name: str,
         *,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only=None,
         filter_type=None,
@@ -1303,15 +1310,13 @@ class IndexOpsMixin(OpsMixin):
             sorter=sorter,
         )
 
-    def drop_duplicates(self, keep="first"):
+    def drop_duplicates(self, keep: DropKeep = "first"):
         duplicated = self._duplicated(keep=keep)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
     @final
-    def _duplicated(
-        self, keep: Literal["first", "last", False] = "first"
-    ) -> npt.NDArray[np.bool_]:
+    def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
         return duplicated(self._values, keep=keep)
 
     def _arith_method(self, other, op):

@@ -311,7 +311,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        closed: str = "right",
+        closed: IntervalClosedType = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -592,6 +592,8 @@ class IntervalIndex(ExtensionIndex):
         method : {None}, optional
             * default: matches where the label is within an interval only.
 
+            .. deprecated:: 1.4
+
         Returns
         -------
         int if unique index, slice if monotonic index, else mask
@@ -821,7 +823,7 @@ class IntervalIndex(ExtensionIndex):
         return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(
-        self, *, na_rep="NaN", quoting=None, **kwargs
+        self, *, na_rep: str = "NaN", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         # GH 28210: use base method but with different default na_rep
         return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
@@ -969,7 +971,7 @@ def interval_range(
         Right bound for generating intervals.
     periods : int, default None
         Number of periods to generate.
-    freq : numeric, str, or DateOffset, default None
+    freq : numeric, str, datetime.timedelta, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
         for numeric and 'D' for datetime-like.

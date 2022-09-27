@@ -45,6 +45,7 @@ from pandas._libs.tslibs import timezones
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    AxisInt,
     DtypeArg,
     FilePath,
     Shape,
@@ -64,6 +65,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
@@ -1530,7 +1532,7 @@ class HDFStore:
     def copy(
         self,
         file,
-        mode="w",
+        mode: str = "w",
         propindexes: bool = True,
         keys=None,
         complib=None,
@@ -4809,7 +4811,9 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj: DataFrame, axis: int, labels: Index, other=None) -> DataFrame:
+def _reindex_axis(
+    obj: DataFrame, axis: AxisInt, labels: Index, other=None
+) -> DataFrame:
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 
@@ -4899,7 +4903,11 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
+    if (
+        isinstance(index, Int64Index)
+        or needs_i8_conversion(index.dtype)
+        or is_bool_dtype(index.dtype)
+    ):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
@@ -4962,7 +4970,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
         except (ValueError):
             index = np.asarray([date.fromtimestamp(v) for v in data], dtype=object)
-    elif kind in ("integer", "float"):
+    elif kind in ("integer", "float", "bool"):
         index = np.asarray(data)
     elif kind in ("string"):
         index = _unconvert_string_array(
