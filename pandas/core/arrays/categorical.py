@@ -49,10 +49,7 @@ from pandas._typing import (
     type_t,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import (
-    deprecate_kwarg,
-    deprecate_nonkeyword_arguments,
-)
+from pandas.util._decorators import deprecate_nonkeyword_arguments
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -2299,7 +2296,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Reductions
 
-    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
     def min(self, *, skipna: bool = True, **kwargs):
         """
         The minimum value of the object.
@@ -2336,7 +2332,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             pointer = self._codes.min()
         return self._wrap_reduction_result(None, pointer)
 
-    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
     def max(self, *, skipna: bool = True, **kwargs):
         """
         The maximum value of the object.
