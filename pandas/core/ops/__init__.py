@@ -14,6 +14,7 @@ import numpy as np
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 from pandas._typing import (
+    Axis,
     AxisInt,
     Level,
 )
@@ -178,7 +179,7 @@ def flex_method_SERIES(op):
     doc = make_flex_doc(name, "series")
 
     @Appender(doc)
-    def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
+    def flex_wrapper(self, other, level=None, fill_value=None, axis: Axis = 0):
         # validate axis
         if axis is not None:
             self._get_axis_number(axis)

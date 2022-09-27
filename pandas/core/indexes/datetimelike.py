@@ -30,6 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._typing import Axis
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -695,7 +696,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # NDArray-Like Methods
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill: bool = True, fill_value=None, **kwargs):
+    def take(
+        self,
+        indices,
+        axis: Axis = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
+    ):
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 
