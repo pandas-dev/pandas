@@ -2908,29 +2908,33 @@ def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
     )
     tm.assert_frame_equal(result, expected)
 
-def test_groupby_index_name_in_index_content():
+
+@pytest.mark.parametrize(
+    "val_in, index, val_out",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            ["foo", "foo", "bar", "baz", "blah"],
+            [3.0, 4.0, 5.0, 3.0],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            ["foo", "foo", "bar", "baz", "blah", "blah"],
+            [3.0, 4.0, 11.0, 3.0],
+        ),
+    ],
+)
+def test_groupby_index_name_in_index_content(val_in, index, val_out):
     # GH 48567
-    series1 = Series(data=[1.0, 2.0, 3.0, 4.0, 5.0], name='values',
-                     index=Index(['foo', 'foo', 'bar', 'baz', 'blah'],
-                                 name='blah'))
-    result1 = series1.groupby('blah').sum()
-    expected1 = Series(data=[3.0, 4.0, 5.0, 3.0], name='values',
-                       index=Index(['bar', 'baz', 'blah', 'foo'], name='blah'))
-    tm.assert_series_equal(result1, expected1)
+    series = Series(data=val_in, name="values", index=Index(index, name="blah"))
+    result = series.groupby("blah").sum()
+    expected = Series(
+        data=val_out,
+        name="values",
+        index=Index(["bar", "baz", "blah", "foo"], name="blah"),
+    )
+    tm.assert_series_equal(result, expected)
 
-    series2 = Series(data=[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], name='values',
-                     index=Index(['foo', 'foo', 'bar', 'baz', 'blah', 'blah'],
-                                 name='blah'))
-    result2 = series2.groupby('blah').sum()
-    expected2 = Series(data=[3.0, 4.0, 11.0, 3.0], name='values',
-                       index=Index(['bar', 'baz', 'blah', 'foo'],
-                                      name='blah'))
-    tm.assert_series_equal(result2, expected2)
-
-    result3 = series1.to_frame().groupby('blah').sum()
-    expected3 = expected1.to_frame()
-    tm.assert_frame_equal(result3, expected3)
-
-    result4 = series2.to_frame().groupby('blah').sum()
-    expected4 = expected2.to_frame()
-    tm.assert_frame_equal(result4, expected4)
+    result = series.to_frame().groupby("blah").sum()
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
