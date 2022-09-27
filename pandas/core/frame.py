@@ -10867,7 +10867,7 @@ Parrot 2  Parrot       24.0
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def blk_func(values, axis=1):
+        def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
                     self._mgr, ArrayManager

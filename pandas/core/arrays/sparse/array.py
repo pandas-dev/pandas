@@ -32,6 +32,7 @@ from pandas._libs.tslibs import NaT
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    Axis,
     AxisInt,
     Dtype,
     NpDtype,
@@ -1479,7 +1480,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return values.all()
 
-    def any(self, axis=0, *args, **kwargs):
+    def any(self, axis: AxisInt = 0, *args, **kwargs):
         """
         Tests whether at least one of elements evaluate True
 
@@ -1576,7 +1577,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fill_value=self.fill_value,
         )
 
-    def mean(self, axis=0, *args, **kwargs):
+    def mean(self, axis: Axis = 0, *args, **kwargs):
         """
         Mean of non-NA/null values
 

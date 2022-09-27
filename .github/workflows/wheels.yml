@@ -82,7 +82,7 @@ jobs:
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_BUILD_VERBOSITY: 3
 
-      # Used to push the built wheels
+      # Used to test the built wheels
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python[1] }}
@@ -97,6 +97,24 @@ jobs:
         with:
           name: ${{ matrix.python[0] }}-${{ startsWith(matrix.buildplat[1], 'macosx') && 'macosx' || matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
+
+      # Used to push the built wheels
+      # TODO: once Python 3.11 is available on conda, de-dup with
+      # setup python above
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          # Really doesn't matter what version we upload with
+          # just the version we test with
+          python-version: '3.8'
+          channels: conda-forge
+          channel-priority: true
+          mamba-version: "*"
+
+      - name: Install anaconda client
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        run: conda install -q -y anaconda-client
+
 
       - name: Upload wheels
         if: success()
@@ -136,16 +154,24 @@ jobs:
           # A shallow clone can work when the following issue is resolved:
           # https://github.com/actions/checkout/issues/338
           fetch-depth: 0
-      # Used to push the built wheels
-      - uses: actions/setup-python@v3
+
+      # Used to push the built sdist
+      - uses: conda-incubator/setup-miniconda@v2
         with:
-          # Build sdist on lowest supported Python
+          auto-update-conda: true
+          # Really doesn't matter what version we upload with
+          # just the version we test with
           python-version: '3.8'
+          channels: conda-forge
+          channel-priority: true
+          mamba-version: "*"
+
       - name: Build sdist
         run: |
           pip install build
           python -m build --sdist
       - name: Test the sdist
+        shell: bash -el {0}
         run: |
           # TODO: Don't run test suite, and instead build wheels from sdist
           # by splitting the wheel builders into a two stage job
@@ -161,6 +187,11 @@ jobs:
         with:
           name: sdist
           path: ./dist/*
+
+      - name: Install anaconda client
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        run: |
+          conda install -q -y anaconda-client
 
       - name: Upload sdist
         if: success()

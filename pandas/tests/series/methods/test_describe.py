@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas.core.dtypes.common import is_complex_dtype
+from pandas.core.dtypes.common import (
+    is_complex_dtype,
+    is_extension_array_dtype,
+)
 
 from pandas import (
     Period,
@@ -154,6 +157,11 @@ class TestSeriesDescribe:
 
     def test_numeric_result_dtype(self, any_numeric_dtype):
         # GH#48340 - describe should always return float on non-complex numeric input
+        if is_extension_array_dtype(any_numeric_dtype):
+            dtype = "Float64"
+        else:
+            dtype = "complex128" if is_complex_dtype(any_numeric_dtype) else None
+
         ser = Series([0, 1], dtype=any_numeric_dtype)
         result = ser.describe()
         expected = Series(
@@ -168,6 +176,6 @@ class TestSeriesDescribe:
                 1.0,
             ],
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
-            dtype="complex128" if is_complex_dtype(ser) else None,
+            dtype=dtype,
         )
         tm.assert_series_equal(result, expected)
