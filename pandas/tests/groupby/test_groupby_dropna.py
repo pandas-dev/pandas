@@ -393,86 +393,92 @@ def test_groupby_drop_nan_with_multi_index():
     tm.assert_frame_equal(result, expected)
 
 
-# Test all combinations of values e.g. 1, 2, and NA. Use string labels to
-# correspond to various dtypes. "z" always corresponds to NA.
-@pytest.mark.parametrize("sequence0", ["x", "y", "z"])
-@pytest.mark.parametrize("sequence1", ["x", "y", "z"])
-@pytest.mark.parametrize("sequence2", ["x", "y", "z"])
-@pytest.mark.parametrize("sequence3", ["x", "y", "z"])
+# sequence_index enumerates all strings made up of x, y, z of length 4
+@pytest.mark.parametrize("sequence_index", range(3**4 + 1))
 @pytest.mark.parametrize(
-    "uniques, dtype",
+    "dtype",
     [
-        ({"x": 1, "y": 2, "z": np.nan}, None),
-        ({"x": 1, "y": 2, "z": pd.NA}, "UInt8"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "Int8"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "UInt16"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "Int16"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "UInt32"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "Int32"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "UInt64"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "Int64"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "Float32"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "Int64"),
-        ({"x": 1, "y": 2, "z": pd.NA}, "Float64"),
-        ({"x": "x", "y": "y", "z": None}, "category"),
-        ({"x": "x", "y": "y", "z": pd.NA}, "string"),
+        None,
+        "UInt8",
+        "Int8",
+        "UInt16",
+        "Int16",
+        "UInt32",
+        "Int32",
+        "UInt64",
+        "Int64",
+        "Float32",
+        "Int64",
+        "Float64",
+        "category",
+        "string",
         pytest.param(
-            {"x": "x", "y": "y", "z": pd.NA},
             "string[pyarrow]",
             marks=pytest.mark.skipif(
                 pa_version_under1p01, reason="pyarrow is not installed"
             ),
         ),
-        (
-            {"x": "2016-01-01", "y": "2017-01-01", "z": np.datetime64("NaT")},
-            "datetime64[ns]",
-        ),
-        (
-            {
-                "x": pd.Period("2012-01-01", freq="D"),
-                "y": pd.Period("2012-02-01", freq="D"),
-                "z": pd.NaT,
-            },
-            None,
-        ),
+        "datetime64[ns]",
+        "period[d]",
+        "Sparse[float]",
     ],
 )
-def test_no_sort_keep_na(
-    request, sequence0, sequence1, sequence2, sequence3, uniques, dtype
-):
+@pytest.mark.parametrize("test_series", [True, False])
+def test_no_sort_keep_na(request, sequence_index, dtype, test_series):
     # GH#46584, GH#48794
-    sequence = "".join([sequence0, sequence1, sequence2, sequence3])
+
+    # Convert sequence_index into a string sequence, e.g. 5 becomes "xxyz"
+    # This sequence is used for the grouper.
+    sequence = "".join(
+        [{0: "x", 1: "y", 2: "z"}[sequence_index // (3**k) % 3] for k in range(4)]
+    )
+
     if dtype == "category" and "z" in sequence:
         # Only xfail when nulls are present
         msg = "dropna=False not correct for categorical, GH#48645"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    if dtype == "datetime64[ns]" and sequence == "zzzz":
-        msg = "Cannot construct datetime of all nulls"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    weights = {"x": 1, "y": 2, "z": 3}
 
-    key = pd.Series([uniques[label] for label in sequence], dtype=dtype)
-    df = pd.DataFrame({"key": key, "a": [weights[label] for label in sequence]})
+    # Unique values to use for grouper, depends on dtype
+    if dtype in ("string", "string[pyarrow]"):
+        uniques = {"x": "x", "y": "y", "z": pd.NA}
+    elif dtype in ("datetime64[ns]", "period[d]"):
+        uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
+    else:
+        uniques = {"x": 1, "y": 2, "z": np.nan}
+
+    df = pd.DataFrame(
+        {
+            "key": pd.Series([uniques[label] for label in sequence], dtype=dtype),
+            "a": [0, 1, 2, 3],
+        }
+    )
     gb = df.groupby("key", dropna=False, sort=False)
-
+    if test_series:
+        gb = gb["a"]
     result = gb.sum()
+
     # Manually compute the groupby sum, use the labels "x", "y", and "z" to avoid
     # issues with hashing np.nan
     summed = {}
-    for label in sequence:
-        summed[label] = summed.get(label, 0) + weights[label]
-
+    for idx, label in enumerate(sequence):
+        summed[label] = summed.get(label, 0) + idx
     if dtype == "category":
         index = pd.CategoricalIndex(
-            [uniques[label] for label in summed],
-            # Get the nonnull categories in the order they appear ignoring duplicates
+            [uniques[e] for e in summed],
             list({uniques[k]: 0 for k in sequence if not pd.isnull(uniques[k])}),
             name="key",
         )
+    elif isinstance(dtype, str) and dtype.startswith("Sparse"):
+        index = pd.Index(
+            pd.array([uniques[label] for label in summed], dtype=dtype), name="key"
+        )
     else:
         index = pd.Index([uniques[label] for label in summed], dtype=dtype, name="key")
-    expected = pd.Series(summed.values(), index=index, name="a", dtype=None).to_frame()
-    tm.assert_frame_equal(result, expected)
+    expected = pd.Series(summed.values(), index=index, name="a", dtype=None)
+    if not test_series:
+        expected = expected.to_frame()
+
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("test_series", [True, False])
