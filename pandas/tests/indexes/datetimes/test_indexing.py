@@ -388,6 +388,25 @@ class TestTake:
 
 
 class TestGetLoc:
+    def test_get_loc_key_unit_mismatch(self):
+        idx = date_range("2000-01-01", periods=3)
+        key = idx[1]._as_unit("ms")
+        loc = idx.get_loc(key)
+        assert loc == 1
+        assert key in idx
+
+    def test_get_loc_key_unit_mismatch_not_castable(self):
+        dta = date_range("2000-01-01", periods=3)._data.astype("M8[s]")
+        dti = DatetimeIndex(dta)
+        key = dta[0]._as_unit("ns") + pd.Timedelta(1)
+
+        with pytest.raises(
+            KeyError, match=r"Timestamp\('2000-01-01 00:00:00.000000001'\)"
+        ):
+            dti.get_loc(key)
+
+        assert key not in dti
+
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
     @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_method_exact_match(self, method):
