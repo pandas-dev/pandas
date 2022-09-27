@@ -17,6 +17,14 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    def test_sub_datetime_preserves_reso(self, tz_naive_fixture):
+        dti = date_range("2016-01-01", periods=12, tz=tz_naive_fixture)
+
+        res = dti - dti[0]
+        expected = pd.timedelta_range("0 Days", "11 Days")
+        tm.assert_index_equal(res, expected)
+        assert res.freq == expected.freq
+
     def test_time_overflow_for_32bit_machines(self):
         # GH8943.  On some machines NumPy defaults to np.int32 (for example,
         # 32-bit Linux machines).  In the function _generate_regular_range
