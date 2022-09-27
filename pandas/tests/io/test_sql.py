@@ -1423,31 +1423,27 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         ):
             sql.SQLTable("test_type", db, frame=df)
 
-    def test_sqlalchemy_numeric_type_mapping(self):
+    def test_sqlalchemy_oracle_number_type_mapping(self):
         from numpy import (
             float64,
             int64,
         )
-        from sqlalchemy import (
-            Column,
-            MetaData,
-            Table,
-        )
         from sqlalchemy.dialects.oracle import NUMBER
 
         # GH34988 Lost precision of NUMBER in read_sql_table()
-        metadata = MetaData()
-        table = Table(
-            "test_type",
-            metadata,
-            Column("a", NUMBER(precision=5, scale=2)),
-            Column("b", NUMBER(precision=5, scale=0)),
-        )
-        table.create(self.conn)
+        df = DataFrame([0, 1], columns=["a"], dtype=float64)
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable("test_type", db, frame=df)
 
-        df1 = read_sql_table("test_type", self.conn)
-        assert df1.a.dtype == float64
-        assert df1.b.dtype == int64
+        column = sqlalchemy.sql.schema.Column(
+            "a",
+            NUMBER(precision=5, scale=2),
+        )
+        col_type = table._get_dtype(column.type)
+        assert col_type == float64
+        column = sqlalchemy.sql.schema.Column("b", NUMBER(precision=5))
+        col_type = table._get_dtype(column.type)
+        assert col_type == int64
 
     def test_database_uri_string(self, test_frame1):
         # Test read_sql and .to_sql method with a database URI (GH10654)
