@@ -104,7 +104,7 @@ class TestNonNano:
     def test_add_datetimelike_scalar(self, tda, tz_naive_fixture):
         ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture)
 
-        expected = tda + ts._as_unit(tda._unit)
+        expected = tda + ts.as_unit(tda._unit)
         res = tda + ts
         tm.assert_extension_array_equal(res, expected)
         res = ts + tda
@@ -119,7 +119,7 @@ class TestNonNano:
             # mismatched reso -> check that we don't give an incorrect result
             ts + tda
 
-        ts = ts._as_unit(tda._unit)
+        ts = ts.as_unit(tda._unit)
 
         exp_values = tda._ndarray + ts.asm8
         expected = (

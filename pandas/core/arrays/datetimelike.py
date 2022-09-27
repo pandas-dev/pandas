@@ -1137,7 +1137,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # Just as with Timestamp/Timedelta, we cast to the lower resolution
             #  so long as doing so is lossless.
             if self._reso < other._reso:
-                other = other._as_unit(self._unit, round_ok=False)
+                other = other.as_unit(self._unit, round_ok=False)
             else:
                 unit = npy_unit_to_abbrev(other._reso)
                 self = self._as_unit(unit)

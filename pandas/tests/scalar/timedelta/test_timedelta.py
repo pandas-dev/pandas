@@ -30,29 +30,29 @@ class TestAsUnit:
     def test_as_unit(self):
         td = Timedelta(days=1)
 
-        assert td._as_unit("ns") is td
+        assert td.as_unit("ns") is td
 
-        res = td._as_unit("us")
+        res = td.as_unit("us")
         assert res.value == td.value // 1000
         assert res._reso == NpyDatetimeUnit.NPY_FR_us.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == td.value
         assert rt._reso == td._reso
 
-        res = td._as_unit("ms")
+        res = td.as_unit("ms")
         assert res.value == td.value // 1_000_000
         assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == td.value
         assert rt._reso == td._reso
 
-        res = td._as_unit("s")
+        res = td.as_unit("s")
         assert res.value == td.value // 1_000_000_000
         assert res._reso == NpyDatetimeUnit.NPY_FR_s.value
 
-        rt = res._as_unit("ns")
+        rt = res.as_unit("ns")
         assert rt.value == td.value
         assert rt._reso == td._reso
 
@@ -63,15 +63,15 @@ class TestAsUnit:
 
         msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            td._as_unit("ns")
+            td.as_unit("ns")
 
-        res = td._as_unit("ms")
+        res = td.as_unit("ms")
         assert res.value == us // 1000
         assert res._reso == NpyDatetimeUnit.NPY_FR_ms.value
 
     def test_as_unit_rounding(self):
         td = Timedelta(microseconds=1500)
-        res = td._as_unit("ms")
+        res = td.as_unit("ms")
 
         expected = Timedelta(milliseconds=1)
         assert res == expected
@@ -80,18 +80,18 @@ class TestAsUnit:
         assert res.value == 1
 
         with pytest.raises(ValueError, match="Cannot losslessly convert units"):
-            td._as_unit("ms", round_ok=False)
+            td.as_unit("ms", round_ok=False)
 
     def test_as_unit_non_nano(self):
         # case where we are going neither to nor from nano
-        td = Timedelta(days=1)._as_unit("ms")
+        td = Timedelta(days=1).as_unit("ms")
         assert td.days == 1
         assert td.value == 86_400_000
         assert td.components.days == 1
         assert td._d == 1
         assert td.total_seconds() == 86400
 
-        res = td._as_unit("us")
+        res = td.as_unit("us")
         assert res.value == 86_400_000_000
         assert res.components.days == 1
         assert res.components.hours == 0
@@ -733,7 +733,7 @@ class TestTimedeltas:
 
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_round_non_nano(self, unit):
-        td = Timedelta("1 days 02:34:57")._as_unit(unit)
+        td = Timedelta("1 days 02:34:57").as_unit(unit)
 
         res = td.round("min")
         assert res == Timedelta("1 days 02:35:00")

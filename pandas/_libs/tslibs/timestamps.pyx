@@ -257,6 +257,10 @@ cdef class _Timestamp(ABCTimestamp):
         )
         return self._freq
 
+    @property
+    def unit(self) -> str:
+        return npy_unit_to_abbrev(self._reso)
+
     # -----------------------------------------------------------------
     # Constructors
 
@@ -1113,7 +1117,20 @@ cdef class _Timestamp(ABCTimestamp):
         value = convert_reso(self.value, self._reso, reso, round_ok=round_ok)
         return type(self)._from_value_and_reso(value, reso=reso, tz=self.tzinfo)
 
-    def _as_unit(self, str unit, bint round_ok=True):
+    def as_unit(self, str unit, bint round_ok=True):
+        """
+        Convert the underlying int64 representaton to the given unit.
+
+        Parameters
+        ----------
+        unit : {"ns", "us", "ms", "s"}
+        round_ok : bool, default True
+            If False and the conversion requires rounding, raise.
+
+        Returns
+        -------
+        Timestamp
+        """
         dtype = np.dtype(f"M8[{unit}]")
         reso = get_unit_from_dtype(dtype)
         try:

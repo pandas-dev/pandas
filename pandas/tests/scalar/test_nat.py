@@ -190,7 +190,7 @@ def test_nat_iso_format(get_nat):
 @pytest.mark.parametrize(
     "klass,expected",
     [
-        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period"]),
+        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "unit"]),
         (
             Timedelta,
             [
@@ -200,6 +200,7 @@ def test_nat_iso_format(get_nat):
                 "resolution_string",
                 "to_pytimedelta",
                 "to_timedelta64",
+                "unit",
                 "view",
             ],
         ),
@@ -262,6 +263,7 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
         (
             Timestamp,
             [
+                "as_unit",
                 "astimezone",
                 "ceil",
                 "combine",
