@@ -1447,7 +1447,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             NUMBER(precision=5, scale=2),
         )
         col_type = table._get_dtype(column.type)
-        assert col_type == float64
+        assert col_type == float
         column = sqlalchemy.sql.schema.Column("b", NUMBER(precision=5))
         col_type = table._get_dtype(column.type)
         assert col_type == int64
