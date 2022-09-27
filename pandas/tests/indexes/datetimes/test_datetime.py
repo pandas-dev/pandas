@@ -18,6 +18,7 @@ import pandas._testing as tm
 
 class TestDatetimeIndex:
     def test_sub_datetime_preserves_reso(self, tz_naive_fixture):
+        # GH#48818
         dti = date_range("2016-01-01", periods=12, tz=tz_naive_fixture)
 
         res = dti - dti[0]
