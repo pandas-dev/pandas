@@ -165,6 +165,7 @@ cdef inline _Timestamp create_timestamp_from_ts(
     ts_base.value = value
     ts_base._freq = freq
     ts_base.year = dts.year
+    ts_base._hour = dts.hour
     ts_base.nanosecond = dts.ps // 1000
     ts_base._reso = reso
 
@@ -2368,6 +2369,13 @@ default 'raise'
                  self.microsecond / 3600.0 / 1e+6 +
                  self.nanosecond / 3600.0 / 1e+9
                  ) / 24.0)
+
+    @property
+    def hour(self):
+        """
+        My hour
+        """
+        return self._hour
 
     def isoweekday(self):
         """
