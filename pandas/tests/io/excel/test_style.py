@@ -121,13 +121,6 @@ shared_style_params = [
         ["border", "left", "style"],
         "hair",
     ),
-    ("border-left-style: hair;", ["border", "left", "style"], "hair"),
-    # CSS should default to black if style provided w/o color
-    (
-        "border-left-style: hair;",
-        ["border", "left", "color", "rgb"],
-        {"xlsxwriter": "FF000000", "openpyxl": "00000000"},
-    ),
 ]
 
 
