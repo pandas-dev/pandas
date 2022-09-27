@@ -915,7 +915,9 @@ class Index(IndexOpsMixin, PandasObject):
             # We need to keep M8/m8 dtype when initializing the Engine,
             #  but don't want to change _get_engine_target bc it is used
             #  elsewhere
-            target_values = self._data._ndarray
+            # error: Item "ExtensionArray" of "Union[ExtensionArray,
+            # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
+            target_values = self._data._ndarray  # type: ignore[union-attr]
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
