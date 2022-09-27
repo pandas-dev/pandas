@@ -72,9 +72,11 @@ Fixed regressions
 - Fixed Regression in :meth:`Series.__setitem__` casting ``None`` to ``NaN`` for object dtype (:issue:`48665`)
 - Fixed Regression in :meth:`DataFrame.loc` when setting values as a :class:`DataFrame` with all ``True`` indexer (:issue:`48701`)
 - Regression in :func:`.read_csv` causing an ``EmptyDataError`` when using an UTF-8 file handle that was already read from (:issue:`48646`)
+- Fixed regression in :meth:`DataFrame.describe` raising ``TypeError`` when result contains ``NA`` (:issue:`48778`)
 - Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
 - Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
--
+- Fixed regression causing an ``AttributeError`` during warning emitted if the provided table name in :meth:`DataFrame.to_sql` and the table name actually used in the database do not match (:issue:`48733`)
+- Fixed :meth:`.DataFrameGroupBy.size` not returning a Series when ``axis=1`` (:issue:`48738`)
 
 .. ---------------------------------------------------------------------------
 
@@ -82,7 +84,9 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :meth:`Series.__getitem__` not falling back to positional for integer keys and boolean :class:`Index` (:issue:`48653`)
 - Bug in :meth:`DataFrame.to_hdf` raising ``AssertionError`` with boolean index (:issue:`48667`)
+- Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError`` (:issue:`48608`)
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
 -
 
@@ -92,6 +96,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Avoid showing deprecated signatures when introspecting functions with warnings about arguments becoming keyword-only (:issue:`48692`)
 -
 -
 
