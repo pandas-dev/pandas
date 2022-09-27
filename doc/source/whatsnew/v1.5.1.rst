@@ -75,6 +75,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.describe` raising ``TypeError`` when result contains ``NA`` (:issue:`48778`)
 - Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
 - Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
+- Fixed Regression in :meth:`DataFrameGroupBy.apply` when user defined function is called on an empty dataframe (:issue:`47985`)
 -
 
 .. ---------------------------------------------------------------------------
