@@ -237,38 +237,37 @@ class TestNonNano:
         assert res._reso == td._reso
 
     def test_addsub_mismatched_reso(self, td):
-        other = Timedelta(days=1)  # can losslessly convert to other resos
+        # need to cast to since td is out of bounds for ns, so
+        #  so we would raise OverflowError without casting
+        other = Timedelta(days=1)._as_unit("us")
 
+        # td is out of bounds for ns
         result = td + other
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == td.days + 1
 
         result = other + td
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == td.days + 1
 
         result = td - other
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == td.days - 1
 
         result = other - td
-        assert result._reso == td._reso
+        assert result._reso == other._reso
         assert result.days == 1 - td.days
 
-        other2 = Timedelta(500)  # can't cast losslessly
-
-        msg = (
-            "Timedelta addition/subtraction with mismatched resolutions is "
-            "not allowed when casting to the lower resolution would require "
-            "lossy rounding"
-        )
-        with pytest.raises(ValueError, match=msg):
+        other2 = Timedelta(500)
+        # TODO: should be OutOfBoundsTimedelta
+        msg = "value too large"
+        with pytest.raises(OverflowError, match=msg):
             td + other2
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OverflowError, match=msg):
             other2 + td
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OverflowError, match=msg):
             td - other2
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OverflowError, match=msg):
             other2 - td
 
     def test_min(self, td):

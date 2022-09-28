@@ -787,19 +787,12 @@ def _binary_op_method_timedeltalike(op, name):
             # e.g. if original other was timedelta64('NaT')
             return NaT
 
-        # We allow silent casting to the lower resolution if and only
-        #  if it is lossless.
-        try:
-            if self._reso < other._reso:
-                other = (<_Timedelta>other)._as_reso(self._reso, round_ok=False)
-            elif self._reso > other._reso:
-                self = (<_Timedelta>self)._as_reso(other._reso, round_ok=False)
-        except ValueError as err:
-            raise ValueError(
-                "Timedelta addition/subtraction with mismatched resolutions is not "
-                "allowed when casting to the lower resolution would require "
-                "lossy rounding."
-            ) from err
+        # Matching numpy, we cast to the higher resolution. Unlike numpy,
+        #  we raise instead of silently overflowing during this casting.
+        if self._reso < other._reso:
+            self = (<_Timedelta>self)._as_reso(other._reso, round_ok=True)
+        elif self._reso > other._reso:
+            other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
 
         res = op(self.value, other.value)
         if res == NPY_NAT:
