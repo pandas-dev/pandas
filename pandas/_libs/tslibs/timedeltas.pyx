@@ -1681,7 +1681,13 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(value):
             value = ensure_td64ns(value)
         elif is_tick_object(value):
-            value = np.timedelta64(value.nanos, 'ns')
+            try:
+                value = np.timedelta64(value.nanos, "ns")
+            except OverflowError as err:
+                # e.g. pd.offsets.Day(10_000_000_000)
+                raise OutOfBoundsTimedelta(
+                    f"Cannot cast {value} to unit=ns without overflow"
+                ) from err
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
