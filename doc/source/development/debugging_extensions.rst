@@ -87,7 +87,7 @@ By default your debug will simply print the type and memory address of a PyObjec
    (gdb) p __pyx_v_obj
    $1 = (PyObject *) 0x5555558b91e0
 
-Derefencing this will yield the standard PyObject struct members of the object, which provides some more visiblity
+Dereferencing this will yield the standard PyObject struct members of the object, which provides some more visibility
 
 .. code-block:: sh
 
