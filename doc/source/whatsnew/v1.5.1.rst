@@ -89,7 +89,7 @@ Bug fixes
 - Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError`` (:issue:`48608`)
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
 - Bug in :meth:`DataFrame.sort_values` emitting unnecessary ``FutureWarning`` when called on :class:`DataFrame` with boolean sparse columns (:issue:`48784`)
-- Bug when writing to Excel leading to error when unrecognized ``border-style`` (including ``"hair"``) provided to Excel writers (:issue:`48649`)
+- Bug in :meth:`.Styler.to_excel` leading to error when unrecognized ``border-style`` (including ``"hair"``) provided to Excel writers (:issue:`48649`)
 -
 
 .. ---------------------------------------------------------------------------
