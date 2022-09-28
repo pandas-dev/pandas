@@ -213,7 +213,7 @@ class TestNonNano:
         dti = pd.date_range("2016-01-01", periods=3) - td
         dta = dti._data._as_unit("us")
 
-        res = dta + td._as_unit("us")
+        res = dta + td.as_unit("us")
         # even though the result is an even number of days
         #  (so we _could_ downcast to unit="s"), we do not.
         assert res._unit == "us"

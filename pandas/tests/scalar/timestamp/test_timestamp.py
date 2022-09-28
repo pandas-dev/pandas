@@ -1032,8 +1032,8 @@ class TestNonNano:
 
     def test_addition_doesnt_downcast_reso(self):
         # https://github.com/pandas-dev/pandas/pull/48748#pullrequestreview-1122635413
-        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999)._as_unit("us")
-        td = Timedelta(microseconds=1)._as_unit("us")
+        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999).as_unit("us")
+        td = Timedelta(microseconds=1).as_unit("us")
         res = ts + td
         assert res._reso == ts._reso
 
