@@ -26,11 +26,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             *args.paths,
             "--aggressive",
         ],
-        capture_output=True,
-        text=True,
     )
-    sys.stdout.write(output.stdout)
-    sys.stdout.write(output.stderr)
     sys.exit(output.returncode)
 
 
