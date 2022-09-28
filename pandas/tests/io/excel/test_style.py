@@ -203,7 +203,7 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
 
 
 # From https://openpyxl.readthedocs.io/en/stable/api/openpyxl.styles.borders.html
-# Note: Leaving behavior of "width"-type styles undefined; user should use border-width 
+# Note: Leaving behavior of "width"-type styles undefined; user should use border-width
 # instead
 excel_border_styles = [
     # "thin",
@@ -228,11 +228,13 @@ excel_border_styles = [
 )
 @pytest.mark.parametrize("border_style", excel_border_styles)
 def test_styler_to_excel_border_style(engine, border_style):
-    css = "; ".join((
-        f"border-left-style: {border_style}",
-        "border-left-color: black",
-        "border-left-width: thin"
-    ))
+    css = "; ".join(
+        (
+            f"border-left-style: {border_style}",
+            "border-left-color: black",
+            "border-left-width: thin",
+        )
+    )
     attrs = ["border", "left", "style"]
     expected = border_style
 

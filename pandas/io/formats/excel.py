@@ -161,7 +161,8 @@ class CSSToExcelConverter:
     }
 
     BORDER_STYLE_MAP = {
-        style.lower(): style for style in [
+        style.lower(): style
+        for style in [
             "dashed",
             "mediumDashDot",
             "dashDotDot",
