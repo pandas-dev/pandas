@@ -16,6 +16,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     args = parser.parse_args(argv)
+    if not args.paths:
+        sys.exit(0)
     output = subprocess.run(
         [
             "python",
