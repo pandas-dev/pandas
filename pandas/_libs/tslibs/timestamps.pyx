@@ -65,7 +65,6 @@ from pandas._libs.tslibs.util cimport (
     is_array,
     is_datetime64_object,
     is_integer_object,
-    is_timedelta64_object,
 )
 
 from pandas._libs.tslibs.fields import (
@@ -107,7 +106,6 @@ from pandas._libs.tslibs.offsets cimport (
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
     delta_to_nanoseconds,
-    ensure_td64ns,
     is_any_td_scalar,
 )
 
@@ -432,55 +430,18 @@ cdef class _Timestamp(ABCTimestamp):
             int64_t nanos = 0
 
         if is_any_td_scalar(other):
-            if is_timedelta64_object(other):
-                other_reso = get_datetime64_unit(other)
-                if (
-                    other_reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
-                ):
-                    # TODO: deprecate allowing this?  We only get here
-                    #  with test_timedelta_add_timestamp_interval
-                    other = np.timedelta64(other.view("i8"), "ns")
-                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
-                elif (
-                    other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
-                ):
-                    # TODO: deprecate allowing these?  or handle more like the
-                    #  corresponding DateOffsets?
-                    # TODO: no tests get here
-                    other = ensure_td64ns(other)
-                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
+            other = Timedelta(other)
 
-                if other_reso > NPY_DATETIMEUNIT.NPY_FR_ns:
-                    # TODO: no tests
-                    other = ensure_td64ns(other)
-                if other_reso > self._reso:
-                    # Following numpy, we cast to the higher resolution
-                    # test_sub_timedelta64_mismatched_reso
-                    self = (<_Timestamp>self)._as_reso(other_reso)
+            # TODO: share this with __sub__, Timedelta.__add__
+            # Matching numpy, we cast to the higher resolution. Unlike numpy,
+            #  we raise instead of silently overflowing during this casting.
+            if self._reso < other._reso:
+                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
+            elif self._reso > other._reso:
+                other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
 
-
-            if isinstance(other, _Timedelta):
-                # TODO: share this with __sub__, Timedelta.__add__
-                # Matching numpy, we cast to the higher resolution. Unlike numpy,
-                #  we raise instead of silently overflowing during this casting.
-                if self._reso < other._reso:
-                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
-                elif self._reso > other._reso:
-                    other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
-
-            try:
-                nanos = delta_to_nanoseconds(
-                    other, reso=self._reso, round_ok=False
-                )
-            except OutOfBoundsTimedelta:
-                raise
-
-            try:
-                new_value = self.value + nanos
-            except OverflowError:
-                # Use Python ints
-                # Hit in test_tdi_add_overflow
-                new_value = int(self.value) + int(nanos)
+            nanos = other.value
+            new_value = self.value + nanos
 
             try:
                 result = type(self)._from_value_and_reso(

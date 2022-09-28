@@ -884,12 +884,7 @@ class TestNonNano:
     )
     def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
 
-        if isinstance(td, Timedelta):
-            # td._reso is ns
-            exp_reso = td._reso
-        else:
-            # effective td._reso is s
-            exp_reso = ts._reso
+        exp_reso = max(ts._reso, Timedelta(td)._reso)
 
         result = ts - td
         expected = Timestamp(dt64) - td
