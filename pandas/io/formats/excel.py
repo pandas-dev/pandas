@@ -160,6 +160,21 @@ class CSSToExcelConverter:
         "fantasy": 5,  # decorative
     }
 
+    BORDER_STYLE_MAP = {
+        style.lower(): style for style in [
+            "dashed",
+            "mediumDashDot",
+            "dashDotDot",
+            "hair",
+            "dotted",
+            "mediumDashDotDot",
+            "double",
+            "dashDot",
+            "slantDashDot",
+            "mediumDashed",
+        ]
+    }
+
     # NB: Most of the methods here could be classmethods, as only __init__
     #     and __call__ make use of instance attributes.  We leave them as
     #     instancemethods so that users can easily experiment with extensions
@@ -299,17 +314,9 @@ class CSSToExcelConverter:
             if width_name in ("hair", "thin"):
                 return "dashed"
             return "mediumDashed"
-        elif style in (
-            "hair",
-            "mediumDashDot",
-            "dashDotDot",
-            "mediumDashDotDot",
-            "dashDot",
-            "slantDashDot",
-            "mediumDashed",
-        ):
+        elif style in self.BORDER_STYLE_MAP:
             # Excel-specific styles
-            return style
+            return self.BORDER_STYLE_MAP[style]
         else:
             warnings.warn(
                 f"Unhandled border style format: {repr(style)}",
