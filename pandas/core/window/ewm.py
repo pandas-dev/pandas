@@ -910,7 +910,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrame | None = None,
+        times: np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
         *,
