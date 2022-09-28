@@ -4,10 +4,7 @@ import datetime
 from functools import partial
 import inspect
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -221,7 +218,7 @@ class ExponentialMovingWindow(BaseWindow):
 
         For `Series` this parameter is unused and defaults to 0.
 
-    times : str, np.ndarray, Series, default None
+    times : np.ndarray, Series, default None
 
         .. versionadded:: 1.1.0
 
@@ -231,9 +228,6 @@ class ExponentialMovingWindow(BaseWindow):
         ``datetime64[ns]`` dtype.
 
         If 1-D array like, a sequence with the same shape as the observations.
-
-        .. deprecated:: 1.4.0
-            If str, the name of the column in the DataFrame representing the times.
 
     method : str {'single', 'table'}, default 'single'
         .. versionadded:: 1.4.0
@@ -384,18 +378,6 @@ class ExponentialMovingWindow(BaseWindow):
         if self.times is not None:
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
-            if isinstance(self.times, str):
-                warnings.warn(
-                    (
-                        "Specifying times as a string column label is deprecated "
-                        "and will be removed in a future version. Pass the column "
-                        "into times instead."
-                    ),
-                    FutureWarning,
-                    stacklevel=find_stack_level(inspect.currentframe()),
-                )
-                # self.times cannot be str anymore
-                self.times = cast("Series", self._selected_obj[self.times])
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             if len(self.times) != len(obj):

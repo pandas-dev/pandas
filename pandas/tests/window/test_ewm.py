@@ -236,17 +236,6 @@ def test_float_dtype_ewma(func, expected, float_numpy_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_times_string_col_deprecated():
-    # GH 43265
-    data = np.arange(10.0)
-    data[::2] = np.nan
-    df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
-    with tm.assert_produces_warning(FutureWarning, match="Specifying times"):
-        result = df.ewm(halflife="1 day", min_periods=0, times="time_col").mean()
-        expected = df.ewm(halflife=1.0, min_periods=0).mean()
-    tm.assert_frame_equal(result, expected)
-
-
 def test_ewm_sum_adjust_false_notimplemented():
     data = Series(range(1)).ewm(com=1, adjust=False)
     with pytest.raises(NotImplementedError, match="sum is not"):
