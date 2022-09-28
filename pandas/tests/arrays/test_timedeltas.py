@@ -104,22 +104,13 @@ class TestNonNano:
     def test_add_datetimelike_scalar(self, tda, tz_naive_fixture):
         ts = pd.Timestamp("2016-01-01", tz=tz_naive_fixture)
 
-        expected = tda + ts.as_unit(tda._unit)
+        expected = tda._as_unit("ns") + ts
         res = tda + ts
         tm.assert_extension_array_equal(res, expected)
         res = ts + tda
         tm.assert_extension_array_equal(res, expected)
 
-        ts += Timedelta(1)  # so we can't cast losslessly
-        msg = "Cannot losslessly convert units"
-        with pytest.raises(ValueError, match=msg):
-            # mismatched reso -> check that we don't give an incorrect result
-            tda + ts
-        with pytest.raises(ValueError, match=msg):
-            # mismatched reso -> check that we don't give an incorrect result
-            ts + tda
-
-        ts = ts.as_unit(tda._unit)
+        ts += Timedelta(1)  # case where we can't cast losslessly
 
         exp_values = tda._ndarray + ts.asm8
         expected = (
@@ -185,34 +176,18 @@ class TestNonNano:
         # TODO(2.0): just do `tda_nano = tda.astype("m8[ns]")`
         tda_nano = TimedeltaArray(tda._ndarray.astype("m8[ns]"))
 
-        msg = "mis-matched resolutions is not yet supported"
-        expected = tda * 2
+        expected = tda_nano * 2
         res = tda_nano + tda
         tm.assert_extension_array_equal(res, expected)
         res = tda + tda_nano
         tm.assert_extension_array_equal(res, expected)
 
-        expected = tda * 0
+        expected = tda_nano * 0
         res = tda - tda_nano
         tm.assert_extension_array_equal(res, expected)
 
         res = tda_nano - tda
         tm.assert_extension_array_equal(res, expected)
-
-        tda_nano[:] = np.timedelta64(1, "ns")  # can't round losslessly
-        msg = "Cannot losslessly cast '-?1 ns' to"
-        with pytest.raises(ValueError, match=msg):
-            tda_nano + tda
-        with pytest.raises(ValueError, match=msg):
-            tda + tda_nano
-        with pytest.raises(ValueError, match=msg):
-            tda - tda_nano
-        with pytest.raises(ValueError, match=msg):
-            tda_nano - tda
-
-        result = tda_nano + tda_nano
-        expected = tda_nano * 2
-        tm.assert_extension_array_equal(result, expected)
 
 
 class TestTimedeltaArray:

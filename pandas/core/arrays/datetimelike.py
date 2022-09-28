@@ -1134,13 +1134,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return DatetimeArray._simple_new(result, dtype=result.dtype)
 
         if self._reso != other._reso:
-            # Just as with Timestamp/Timedelta, we cast to the lower resolution
-            #  so long as doing so is lossless.
+            # Just as with Timestamp/Timedelta, we cast to the higher resolution
             if self._reso < other._reso:
-                other = other.as_unit(self._unit, round_ok=False)
-            else:
                 unit = npy_unit_to_abbrev(other._reso)
                 self = self._as_unit(unit)
+            else:
+                other = other._as_unit(self._unit)
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
@@ -1296,12 +1295,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("DatetimeArray | TimedeltaArray", self)
 
         if self._reso != other._reso:
-            # Just as with Timestamp/Timedelta, we cast to the lower resolution
-            #  so long as doing so is lossless.
+            # Just as with Timestamp/Timedelta, we cast to the higher resolution
             if self._reso < other._reso:
-                other = other._as_unit(self._unit)
-            else:
                 self = self._as_unit(other._unit)
+            else:
+                other = other._as_unit(self._unit)
 
         self_i8 = self.asi8
         other_i8 = other.asi8
@@ -2039,7 +2037,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     def _as_unit(self: TimelikeOpsT, unit: str) -> TimelikeOpsT:
         dtype = np.dtype(f"{self.dtype.kind}8[{unit}]")
-        new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=False)
+        new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=True)
 
         if isinstance(self.dtype, np.dtype):
             new_dtype = new_values.dtype
