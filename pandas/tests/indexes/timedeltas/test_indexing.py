@@ -77,7 +77,7 @@ class TestGetItem:
 class TestGetLoc:
     def test_get_loc_key_unit_mismatch(self):
         idx = to_timedelta(["0 days", "1 days", "2 days"])
-        key = idx[1]._as_unit("ms")
+        key = idx[1].as_unit("ms")
         loc = idx.get_loc(key)
         assert loc == 1
 
@@ -89,7 +89,7 @@ class TestGetLoc:
         tda2 = type(tda)._simple_new(arr, dtype=arr.dtype)
         tdi = TimedeltaIndex(tda2)
         assert tdi.dtype == "m8[s]"
-        key = tda[0]._as_unit("ns") + Timedelta(1)
+        key = tda[0].as_unit("ns") + Timedelta(1)
 
         with pytest.raises(KeyError, match=r"Timedelta\('0 days 00:00:00.000000001'\)"):
             tdi.get_loc(key)
