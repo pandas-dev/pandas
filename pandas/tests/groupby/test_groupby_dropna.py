@@ -394,7 +394,7 @@ def test_groupby_drop_nan_with_multi_index():
 
 
 # sequence_index enumerates all strings made up of x, y, z of length 4
-@pytest.mark.parametrize("sequence_index", range(3**4 + 1))
+@pytest.mark.parametrize("sequence_index", range(3**4))
 @pytest.mark.parametrize(
     "dtype",
     [
