@@ -90,7 +90,7 @@ Bug fixes
 - Bug in :func:`assert_index_equal` for extension arrays with non matching ``NA`` raising ``ValueError`` (:issue:`48608`)
 - Bug in :meth:`DataFrame.pivot_table` raising unexpected ``FutureWarning`` when setting datetime column as index (:issue:`48683`)
 - Bug in :meth:`DataFrame.sort_values` emitting unnecessary ``FutureWarning`` when called on :class:`DataFrame` with boolean sparse columns (:issue:`48784`)
--
+- Bug in :class:`.arrays.ArrowExtensionArray` with a comparison operator to an invalid object would not raise a ``NotImplementedError`` (:issue:`?`)
 
 .. ---------------------------------------------------------------------------
 
