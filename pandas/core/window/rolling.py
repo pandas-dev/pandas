@@ -1960,22 +1960,7 @@ class Rolling(RollingAndExpandingMixin):
         agg_method="count",
     )
     def count(self, numeric_only: bool = False):
-        if self.min_periods is None:
-            warnings.warn(
-                (
-                    "min_periods=None will default to the size of window "
-                    "consistent with other methods in a future version. "
-                    "Specify min_periods=0 instead."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-            self.min_periods = 0
-            result = super().count()
-            self.min_periods = None
-        else:
-            result = super().count(numeric_only)
-        return result
+        return super().count(numeric_only)
 
     @doc(
         template_header,
