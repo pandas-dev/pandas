@@ -241,19 +241,6 @@ def test_iter_expanding_series(ser, expected, min_periods):
         tm.assert_series_equal(actual, expected)
 
 
-def test_center_deprecate_warning():
-    # GH 20647
-    df = DataFrame()
-    with tm.assert_produces_warning(FutureWarning):
-        df.expanding(center=True)
-
-    with tm.assert_produces_warning(FutureWarning):
-        df.expanding(center=False)
-
-    with tm.assert_produces_warning(None):
-        df.expanding()
-
-
 def test_expanding_sem(frame_or_series):
     # GH: 26476
     obj = frame_or_series([0, 1, 2])

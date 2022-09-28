@@ -12089,17 +12089,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method: str = "single",
     ) -> Expanding:
         axis = self._get_axis_number(axis)
-        if center is not None:
-            warnings.warn(
-                "The `center` argument on `expanding` will be removed in the future.",
-                FutureWarning,
-                stacklevel=find_stack_level(inspect.currentframe()),
-            )
-        else:
-            center = False
-
         return Expanding(
-            self, min_periods=min_periods, center=center, axis=axis, method=method
+            self, min_periods=min_periods, center=False, axis=axis, method=method
         )
 
     @final
