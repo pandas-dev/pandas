@@ -239,7 +239,7 @@ class TestNonNano:
     def test_addsub_mismatched_reso(self, td):
         # need to cast to since td is out of bounds for ns, so
         #  so we would raise OverflowError without casting
-        other = Timedelta(days=1)._as_unit("us")
+        other = Timedelta(days=1).as_unit("us")
 
         # td is out of bounds for ns
         result = td + other

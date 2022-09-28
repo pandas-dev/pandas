@@ -964,7 +964,7 @@ class TestNonNano:
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            exp = ts._as_unit(npy_unit_to_abbrev(other._reso)) - other2
+            exp = ts.as_unit(npy_unit_to_abbrev(other._reso)) - other2
 
             res = ts - other2
             assert res == exp
@@ -975,7 +975,7 @@ class TestNonNano:
             assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            exp = ts2 - other._as_unit(npy_unit_to_abbrev(ts2._reso))
+            exp = ts2 - other.as_unit(npy_unit_to_abbrev(ts2._reso))
 
             res = ts2 - other
             assert res == exp
@@ -1012,7 +1012,7 @@ class TestNonNano:
         if ts._reso < other._reso:
             # Case where rounding is lossy
             other2 = other + Timedelta._from_value_and_reso(1, other._reso)
-            exp = ts._as_unit(npy_unit_to_abbrev(other._reso)) + other2
+            exp = ts.as_unit(npy_unit_to_abbrev(other._reso)) + other2
             res = ts + other2
             assert res == exp
             assert res._reso == max(ts._reso, other._reso)
@@ -1021,7 +1021,7 @@ class TestNonNano:
             assert res._reso == max(ts._reso, other._reso)
         else:
             ts2 = ts + Timedelta._from_value_and_reso(1, ts._reso)
-            exp = ts2 + other._as_unit(npy_unit_to_abbrev(ts2._reso))
+            exp = ts2 + other.as_unit(npy_unit_to_abbrev(ts2._reso))
 
             res = ts2 + other
             assert res == exp
@@ -1034,7 +1034,7 @@ class TestNonNano:
         ts = ts_tz
 
         res = ts + np.timedelta64(1, "ns")
-        exp = ts._as_unit("ns") + np.timedelta64(1, "ns")
+        exp = ts.as_unit("ns") + np.timedelta64(1, "ns")
         assert exp == res
         assert exp._reso == NpyDatetimeUnit.NPY_FR_ns.value
 
