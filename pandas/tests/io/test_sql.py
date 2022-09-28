@@ -1357,10 +1357,17 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_warning_case_insensitive_table_name(self, test_frame1):
         # see gh-7815
-        #
-        # We can't test that this warning is triggered, a the database
-        # configuration would have to be altered. But here we test that
-        # the warning is certainly NOT triggered in a normal case.
+        with tm.assert_produces_warning(
+            UserWarning,
+            match=(
+                r"The provided table name 'TABLE1' is not found exactly as such in "
+                r"the database after writing the table, possibly due to case "
+                r"sensitivity issues. Consider using lower case table names."
+            ),
+        ):
+            sql.SQLDatabase(self.conn).check_case_sensitive("TABLE1", "")
+
+        # Test that the warning is certainly NOT triggered in a normal case.
         with tm.assert_produces_warning(None):
             test_frame1.to_sql("CaseSensitive", self.conn)
 

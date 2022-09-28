@@ -49,12 +49,13 @@ from pandas._typing import (
     AnyAll,
     ArrayLike,
     Axes,
-    AxisInt,
+    Axis,
     DropKeep,
     Dtype,
     DtypeObj,
     F,
     IgnoreRaise,
+    IndexLabel,
     Level,
     Shape,
     npt,
@@ -910,6 +911,13 @@ class Index(IndexOpsMixin, PandasObject):
             return libindex.Complex64Engine(target_values)
         elif target_values.dtype == np.complex128:
             return libindex.Complex128Engine(target_values)
+        elif needs_i8_conversion(self.dtype):
+            # We need to keep M8/m8 dtype when initializing the Engine,
+            #  but don't want to change _get_engine_target bc it is used
+            #  elsewhere
+            # error: Item "ExtensionArray" of "Union[ExtensionArray,
+            # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
+            target_values = self._data._ndarray  # type: ignore[union-attr]
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -1180,7 +1188,7 @@ class Index(IndexOpsMixin, PandasObject):
     def take(
         self,
         indices,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
@@ -2167,7 +2175,7 @@ class Index(IndexOpsMixin, PandasObject):
     get_level_values = _get_level_values
 
     @final
-    def droplevel(self, level=0):
+    def droplevel(self, level: IndexLabel = 0):
         """
         Return index with requested level(s) removed.
 
@@ -3684,7 +3692,12 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
-        the_diff = this._values.take(label_diff)
+
+        the_diff: MultiIndex | ArrayLike
+        if isinstance(this, ABCMultiIndex):
+            the_diff = this.take(label_diff)
+        else:
+            the_diff = this._values.take(label_diff)
         the_diff = _maybe_try_sort(the_diff, sort)
 
         return the_diff
@@ -5862,7 +5875,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
-    def shift(self, periods=1, freq=None):
+    def shift(self, periods: int = 1, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
@@ -6012,7 +6025,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        return not self.holds_integer() and not self.is_boolean()
+        return not self.holds_integer()
 
     def _get_values_for_loc(self, series: Series, loc, key):
         """

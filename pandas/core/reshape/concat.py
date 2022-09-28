@@ -390,7 +390,7 @@ class _Concatenator:
     def __init__(
         self,
         objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
-        axis=0,
+        axis: Axis = 0,
         join: str = "outer",
         keys=None,
         levels=None,
