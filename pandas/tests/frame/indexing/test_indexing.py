@@ -1414,6 +1414,15 @@ class TestDataFrameIndexing:
         df.loc[n * [True], ["x", "y"]] = df[["x", "y"]]
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_rhs_empty_warning(self):
+        # GH48480
+        df = DataFrame(columns=["a", "b"])
+        expected = df.copy()
+        rhs = DataFrame(columns=["a"])
+        with tm.assert_produces_warning(None):
+            df.loc[:, "a"] = rhs
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
