@@ -677,3 +677,10 @@ def test_constructor_missing_keyword(kwargs):
 
     with pytest.raises(TypeError, match=msg):
         Timestamp(**kwargs)
+
+
+@pytest.mark.parametrize("nano", [-1, 1000])
+def test_timestamp_nano_range(nano):
+    # GH 48255
+    with pytest.raises(ValueError, match="nanosecond must be in 0..999"):
+        Timestamp(year=2022, month=1, day=1, nanosecond=nano)
