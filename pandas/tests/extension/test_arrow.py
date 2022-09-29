@@ -1670,6 +1670,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
                     ser.combine(other, comparison_op)
 
     def test_invalid_other_comp(self, data, comparison_op):
+        # GH 48833
         with pytest.raises(
             NotImplementedError, match=".* not implemented for <class 'object'>"
         ):
