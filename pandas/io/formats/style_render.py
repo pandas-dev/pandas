@@ -1109,7 +1109,7 @@ class StylerRenderer:
         CSS protected characters but used as separators in Excel's format string.
         Replace semi-colons with the section separator character (ASCII-245) when
         defining the formatting here, or wrap the entire string in quotes to
-        have the value passed directly through to the writter.
+        have the value passed directly through to the writer.
 
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: '0;[Red](0);-;@';"
