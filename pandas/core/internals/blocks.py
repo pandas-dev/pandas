@@ -26,9 +26,12 @@ from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     F,
+    FillnaOptions,
     IgnoreRaise,
+    QuantileInterpolation,
     Shape,
     npt,
 )
@@ -537,7 +540,7 @@ class Block(PandasObject):
         return newb
 
     @final
-    def to_native_types(self, na_rep="nan", quoting=None, **kwargs) -> Block:
+    def to_native_types(self, na_rep: str = "nan", quoting=None, **kwargs) -> Block:
         """convert to our native types format"""
         result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
         return self.make_block(result)
@@ -860,7 +863,7 @@ class Block(PandasObject):
     def take_nd(
         self,
         indexer: npt.NDArray[np.intp],
-        axis: int,
+        axis: AxisInt,
         new_mgr_locs: BlockPlacement | None = None,
         fill_value=lib.no_default,
     ) -> Block:
@@ -1053,7 +1056,7 @@ class Block(PandasObject):
                     res_blocks.extend(rbs)
                 return res_blocks
 
-    def where(self, other, cond, _downcast="infer") -> list[Block]:
+    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1212,8 +1215,8 @@ class Block(PandasObject):
 
     def interpolate(
         self,
-        method: str = "pad",
-        axis: int = 0,
+        method: FillnaOptions = "pad",
+        axis: AxisInt = 0,
         index: Index | None = None,
         inplace: bool = False,
         limit: int | None = None,
@@ -1274,13 +1277,15 @@ class Block(PandasObject):
         nb = self.make_block_same_class(data)
         return nb._maybe_downcast([nb], downcast)
 
-    def diff(self, n: int, axis: int = 1) -> list[Block]:
+    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
         """return block for the diff of the values"""
         # only reached with ndim == 2 and axis == 1
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:
+    def shift(
+        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
+    ) -> list[Block]:
         """shift the block by periods, possibly upcast"""
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -1314,7 +1319,10 @@ class Block(PandasObject):
 
     @final
     def quantile(
-        self, qs: Float64Index, interpolation="linear", axis: int = 0
+        self,
+        qs: Float64Index,
+        interpolation: QuantileInterpolation = "linear",
+        axis: AxisInt = 0,
     ) -> Block:
         """
         compute the quantiles of the
@@ -1438,7 +1446,7 @@ class EABackedBlock(Block):
         else:
             return self
 
-    def where(self, other, cond, _downcast="infer") -> list[Block]:
+    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
         # _downcast private bc we only specify it when calling from fillna
         arr = self.values.T
 
@@ -1611,8 +1619,15 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    def interpolate(
-        self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
+    # error: Signature of "interpolate" incompatible with supertype "Block"
+    def interpolate(  # type: ignore[override]
+        self,
+        method: FillnaOptions = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        fill_value=None,
+        **kwargs,
     ):
         values = self.values
         if values.ndim == 2 and axis == 0:
@@ -1808,13 +1823,15 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
-    def diff(self, n: int, axis: int = 1) -> list[Block]:
+    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
         # only reached with ndim == 2 and axis == 1
         # TODO(EA2D): Can share with NDArrayBackedExtensionBlock
         new_values = algos.diff(self.values, n, axis=0)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:
+    def shift(
+        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
+    ) -> list[Block]:
         """
         Shift the block by `periods`.
 
@@ -1916,7 +1933,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
-    def diff(self, n: int, axis: int = 0) -> list[Block]:
+    def diff(self, n: int, axis: AxisInt = 0) -> list[Block]:
         """
         1st discrete difference.
 
@@ -1942,7 +1959,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         new_values = values - values.shift(n, axis=axis)
         return [self.make_block(new_values)]
 
-    def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:
+    def shift(
+        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
+    ) -> list[Block]:
         values = self.values
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return [self.make_block_same_class(new_values)]
@@ -2252,10 +2271,10 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
 def to_native_types(
     values: ArrayLike,
     *,
-    na_rep="nan",
+    na_rep: str = "nan",
     quoting=None,
     float_format=None,
-    decimal=".",
+    decimal: str = ".",
     **kwargs,
 ) -> np.ndarray:
     """convert to our native types format"""

@@ -12,6 +12,8 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
 )
 
+from pandas.util.version import InvalidVersion
+
 
 class IntCastingNaNError(ValueError):
     """
@@ -535,6 +537,24 @@ class CategoricalConversionWarning(Warning):
     """
 
 
+class LossySetitemError(Exception):
+    """
+    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+    """
+
+
+class NoBufferPresent(Exception):
+    """
+    Exception is raised in _get_data_buffer to signal that there is no requested buffer.
+    """
+
+
+class InvalidComparison(Exception):
+    """
+    Exception is raised by _validate_comparison_value to indicate an invalid comparison.
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AccessorRegistrationWarning",
@@ -550,9 +570,13 @@ __all__ = [
     "IncompatibilityWarning",
     "IntCastingNaNError",
     "InvalidColumnName",
+    "InvalidComparison",
     "InvalidIndexError",
+    "InvalidVersion",
     "IndexingError",
+    "LossySetitemError",
     "MergeError",
+    "NoBufferPresent",
     "NullFrequencyError",
     "NumbaUtilError",
     "NumExprClobberingError",

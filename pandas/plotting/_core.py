@@ -1485,7 +1485,7 @@ class PlotAccessor(PandasObject):
 
     density = kde
 
-    def area(self, x=None, y=None, stacked=True, **kwargs) -> PlotAccessor:
+    def area(self, x=None, y=None, stacked: bool = True, **kwargs) -> PlotAccessor:
         """
         Draw a stacked area plot.
 

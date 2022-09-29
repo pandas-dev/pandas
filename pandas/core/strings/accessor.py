@@ -9,6 +9,7 @@ from typing import (
     Callable,
     Hashable,
     Iterator,
+    Literal,
     cast,
 )
 import warnings
@@ -17,6 +18,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
+    AlignJoin,
     DtypeObj,
     F,
     Scalar,
@@ -260,7 +262,7 @@ class StringMethods(NoNewAttributesMixin):
         name=None,
         expand: bool | None = None,
         fill_value=np.nan,
-        returns_string=True,
+        returns_string: bool = True,
         returns_bool: bool = False,
     ):
         from pandas import (
@@ -427,7 +429,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes", "mixed", "mixed-integer"])
     def cat(
-        self, others=None, sep=None, na_rep=None, join="left"
+        self,
+        others=None,
+        sep=None,
+        na_rep=None,
+        join: AlignJoin = "left",
     ) -> str | Series | Index:
         """
         Concatenate strings in the Series/Index with given separator.
@@ -855,7 +861,7 @@ class StringMethods(NoNewAttributesMixin):
         self,
         pat: str | re.Pattern | None = None,
         n=-1,
-        expand=False,
+        expand: bool = False,
         *,
         regex: bool | None = None,
     ):
@@ -883,7 +889,7 @@ class StringMethods(NoNewAttributesMixin):
     )
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "pat"])
     @forbid_nonstring_types(["bytes"])
-    def rsplit(self, pat=None, n=-1, expand=False):
+    def rsplit(self, pat=None, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -979,7 +985,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def partition(self, sep=" ", expand=True):
+    def partition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_partition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -993,7 +999,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def rpartition(self, sep=" ", expand=True):
+    def rpartition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_rpartition(sep, expand)
         return self._wrap_result(result, expand=expand, returns_string=expand)
 
@@ -1127,7 +1133,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def contains(self, pat, case=True, flags=0, na=None, regex=True):
+    def contains(
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+    ):
         r"""
         Test if pattern or regex is contained within a string of a Series or Index.
 
@@ -1263,7 +1271,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def match(self, pat, case=True, flags=0, na=None):
+    def match(self, pat, case: bool = True, flags: int = 0, na=None):
         """
         Determine if each string starts with a match of a regular expression.
 
@@ -1295,7 +1303,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def fullmatch(self, pat, case=True, flags=0, na=None):
+    def fullmatch(self, pat, case: bool = True, flags: int = 0, na=None):
         """
         Determine if each string entirely matches a regular expression.
 
@@ -1553,7 +1561,12 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def pad(self, width, side="left", fillchar=" "):
+    def pad(
+        self,
+        width,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
         """
         Pad strings in the Series/Index up to width.
 
@@ -1642,17 +1655,17 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
     @forbid_nonstring_types(["bytes"])
-    def center(self, width, fillchar=" "):
+    def center(self, width, fillchar: str = " "):
         return self.pad(width, side="both", fillchar=fillchar)
 
     @Appender(_shared_docs["str_pad"] % {"side": "right", "method": "ljust"})
     @forbid_nonstring_types(["bytes"])
-    def ljust(self, width, fillchar=" "):
+    def ljust(self, width, fillchar: str = " "):
         return self.pad(width, side="right", fillchar=fillchar)
 
     @Appender(_shared_docs["str_pad"] % {"side": "left", "method": "rjust"})
     @forbid_nonstring_types(["bytes"])
-    def rjust(self, width, fillchar=" "):
+    def rjust(self, width, fillchar: str = " "):
         return self.pad(width, side="left", fillchar=fillchar)
 
     @forbid_nonstring_types(["bytes"])
@@ -1874,7 +1887,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_slice_replace(start, stop, repl)
         return self._wrap_result(result)
 
-    def decode(self, encoding, errors="strict"):
+    def decode(self, encoding, errors: str = "strict"):
         """
         Decode character string in the Series/Index using indicated encoding.
 
@@ -1903,7 +1916,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def encode(self, encoding, errors="strict"):
+    def encode(self, encoding, errors: str = "strict"):
         """
         Encode character string in the Series/Index using indicated encoding.
 
@@ -2152,7 +2165,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def get_dummies(self, sep="|"):
+    def get_dummies(self, sep: str = "|"):
         """
         Return DataFrame of dummy/indicator variables for Series.
 
@@ -2221,7 +2234,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def count(self, pat, flags=0):
+    def count(self, pat, flags: int = 0):
         r"""
         Count occurrences of pattern in each string of the Series/Index.
 
@@ -2429,7 +2442,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def findall(self, pat, flags=0):
+    def findall(self, pat, flags: int = 0):
         """
         Find all occurrences of pattern or regular expression in the Series/Index.
 
@@ -2650,7 +2663,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
-    def extractall(self, pat, flags=0):
+    def extractall(self, pat, flags: int = 0):
         r"""
         Extract capture groups in the regex `pat` as columns in DataFrame.
 
@@ -2763,7 +2776,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def find(self, sub, start=0, end=None):
+    def find(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -2780,7 +2793,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def rfind(self, sub, start=0, end=None):
+    def rfind(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -2847,7 +2860,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def index(self, sub, start=0, end=None):
+    def index(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -2865,7 +2878,7 @@ class StringMethods(NoNewAttributesMixin):
         }
     )
     @forbid_nonstring_types(["bytes"])
-    def rindex(self, sub, start=0, end=None):
+    def rindex(self, sub, start: int = 0, end=None):
         if not isinstance(sub, str):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
@@ -3334,7 +3347,7 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     return [names.get(1 + i, i) for i in range(regex.groups)]
 
 
-def str_extractall(arr, pat, flags=0):
+def str_extractall(arr, pat, flags: int = 0):
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:
