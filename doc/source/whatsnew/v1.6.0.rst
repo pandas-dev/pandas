@@ -116,7 +116,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 -
 
 .. ---------------------------------------------------------------------------
@@ -166,6 +166,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`pandas.infer_freq`, raising ``TypeError`` when inferred on :class:`RangeIndex` (:issue:`47084`)
 - Bug in :class:`DatetimeIndex` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``dtype`` or data (:issue:`48659`)
+- Bug in subtracting a ``datetime`` scalar from :class:`DatetimeIndex` failing to retain the original ``freq`` attribute (:issue:`48818`)
 
 Timedelta
 ^^^^^^^^^
@@ -207,7 +208,7 @@ Indexing
 
 Missing
 ^^^^^^^
-- Bug in :meth:`Index.equals` raising ``TypeError` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
+- Bug in :meth:`Index.equals` raising ``TypeError`` when :class:`Index` consists of tuples that contain ``NA`` (:issue:`48446`)
 -
 
 MultiIndex
