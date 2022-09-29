@@ -1740,6 +1740,7 @@ class Timedelta(_Timedelta):
             new_reso = get_supported_reso(value._reso)
             new_value = delta_to_nanoseconds(value, reso=new_reso)
             return cls._from_value_and_reso(new_value, reso=new_reso)
+
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)

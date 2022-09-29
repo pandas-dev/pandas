@@ -280,6 +280,7 @@ cdef class _Timestamp(ABCTimestamp):
             )
 
         obj.value = value
+        obj.reso = reso
         pandas_datetime_to_datetimestruct(value, reso, &obj.dts)
         maybe_localize_tso(obj, tz, reso)
 
@@ -1674,7 +1675,7 @@ class Timestamp(_Timestamp):
             if not is_offset_object(freq):
                 freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold, ts.reso)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         cdef:
