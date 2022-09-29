@@ -514,7 +514,7 @@ cpdef array_to_datetime(
                         found_tz = True
                         if utc_convert:
                             _ts = convert_datetime_to_tsobject(val, None)
-                            iresult[i] = _ts.value
+                            iresult[i] = Timestamp(val)._as_unit("ns").value
                         elif found_naive:
                             raise ValueError('Tz-aware datetime.datetime '
                                              'cannot be converted to '
@@ -527,7 +527,7 @@ cpdef array_to_datetime(
                             found_tz = True
                             tz_out = val.tzinfo
                             _ts = convert_datetime_to_tsobject(val, None)
-                            iresult[i] = _ts.value
+                            iresult[i] = Timestamp(val)._as_unit("ns").value
 
                     else:
                         found_naive = True
@@ -535,7 +535,7 @@ cpdef array_to_datetime(
                             raise ValueError('Cannot mix tz-aware with '
                                              'tz-naive values')
                         if isinstance(val, _Timestamp):
-                            iresult[i] = val.value
+                            iresult[i] = val._as_unit("ns").value
                         else:
                             iresult[i] = pydatetime_to_dt64(val, &dts)
                             check_dts_bounds(&dts)

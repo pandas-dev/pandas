@@ -1183,6 +1183,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             new_message = str(err).replace("compare", "subtract")
             raise type(err)(new_message) from err
 
+        if other._reso != self._reso:
+            if other._reso < self._reso:
+                other = other._as_unit(self._unit)
+            else:
+                unit = npy_unit_to_abbrev(other._reso)
+                self = self._as_unit(unit)
+
         i8 = self.asi8
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
         res_m8 = result.view(f"timedelta64[{self._unit}]")

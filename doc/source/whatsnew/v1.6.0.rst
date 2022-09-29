@@ -117,7 +117,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
--
+- Passing a ``np.datetime64`` object with non-nanosecond resolution to :class:`Timestamp` will retain the input resolution if it is "s", "ms", or "ns"; otherwise it will be cast to the closest supported resolution (:issue:`??`)
 
 
 .. ---------------------------------------------------------------------------
