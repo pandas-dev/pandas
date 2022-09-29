@@ -1385,16 +1385,19 @@ class TextFileReader(abc.Iterator):
                 options[argname] = value
 
         for argname, default in _c_parser_defaults.items():
-            value = kwds[argname]
+            if argname in kwds:
+                value = kwds[argname]
 
-            if engine != "c" and value != default:
-                if "python" in engine and argname not in _python_unsupported:
-                    pass
-                else:
-                    raise ValueError(
-                        f"The {repr(argname)} option is not supported with the "
-                        f"{repr(engine)} engine"
-                    )
+                if engine != "c" and value != default:
+                    if "python" in engine and argname not in _python_unsupported:
+                        pass
+                    else:
+                        raise ValueError(
+                            f"The {repr(argname)} option is not supported with the "
+                            f"{repr(engine)} engine"
+                        )
+            else:
+                value = default
             options[argname] = value
 
         if engine == "python-fwf":
