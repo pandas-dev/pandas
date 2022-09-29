@@ -4520,6 +4520,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if inplace:
             self._update_inplace(obj)
+            return None
         else:
             return obj
 
@@ -6953,10 +6954,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                     result = self.T.fillna(value=value, limit=limit).T
 
-                    # error: Incompatible types in assignment (expression has type
-                    # "NDFrameT", variable has type "Union[ArrayManager,
-                    # SingleArrayManager, BlockManager, SingleBlockManager]")
-                    new_data = result  # type: ignore[assignment]
+                    new_data = result
                 else:
 
                     new_data = self._mgr.fillna(

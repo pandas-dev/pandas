@@ -687,17 +687,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         # multi-index components
         codes = self.grouper.reconstructed_codes
-        # error: Incompatible types in assignment (expression has type
-        # "List[ndarray[Any, dtype[_SCT]]]",
-        # variable has type "List[ndarray[Any, dtype[signedinteger[Any]]]]")
-        codes = [  # type: ignore[assignment]
-            rep(level_codes) for level_codes in codes
-        ] + [llab(lab, inc)]
-        # error: List item 0 has incompatible type "Union[ndarray[Any, Any], Index]";
-        # expected "Index"
-        levels = [ping.group_index for ping in self.grouper.groupings] + [
-            lev  # type: ignore[list-item]
-        ]
+        codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
+        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -905,8 +896,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._op_via_apply("tshift", periods=periods, freq=freq)
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.plot.__doc__)
     def plot(self):
         result = GroupByPlot(self)
@@ -965,15 +955,13 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
         result = self._op_via_apply("is_monotonic_increasing")
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
         result = self._op_via_apply("is_monotonic_decreasing")
@@ -1012,8 +1000,7 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(Series.dtype.__doc__)
     def dtype(self) -> Series:
         result = self._op_via_apply("dtype")
@@ -2336,7 +2323,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._op_via_apply("tshift", periods=periods, freq=freq, axis=axis)
         return result
 
-    @property  # type: ignore[misc]
+    @property
     @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
         result = GroupByPlot(self)
@@ -2407,8 +2394,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         return result
 
-    # Decorated property not supported - https://github.com/python/mypy/issues/1362
-    @property  # type: ignore[misc]
+    @property
     @doc(DataFrame.dtypes.__doc__)
     def dtypes(self) -> Series:
         result = self._op_via_apply("dtypes")
