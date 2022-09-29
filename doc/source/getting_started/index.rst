@@ -560,10 +560,6 @@ the pandas-equivalent operations compared to software you already know:
     ---
     :card: + comparison-card-sql
     :img-top: ../_static/logo_sql.svg
-     :class: only-light
-
-    :img-top: ../_static/logo_sql_white.svg
-     :class: only-dark
 
     Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
     Most of these SQL manipulations do have equivalents in pandas.
