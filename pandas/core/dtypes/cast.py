@@ -1103,7 +1103,7 @@ def convert_dtypes(
         If `convert_integer` is also True, preference will be give to integer
         dtypes if the floats can be faithfully casted to integers.
     infer_objects : bool, defaults False
-        Whether to also infert objects to float/int if possible. Is only hit if the
+        Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
 
     Returns
