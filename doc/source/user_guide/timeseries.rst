@@ -1981,7 +1981,6 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
    p = pd.Period("2012-01", freq="2M")
    p + 2
    p - 1
-   @okexcept
    p == pd.Period("2012-01", freq="3M")
 
 

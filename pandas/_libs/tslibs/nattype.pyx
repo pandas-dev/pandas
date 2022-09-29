@@ -15,10 +15,6 @@ from cpython.datetime cimport (
 import_datetime()
 from cpython.object cimport (
     Py_EQ,
-    Py_GE,
-    Py_GT,
-    Py_LE,
-    Py_LT,
     Py_NE,
     PyObject_RichCompare,
 )

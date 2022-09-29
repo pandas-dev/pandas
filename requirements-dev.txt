@@ -77,7 +77,7 @@ gitdb
 natsort
 numpydoc
 pandas-dev-flaker==0.5.0
-pydata-sphinx-theme==0.8.0
+pydata-sphinx-theme
 pytest-cython
 sphinx
 sphinx-panels
@@ -99,6 +99,6 @@ feedparser
 pyyaml
 requests
 jupyterlab >=3.4,<4
-jupyterlite==0.1.0b10
+jupyterlite==0.1.0b12
 sphinx-toggleprompt
 setuptools>=51.0.0

@@ -4,11 +4,11 @@ import contextlib
 import functools
 import inspect
 import os
-from typing import Iterator
+from typing import Generator
 
 
 @contextlib.contextmanager
-def rewrite_exception(old_name: str, new_name: str) -> Iterator[None]:
+def rewrite_exception(old_name: str, new_name: str) -> Generator[None, None, None]:
     """
     Rewrite the message of an exception.
     """

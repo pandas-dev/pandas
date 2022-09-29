@@ -3174,6 +3174,42 @@ But assigning *any* temporary name to correct URI allows parsing by nodes.
 However, if XPath does not reference node names such as default, ``/*``, then
 ``namespaces`` is not required.
 
+.. note::
+
+   Since ``xpath`` identifies the parent of content to be parsed, only immediate
+   desendants which include child nodes or current attributes are parsed.
+   Therefore, ``read_xml`` will not parse the text of grandchildren or other
+   descendants and will not parse attributes of any descendant. To retrieve
+   lower level content, adjust xpath to lower level. For example,
+
+   .. ipython:: python
+        :okwarning:
+
+      xml = """
+      <data>
+        <row>
+          <shape sides="4">square</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="0">circle</shape>
+          <degrees>360</degrees>
+        </row>
+        <row>
+          <shape sides="3">triangle</shape>
+          <degrees>180</degrees>
+        </row>
+      </data>"""
+
+      df = pd.read_xml(xml, xpath="./row")
+      df
+
+   shows the attribute ``sides`` on ``shape`` element was not parsed as
+   expected since this attribute resides on the child of ``row`` element
+   and not ``row`` element itself. In other words, ``sides`` attribute is a
+   grandchild level descendant of ``row`` element. However, the ``xpath``
+   targets ``row`` element which covers only its children and attributes.
+
 With `lxml`_ as parser, you can flatten nested XML documents with an XSLT
 script which also can be string/file/URL types. As background, `XSLT`_ is
 a special-purpose language written in a special XML file that can transform

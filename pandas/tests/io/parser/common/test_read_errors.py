@@ -292,6 +292,18 @@ def test_conflict_on_bad_line(all_parsers, error_bad_lines, warn_bad_lines):
         parser.read_csv(StringIO(data), on_bad_lines="error", **kwds)
 
 
+def test_bad_header_uniform_error(all_parsers):
+    parser = all_parsers
+    data = "+++123456789...\ncol1,col2,col3,col4\n1,2,3,4\n"
+    msg = "Expected 2 fields in line 2, saw 4"
+    if parser.engine == "c":
+        msg = "Could not construct index. Requested to use 1 "
+        "number of columns, but 3 left to parse."
+
+    with pytest.raises(ParserError, match=msg):
+        parser.read_csv(StringIO(data), index_col=0, on_bad_lines="error")
+
+
 def test_on_bad_lines_warn_correct_formatting(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers

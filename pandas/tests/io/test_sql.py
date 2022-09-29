@@ -771,7 +771,7 @@ class PandasSQLTest:
         assert self.pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
         result = self.pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
-        result = result.set_index("level_0", copy=False)
+        result.set_index("level_0", inplace=True)
         # result.index.astype(int)
 
         result.index.name = None
@@ -928,7 +928,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # HACK!
         result.index = test_frame1.index
-        result = result.set_index("level_0", copy=False)
+        result.set_index("level_0", inplace=True)
         result.index.astype(int)
         result.index.name = None
         tm.assert_frame_equal(result, test_frame1)
@@ -1357,10 +1357,17 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_warning_case_insensitive_table_name(self, test_frame1):
         # see gh-7815
-        #
-        # We can't test that this warning is triggered, a the database
-        # configuration would have to be altered. But here we test that
-        # the warning is certainly NOT triggered in a normal case.
+        with tm.assert_produces_warning(
+            UserWarning,
+            match=(
+                r"The provided table name 'TABLE1' is not found exactly as such in "
+                r"the database after writing the table, possibly due to case "
+                r"sensitivity issues. Consider using lower case table names."
+            ),
+        ):
+            sql.SQLDatabase(self.conn).check_case_sensitive("TABLE1", "")
+
+        # Test that the warning is certainly NOT triggered in a normal case.
         with tm.assert_produces_warning(None):
             test_frame1.to_sql("CaseSensitive", self.conn)
 

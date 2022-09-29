@@ -131,11 +131,11 @@ pc_max_cols_doc = """
     a summary view. 'None' value means unlimited.
 
     In case python/IPython is running in a terminal and `large_repr`
-    equals 'truncate' this can be set to 0 and pandas will auto-detect
+    equals 'truncate' this can be set to 0 or None and pandas will auto-detect
     the width of the terminal and print a truncated object which fits
     the screen width. The IPython notebook, IPython qtconsole, or IDLE
     do not run in a terminal and hence it is not possible to do
-    correct auto-detection.
+    correct auto-detection and defaults to 20.
 """
 
 pc_max_categories_doc = """
@@ -365,7 +365,7 @@ with cf.config_prefix("display"):
         validator=is_one_of_factory([None, is_callable]),
     )
 
-    def _deprecate_column_space(key):
+    def _deprecate_column_space(key) -> None:
         warnings.warn(
             "column_space is deprecated and will be removed "
             "in a future version. Use df.to_string(col_space=...) "
@@ -390,7 +390,7 @@ with cf.config_prefix("display"):
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
-    def _deprecate_negative_int_max_colwidth(key):
+    def _deprecate_negative_int_max_colwidth(key) -> None:
         value = cf.get_option(key)
         if value is not None and value < 0:
             warnings.warn(

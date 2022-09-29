@@ -1347,7 +1347,7 @@ class TestMerge:
             ],
             columns=["a", "key", "b"],
         )
-        expected = expected.set_index(expected_index, copy=False)
+        expected.set_index(expected_index, inplace=True)
         tm.assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
@@ -2653,6 +2653,18 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
     df_2 = DataFrame(data=["X"], columns=["C"], index=[999])
     with pytest.raises(MergeError, match="Can only pass argument"):
         merge(df_1, df_2, on=["C"], left_index=True)
+
+
+def test_merge_on_left_categoricalindex():
+    # GH#48464 don't raise when left_on is a CategoricalIndex
+    ci = CategoricalIndex(range(3))
+
+    right = DataFrame({"A": ci, "B": range(3)})
+    left = DataFrame({"C": range(3, 6)})
+
+    res = merge(left, right, left_on=ci, right_on="A")
+    expected = merge(left, right, left_on=ci._data, right_on="A")
+    tm.assert_frame_equal(res, expected)
 
 
 @pytest.mark.parametrize("dtype", [None, "Int64"])

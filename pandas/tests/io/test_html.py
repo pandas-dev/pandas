@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import threading
+from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np
@@ -1139,7 +1140,9 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
+        self.read_html(
+            banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"]
+        )  # pylint: disable=redundant-keyword-arg
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
@@ -1277,7 +1280,7 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            def __iter__(self):
+            def __iter__(self) -> Iterator:
                 # to fool `is_file_like`, should never end up here
                 assert False
 
@@ -1416,3 +1419,18 @@ class TestReadHtml:
         )
         with pytest.raises(ValueError, match=msg):
             read_html(spam_data, extract_links="incorrect")
+
+    def test_extract_links_all_no_header(self):
+        # GH 48316
+        data = """
+        <table>
+          <tr>
+            <td>
+              <a href='https://google.com'>Google.com</a>
+            </td>
+          </tr>
+        </table>
+        """
+        result = self.read_html(data, extract_links="all")[0]
+        expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)

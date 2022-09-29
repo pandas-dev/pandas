@@ -19,28 +19,38 @@ from .pandas_vb_common import tm
 class SetOperations:
 
     params = (
-        ["datetime", "date_string", "int", "strings"],
+        ["monotonic", "non_monotonic"],
+        ["datetime", "date_string", "int", "strings", "ea_int"],
         ["intersection", "union", "symmetric_difference"],
     )
-    param_names = ["dtype", "method"]
+    param_names = ["index_structure", "dtype", "method"]
 
-    def setup(self, dtype, method):
+    def setup(self, index_structure, dtype, method):
         N = 10**5
         dates_left = date_range("1/1/2000", periods=N, freq="T")
         fmt = "%Y-%m-%d %H:%M:%S"
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))
+        ea_int_left = Index(np.arange(N), dtype="Int64")
         str_left = tm.makeStringIndex(N)
+
         data = {
-            "datetime": {"left": dates_left, "right": dates_left[:-1]},
-            "date_string": {"left": date_str_left, "right": date_str_left[:-1]},
-            "int": {"left": int_left, "right": int_left[:-1]},
-            "strings": {"left": str_left, "right": str_left[:-1]},
+            "datetime": dates_left,
+            "date_string": date_str_left,
+            "int": int_left,
+            "strings": str_left,
+            "ea_int": ea_int_left,
         }
+
+        if index_structure == "non_monotonic":
+            data = {k: mi[::-1] for k, mi in data.items()}
+
+        data = {k: {"left": idx, "right": idx[:-1]} for k, idx in data.items()}
+
         self.left = data[dtype]["left"]
         self.right = data[dtype]["right"]
 
-    def time_operation(self, dtype, method):
+    def time_operation(self, index_structure, dtype, method):
         getattr(self.left, method)(self.right)
 
 

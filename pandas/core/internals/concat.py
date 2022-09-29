@@ -17,6 +17,7 @@ from pandas._libs import (
 from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
     Manager,
     Shape,
@@ -29,7 +30,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_scalar,
     needs_i8_conversion,
@@ -38,7 +38,10 @@ from pandas.core.dtypes.concat import (
     cast_to_common_type,
     concat_compat,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -68,7 +71,7 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -147,16 +150,6 @@ def concat_arrays(to_concat: list) -> ArrayLike:
     else:
         target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 
-    if target_dtype.kind in ["m", "M"]:
-        # for datetimelike use DatetimeArray/TimedeltaArray concatenation
-        # don't use arr.astype(target_dtype, copy=False), because that doesn't
-        # work for DatetimeArray/TimedeltaArray (returns ndarray)
-        to_concat = [
-            arr.to_array(target_dtype) if isinstance(arr, NullArrayProxy) else arr
-            for arr in to_concat
-        ]
-        return type(to_concat_no_proxy[0])._concat_same_type(to_concat, axis=0)
-
     to_concat = [
         arr.to_array(target_dtype)
         if isinstance(arr, NullArrayProxy)
@@ -182,7 +175,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: int, copy: bool
+    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
 ) -> Manager:
     """
     Concatenate block managers into one.
@@ -359,7 +352,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
 
 class JoinUnit:
-    def __init__(self, block: Block, shape: Shape, indexers=None):
+    def __init__(self, block: Block, shape: Shape, indexers=None) -> None:
         # Passing shape explicitly is required for cases when block is None.
         # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
@@ -455,7 +448,7 @@ class JoinUnit:
         if upcasted_na is None and self.block.dtype.kind != "V":
             # No upcasting is necessary
             fill_value = self.block.fill_value
-            values = self.block.get_values()
+            values = self.block.values
         else:
             fill_value = upcasted_na
 
@@ -471,7 +464,8 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if is_datetime64tz_dtype(empty_dtype):
+                if isinstance(empty_dtype, DatetimeTZDtype):
+                    # NB: exclude e.g. pyarrow[dt64tz] dtypes
                     i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
@@ -532,7 +526,7 @@ class JoinUnit:
 
 
 def _concatenate_join_units(
-    join_units: list[JoinUnit], concat_axis: int, copy: bool
+    join_units: list[JoinUnit], concat_axis: AxisInt, copy: bool
 ) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
@@ -709,7 +703,7 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def _combine_concat_plans(plans, concat_axis: int):
+def _combine_concat_plans(plans, concat_axis: AxisInt):
     """
     Combine multiple concatenation plans into one.
 

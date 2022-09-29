@@ -7,6 +7,7 @@ import inspect
 from io import BytesIO
 import os
 from textwrap import fill
+from types import TracebackType
 from typing import (
     IO,
     Any,
@@ -1326,7 +1327,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             if_sheet_exists = "error"
         self._if_sheet_exists = if_sheet_exists
 
-    def _deprecate(self, attr: str):
+    def _deprecate(self, attr: str) -> None:
         """
         Deprecate attribute or method for ExcelWriter.
         """
@@ -1449,7 +1450,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     def __enter__(self) -> ExcelWriter:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def close(self) -> None:
@@ -1746,7 +1752,12 @@ class ExcelFile:
     def __enter__(self) -> ExcelFile:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
     def __del__(self) -> None:
