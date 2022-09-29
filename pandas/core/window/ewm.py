@@ -956,10 +956,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         self._mean.reset()
 
     def aggregate(self, func, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("aggregate is not implemented.")
 
     def std(self, bias: bool = False, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("std is not implemented.")
 
     def corr(
         self,
@@ -968,7 +968,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NotImplementedError
+        raise NotImplementedError("corr is not implemented.")
 
     def cov(
         self,
@@ -978,10 +978,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return NotImplementedError
+        raise NotImplementedError("cov is not implemented.")
 
     def var(self, bias: bool = False, *args, **kwargs):
-        return NotImplementedError
+        raise NotImplementedError("var is not implemented.")
 
     def mean(self, *args, update=None, update_times=None, **kwargs):
         """
