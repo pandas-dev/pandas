@@ -169,7 +169,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in :func:`to_timedelta` raising error when input has nullable dtype ``Float64`` (:issue:`48796`)
 -
 
 Timezones
