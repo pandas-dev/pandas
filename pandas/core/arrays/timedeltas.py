@@ -45,6 +45,7 @@ from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_dtype_equal,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -909,7 +910,11 @@ def sequence_to_td64ns(
     elif is_float_dtype(data.dtype):
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
-        mask = np.isnan(data)
+        if is_extension_array_dtype(data):
+            mask = data._mask
+            data = data._data
+        else:
+            mask = np.isnan(data)
         # The next few lines are effectively a vectorized 'cast_from_unit'
         m, p = precision_from_unit(unit or "ns")
         base = data.astype(np.int64)

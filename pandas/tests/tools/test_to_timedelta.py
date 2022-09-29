@@ -278,3 +278,10 @@ class TestTimedeltas:
         result = to_timedelta(arg2)
         assert isinstance(result, pd.Timedelta)
         assert result.value == dt64.view("i8")
+
+    def test_to_timedelta_numeric_ea(self, any_numeric_ea_dtype):
+        # GH#48796
+        ser = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
+        result = to_timedelta(ser)
+        expected = Series([pd.Timedelta(1, unit="ns"), pd.NaT])
+        tm.assert_series_equal(result, expected)
