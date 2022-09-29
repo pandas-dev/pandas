@@ -115,8 +115,10 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- Passing ``nanoseconds`` greater than 999 or less than 0 in :class:`Timestamp` now raises a ``ValueError`` (:issue:`48538`, :issue:`48255`)
 - :func:`read_csv`: specifying an incorrect number of columns with ``index_col`` of now raises ``ParserError`` instead of ``IndexError`` when using the c parser.
 -
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_160.deprecations:
@@ -158,7 +160,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :meth:`Categorical.set_categories` losing dtype information (:issue:`48812`)
 -
 
 Datetimelike
@@ -238,6 +240,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :class:`.ExponentialMovingWindow` with ``online`` not raising a ``NotImplementedError`` for unsupported operations (:issue:`48834`)
 - Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
 -
 
