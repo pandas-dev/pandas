@@ -158,7 +158,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :meth:`Categorical.set_categories` losing dtype information (:issue:`48812`)
 -
 
 Datetimelike
