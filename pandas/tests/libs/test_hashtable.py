@@ -89,7 +89,7 @@ class TestHashTable:
 
     def test_get_set_contains_len_mask(self, table_type, dtype):
         if table_type == ht.PyObjectHashTable:
-            pytest.skip("Mask not supporter for object")
+            pytest.skip("Mask not supported for object")
         index = 5
         table = table_type(55, uses_mask=True)
         assert len(table) == 0
@@ -147,7 +147,7 @@ class TestHashTable:
 
     def test_map_locations_mask(self, table_type, dtype, writable):
         if table_type == ht.PyObjectHashTable:
-            pytest.skip("Mask not supporter for object")
+            pytest.skip("Mask not supported for object")
         N = 3
         table = table_type(uses_mask=True)
         keys = (np.arange(N) + N).astype(dtype)
@@ -185,7 +185,7 @@ class TestHashTable:
 
     def test_lookup_mask(self, table_type, dtype, writable):
         if table_type == ht.PyObjectHashTable:
-            pytest.skip("Mask not supporter for object")
+            pytest.skip("Mask not supported for object")
         N = 3
         table = table_type(uses_mask=True)
         keys = (np.arange(N) + N).astype(dtype)

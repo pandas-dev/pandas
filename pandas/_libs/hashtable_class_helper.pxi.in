@@ -444,6 +444,20 @@ cdef class {{name}}HashTable(HashTable):
         }
 
     cpdef get_item(self, {{dtype}}_t val, bint na_value = False):
+        """Extracts the position of val or na_value from the hashtable.
+
+        Parameters
+        ----------
+        val : Scalar
+            The value that is looked up in the hashtable
+        na_value : bool, default False
+            Returns posiition of the NA value if using masked dtypes.
+
+        Returns
+        -------
+        The position of the requested integer.
+        """
+
         # Used in core.sorting, IndexEngine.get_loc
         # Caller is responsible for checking for pd.NA
         cdef:
