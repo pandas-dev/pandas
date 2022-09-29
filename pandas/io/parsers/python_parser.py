@@ -537,10 +537,7 @@ class PythonParser(ParserBase):
             num_original_columns = ncols
 
             if not names:
-                if self.prefix:
-                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
-                else:
-                    columns = [list(range(ncols))]
+                columns = [list(range(ncols))]
                 columns = self._handle_usecols(
                     columns, columns[0], num_original_columns
                 )
