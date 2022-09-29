@@ -5704,6 +5704,7 @@ Keep all original rows and also all original values
                 convert_integer,
                 convert_boolean,
                 convert_floating,
+                infer_objects,
             )
             result = input_series.astype(inferred_dtype)
         else:

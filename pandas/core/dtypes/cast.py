@@ -1083,6 +1083,7 @@ def convert_dtypes(
     convert_integer: bool = True,
     convert_boolean: bool = True,
     convert_floating: bool = True,
+    infer_objects: bool = False,
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1139,6 +1140,12 @@ def convert_dtypes(
                     inferred_dtype = target_int_dtype
                 else:
                     inferred_dtype = input_array.dtype
+            elif (
+                infer_objects
+                and is_object_dtype(input_array.dtype)
+                and inferred_dtype == "integer"
+            ):
+                inferred_dtype = target_int_dtype
 
         if convert_floating:
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
@@ -1160,6 +1167,12 @@ def convert_dtypes(
                         inferred_dtype = inferred_float_dtype
                 else:
                     inferred_dtype = inferred_float_dtype
+            elif (
+                infer_objects
+                and is_object_dtype(input_array.dtype)
+                and inferred_dtype == "mixed-integer-float"
+            ):
+                inferred_dtype = pandas_dtype("Float64")
 
         if convert_boolean:
             if is_bool_dtype(input_array.dtype):
