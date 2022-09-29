@@ -12084,14 +12084,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def expanding(
         self,
         min_periods: int = 1,
-        center: bool_t | None = None,
         axis: Axis = 0,
         method: str = "single",
     ) -> Expanding:
         axis = self._get_axis_number(axis)
-        return Expanding(
-            self, min_periods=min_periods, center=False, axis=axis, method=method
-        )
+        return Expanding(self, min_periods=min_periods, axis=axis, method=method)
 
     @final
     @doc(ExponentialMovingWindow)
