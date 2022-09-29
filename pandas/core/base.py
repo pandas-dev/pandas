@@ -30,7 +30,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    ScalarLike_co,
     Shape,
     npt,
 )
@@ -85,6 +84,7 @@ if TYPE_CHECKING:
         DropKeep,
         NumpySorter,
         NumpyValueArrayLike,
+        ScalarLike_co,
     )
 
     from pandas import (
