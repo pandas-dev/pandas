@@ -56,7 +56,10 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -1292,7 +1295,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError(
                 f"new categories must not include old categories: {already_included}"
             )
-        new_categories = list(self.dtype.categories) + list(new_categories)
+
+        if hasattr(new_categories, "dtype"):
+            from pandas import Series
+
+            dtype = find_common_type(
+                [self.dtype.categories.dtype, new_categories.dtype]
+            )
+            new_categories = Series(
+                list(self.dtype.categories) + list(new_categories), dtype=dtype
+            )
+        else:
+            new_categories = list(self.dtype.categories) + list(new_categories)
+
         new_dtype = CategoricalDtype(new_categories, self.ordered)
 
         cat = self if inplace else self.copy()
