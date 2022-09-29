@@ -75,8 +75,10 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.describe` raising ``TypeError`` when result contains ``NA`` (:issue:`48778`)
 - Fixed regression in :meth:`DataFrame.plot` ignoring invalid ``colormap`` for ``kind="scatter"`` (:issue:`48726`)
 - Fixed performance regression in :func:`factorize` when ``na_sentinel`` is not ``None`` and ``sort=False`` (:issue:`48620`)
-- Fixed Regression in :meth:`DataFrameGroupBy.apply` when user defined function is called on an empty dataframe (:issue:`47985`)
+- Fixed regression causing an ``AttributeError`` during warning emitted if the provided table name in :meth:`DataFrame.to_sql` and the table name actually used in the database do not match (:issue:`48733`)
+- Fixed regression in :func:`to_datetime` when ``arg`` was a date string with nanosecond and ``format`` contained ``%f`` would raise a ``ValueError`` (:issue:`48767`)
 - Fixed :meth:`.DataFrameGroupBy.size` not returning a Series when ``axis=1`` (:issue:`48738`)
+- Fixed Regression in :meth:`DataFrameGroupBy.apply` when user defined function is called on an empty dataframe (:issue:`47985`)
 -
 
 .. ---------------------------------------------------------------------------
