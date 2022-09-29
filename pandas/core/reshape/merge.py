@@ -1301,13 +1301,7 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = lk.astype(rk.dtype)  # type: ignore[arg-type]
 
-                        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
-                        # incompatible type "Union[ExtensionArray, ndarray[Any, Any],
-                        # Index, Series]"; expected "Union[_SupportsArray[dtype[Any]],
-                        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int,
-                        # float, complex, str, bytes, _NestedSequence[Union[bool,
-                        # int, float, complex, str, bytes]]]"
-                        mask = ~np.isnan(lk)  # type: ignore[arg-type]
+                        mask = ~np.isnan(lk)
                         match = lk == casted
                         # error: Item "ExtensionArray" of "Union[ExtensionArray,
                         # ndarray[Any, Any], Any]" has no attribute "all"
@@ -1329,13 +1323,7 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = rk.astype(lk.dtype)  # type: ignore[arg-type]
 
-                        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
-                        # incompatible type "Union[ExtensionArray, ndarray[Any, Any],
-                        # Index, Series]"; expected "Union[_SupportsArray[dtype[Any]],
-                        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int,
-                        # float, complex, str, bytes, _NestedSequence[Union[bool,
-                        # int, float, complex, str, bytes]]]"
-                        mask = ~np.isnan(rk)  # type: ignore[arg-type]
+                        mask = ~np.isnan(rk)
                         match = rk == casted
                         # error: Item "ExtensionArray" of "Union[ExtensionArray,
                         # ndarray[Any, Any], Any]" has no attribute "all"

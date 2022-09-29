@@ -687,7 +687,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
         # multi-index components
         codes = self.grouper.reconstructed_codes
-        codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
+        # error: Incompatible types in assignment (expression has type
+        # "List[ndarray[Any, dtype[_SCT]]]",
+        # variable has type "List[ndarray[Any, dtype[signedinteger[Any]]]]")
+        codes = [  # type: ignore[assignment]
+            rep(level_codes) for level_codes in codes
+        ] + [llab(lab, inc)]
         # error: List item 0 has incompatible type "Union[ndarray[Any, Any], Index]";
         # expected "Index"
         levels = [ping.group_index for ping in self.grouper.groupings] + [

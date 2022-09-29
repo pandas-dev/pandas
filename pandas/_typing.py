@@ -65,9 +65,19 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
 
+    ScalarLike_co = Union[
+        int,
+        float,
+        complex,
+        str,
+        bytes,
+        np.generic,
+    ]
+
     # numpy compatible types
-    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
-    NumpySorter = Optional[npt._ArrayLikeInt_co]
+    NumpyValueArrayLike = Union[ScalarLike_co, npt.ArrayLike]
+    # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
 else:
     npt: Any = None

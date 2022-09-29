@@ -775,10 +775,5 @@ def isna_all(arr: ArrayLike) -> bool:
         )
 
     return all(
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex, str,
-        # bytes, generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        checker(arr[i : i + chunk_len]).all()  # type: ignore[arg-type]
-        for i in range(0, total_len, chunk_len)
+        checker(arr[i : i + chunk_len]).all() for i in range(0, total_len, chunk_len)
     )
