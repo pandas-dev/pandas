@@ -10,6 +10,7 @@ from pandas import (
 )
 
 jinja2 = pytest.importorskip("jinja2")
+pytest.importorskip("tinycss2")
 from pandas.io.formats.style import Styler
 
 loader = jinja2.PackageLoader("pandas", "io/formats/templates")

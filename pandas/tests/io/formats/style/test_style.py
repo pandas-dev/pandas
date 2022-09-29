@@ -15,6 +15,7 @@ from pandas import (
 import pandas._testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
+pytest.importorskip("tinycss2")
 from pandas.io.formats.style import (  # isort:skip
     Styler,
 )

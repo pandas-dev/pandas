@@ -168,6 +168,7 @@ class TestSeriesMisc:
         assert result.attrs == {"version": 1}
 
     @skip_if_no("jinja2")
+    @skip_if_no("tinycss2")
     def test_inspect_getmembers(self):
         # GH38782
         ser = Series(dtype=object)

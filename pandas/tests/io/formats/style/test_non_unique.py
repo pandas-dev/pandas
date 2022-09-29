@@ -8,6 +8,7 @@ from pandas import (
 )
 
 pytest.importorskip("jinja2")
+pytest.importorskip("tinycss2")
 
 from pandas.io.formats.style import Styler
 

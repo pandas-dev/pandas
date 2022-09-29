@@ -11,6 +11,7 @@ import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
+pytest.importorskip("tinycss2")
 from pandas.io.formats.excel import (
     CssExcelCell,
     CSSToExcelConverter,

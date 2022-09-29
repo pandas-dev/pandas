@@ -15,6 +15,7 @@ from pandas.io.excel import (
 )
 
 openpyxl = pytest.importorskip("openpyxl")
+pytest.importorskip("tinycss2")
 
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 

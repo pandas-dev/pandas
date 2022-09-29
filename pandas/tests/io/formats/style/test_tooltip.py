@@ -4,6 +4,7 @@ import pytest
 from pandas import DataFrame
 
 pytest.importorskip("jinja2")
+pytest.importorskip("tinycss2")
 from pandas.io.formats.style import Styler
 
 

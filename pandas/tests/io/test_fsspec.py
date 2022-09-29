@@ -76,6 +76,7 @@ def test_to_csv(cleared_fs, df1):
 
 @pytest.mark.parametrize("ext", ["xls", "xlsx"])
 def test_to_excel(cleared_fs, ext, df1):
+    pytest.importorskip("tinycss2")
     if ext == "xls":
         pytest.importorskip("xlwt")
     else:
@@ -138,6 +139,7 @@ def test_read_table_options(fsspectest):
 
 @pytest.mark.parametrize("extension", ["xlsx", "xls"])
 def test_excel_options(fsspectest, extension):
+    pytest.importorskip("tinycss2")
     if extension == "xls":
         pytest.importorskip("xlwt")
     else:

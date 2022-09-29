@@ -3,6 +3,7 @@ import io
 import pytest
 
 from pandas.compat._optional import import_optional_dependency
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -31,6 +32,7 @@ def read_ext_xlrd(request):
     return request.param
 
 
+@td.skip_if_no("tinycss2")
 def test_read_xlrd_book(read_ext_xlrd, frame):
     df = frame
 

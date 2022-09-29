@@ -12,6 +12,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytest.importorskip("tinycss2")
 from pandas.io.excel import ExcelWriter
 from pandas.io.formats.excel import ExcelFormatter
 

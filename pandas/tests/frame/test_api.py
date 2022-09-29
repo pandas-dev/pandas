@@ -378,6 +378,7 @@ class TestDataFrameMisc:
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
 
     @skip_if_no("jinja2")
+    @skip_if_no("tinycss2")
     def test_inspect_getmembers(self):
         # GH38740
         df = DataFrame()

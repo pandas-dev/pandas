@@ -59,13 +59,39 @@ def set_engine(engine, ext):
 @pytest.mark.parametrize(
     "ext",
     [
-        pytest.param(".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param(".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
-        pytest.param(".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
         pytest.param(
-            ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]
+            ".xlsx",
+            marks=[
+                td.skip_if_no("openpyxl"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
         ),
-        pytest.param(".ods", marks=td.skip_if_no("odf")),
+        pytest.param(
+            ".xlsm",
+            marks=[
+                td.skip_if_no("openpyxl"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
+        ),
+        pytest.param(
+            ".xls",
+            marks=[
+                td.skip_if_no("xlwt"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
+        ),
+        pytest.param(
+            ".xlsx",
+            marks=[
+                td.skip_if_no("xlsxwriter"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
+        ),
+        pytest.param(".ods", marks=[td.skip_if_no("odf"), td.skip_if_no("tinycss2")]),
     ],
 )
 class TestRoundTrip:
@@ -312,22 +338,42 @@ class TestRoundTrip:
         pytest.param(
             "openpyxl",
             ".xlsx",
-            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+            marks=[
+                td.skip_if_no("openpyxl"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
         ),
         pytest.param(
             "openpyxl",
             ".xlsm",
-            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+            marks=[
+                td.skip_if_no("openpyxl"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
         ),
         pytest.param(
-            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
+            "xlwt",
+            ".xls",
+            marks=[
+                td.skip_if_no("xlwt"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
         ),
         pytest.param(
             "xlsxwriter",
             ".xlsx",
-            marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
+            marks=[
+                td.skip_if_no("xlsxwriter"),
+                td.skip_if_no("xlrd"),
+                td.skip_if_no("tinycss2"),
+            ],
         ),
-        pytest.param("odf", ".ods", marks=td.skip_if_no("odf")),
+        pytest.param(
+            "odf", ".ods", marks=[td.skip_if_no("odf"), td.skip_if_no("tinycss2")]
+        ),
     ],
 )
 @pytest.mark.usefixtures("set_engine")
@@ -1324,6 +1370,7 @@ class TestExcelWriterEngineTests:
         with pytest.raises(ValueError, match="No engine"):
             ExcelWriter("nothing")
 
+    @td.skip_if_no("tinycss2")
     def test_register_writer(self):
         class DummyClass(ExcelWriter):
             called_save = False
@@ -1386,6 +1433,7 @@ class TestExcelWriterEngineTests:
 
 @td.skip_if_no("xlrd")
 @td.skip_if_no("openpyxl")
+@td.skip_if_no("tinycss2")
 class TestFSPath:
     def test_excelfile_fspath(self):
         with tm.ensure_clean("foo.xlsx") as path:

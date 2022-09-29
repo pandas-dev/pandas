@@ -9,6 +9,7 @@ from pandas import (
 
 pytest.importorskip("matplotlib")
 pytest.importorskip("jinja2")
+pytest.importorskip("tinycss2")
 
 import matplotlib as mpl
 

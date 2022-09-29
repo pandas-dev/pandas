@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 jinja2 = pytest.importorskip("jinja2")
+jinja2 = pytest.importorskip("tinycss2")
 
 from pandas import (
     DataFrame,

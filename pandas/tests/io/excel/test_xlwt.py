@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -20,6 +22,7 @@ xlwt = pytest.importorskip("xlwt")
 pytestmark = pytest.mark.parametrize("ext,", [".xls"])
 
 
+@td.skip_if_no("tinycss2")
 def test_excel_raise_error_on_multiindex_columns_and_no_index(ext):
     # MultiIndex as columns is not yet implemented 9794
     cols = MultiIndex.from_tuples(
@@ -36,6 +39,7 @@ def test_excel_raise_error_on_multiindex_columns_and_no_index(ext):
             df.to_excel(path, index=False)
 
 
+@td.skip_if_no("tinycss2")
 def test_excel_multiindex_columns_and_index_true(ext):
     cols = MultiIndex.from_tuples(
         [("site", ""), ("2014", "height"), ("2014", "weight")]
@@ -45,6 +49,7 @@ def test_excel_multiindex_columns_and_index_true(ext):
         df.to_excel(path, index=True)
 
 
+@td.skip_if_no("tinycss2")
 def test_excel_multiindex_index(ext):
     # MultiIndex as index works so assert no error #9794
     cols = MultiIndex.from_tuples(
@@ -80,6 +85,7 @@ def test_write_append_mode_raises(ext):
             ExcelWriter(f, engine="xlwt", mode="a")
 
 
+@td.skip_if_no("tinycss2")
 def test_to_excel_xlwt_warning(ext):
     # GH 26552
     df = DataFrame(np.random.randn(3, 10))
@@ -101,6 +107,7 @@ def test_option_xls_writer_deprecated(ext):
         options.io.excel.xls.writer = "xlwt"
 
 
+@td.skip_if_no("tinycss2")
 @pytest.mark.parametrize("style_compression", [0, 2])
 def test_kwargs(ext, style_compression):
     # GH 42286
@@ -116,6 +123,7 @@ def test_kwargs(ext, style_compression):
                 DataFrame().to_excel(writer)
 
 
+@td.skip_if_no("tinycss2")
 @pytest.mark.parametrize("style_compression", [0, 2])
 def test_engine_kwargs(ext, style_compression):
     # GH 42286

@@ -4,6 +4,8 @@ import warnings
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -14,6 +16,7 @@ xlsxwriter = pytest.importorskip("xlsxwriter")
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 
 
+@td.skip_if_no("tinycss2")
 def test_column_format(ext):
     # Test that column formats are applied to cells. Test for issue #9167.
     # Applicable to xlsxwriter only.

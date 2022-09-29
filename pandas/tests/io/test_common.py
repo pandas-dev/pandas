@@ -216,21 +216,22 @@ Look,a snake,🐍"""
             reader(path)
 
     @pytest.mark.parametrize(
-        "method, module, error_class, fn_ext",
+        "method, modules, error_class, fn_ext",
         [
-            (pd.DataFrame.to_csv, "os", OSError, "csv"),
-            (pd.DataFrame.to_html, "os", OSError, "html"),
-            (pd.DataFrame.to_excel, "xlrd", OSError, "xlsx"),
-            (pd.DataFrame.to_feather, "pyarrow", OSError, "feather"),
-            (pd.DataFrame.to_parquet, "pyarrow", OSError, "parquet"),
-            (pd.DataFrame.to_stata, "os", OSError, "dta"),
-            (pd.DataFrame.to_json, "os", OSError, "json"),
-            (pd.DataFrame.to_pickle, "os", OSError, "pickle"),
+            (pd.DataFrame.to_csv, [], OSError, "csv"),
+            (pd.DataFrame.to_html, [], OSError, "html"),
+            (pd.DataFrame.to_excel, ["xlrd", "tinycss2"], OSError, "xlsx"),
+            (pd.DataFrame.to_feather, ["pyarrow"], OSError, "feather"),
+            (pd.DataFrame.to_parquet, ["pyarrow"], OSError, "parquet"),
+            (pd.DataFrame.to_stata, [], OSError, "dta"),
+            (pd.DataFrame.to_json, [], OSError, "json"),
+            (pd.DataFrame.to_pickle, [], OSError, "pickle"),
         ],
     )
     # NOTE: Missing parent directory for pd.DataFrame.to_hdf is handled by PyTables
-    def test_write_missing_parent_directory(self, method, module, error_class, fn_ext):
-        pytest.importorskip(module)
+    def test_write_missing_parent_directory(self, method, modules, error_class, fn_ext):
+        for module in modules:
+            pytest.importorskip(module)
 
         dummy_frame = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4], "c": [3, 4, 5]})
 
@@ -338,25 +339,26 @@ Look,a snake,🐍"""
 
     @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
-        "writer_name, writer_kwargs, module",
+        "writer_name, writer_kwargs, modules",
         [
-            ("to_csv", {}, "os"),
-            ("to_excel", {"engine": "xlwt"}, "xlwt"),
-            ("to_feather", {}, "pyarrow"),
-            ("to_html", {}, "os"),
-            ("to_json", {}, "os"),
-            ("to_latex", {}, "os"),
-            ("to_pickle", {}, "os"),
-            ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
+            ("to_csv", {}, []),
+            ("to_excel", {"engine": "xlwt"}, ["xlwt", "tinycss2"]),
+            ("to_feather", {}, ["pyarrow"]),
+            ("to_html", {}, []),
+            ("to_json", {}, []),
+            ("to_latex", {}, []),
+            ("to_pickle", {}, []),
+            ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, []),
         ],
     )
-    def test_write_fspath_all(self, writer_name, writer_kwargs, module):
+    def test_write_fspath_all(self, writer_name, writer_kwargs, modules):
         p1 = tm.ensure_clean("string")
         p2 = tm.ensure_clean("fspath")
         df = pd.DataFrame({"A": [1, 2]})
 
         with p1 as string, p2 as fspath:
-            pytest.importorskip(module)
+            for module in modules:
+                pytest.importorskip(module)
             mypath = CustomFSPath(fspath)
             writer = getattr(df, writer_name)
 

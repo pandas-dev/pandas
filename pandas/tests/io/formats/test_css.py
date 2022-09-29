@@ -4,6 +4,7 @@ from pandas.errors import CSSWarning
 
 import pandas._testing as tm
 
+pytest.importorskip("tinycss2")
 from pandas.io.formats.css import CSSResolver
 
 
