@@ -1295,8 +1295,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return type(self)._simple_new(new_values, dtype=self.dtype)
 
         # PeriodArray overrides, so we only get here with DTA/TDA
-        # error: "DatetimeLikeArrayMixin" has no attribute "_reso"
-        inc = delta_to_nanoseconds(other, reso=self._reso)  # type: ignore[attr-defined]
+        self = cast("DatetimeArray | TimedeltaArray", self)
+        inc = delta_to_nanoseconds(other, reso=self._reso)
 
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
         new_values = new_values.view(self._ndarray.dtype)
@@ -1306,10 +1306,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
-        return type(self)._simple_new(  # type: ignore[call-arg]
-            new_values, dtype=self.dtype, freq=new_freq
-        )
+        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(
         self, other: TimedeltaArray | npt.NDArray[np.timedelta64]
@@ -2264,11 +2261,11 @@ def validate_periods(periods: None) -> None:
 
 
 @overload
-def validate_periods(periods: float) -> int:
+def validate_periods(periods: int | float) -> int:
     ...
 
 
-def validate_periods(periods: float | None) -> int | None:
+def validate_periods(periods: int | float | None) -> int | None:
     """
     If a `periods` argument is passed to the Datetime/Timedelta Array/Index
     constructor, cast it to an integer.
@@ -2291,9 +2288,8 @@ def validate_periods(periods: float | None) -> int | None:
             periods = int(periods)
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
-    # error: Incompatible return value type (got "Optional[float]",
-    # expected "Optional[int]")
-    return periods  # type: ignore[return-value]
+        periods = cast(int, periods)
+    return periods
 
 
 def validate_inferred_freq(

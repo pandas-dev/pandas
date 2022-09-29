@@ -220,7 +220,7 @@ def _maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     """
     if is_valid_na_for_dtype(value, dtype):
         # GH#36541: can't fill array directly with pd.NaT
-        # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
+        # > np.empty(10, dtype="datetime64[ns]").fill(pd.NaT)
         # ValueError: cannot convert float NaN to integer
         value = dtype.type("NaT", "ns")
     elif isinstance(value, Timestamp):
@@ -800,6 +800,8 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             dtype = np.dtype("M8[ns]")
             val = val.to_datetime64()
+            # TODO(2.0): this should be dtype = val.dtype
+            #  to get the correct M8 resolution
         else:
             if pandas_dtype:
                 dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
