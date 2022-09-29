@@ -59,6 +59,10 @@ repos:
         - flake8==5.0.4
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.3
+    hooks:
+    -   id: pylint
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
