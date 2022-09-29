@@ -1516,6 +1516,8 @@ class EABackedBlock(Block):
         mask = extract_bool_array(mask)
 
         values = self.values
+        if values.ndim == 2:
+            values = values.T
 
         orig_new = new
         orig_mask = mask
