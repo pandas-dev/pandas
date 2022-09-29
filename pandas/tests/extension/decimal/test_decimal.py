@@ -284,9 +284,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
 
-    def _from_sequence(
-        cls, scalars, dtype=None, copy=False
-    ):  # pylint: disable=no-self-argument
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         raise KeyError("For the test")
 
 

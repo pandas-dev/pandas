@@ -33,7 +33,7 @@ def gcs_buffer(monkeypatch):
     gcs_buffer.close = lambda: True
 
     class MockGCSFileSystem(AbstractFileSystem):
-        def open(*args, **kwargs):  # pylint: disable=no-method-argument
+        def open(*args, **kwargs):
             gcs_buffer.seek(0)
             return gcs_buffer
 

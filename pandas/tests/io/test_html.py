@@ -1280,7 +1280,7 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            def __iter__(self) -> Iterator:  # pylint: disable=non-iterator-returned
+            def __iter__(self) -> Iterator:
                 # to fool `is_file_like`, should never end up here
                 assert False
 

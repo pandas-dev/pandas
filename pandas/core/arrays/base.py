@@ -93,9 +93,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
 
-    class ExtensionArraySupportsAnyAll(
-        "ExtensionArray"
-    ):  # pylint: disable=inherit-non-class
+    class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
             pass
 

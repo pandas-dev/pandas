@@ -840,7 +840,7 @@ class TestPeriodProperties:
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
 
-    def _period_constructor(bound, offset):  # pylint: disable=no-self-argument
+    def _period_constructor(bound, offset):
         return Period(
             year=bound.year,
             month=bound.month,
