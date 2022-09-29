@@ -873,10 +873,10 @@ class Styler(StylerRenderer):
         .. code-block:: python
 
             set_table_styles([
-                {"selector": "column_format", "props": f":{column_format};"},
-                {"selector": "position", "props": f":{position};"},
-                {"selector": "position_float", "props": f":{position_float};"},
-                {"selector": "label", "props": f":{{{label.replace(':','§')}}};"}
+                {"selector": "column_format", "props": f"value:{column_format};"},
+                {"selector": "position", "props": f"value:{position};"},
+                {"selector": "position_float", "props": f"value:{position_float};"},
+                {"selector": "label", "props": f"value:{{{label.replace(':','§')}}};"}
             ], overwrite=False)
 
         Exception is made for the ``hrules`` argument which, in fact, controls all three
@@ -889,8 +889,8 @@ class Styler(StylerRenderer):
         .. code-block:: python
 
             set_table_styles([
-                {'selector': 'toprule', 'props': ':toprule;'},
-                {'selector': 'bottomrule', 'props': ':hline;'},
+                {'selector': 'toprule', 'props': 'value:toprule;'},
+                {'selector': 'bottomrule', 'props': 'value:hline;'},
             ], overwrite=False)
 
         If other ``commands`` are added to table styles they will be detected, and
@@ -901,7 +901,7 @@ class Styler(StylerRenderer):
         .. code-block:: python
 
             set_table_styles([
-                {'selector': 'rowcolors', 'props': ':{1}{pink}{red};'}
+                {'selector': 'rowcolors', 'props': 'value:{1}{pink}{red};'}
             ], overwrite=False)
 
         A more comprehensive example using these arguments is as follows:
@@ -1122,7 +1122,7 @@ class Styler(StylerRenderer):
         if column_format is not None:
             # add more recent setting to table_styles
             obj.set_table_styles(
-                [{"selector": "column_format", "props": f":{column_format}"}],
+                [{"selector": "column_format", "props": f"value:{column_format}"}],
                 overwrite=False,
             )
         elif "column_format" in table_selectors:
@@ -1142,13 +1142,13 @@ class Styler(StylerRenderer):
                         ("r" if not siunitx else "S") if ci in numeric_cols else "l"
                     )
             obj.set_table_styles(
-                [{"selector": "column_format", "props": f":{column_format}"}],
+                [{"selector": "column_format", "props": f"value:{column_format}"}],
                 overwrite=False,
             )
 
         if position:
             obj.set_table_styles(
-                [{"selector": "position", "props": f":{position}"}],
+                [{"selector": "position", "props": f"value:{position}"}],
                 overwrite=False,
             )
 
@@ -1164,7 +1164,7 @@ class Styler(StylerRenderer):
                     f"got: '{position_float}'"
                 )
             obj.set_table_styles(
-                [{"selector": "position_float", "props": f":{position_float}"}],
+                [{"selector": "position_float", "props": f"value:{position_float}"}],
                 overwrite=False,
             )
 
@@ -1172,16 +1172,21 @@ class Styler(StylerRenderer):
         if hrules:
             obj.set_table_styles(
                 [
-                    {"selector": "toprule", "props": ":toprule"},
-                    {"selector": "midrule", "props": ":midrule"},
-                    {"selector": "bottomrule", "props": ":bottomrule"},
+                    {"selector": "toprule", "props": "value:toprule"},
+                    {"selector": "midrule", "props": "value:midrule"},
+                    {"selector": "bottomrule", "props": "value:bottomrule"},
                 ],
                 overwrite=False,
             )
 
         if label:
             obj.set_table_styles(
-                [{"selector": "label", "props": f":{{{label.replace(':', '§')}}}"}],
+                [
+                    {
+                        "selector": "label",
+                        "props": f"value:{{{label.replace(':', '§')}}}",
+                    }
+                ],
                 overwrite=False,
             )
 

@@ -69,8 +69,8 @@ def test_tabular_hrules(styler):
 def test_tabular_custom_hrules(styler):
     styler.set_table_styles(
         [
-            {"selector": "toprule", "props": ":hline"},
-            {"selector": "bottomrule", "props": ":otherline"},
+            {"selector": "toprule", "props": "value:hline"},
+            {"selector": "bottomrule", "props": "value:otherline"},
         ]
     )  # no midrule
     expected = dedent(
@@ -89,10 +89,10 @@ def test_tabular_custom_hrules(styler):
 
 def test_column_format(styler):
     # default setting is already tested in `test_latex_minimal_tabular`
-    styler.set_table_styles([{"selector": "column_format", "props": ":cccc"}])
+    styler.set_table_styles([{"selector": "column_format", "props": "value:cccc"}])
 
     assert "\\begin{tabular}{rrrr}" in styler.to_latex(column_format="rrrr")
-    styler.set_table_styles([{"selector": "column_format", "props": ":r|r|cc"}])
+    styler.set_table_styles([{"selector": "column_format", "props": "value:r|r|cc"}])
     assert "\\begin{tabular}{r|r|cc}" in styler.to_latex()
 
 
@@ -112,7 +112,7 @@ def test_siunitx_cols(styler):
 def test_position(styler):
     assert "\\begin{table}[h!]" in styler.to_latex(position="h!")
     assert "\\end{table}" in styler.to_latex(position="h!")
-    styler.set_table_styles([{"selector": "position", "props": ":b!"}])
+    styler.set_table_styles([{"selector": "position", "props": "value:b!"}])
     assert "\\begin{table}[b!]" in styler.to_latex()
     assert "\\end{table}" in styler.to_latex()
 
@@ -120,7 +120,7 @@ def test_position(styler):
 @pytest.mark.parametrize("env", [None, "longtable"])
 def test_label(styler, env):
     assert "\n\\label{text}" in styler.to_latex(label="text", environment=env)
-    styler.set_table_styles([{"selector": "label", "props": ":{more §text}"}])
+    styler.set_table_styles([{"selector": "label", "props": "value:{more §text}"}])
     assert "\n\\label{more :text}" in styler.to_latex(environment=env)
 
 
@@ -159,8 +159,8 @@ def test_kwargs_combinations(
 def test_custom_table_styles(styler):
     styler.set_table_styles(
         [
-            {"selector": "mycommand", "props": ":{myoptions}"},
-            {"selector": "mycommand2", "props": ":{myoptions2}"},
+            {"selector": "mycommand", "props": "value:{myoptions}"},
+            {"selector": "mycommand2", "props": "value:{myoptions2}"},
         ]
     )
     expected = dedent(
@@ -410,14 +410,14 @@ def test_comprehensive(df_ext, environment):
     stlr.set_caption("mycap")
     stlr.set_table_styles(
         [
-            {"selector": "label", "props": ":{fig§item}"},
-            {"selector": "position", "props": ":h!"},
-            {"selector": "position_float", "props": ":centering"},
-            {"selector": "column_format", "props": ":rlrlr"},
-            {"selector": "toprule", "props": ":toprule"},
-            {"selector": "midrule", "props": ":midrule"},
-            {"selector": "bottomrule", "props": ":bottomrule"},
-            {"selector": "rowcolors", "props": ":{3}{pink}{}"},  # custom command
+            {"selector": "label", "props": "value:{fig§item}"},
+            {"selector": "position", "props": "value:h!"},
+            {"selector": "position_float", "props": "value:centering"},
+            {"selector": "column_format", "props": "value:rlrlr"},
+            {"selector": "toprule", "props": "value:toprule"},
+            {"selector": "midrule", "props": "value:midrule"},
+            {"selector": "bottomrule", "props": "value:bottomrule"},
+            {"selector": "rowcolors", "props": "value:{3}{pink}{}"},  # custom command
         ]
     )
     stlr.highlight_max(axis=0, props="textbf:--rwrap;cellcolor:[rgb]{1,1,0.6}--rwrap")
@@ -511,17 +511,17 @@ def test_parse_latex_header_span():
 def test_parse_latex_table_wrapping(styler):
     styler.set_table_styles(
         [
-            {"selector": "toprule", "props": ":value"},
-            {"selector": "bottomrule", "props": ":value"},
-            {"selector": "midrule", "props": ":value"},
-            {"selector": "column_format", "props": ":value"},
+            {"selector": "toprule", "props": "value:value"},
+            {"selector": "bottomrule", "props": "value:value"},
+            {"selector": "midrule", "props": "value:value"},
+            {"selector": "column_format", "props": "value:value"},
         ]
     )
     assert _parse_latex_table_wrapping(styler.table_styles, styler.caption) is False
     assert _parse_latex_table_wrapping(styler.table_styles, "some caption") is True
     styler.set_table_styles(
         [
-            {"selector": "not-ignored", "props": ":value"},
+            {"selector": "not-ignored", "props": "value:value"},
         ],
         overwrite=False,
     )
