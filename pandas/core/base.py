@@ -30,6 +30,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
+    ScalarLike_co,
     Shape,
     npt,
 )
@@ -1275,7 +1276,7 @@ class IndexOpsMixin(OpsMixin):
     # return types  [misc]
     def searchsorted(  # type: ignore[misc]
         self,
-        value: npt._ScalarLike_co,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
         sorter: NumpySorter = ...,
     ) -> np.intp:
