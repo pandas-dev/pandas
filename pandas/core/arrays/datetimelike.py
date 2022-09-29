@@ -1185,7 +1185,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
-        return result.view("timedelta64[ns]")
+        res_m8 = result.view(f"timedelta64[{self._unit}]")
+
+        new_freq = None
+        if isinstance(self.freq, Tick):
+            # adding a scalar preserves freq
+            new_freq = self.freq
+
+        from pandas.core.arrays import TimedeltaArray
+
+        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
 
     @final
     def _sub_datetime_arraylike(self, other):
