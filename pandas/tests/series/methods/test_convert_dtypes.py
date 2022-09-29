@@ -229,3 +229,23 @@ class TestSeriesConvertDtypes:
         result = df.convert_dtypes()
         expected = df
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "infer_objects, dtype", [(True, "Int64"), (False, "object")]
+    )
+    def test_convert_dtype_object_with_na(self, infer_objects, dtype):
+        # GH#48791
+        ser = pd.Series([1, pd.NA])
+        result = ser.convert_dtypes(infer_objects=infer_objects)
+        expected = pd.Series([1, pd.NA], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "infer_objects, dtype", [(True, "Float64"), (False, "object")]
+    )
+    def test_convert_dtype_object_with_na_float(self, infer_objects, dtype):
+        # GH#48791
+        ser = pd.Series([1.5, pd.NA])
+        result = ser.convert_dtypes(infer_objects=infer_objects)
+        expected = pd.Series([1.5, pd.NA], dtype=dtype)
+        tm.assert_series_equal(result, expected)
