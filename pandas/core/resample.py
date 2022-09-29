@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     AnyArrayLike,
+    Axis,
     AxisInt,
     Frequency,
     IndexLabel,
@@ -152,7 +153,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self,
         obj: DataFrame | Series,
         groupby: TimeGrouper,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         kind=None,
         *,
         group_keys: bool | lib.NoDefault = lib.no_default,
@@ -162,7 +163,9 @@ class Resampler(BaseGroupBy, PandasObject):
         self.groupby = groupby
         self.keys = None
         self.sort = True
-        self.axis = axis
+        # error: Incompatible types in assignment (expression has type "Union
+        # [int, Literal['index', 'columns', 'rows']]", variable has type "int")
+        self.axis = axis  # type: ignore[assignment]
         self.kind = kind
         self.squeeze = False
         self.group_keys = group_keys
@@ -926,7 +929,7 @@ class Resampler(BaseGroupBy, PandasObject):
     def interpolate(
         self,
         method: QuantileInterpolation = "linear",
-        axis=0,
+        axis: Axis = 0,
         limit=None,
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
@@ -973,7 +976,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def std(
         self,
-        ddof=1,
+        ddof: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         *args,
         **kwargs,
@@ -1000,7 +1003,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def var(
         self,
-        ddof=1,
+        ddof: int = 1,
         numeric_only: bool | lib.NoDefault = lib.no_default,
         *args,
         **kwargs,
@@ -1597,7 +1600,7 @@ class TimeGrouper(Grouper):
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
         how: str = "mean",
-        axis=0,
+        axis: Axis = 0,
         fill_method=None,
         limit=None,
         loffset=None,
