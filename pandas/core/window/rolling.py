@@ -1936,21 +1936,21 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([2, 3, np.nan, 10])
         >>> s.rolling(2).count()
-        0    1.0
+        0    NaN
         1    2.0
         2    1.0
         3    1.0
         dtype: float64
         >>> s.rolling(3).count()
-        0    1.0
-        1    2.0
+        0    NaN
+        1    NaN
         2    2.0
         3    2.0
         dtype: float64
         >>> s.rolling(4).count()
-        0    1.0
-        1    2.0
-        2    2.0
+        0    NaN
+        1    NaN
+        2    NaN
         3    3.0
         dtype: float64
         """
