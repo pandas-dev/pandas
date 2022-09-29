@@ -42,6 +42,7 @@ VERSIONS = {
     "sqlalchemy": "1.4.16",
     "tables": "3.6.1",
     "tabulate": "0.8.9",
+    "tinycss2": "1.0.0",
     "xarray": "0.19.0",
     "xlrd": "2.0.1",
     "xlwt": "1.3.0",

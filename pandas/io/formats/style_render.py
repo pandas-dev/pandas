@@ -49,6 +49,8 @@ import pandas.core.common as com
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
+tinycss2 = import_optional_dependency("tinycss2")
+
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, float]]
@@ -1106,10 +1108,11 @@ class StylerRenderer:
         method to create `to_excel` permissible formatting. Note that semi-colons are
         CSS protected characters but used as separators in Excel's format string.
         Replace semi-colons with the section separator character (ASCII-245) when
-        defining the formatting here.
+        defining the formatting here, or wrap the entire string in quotes to
+        have the value passed directly through to the writter.
 
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
-        >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
+        >>> pseudo_css = "number-format: '0;[Red](0);-;@';"
         >>> df.style.applymap(lambda v: css).to_excel("formatted_file.xlsx")
         ...  # doctest: +SKIP
 
@@ -1853,18 +1856,26 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                                              ('border','1px solid red')]
     """
     if isinstance(style, str):
-        s = style.split(";")
-        try:
-            return [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())
-                for x in s
-                if x.strip() != ""
-            ]
-        except IndexError:
-            raise ValueError(
-                "Styles supplied as string must follow CSS rule formats, "
-                f"for example 'attr: val;'. '{style}' was given."
-            )
+        declarations = tinycss2.parse_declaration_list(
+            style, skip_comments=True, skip_whitespace=True
+        )
+
+        parsed_styles = []
+        for decl in declarations:
+            if decl.type == "error":
+                raise ValueError(
+                    "Styles supplied as string must follow CSS rule formats, "
+                    f"for example 'attr: val;'. '{style}' was given. "
+                    f"{decl.message}"
+                )
+
+            value = tinycss2.serialize(decl.value).strip()
+            if decl.important:
+                value = f"{value} !important"
+
+            parsed_styles.append((decl.name, value))
+
+        return parsed_styles
     return style
 
 

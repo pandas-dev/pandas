@@ -13,8 +13,11 @@ from typing import (
 )
 import warnings
 
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import CSSWarning
 from pandas.util._exceptions import find_stack_level
+
+tinycss2 = import_optional_dependency("tinycss2")
 
 
 def _side_expander(prop_fmt: str) -> Callable:
@@ -377,8 +380,20 @@ class CSSResolver:
 
     def atomize(self, declarations: Iterable) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
-            prop = prop.lower()
-            value = value.lower()
+            # Need to reparse the value here in case the prop was passed
+            # through as a dict from the styler rather than through this
+            # classes parse method
+            tokens = []
+            for token in tinycss2.parse_component_value_list(value):
+                if token.type == "ident":
+                    # The old css parser normalized all identifier values, do
+                    # so here to keep backwards compatibility
+                    token.value = token.lower_value
+
+                tokens.append(token)
+
+            value = tinycss2.serialize(tokens).strip()
+
             if prop in self.CSS_EXPANSIONS:
                 expand = self.CSS_EXPANSIONS[prop]
                 yield from expand(self, prop, value)
@@ -395,18 +410,29 @@ class CSSResolver:
         ----------
         declarations_str : str
         """
-        for decl in declarations_str.split(";"):
-            if not decl.strip():
-                continue
-            prop, sep, val = decl.partition(":")
-            prop = prop.strip().lower()
-            # TODO: don't lowercase case sensitive parts of values (strings)
-            val = val.strip().lower()
-            if sep:
-                yield prop, val
-            else:
+        declarations = tinycss2.parse_declaration_list(
+            declarations_str, skip_comments=True, skip_whitespace=True
+        )
+
+        for decl in declarations:
+            if decl.type == "error":
                 warnings.warn(
-                    f"Ill-formatted attribute: expected a colon in {repr(decl)}",
+                    decl.message,
                     CSSWarning,
                     stacklevel=find_stack_level(inspect.currentframe()),
                 )
+            else:
+                tokens = []
+                for token in decl.value:
+                    if token.type == "ident":
+                        # The old css parser normalized all identifier values,
+                        # do so here to keep backwards compatibility
+                        token.value = token.lower_value
+
+                    tokens.append(token)
+
+                value = tinycss2.serialize(tokens).strip()
+                if decl.important:
+                    value = f"{value} !important"
+
+                yield decl.lower_name, value

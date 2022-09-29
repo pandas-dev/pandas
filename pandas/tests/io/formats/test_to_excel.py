@@ -215,7 +215,11 @@ from pandas.io.formats.excel import (
         ("number-format: 0%", {"number_format": {"format_code": "0%"}}),
         (
             "number-format: 0§[Red](0)§-§@;",
-            {"number_format": {"format_code": "0;[red](0);-;@"}},  # GH 46152
+            {"number_format": {"format_code": "0;[Red](0);-;@"}},  # GH 46152
+        ),
+        (
+            "number-format: '#,##0_);[Red](#,##0)';",
+            {"number_format": {"format_code": "#,##0_);[Red](#,##0)"}},
         ),
     ],
 )

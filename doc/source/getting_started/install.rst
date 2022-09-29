@@ -296,6 +296,7 @@ Dependency                Minimum Version    Notes
 matplotlib                3.3.2              Plotting library
 Jinja2                    3.0.0              Conditional formatting with DataFrame.style
 tabulate                  0.8.9              Printing in Markdown-friendly format (see `tabulate`_)
+tinycss2                  1.0.0              Style formatting with DataFrame.style
 ========================= ================== =============================================================
 
 Computation

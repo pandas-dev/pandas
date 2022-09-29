@@ -28,6 +28,7 @@ from pandas._typing import (
     IndexLabel,
     StorageOptions,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -53,6 +54,8 @@ from pandas.io.formats.css import (
 )
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
+
+tinycss2 = import_optional_dependency("tinycss2")
 
 
 class ExcelCell:
@@ -328,7 +331,24 @@ class CSSToExcelConverter:
 
     def build_number_format(self, props: Mapping[str, str]) -> dict[str, str | None]:
         fc = props.get("number-format")
+
+        # Old work around for getting a literal ';'
         fc = fc.replace("§", ";") if isinstance(fc, str) else fc
+
+        # If a quoted string is passed as the value to number format, get the
+        # real value of the string. This will allow passing all the characters
+        # that would otherwise break css if unquoted.
+        if isinstance(fc, str):
+            tokens = tinycss2.parse_component_value_list(fc)
+
+            try:
+                (token,) = tokens
+            except ValueError:
+                pass
+            else:
+                if token.type == "string":
+                    fc = token.value
+
         return {"format_code": fc}
 
     def build_font(
