@@ -40,6 +40,7 @@ s3fs>=2021.08.0
 scipy
 sqlalchemy
 tabulate
+tinycss2
 tzdata>=2022.1
 xarray
 xlrd

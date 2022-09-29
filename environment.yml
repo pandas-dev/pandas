@@ -49,6 +49,7 @@ dependencies:
   - scipy
   - sqlalchemy
   - tabulate
+  - tinycss2
   - tzdata>=2022a
   - xarray
   - xlrd
