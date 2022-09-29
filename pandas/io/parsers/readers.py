@@ -427,7 +427,7 @@ float_precision : str, optional
 
     .. versionadded:: 1.2
 
-use_nullable_dtypes: bool = False
+use_nullable_dtypes : bool = False
     Whether or not to use nullable dtypes as default when reading data. If
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.

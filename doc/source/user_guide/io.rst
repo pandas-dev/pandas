@@ -198,7 +198,7 @@ dtype : Type name or dict of column -> type, default ``None``
      the default determines the dtype of the columns which are not explicitly
      listed.
 
-use_nullable_dtypes: bool = False
+use_nullable_dtypes : bool = False
     Whether or not to use nullable dtypes as default when reading data. If
     set to True, nullable dtypes are used for all dtypes that have a nullable
     implementation, even if no nulls are present.

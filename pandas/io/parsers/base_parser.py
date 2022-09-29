@@ -15,6 +15,7 @@ from typing import (
     Hashable,
     Iterable,
     List,
+    Literal,
     Mapping,
     Sequence,
     Tuple,
@@ -716,7 +717,10 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        use_nullable_dtypes = self.use_nullable_dtypes and cast_type is None
+        use_nullable_dtypes: Literal[True] | Literal[False] = (
+            self.use_nullable_dtypes and cast_type is None
+        )
+        result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
@@ -753,16 +757,16 @@ class ParserBase:
                 na_count = parsers.sanitize_objects(values, na_values)
 
         if result.dtype == np.object_ and try_num_bool:
-            result, mask = libops.maybe_convert_bool(
+            result, bool_mask = libops.maybe_convert_bool(
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
                 convert_to_masked_nullable=use_nullable_dtypes,
             )
             if result.dtype == np.bool_ and use_nullable_dtypes:
-                if mask is None:
-                    mask = np.zeros(result.shape, dtype=np.bool_)
-                result = BooleanArray(result, mask)
+                if bool_mask is None:
+                    bool_mask = np.zeros(result.shape, dtype=np.bool_)
+                result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and use_nullable_dtypes:
                 result = StringDtype().construct_array_type()._from_sequence(values)
 
