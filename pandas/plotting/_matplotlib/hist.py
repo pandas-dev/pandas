@@ -154,10 +154,11 @@ class HistPlot(LinePlot):
 
             if weights is not None:
                 weights = weights[~isna(y)]
+            kwds["weights"] = weights
 
             y = reformat_hist_y_given_by(y, self.by)
 
-            artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, weights=weights, **kwds)
+            artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
 
             # when by is applied, show title for subplots to know which group it is
             if self.by is not None:
