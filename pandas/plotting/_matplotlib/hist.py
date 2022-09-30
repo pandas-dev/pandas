@@ -30,7 +30,6 @@ from pandas.plotting._matplotlib.core import (
 from pandas.plotting._matplotlib.groupby import (
     create_iter_data_given_by,
     reformat_hist_y_given_by,
-    reformat_hist_y_weights_given_by,
 )
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.tools import (
