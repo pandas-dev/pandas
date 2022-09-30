@@ -220,7 +220,7 @@ def _maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     """
     if is_valid_na_for_dtype(value, dtype):
         # GH#36541: can't fill array directly with pd.NaT
-        # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
+        # > np.empty(10, dtype="datetime64[ns]").fill(pd.NaT)
         # ValueError: cannot convert float NaN to integer
         value = dtype.type("NaT", "ns")
     elif isinstance(value, Timestamp):
@@ -800,6 +800,8 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             dtype = np.dtype("M8[ns]")
             val = val.to_datetime64()
+            # TODO(2.0): this should be dtype = val.dtype
+            #  to get the correct M8 resolution
         else:
             if pandas_dtype:
                 dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
@@ -1083,6 +1085,7 @@ def convert_dtypes(
     convert_integer: bool = True,
     convert_boolean: bool = True,
     convert_floating: bool = True,
+    infer_objects: bool = False,
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1101,6 +1104,9 @@ def convert_dtypes(
         Whether, if possible, conversion can be done to floating extension types.
         If `convert_integer` is also True, preference will be give to integer
         dtypes if the floats can be faithfully casted to integers.
+    infer_objects : bool, defaults False
+        Whether to also infer objects to float/int if possible. Is only hit if the
+        object array contains pd.NA.
 
     Returns
     -------
@@ -1139,6 +1145,12 @@ def convert_dtypes(
                     inferred_dtype = target_int_dtype
                 else:
                     inferred_dtype = input_array.dtype
+            elif (
+                infer_objects
+                and is_object_dtype(input_array.dtype)
+                and inferred_dtype == "integer"
+            ):
+                inferred_dtype = target_int_dtype
 
         if convert_floating:
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
@@ -1160,6 +1172,12 @@ def convert_dtypes(
                         inferred_dtype = inferred_float_dtype
                 else:
                     inferred_dtype = inferred_float_dtype
+            elif (
+                infer_objects
+                and is_object_dtype(input_array.dtype)
+                and inferred_dtype == "mixed-integer-float"
+            ):
+                inferred_dtype = pandas_dtype("Float64")
 
         if convert_boolean:
             if is_bool_dtype(input_array.dtype):
