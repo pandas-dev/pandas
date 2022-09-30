@@ -172,8 +172,8 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :func:`to_timedelta` raising error when input has nullable dtype ``Float64`` (:issue:`48796`)
-- Bug in :class:`Timedelta` constructor incorrectly raising instead of returning ``NaT`` when given a ``np.timedelta64("nat")`` (:issue:`?`)
-- Bug in :class:`Timedelta` constructor failing to raise when passed both a :class:`Timedelta` object and keywords (e.g. days, seconds) (:issue:`?`)
+- Bug in :class:`Timedelta` constructor incorrectly raising instead of returning ``NaT`` when given a ``np.timedelta64("nat")`` (:issue:`48898`)
+- Bug in :class:`Timedelta` constructor failing to raise when passed both a :class:`Timedelta` object and keywords (e.g. days, seconds) (:issue:`48898`)
 -
 
 Timezones
