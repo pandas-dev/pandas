@@ -234,9 +234,10 @@ class TestAtErrors:
             for key in [0, 1]:
                 with pytest.raises(KeyError, match=str(key)):
                     df.at[key, key]
-    
+
     def test_at_applied_for_rows(self):
         # GH#48729 .at should raise InvalidIndexError when assigning rows
-        df = DataFrame(index=['a'], columns=['col1', 'col2'])
-        with pytest.raises(InvalidIndexError):
-            df.at['a'] = [123, 15]
+        df = DataFrame(index=["a"], columns=["col1", "col2"])
+        new_row = [123, 15]
+        with pytest.raises(InvalidIndexError, match=str(new_row)):
+            df.at["a"] = new_row

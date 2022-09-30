@@ -92,6 +92,7 @@ from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
 )
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -222,7 +223,6 @@ from pandas.io.formats import (
     console,
     format as fmt,
 )
-from pandas.errors import InvalidIndexError
 from pandas.io.formats.info import (
     INFO_DOCSTRING,
     DataFrameInfo,
@@ -4239,11 +4239,14 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 self.loc[index, col] = value
             self._item_cache.pop(col, None)
-        
+
         except InvalidIndexError:
             # GH48729: Seems like you are trying to assign a value to a
             # row when only scalar options are permitted
-            raise InvalidIndexError(f"You can only assign a scalar value not a {type(value)}")
+            raise InvalidIndexError(
+                f"You can only assign a scalar value not a {type(value)} "
+                "with value {value}"
+            )
 
     def _ensure_valid_index(self, value) -> None:
         """
