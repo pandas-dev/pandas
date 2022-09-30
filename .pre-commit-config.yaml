@@ -59,6 +59,10 @@ repos:
         - flake8==5.0.4
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.3
+    hooks:
+    -   id: pylint
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
@@ -268,7 +272,7 @@ repos:
             |/_testing/
     -   id: autotyping
         name: autotyping
-        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics --bool-param --bytes-param --str-param --float-param
+        entry: python -m scripts.run_autotyping
         types_or: [python, pyi]
         files: ^pandas
         exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)

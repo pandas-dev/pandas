@@ -87,16 +87,18 @@ class HistPlot(LinePlot):
         )
         return bins
 
+    # error: Signature of "_plot" incompatible with supertype "LinePlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls,
         ax,
         y,
         style=None,
-        bins=None,
-        bottom=0,
-        column_num=0,
+        bottom: int | np.ndarray = 0,
+        column_num: int = 0,
         stacking_id=None,
+        *,
+        bins,
         **kwds,
     ):
         if column_num == 0:
@@ -257,7 +259,7 @@ def _grouped_plot(
     sharex: bool = True,
     sharey: bool = True,
     layout=None,
-    rot=0,
+    rot: float = 0,
     ax=None,
     **kwargs,
 ):
@@ -295,12 +297,12 @@ def _grouped_hist(
     column=None,
     by=None,
     ax=None,
-    bins=50,
+    bins: int = 50,
     figsize=None,
     layout=None,
     sharex: bool = False,
     sharey: bool = False,
-    rot=90,
+    rot: float = 90,
     grid: bool = True,
     xlabelsize=None,
     xrot=None,
