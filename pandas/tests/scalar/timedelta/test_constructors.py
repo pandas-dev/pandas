@@ -373,7 +373,7 @@ def test_timedelta_constructor_identity():
 
 
 def test_timedelta_pass_td_and_kwargs_raises():
-    # don't silently ignore the kwargs
+    # don't silently ignore the kwargs GH#48898
     td = Timedelta(days=1)
     msg = "Cannot pass both a Timedelta input and timedelta keyword arguments"
     with pytest.raises(ValueError, match=msg):
@@ -414,5 +414,6 @@ def test_string_without_numbers(value):
 
 
 def test_timedelta_new_npnat():
+    # GH#48898
     nat = np.timedelta64("NaT", "h")
     assert Timedelta(nat) is NaT

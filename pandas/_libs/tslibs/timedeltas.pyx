@@ -1666,6 +1666,7 @@ class Timedelta(_Timedelta):
             # 'unit' is benign in this case, but e.g. days or seconds
             #  doesn't make sense here.
             if len(kwargs):
+                # GH#48898
                 raise ValueError(
                     "Cannot pass both a Timedelta input and timedelta keyword arguments."
                 )
