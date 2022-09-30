@@ -1669,6 +1669,13 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
                 with pytest.raises(type(exc)):
                     ser.combine(other, comparison_op)
 
+    def test_invalid_other_comp(self, data, comparison_op):
+        # GH 48833
+        with pytest.raises(
+            NotImplementedError, match=".* not implemented for <class 'object'>"
+        ):
+            comparison_op(data, object())
+
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
