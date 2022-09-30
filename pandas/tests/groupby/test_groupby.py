@@ -2907,3 +2907,34 @@ def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
         dtype=any_numeric_ea_dtype,
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val_in, index, val_out",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            ["foo", "foo", "bar", "baz", "blah"],
+            [3.0, 4.0, 5.0, 3.0],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            ["foo", "foo", "bar", "baz", "blah", "blah"],
+            [3.0, 4.0, 11.0, 3.0],
+        ),
+    ],
+)
+def test_groupby_index_name_in_index_content(val_in, index, val_out):
+    # GH 48567
+    series = Series(data=val_in, name="values", index=Index(index, name="blah"))
+    result = series.groupby("blah").sum()
+    expected = Series(
+        data=val_out,
+        name="values",
+        index=Index(["bar", "baz", "blah", "foo"], name="blah"),
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = series.to_frame().groupby("blah").sum()
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
