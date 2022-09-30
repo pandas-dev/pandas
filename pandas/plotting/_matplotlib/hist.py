@@ -154,7 +154,7 @@ class HistPlot(LinePlot):
 
             if weights is not None:
                 weights = weights[~isna(y)]
-            kwds["weights"] = weights
+                kwds["weights"] = weights
 
             y = reformat_hist_y_given_by(y, self.by)
 
