@@ -92,12 +92,6 @@ def test_any_apply_keyword_non_zero_axis_regression():
     result = df.apply("any", axis=1)
     tm.assert_series_equal(result, expected)
 
-    msg = (
-        "In a future version of pandas all arguments of "
-        "DataFrame.any and Series.any will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = df.any(1)
     result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)
 
