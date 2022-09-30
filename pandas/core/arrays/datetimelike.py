@@ -1218,6 +1218,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             new_message = str(err).replace("compare", "subtract")
             raise type(err)(new_message) from err
 
+        if other._reso != self._reso:
+            if other._reso < self._reso:
+                other = other._as_unit(self._unit)
+            else:
+                unit = npy_unit_to_abbrev(other._reso)
+                self = self._as_unit(unit)
+
         i8 = self.asi8
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
         res_m8 = result.view(f"timedelta64[{self._unit}]")
@@ -1248,12 +1255,23 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             new_message = str(err).replace("compare", "subtract")
             raise type(err)(new_message) from err
 
+        if other._reso != self._reso:
+            if other._reso < self._reso:
+                other = other._as_unit(self._unit)
+            else:
+                self = self._as_unit(other._unit)
+
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = checked_add_with_arr(
             self_i8, -other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
-        return new_values.view("timedelta64[ns]")
+        res_m8 = new_values.view(f"timedelta64[{self._unit}]")
+
+        from pandas.core.arrays import TimedeltaArray
+
+        new_freq = self._get_arithmetic_result_freq(other)
+        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
 
     @final
     def _sub_period(self, other: Period) -> npt.NDArray[np.object_]:
