@@ -507,8 +507,12 @@ class Apply(metaclass=abc.ABCMeta):
                 keys_to_use = ktu
 
             axis = 0 if isinstance(obj, ABCSeries) else 1
+            # error: Key expression in dictionary comprehension has incompatible type
+            # "Hashable"; expected type "NDFrame"  [misc]
             result = concat(
-                {k: results[k] for k in keys_to_use}, axis=axis, keys=keys_to_use
+                {k: results[k] for k in keys_to_use},  # type: ignore[misc]
+                axis=axis,
+                keys=keys_to_use,
             )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars

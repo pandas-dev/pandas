@@ -49,11 +49,13 @@ from pandas._typing import (
     AnyAll,
     ArrayLike,
     Axes,
-    AxisInt,
+    Axis,
+    DropKeep,
     Dtype,
     DtypeObj,
     F,
     IgnoreRaise,
+    IndexLabel,
     Level,
     Shape,
     npt,
@@ -909,6 +911,13 @@ class Index(IndexOpsMixin, PandasObject):
             return libindex.Complex64Engine(target_values)
         elif target_values.dtype == np.complex128:
             return libindex.Complex128Engine(target_values)
+        elif needs_i8_conversion(self.dtype):
+            # We need to keep M8/m8 dtype when initializing the Engine,
+            #  but don't want to change _get_engine_target bc it is used
+            #  elsewhere
+            # error: Item "ExtensionArray" of "Union[ExtensionArray,
+            # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
+            target_values = self._data._ndarray  # type: ignore[union-attr]
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -1001,7 +1010,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.dtype
 
     @final
-    def ravel(self, order="C"):
+    def ravel(self, order: str_t = "C"):
         """
         Return an ndarray of the flattened values of the underlying data.
 
@@ -1179,7 +1188,7 @@ class Index(IndexOpsMixin, PandasObject):
     def take(
         self,
         indices,
-        axis: AxisInt = 0,
+        axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
@@ -1538,7 +1547,7 @@ class Index(IndexOpsMixin, PandasObject):
         return values._format_native_types(**kwargs)
 
     def _format_native_types(
-        self, *, na_rep="", quoting=None, **kwargs
+        self, *, na_rep: str_t = "", quoting=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         Actually format specific types of the index.
@@ -2166,7 +2175,7 @@ class Index(IndexOpsMixin, PandasObject):
     get_level_values = _get_level_values
 
     @final
-    def droplevel(self, level=0):
+    def droplevel(self, level: IndexLabel = 0):
         """
         Return index with requested level(s) removed.
 
@@ -3067,7 +3076,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(result)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def drop_duplicates(self: _IndexT, keep: str_t | bool = "first") -> _IndexT:
+    def drop_duplicates(self: _IndexT, keep: DropKeep = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
 
@@ -3118,9 +3127,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return super().drop_duplicates(keep=keep)
 
-    def duplicated(
-        self, keep: Literal["first", "last", False] = "first"
-    ) -> npt.NDArray[np.bool_]:
+    def duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
         """
         Indicate duplicate index values.
 
@@ -3685,7 +3692,12 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
-        the_diff = this._values.take(label_diff)
+
+        the_diff: MultiIndex | ArrayLike
+        if isinstance(this, ABCMultiIndex):
+            the_diff = this.take(label_diff)
+        else:
+            the_diff = this._values.take(label_diff)
         the_diff = _maybe_try_sort(the_diff, sort)
 
         return the_diff
@@ -3810,6 +3822,10 @@ class Index(IndexOpsMixin, PandasObject):
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
+
+            .. deprecated:: 1.4
+                Use index.get_indexer([item], method=...) instead.
+
         tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location must satisfy the equation
@@ -5155,9 +5171,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    # error: Decorated property not supported
-    # https://github.com/python/mypy/issues/1362
-    @cache_readonly  # type: ignore[misc]
+    @cache_readonly
     @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
@@ -5859,7 +5873,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise TypeError("cannot sort an Index object in-place, use sort_values instead")
 
-    def shift(self, periods=1, freq=None):
+    def shift(self, periods: int = 1, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
@@ -6009,7 +6023,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        return not self.holds_integer() and not self.is_boolean()
+        return not self.holds_integer()
 
     def _get_values_for_loc(self, series: Series, loc, key):
         """

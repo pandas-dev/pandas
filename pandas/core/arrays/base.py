@@ -37,6 +37,7 @@ from pandas._typing import (
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    SortKind,
     TakeIndexer,
     npt,
 )
@@ -541,7 +542,9 @@ class ExtensionArray:
         """
         The number of elements in the array.
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "signedinteger[_64Bit]",
+        # expected "int")  [return-value]
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @property
     def ndim(self) -> int:
@@ -671,7 +674,7 @@ class ExtensionArray:
     def argsort(
         self,
         ascending: bool = True,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         *args,
         **kwargs,

@@ -10,6 +10,7 @@ import pytest
 
 from pandas.compat import (
     IS64,
+    pa_version_under2p0,
     pa_version_under7p0,
 )
 from pandas.errors import PerformanceWarning
@@ -229,7 +230,12 @@ class TestCommon:
         except NotImplementedError:
             pass
 
-        result = idx.unique()
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under2p0
+            and getattr(index_flat.dtype, "storage", "") == "pyarrow",
+        ):
+            result = idx.unique()
         tm.assert_index_equal(result, idx_unique)
 
         # nans:
@@ -248,8 +254,14 @@ class TestCommon:
         assert idx_unique_nan.dtype == index.dtype
 
         expected = idx_unique_nan
-        for i in [idx_nan, idx_unique_nan]:
-            result = i.unique()
+        for pos, i in enumerate([idx_nan, idx_unique_nan]):
+            with tm.maybe_produces_warning(
+                PerformanceWarning,
+                pa_version_under2p0
+                and getattr(index_flat.dtype, "storage", "") == "pyarrow"
+                and pos == 0,
+            ):
+                result = i.unique()
             tm.assert_index_equal(result, expected)
 
     def test_searchsorted_monotonic(self, index_flat, request):
@@ -466,13 +478,12 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0
-        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
+            check_stacklevel=False,
+        ):
             index_with_missing.sort_values(na_position=na_position)
 
 

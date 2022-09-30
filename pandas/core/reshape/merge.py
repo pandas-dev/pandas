@@ -107,7 +107,7 @@ def merge(
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
-    indicator: bool = False,
+    indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
@@ -625,7 +625,7 @@ class _MergeOperation:
     sort: bool
     suffixes: Suffixes
     copy: bool
-    indicator: bool
+    indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
     right_join_keys: list[AnyArrayLike]
@@ -644,7 +644,7 @@ class _MergeOperation:
         right_index: bool = False,
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
-        indicator: bool = False,
+        indicator: str | bool = False,
         validate: str | None = None,
     ) -> None:
         _left = _validate_operand(left)
@@ -1301,13 +1301,7 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = lk.astype(rk.dtype)  # type: ignore[arg-type]
 
-                        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
-                        # incompatible type "Union[ExtensionArray, ndarray[Any, Any],
-                        # Index, Series]"; expected "Union[_SupportsArray[dtype[Any]],
-                        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int,
-                        # float, complex, str, bytes, _NestedSequence[Union[bool,
-                        # int, float, complex, str, bytes]]]"
-                        mask = ~np.isnan(lk)  # type: ignore[arg-type]
+                        mask = ~np.isnan(lk)
                         match = lk == casted
                         # error: Item "ExtensionArray" of "Union[ExtensionArray,
                         # ndarray[Any, Any], Any]" has no attribute "all"
@@ -1329,13 +1323,7 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = rk.astype(lk.dtype)  # type: ignore[arg-type]
 
-                        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
-                        # incompatible type "Union[ExtensionArray, ndarray[Any, Any],
-                        # Index, Series]"; expected "Union[_SupportsArray[dtype[Any]],
-                        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int,
-                        # float, complex, str, bytes, _NestedSequence[Union[bool,
-                        # int, float, complex, str, bytes]]]"
-                        mask = ~np.isnan(rk)  # type: ignore[arg-type]
+                        mask = ~np.isnan(rk)
                         match = rk == casted
                         # error: Item "ExtensionArray" of "Union[ExtensionArray,
                         # ndarray[Any, Any], Any]" has no attribute "all"
@@ -1737,7 +1725,8 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + [restore_levels]
+        # error: Cannot determine type of "__add__"
+        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
         join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
