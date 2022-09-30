@@ -30,6 +30,7 @@ from pandas.plotting._matplotlib.core import (
 from pandas.plotting._matplotlib.groupby import (
     create_iter_data_given_by,
     reformat_hist_y_given_by,
+    reformat_hist_y_weights_given_by,
 )
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.tools import (
@@ -144,16 +145,20 @@ class HistPlot(LinePlot):
                 kwds["label"] = self.columns
                 kwds.pop("color")
 
-            y = reformat_hist_y_given_by(y, self.by)
 
             # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
             # and each sub-array (10,) will be called in each iteration. If users only
             # provide 1D array, we assume the same weights is used for all iterations
             weights = kwds.get("weights", None)
             if weights is not None and np.ndim(weights) != 1:
-                kwds["weights"] = weights[:, i]
+                weights = weights[:, i]
 
-            artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
+            if weights is not None:
+                weights = weights[~isna(y)]
+
+            y = reformat_hist_y_given_by(y, self.by)
+
+            artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, weights=weights, **kwds)
 
             # when by is applied, show title for subplots to know which group it is
             if self.by is not None:
