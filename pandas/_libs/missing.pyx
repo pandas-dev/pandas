@@ -13,6 +13,7 @@ from numpy cimport (
     ndarray,
     uint8_t,
 )
+from numpy.math cimport NAN
 
 cnp.import_array()
 
@@ -402,6 +403,9 @@ class NAType(C_NAType):
 
     def __repr__(self) -> str:
         return "<NA>"
+
+    def __float__(self):
+        return NAN
 
     def __format__(self, format_spec) -> str:
         try:
