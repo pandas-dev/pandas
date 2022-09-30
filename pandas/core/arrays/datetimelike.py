@@ -1285,7 +1285,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         # PeriodArray overrides, so we only get here with DTA/TDA
         self = cast("DatetimeArray | TimedeltaArray", self)
-
         other = Timedelta(other)._as_unit(self._unit)
         return self._add_timedeltalike(other)
 
@@ -2250,11 +2249,11 @@ def validate_periods(periods: None) -> None:
 
 
 @overload
-def validate_periods(periods: float) -> int:
+def validate_periods(periods: int | float) -> int:
     ...
 
 
-def validate_periods(periods: float | None) -> int | None:
+def validate_periods(periods: int | float | None) -> int | None:
     """
     If a `periods` argument is passed to the Datetime/Timedelta Array/Index
     constructor, cast it to an integer.
@@ -2277,9 +2276,8 @@ def validate_periods(periods: float | None) -> int | None:
             periods = int(periods)
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
-    # error: Incompatible return value type (got "Optional[float]",
-    # expected "Optional[int]")
-    return periods  # type: ignore[return-value]
+        periods = cast(int, periods)
+    return periods
 
 
 def validate_inferred_freq(
