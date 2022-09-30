@@ -318,13 +318,5 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
-        # "List[Mapping[Any, Any]]")
-        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
-        # "List[Mapping[str, Any]]")
-        maps = (
-            [self.temps]
-            + self.resolvers.maps  # type: ignore[operator]
-            + self.scope.maps  # type: ignore[operator]
-        )
+        maps = [self.temps] + self.resolvers.maps + self.scope.maps
         return DeepChainMap(*maps)

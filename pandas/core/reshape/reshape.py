@@ -316,7 +316,10 @@ class _Unstacker:
         new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            new_levels = value_columns.levels + (self.removed_level_full,)
+            # error: Cannot determine type of "__add__"  [has-type]
+            new_levels = value_columns.levels + (  # type: ignore[has-type]
+                self.removed_level_full,
+            )
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]

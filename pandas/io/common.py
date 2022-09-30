@@ -574,9 +574,7 @@ def infer_compression(
     if compression in _supported_compressions:
         return compression
 
-    # https://github.com/python/mypy/issues/5492
-    # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
-    valid = ["infer", None] + sorted(_supported_compressions)  # type: ignore[operator]
+    valid = ["infer", None] + sorted(_supported_compressions)
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"
