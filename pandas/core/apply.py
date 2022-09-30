@@ -550,7 +550,12 @@ class Apply(metaclass=abc.ABCMeta):
         func = getattr(obj, f, None)
         if callable(func):
             sig = inspect.getfullargspec(func)
-            if "axis" in sig.args:
+            arg_names = (*sig.args, *sig.kwonlyargs)
+            if self.axis != 0 and (
+                "axis" not in arg_names or f in ("corrwith", "mad", "skew")
+            ):
+                raise ValueError(f"Operation {f} does not support axis=1")
+            elif "axis" in arg_names:
                 self.kwargs["axis"] = self.axis
             elif self.axis != 0:
                 raise ValueError(f"Operation {f} does not support axis=1")
