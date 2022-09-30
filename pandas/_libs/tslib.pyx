@@ -531,7 +531,7 @@ cpdef array_to_datetime(
 
                     else:
                         found_naive = True
-                        if found_tz:
+                        if found_tz and not utc_convert:
                             raise ValueError('Cannot mix tz-aware with '
                                              'tz-naive values')
                         if isinstance(val, _Timestamp):
