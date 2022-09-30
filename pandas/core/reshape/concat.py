@@ -390,7 +390,7 @@ class _Concatenator:
     def __init__(
         self,
         objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
-        axis=0,
+        axis: Axis = 0,
         join: str = "outer",
         keys=None,
         levels=None,
@@ -398,7 +398,7 @@ class _Concatenator:
         ignore_index: bool = False,
         verify_integrity: bool = False,
         copy: bool = True,
-        sort=False,
+        sort: bool = False,
     ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(

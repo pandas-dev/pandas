@@ -316,7 +316,10 @@ class _Unstacker:
         new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            new_levels = value_columns.levels + (self.removed_level_full,)
+            # error: Cannot determine type of "__add__"  [has-type]
+            new_levels = value_columns.levels + (  # type: ignore[has-type]
+                self.removed_level_full,
+            )
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
@@ -615,7 +618,7 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
     return frame._constructor_sliced(new_values, index=new_index)
 
 
-def stack_multiple(frame, level, dropna=True):
+def stack_multiple(frame, level, dropna: bool = True):
     # If all passed levels match up to column names, no
     # ambiguity about what to do
     if all(lev in frame.columns.names for lev in level):

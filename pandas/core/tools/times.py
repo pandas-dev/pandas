@@ -8,6 +8,7 @@ from datetime import (
 import numpy as np
 
 from pandas._libs.lib import is_list_like
+from pandas._typing import DateTimeErrorChoices
 
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -16,7 +17,12 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import notna
 
 
-def to_time(arg, format=None, infer_time_format=False, errors="raise"):
+def to_time(
+    arg,
+    format=None,
+    infer_time_format: bool = False,
+    errors: DateTimeErrorChoices = "raise",
+):
     """
     Parse time strings to time objects using fixed strptime formats ("%H:%M",
     "%H%M", "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",

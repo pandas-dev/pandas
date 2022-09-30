@@ -53,10 +53,16 @@ repos:
     rev: 5.0.4
     hooks:
     -   id: flake8
+        # Need to patch os.remove rule in pandas-dev-flaker
+        exclude: ^ci/fix_wheels.py
         additional_dependencies: &flake8_dependencies
         - flake8==5.0.4
         - flake8-bugbear==22.7.1
         - pandas-dev-flaker==0.5.0
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.15.3
+    hooks:
+    -   id: pylint
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
@@ -236,6 +242,14 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+    -   id: validate-errors-locations
+        name: Validate errors locations
+        description: Validate errors are in approriate locations.
+        entry: python scripts/validate_exception_location.py
+        language: python
+        files: ^pandas/
+        exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
+        types: [python]
     -   id: flake8-pyi
         name: flake8-pyi
         entry: flake8 --extend-ignore=E301,E302,E305,E701,E704
@@ -258,10 +272,10 @@ repos:
             |/_testing/
     -   id: autotyping
         name: autotyping
-        entry: python -m libcst.tool codemod autotyping.AutotypeCommand --none-return --scalar-return --annotate-magics --annotate-imprecise-magics
+        entry: python -m scripts.run_autotyping
         types_or: [python, pyi]
         files: ^pandas
-        exclude: ^(pandas/tests|pandas/io/clipboard)
+        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
         language: python
         additional_dependencies:
         - autotyping==22.9.0
