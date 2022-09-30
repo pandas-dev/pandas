@@ -4031,7 +4031,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi and self._contains_na_any_level:
             # GH48877
             # MultiIndex requires special treatment to handle missing values
-            return Index(self._values).get_indexer_for(target)
+            return Index(self._values)._get_indexer(target, method, limit, tolerance)
 
         return self._get_indexer(target, method, limit, tolerance)
 
