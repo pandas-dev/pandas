@@ -1113,6 +1113,41 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     __rdivmod__ = make_invalid_op("__rdivmod__")
 
     @final
+    def _get_i8_values_and_mask(
+        self, other
+    ) -> tuple[int | npt.NDArray[np.int64], None | npt.NDArray[np.bool_]]:
+        """
+        Get the int64 values and b_mask to pass to checked_add_with_arr.
+        """
+        if isinstance(other, Period):
+            i8values = other.ordinal
+            mask = None
+        elif isinstance(other, Timestamp):
+            i8values = other.value
+            mask = None
+        else:
+            # PeriodArray, DatetimeArray, TimedeltaArray
+            mask = other._isnan
+            i8values = other.asi8
+        return i8values, mask
+
+    @final
+    def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
+        """
+        Check if we can preserve self.freq in addition or subtraction.
+        """
+        # Adding or subtracting a Timedelta/Timestamp scalar is freq-preserving
+        #  whenever self.freq is a Tick
+        if is_period_dtype(self.dtype):
+            return self.freq
+        elif not lib.is_scalar(other):
+            return None
+        elif isinstance(self.freq, Tick):
+            # In these cases
+            return self.freq
+        return None
+
+    @final
     def _add_datetimelike_scalar(self, other) -> DatetimeArray:
         if not is_timedelta64_dtype(self.dtype):
             raise TypeError(
@@ -1228,15 +1263,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # If the operation is well-defined, we return an object-dtype ndarray
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
-        new_i8_data = checked_add_with_arr(
-            self.asi8, -other.ordinal, arr_mask=self._isnan
-        )
-        new_data = np.array([self.freq.base * x for x in new_i8_data])
-
-        if self._hasna:
-            new_data[self._isnan] = NaT
-
-        return new_data
+        return self._sub_periodlike(other)
 
     @final
     def _add_period(self, other: Period) -> PeriodArray:
@@ -1268,8 +1295,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return type(self)._simple_new(new_values, dtype=self.dtype)
 
         # PeriodArray overrides, so we only get here with DTA/TDA
-        # error: "DatetimeLikeArrayMixin" has no attribute "_reso"
-        inc = delta_to_nanoseconds(other, reso=self._reso)  # type: ignore[attr-defined]
+        self = cast("DatetimeArray | TimedeltaArray", self)
+        inc = delta_to_nanoseconds(other, reso=self._reso)
 
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
         new_values = new_values.view(self._ndarray.dtype)
@@ -1279,10 +1306,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
-        return type(self)._simple_new(  # type: ignore[call-arg]
-            new_values, dtype=self.dtype, freq=new_freq
-        )
+        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(
         self, other: TimedeltaArray | npt.NDArray[np.timedelta64]
@@ -1361,15 +1385,26 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self = cast("PeriodArray", self)
         self._require_matching_freq(other)
 
-        new_i8_values = checked_add_with_arr(
-            self.asi8, -other.asi8, arr_mask=self._isnan, b_mask=other._isnan
-        )
+        return self._sub_periodlike(other)
 
-        new_values = np.array([self.freq.base * x for x in new_i8_values])
-        if self._hasna or other._hasna:
-            mask = self._isnan | other._isnan
-            new_values[mask] = NaT
-        return new_values
+    @final
+    def _sub_periodlike(self, other: Period | PeriodArray) -> npt.NDArray[np.object_]:
+        # caller is responsible for calling
+        #  require_matching_freq/check_compatible_with
+        other_i8, o_mask = self._get_i8_values_and_mask(other)
+        new_i8_data = checked_add_with_arr(
+            self.asi8, -other_i8, arr_mask=self._isnan, b_mask=o_mask
+        )
+        new_data = np.array([self.freq.base * x for x in new_i8_data])
+
+        if o_mask is None:
+            # i.e. Period scalar
+            mask = self._isnan
+        else:
+            # i.e. PeriodArray
+            mask = self._isnan | o_mask
+        new_data[mask] = NaT
+        return new_data
 
     @final
     def _addsub_object_array(self, other: np.ndarray, op):
@@ -2226,11 +2261,11 @@ def validate_periods(periods: None) -> None:
 
 
 @overload
-def validate_periods(periods: float) -> int:
+def validate_periods(periods: int | float) -> int:
     ...
 
 
-def validate_periods(periods: float | None) -> int | None:
+def validate_periods(periods: int | float | None) -> int | None:
     """
     If a `periods` argument is passed to the Datetime/Timedelta Array/Index
     constructor, cast it to an integer.
@@ -2253,9 +2288,8 @@ def validate_periods(periods: float | None) -> int | None:
             periods = int(periods)
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
-    # error: Incompatible return value type (got "Optional[float]",
-    # expected "Optional[int]")
-    return periods  # type: ignore[return-value]
+        periods = cast(int, periods)
+    return periods
 
 
 def validate_inferred_freq(
