@@ -123,7 +123,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated behaviour of :meth:`DataFrameGroupBy.fillna`, :meth:`SeriesGroupBy.fillna` allowing only keyword arguments except value(:issue:`48395`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -235,7 +235,6 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
-- Deprecated behaviour of :meth:`DataFrameGroupBy.fillna`, :meth:`SeriesGroupBy.fillna` allowing only keyword arguments except value(:issue:`48395`)
 
 
 Reshaping
