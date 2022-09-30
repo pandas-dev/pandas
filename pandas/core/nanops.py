@@ -692,20 +692,20 @@ def nanmean(
     values, mask, dtype, dtype_max, _ = _get_values(
         values, skipna, fill_value=0, mask=mask
     )
-    dtype_sum = dtype_max
+    # dtype_sum = dtype_max
     dtype_count = np.dtype(np.float64)
 
     # not using needs_i8_conversion because that includes period
-    if dtype.kind in ["m", "M"]:
-        dtype_sum = np.dtype(np.float64)
-    elif is_integer_dtype(dtype):
-        dtype_sum = np.dtype(np.float64)
-    elif is_float_dtype(dtype):
-        dtype_sum = dtype
-        dtype_count = dtype
+    # if dtype.kind in ["m", "M"]:
+    #     dtype_sum = np.dtype(np.float64)
+    # elif is_integer_dtype(dtype):
+    #     dtype_sum = np.dtype(np.float64)
+    # elif is_float_dtype(dtype):
+    #     dtype_sum = dtype
+    #     dtype_count = dtype
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
-    the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
+    the_sum = _ensure_numeric(values.sum(axis, dtype=np.float64))
 
     if axis is not None and getattr(the_sum, "ndim", False):
         count = cast(np.ndarray, count)
@@ -911,9 +911,10 @@ def nanstd(
 
     orig_dtype = values.dtype
     values, mask, _, _, _ = _get_values(values, skipna, mask=mask)
-
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask))
-    return _wrap_results(result, orig_dtype)
+    # return _wrap_results(result, np.orig_dtype)
+    return result
+
 
 
 @disallow("M8", "m8")
@@ -961,10 +962,10 @@ def nanvar(
         if mask is not None:
             values[mask] = np.nan
 
-    if is_float_dtype(values.dtype):
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
-    else:
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
+    # if is_float_dtype(values.dtype):
+    #     count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    # else:
+    count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
 
     if skipna and mask is not None:
         values = values.copy()
@@ -979,7 +980,7 @@ def nanvar(
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    sqr = _ensure_numeric((avg - values) ** 2)
+    sqr = _ensure_numeric((np.subtract(avg , values,dtype=np.float64)) ** 2)
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d
@@ -987,8 +988,8 @@ def nanvar(
     # Return variance as np.float64 (the datatype used in the accumulator),
     # unless we were dealing with a float array, in which case use the same
     # precision as the original values array.
-    if is_float_dtype(dtype):
-        result = result.astype(dtype, copy=False)
+    # if is_float_dtype(dtype):
+    #     result = result.astype(dtype, copy=False)
     return result
 
 
