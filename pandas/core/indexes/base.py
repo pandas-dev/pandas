@@ -4028,6 +4028,11 @@ class Index(IndexOpsMixin, PandasObject):
                 target, method=method, limit=limit, tolerance=tolerance
             )
 
+        if self._is_multi and self._contains_na_any_level:
+            # GH#
+            # MultiIndex requires special treatment to handle missing values
+            return Index(self._values).get_indexer_for(target)
+
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
