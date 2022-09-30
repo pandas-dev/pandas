@@ -93,9 +93,6 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
         mi = mi.set_levels([["A", "B", np.nan], ["A", "B", np.nan]])
     expected = pd.DataFrame(outputs, index=mi)
 
-    print(grouped)
-    print(expected)
-
     tm.assert_frame_equal(grouped, expected)
 
 
