@@ -854,7 +854,7 @@ class TestIndex(Base):
 
     def test_isin_nan_common_float64(self, nulls_fixture):
 
-        if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
+        if nulls_fixture is pd.NaT:
             # Check 1) that we cannot construct a Float64Index with this value
             #  and 2) that with an NaN we do not have .isin(nulls_fixture)
             msg = "data is not compatible with Float64Index"
