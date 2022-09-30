@@ -517,7 +517,7 @@ class ParserBase:
             )
 
             arr, _ = self._infer_types(
-                arr, col_na_values | col_na_fvalues, cast_type, try_num_bool
+                arr, col_na_values | col_na_fvalues, cast_type is None, try_num_bool
             )
             arrays.append(arr)
 
@@ -585,7 +585,7 @@ class ParserBase:
                 cvals, na_count = self._infer_types(
                     values,
                     set(col_na_values) | col_na_fvalues,
-                    cast_type,
+                    cast_type is None,
                     try_num_bool=False,
                 )
             else:
@@ -597,7 +597,10 @@ class ParserBase:
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
-                    values, set(col_na_values) | col_na_fvalues, cast_type, try_num_bool
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    cast_type is None,
+                    try_num_bool,
                 )
 
                 # type specified in dtype param or cast_type is an EA
@@ -688,7 +691,9 @@ class ParserBase:
 
         return noconvert_columns
 
-    def _infer_types(self, values, na_values, cast_type, try_num_bool: bool = True):
+    def _infer_types(
+        self, values, na_values, no_dtype_specified, try_num_bool: bool = True
+    ):
         """
         Infer types of values, possibly casting
 
@@ -696,7 +701,7 @@ class ParserBase:
         ----------
         values : ndarray
         na_values : set
-        cast_type: Specifies if we want to cast explicitly
+        no_dtype_specified: Specifies if we want to cast explicitly
         try_num_bool : bool, default try
            try to cast values to numeric (first preference) or boolean
 
@@ -718,7 +723,7 @@ class ParserBase:
             return values, na_count
 
         use_nullable_dtypes: Literal[True] | Literal[False] = (
-            self.use_nullable_dtypes and cast_type is None
+            self.use_nullable_dtypes and no_dtype_specified
         )
         result: ArrayLike
 
@@ -741,7 +746,11 @@ class ParserBase:
                     if result_mask is None:
                         result_mask = np.zeros(result.shape, dtype=np.bool_)
 
-                    if is_integer_dtype(result):
+                    if result_mask.all():
+                        result = IntegerArray(
+                            np.ones(result_mask.shape, dtype=np.int64), result_mask
+                        )
+                    elif is_integer_dtype(result):
                         result = IntegerArray(result, result_mask)
                     elif is_bool_dtype(result):
                         result = BooleanArray(result, result_mask)

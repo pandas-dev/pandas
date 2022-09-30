@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import ParserWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -16,6 +17,10 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 # TODO(1.4): Change me into xfail at release time
 # and xfail individual tests
@@ -392,9 +397,9 @@ def test_use_nullabla_dtypes(all_parsers):
 
     parser = all_parsers
 
-    data = """a,b,c,d,e,f,g,h,i
-1,2.5,True,a,,,,,12-31-2019
-3,4.5,False,b,6,7.5,True,a,12-31-2019
+    data = """a,b,c,d,e,f,g,h,i,j
+1,2.5,True,a,,,,,12-31-2019,
+3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
     result = parser.read_csv(
         StringIO(data), use_nullable_dtypes=True, parse_dates=["i"]
@@ -410,6 +415,7 @@ def test_use_nullabla_dtypes(all_parsers):
             "g": pd.Series([pd.NA, True], dtype="boolean"),
             "h": pd.Series([pd.NA, "a"], dtype="string"),
             "i": pd.Series([Timestamp("2019-12-31")] * 2),
+            "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
     tm.assert_frame_equal(result, expected)
@@ -427,3 +433,36 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
     result = parser.read_csv(StringIO(data), use_nullable_dtypes=True, dtype="float64")
     expected = DataFrame({"a": [1.0, np.nan], "b": [2.5, np.nan]})
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("storage", ["pyarrow", "python"])
+def test_use_nullabla_dtypes_string(all_parsers, storage):
+    # GH#36712
+    import pyarrow as pa
+
+    with pd.option_context("mode.string_storage", storage):
+
+        parser = all_parsers
+
+        data = """a,b
+a,x
+b,
+"""
+        result = parser.read_csv(StringIO(data), use_nullable_dtypes=True)
+
+        if storage == "python":
+            expected = DataFrame(
+                {
+                    "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
+                    "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
+                }
+            )
+        else:
+            expected = DataFrame(
+                {
+                    "a": ArrowStringArray(pa.array(["a", "b"])),
+                    "b": ArrowStringArray(pa.array(["x", None])),
+                }
+            )
+        tm.assert_frame_equal(result, expected)
