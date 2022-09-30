@@ -127,21 +127,21 @@ from pandas.tests.extension.decimal import (
         (
             # preserve non-nano, i.e. don't cast to PandasArray
             TimedeltaArray._simple_new(
-                np.arange(5).view("m8[s]"), dtype=np.dtype("m8[s]")
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
             None,
             TimedeltaArray._simple_new(
-                np.arange(5).view("m8[s]"), dtype=np.dtype("m8[s]")
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
         ),
         (
             # preserve non-nano, i.e. don't cast to PandasArray
             TimedeltaArray._simple_new(
-                np.arange(5).view("m8[s]"), dtype=np.dtype("m8[s]")
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
             np.dtype("m8[s]"),
             TimedeltaArray._simple_new(
-                np.arange(5).view("m8[s]"), dtype=np.dtype("m8[s]")
+                np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
         ),
         # Category
