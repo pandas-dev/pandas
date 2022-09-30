@@ -157,9 +157,7 @@ class TestDataFrame2:
 
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
-            super().rename_axis(
-                mapper={"a": "x", "b": "y"}, axis=1, inplace=value
-            )
+            super().rename_axis(mapper={"a": "x", "b": "y"}, axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             super().drop("a", axis=1, inplace=value)
