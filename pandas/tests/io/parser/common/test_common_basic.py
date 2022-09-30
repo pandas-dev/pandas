@@ -928,3 +928,17 @@ def test_read_table_posargs_deprecation(all_parsers):
         "except for the argument 'filepath_or_buffer' will be keyword-only"
     )
     parser.read_table_check_warnings(FutureWarning, msg, data, " ")
+
+
+def test_read_seek(all_parsers):
+    # GH48646
+    parser = all_parsers
+    prefix = "### DATA\n"
+    content = "nkey,value\ntables,rectangular\n"
+    with tm.ensure_clean() as path:
+        Path(path).write_text(prefix + content)
+        with open(path, encoding="utf-8") as file:
+            file.readline()
+            actual = parser.read_csv(file)
+        expected = parser.read_csv(StringIO(content))
+    tm.assert_frame_equal(actual, expected)

@@ -6,27 +6,26 @@ from typing import (
     TYPE_CHECKING,
     Collection,
     Iterator,
-    Sequence,
-    Union,
     cast,
 )
 import warnings
 
+import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.colors
 import numpy as np
 
+from pandas._typing import MatplotlibColor as Color
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 
 import pandas.core.common as com
 
+from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
-
-
-Color = Union[str, Sequence[float]]
 
 
 def get_standard_colors(
@@ -155,7 +154,10 @@ def _get_cmap_instance(colormap: str | Colormap) -> Colormap:
     """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap
-        colormap = cm.get_cmap(colormap)
+        if mpl_ge_3_6_0():
+            colormap = mpl.colormaps[colormap]
+        else:
+            colormap = cm.get_cmap(colormap)
         if colormap is None:
             raise ValueError(f"Colormap {cmap} is not recognized")
     return colormap

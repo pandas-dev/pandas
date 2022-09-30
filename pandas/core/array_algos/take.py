@@ -15,6 +15,7 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     npt,
 )
 
@@ -36,7 +37,7 @@ if TYPE_CHECKING:
 def take_nd(
     arr: np.ndarray,
     indexer,
-    axis: int = ...,
+    axis: AxisInt = ...,
     fill_value=...,
     allow_fill: bool = ...,
 ) -> np.ndarray:
@@ -47,7 +48,7 @@ def take_nd(
 def take_nd(
     arr: ExtensionArray,
     indexer,
-    axis: int = ...,
+    axis: AxisInt = ...,
     fill_value=...,
     allow_fill: bool = ...,
 ) -> ArrayLike:
@@ -57,7 +58,7 @@ def take_nd(
 def take_nd(
     arr: ArrayLike,
     indexer,
-    axis: int = 0,
+    axis: AxisInt = 0,
     fill_value=lib.no_default,
     allow_fill: bool = True,
 ) -> ArrayLike:
@@ -120,7 +121,7 @@ def take_nd(
 def _take_nd_ndarray(
     arr: np.ndarray,
     indexer: npt.NDArray[np.intp] | None,
-    axis: int,
+    axis: AxisInt,
     fill_value,
     allow_fill: bool,
 ) -> np.ndarray:
@@ -287,7 +288,7 @@ def take_2d_multi(
 
 @functools.lru_cache(maxsize=128)
 def _get_take_nd_function_cached(
-    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int
+    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: AxisInt
 ):
     """
     Part of _get_take_nd_function below that doesn't need `mask_info` and thus
@@ -324,7 +325,11 @@ def _get_take_nd_function_cached(
 
 
 def _get_take_nd_function(
-    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int = 0, mask_info=None
+    ndim: int,
+    arr_dtype: np.dtype,
+    out_dtype: np.dtype,
+    axis: AxisInt = 0,
+    mask_info=None,
 ):
     """
     Get the appropriate "take" implementation for the given dimension, axis
@@ -503,7 +508,7 @@ def _take_nd_object(
     arr: np.ndarray,
     indexer: npt.NDArray[np.intp],
     out: np.ndarray,
-    axis: int,
+    axis: AxisInt,
     fill_value,
     mask_info,
 ) -> None:

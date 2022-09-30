@@ -93,6 +93,9 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
         mi = mi.set_levels([["A", "B", np.nan], ["A", "B", np.nan]])
     expected = pd.DataFrame(outputs, index=mi)
 
+    print(grouped)
+    print(expected)
+
     tm.assert_frame_equal(grouped, expected)
 
 
@@ -408,7 +411,13 @@ def test_groupby_drop_nan_with_multi_index():
         ([2, np.nan, 1, 2], "Float32"),
         ([2, np.nan, 1, 2], "Int64"),
         ([2, np.nan, 1, 2], "Float64"),
-        (["y", None, "x", "y"], "category"),
+        pytest.param(
+            ["y", None, "x", "y"],
+            "category",
+            marks=pytest.mark.xfail(
+                reason="dropna=False not correct for categorical, GH#48645"
+            ),
+        ),
         (["y", pd.NA, "x", "y"], "string"),
         pytest.param(
             ["y", pd.NA, "x", "y"],

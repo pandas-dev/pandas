@@ -1,7 +1,7 @@
 .. _whatsnew_150:
 
-What's new in 1.5.0 (??)
-------------------------
+What's new in 1.5.0 (September 19, 2022)
+----------------------------------------
 
 These are the changes in pandas 1.5.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -1214,12 +1214,10 @@ Sparse
 ^^^^^^
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
 - Bug in :meth:`SparseArray.unique` fails to keep original elements order (:issue:`47809`)
--
 
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`IntegerArray.searchsorted` and :meth:`FloatingArray.searchsorted` returning inconsistent results when acting on ``np.nan`` (:issue:`45255`)
--
 
 Styler
 ^^^^^^
@@ -1234,7 +1232,6 @@ Metadata
 ^^^^^^^^
 - Fixed metadata propagation in :meth:`DataFrame.melt` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
--
 
 Other
 ^^^^^
@@ -1242,10 +1239,11 @@ Other
 .. ***DO NOT USE THIS SECTION***
 
 - Bug in :func:`.assert_index_equal` with ``names=True`` and ``check_order=False`` not checking names (:issue:`47328`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v1.4.4..v1.5.0|HEAD

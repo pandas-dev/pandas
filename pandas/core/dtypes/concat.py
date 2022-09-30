@@ -14,6 +14,7 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
+    AxisInt,
     DtypeObj,
 )
 from pandas.util._exceptions import find_stack_level
@@ -69,7 +70,7 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     return astype_array(arr, dtype=dtype, copy=False)
 
 
-def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
+def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -329,14 +330,14 @@ def union_categoricals(
     return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
 
 
-def _concatenate_2d(to_concat, axis: int):
+def _concatenate_2d(to_concat, axis: AxisInt):
     # coerce to 2d if needed & concatenate
     if axis == 1:
         to_concat = [np.atleast_2d(x) for x in to_concat]
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis=0):
+def _concat_datetime(to_concat, axis: AxisInt = 0):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetime64[ns, tz] or m8[ns] dtype
