@@ -2006,7 +2006,7 @@ class _iLocIndexer(_LocationIndexer):
 
         new_values = self.obj._get_column_array(loc)
 
-        if can_hold_element(orig_values, new_values):
+        if can_hold_element(orig_values, new_values) and not len(new_values) == 0:
             # Don't issue the warning yet, as we can still trim a few cases where
             #  behavior will not change.
 
