@@ -983,7 +983,7 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrame.asfreq: Convert TimeSeries to specified frequency.
         """
         return self._upsample("asfreq", fill_value=fill_value)
-    
+
     def mean(
         self,
         numeric_only: bool | lib.NoDefault = lib.no_default,
