@@ -14,25 +14,12 @@ tables.parameters.MAX_BLOSC_THREADS = 1
 tables.parameters.MAX_THREADS = 1
 
 
-def safe_remove(path):
-    if path is not None:
-        try:
-            os.remove(path)  # noqa: PDF008
-        except OSError:
-            pass
-
-
 def safe_close(store):
     try:
         if store is not None:
             store.close()
     except OSError:
         pass
-
-
-def create_tempfile(path):
-    """create an unopened named temporary file"""
-    return os.path.join(tempfile.gettempdir(), path)
 
 
 # contextmanager to ensure the file cleanup
@@ -45,7 +32,7 @@ def ensure_clean_store(
 
         # put in the temporary path if we don't have one already
         if not len(os.path.dirname(path)):
-            path = create_tempfile(path)
+            path = os.path.join(tempfile.gettempdir(), path)
 
         store = HDFStore(
             path, mode=mode, complevel=complevel, complib=complib, fletcher32=False
@@ -54,26 +41,11 @@ def ensure_clean_store(
     finally:
         safe_close(store)
         if mode == "w" or mode == "a":
-            safe_remove(path)
-
-
-@contextmanager
-def ensure_clean_path(path):
-    """
-    return essentially a named temporary file that is not opened
-    and deleted on exiting; if path is a list, then create and
-    return list of filenames
-    """
-    try:
-        if isinstance(path, list):
-            filenames = [create_tempfile(p) for p in path]
-            yield filenames
-        else:
-            filenames = [create_tempfile(path)]
-            yield filenames[0]
-    finally:
-        for f in filenames:
-            safe_remove(f)
+            if path is not None:
+                try:
+                    os.remove(path)  # noqa: PDF008
+                except OSError:
+                    pass
 
 
 def _maybe_remove(store, key):
