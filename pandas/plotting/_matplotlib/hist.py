@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations #importing necessary utilities required
 
 from typing import (
     TYPE_CHECKING,
@@ -49,8 +49,9 @@ class HistPlot(LinePlot):
     @property
     def _kind(self) -> Literal["hist", "kde"]:
         return "hist"
-
-    def __init__(
+    
+    #constructor
+    def __init__(                  
         self,
         data,
         bins: int | np.ndarray | list[np.ndarray] = 10,
