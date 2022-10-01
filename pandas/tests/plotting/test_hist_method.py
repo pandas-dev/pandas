@@ -578,8 +578,7 @@ class TestDataFramePlots(TestPlotBase):
             nan_row = np.random.randint(0, len(df) - 1)
             df.loc[nan_row, column] = np.nan
             no_nan_df[column] = df[column].dropna().to_numpy()
-            no_nan_weights[:nan_row, i] = weights[:nan_row]
-            no_nan_weights[nan_row:, i] = weights[nan_row + 1 :]
+            no_nan_weights[:, i] = weights[df[column].notna()]
 
         assert len(no_nan_df) == len(df) - 1
 
