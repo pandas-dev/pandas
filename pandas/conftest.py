@@ -81,8 +81,10 @@ else:
 zoneinfo = None
 if pd.compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
+    # pylint: disable=import-error
     import zoneinfo  # type: ignore[no-redef]
 
+    # pylint: enable=import-error
     # Although zoneinfo can be imported in Py39, it is effectively
     # "not available" without tzdata/IANA tz data.
     # We will set zoneinfo to not found in this case

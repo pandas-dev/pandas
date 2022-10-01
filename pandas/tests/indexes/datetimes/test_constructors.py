@@ -15,7 +15,6 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     astype_overflowsafe,
 )
-from pandas.compat import PY39
 
 import pandas as pd
 from pandas import (
@@ -32,8 +31,8 @@ from pandas.core.arrays import (
     period_array,
 )
 
-if PY39:
-    import zoneinfo
+if pd.compat.PY39:
+    import zoneinfo  # pylint: disable=import-error
 
 
 class TestDatetimeIndex:
@@ -1151,7 +1150,7 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 
 
 _tzs = ["dateutil/Europe/London"]
-if PY39:
+if pd.compat.PY39:
     try:
         _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
     except zoneinfo.ZoneInfoNotFoundError:
