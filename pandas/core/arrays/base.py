@@ -91,23 +91,6 @@ from pandas.core.sorting import (
     nargsort,
 )
 
-if TYPE_CHECKING:
-
-    class ExtensionArraySupportsAnyAll(
-        "ExtensionArray"
-    ):  # pylint: disable=inherit-non-class
-        def any(self, *, skipna: bool = True) -> bool:
-            pass
-
-        def all(self, *, skipna: bool = True) -> bool:
-            pass
-
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
-
-
 _extension_array_shared_docs: dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
@@ -534,6 +517,7 @@ class ExtensionArray:
 
     @property
     def shape(self) -> Shape:
+
         """
         Return a tuple of the array dimensions.
         """
@@ -1686,6 +1670,21 @@ class ExtensionArray:
                 return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
+
+if TYPE_CHECKING:
+
+    class ExtensionArraySupportsAnyAll(ExtensionArray):
+        def any(self, *, skipna: bool = True) -> bool:
+            pass
+
+        def all(self, *, skipna: bool = True) -> bool:
+            pass
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 
 class ExtensionOpsMixin:
