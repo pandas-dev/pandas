@@ -2624,7 +2624,7 @@ class Fixed:
         self,
         parent: HDFStore,
         group: Node,
-        encoding: str|None = "UTF-8",
+        encoding: str | None = "UTF-8",
         errors: str = "strict",
     ) -> None:
         assert isinstance(parent, HDFStore), type(parent)
