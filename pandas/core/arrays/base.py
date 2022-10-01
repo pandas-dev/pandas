@@ -91,6 +91,13 @@ from pandas.core.sorting import (
     nargsort,
 )
 
+if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
 _extension_array_shared_docs: dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
@@ -1672,19 +1679,12 @@ class ExtensionArray:
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
-if TYPE_CHECKING:
+class ExtensionArraySupportsAnyAll(ExtensionArray):
+    def any(self, *, skipna: bool = True) -> bool:
+        pass
 
-    class ExtensionArraySupportsAnyAll(ExtensionArray):
-        def any(self, *, skipna: bool = True) -> bool:
-            pass
-
-        def all(self, *, skipna: bool = True) -> bool:
-            pass
-
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
+    def all(self, *, skipna: bool = True) -> bool:
+        pass
 
 
 class ExtensionOpsMixin:
