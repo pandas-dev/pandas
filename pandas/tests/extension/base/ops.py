@@ -113,14 +113,13 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         expected = pd.Series(data + data)
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(
-        self, request, data, box
+        self, request, data, frame_or_series
     ):
         # EAs should return NotImplemented for ops with Series/DataFrame
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
-        if box is pd.DataFrame:
+        if frame_or_series is pd.DataFrame:
             other = other.to_frame()
         if not hasattr(data, "__add__"):
             request.node.add_marker(
@@ -167,25 +166,26 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         other = pd.Series([data[0]] * len(data))
         self._compare_other(ser, data, comparison_op, other)
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+    def test_direct_arith_with_ndframe_returns_not_implemented(
+        self, data, frame_or_series
+    ):
         # EAs should return NotImplemented for ops with Series/DataFrame
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
-        if box is pd.DataFrame:
+        if frame_or_series is pd.DataFrame:
             other = other.to_frame()
 
         if hasattr(data, "__eq__"):
             result = data.__eq__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
+            pytest.skip(f"{type(data).__name__} does not implement __eq__")
 
         if hasattr(data, "__ne__"):
             result = data.__ne__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(f"{type(data).__name__} does not implement __ne__")
+            pytest.skip(f"{type(data).__name__} does not implement __ne__")
 
 
 class BaseUnaryOpsTests(BaseOpsUtil):
