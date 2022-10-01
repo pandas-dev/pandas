@@ -80,10 +80,10 @@ def test_deferred_with_groupby():
         }
     ).set_index("date")
 
-    def f_0(x):
+    def f_1(x):
         return x.resample("1D").ffill()
 
-    expected = df.groupby("group").apply(f_0)
+    expected = df.groupby("group").apply(f_1)
     result = df.groupby("group").resample("1D").ffill()
     tm.assert_frame_equal(result, expected)
 
