@@ -433,6 +433,7 @@ cdef class _Timestamp(ABCTimestamp):
                     # TODO: deprecate allowing this?  We only get here
                     #  with test_timedelta_add_timestamp_interval
                     other = np.timedelta64(other.view("i8"), "ns")
+                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
                 elif (
                     other_reso == NPY_DATETIMEUNIT.NPY_FR_Y or other_reso == NPY_DATETIMEUNIT.NPY_FR_M
                 ):
@@ -440,23 +441,25 @@ cdef class _Timestamp(ABCTimestamp):
                     #  corresponding DateOffsets?
                     # TODO: no tests get here
                     other = ensure_td64ns(other)
+                    other_reso = NPY_DATETIMEUNIT.NPY_FR_ns
+
+                if other_reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+                    # TODO: no tests
+                    other = ensure_td64ns(other)
+                if other_reso > self._reso:
+                    # Following numpy, we cast to the higher resolution
+                    # test_sub_timedelta64_mismatched_reso
+                    self = (<_Timestamp>self)._as_reso(other_reso)
+
 
             if isinstance(other, _Timedelta):
                 # TODO: share this with __sub__, Timedelta.__add__
-                # We allow silent casting to the lower resolution if and only
-                #  if it is lossless.  See also Timestamp.__sub__
-                #  and Timedelta.__add__
-                try:
-                    if self._reso < other._reso:
-                        other = (<_Timedelta>other)._as_reso(self._reso, round_ok=False)
-                    elif self._reso > other._reso:
-                        self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
-                except ValueError as err:
-                    raise ValueError(
-                        "Timestamp addition with mismatched resolutions is not "
-                        "allowed when casting to the lower resolution would require "
-                        "lossy rounding."
-                    ) from err
+                # Matching numpy, we cast to the higher resolution. Unlike numpy,
+                #  we raise instead of silently overflowing during this casting.
+                if self._reso < other._reso:
+                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=True)
+                elif self._reso > other._reso:
+                    other = (<_Timedelta>other)._as_reso(self._reso, round_ok=True)
 
             try:
                 nanos = delta_to_nanoseconds(
@@ -464,12 +467,6 @@ cdef class _Timestamp(ABCTimestamp):
                 )
             except OutOfBoundsTimedelta:
                 raise
-            except ValueError as err:
-                raise ValueError(
-                    "Addition between Timestamp and Timedelta with mismatched "
-                    "resolutions is not allowed when casting to the lower "
-                    "resolution would require lossy rounding."
-                ) from err
 
             try:
                 new_value = self.value + nanos
@@ -556,19 +553,12 @@ cdef class _Timestamp(ABCTimestamp):
                     "Cannot subtract tz-naive and tz-aware datetime-like objects."
                 )
 
-            # We allow silent casting to the lower resolution if and only
-            #  if it is lossless.
-            try:
-                if self._reso < other._reso:
-                    other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
-                elif self._reso > other._reso:
-                    self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
-            except ValueError as err:
-                raise ValueError(
-                    "Timestamp subtraction with mismatched resolutions is not "
-                    "allowed when casting to the lower resolution would require "
-                    "lossy rounding."
-                ) from err
+            # Matching numpy, we cast to the higher resolution. Unlike numpy,
+            #  we raise instead of silently overflowing during this casting.
+            if self._reso < other._reso:
+                self = (<_Timestamp>self)._as_reso(other._reso, round_ok=False)
+            elif self._reso > other._reso:
+                other = (<_Timestamp>other)._as_reso(self._reso, round_ok=False)
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -1692,7 +1682,13 @@ class Timestamp(_Timestamp):
             )
             # Once this deprecation is enforced, we can do
             #  return Timestamp(ts_input).tz_localize(tzobj)
-        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
+
+        if nanosecond is None:
+            nanosecond = 0
+        elif not (999 >= nanosecond >= 0):
+            raise ValueError("nanosecond must be in 0..999")
+
+        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond)
 
         if ts.value == NPY_NAT:
             return NaT

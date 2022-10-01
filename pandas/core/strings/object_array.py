@@ -101,7 +101,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 result = lib.maybe_convert_objects(result)
         return result
 
-    def _str_count(self, pat, flags=0):
+    def _str_count(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
         f = lambda x: len(regex.findall(x))
         return self._str_map(f, dtype="int64")
@@ -123,7 +123,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(f)
 
     def _str_contains(
-        self, pat, case: bool = True, flags=0, na=np.nan, regex: bool = True
+        self, pat, case: bool = True, flags: int = 0, na=np.nan, regex: bool = True
     ):
         if regex:
             if not case:
@@ -232,10 +232,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         f = lambda x: x.encode(encoding, errors=errors)
         return self._str_map(f, dtype=object)
 
-    def _str_find(self, sub, start=0, end=None):
+    def _str_find(self, sub, start: int = 0, end=None):
         return self._str_find_(sub, start, end, side="left")
 
-    def _str_rfind(self, sub, start=0, end=None):
+    def _str_rfind(self, sub, start: int = 0, end=None):
         return self._str_find_(sub, start, end, side="right")
 
     def _str_find_(self, sub, start, end, side):
@@ -252,7 +252,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: getattr(x, method)(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_findall(self, pat, flags=0):
+    def _str_findall(self, pat, flags: int = 0):
         regex = re.compile(pat, flags=flags)
         return self._str_map(regex.findall, dtype="object")
 
@@ -266,14 +266,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(f)
 
-    def _str_index(self, sub, start=0, end=None):
+    def _str_index(self, sub, start: int = 0, end=None):
         if end:
             f = lambda x: x.index(sub, start, end)
         else:
             f = lambda x: x.index(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_rindex(self, sub, start=0, end=None):
+    def _str_rindex(self, sub, start: int = 0, end=None):
         if end:
             f = lambda x: x.rindex(sub, start, end)
         else:

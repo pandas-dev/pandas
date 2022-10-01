@@ -296,7 +296,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
             # pd.array would return an IntegerArray
             expected = PandasArray(np.asarray(expected._values))
         else:
-            expected = pd.array(expected)
+            expected = pd.array(expected, copy=False)
     elif box_cls is Index:
         expected = Index._with_infer(expected)
     elif box_cls is Series:
@@ -341,11 +341,13 @@ def getCols(k) -> str:
 
 
 # make index
-def makeStringIndex(k=10, name=None) -> Index:
+def makeStringIndex(k: int = 10, name=None) -> Index:
     return Index(rands_array(nchars=10, size=k), name=name)
 
 
-def makeCategoricalIndex(k=10, n=3, name=None, **kwargs) -> CategoricalIndex:
+def makeCategoricalIndex(
+    k: int = 10, n: int = 3, name=None, **kwargs
+) -> CategoricalIndex:
     """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n, replace=False)
     return CategoricalIndex(
@@ -353,13 +355,13 @@ def makeCategoricalIndex(k=10, n=3, name=None, **kwargs) -> CategoricalIndex:
     )
 
 
-def makeIntervalIndex(k=10, name=None, **kwargs) -> IntervalIndex:
+def makeIntervalIndex(k: int = 10, name=None, **kwargs) -> IntervalIndex:
     """make a length k IntervalIndex"""
     x = np.linspace(0, 100, num=(k + 1))
     return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
 
-def makeBoolIndex(k=10, name=None) -> Index:
+def makeBoolIndex(k: int = 10, name=None) -> Index:
     if k == 1:
         return Index([True], name=name)
     elif k == 2:
@@ -367,7 +369,7 @@ def makeBoolIndex(k=10, name=None) -> Index:
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
-def makeNumericIndex(k=10, name=None, *, dtype) -> NumericIndex:
+def makeNumericIndex(k: int = 10, name=None, *, dtype) -> NumericIndex:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
@@ -385,21 +387,21 @@ def makeNumericIndex(k=10, name=None, *, dtype) -> NumericIndex:
     return NumericIndex(values, dtype=dtype, name=name)
 
 
-def makeIntIndex(k=10, name=None) -> Int64Index:
+def makeIntIndex(k: int = 10, name=None) -> Int64Index:
     base_idx = makeNumericIndex(k, name=name, dtype="int64")
     return Int64Index(base_idx)
 
 
-def makeUIntIndex(k=10, name=None) -> UInt64Index:
+def makeUIntIndex(k: int = 10, name=None) -> UInt64Index:
     base_idx = makeNumericIndex(k, name=name, dtype="uint64")
     return UInt64Index(base_idx)
 
 
-def makeRangeIndex(k=10, name=None, **kwargs) -> RangeIndex:
+def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
     return RangeIndex(0, k, 1, name=name, **kwargs)
 
 
-def makeFloatIndex(k=10, name=None) -> Float64Index:
+def makeFloatIndex(k: int = 10, name=None) -> Float64Index:
     base_idx = makeNumericIndex(k, name=name, dtype="float64")
     return Float64Index(base_idx)
 
@@ -423,7 +425,7 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
 
-def makeMultiIndex(k=10, names=None, **kwargs):
+def makeMultiIndex(k: int = 10, names=None, **kwargs):
     N = (k // 2) + 1
     rng = range(N)
     mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
@@ -665,8 +667,8 @@ def makeCustomDataframe(
     ncols,
     c_idx_names: bool | list[str] = True,
     r_idx_names: bool | list[str] = True,
-    c_idx_nlevels=1,
-    r_idx_nlevels=1,
+    c_idx_nlevels: int = 1,
+    r_idx_nlevels: int = 1,
     data_gen_f=None,
     c_ndupe_l=None,
     r_ndupe_l=None,

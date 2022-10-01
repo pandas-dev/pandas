@@ -607,6 +607,10 @@ the pandas-equivalent operations compared to software you already know:
     ---
     :card: + comparison-card-sas
     :img-top: ../_static/logo_sas.svg
+     :class: only-light
+
+    :img-top: ../_static/logo_sas_white.svg
+     :class: only-dark
 
     The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
     also provides the ``data set`` corresponding to the pandas ``DataFrame``.

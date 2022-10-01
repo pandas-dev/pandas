@@ -942,7 +942,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = self._constructor(new_values, index=new_index, fastpath=True)
         return result.__finalize__(self, method="take")
 
-    def _take_with_is_copy(self, indices, axis=0) -> Series:
+    def _take_with_is_copy(self, indices, axis: Axis = 0) -> Series:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -967,7 +967,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
+    def _slice(self, slobj: slice, axis: Axis = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         return self._get_values(slobj)
@@ -4784,7 +4784,7 @@ Keep all original rows and also all original values
         op,
         name: str,
         *,
-        axis=0,
+        axis: Axis = 0,
         skipna: bool = True,
         numeric_only=None,
         filter_type=None,
@@ -5704,6 +5704,7 @@ Keep all original rows and also all original values
                 convert_integer,
                 convert_boolean,
                 convert_floating,
+                infer_objects,
             )
             result = input_series.astype(inferred_dtype)
         else:
