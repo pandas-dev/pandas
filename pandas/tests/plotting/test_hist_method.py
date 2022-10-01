@@ -565,6 +565,38 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_yaxis().get_visible()
         tm.close()
 
+    def test_hist_weights(self):
+        # GH 48884
+        # create a df and a set of weights
+        df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
+        weights = np.random.randn(len(df))
+        # set a random element of each column to NaN
+        # store remaining data and corresponding weights
+        no_nan_df = DataFrame()
+        no_nan_weights = np.zeros((len(df) - 1, 4))
+        for i, column in enumerate(df):
+            nan_row = np.random.randint(0, len(df) - 1)
+            df.loc[nan_row, column] = np.nan
+            no_nan_df[column] = df[column].dropna().to_numpy()
+            no_nan_weights[:nan_row, i] = weights[:nan_row]
+            no_nan_weights[nan_row:, i] = weights[nan_row + 1 :]
+
+        assert len(no_nan_df) == len(df) - 1
+
+        # check heights of hists are the same using df and weights
+        # and no_nan_df and no_nan_weights
+        from matplotlib.patches import Rectangle
+
+        _, ax0 = self.plt.subplots()
+        df.plot.hist(ax=ax0, weights=weights)
+        rects = [x for x in ax0.get_children() if isinstance(x, Rectangle)]
+        heights = [rect.get_height() for rect in rects]
+        _, ax1 = self.plt.subplots()
+        no_nan_df.plot.hist(ax=ax1, weights=no_nan_weights)
+        no_nan_rects = [x for x in ax1.get_children() if isinstance(x, Rectangle)]
+        no_nan_heights = [rect.get_height() for rect in no_nan_rects]
+        assert all([h0 == h1 for h0, h1 in zip(heights, no_nan_heights)])
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
