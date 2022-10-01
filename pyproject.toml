@@ -41,7 +41,6 @@ disable = [
   "access-member-before-definition",
   "bad-super-call",
   "c-extension-no-member",
-  "function-redefined",
   "import-error",
   "inherit-non-class",
   "invalid-repr-returned",

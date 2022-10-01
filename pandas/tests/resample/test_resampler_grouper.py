@@ -65,10 +65,10 @@ def test_deferred_with_groupby():
     df = DataFrame(data, columns=["date", "id", "score"])
     df.date = pd.to_datetime(df.date)
 
-    def f(x):
+    def f_0(x):
         return x.set_index("date").resample("D").asfreq()
 
-    expected = df.groupby("id").apply(f)
+    expected = df.groupby("id").apply(f_0)
     result = df.set_index("date").groupby("id").resample("D").asfreq()
     tm.assert_frame_equal(result, expected)
 
@@ -80,10 +80,10 @@ def test_deferred_with_groupby():
         }
     ).set_index("date")
 
-    def f(x):
+    def f_0(x):
         return x.resample("1D").ffill()
 
-    expected = df.groupby("group").apply(f)
+    expected = df.groupby("group").apply(f_0)
     result = df.groupby("group").resample("1D").ffill()
     tm.assert_frame_equal(result, expected)
 
@@ -257,16 +257,16 @@ def test_apply():
     # reduction
     expected = g.resample("2s").sum()
 
-    def f(x):
+    def f_0(x):
         return x.resample("2s").sum()
 
-    result = r.apply(f)
+    result = r.apply(f_0)
     tm.assert_frame_equal(result, expected)
 
-    def f(x):
+    def f_1(x):
         return x.resample("2s").apply(lambda y: y.sum())
 
-    result = g.apply(f)
+    result = g.apply(f_1)
     # y.sum() results in int64 instead of int32 on 32-bit architectures
     expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
