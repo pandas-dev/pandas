@@ -183,7 +183,7 @@ class TestNonNano:
         assert (2.5 * td) / td == 2.5
 
         other = Timedelta(td.value)
-        msg = "with mismatched resolutions are not supported"
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow."
         with pytest.raises(ValueError, match=msg):
             td / other
 
@@ -207,7 +207,7 @@ class TestNonNano:
         assert (2.5 * td) // td == 2
 
         other = Timedelta(td.value)
-        msg = "with mismatched resolutions are not supported"
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(ValueError, match=msg):
             td // other
 
@@ -259,15 +259,14 @@ class TestNonNano:
         assert result.days == 1 - td.days
 
         other2 = Timedelta(500)
-        # TODO: should be OutOfBoundsTimedelta
-        msg = "value too large"
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td + other2
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             other2 + td
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td - other2
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             other2 - td
 
     def test_min(self, td):

@@ -49,6 +49,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
@@ -323,6 +324,13 @@ def array(
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
+
+    if isinstance(data, ExtensionArray) and (
+        dtype is None or is_dtype_equal(dtype, data.dtype)
+    ):
+        if copy:
+            return data.copy()
+        return data
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
