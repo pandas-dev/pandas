@@ -1082,8 +1082,19 @@ cdef class _Timedelta(timedelta):
             #  non-invariant behavior.
             #  see GH#44504
             return hash(self.value)
-        else:
+        elif self._reso == NPY_FR_ns:
             return timedelta.__hash__(self)
+        else:
+            # We want to ensure that two equivalent Timedelta objects
+            #  have the same hash.  So we try downcasting to the next-lowest
+            #  resolution.
+            try:
+                obj = self._as_reso(<NPY_DATETIMEUNIT>(self._reso + 1))
+            except OverflowError:
+                # Doesn't fit, so we're off the hook
+                return hash(self.value)
+            else:
+                return hash(obj)
 
     def __richcmp__(_Timedelta self, object other, int op):
         cdef:

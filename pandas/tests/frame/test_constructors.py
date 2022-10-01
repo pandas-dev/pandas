@@ -856,16 +856,20 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_datetime, expected)
         tm.assert_frame_equal(result_Timestamp, expected)
 
-    def test_constructor_dict_timedelta64_index(self):
+    @pytest.mark.parametrize(
+        "klass,name",
+        [
+            (lambda x: np.timedelta64(x, "D"), "timedelta64"),
+            (lambda x: timedelta(days=x), "pytimedelta"),
+            (lambda x: Timedelta(x, "D"), "Timedelta[ns]"),
+            (lambda x: Timedelta(x, "D")._as_unit("s"), "Timedelta[s]"),
+        ],
+    )
+    def test_constructor_dict_timedelta64_index(self, klass, name):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
-        def create_data(constructor):
-            return {i: {constructor(s): 2 * i} for i, s in enumerate(td_as_int)}
-
-        data_timedelta64 = create_data(lambda x: np.timedelta64(x, "D"))
-        data_timedelta = create_data(lambda x: timedelta(days=x))
-        data_Timedelta = create_data(lambda x: Timedelta(x, "D"))
+        data = {i: {klass(s): 2 * i} for i, s in enumerate(td_as_int)}
 
         expected = DataFrame(
             [
@@ -877,12 +881,14 @@ class TestDataFrameConstructors:
             index=[Timedelta(td, "D") for td in td_as_int],
         )
 
-        result_timedelta64 = DataFrame(data_timedelta64)
-        result_timedelta = DataFrame(data_timedelta)
-        result_Timedelta = DataFrame(data_Timedelta)
-        tm.assert_frame_equal(result_timedelta64, expected)
-        tm.assert_frame_equal(result_timedelta, expected)
-        tm.assert_frame_equal(result_Timedelta, expected)
+        if name == "Timedelta[s]":
+            # TODO(2.0): passing index here shouldn't be necessary, is for now
+            #  otherwise we raise in _extract_index
+            result = DataFrame(data, index=expected.index)
+        else:
+            result = DataFrame(data)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_period_dict(self):
         # PeriodIndex
