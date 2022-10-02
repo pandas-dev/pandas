@@ -39,10 +39,12 @@ from pandas._libs.lib import (
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    AxisInt,
     Dtype,
     NpDtype,
     Ordered,
     Shape,
+    SortKind,
     npt,
     type_t,
 )
@@ -54,7 +56,10 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -493,7 +498,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return Categorical
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Categorical:
         return Categorical(scalars, dtype=dtype, copy=copy)
 
     @overload
@@ -783,7 +790,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         v.flags.writeable = False
         return v
 
-    def _set_categories(self, categories, fastpath=False):
+    def _set_categories(self, categories, fastpath: bool = False) -> None:
         """
         Sets new categories inplace
 
@@ -951,7 +958,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self.set_ordered(False, inplace=inplace)
 
     def set_categories(
-        self, new_categories, ordered=None, rename=False, inplace=no_default
+        self, new_categories, ordered=None, rename: bool = False, inplace=no_default
     ):
         """
         Set the categories to the specified new_categories.
@@ -1288,7 +1295,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError(
                 f"new categories must not include old categories: {already_included}"
             )
-        new_categories = list(self.dtype.categories) + list(new_categories)
+
+        if hasattr(new_categories, "dtype"):
+            from pandas import Series
+
+            dtype = find_common_type(
+                [self.dtype.categories.dtype, new_categories.dtype]
+            )
+            new_categories = Series(
+                list(self.dtype.categories) + list(new_categories), dtype=dtype
+            )
+        else:
+            new_categories = list(self.dtype.categories) + list(new_categories)
+
         new_dtype = CategoricalDtype(new_categories, self.ordered)
 
         cat = self if inplace else self.copy()
@@ -1821,8 +1840,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Categorical to an ordered one\n"
             )
 
+    # error: Signature of "argsort" incompatible with supertype "ExtensionArray"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
-    def argsort(self, ascending=True, kind="quicksort", **kwargs):
+    def argsort(  # type: ignore[override]
+        self, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
+    ):
         """
         Return the indices that would sort the Categorical.
 
@@ -1983,7 +2005,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _rank(
         self,
         *,
-        axis: int = 0,
+        axis: AxisInt = 0,
         method: str = "average",
         na_option: str = "keep",
         ascending: bool = True,
@@ -2194,7 +2216,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, length: bool = True, na_rep="NaN", footer: bool = True) -> str:
+    def _get_repr(
+        self, length: bool = True, na_rep: str = "NaN", footer: bool = True
+    ) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(
@@ -2291,7 +2315,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # Reductions
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def min(self, *, skipna=True, **kwargs):
+    def min(self, *, skipna: bool = True, **kwargs):
         """
         The minimum value of the object.
 
@@ -2328,7 +2352,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._wrap_reduction_result(None, pointer)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def max(self, *, skipna=True, **kwargs):
+    def max(self, *, skipna: bool = True, **kwargs):
         """
         The maximum value of the object.
 
@@ -2459,7 +2483,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _concat_same_type(
-        cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: int = 0
+        cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: AxisInt = 0
     ) -> CategoricalT:
         from pandas.core.dtypes.concat import union_categoricals
 
@@ -2710,7 +2734,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         result = PandasArray(categories.to_numpy())._str_map(f, na_value, dtype)
         return take_nd(result, codes, fill_value=na_value)
 
-    def _str_get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep: str = "|"):
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import PandasArray
 

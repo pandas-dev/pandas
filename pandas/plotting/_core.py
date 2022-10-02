@@ -1017,7 +1017,7 @@ class PlotAccessor(PandasObject):
 
             >>> s = pd.Series([1, 3, 2])
             >>> s.plot.line()
-            <AxesSubplot:ylabel='Density'>
+            <AxesSubplot: ylabel='Density'>
 
         .. plot::
             :context: close-figs
@@ -1485,7 +1485,7 @@ class PlotAccessor(PandasObject):
 
     density = kde
 
-    def area(self, x=None, y=None, stacked=True, **kwargs) -> PlotAccessor:
+    def area(self, x=None, y=None, stacked: bool = True, **kwargs) -> PlotAccessor:
         """
         Draw a stacked area plot.
 

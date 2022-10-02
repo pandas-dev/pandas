@@ -22,6 +22,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
+    AxisInt,
     IndexKeyFunc,
     Level,
     NaPosition,
@@ -52,7 +53,7 @@ if TYPE_CHECKING:
 def get_indexer_indexer(
     target: Index,
     level: Level | list[Level] | None,
-    ascending: Sequence[bool] | bool,
+    ascending: list[bool] | bool,
     kind: SortKind,
     na_position: NaPosition,
     sort_remaining: bool,
@@ -343,7 +344,9 @@ def lexsort_indexer(
         with warnings.catch_warnings():
             # TODO(2.0): unnecessary once deprecation is enforced
             # GH#45618 don't issue warning user can't do anything about
-            warnings.filterwarnings("ignore", ".*SparseArray.*", category=FutureWarning)
+            warnings.filterwarnings(
+                "ignore", ".*(SparseArray|SparseDtype).*", category=FutureWarning
+            )
 
             cat = Categorical(k, ordered=True)
 
@@ -447,7 +450,7 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
+def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.

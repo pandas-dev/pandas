@@ -30,6 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._typing import Axis
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -457,7 +458,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         res_i8 = left.union(right, sort=sort)
         return self._wrap_range_setop(other, res_i8)
 
-    def _intersection(self, other: Index, sort=False) -> Index:
+    def _intersection(self, other: Index, sort: bool = False) -> Index:
         """
         intersection specialized to the case with matching dtypes and both non-empty.
         """
@@ -695,7 +696,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # NDArray-Like Methods
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+    def take(
+        self,
+        indices,
+        axis: Axis = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
+    ):
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 

@@ -26,7 +26,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
-    BaseOffset,
     Resolution,
     periods_per_day,
     timezones,
@@ -37,8 +36,11 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    Frequency,
     IntervalClosedType,
     IntervalLeftRight,
+    TimeAmbiguous,
+    TimeNonexistent,
     npt,
 )
 from pandas.util._decorators import (
@@ -278,7 +280,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.tz_localize)
-    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeIndex:
+    def tz_localize(
+        self,
+        tz,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ) -> DatetimeIndex:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -314,11 +321,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        freq: str | BaseOffset | lib.NoDefault = lib.no_default,
-        tz=None,
+        freq: Frequency | lib.NoDefault = lib.no_default,
+        tz=lib.no_default,
         normalize: bool = False,
         closed=None,
-        ambiguous="raise",
+        ambiguous: TimeAmbiguous = "raise",
         dayfirst: bool = False,
         yearfirst: bool = False,
         dtype: Dtype | None = None,
@@ -336,7 +343,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and dtype is None
         ):
             # fastpath, similar logic in TimedeltaIndex.__new__;
@@ -347,7 +354,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif (
             isinstance(data, DatetimeArray)
             and freq is lib.no_default
-            and tz is None
+            and tz is lib.no_default
             and is_dtype_equal(data.dtype, dtype)
         ):
             # Reached via Index.__new__ when we call .astype
@@ -590,7 +597,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         return Series(values, index=index, name=name)
 
-    def snap(self, freq="S") -> DatetimeIndex:
+    def snap(self, freq: Frequency = "S") -> DatetimeIndex:
         """
         Snap time stamps to nearest occurring frequency.
 
@@ -966,7 +973,7 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
@@ -1142,7 +1149,7 @@ def bdate_range(
     start=None,
     end=None,
     periods: int | None = None,
-    freq="B",
+    freq: Frequency = "B",
     tz=None,
     normalize: bool = True,
     name: Hashable = None,
@@ -1163,7 +1170,7 @@ def bdate_range(
         Right bound for generating dates.
     periods : int, default None
         Number of periods to generate.
-    freq : str or DateOffset, default 'B' (business daily)
+    freq : str, datetime.timedelta, or DateOffset, default 'B' (business daily)
         Frequency strings can have multiples, e.g. '5H'.
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example
