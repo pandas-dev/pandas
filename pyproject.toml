@@ -50,7 +50,6 @@ disable = [
   "no-member",
   "no-method-argument",
   "no-name-in-module",
-  "no-self-argument",
   "no-value-for-parameter",
   "non-iterator-returned",
   "not-an-iterable",
