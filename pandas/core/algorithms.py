@@ -1995,7 +1995,10 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count, r_count).astype("int", copy=False)
-    unique_array = unique(concat_compat([lvals, rvals]))
-    unique_array = ensure_wrapped_if_datetimelike(unique_array)
-    repeats = final_count.reindex(unique_array).values  # type: ignore[attr-defined]
-    return np.repeat(unique_array, repeats)
+    if isinstance(lvals, ABCMultiIndex) and isinstance(rvals, ABCMultiIndex):
+        unique_vals = lvals.append(rvals).unique()
+    else:
+        unique_vals = unique(concat_compat([lvals, rvals]))
+        unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
+    repeats = final_count.reindex(unique_vals).values  # type: ignore[attr-defined]
+    return np.repeat(unique_vals, repeats)
