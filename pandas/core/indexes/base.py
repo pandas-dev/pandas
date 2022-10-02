@@ -3444,11 +3444,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not other.is_unique:
             # other has duplicates
-            if self._is_multi:
-                # pass MultiIndex objects to preserve dtypes
-                result_dups = algos.union_with_duplicates(self, other)
-            else:
-                result_dups = algos.union_with_duplicates(lvals, rvals)
+            result_dups = algos.union_with_duplicates(self, other)
             return _maybe_try_sort(result_dups, sort)
 
         # Self may have duplicates; other already checked as unique

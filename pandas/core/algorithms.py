@@ -2000,6 +2000,10 @@ def union_with_duplicates(
     if isinstance(lvals, ABCMultiIndex) and isinstance(rvals, ABCMultiIndex):
         unique_vals = lvals.append(rvals).unique()
     else:
+        if isinstance(lvals, ABCIndex):
+            lvals = lvals._values
+        if isinstance(rvals, ABCIndex):
+            rvals = rvals._values
         unique_vals = unique(concat_compat([lvals, rvals]))
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
     repeats = final_count.reindex(unique_vals).values  # type: ignore[attr-defined]
