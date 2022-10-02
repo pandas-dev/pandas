@@ -8,6 +8,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.tests.dtypes.test_inference import MockNumpyLikeArray
 
 
 def _assert_almost_equal_both(a, b, **kwargs):
@@ -458,3 +459,14 @@ Iterable values are different \\(50\\.0 %\\)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal([1, 2], [1, 3])
+
+@pytest.mark.parametrize(
+    "obj,description",
+    [
+    (MockNumpyLikeArray(np.ndarray((2,) * 1)), "duck-ndarray-1d"),
+    (MockNumpyLikeArray(np.array([])), "duck-ndarray-1d-empty"),
+    (MockNumpyLikeArray(np.array(2)), "duck-ndarray-0d"),
+    ],
+)
+def test_assert_almost_equal_not_iterable(obj, description):
+    tm.assert_almost_equal(obj, obj)

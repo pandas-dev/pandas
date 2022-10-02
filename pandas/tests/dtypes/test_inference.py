@@ -126,6 +126,8 @@ class MockNumpyLikeArray:
     def shape(self):
         return self._values.shape
 
+    def __getitem__(self, item):
+        return self._values[item]
 
 # collect all objects to be tested for list-like-ness; use tuples of objects,
 # whether they are list-like or not (special casing for sets), and their ID

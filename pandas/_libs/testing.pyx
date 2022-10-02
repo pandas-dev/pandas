@@ -21,7 +21,11 @@ from pandas.core.dtypes.missing import (
 
 
 cdef bint isiterable(obj):
-    return hasattr(obj, '__iter__')
+    if hasattr(obj, '__iter__'):
+        if hasattr(obj, "ndim") and obj.ndim == 0:
+            return False
+        return True
+    return False
 
 
 cdef bint has_length(obj):
