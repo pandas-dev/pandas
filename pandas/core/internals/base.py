@@ -4,6 +4,10 @@ inherit from this class.
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,7 +24,6 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -49,14 +52,15 @@ if TYPE_CHECKING:
     )
 
 
-class DataManager(PandasObject):
+class DataManager(ABC, PandasObject):
     # TODO share more methods/attributes
 
     axes: list[Index]
 
     @property
+    @abstractmethod
     def items(self) -> Index:
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def __len__(self) -> int:
@@ -87,6 +91,7 @@ class DataManager(PandasObject):
                 f"values have {new_len} elements"
             )
 
+    @abstractmethod
     def reindex_indexer(
         self,
         new_axis,
@@ -97,7 +102,7 @@ class DataManager(PandasObject):
         copy: bool = True,
         only_slice: bool = False,
     ) -> Self:
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def reindex_axis(
@@ -121,12 +126,12 @@ class DataManager(PandasObject):
             only_slice=only_slice,
         )
 
+    @abstractmethod
     def _equal_values(self, other: Self) -> bool:
         """
         To be implemented by the subclasses. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        raise AbstractMethodError(self)
 
     @final
     def equals(self, other: object) -> bool:
@@ -144,21 +149,23 @@ class DataManager(PandasObject):
 
         return self._equal_values(other)
 
+    @abstractmethod
     def apply(
         self,
         f,
         align_keys: list[str] | None = None,
         **kwargs,
     ) -> Self:
-        raise AbstractMethodError(self)
+        ...
 
+    @abstractmethod
     def apply_with_block(
         self,
         f,
         align_keys: list[str] | None = None,
         **kwargs,
     ) -> Self:
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def isna(self, func) -> Self:
@@ -340,8 +347,9 @@ class SingleDataManager(DataManager):
         return mgr
 
     @classmethod
+    @abstractmethod
     def from_array(cls, arr: ArrayLike, index: Index):
-        raise AbstractMethodError(cls)
+        ...
 
 
 def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:

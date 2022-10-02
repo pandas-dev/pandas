@@ -16,7 +16,6 @@ import numpy as np
 from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
 from pandas._libs.properties import cache_readonly
-from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -103,8 +102,8 @@ class ExtensionDtype:
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
-    ``pandas.errors.AbstractMethodError`` and no ``register`` method is
-    provided for registering virtual subclasses.
+    ``NotImplementedError`` and no ``register`` method is provided for
+    registering virtual subclasses.
     """
 
     _metadata: tuple[str, ...] = ()
@@ -170,7 +169,7 @@ class ExtensionDtype:
         that value is valid (not NA). NA values do not need to be
         instances of `type`.
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError(self)
 
     @property
     def kind(self) -> str:
@@ -195,7 +194,7 @@ class ExtensionDtype:
 
         Will be used for display in, e.g. ``Series.dtype``
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError(self)
 
     @property
     def names(self) -> list[str] | None:
@@ -216,7 +215,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError(cls)
 
     def empty(self, shape: Shape) -> ExtensionArray:
         """

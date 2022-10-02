@@ -4,6 +4,10 @@
 
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import io
 from os import PathLike
 from typing import (
@@ -15,10 +19,7 @@ import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    AbstractMethodError,
-    ParserError,
-)
+from pandas.errors import ParserError
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
@@ -63,7 +64,7 @@ if TYPE_CHECKING:
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
 )
-class _XMLFrameParser:
+class _XMLFrameParser(ABC):
     """
     Internal subclass to parse XML into DataFrames.
 
@@ -180,6 +181,7 @@ class _XMLFrameParser:
         self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
+    @abstractmethod
     def parse_data(self) -> list[dict[str, str | None]]:
         """
         Parse xml data.
@@ -187,8 +189,6 @@ class _XMLFrameParser:
         This method will call the other internal methods to
         validate ``xpath``, names, parse and return specific nodes.
         """
-
-        raise AbstractMethodError(self)
 
     def _parse_nodes(self, elems: list[Any]) -> list[dict[str, str | None]]:
         """
@@ -381,6 +381,7 @@ class _XMLFrameParser:
 
         return dicts
 
+    @abstractmethod
     def _validate_path(self) -> list[Any]:
         """
         Validate ``xpath``.
@@ -396,8 +397,7 @@ class _XMLFrameParser:
             * If xpah does not return any nodes.
         """
 
-        raise AbstractMethodError(self)
-
+    @abstractmethod
     def _validate_names(self) -> None:
         """
         Validate names.
@@ -410,8 +410,8 @@ class _XMLFrameParser:
         ValueError
             * If value is not a list and less then length of nodes.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
     ) -> Element | etree._Element:
@@ -421,7 +421,6 @@ class _XMLFrameParser:
         This method will parse XML object into tree
         either from string/bytes or file location.
         """
-        raise AbstractMethodError(self)
 
 
 class _EtreeFrameParser(_XMLFrameParser):

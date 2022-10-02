@@ -1,6 +1,10 @@
 # pyright: reportPropertyTypeMismatch=false
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import collections
 import datetime as dt
 from functools import partial
@@ -91,7 +95,6 @@ from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
-    AbstractMethodError,
     ChainedAssignmentError,
     InvalidIndexError,
     SettingWithCopyError,
@@ -236,7 +239,7 @@ _shared_doc_kwargs = {
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
-class NDFrame(PandasObject, indexing.IndexingMixin):
+class NDFrame(ABC, PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -503,12 +506,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Construction
 
     @property
+    @abstractmethod
     def _constructor(self) -> Callable[..., Self]:
         """
         Used when a manipulation result has the same dimensions as the
         original.
         """
-        raise AbstractMethodError(self)
 
     # ----------------------------------------------------------------------
     # Internals
@@ -3948,11 +3951,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Lookup Caching
 
+    @abstractmethod
     def _reset_cacher(self) -> None:
         """
         Reset the cacher.
         """
-        raise AbstractMethodError(self)
 
     def _maybe_update_cacher(
         self,
@@ -3980,8 +3983,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if clear:
             self._clear_item_cache()
 
+    @abstractmethod
     def _clear_item_cache(self) -> None:
-        raise AbstractMethodError(self)
+        ...
 
     # ----------------------------------------------------------------------
     # Indexing Methods
@@ -4298,8 +4302,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
+    @abstractmethod
     def __getitem__(self, item):
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def _getitem_slice(self, key: slice) -> Self:
@@ -5037,6 +5042,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         ...
 
+    @abstractmethod
     def sort_values(
         self,
         *,
@@ -5187,7 +5193,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4   96hr     50
         1  128hr     20
         """
-        raise AbstractMethodError(self)
 
     @overload
     def sort_index(
@@ -5596,7 +5601,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     def _reindex_multi(self, axes, copy, fill_value):
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     @final
     def _reindex_with_indexers(
@@ -6353,13 +6358,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Internal Interface Methods
 
     @property
+    @abstractmethod
     def values(self):
-        raise AbstractMethodError(self)
+        ...
 
     @property
+    @abstractmethod
     def _values(self) -> ArrayLike:
         """internal implementation"""
-        raise AbstractMethodError(self)
 
     @property
     def dtypes(self):

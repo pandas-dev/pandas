@@ -92,6 +92,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         # self._values = self.values = self.data
         self._dtype = DecimalDtype(context)
 
+    @classmethod
+    def _create_logical_method(cls, op):
+        raise NotImplementedError
+
     @property
     def dtype(self):
         return self._dtype

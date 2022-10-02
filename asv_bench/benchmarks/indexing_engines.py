@@ -12,7 +12,17 @@ import numpy as np
 
 from pandas._libs import index as libindex
 
-from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import BaseMaskedArray as AbstractBaseMaskedArray
+
+
+class BaseMaskedArray(AbstractBaseMaskedArray):
+    @property
+    def dtype(self):
+        raise NotImplementedError
+
+    @classmethod
+    def _coerce_to_array(cls, values, *, dtype, copy=False):
+        raise NotImplementedError
 
 
 def _get_numeric_engines():

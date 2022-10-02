@@ -4,6 +4,7 @@ Expose public exceptions & warnings
 from __future__ import annotations
 
 import ctypes
+import warnings
 
 from pandas._config.config import OptionError
 
@@ -279,19 +280,31 @@ class AbstractMethodError(NotImplementedError):
     >>> class Foo:
     ...     @classmethod
     ...     def classmethod(cls):
-    ...         raise pd.errors.AbstractMethodError(cls, methodtype="classmethod")
+    ...         raise NotImplementedError(
+    ...             "This classmethod must be defined in the concrete class Foo"
+    ...         )
     ...     def method(self):
-    ...         raise pd.errors.AbstractMethodError(self)
+    ...         raise NotImplementedError(
+    ...             "This classmethod must be defined in the concrete class Foo"
+    ...         )
     >>> test = Foo.classmethod()
     Traceback (most recent call last):
-    AbstractMethodError: This classmethod must be defined in the concrete class Foo
+    NotImplementedError: This classmethod must be defined in the concrete class Foo
 
     >>> test2 = Foo().method()
     Traceback (most recent call last):
-    AbstractMethodError: This classmethod must be defined in the concrete class Foo
+    NotImplementedError: This classmethod must be defined in the concrete class Foo
     """
 
     def __init__(self, class_instance, methodtype: str = "method") -> None:
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "`AbstractMethodError` will be removed in a future version. Consider "
+            "using `NotImplementedError`",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
             raise ValueError(
@@ -760,7 +773,6 @@ class InvalidComparison(Exception):
 
 
 __all__ = [
-    "AbstractMethodError",
     "AttributeConflictWarning",
     "CategoricalConversionWarning",
     "ClosedFileError",

@@ -8,6 +8,7 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import (
     Hashable,
     Iterator,
@@ -59,10 +60,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    AbstractMethodError,
-    DataError,
-)
+from pandas.errors import DataError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -1596,6 +1594,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         res = self._maybe_transpose_result(result)  # type: ignore[arg-type]
         return self._reindex_output(res, qs=qs)
 
+    @abstractmethod
     def _wrap_applied_output(
         self,
         data,
@@ -1603,7 +1602,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
-        raise AbstractMethodError(self)
+        ...
 
     # -----------------------------------------------------------------
     # numba
@@ -1979,10 +1978,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             out = out.infer_objects(copy=False)
         return out
 
+    @abstractmethod
     def _cython_transform(
         self, how: str, numeric_only: bool = False, axis: AxisInt = 0, **kwargs
     ):
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):

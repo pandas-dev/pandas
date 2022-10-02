@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
@@ -28,7 +32,6 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -88,7 +91,7 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray, ABC):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
@@ -107,9 +110,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         """
         return x
 
+    @abstractmethod
     def _validate_scalar(self, value):
         # used by NDArrayBackedExtensionIndex.insert
-        raise AbstractMethodError(self)
+        ...
 
     # ------------------------------------------------------------------------
 

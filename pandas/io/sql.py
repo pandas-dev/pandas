@@ -34,10 +34,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    AbstractMethodError,
-    DatabaseError,
-)
+from pandas.errors import DatabaseError
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -1455,7 +1452,8 @@ class PandasSQL(PandasObject, ABC):
         pass
 
 
-class BaseEngine:
+class BaseEngine(ABC):
+    @abstractmethod
     def insert_records(
         self,
         table: SQLTable,
@@ -1471,7 +1469,6 @@ class BaseEngine:
         """
         Inserts data into already-prepared table
         """
-        raise AbstractMethodError(self)
 
 
 class SQLAlchemyEngine(BaseEngine):

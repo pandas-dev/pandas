@@ -25,10 +25,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas.errors import (
-    AbstractMethodError,
-    ParserWarning,
-)
+from pandas.errors import ParserWarning
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
@@ -1832,7 +1829,7 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _failover_to_python(self) -> None:
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def read(self, nrows: int | None = None) -> DataFrame:
         if self.engine == "pyarrow":

@@ -85,28 +85,10 @@ def test_catch_undefined_variable_error(is_local):
         raise UndefinedVariableError(variable_name, is_local)
 
 
-class Foo:
-    @classmethod
-    def classmethod(cls):
-        raise AbstractMethodError(cls, methodtype="classmethod")
-
-    @property
-    def property(self):
-        raise AbstractMethodError(self, methodtype="property")
-
-    def method(self):
-        raise AbstractMethodError(self)
-
-
-def test_AbstractMethodError_classmethod():
-    xpr = "This classmethod must be defined in the concrete class Foo"
-    with pytest.raises(AbstractMethodError, match=xpr):
-        Foo.classmethod()
-
-    xpr = "This property must be defined in the concrete class Foo"
-    with pytest.raises(AbstractMethodError, match=xpr):
-        Foo().property
-
-    xpr = "This method must be defined in the concrete class Foo"
-    with pytest.raises(AbstractMethodError, match=xpr):
-        Foo().method()
+def test_AbstractMethodError_deprecation():
+    msg = (
+        "`AbstractMethodError` will be removed in a future version. "
+        "Consider using `NotImplementedError`"
+    )
+    with pd._testing.assert_produces_warning(FutureWarning, match=msg):
+        AbstractMethodError(None)  # pylint: disable=pointless-exception-statement

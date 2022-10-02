@@ -7,6 +7,10 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import collections
 import functools
 from typing import (
@@ -30,7 +34,6 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
@@ -1111,7 +1114,7 @@ def _is_indexed_like(obj, axes, axis: AxisInt) -> bool:
 # Splitting / application
 
 
-class DataSplitter(Generic[NDFrameT]):
+class DataSplitter(ABC, Generic[NDFrameT]):
     def __init__(
         self,
         data: NDFrameT,
@@ -1149,8 +1152,9 @@ class DataSplitter(Generic[NDFrameT]):
     def _sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=self.axis)
 
+    @abstractmethod
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
-        raise AbstractMethodError(self)
+        ...
 
 
 class SeriesSplitter(DataSplitter):

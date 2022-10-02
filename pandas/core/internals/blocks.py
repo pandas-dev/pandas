@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from functools import wraps
 import re
 from typing import (
@@ -44,7 +48,6 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -153,7 +156,7 @@ def maybe_split(meth: F) -> F:
     return cast(F, newfunc)
 
 
-class Block(PandasObject, libinternals.Block):
+class Block(ABC, PandasObject, libinternals.Block):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
     data structure
@@ -1791,23 +1794,23 @@ class Block(PandasObject, libinternals.Block):
         return new_blocks
 
     @property
+    @abstractmethod
     def is_view(self) -> bool:
         """return a boolean if I am possibly a view"""
-        raise AbstractMethodError(self)
 
     @property
+    @abstractmethod
     def array_values(self) -> ExtensionArray:
         """
         The array that Series.array returns. Always an ExtensionArray.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         """
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
         """
-        raise AbstractMethodError(self)
 
 
 class EABackedBlock(Block):

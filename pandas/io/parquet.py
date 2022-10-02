@@ -1,6 +1,10 @@
 """ parquet compat """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import io
 import json
 import os
@@ -17,7 +21,6 @@ from pandas._config.config import _get_option
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
@@ -145,17 +148,19 @@ def _get_path_or_handle(
     return path_or_handle, handles, fs
 
 
-class BaseImpl:
+class BaseImpl(ABC):
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
+    @abstractmethod
     def write(self, df: DataFrame, path, compression, **kwargs):
-        raise AbstractMethodError(self)
+        ...
 
+    @abstractmethod
     def read(self, path, columns=None, **kwargs) -> DataFrame:
-        raise AbstractMethodError(self)
+        ...
 
 
 class PyArrowImpl(BaseImpl):

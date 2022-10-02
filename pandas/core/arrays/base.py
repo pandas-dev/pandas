@@ -8,6 +8,10 @@ An interface for extending pandas with custom arrays.
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -28,7 +32,6 @@ from pandas._libs import (
 )
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -208,8 +211,8 @@ class ExtensionArray:
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
-    ``pandas.errors.AbstractMethodError`` and no ``register`` method is
-    provided for registering virtual subclasses.
+    ``NotImplementedError`` and no ``register`` method is provided for
+    registering virtual subclasses.
 
     ExtensionArrays are limited to 1 dimension.
 
@@ -289,7 +292,7 @@ class ExtensionArray:
         [4, 5]
         Length: 2, dtype: Int64
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     @classmethod
     def _from_sequence_of_strings(
@@ -320,7 +323,7 @@ class ExtensionArray:
         [1, 2, 3]
         Length: 3, dtype: Int64
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -349,7 +352,7 @@ class ExtensionArray:
         [(0, 1], (1, 5]]
         Length: 2, dtype: interval[int64, right]
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -393,7 +396,7 @@ class ExtensionArray:
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
         to the values where ``item`` is True.
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def __setitem__(self, key, value) -> None:
         """
@@ -448,7 +451,7 @@ class ExtensionArray:
         -------
         length : int
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def __iter__(self) -> Iterator[Any]:
         """
@@ -490,7 +493,7 @@ class ExtensionArray:
         # return NotImplemented (to ensure that those objects are responsible for
         # first unpacking the arrays, and then dispatch the operation to the
         # underlying arrays)
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     # error: Signature of "__ne__" incompatible with supertype "object"
     def __ne__(self, other: object) -> ArrayLike:  # type: ignore[override]
@@ -550,7 +553,7 @@ class ExtensionArray:
         >>> pd.array([1, 2, 3]).dtype
         Int64Dtype()
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     @property
     def shape(self) -> Shape:
@@ -599,7 +602,7 @@ class ExtensionArray:
         """
         # If this is expensive to compute, return an approximate lower bound
         # on the number of bytes needed.
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     # ------------------------------------------------------------------------
     # Additional Methods
@@ -711,7 +714,7 @@ class ExtensionArray:
         >>> arr.isna()
         array([False, False,  True,  True])
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     @property
     def _hasna(self) -> bool:
@@ -1562,7 +1565,7 @@ class ExtensionArray:
         # uses. In this case, your implementation is responsible for casting
         # the user-facing type to the storage type, before using
         # pandas.api.extensions.take
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def copy(self) -> Self:
         """
@@ -1582,7 +1585,7 @@ class ExtensionArray:
         [1, 2, 3]
         Length: 3, dtype: Int64
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
@@ -1763,7 +1766,7 @@ class ExtensionArray:
         # should allow "easy" concatenation (no upcasting needed), and result
         # in a new ExtensionArray of the same dtype.
         # Note: this strict behaviour is only guaranteed starting with pandas 1.1
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     # The _can_hold_na attribute is set to True so that pandas internals
     # will use the ExtensionDtype.na_value as the NA value in operations
@@ -2303,15 +2306,17 @@ class ExtensionArray:
             raise NotImplementedError
 
 
-class ExtensionArraySupportsAnyAll(ExtensionArray):
+class ExtensionArraySupportsAnyAll(ExtensionArray, ABC):
+    @abstractmethod
     def any(self, *, skipna: bool = True) -> bool:
-        raise AbstractMethodError(self)
+        ...
 
+    @abstractmethod
     def all(self, *, skipna: bool = True) -> bool:
-        raise AbstractMethodError(self)
+        ...
 
 
-class ExtensionOpsMixin:
+class ExtensionOpsMixin(ABC):
     """
     A base class for linking the operators to their dunder names.
 
@@ -2323,8 +2328,9 @@ class ExtensionOpsMixin:
     """
 
     @classmethod
+    @abstractmethod
     def _create_arithmetic_method(cls, op):
-        raise AbstractMethodError(cls)
+        ...
 
     @classmethod
     def _add_arithmetic_ops(cls) -> None:
@@ -2348,8 +2354,9 @@ class ExtensionOpsMixin:
         setattr(cls, "__rdivmod__", cls._create_arithmetic_method(roperator.rdivmod))
 
     @classmethod
+    @abstractmethod
     def _create_comparison_method(cls, op):
-        raise AbstractMethodError(cls)
+        ...
 
     @classmethod
     def _add_comparison_ops(cls) -> None:
@@ -2361,8 +2368,9 @@ class ExtensionOpsMixin:
         setattr(cls, "__ge__", cls._create_comparison_method(operator.ge))
 
     @classmethod
+    @abstractmethod
     def _create_logical_method(cls, op):
-        raise AbstractMethodError(cls)
+        ...
 
     @classmethod
     def _add_logical_ops(cls) -> None:

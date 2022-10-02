@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import copy
 from textwrap import dedent
 from typing import (
@@ -27,7 +31,6 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -116,7 +119,7 @@ if TYPE_CHECKING:
 _shared_docs_kwargs: dict[str, str] = {}
 
 
-class Resampler(BaseGroupBy, PandasObject):
+class Resampler(BaseGroupBy, PandasObject, ABC):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -235,8 +238,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return obj._consolidate()
 
+    @abstractmethod
     def _get_binner_for_time(self):
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def _get_binner(self):
@@ -388,11 +392,13 @@ class Resampler(BaseGroupBy, PandasObject):
             arg, *args, **kwargs
         )
 
+    @abstractmethod
     def _downsample(self, f, **kwargs):
-        raise AbstractMethodError(self)
+        ...
 
+    @abstractmethod
     def _upsample(self, f, limit: int | None = None, fill_value=None):
-        raise AbstractMethodError(self)
+        ...
 
     def _gotitem(self, key, ndim: int, subset=None):
         """

@@ -22,7 +22,7 @@ API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 
 def get_defined_errors(content: str) -> set[str]:
     errors = set()
-    for node in ast.walk(ast.parse(content)):
+    for node in ast.iter_child_nodes(ast.parse(content)):
         if isinstance(node, ast.ClassDef):
             errors.add(node.name)
         elif isinstance(node, ast.ImportFrom) and node.module != "__future__":
