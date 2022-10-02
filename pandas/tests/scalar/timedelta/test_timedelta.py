@@ -187,9 +187,12 @@ class TestNonNano:
         with pytest.raises(ValueError, match=msg):
             td / other
 
-        with pytest.raises(ValueError, match=msg):
-            # __rtruediv__
-            other.to_pytimedelta() / td
+        # Timedelta(other.to_pytimedelta()) has microsecond resolution,
+        #  so the division doesn't require casting all the way to nanos,
+        #  so succeeds
+        res = other.to_pytimedelta() / td
+        expected = other.to_pytimedelta() / td.to_pytimedelta()
+        assert res == expected
 
     def test_truediv_numeric(self, td):
         assert td / np.nan is NaT
@@ -208,12 +211,14 @@ class TestNonNano:
 
         other = Timedelta(td.value)
         msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td // other
 
-        with pytest.raises(ValueError, match=msg):
-            # __rfloordiv__
-            other.to_pytimedelta() // td
+        # Timedelta(other.to_pytimedelta()) has microsecond resolution,
+        #  so the floordiv doesn't require casting all the way to nanos,
+        #  so succeeds
+        res = other.to_pytimedelta() // td
+        assert res == 0
 
     def test_floordiv_numeric(self, td):
         assert td // np.nan is NaT

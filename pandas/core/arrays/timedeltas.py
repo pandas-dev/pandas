@@ -257,10 +257,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             )
 
         if start is not None:
-            start = Timedelta(start)
+            start = Timedelta(start)._as_unit("ns")
 
         if end is not None:
-            end = Timedelta(end)
+            end = Timedelta(end)._as_unit("ns")
 
         left_closed, right_closed = validate_endpoints(closed)
 
