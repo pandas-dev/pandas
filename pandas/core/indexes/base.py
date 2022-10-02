@@ -742,7 +742,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _constructor(
         self: _IndexT,
         name: Hashable,
-        copy: Optional(bool),
+        copy: Optional[bool] = None,
         dtype=None,
     ) -> type[_IndexT]:
         return type(self)
