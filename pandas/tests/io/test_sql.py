@@ -1612,6 +1612,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     flavor: str
 
+    @classmethod
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
         cls.setup_import()

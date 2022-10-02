@@ -840,6 +840,7 @@ class TestPeriodProperties:
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
 
+    @staticmethod
     def _period_constructor(bound, offset):
         return Period(
             year=bound.year,
