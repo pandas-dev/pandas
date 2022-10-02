@@ -14,6 +14,7 @@ from typing import (
     Iterable,
     Literal,
     NoReturn,
+    Optional,
     Sequence,
     TypeVar,
     cast,
@@ -738,7 +739,12 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @cache_readonly
-    def _constructor(self: _IndexT, name: Hashable, dtype, copy: bool) -> type[_IndexT]:
+    def _constructor(
+        self: _IndexT,
+        name: Hashable,
+        copy: Optional(bool),
+        dtype=None,
+    ) -> type[_IndexT]:
         return type(self)
 
     @final
