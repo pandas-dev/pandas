@@ -738,7 +738,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @cache_readonly
-    def _constructor(self: _IndexT) -> type[_IndexT]:
+    def _constructor(self: _IndexT, name: Hashable, dtype, copy: bool) -> type[_IndexT]:
         return type(self)
 
     @final
