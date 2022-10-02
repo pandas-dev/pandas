@@ -43,7 +43,6 @@ disable = [
   "c-extension-no-member",
   "function-redefined",
   "import-error",
-  "inherit-non-class",
   "invalid-repr-returned",
   "invalid-unary-operand-type",
   "misplaced-bare-raise",
