@@ -883,10 +883,9 @@ class TestExcelWriter:
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
+                f.close()
             except UnicodeEncodeError:
                 pytest.skip("No unicode file names on this system")
-            finally:
-                f.close()
 
             df = DataFrame(
                 [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
