@@ -65,9 +65,19 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
 
+    ScalarLike_co = Union[
+        int,
+        float,
+        complex,
+        str,
+        bytes,
+        np.generic,
+    ]
+
     # numpy compatible types
-    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
-    NumpySorter = Optional[npt._ArrayLikeInt_co]
+    NumpyValueArrayLike = Union[ScalarLike_co, npt.ArrayLike]
+    # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
 else:
     npt: Any = None
@@ -106,7 +116,8 @@ NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
-Axis = Union[str, int]
+AxisInt = int
+Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Hashable
 Shape = Tuple[int, ...]
@@ -331,3 +342,17 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll = Literal["any", "all"]
+
+MatplotlibColor = Union[str, Sequence[float]]
+TimeGrouperOrigin = Union[
+    "Timestamp", Literal["epoch", "start", "start_day", "end", "end_day"]
+]
+TimeAmbiguous = Union[Literal["infer", "NaT", "raise"], "npt.NDArray[np.bool_]"]
+TimeNonexistent = Union[
+    Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
+]
+DropKeep = Literal["first", "last", False]
+CorrelationMethod = Union[
+    Literal["pearson", "kendall", "spearman"], Callable[[np.ndarray, np.ndarray], float]
+]
+AlignJoin = Literal["outer", "inner", "left", "right"]

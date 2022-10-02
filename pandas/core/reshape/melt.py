@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import inspect
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+)
 import warnings
 
 import numpy as np
@@ -42,7 +45,7 @@ def melt(
     id_vars=None,
     value_vars=None,
     var_name=None,
-    value_name="value",
+    value_name: Hashable = "value",
     col_level=None,
     ignore_index: bool = True,
 ) -> DataFrame:

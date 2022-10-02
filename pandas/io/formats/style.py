@@ -9,6 +9,7 @@ from functools import partial
 import inspect
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generator,
@@ -25,6 +26,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
+    AxisInt,
     FilePath,
     IndexLabel,
     Level,
@@ -70,6 +72,9 @@ from pandas.io.formats.style_render import (
     refactor_levels,
 )
 
+if TYPE_CHECKING:
+    from matplotlib.colors import Colormap
+
 try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
@@ -100,7 +105,7 @@ props = """props : str, default None
            CSS properties to use for highlighting. If ``props`` is given, ``color``
            is not used."""
 
-color = """color : str, default 'yellow'
+color = """color : str, default '{default}'
            Background color to use for highlighting."""
 
 buf = """buf : str, path object, file-like object, optional
@@ -1582,7 +1587,7 @@ class Styler(StylerRenderer):
                 i = self.index.get_loc(rn)
                 self.ctx[(i, j)].extend(css_list)
 
-    def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
+    def _update_ctx_header(self, attrs: DataFrame, axis: AxisInt) -> None:
         """
         Update the state of the ``Styler`` for header cells.
 
@@ -1854,7 +1859,7 @@ class Styler(StylerRenderer):
     def _apply_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: Axis = 0,
         level: Level | list[Level] | None = None,
         method: str = "apply",
         **kwargs,
@@ -1888,7 +1893,7 @@ class Styler(StylerRenderer):
     def apply_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
@@ -1973,7 +1978,7 @@ class Styler(StylerRenderer):
     def applymap_index(
         self,
         func: Callable,
-        axis: int | str = 0,
+        axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
@@ -2500,7 +2505,7 @@ class Styler(StylerRenderer):
     def set_table_styles(
         self,
         table_styles: dict[Any, CSSStyles] | CSSStyles | None = None,
-        axis: int = 0,
+        axis: AxisInt = 0,
         overwrite: bool = True,
         css_class_names: dict[str, str] | None = None,
     ) -> Styler:
@@ -2995,7 +3000,7 @@ class Styler(StylerRenderer):
     @Substitution(subset=subset)
     def background_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3150,7 +3155,7 @@ class Styler(StylerRenderer):
     )
     def text_gradient(
         self,
-        cmap="PuBu",
+        cmap: str | Colormap = "PuBu",
         low: float = 0,
         high: float = 0,
         axis: Axis | None = 0,
@@ -3330,7 +3335,7 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props, color=color)
+    @Substitution(subset=subset, props=props, color=color.format(default="red"))
     def highlight_null(
         self,
         color: str | None = None,
@@ -3392,7 +3397,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -3436,7 +3441,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -3480,7 +3485,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3584,7 +3589,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, color=color, props=props)
+    @Substitution(subset=subset, color=color.format(default="yellow"), props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3906,7 +3911,7 @@ def _validate_apply_axis_arg(
 
 def _background_gradient(
     data,
-    cmap="PuBu",
+    cmap: str | Colormap = "PuBu",
     low: float = 0,
     high: float = 0,
     text_color_threshold: float = 0.408,
@@ -3929,7 +3934,15 @@ def _background_gradient(
         rng = smax - smin
         # extend lower / upper bounds, compresses color range
         norm = mpl.colors.Normalize(smin - (rng * low), smax + (rng * high))
-        rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
+        if mpl_ge_3_6_0():
+            if cmap is None:
+                rgbas = mpl.colormaps[mpl.rcParams["image.cmap"]](norm(gmap))
+            else:
+                rgbas = mpl.colormaps[cmap](norm(gmap))
+        else:
+            rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
 
         def relative_luminance(rgba) -> float:
             """
@@ -4208,8 +4221,10 @@ def _bar(
     if cmap is not None:
         # use the matplotlib colormap input
         with _mpl(Styler.bar) as (plt, mpl):
+            from pandas.plotting._matplotlib.compat import mpl_ge_3_6_0
+
             cmap = (
-                mpl.cm.get_cmap(cmap)
+                (mpl.colormaps[cmap] if mpl_ge_3_6_0() else mpl.cm.get_cmap(cmap))
                 if isinstance(cmap, str)
                 else cmap  # assumed to be a Colormap instance as documented
             )

@@ -1215,7 +1215,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"unique has no pyarrow kernel for {pa_dtype}.",
                 )
             )
-        super().test_unique(data, box, method)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under2p0, check_stacklevel=False
+        ):
+            super().test_unique(data, box, method)
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel, request):
@@ -1245,7 +1248,10 @@ class TestBaseMethods(base.BaseMethodsTests):
                     reason=f"dictionary_encode has no pyarrow kernel for {pa_dtype}",
                 )
             )
-        super().test_factorize_equivalence(data_for_grouping, na_sentinel)
+        with tm.maybe_produces_warning(
+            PerformanceWarning, pa_version_under2p0, check_stacklevel=False
+        ):
+            super().test_factorize_equivalence(data_for_grouping, na_sentinel)
 
     def test_factorize_empty(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1662,6 +1668,13 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, comparison_op)
+
+    def test_invalid_other_comp(self, data, comparison_op):
+        # GH 48833
+        with pytest.raises(
+            NotImplementedError, match=".* not implemented for <class 'object'>"
+        ):
+            comparison_op(data, object())
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():

@@ -2,6 +2,8 @@ import string
 
 import numpy as np
 
+from pandas._typing import NpDtype
+
 
 def randbool(size=(), p: float = 0.5):
     return np.random.rand(*size) <= p
@@ -14,7 +16,7 @@ RANDU_CHARS = np.array(
 )
 
 
-def rands_array(nchars, size, dtype="O", replace=True) -> np.ndarray:
+def rands_array(nchars, size, dtype: NpDtype = "O", replace: bool = True) -> np.ndarray:
     """
     Generate an array of byte strings.
     """
