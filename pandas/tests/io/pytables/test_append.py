@@ -361,7 +361,7 @@ def test_append_with_strings(setup_path):
     with ensure_clean_store(setup_path) as store:
         with catch_warnings(record=True):
 
-            def check_col_0(key, name, size):
+            def check_col(key, name, size):
                 assert (
                     getattr(store.get_storer(key).table.description, name).itemsize
                     == size
@@ -371,20 +371,20 @@ def test_append_with_strings(setup_path):
             df = DataFrame([[123, "asdqwerty"], [345, "dggnhebbsdfbdfb"]])
             store.append("df_big", df)
             tm.assert_frame_equal(store.select("df_big"), df)
-            check_col_0("df_big", "values_block_1", 15)
+            check_col("df_big", "values_block_1", 15)
 
             # appending smaller string ok
             df2 = DataFrame([[124, "asdqy"], [346, "dggnhefbdfb"]])
             store.append("df_big", df2)
             expected = concat([df, df2])
             tm.assert_frame_equal(store.select("df_big"), expected)
-            check_col_0("df_big", "values_block_1", 15)
+            check_col("df_big", "values_block_1", 15)
 
             # avoid truncation on elements
             df = DataFrame([[123, "asdqwerty"], [345, "dggnhebbsdfbdfb"]])
             store.append("df_big2", df, min_itemsize={"values": 50})
             tm.assert_frame_equal(store.select("df_big2"), df)
-            check_col_0("df_big2", "values_block_1", 50)
+            check_col("df_big2", "values_block_1", 50)
 
             # bigger string on next append
             store.append("df_new", df)
@@ -437,28 +437,25 @@ def test_append_with_strings(setup_path):
 
     with ensure_clean_store(setup_path) as store:
 
-        def check_col_1(key, name, size):
-            assert getattr(store.get_storer(key).table.description, name).itemsize, size
-
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
         # a min_itemsize that creates a data_column
         _maybe_remove(store, "df")
         store.append("df", df, min_itemsize={"A": 200})
-        check_col_1("df", "A", 200)
+        check_col("df", "A", 200)
         assert store.get_storer("df").data_columns == ["A"]
 
         # a min_itemsize that creates a data_column2
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=["B"], min_itemsize={"A": 200})
-        check_col_1("df", "A", 200)
+        check_col("df", "A", 200)
         assert store.get_storer("df").data_columns == ["B", "A"]
 
         # a min_itemsize that creates a data_column2
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=["B"], min_itemsize={"values": 200})
-        check_col_1("df", "B", 200)
-        check_col_1("df", "values_block_0", 200)
+        check_col("df", "B", 200)
+        check_col("df", "values_block_0", 200)
         assert store.get_storer("df").data_columns == ["B"]
 
         # infer the .typ on subsequent appends
