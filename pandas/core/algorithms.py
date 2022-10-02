@@ -1972,7 +1972,7 @@ def _sort_tuples(
 
 def union_with_duplicates(
     lvals: ArrayLike | Index, rvals: ArrayLike | Index
-) -> ArrayLike:
+) -> ArrayLike | Index:
     """
     Extracts the union from lvals and rvals with respect to duplicates and nans in
     both arrays.
@@ -1993,10 +1993,13 @@ def union_with_duplicates(
     -----
     Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
+    from pandas import Series
+
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
-    final_count = np.maximum(l_count, r_count).astype("int", copy=False)
+    final_count = np.maximum(l_count.values, r_count.values)
+    final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)
     if isinstance(lvals, ABCMultiIndex) and isinstance(rvals, ABCMultiIndex):
         unique_vals = lvals.append(rvals).unique()
     else:
@@ -2006,5 +2009,5 @@ def union_with_duplicates(
             rvals = rvals._values
         unique_vals = unique(concat_compat([lvals, rvals]))
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
-    repeats = final_count.reindex(unique_vals).values  # type: ignore[attr-defined]
+    repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
