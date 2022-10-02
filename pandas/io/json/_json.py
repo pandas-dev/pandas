@@ -44,7 +44,6 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -238,8 +237,9 @@ class Writer(ABC):
         self.is_copy = None
         self._format_axes()
 
+    @abstractmethod
     def _format_axes(self):
-        raise AbstractMethodError(self)
+        ...
 
     def write(self) -> str:
         iso_dates = self.date_format == "iso"
@@ -1085,7 +1085,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.close()
 
 
-class Parser:
+class Parser(ABC):
     _split_keys: tuple[str, ...]
     _default_orient: str
 
@@ -1153,8 +1153,9 @@ class Parser:
         self._try_convert_types()
         return self.obj
 
+    @abstractmethod
     def _parse(self):
-        raise AbstractMethodError(self)
+        ...
 
     def _convert_axes(self) -> None:
         """
@@ -1172,8 +1173,9 @@ class Parser:
             if result:
                 setattr(self.obj, axis_name, new_axis)
 
+    @abstractmethod
     def _try_convert_types(self):
-        raise AbstractMethodError(self)
+        ...
 
     def _try_convert_data(
         self,
@@ -1293,7 +1295,7 @@ class Parser:
         return data, False
 
     def _try_convert_dates(self):
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
 
 class SeriesParser(Parser):

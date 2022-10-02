@@ -4,6 +4,7 @@ Expose public exceptions & warnings
 from __future__ import annotations
 
 import ctypes
+import warnings
 
 from pandas._config.config import OptionError
 
@@ -188,6 +189,14 @@ class AbstractMethodError(NotImplementedError):
     """
 
     def __init__(self, class_instance, methodtype: str = "method") -> None:
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "`AbstractMethodError` will be removed in a future version. Consider"
+            + " using `NotImplementedError`",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
             raise ValueError(

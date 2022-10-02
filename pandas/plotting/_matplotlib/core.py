@@ -22,7 +22,6 @@ from pandas._typing import (
     PlottingOrientation,
     npt,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -633,8 +632,9 @@ class MPLPlot(ABC):
 
         self.data = numeric_data.apply(self._convert_to_ndarray)
 
+    @abstractmethod
     def _make_plot(self):
-        raise AbstractMethodError(self)
+        ...
 
     def _add_table(self) -> None:
         if self.table is False:

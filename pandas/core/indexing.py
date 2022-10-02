@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from contextlib import suppress
 import sys
 from typing import (
@@ -23,7 +27,6 @@ from pandas._typing import (
 )
 from pandas.compat import PYPY
 from pandas.errors import (
-    AbstractMethodError,
     ChainedAssignmentError,
     IndexingError,
     InvalidIndexError,
@@ -661,7 +664,7 @@ class IndexingMixin:
         return _iAtIndexer("iat", self)
 
 
-class _LocationIndexer(NDFrameIndexerBase):
+class _LocationIndexer(ABC, NDFrameIndexerBase):
     _valid_types: str
     axis: AxisInt | None = None
 
@@ -852,6 +855,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value, self.name)
 
+    @abstractmethod
     def _validate_key(self, key, axis: AxisInt):
         """
         Ensure that key is valid for current indexer.
@@ -872,7 +876,6 @@ class _LocationIndexer(NDFrameIndexerBase):
         KeyError
             If the key was not found.
         """
-        raise AbstractMethodError(self)
 
     @final
     def _expand_ellipsis(self, tup: tuple) -> tuple:
@@ -1087,8 +1090,9 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return obj
 
+    @abstractmethod
     def _convert_to_indexer(self, key, axis: AxisInt):
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def __getitem__(self, key):
@@ -1109,14 +1113,16 @@ class _LocationIndexer(NDFrameIndexerBase):
     def _is_scalar_access(self, key: tuple):
         raise NotImplementedError()
 
+    @abstractmethod
     def _getitem_tuple(self, tup: tuple):
-        raise AbstractMethodError(self)
+        ...
 
     def _getitem_axis(self, key, axis: AxisInt):
         raise NotImplementedError()
 
+    @abstractmethod
     def _has_valid_setitem_indexer(self, indexer) -> bool:
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def _getbool_axis(self, key, axis: AxisInt):
@@ -2348,7 +2354,7 @@ class _iLocIndexer(_LocationIndexer):
         raise ValueError("Incompatible indexer with DataFrame")
 
 
-class _ScalarAccessIndexer(NDFrameIndexerBase):
+class _ScalarAccessIndexer(ABC, NDFrameIndexerBase):
     """
     Access scalars quickly.
     """
@@ -2356,8 +2362,9 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
     # sub-classes need to set _takeable
     _takeable: bool
 
+    @abstractmethod
     def _convert_key(self, key):
-        raise AbstractMethodError(self)
+        ...
 
     def __getitem__(self, key):
         if not isinstance(key, tuple):

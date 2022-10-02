@@ -4,6 +4,10 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -32,7 +36,6 @@ from pandas._typing import (
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -176,7 +179,7 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class SelectionMixin(Generic[NDFrameT]):
+class SelectionMixin(ABC, Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
@@ -256,15 +259,16 @@ class SelectionMixin(Generic[NDFrameT]):
         subset : object, default None
             subset to act on
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
+    @abstractmethod
     def aggregate(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
+        ...
 
     agg = aggregate
 
 
-class IndexOpsMixin(OpsMixin):
+class IndexOpsMixin(ABC, OpsMixin):
     """
     Common ops mixin to support a unified interface / docs for Series / Index
     """
@@ -276,14 +280,16 @@ class IndexOpsMixin(OpsMixin):
     )
 
     @property
+    @abstractmethod
     def dtype(self) -> DtypeObj:
         # must be defined here as a property for mypy
-        raise AbstractMethodError(self)
+        ...
 
     @property
+    @abstractmethod
     def _values(self) -> ExtensionArray | np.ndarray:
         # must be defined here as a property for mypy
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def transpose(self: _T, *args, **kwargs) -> _T:
@@ -331,9 +337,10 @@ class IndexOpsMixin(OpsMixin):
         """
         return self._values.shape
 
+    @abstractmethod
     def __len__(self) -> int:
         # We need this defined here for mypy
-        raise AbstractMethodError(self)
+        ...
 
     @property
     def ndim(self) -> Literal[1]:
@@ -409,6 +416,7 @@ class IndexOpsMixin(OpsMixin):
         return len(self._values)
 
     @property
+    @abstractmethod
     def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
@@ -471,7 +479,6 @@ class IndexOpsMixin(OpsMixin):
         ['a', 'b', 'a']
         Categories (2, object): ['a', 'b']
         """
-        raise AbstractMethodError(self)
 
     @final
     def to_numpy(
@@ -1390,9 +1397,9 @@ class IndexOpsMixin(OpsMixin):
 
         return self._construct_result(result, name=res_name)
 
+    @abstractmethod
     def _construct_result(self, result, name):
         """
         Construct an appropriately-wrapped result from the ArrayLike result
         of an arithmetic-like operation.
         """
-        raise AbstractMethodError(self)

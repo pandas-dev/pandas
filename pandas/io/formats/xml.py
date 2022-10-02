@@ -3,6 +3,10 @@
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import codecs
 import io
 from typing import (
@@ -17,7 +21,6 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
@@ -39,7 +42,7 @@ if TYPE_CHECKING:
     storage_options=_shared_docs["storage_options"],
     compression_options=_shared_docs["compression_options"] % "path_or_buffer",
 )
-class BaseXMLFormatter:
+class BaseXMLFormatter(ABC):
     """
     Subclass for formatting data in XML.
 
@@ -143,6 +146,7 @@ class BaseXMLFormatter:
         self.prefix_uri = self.get_prefix_uri()
         self.handle_indexes()
 
+    @abstractmethod
     def build_tree(self) -> bytes:
         """
         Build tree from  data.
@@ -150,7 +154,6 @@ class BaseXMLFormatter:
         This method initializes the root and builds attributes and elements
         with optional namespaces.
         """
-        raise AbstractMethodError(self)
 
     def validate_columns(self) -> None:
         """
@@ -226,6 +229,7 @@ class BaseXMLFormatter:
         if self.elem_cols:
             self.elem_cols = indexes + self.elem_cols
 
+    @abstractmethod
     def get_prefix_uri(self) -> str:
         """
         Get uri of namespace prefix.
@@ -237,8 +241,6 @@ class BaseXMLFormatter:
         KeyError
             *If prefix is not included in namespace dict.
         """
-
-        raise AbstractMethodError(self)
 
     def other_namespaces(self) -> dict:
         """
@@ -288,6 +290,7 @@ class BaseXMLFormatter:
             )
         return f"{self.prefix_uri}{flat_col}"
 
+    @abstractmethod
     def build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
         """
         Create child elements of row.
@@ -295,8 +298,6 @@ class BaseXMLFormatter:
         This method adds child elements using elem_cols to row element and
         works with tuples for multindex or hierarchical columns.
         """
-
-        raise AbstractMethodError(self)
 
     def _build_elems(self, sub_element_cls, d: dict[str, Any], elem_row: Any) -> None:
         if not self.elem_cols:

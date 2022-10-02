@@ -275,6 +275,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return value_counts(self.to_numpy(), dropna=dropna)
 
+    @classmethod
+    def _create_logical_method(cls, op):
+        raise NotImplementedError
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)

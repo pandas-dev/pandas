@@ -6,6 +6,10 @@ HTML IO.
 
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from collections import abc
 import numbers
 import re
@@ -27,10 +31,7 @@ from pandas._typing import (
     ReadBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import (
-    AbstractMethodError,
-    EmptyDataError,
-)
+from pandas.errors import EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -134,7 +135,7 @@ def _read(obj: FilePath | BaseBuffer, encoding: str | None) -> str | bytes:
     return text
 
 
-class _HtmlFrameParser:
+class _HtmlFrameParser(ABC):
     """
     Base class for parsers that parse HTML into DataFrames.
 
@@ -250,6 +251,7 @@ class _HtmlFrameParser:
         # Both lxml and BeautifulSoup have the same implementation:
         return obj.get(attr)
 
+    @abstractmethod
     def _href_getter(self, obj):
         """
         Return a href if the DOM node contains a child <a> or None.
@@ -264,8 +266,8 @@ class _HtmlFrameParser:
         href : str or unicode
             The href from the <a> child of the DOM node.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _text_getter(self, obj):
         """
         Return the text of an individual DOM node.
@@ -280,8 +282,8 @@ class _HtmlFrameParser:
         text : str or unicode
             The text from an individual DOM node.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _parse_td(self, obj):
         """
         Return the td elements from a row element.
@@ -296,8 +298,8 @@ class _HtmlFrameParser:
         list of node-like
             These are the elements of each row, i.e., the columns.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _parse_thead_tr(self, table):
         """
         Return the list of thead row elements from the parsed table element.
@@ -311,8 +313,8 @@ class _HtmlFrameParser:
         list of node-like
             These are the <tr> row elements of a table.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _parse_tbody_tr(self, table):
         """
         Return the list of tbody row elements from the parsed table element.
@@ -330,8 +332,8 @@ class _HtmlFrameParser:
         list of node-like
             These are the <tr> row elements of a table.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _parse_tfoot_tr(self, table):
         """
         Return the list of tfoot row elements from the parsed table element.
@@ -345,8 +347,8 @@ class _HtmlFrameParser:
         list of node-like
             These are the <tr> row elements of a table.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _parse_tables(self, doc, match, attrs):
         """
         Return all tables from the parsed DOM.
@@ -371,8 +373,8 @@ class _HtmlFrameParser:
         list of node-like
             HTML <table> elements to be parsed into raw data.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _equals_tag(self, obj, tag):
         """
         Return whether an individual DOM node matches a tag
@@ -390,8 +392,8 @@ class _HtmlFrameParser:
         boolean
             Whether `obj`'s tag name is `tag`
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _build_doc(self):
         """
         Return a tree-like object that can be used to iterate over the DOM.
@@ -401,7 +403,6 @@ class _HtmlFrameParser:
         node-like
             The DOM from which to parse the table element.
         """
-        raise AbstractMethodError(self)
 
     def _parse_thead_tbody_tfoot(self, table_html):
         """
@@ -859,7 +860,7 @@ def _data_to_frame(**kwargs):
         return tp.read()
 
 
-_valid_parsers = {
+_valid_parsers: dict[str | None, type[_HtmlFrameParser]] = {
     "lxml": _LxmlFrameParser,
     None: _LxmlFrameParser,
     "html5lib": _BeautifulSoupHtml5LibFrameParser,

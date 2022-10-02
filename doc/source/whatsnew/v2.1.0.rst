@@ -84,7 +84,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- Many methods that raised :class:`AbstractMethodError` are now decorated with ``@abstractmethod`` (:issue:`48909`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -93,6 +93,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
+- :class:`AbstractMethodError` is deprecated, please use the builtin ``NotImplementedError`` instead (:issue:`48909`)
 -
 
 .. ---------------------------------------------------------------------------

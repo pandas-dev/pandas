@@ -8,6 +8,10 @@ An interface for extending pandas with custom arrays.
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -41,7 +45,6 @@ from pandas._typing import (
 )
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -258,7 +261,7 @@ class ExtensionArray:
         -------
         ExtensionArray
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     @classmethod
     def _from_sequence_of_strings(
@@ -282,7 +285,7 @@ class ExtensionArray:
         -------
         ExtensionArray
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -301,7 +304,7 @@ class ExtensionArray:
         factorize : Top-level factorize method that dispatches here.
         ExtensionArray.factorize : Encode the extension array as an enumerated type.
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -347,7 +350,7 @@ class ExtensionArray:
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
         to the values where ``item`` is True.
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def __setitem__(self, key, value) -> None:
         """
@@ -402,7 +405,7 @@ class ExtensionArray:
         -------
         length : int
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def __iter__(self) -> Iterator[Any]:
         """
@@ -444,7 +447,7 @@ class ExtensionArray:
         # return NotImplemented (to ensure that those objects are responsible for
         # first unpacking the arrays, and then dispatch the operation to the
         # underlying arrays)
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     # error: Signature of "__ne__" incompatible with supertype "object"
     def __ne__(self, other: Any) -> ArrayLike:  # type: ignore[override]
@@ -498,7 +501,7 @@ class ExtensionArray:
         """
         An instance of 'ExtensionDtype'.
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     @property
     def shape(self) -> Shape:
@@ -530,7 +533,7 @@ class ExtensionArray:
         """
         # If this is expensive to compute, return an approximate lower bound
         # on the number of bytes needed.
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     # ------------------------------------------------------------------------
     # Additional Methods
@@ -611,7 +614,7 @@ class ExtensionArray:
         * `na_values` should implement :func:`ExtensionArray._reduce`
         * ``na_values.any`` and ``na_values.all`` should be implemented
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     @property
     def _hasna(self) -> bool:
@@ -1215,7 +1218,7 @@ class ExtensionArray:
         # uses. In this case, your implementation is responsible for casting
         # the user-facing type to the storage type, before using
         # pandas.api.extensions.take
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def copy(self: ExtensionArrayT) -> ExtensionArrayT:
         """
@@ -1225,7 +1228,7 @@ class ExtensionArray:
         -------
         ExtensionArray
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
@@ -1368,7 +1371,7 @@ class ExtensionArray:
         # should allow "easy" concatenation (no upcasting needed), and result
         # in a new ExtensionArray of the same dtype.
         # Note: this strict behaviour is only guaranteed starting with pandas 1.1
-        raise AbstractMethodError(cls)
+        raise NotImplementedError
 
     # The _can_hold_na attribute is set to True so that pandas internals
     # will use the ExtensionDtype.na_value as the NA value in operations
@@ -1686,15 +1689,17 @@ class ExtensionArray:
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
-class ExtensionArraySupportsAnyAll(ExtensionArray):
+class ExtensionArraySupportsAnyAll(ExtensionArray, ABC):
+    @abstractmethod
     def any(self, *, skipna: bool = True) -> bool:
-        raise AbstractMethodError(self)
+        ...
 
+    @abstractmethod
     def all(self, *, skipna: bool = True) -> bool:
-        raise AbstractMethodError(self)
+        ...
 
 
-class ExtensionOpsMixin:
+class ExtensionOpsMixin(ABC):
     """
     A base class for linking the operators to their dunder names.
 
@@ -1706,8 +1711,9 @@ class ExtensionOpsMixin:
     """
 
     @classmethod
+    @abstractmethod
     def _create_arithmetic_method(cls, op):
-        raise AbstractMethodError(cls)
+        ...
 
     @classmethod
     def _add_arithmetic_ops(cls) -> None:
@@ -1731,8 +1737,9 @@ class ExtensionOpsMixin:
         setattr(cls, "__rdivmod__", cls._create_arithmetic_method(roperator.rdivmod))
 
     @classmethod
+    @abstractmethod
     def _create_comparison_method(cls, op):
-        raise AbstractMethodError(cls)
+        ...
 
     @classmethod
     def _add_comparison_ops(cls) -> None:
@@ -1744,8 +1751,9 @@ class ExtensionOpsMixin:
         setattr(cls, "__ge__", cls._create_comparison_method(operator.ge))
 
     @classmethod
+    @abstractmethod
     def _create_logical_method(cls, op):
-        raise AbstractMethodError(cls)
+        ...
 
     @classmethod
     def _add_logical_ops(cls) -> None:

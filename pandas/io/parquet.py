@@ -1,6 +1,10 @@
 """ parquet compat """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import io
 import os
 from typing import (
@@ -19,7 +23,6 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas import (
@@ -114,7 +117,7 @@ def _get_path_or_handle(
     return path_or_handle, handles, fs
 
 
-class BaseImpl:
+class BaseImpl(ABC):
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
         if not isinstance(df, DataFrame):
@@ -142,11 +145,13 @@ class BaseImpl:
         if not valid_names:
             raise ValueError("Index level names must be strings")
 
+    @abstractmethod
     def write(self, df: DataFrame, path, compression, **kwargs):
-        raise AbstractMethodError(self)
+        ...
 
+    @abstractmethod
     def read(self, path, columns=None, **kwargs) -> DataFrame:
-        raise AbstractMethodError(self)
+        ...
 
 
 class PyArrowImpl(BaseImpl):

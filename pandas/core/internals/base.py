@@ -4,6 +4,10 @@ inherit from this class.
 """
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
     Literal,
     TypeVar,
@@ -18,7 +22,6 @@ from pandas._typing import (
     DtypeObj,
     Shape,
 )
-from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -34,14 +37,15 @@ from pandas.core.indexes.api import (
 T = TypeVar("T", bound="DataManager")
 
 
-class DataManager(PandasObject):
+class DataManager(ABC, PandasObject):
     # TODO share more methods/attributes
 
     axes: list[Index]
 
     @property
+    @abstractmethod
     def items(self) -> Index:
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def __len__(self) -> int:
@@ -72,6 +76,7 @@ class DataManager(PandasObject):
                 f"values have {new_len} elements"
             )
 
+    @abstractmethod
     def reindex_indexer(
         self: T,
         new_axis,
@@ -82,7 +87,7 @@ class DataManager(PandasObject):
         copy: bool = True,
         only_slice: bool = False,
     ) -> T:
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def reindex_axis(
@@ -106,12 +111,12 @@ class DataManager(PandasObject):
             only_slice=only_slice,
         )
 
+    @abstractmethod
     def _equal_values(self: T, other: T) -> bool:
         """
         To be implemented by the subclasses. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        raise AbstractMethodError(self)
 
     @final
     def equals(self, other: object) -> bool:
@@ -129,13 +134,14 @@ class DataManager(PandasObject):
 
         return self._equal_values(other)
 
+    @abstractmethod
     def apply(
         self: T,
         f,
         align_keys: list[str] | None = None,
         **kwargs,
     ) -> T:
-        raise AbstractMethodError(self)
+        ...
 
     @final
     def isna(self: T, func) -> T:
@@ -197,8 +203,9 @@ class SingleDataManager(DataManager):
         return mgr
 
     @classmethod
+    @abstractmethod
     def from_array(cls, arr: ArrayLike, index: Index):
-        raise AbstractMethodError(cls)
+        ...
 
 
 def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:

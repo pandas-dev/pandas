@@ -21,7 +21,6 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -161,7 +160,7 @@ class ExtensionDtype:
         that value is valid (not NA). NA values do not need to be
         instances of `type`.
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError(self)
 
     @property
     def kind(self) -> str:
@@ -186,7 +185,7 @@ class ExtensionDtype:
 
         Will be used for display in, e.g. ``Series.dtype``
         """
-        raise AbstractMethodError(self)
+        raise NotImplementedError(self)
 
     @property
     def names(self) -> list[str] | None:
@@ -207,7 +206,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise AbstractMethodError(cls)
+        raise NotImplementedError(cls)
 
     def empty(self, shape: Shape) -> type_t[ExtensionArray]:
         """

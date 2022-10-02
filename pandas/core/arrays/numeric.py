@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 import numbers
 from typing import (
     TYPE_CHECKING,
@@ -20,7 +21,6 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -114,8 +114,9 @@ class NumericDtype(BaseMaskedDtype):
             return array_class._concat_same_type(results)
 
     @classmethod
+    @abstractmethod
     def _str_to_dtype_mapping(cls) -> Mapping[str, NumericDtype]:
-        raise AbstractMethodError(cls)
+        ...
 
     @classmethod
     def _standardize_dtype(cls, dtype: NumericDtype | str | np.dtype) -> NumericDtype:
@@ -136,13 +137,13 @@ class NumericDtype(BaseMaskedDtype):
         return dtype
 
     @classmethod
+    @abstractmethod
     def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
         """
         Safely cast the values to the given dtype.
 
         "safe" in this context means the casting is lossless.
         """
-        raise AbstractMethodError(cls)
 
 
 def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):

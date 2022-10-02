@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from datetime import (
     datetime,
     timedelta,
@@ -70,7 +71,6 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
-    AbstractMethodError,
     InvalidComparison,
     PerformanceWarning,
 )
@@ -205,12 +205,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _can_hold_na(self) -> bool:
         return True
 
+    @abstractmethod
     def __init__(
         self, data, dtype: Dtype | None = None, freq=None, copy: bool = False
     ) -> None:
-        raise AbstractMethodError(self)
+        ...
 
     @property
+    @abstractmethod
     def _scalar_type(self) -> type[DatetimeLikeScalar]:
         """
         The scalar associated with this datelike
@@ -219,8 +221,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         * DatetimeArray : Timestamp
         * TimedeltaArray : Timedelta
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _scalar_from_string(self, value: str) -> DTScalarOrNaT:
         """
         Construct a scalar type from a string.
@@ -239,8 +241,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         This should call ``self._check_compatible_with`` before
         unboxing the result.
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _unbox_scalar(
         self, value: DTScalarOrNaT
     ) -> np.int64 | np.datetime64 | np.timedelta64:
@@ -261,8 +263,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
         10000000000
         """
-        raise AbstractMethodError(self)
 
+    @abstractmethod
     def _check_compatible_with(self, other: DTScalarOrNaT) -> None:
         """
         Verify that `self` and `other` are compatible.
@@ -281,15 +283,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ------
         Exception
         """
-        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------
 
+    @abstractmethod
     def _box_func(self, x):
         """
         box function to get object from internal representation
         """
-        raise AbstractMethodError(self)
 
     def _box_values(self, values) -> np.ndarray:
         """
@@ -319,6 +320,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ----------------------------------------------------------------
     # Rendering Methods
 
+    @abstractmethod
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None
     ) -> npt.NDArray[np.object_]:
@@ -329,7 +331,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         ndarray[str]
         """
-        raise AbstractMethodError(self)
 
     def _formatter(self, boxed: bool = False):
         # TODO: Remove Datetime & DatetimeTZ formatters.
@@ -1135,8 +1136,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         parr = PeriodArray(i8vals, freq=other.freq)
         return parr + self
 
+    @abstractmethod
     def _add_offset(self, offset):
-        raise AbstractMethodError(self)
+        ...
 
     def _add_timedeltalike_scalar(self, other):
         """
@@ -1855,8 +1857,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             type(self)._validate_frequency(self, freq)
 
     @classmethod
+    @abstractmethod
     def _validate_dtype(cls, values, dtype):
-        raise AbstractMethodError(cls)
+        ...
 
     @property
     def freq(self):
@@ -1920,10 +1923,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             ) from err
 
     @classmethod
+    @abstractmethod
     def _generate_range(
         cls: type[DatetimeLikeArrayT], start, end, periods, freq, *args, **kwargs
     ) -> DatetimeLikeArrayT:
-        raise AbstractMethodError(cls)
+        ...
 
     # --------------------------------------------------------------
 

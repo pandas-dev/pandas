@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -34,7 +38,6 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -97,7 +100,7 @@ from pandas.compat.numpy import function as nv
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
 
-class BaseMaskedArray(OpsMixin, ExtensionArray):
+class BaseMaskedArray(OpsMixin, ExtensionArray, ABC):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
 
@@ -141,8 +144,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return cls(values, mask)
 
     @property
+    @abstractmethod
     def dtype(self) -> BaseMaskedDtype:
-        raise AbstractMethodError(self)
+        ...
 
     @overload
     def __getitem__(self, item: ScalarIndexer) -> Any:
@@ -198,10 +202,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return new_values
 
     @classmethod
+    @abstractmethod
     def _coerce_to_array(
         cls, values, *, dtype: DtypeObj, copy: bool = False
     ) -> tuple[np.ndarray, np.ndarray]:
-        raise AbstractMethodError(cls)
+        ...
 
     def _validate_setitem_value(self, value):
         """

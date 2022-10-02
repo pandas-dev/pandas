@@ -37,10 +37,7 @@ from pandas._typing import (
     ReadCsvBuffer,
     StorageOptions,
 )
-from pandas.errors import (
-    AbstractMethodError,
-    ParserWarning,
-)
+from pandas.errors import ParserWarning
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
@@ -1700,7 +1697,7 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _failover_to_python(self) -> None:
-        raise AbstractMethodError(self)
+        raise NotImplementedError
 
     def read(self, nrows: int | None = None) -> DataFrame:
         if self.engine == "pyarrow":
