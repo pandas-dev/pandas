@@ -421,6 +421,7 @@ class TestAstype:
         result = df.astype(dtype)
 
         if unit in ["ns", "us", "ms", "s"]:
+            # GH#48928
             exp_dtype = dtype
         else:
             # TODO(2.0): use the nearest supported dtype (i.e. M8[s]) instead
