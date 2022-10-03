@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
@@ -10,6 +11,8 @@ from pandas.io.pytables import (
     HDFStore,
     read_hdf,
 )
+
+pytest.importorskip("tables")
 
 
 class TestHDFStoreSubclass:
