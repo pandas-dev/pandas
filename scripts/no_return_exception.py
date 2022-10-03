@@ -15,7 +15,6 @@ import ast
 import sys
 from typing import Sequence
 
-
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "
     "Don't return an Exception subclass, raise it instead\n"
