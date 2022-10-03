@@ -1662,7 +1662,7 @@ class ExcelFile:
                     f"only the xls format is supported. Install openpyxl instead."
                 )
             elif ext and ext != "xls":
-                stacklevel = find_stack_level()
+                stacklevel = find_stack_level(inspect.currentframe())
                 warnings.warn(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install "
