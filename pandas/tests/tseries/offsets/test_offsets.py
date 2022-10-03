@@ -576,8 +576,13 @@ class TestCommon(Base):
             )
             request.node.add_marker(mark)
 
+            # result.dtype should match M8[{unit}], while expected.dtype should
+            #  always be in nanos
+            #  (this is for cases when offset_types is not itself Nano)
+            assert result.dtype != expected.dtype
+
         tm.assert_numpy_array_equal(
-            result._ndarray, expected._ndarray.astype(arr.dtype)
+            result._ndarray, expected._ndarray.astype(result.dtype)
         )
 
 

@@ -36,6 +36,7 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
+    Timedelta,
     Timestamp,
     astype_overflowsafe,
     delta_to_nanoseconds,
@@ -1289,16 +1290,24 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Same type as self
         """
         if isna(other):
-            # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
+            # i.e np.timedelta64("NaT")
             new_values = np.empty(self.shape, dtype="i8").view(self._ndarray.dtype)
             new_values.fill(iNaT)
             return type(self)._simple_new(new_values, dtype=self.dtype)
 
         # PeriodArray overrides, so we only get here with DTA/TDA
         self = cast("DatetimeArray | TimedeltaArray", self)
-        inc = delta_to_nanoseconds(other, reso=self._reso)
+        other = Timedelta(other)
 
-        new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan)
+        if self._reso != other._reso:
+            # Just as with Timestamp/Timedelta, we cast to the higher resolution
+            if self._reso < other._reso:
+                unit = npy_unit_to_abbrev(other._reso)
+                self = self._as_unit(unit)
+            else:
+                other = other._as_unit(self._unit)
+
+        new_values = checked_add_with_arr(self.asi8, other.value, arr_mask=self._isnan)
         new_values = new_values.view(self._ndarray.dtype)
 
         new_freq = None
