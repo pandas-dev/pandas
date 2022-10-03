@@ -391,7 +391,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
                 result[valid] = op(np.array(self)[valid], other)
                 return BooleanArray(result, mask)
         else:
-            return NotImplementedError(
+            raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
             )
 

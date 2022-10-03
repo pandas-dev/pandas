@@ -44,12 +44,12 @@
                 <section>
                     <h5>With the support of:</h5>
                     {% for row in sponsors.active | batch(6, "") %}
-                        <div class="row h-100">
+                        <div class="row mx-auto h-100">
                             {% for company in row %}
-                                <div class="col-sm-6 col-md-2 my-auto">
+                                <div class="col-6 col-md-2">
                                     {% if company %}
                                         <a href="{{ company.url }}" target="_blank">
-                                            <img class="img-fluid" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
+                                            <img class="img-fluid img-thumnail py-5 mx-auto" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
                                         </a>
                                     {% endif %}
                                 </div>
