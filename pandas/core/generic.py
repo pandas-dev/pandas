@@ -577,7 +577,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @classmethod
-    def _get_block_manager_axis(cls, axis: Axis) -> int:
+    def _get_block_manager_axis(cls, axis: Axis) -> AxisInt:
         """Map the axis to the block_manager axis."""
         axis = cls._get_axis_number(axis)
         ndim = cls._AXIS_LEN
@@ -1705,7 +1705,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def _is_label_reference(self, key: Level, axis: int = 0) -> bool_t:
+    def _is_label_reference(self, key: Level, axis: Axis = 0) -> bool_t:
         """
         Test whether a key is a label reference for a given axis.
 
@@ -1725,8 +1725,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         is_label: bool
         """
-        axis = self._get_axis_number(axis)
-        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis)
+        axis_int = self._get_axis_number(axis)
+        other_axes = (ax for ax in range(self._AXIS_LEN) if ax != axis_int)
 
         return (
             key is not None
