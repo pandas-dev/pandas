@@ -1842,6 +1842,29 @@ def test_backward_compat(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
+def test_direct_read(datapath, monkeypatch):
+    file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
+
+    # Test that opening a file path doesn't buffer the file.
+    with StataReader(file_path) as reader:
+        # Must not have been buffered to memory
+        assert not isinstance(reader.path_or_buf, io.BytesIO)
+        assert not reader.read().empty
+
+    # Test that we use a given fp exactly, if possible.
+    with open(file_path, "rb") as fp:
+        with StataReader(fp) as reader:
+            assert reader.path_or_buf is fp
+            assert not reader.read().empty
+
+    # Test that we use a given BytesIO exactly, if possible.
+    with open(file_path, "rb") as fp:
+        with io.BytesIO(fp.read()) as bio:
+            with StataReader(bio) as reader:
+                assert reader.path_or_buf is bio
+                assert not reader.read().empty
+
+
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 @pytest.mark.parametrize("use_dict", [True, False])
 @pytest.mark.parametrize("infer", [True, False])

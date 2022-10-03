@@ -1163,15 +1163,23 @@ class StataReader(StataParser, abc.Iterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
-        with get_handle(
+
+        handles = get_handle(
             path_or_buf,
             "rb",
             storage_options=storage_options,
             is_text=False,
             compression=compression,
-        ) as handles:
-            # Copy to BytesIO, and ensure no encoding
-            self.path_or_buf = BytesIO(handles.handle.read())
+        )
+        if hasattr(handles.handle, "seekable") and handles.handle.seekable():
+            # If the handle is directly seekable, use it without an extra copy.
+            self.path_or_buf = handles.handle
+            self._close_file = handles.close
+        else:
+            # Copy to memory, and ensure no encoding.
+            with handles:
+                self.path_or_buf = BytesIO(handles.handle.read())
+            self._close_file = self.path_or_buf.close
 
         self._read_header()
         self._setup_dtype()
@@ -1191,7 +1199,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def close(self) -> None:
         """close the handle if its open"""
-        self.path_or_buf.close()
+        self._close_file()
 
     def _set_encoding(self) -> None:
         """
