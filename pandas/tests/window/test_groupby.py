@@ -1064,10 +1064,10 @@ class TestExpanding:
 
         result = getattr(r, f)(self.frame)
 
-        def func(x):
+        def func_0(x):
             return getattr(x.expanding(), f)(self.frame)
 
-        expected = g.apply(func)
+        expected = g.apply(func_0)
         # GH 39591: groupby.apply returns 1 instead of nan for windows
         # with all nan values
         null_idx = list(range(20, 61)) + list(range(72, 113))
@@ -1079,10 +1079,10 @@ class TestExpanding:
 
         result = getattr(r.B, f)(pairwise=True)
 
-        def func(x):
+        def func_1(x):
             return getattr(x.B.expanding(), f)(pairwise=True)
 
-        expected = g.apply(func)
+        expected = g.apply(func_1)
         tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw):

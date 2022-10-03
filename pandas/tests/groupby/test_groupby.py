@@ -112,6 +112,10 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 def test_groupby_return_type():
 
     # GH2893, return a reduced type
+
+    def func(dataf):
+        return dataf["val2"] - dataf["val2"].mean()
+
     df1 = DataFrame(
         [
             {"val1": 1, "val2": 20},
@@ -120,9 +124,6 @@ def test_groupby_return_type():
             {"val1": 2, "val2": 12},
         ]
     )
-
-    def func(dataf):
-        return dataf["val2"] - dataf["val2"].mean()
 
     with tm.assert_produces_warning(FutureWarning):
         result = df1.groupby("val1", squeeze=True).apply(func)
@@ -136,9 +137,6 @@ def test_groupby_return_type():
             {"val1": 1, "val2": 12},
         ]
     )
-
-    def func(dataf):
-        return dataf["val2"] - dataf["val2"].mean()
 
     with tm.assert_produces_warning(FutureWarning):
         result = df2.groupby("val1", squeeze=True).apply(func)
@@ -162,51 +160,51 @@ def test_inconsistent_return_type():
         }
     )
 
-    def f(grp):
+    def f_0(grp):
         return grp.iloc[0]
 
     expected = df.groupby("A").first()[["B"]]
-    result = df.groupby("A").apply(f)[["B"]]
+    result = df.groupby("A").apply(f_0)[["B"]]
     tm.assert_frame_equal(result, expected)
 
-    def f(grp):
+    def f_1(grp):
         if grp.name == "Tiger":
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f)[["B"]]
+    result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
     e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
 
-    def f(grp):
+    def f_2(grp):
         if grp.name == "Pony":
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f)[["B"]]
+    result = df.groupby("A").apply(f_2)[["B"]]
     e = expected.copy()
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
 
     # 5592 revisited, with datetimes
-    def f(grp):
+    def f_3(grp):
         if grp.name == "Pony":
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f)[["C"]]
+    result = df.groupby("A").apply(f_3)[["C"]]
     e = df.groupby("A").first()[["C"]]
     e.loc["Pony"] = pd.NaT
     tm.assert_frame_equal(result, e)
 
     # scalar outputs
-    def f(grp):
+    def f_4(grp):
         if grp.name == "Pony":
             return None
         return grp.iloc[0].loc["C"]
 
-    result = df.groupby("A").apply(f)
+    result = df.groupby("A").apply(f_4)
     e = df.groupby("A").first()["C"].copy()
     e.loc["Pony"] = np.nan
     e.name = None

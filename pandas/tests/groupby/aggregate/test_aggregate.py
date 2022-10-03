@@ -281,8 +281,8 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
 def test_aggregate_item_by_item(df):
     grouped = df.groupby("A")
 
-    aggfun = lambda ser: ser.size
-    result = grouped.agg(aggfun)
+    aggfun_0 = lambda ser: ser.size
+    result = grouped.agg(aggfun_0)
     foo = (df.A == "foo").sum()
     bar = (df.A == "bar").sum()
     K = len(result.columns)
@@ -294,10 +294,10 @@ def test_aggregate_item_by_item(df):
     exp = Series(np.array([bar] * K), index=list("BCD"), name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
-    def aggfun(ser):
+    def aggfun_1(ser):
         return ser.size
 
-    result = DataFrame().groupby(df.A).agg(aggfun)
+    result = DataFrame().groupby(df.A).agg(aggfun_1)
     assert isinstance(result, DataFrame)
     assert len(result) == 0
 

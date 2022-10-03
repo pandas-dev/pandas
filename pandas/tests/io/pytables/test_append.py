@@ -437,9 +437,6 @@ def test_append_with_strings(setup_path):
 
     with ensure_clean_store(setup_path) as store:
 
-        def check_col(key, name, size):
-            assert getattr(store.get_storer(key).table.description, name).itemsize, size
-
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
         # a min_itemsize that creates a data_column
