@@ -226,6 +226,12 @@ repos:
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: no-return-exception
+        name: Raise Exceptions instead of Return
+        entry: python scripts/no_return_exception.py
+        language: python
+        files: ^pandas/
+        types: [python]
     -   id: pandas-errors-documented
         name: Ensure pandas errors are documented in doc/source/reference/testing.rst
         entry: python scripts/pandas_errors_documented.py

@@ -4386,14 +4386,23 @@ class Index(IndexOpsMixin, PandasObject):
         return indexer
 
     @final
-    def _invalid_indexer(self, form: str_t, key) -> TypeError:
+    def _invalid_indexer(
+        self,
+        form: str_t,
+        key,
+        reraise: lib.no_default | None | Exception = lib.no_default,
+    ) -> None:
         """
         Consistent invalid indexer message.
         """
-        return TypeError(
+        msg = (
             f"cannot do {form} indexing on {type(self).__name__} with these "
             f"indexers [{key}] of type {type(key).__name__}"
         )
+        if reraise is not lib.no_default:
+            raise TypeError(msg) from reraise
+        else:
+            raise TypeError(msg)
 
     # --------------------------------------------------------------------
     # Reindex Methods
