@@ -67,7 +67,6 @@ class TestTimeConversionFormats:
         expected = to_datetime([])
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [Series, Index])
     @pytest.mark.parametrize(
         "format, expected",
         [
@@ -81,10 +80,10 @@ class TestTimeConversionFormats:
             ],
         ],
     )
-    def test_to_datetime_format(self, cache, box, format, expected):
-        values = box(["1/1/2000", "1/2/2000", "1/3/2000"])
+    def test_to_datetime_format(self, cache, index_or_series, format, expected):
+        values = index_or_series(["1/1/2000", "1/2/2000", "1/3/2000"])
         result = to_datetime(values, format=format, cache=cache)
-        expected = box(expected)
+        expected = index_or_series(expected)
         if isinstance(expected, Series):
             tm.assert_series_equal(result, expected)
         else:

@@ -924,10 +924,9 @@ class TestSeriesReductions:
         s = Series(["abc", True])
         assert s.any()
 
-    @pytest.mark.parametrize("klass", [Index, Series])
-    def test_numpy_all_any(self, klass):
+    def test_numpy_all_any(self, index_or_series):
         # GH#40180
-        idx = klass([0, 1, 2])
+        idx = index_or_series([0, 1, 2])
         assert not np.all(idx)
         assert np.any(idx)
         idx = Index([1, 2, 3])
