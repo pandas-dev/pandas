@@ -16,3 +16,13 @@ six==1.16.0
 tomli==2.0.1
 typing_extensions==4.3.0
 wheel==0.37.1
+black==22.3.0
+cpplint
+flake8==5.0.4
+flake8-bugbear
+isort
+mypy
+pre-commit
+pycodestyle
+pyupgrade
+

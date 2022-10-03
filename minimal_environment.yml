@@ -14,3 +14,14 @@ dependencies:
   - python-dateutil
   - numpy
   - pytz
+
+  # code checks
+  - black=22.3.0
+  - cpplint
+  - flake8=5.0.4
+  - flake8-bugbear=22.7.1 # used by flake8, find likely bugs
+  - isort>=5.2.1  # check that imports are in the right order
+  - mypy=0.971
+  - pre-commit>=2.15.0
+  - pycodestyle  # used by flake8
+  - pyupgrade
