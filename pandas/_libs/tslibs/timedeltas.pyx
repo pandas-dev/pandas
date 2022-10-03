@@ -1668,7 +1668,8 @@ class Timedelta(_Timedelta):
             if len(kwargs):
                 # GH#48898
                 raise ValueError(
-                    "Cannot pass both a Timedelta input and timedelta keyword arguments."
+                    "Cannot pass both a Timedelta input and timedelta keyword arguments, got "
+                    f"{list(kwargs.keys())}"
                 )
             return value
         elif isinstance(value, str):
