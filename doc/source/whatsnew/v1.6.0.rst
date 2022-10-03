@@ -246,6 +246,7 @@ Groupby/resample/rolling
 - Bug in :class:`.ExponentialMovingWindow` with ``online`` not raising a ``NotImplementedError`` for unsupported operations (:issue:`48834`)
 - Bug in :meth:`DataFrameGroupBy.sample` raises ``ValueError`` when the object is empty (:issue:`48459`)
 - Bug in :meth:`Series.groupby` raises ``ValueError`` when an entry of the index is equal to the name of the index (:issue:`48567`)
+- Bug in :meth:`DataFrameGroupBy.resample` produces inconsistent results when passing empty DataFrame (:issue:`47705`)
 -
 
 Reshaping
