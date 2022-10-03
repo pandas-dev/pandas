@@ -242,11 +242,10 @@ Package                                                          Minimum support
 
 .. _install.recommended_dependencies:
 
-Recommended dependencies
+Performance dependencies (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-pandas recommends the following optional dependencies for performance gains. Can be managed via the
-``performance`` extra when defining the pandas requirement.
+pandas recommends the following optional dependencies for performance gains. These dependencies can be specifically installed with ``pandas[performance]`` (i.e. add as optional_extra to the pandas requirement)
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
@@ -277,8 +276,8 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
-Optional pandas dependencies can be managed as extras (e.g.,``pandas[performance, aws]>=1.5.0``)
-in a requirements.txt, setup or pyproject.toml file.
+Optional pandas dependencies can be managed as optional extras (e.g.,``pandas[performance, aws]>=1.5.0``)
+in a requirements.txt, setup, or pyproject.toml file.
 Available optional dependencies are ``[all, performance, computation, aws,
 gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql, sql-other, html, xml,
 plot, output_formatting, compression, test]``
@@ -286,7 +285,8 @@ plot, output_formatting, compression, test]``
 Visualization
 ^^^^^^^^^^^^^
 
-Can be managed with the ``plot, output_formatting`` extras, depending on the required functionality
+Can be managed as optional_extra with ``pandas[plot, output_formatting]``,
+depending on the required functionality.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -299,7 +299,7 @@ tabulate                  0.8.9              Printing in Markdown-friendly forma
 Computation
 ^^^^^^^^^^^
 
-Can be managed with the ``computation`` extra.
+Can be managed as optional_extra with ``pandas[computation]``.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -311,7 +311,7 @@ xarray                    0.19.0             pandas-like API for N-dimensional d
 Excel files
 ^^^^^^^^^^^
 
-Can be managed with the ``excel`` extra.
+Can be managed as optional_extra with ``pandas[excel]``.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -326,7 +326,7 @@ pyxlsb                    1.0.8              Reading for xlsb files
 HTML
 ^^^^
 
-Can be managed with the ``html`` extra.
+These dependencies can be specifically installed with ``pandas[html]``.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -363,7 +363,7 @@ top-level :func:`~pandas.read_html` function:
 XML
 ^^^
 
-Can be managed with the ``xml`` extra.
+Can be managed as optional_extra with ``pandas[xml]``.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -374,7 +374,8 @@ lxml                      4.6.3              XML parser for read_xml and tree bu
 SQL databases
 ^^^^^^^^^^^^^
 
-Can be managed with the ``postgresql, mysql, sql-other`` extras, depending on required sql compatibility.
+Can be managed as optional_extra with ``pandas[postgresql, mysql, sql-other]``,
+depending on required sql compatibility.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -387,7 +388,8 @@ pymysql                   1.0.2              MySQL engine for sqlalchemy
 Other data sources
 ^^^^^^^^^^^^^^^^^^
 
-Can be managed with the ``hdf5, parquet, feather, spss, excel`` extras, depending on required compatibility.
+Can be managed as optional_extra with ``pandas[hdf5, parquet, feather, spss, excel]``,
+depending on required compatibility.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -419,7 +421,7 @@ odfpy                     1.4.1              Open document format (.odf, .ods, .
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Can be managed with the ``aws, gcp`` extras, depending on required compatibility.
+Can be managed as optional_extra with ``pandas[aws, gcp]``, depending on required compatibility.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
@@ -448,7 +450,8 @@ xsel                                         Clipboard I/O on linux
 Compression
 ^^^^^^^^^^^
 
-Can be managed with the ``compression`` extra.
+Can be managed as optional_extra with ``pandas[compression]``.
+If only one specific compression lib is required, please request it as an independent requirement.
 
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
