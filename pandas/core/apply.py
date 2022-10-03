@@ -506,7 +506,7 @@ class Apply(metaclass=abc.ABCMeta):
                 ktu._set_names(selected_obj.columns.names)
                 keys_to_use = ktu
 
-            axis = 0 if isinstance(obj, ABCSeries) else 1
+            axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
             # error: Key expression in dictionary comprehension has incompatible type
             # "Hashable"; expected type "NDFrame"  [misc]
             result = concat(
@@ -932,7 +932,7 @@ class FrameApply(NDFrameApply):
 
 
 class FrameRowApply(FrameApply):
-    axis = 0
+    axis: AxisInt = 0
 
     def apply_broadcast(self, target: DataFrame) -> DataFrame:
         return super().apply_broadcast(target)
@@ -992,7 +992,7 @@ class FrameRowApply(FrameApply):
 
 
 class FrameColumnApply(FrameApply):
-    axis = 1
+    axis: AxisInt = 1
 
     def apply_broadcast(self, target: DataFrame) -> DataFrame:
         result = super().apply_broadcast(target.T)
@@ -1069,7 +1069,7 @@ class FrameColumnApply(FrameApply):
 
 class SeriesApply(NDFrameApply):
     obj: Series
-    axis = 0
+    axis: AxisInt = 0
 
     def __init__(
         self,
@@ -1199,7 +1199,7 @@ class GroupByApply(Apply):
 
 
 class ResamplerWindowApply(Apply):
-    axis = 0
+    axis: AxisInt = 0
     obj: Resampler | BaseWindow
 
     def __init__(
