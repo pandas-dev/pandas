@@ -13,7 +13,6 @@ from numpy cimport (
     ndarray,
     uint8_t,
 )
-from numpy.math cimport NAN
 
 cnp.import_array()
 
@@ -35,6 +34,7 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
+    float64_t NaN = <float64_t>np.NaN
 
     int64_t NPY_NAT = util.get_nat()
 
@@ -404,8 +404,8 @@ class NAType(C_NAType):
     def __repr__(self) -> str:
         return "<NA>"
 
-    def __float__(self):
-        return NAN
+    def __float__(self) -> float64_t:
+        return NaN
 
     def __format__(self, format_spec) -> str:
         try:
