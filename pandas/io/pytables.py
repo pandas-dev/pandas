@@ -137,7 +137,7 @@ def _ensure_decoded(s):
     return s
 
 
-def _ensure_encoding(encoding):
+def _ensure_encoding(encoding: str | None) -> str:
     # set the encoding if we need
     if encoding is None:
         encoding = _default_encoding
@@ -543,8 +543,6 @@ class HDFStore:
 
     _handle: File | None
     _mode: str
-    _complevel: int
-    _fletcher32: bool
 
     def __init__(
         self,
@@ -1043,7 +1041,7 @@ class HDFStore:
         _tbls = [x for x in tbls if isinstance(x, Table)]
 
         # axis is the concentration axes
-        axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
+        axis = {t.non_index_axes[0][0] for t in _tbls}.pop()
 
         def func(_start, _stop, _where):
 
@@ -1975,9 +1973,6 @@ class IndexCol:
     is_data_indexable: bool = True
     _info_fields = ["freq", "tz", "index_name"]
 
-    name: str
-    cname: str
-
     def __init__(
         self,
         name: str,
@@ -2310,7 +2305,7 @@ class DataCol(IndexCol):
         values=None,
         kind=None,
         typ=None,
-        cname=None,
+        cname: str | None = None,
         pos=None,
         tz=None,
         ordered=None,
@@ -2622,17 +2617,14 @@ class Fixed:
     format_type: str = "fixed"  # GH#30962 needed by dask
     obj_type: type[DataFrame | Series]
     ndim: int
-    encoding: str
     parent: HDFStore
-    group: Node
-    errors: str
     is_table: bool = False
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding: str = "UTF-8",
+        encoding: str | None = "UTF-8",
         errors: str = "strict",
     ) -> None:
         assert isinstance(parent, HDFStore), type(parent)
@@ -3306,24 +3298,19 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1
     is_table = True
 
-    index_axes: list[IndexCol]
-    non_index_axes: list[tuple[int, Any]]
-    values_axes: list[DataCol]
-    data_columns: list
     metadata: list
-    info: dict
 
     def __init__(
         self,
         parent: HDFStore,
         group: Node,
-        encoding=None,
+        encoding: str | None = None,
         errors: str = "strict",
-        index_axes=None,
-        non_index_axes=None,
-        values_axes=None,
-        data_columns=None,
-        info=None,
+        index_axes: list[IndexCol] | None = None,
+        non_index_axes: list[tuple[AxisInt, Any]] | None = None,
+        values_axes: list[DataCol] | None = None,
+        data_columns: list | None = None,
+        info: dict | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
