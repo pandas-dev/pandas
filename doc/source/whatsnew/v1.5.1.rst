@@ -10,19 +10,6 @@ including other versions of pandas.
 
 .. --------------------------------------------------------------------------
 
-.. _whatsnew_151.enhancements.optional_dependency_management:
-
-Optional dependencies version management
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Optional pandas dependencies can be managed as extras in a requirements/setup file, for example:
-
-.. code-block:: python
-
-  pandas[performance, aws]>=1.5.1
-
-Available optional dependencies are ``[all, performance, computation, timezone aws, gcp, excel, parquet, feather, hdf5,
-spss, postgresql, mysql, sql-other, html, xml, plot, output_formatting, compression, test]`` (:issue:`39164`)
-
 .. _whatsnew_151.groupby_categorical_regr:
 
 Behavior of ``groupby`` with categorical groupers (:issue:`48645`)
