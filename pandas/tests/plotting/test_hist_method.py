@@ -594,7 +594,7 @@ class TestDataFramePlots(TestPlotBase):
         no_nan_df.plot.hist(ax=ax1, weights=no_nan_weights)
         no_nan_rects = [x for x in ax1.get_children() if isinstance(x, Rectangle)]
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
-        assert all([h0 == h1 for h0, h1 in zip(heights, no_nan_heights)])
+        assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights))
 
 
 @td.skip_if_no_mpl
